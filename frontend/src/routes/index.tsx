@@ -14,6 +14,7 @@ import { CoursesList } from '@/pages/courses/CoursesList';
 import { CourseView } from '@/pages/courses/CourseView';
 import { AdminDashboard } from '@/pages/admin/AdminDashboard';
 import { AdminCourses } from '@/pages/admin/AdminCourses';
+import { AdminCourseDetails } from '@/pages/admin/AdminCourseDetails';
 import { AdminStudents } from '@/pages/admin/AdminStudents';
 import { AdminInstructors } from '@/pages/admin/AdminInstructors';
 import { StudentRoute } from '@/components/auth/StudentRoute';
@@ -66,6 +67,7 @@ const router = createBrowserRouter([
     children: [
       { path: 'dashboard', element: <AdminDashboard /> },
       { path: 'courses', element: <AdminCourses /> },
+      { path: 'courses/:courseId', element: <AdminCourseDetails /> },
       { path: 'students', element: <AdminStudents /> },
       { path: 'instructors', element: <AdminInstructors /> },
     ],
