@@ -474,39 +474,40 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
           <div className="space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-sky-200">
               <h2 className="font-heading font-bold text-xs text-sky-900 uppercase tracking-wider flex items-center gap-2">
-                <Layers className="w-4 h-4 text-sky-600" /> Syllabus Flow ({syllabus.length})
+                <Layers className="w-4 h-4 text-sky-600" /> Course Modules ({syllabus.length})
               </h2>
               <span className="text-[11px] font-semibold text-slate-500">{course.duration}</span>
             </div>
 
             <div className="space-y-2.5">
               {syllabus.map((mod, idx) => {
-                // Hide remaining uncompleted modules completely while inside a module
-                if (idx !== activeModuleIdx && !completedModules.includes(idx)) {
-                  return null;
-                }
-
                 const isActive = idx === activeModuleIdx;
                 const isCompleted = completedModules.includes(idx);
+                const isLocked = !canAccessModule(idx);
                 const hasPoints = claimedPointsModules.includes(idx);
 
                 return (
                   <button
                     key={mod.id || idx}
                     onClick={() => {
-                      if (idx > 0 && !completedModules.includes(idx - 1)) {
+                      if (isLocked) {
                         setLockedModulePopup(idx);
-                        toast.error(`🔒 Please complete Module 0${idx} first before unlocking Module 0${idx + 1}!`);
+                        toast.error(`🔒 Strict Order Lock: Please complete Module 0${idx} in order first!`);
                         return;
                       }
                       setActiveModuleIdx(idx);
+                      setCurrentLessonIdx(0);
+                      setCurrentSubtopicIdx(0);
                       setMobileMenuOpen(false);
+                      toast.success(`Switched to Module 0${idx + 1}!`);
                     }}
                     className={`w-full text-left p-3.5 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 ${
                       isActive
                         ? 'bg-sky-600 border-sky-500 text-white shadow-md shadow-sky-600/20'
                         : isCompleted
                         ? 'bg-emerald-50 border-emerald-200 text-emerald-900 hover:bg-emerald-100/60'
+                        : isLocked
+                        ? 'bg-slate-100/70 border-slate-200 text-slate-400 opacity-70 cursor-not-allowed'
                         : 'bg-white border-sky-100 text-slate-700 hover:bg-sky-100/50'
                     }`}
                   >
@@ -516,9 +517,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                       ) : isActive ? (
                         <PlayCircle className="w-4 h-4 text-white animate-pulse" />
                       ) : (
-                        <div className="w-4 h-4 rounded-full border border-sky-300 text-[10px] font-bold flex items-center justify-center text-sky-600">
-                          {idx + 1}
-                        </div>
+                        <Lock className="w-4 h-4 text-slate-400" />
                       )}
                     </div>
 
@@ -527,11 +526,15 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                         <span className={`font-bold block leading-snug ${isActive ? 'text-white' : 'text-slate-900'}`}>
                           Module 0{idx + 1}
                         </span>
-                        {hasPoints && (
+                        {hasPoints ? (
                           <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-300">
                             +50 XP
                           </span>
-                        )}
+                        ) : isLocked ? (
+                          <span className="text-[9px] font-bold text-slate-500 bg-slate-200 px-1.5 py-0.5 rounded">
+                            🔒 Locked
+                          </span>
+                        ) : null}
                       </div>
                       <span className={`text-[11px] font-semibold block leading-tight ${isActive ? 'text-sky-100' : 'text-slate-600'}`}>
                         {mod.title.replace(/^(🟢|🟡|🔵|🔴)\s*Module \d+:\s*/, '')}
