@@ -20,7 +20,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full bg-slate-50/80 hover:bg-slate-50 border border-sky-200 rounded-2xl py-2.5 pl-11 pr-10 text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 transition-all"
+        className="w-full bg-slate-50/80 hover:bg-slate-50 border border-sky-200 rounded-2xl py-2.5 pl-11 pr-10 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 transition-all"
       />
       {value && (
         <button
