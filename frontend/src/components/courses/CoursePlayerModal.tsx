@@ -225,21 +225,18 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
     }
   }, [course.id, activeModuleIdx, currentLessonIdx, currentSubtopicIdx, completedSubtopics, completedModules, progressPercent, currentLesson, currentSubtopic]);
 
-  // Quick & Fast Spend Timer: Auto-calculated between 5 to 15 seconds based on content length
-  const requiredSubtopicSeconds = Math.min(
-    15,
-    Math.max(5, Math.round((currentSubtopic?.content || '').length / 200))
-  );
+  // Mandatory 15 Seconds Spended Time per Subtopic before Claiming XP
+  const requiredSubtopicSeconds = 15;
+
+  useEffect(() => {
+    setTimerSeconds(0);
+  }, [activeModuleIdx, currentLessonIdx, currentSubtopicIdx]);
 
   useEffect(() => {
     const interval = setInterval(() => {
       setTimerSeconds((prev) => prev + 1);
     }, 1000);
     return () => clearInterval(interval);
-  }, [activeModuleIdx, currentLessonIdx, currentSubtopicIdx]);
-
-  useEffect(() => {
-    setTimerSeconds(0);
   }, [activeModuleIdx, currentLessonIdx, currentSubtopicIdx]);
 
   const remainingSeconds = Math.max(0, requiredSubtopicSeconds - timerSeconds);
@@ -531,15 +528,15 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                 {/* Subtopic Focus Spend Timer Widget */}
                 <div className="flex items-center gap-3">
                   <div className={`p-3 rounded-2xl border flex items-center gap-3 transition-colors ${
-                    isSubtopicTimeMet
+                    isSubtopicTimeMet || isSubtopicCompleted
                       ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
-                      : 'bg-white border-sky-200 text-slate-800 shadow-xs'
+                      : 'bg-amber-50 border-amber-300 text-amber-900 shadow-xs'
                   }`}>
-                    <Clock className={`w-4 h-4 ${isSubtopicTimeMet ? 'text-emerald-600 animate-pulse' : 'text-sky-600'}`} />
+                    <Clock className={`w-4 h-4 ${isSubtopicTimeMet || isSubtopicCompleted ? 'text-emerald-600 animate-pulse' : 'text-amber-600 animate-spin'}`} />
                     <div className="text-xs font-mono">
-                      <span className="block text-[10px] font-bold text-slate-500 font-sans uppercase">Focus Timer</span>
+                      <span className="block text-[10px] font-bold text-slate-500 font-sans uppercase">Spended Time (Min 15s)</span>
                       <span className="font-extrabold text-sm text-slate-900">
-                        {formatTime(timerSeconds)} / {formatTime(requiredSubtopicSeconds)}
+                        {formatTime(timerSeconds)} / 00:15
                       </span>
                     </div>
                   </div>
@@ -733,17 +730,25 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                       </button>
 
                       {!isSubtopicTimeMet && !isSubtopicCompleted ? (
-                        <button
-                          disabled
-                          className="py-3 px-6 rounded-2xl bg-slate-100 border border-slate-200 text-slate-400 font-bold text-xs flex items-center gap-2 cursor-not-allowed"
-                        >
-                          <Lock className="w-4 h-4 text-slate-400" />
-                          <span>🔒 Spend {remainingSeconds}s to unlock +20 XP</span>
-                        </button>
+                        <div className="flex flex-col items-center gap-1.5 w-full sm:w-auto">
+                          <button
+                            disabled
+                            className="py-3 px-6 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 font-extrabold text-xs flex items-center justify-center gap-2 cursor-not-allowed shadow-xs w-full sm:w-auto"
+                          >
+                            <Clock className="w-4 h-4 text-amber-600 animate-spin" />
+                            <span>⏳ Spended Time: {timerSeconds}s / 15s (Claim XP unlocks in {remainingSeconds}s)</span>
+                          </button>
+                          <div className="w-full bg-amber-100 h-1.5 rounded-full overflow-hidden">
+                            <div
+                              className="bg-amber-500 h-1.5 rounded-full transition-all duration-300"
+                              style={{ width: `${Math.min(100, Math.round((timerSeconds / 15) * 100))}%` }}
+                            />
+                          </div>
+                        </div>
                       ) : (
                         <button
                           onClick={handleCompleteSubtopic}
-                          className={`py-3.5 px-7 rounded-2xl text-white font-extrabold text-xs shadow-md flex items-center gap-2 cursor-pointer transition-all duration-300 ${
+                          className={`py-3.5 px-7 rounded-2xl text-white font-extrabold text-xs shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all duration-300 w-full sm:w-auto ${
                             isSubtopicCompleted
                               ? 'bg-sky-600 hover:bg-sky-700 shadow-sky-600/20'
                               : 'bg-linear-to-r from-sky-600 via-indigo-600 to-amber-500 hover:from-sky-500 hover:to-amber-400 shadow-sky-500/25 animate-bounce'
