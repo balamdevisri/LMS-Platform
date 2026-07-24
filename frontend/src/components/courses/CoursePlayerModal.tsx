@@ -288,7 +288,24 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
       setCurrentSubtopicIdx(0);
       toast.success(`Topic Complete! Moving to ${activeCurriculum[currentLessonIdx + 1].title}!`);
     } else {
-      toast.success(`🎉 Module ${activeModuleIdx + 1} Fully Mastered! XP Bonus Granted!`);
+      if (!completedModules.includes(activeModuleIdx)) {
+        setCompletedModules((prev) => [...prev, activeModuleIdx]);
+        if (!claimedPointsModules.includes(activeModuleIdx)) {
+          setClaimedPointsModules((prev) => [...prev, activeModuleIdx]);
+          const newXP = courseService.addXPPoints(50);
+          setUserXP(newXP);
+          courseService.addXPClaim({
+            id: `mod_bonus_${Date.now()}`,
+            title: `Module 0${activeModuleIdx + 1} Mastery Bonus`,
+            xp: 50,
+            category: 'Module Completion Bonus',
+            timestamp: new Date().toISOString(),
+            courseId: course.id,
+            courseTitle: course.title,
+          });
+        }
+      }
+      toast.success(`🎉 Module 0${activeModuleIdx + 1} 100% Completed! Next Module Unlocked!`);
     }
   };
 
@@ -428,6 +445,11 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
 
             <div className="space-y-2.5">
               {syllabus.map((mod, idx) => {
+                // Hide remaining uncompleted modules completely while inside a module
+                if (idx !== activeModuleIdx && !completedModules.includes(idx)) {
+                  return null;
+                }
+
                 const isActive = idx === activeModuleIdx;
                 const isCompleted = completedModules.includes(idx);
                 const hasPoints = claimedPointsModules.includes(idx);
@@ -769,6 +791,33 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                       )}
                     </div>
                   </div>
+
+                  {/* MODULE 100% COMPLETED NEXT MODULE NAVIGATOR BANNER */}
+                  {completedModules.includes(activeModuleIdx) && activeModuleIdx < syllabus.length - 1 && (
+                    <div className="p-6 sm:p-8 rounded-3xl bg-linear-to-r from-emerald-600 via-sky-600 to-indigo-600 text-white shadow-xl space-y-4 font-['Sora'] text-center animate-in zoom-in-95 border border-sky-300">
+                      <div className="flex items-center justify-center gap-2">
+                        <Sparkles className="w-6 h-6 text-amber-300 animate-pulse" />
+                        <h3 className="font-heading font-extrabold text-xl sm:text-2xl">Module 0{activeModuleIdx + 1} 100% Completed!</h3>
+                      </div>
+                      <p className="text-xs sm:text-sm text-sky-100 font-medium max-w-xl mx-auto">
+                        Awesome effort! You have completed all lessons and claimed XP in Module 0{activeModuleIdx + 1}. You can now navigate to the Next Module below!
+                      </p>
+                      <button
+                        onClick={() => {
+                          const nextIdx = activeModuleIdx + 1;
+                          setActiveModuleIdx(nextIdx);
+                          setCurrentLessonIdx(0);
+                          setCurrentSubtopicIdx(0);
+                          toast.success(`🚀 Unlocked & Navigated to Module 0${nextIdx + 1}!`);
+                        }}
+                        className="py-3.5 px-8 rounded-2xl bg-white text-slate-900 font-extrabold text-xs sm:text-sm shadow-lg hover:bg-sky-50 transition-all cursor-pointer inline-flex items-center gap-2.5 hover:scale-103"
+                      >
+                        <span>Navigate to Next Module (Module 0{activeModuleIdx + 2}) ➔</span>
+                        <ChevronRight className="w-4 h-4 text-sky-600" />
+                      </button>
+                    </div>
+                  )}
+
                 </div>
               </div>
             )}
