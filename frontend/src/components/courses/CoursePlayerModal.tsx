@@ -668,6 +668,11 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                         const isCur = sIdx === currentSubtopicIdx;
                         const isDone = completedSubtopics.includes(sub.id);
 
+                        // Hide future topics completely until preceding topic is completed & claimed
+                        if (!isCur && !isDone) {
+                          return null;
+                        }
+
                         return (
                           <button
                             key={sub.id}
@@ -1203,7 +1208,40 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                           )}
                         </div>
                         <h4 className="font-bold text-sm mt-0.5">{mod.title}</h4>
-                        <span className="text-xs text-slate-500 block mt-0.5">{mod.duration}</span>
+                        <span className="text-xs text-slate-500 block mt-0.5">{mod.duration} • 5 Lessons</span>
+
+                        {/* Detailed Lesson Index Tree */}
+                        <div className="mt-3 pt-3 border-t border-sky-100/60 space-y-1.5 font-mono text-[11px]">
+                          {idx === 0 && (
+                            <>
+                              <div className="flex items-center justify-between text-slate-600">
+                                <span>101 • 1.1 Unix & Linux OS Architecture</span>
+                                <span>45 mins</span>
+                              </div>
+                              <div className="flex items-center justify-between text-slate-600">
+                                <span>102 • 1.2 Shell Architecture & Command Anatomy</span>
+                                <span>60 mins</span>
+                              </div>
+                              <div className="flex items-center justify-between text-slate-600">
+                                <span>103 • 1.3 Navigating Files & Directories</span>
+                                <span>50 mins</span>
+                              </div>
+                              <div className="flex items-center justify-between text-slate-600">
+                                <span>104 • 1.4 Creating, Copying, Moving & Deleting</span>
+                                <span>60 mins</span>
+                              </div>
+                              <div className="flex items-center justify-between text-slate-600">
+                                <span>105 • 1.5 Quiz & Hands-on Terminal Practice</span>
+                                <span>30 mins</span>
+                              </div>
+                            </>
+                          )}
+                          {idx > 0 && (
+                            <span className="text-[10px] text-slate-400 font-sans italic">
+                              5 Lessons • Complete preceding modules to view details
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
 
