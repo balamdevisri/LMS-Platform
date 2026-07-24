@@ -250,6 +250,32 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
   const isSubtopicTimeMet = timerSeconds >= requiredSubtopicSeconds;
   const isSubtopicCompleted = completedSubtopics.includes(currentSubtopic?.id || '');
 
+  // Strict Sequential Lock Validation
+  const canAccessSubtopic = (lessonIndex: number, subtopicIndex: number): boolean => {
+    if (lessonIndex === 0 && subtopicIndex === 0) return true;
+
+    for (let l = 0; l <= lessonIndex; l++) {
+      const lesson = activeCurriculum[l];
+      if (!lesson) continue;
+      const maxSubIdx = l === lessonIndex ? subtopicIndex - 1 : lesson.subtopics.length - 1;
+      for (let s = 0; s <= maxSubIdx; s++) {
+        const sub = lesson.subtopics[s];
+        if (sub && !completedSubtopics.includes(sub.id)) {
+          return false;
+        }
+      }
+    }
+    return true;
+  };
+
+  const canAccessModule = (moduleIdx: number): boolean => {
+    if (moduleIdx === 0) return true;
+    for (let m = 0; m < moduleIdx; m++) {
+      if (!completedModules.includes(m)) return false;
+    }
+    return true;
+  };
+
   const handleCompleteSubtopic = () => {
     if (!isSubtopicTimeMet && !isSubtopicCompleted) {
       toast.warning(`⏳ Required focus time not reached! Spend ${remainingSeconds} seconds more studying this subtopic.`);
@@ -643,10 +669,10 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                           <button
                             key={sub.id}
                             onClick={() => {
-                              if (isDone || isCur || sIdx === 0 || completedSubtopics.includes(currentLesson.subtopics[sIdx - 1]?.id)) {
+                              if (canAccessSubtopic(currentLessonIdx, sIdx)) {
                                 setCurrentSubtopicIdx(sIdx);
                               } else {
-                                toast.warning(`🔒 Subtopic ${sub.id} is locked! Complete preceding subtopics first.`);
+                                toast.error(`🔒 Strict Order Lock: You must complete preceding subtopics in order first!`);
                               }
                             }}
                             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 border ${
@@ -1118,14 +1144,14 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
               {syllabus.map((mod, idx) => {
                 const isActive = idx === activeModuleIdx;
                 const isCompleted = completedModules.includes(idx);
-                const isLocked = idx > 0 && !completedModules.includes(idx - 1);
+                const isLocked = !canAccessModule(idx);
 
                 return (
                   <div
                     key={mod.id || idx}
                     onClick={() => {
                       if (isLocked) {
-                        toast.error(`🔒 Please complete Module 0${idx} first before unlocking Module 0${idx + 1}!`);
+                        toast.error(`🔒 Strict Order Lock: Please complete Module 0${idx} in order before unlocking Module 0${idx + 1}!`);
                         return;
                       }
                       setActiveModuleIdx(idx);
