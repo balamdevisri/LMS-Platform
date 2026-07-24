@@ -653,17 +653,15 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                               isCur
                                 ? 'bg-sky-600 text-white border-sky-500 shadow-md shadow-sky-600/20'
                                 : isDone
-                                ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
+                                ? 'bg-sky-50 border-sky-200 text-sky-900 font-semibold'
                                 : 'bg-slate-100 border-slate-200 text-slate-400 opacity-60'
                             }`}
                           >
-                            {isDone ? (
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                            ) : isCur ? (
+                            {isCur ? (
                               <PlayCircle className="w-3.5 h-3.5 text-white animate-pulse" />
-                            ) : (
+                            ) : !isDone ? (
                               <Lock className="w-3.5 h-3.5 text-slate-400" />
-                            )}
+                            ) : null}
                             <span>Subtopic {sub.id}</span>
                           </button>
                         );
