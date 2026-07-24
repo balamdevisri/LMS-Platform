@@ -160,6 +160,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
   const [isResourcesOpen, setIsResourcesOpen] = useState(false);
   const [isReadingMode, setIsReadingMode] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isModulesMenuOpen, setIsModulesMenuOpen] = useState(false);
 
   // Encouragement & Module Locking Popup Overlays
   const [celebrationMessage, setCelebrationMessage] = useState<string | null>(null);
@@ -389,6 +390,15 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4">
+          {/* Modules Menu Drawer Button */}
+          <button
+            onClick={() => setIsModulesMenuOpen(true)}
+            className="py-1.5 px-3.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-extrabold flex items-center gap-2 cursor-pointer transition-all shadow-md shadow-sky-600/20"
+          >
+            <Layers className="w-4 h-4 text-white" />
+            <span>Modules Menu</span>
+          </button>
+
           {/* Reading Mode Toggle Button */}
           <button
             onClick={() => {
@@ -1082,6 +1092,99 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
             >
               Close Resources Drawer
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ALL COURSE MODULES MENU DRAWER MODAL */}
+      {isModulesMenuOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-sky-100 rounded-3xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl font-['Sora']">
+            <div className="p-5 border-b border-sky-100 flex items-center justify-between bg-sky-50/80">
+              <div className="flex items-center gap-2.5">
+                <Layers className="w-5 h-5 text-sky-600" />
+                <div>
+                  <h3 className="font-heading font-extrabold text-base text-slate-900">Course Modules Syllabus Menu</h3>
+                  <p className="text-xs text-slate-500 font-medium">Click any unlocked module to navigate directly</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsModulesMenuOpen(false)}
+                className="p-2 rounded-xl bg-white border border-sky-200 hover:bg-rose-50 hover:text-rose-600 text-slate-500 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 overflow-y-auto space-y-3 flex-1">
+              {syllabus.map((mod, idx) => {
+                const isActive = idx === activeModuleIdx;
+                const isCompleted = completedModules.includes(idx);
+                const isLocked = idx > 0 && !completedModules.includes(idx - 1);
+
+                return (
+                  <div
+                    key={mod.id || idx}
+                    onClick={() => {
+                      if (isLocked) {
+                        toast.error(`🔒 Please complete Module 0${idx} first before unlocking Module 0${idx + 1}!`);
+                        return;
+                      }
+                      setActiveModuleIdx(idx);
+                      setCurrentLessonIdx(0);
+                      setCurrentSubtopicIdx(0);
+                      setIsModulesMenuOpen(false);
+                      toast.success(`Switched to Module 0${idx + 1}!`);
+                    }}
+                    className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-4 ${
+                      isActive
+                        ? 'bg-sky-600 border-sky-500 text-white shadow-md shadow-sky-600/20'
+                        : isCompleted
+                        ? 'bg-emerald-50 border-emerald-200 text-emerald-950 hover:bg-emerald-100/60'
+                        : isLocked
+                        ? 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed opacity-75'
+                        : 'bg-white border-sky-100 text-slate-800 hover:bg-sky-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3.5">
+                      <div className="shrink-0">
+                        {isCompleted ? (
+                          <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                        ) : isActive ? (
+                          <PlayCircle className="w-5 h-5 text-white animate-pulse" />
+                        ) : (
+                          <Lock className="w-5 h-5 text-slate-400" />
+                        )}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-heading font-extrabold text-xs">Module 0{idx + 1}</span>
+                          {isCompleted && (
+                            <span className="text-[10px] font-extrabold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md border border-emerald-300">
+                              ✓ Completed
+                            </span>
+                          )}
+                          {isActive && (
+                            <span className="text-[10px] font-extrabold bg-sky-100 text-sky-800 px-2 py-0.5 rounded-md border border-sky-300">
+                              Active Learning
+                            </span>
+                          )}
+                          {isLocked && (
+                            <span className="text-[10px] font-extrabold bg-slate-200 text-slate-600 px-2 py-0.5 rounded-md border border-slate-300">
+                              🔒 Locked
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="font-bold text-sm mt-0.5">{mod.title}</h4>
+                        <span className="text-xs text-slate-500 block mt-0.5">{mod.duration}</span>
+                      </div>
+                    </div>
+
+                    <ChevronRight className={`w-5 h-5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
