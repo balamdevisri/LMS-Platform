@@ -2103,17 +2103,17 @@ export const CourseView: React.FC = () => {
                                       <span>Previous Topic</span>
                                     </button>
 
-                                    <button
-                                      onClick={() => toggleLessonComplete(lesson.id)}
-                                      className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer ${
-                                        isDone
-                                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                          : 'bg-emerald-600 hover:bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/10'
-                                      }`}
-                                    >
-                                      <CheckCircle2 className="w-4 h-4" />
-                                      <span>{isDone ? 'Topic Completed' : 'Mark as Complete'}</span>
-                                    </button>
+                                    {isDone ? (
+                                      <div className="px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                                        <span>✓ Topic Completed</span>
+                                      </div>
+                                    ) : (
+                                      <div className="px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-amber-50 text-amber-800 border border-amber-200">
+                                        <Clock className="w-4 h-4 text-amber-600" />
+                                        <span>Spend 15s & Claim XP to Complete</span>
+                                      </div>
+                                    )}
 
                                     <button
                                       disabled={!hasNextLesson}
