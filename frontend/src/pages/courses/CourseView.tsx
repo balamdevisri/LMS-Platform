@@ -1468,14 +1468,7 @@ export const CourseView: React.FC = () => {
     setTerminalInput('');
   };
 
-  const toggleLessonComplete = (lessonId: number | string) => {
-    if (completedLessons.includes(lessonId)) {
-      setCompletedLessons(completedLessons.filter((id) => id !== lessonId));
-    } else {
-      setCompletedLessons([...completedLessons, lessonId]);
-      toast.success('Lesson marked as completed!');
-    }
-  };
+
 
   const calculateScore = () => {
     let score = 0;
@@ -1932,7 +1925,6 @@ export const CourseView: React.FC = () => {
                   {isOpen && (
                     <div className="p-4 border-t border-sky-100 space-y-3 bg-slate-50">
                       {mod.lessons.map((lesson) => {
-                        const isDone = completedLessons.includes(lesson.id);
                         const isSelected = selectedLessonId === lesson.id;
                         return (
                           <div key={lesson.id} className="space-y-2">
@@ -1944,14 +1936,9 @@ export const CourseView: React.FC = () => {
                               }`}
                             >
                               <div className="flex items-center gap-3 min-w-0">
-                                <button
-                                  onClick={() => toggleLessonComplete(lesson.id)}
-                                  className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
-                                    isDone ? 'bg-emerald-500 text-white' : 'border border-slate-300 hover:border-sky-500'
-                                  }`}
-                                >
-                                  {isDone && <CheckCircle2 className="w-3.5 h-3.5" />}
-                                </button>
+                                <div className="w-5.5 h-5.5 rounded-full bg-sky-100 border border-sky-200 text-sky-800 font-extrabold text-[10px] flex items-center justify-center shrink-0">
+                                  {lesson.id}
+                                </div>
                                 <button
                                   onClick={() => setSelectedLessonId(isSelected ? null : lesson.id)}
                                   className="text-left font-bold text-slate-900 hover:text-sky-600 transition-colors truncate cursor-pointer"
