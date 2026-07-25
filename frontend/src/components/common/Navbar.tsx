@@ -61,10 +61,10 @@ export const Navbar: React.FC = () => {
     if (userProfile.role === 'admin') {
       return [
         { name: 'Dashboard', href: '/admin/dashboard' },
+        { name: 'Users', href: '/admin/users' },
         { name: 'Courses', href: '/#courses' },
-        { name: 'Students', href: '/admin/dashboard' },
-        { name: 'Analytics', href: '/admin/dashboard' },
-        { name: 'Settings', href: '/admin/dashboard' },
+        { name: 'Students', href: '/admin/students' },
+        { name: 'Instructors', href: '/admin/instructors' },
       ];
     }
 
@@ -78,6 +78,9 @@ export const Navbar: React.FC = () => {
   };
 
   const navLinks = getNavLinks();
+
+  const avatarUrl = userProfile?.photoURL || user?.photoURL || undefined;
+  const userInitial = userProfile?.name?.charAt(0).toUpperCase() || user?.displayName?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'S';
 
   return (
     <header
@@ -114,50 +117,75 @@ export const Navbar: React.FC = () => {
                 {/* User Avatar Dropdown Trigger Button */}
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-2.5 p-1.5 pr-3 bg-white hover:bg-sky-50 border border-sky-200 rounded-full transition-all cursor-pointer shadow-xs"
+                  className="flex items-center gap-2.5 p-1.5 pr-3.5 bg-white/90 hover:bg-sky-50/90 border border-sky-200/80 hover:border-sky-300 rounded-full transition-all cursor-pointer shadow-xs hover:shadow-md"
                 >
-                  <div className="w-8 h-8 rounded-full bg-linear-to-r from-sky-500 to-sky-400 text-white flex items-center justify-center font-bold text-xs shadow-xs">
-                    {userProfile?.name?.charAt(0).toUpperCase() || 'U'}
+                  <div className="relative">
+                    {avatarUrl ? (
+                      <img
+                        src={avatarUrl}
+                        alt={userProfile?.name || 'Student'}
+                        className="w-8 h-8 rounded-full object-cover border-2 border-sky-400 shadow-xs shrink-0"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-linear-to-tr from-sky-600 via-sky-500 to-indigo-600 text-white flex items-center justify-center font-extrabold text-xs border border-sky-300 shadow-xs shrink-0">
+                        {userInitial}
+                      </div>
+                    )}
+                    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-white animate-pulse" />
                   </div>
+
                   <div className="text-left hidden xl:block">
-                    <span className="text-xs font-bold text-slate-800 block leading-tight">
-                      {userProfile?.name || 'User'}
+                    <span className="text-xs font-bold text-slate-900 block leading-tight">
+                      {userProfile?.name || user?.displayName || user?.email?.split('@')[0] || 'Student User'}
                     </span>
-                    <span className="text-[10px] font-mono text-sky-600 font-bold uppercase tracking-wider block">
+                    <span className="text-[10px] font-semibold text-sky-600 uppercase tracking-wider block">
                       {userProfile?.role || 'Student'}
                     </span>
                   </div>
-                  <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {/* Dropdown Menu */}
                 {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white/95 backdrop-blur-2xl border border-sky-100 rounded-2xl shadow-xl p-2 z-50 space-y-1 animate-in fade-in slide-in-from-top-2">
-                    <div className="p-3 border-b border-sky-100 mb-1">
-                      <span className="text-xs font-bold text-slate-900 block truncate">
-                        {userProfile?.name || 'User Profile'}
-                      </span>
-                      <span className="text-[11px] text-slate-500 block truncate">
-                        {user.email}
-                      </span>
-                      <span className="inline-block mt-1.5 px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 text-[10px] font-mono font-bold">
-                        Role: {userProfile?.role?.toUpperCase() || 'STUDENT'}
-                      </span>
+                  <div className="absolute right-0 mt-2 w-60 bg-white/95 backdrop-blur-2xl border border-sky-100 rounded-2xl shadow-2xl p-2 z-50 space-y-1 animate-in fade-in slide-in-from-top-2 font-['Sora']">
+                    <div className="p-3 border-b border-sky-100 mb-1 flex items-center gap-3">
+                      {avatarUrl ? (
+                        <img
+                          src={avatarUrl}
+                          alt={userProfile?.name || 'Student'}
+                          className="w-10 h-10 rounded-full object-cover border-2 border-sky-400 shadow-xs shrink-0"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-linear-to-tr from-sky-600 to-indigo-600 text-white flex items-center justify-center font-extrabold text-sm border border-sky-300 shrink-0">
+                          {userInitial}
+                        </div>
+                      )}
+                      <div className="overflow-hidden">
+                        <span className="text-xs font-bold text-slate-900 block truncate">
+                          {userProfile?.name || user?.displayName || 'Student User'}
+                        </span>
+                        <span className="text-[11px] text-slate-500 block truncate font-medium">
+                          {user.email}
+                        </span>
+                        <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 text-[9px] font-bold uppercase border border-sky-200">
+                          {userProfile?.role || 'STUDENT'}
+                        </span>
+                      </div>
                     </div>
 
                     <Link
                       to={userProfile?.role === 'admin' ? '/admin/dashboard' : '/dashboard'}
                       onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:text-sky-600 hover:bg-sky-50 rounded-xl transition-colors"
+                      className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-slate-700 hover:text-sky-600 hover:bg-sky-50 rounded-xl transition-colors"
                     >
                       <User className="w-4 h-4 text-sky-500" />
-                      <span>My Profile & Dashboard</span>
+                      <span>My Student Dashboard</span>
                     </Link>
 
                     <Link
-                      to={userProfile?.role === 'admin' ? '/admin/dashboard' : '/dashboard'}
+                      to="/dashboard"
                       onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:text-sky-600 hover:bg-sky-50 rounded-xl transition-colors"
+                      className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-slate-700 hover:text-sky-600 hover:bg-sky-50 rounded-xl transition-colors"
                     >
                       <Settings className="w-4 h-4 text-sky-500" />
                       <span>Account Settings</span>
@@ -165,7 +193,7 @@ export const Navbar: React.FC = () => {
 
                     <button
                       onClick={handleLogout}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors text-left cursor-pointer"
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors text-left cursor-pointer"
                     >
                       <LogOut className="w-4 h-4 text-rose-500" />
                       <span>Sign Out</span>

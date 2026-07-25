@@ -30,6 +30,28 @@ if (!admin.apps.length) {
   }
 }
 
-export const db = admin.apps.length ? admin.firestore() : ({} as admin.firestore.Firestore);
+// Safe fallback when Firebase Admin cert is not configured in local dev/test environment
+const createDbMock = (): admin.firestore.Firestore => {
+  return new Proxy({} as any, {
+    get(target, prop) {
+      if (prop === 'collection') {
+        return (collectionName: string) => {
+          return new Proxy({} as any, {
+            get(colTarget, colProp) {
+              return () => {
+                throw new Error(
+                  `Firestore operation '${String(colProp)}' failed: Firebase/Firestore has not been initialized. Please configure your service account credentials in the .env file.`
+                );
+              };
+            }
+          });
+        };
+      }
+      return undefined;
+    }
+  });
+};
+
+export const db = admin.apps.length ? admin.firestore() : (createDbMock() as admin.firestore.Firestore);
 export const adminAuth = admin.apps.length ? admin.auth() : ({} as admin.auth.Auth);
 export const storage = admin.apps.length ? admin.storage() : ({} as admin.storage.Storage);

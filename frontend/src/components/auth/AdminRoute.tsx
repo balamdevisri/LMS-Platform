@@ -17,9 +17,9 @@ export const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }
     return <Navigate to="/auth/login" replace />;
   }
 
-  // Redirect non-admins to unauthorized
+  // Redirect non-admins to student dashboard
   if (userProfile?.role !== 'admin') {
-    return <Navigate to="/unauthorized" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;

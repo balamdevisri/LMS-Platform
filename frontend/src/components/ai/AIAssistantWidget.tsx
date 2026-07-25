@@ -20,6 +20,27 @@ export const AIAssistantWidget: React.FC = () => {
     },
   ]);
   const [isTyping, setIsTyping] = useState(false);
+  const [activeContext, setActiveContext] = useState<string>('');
+
+  React.useEffect(() => {
+    const handleOpen = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      setIsOpen(true);
+      
+      const welcomeMsg: ChatMessage = {
+        id: Date.now().toString(),
+        sender: 'ai',
+        text: `Hello! I am your Shaivika AI Tutor. I have loaded the context of the lesson: "${detail.lessonTitle}".\n\nAsk me anything about it, and I will answer using the lesson content!`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      
+      setMessages((prev) => [...prev, welcomeMsg]);
+      setActiveContext(detail.lessonContent);
+    };
+
+    window.addEventListener('open-ai-tutor', handleOpen);
+    return () => window.removeEventListener('open-ai-tutor', handleOpen);
+  }, []);
 
   const quickPrompts = [
     'Summarize Module 3 of Fullstack React',
@@ -43,13 +64,34 @@ export const AIAssistantWidget: React.FC = () => {
     setIsTyping(true);
 
     setTimeout(() => {
-      let aiResponseText = "Great question! Based on your current progress in 'Fullstack Systems & AI Architecture', here is a breakdown:";
-      if (messageText.toLowerCase().includes('quiz') || messageText.toLowerCase().includes('practice')) {
-        aiResponseText = "Here are 3 quick practice questions:\n1. What is the key difference between useEffect and useLayoutEffect?\n2. How do Vector Embeddings compute cosine similarity in Pinecone?\n3. Name two CSS containment properties.";
-      } else if (messageText.toLowerCase().includes('summarize') || messageText.toLowerCase().includes('module')) {
-        aiResponseText = "Module 3 Summary: You covered Asynchronous State Handling, Optimistic UI updates, and Custom Hook abstractions. Your assignment score was 98/100!";
+      let aiResponseText = "";
+      const query = messageText.toLowerCase();
+
+      if (activeContext) {
+        // Answer using current lesson content first
+        if (query.includes('commit') && activeContext.toLowerCase().includes('commit')) {
+          aiResponseText = "According to this lesson, `git commit` saves staged changes permanently to local history with a descriptive commit message using the `-m` flag. It registers a snapshot of changes.";
+        } else if (query.includes('init') && activeContext.toLowerCase().includes('init')) {
+          aiResponseText = "Based on this lesson, `git init` initializes a new local Git repository in the current folder, creating a hidden `.git` directory containing databases.";
+        } else if (query.includes('add') && activeContext.toLowerCase().includes('add')) {
+          aiResponseText = "According to the lesson, `git add` stages modified or untracked files, moving them into the staging area (index) so they are ready to be committed.";
+        } else if (query.includes('status') && activeContext.toLowerCase().includes('status')) {
+          aiResponseText = "Based on this lesson, `git status` shows the status of files in the current working directory, indicating which files are untracked, modified, or staged.";
+        } else if (query.includes('log') && activeContext.toLowerCase().includes('log')) {
+          aiResponseText = "According to the lesson, `git log` displays the history of commits in the repository, listing hash, author, date, and commit message.";
+        } else if (query.includes('diff') && activeContext.toLowerCase().includes('diff')) {
+          aiResponseText = "Based on this lesson, `git diff` compares differences between unstaged modifications in the working directory and the last committed version.";
+        } else {
+          aiResponseText = `Based on the lesson context:\n\n${activeContext.split('\n').slice(0, 3).join('\n')}\n\nTo answer "${messageText}": Let me know if you would like me to explain any specific commands, configurations, or workflow concepts related to this topic!`;
+        }
       } else {
-        aiResponseText = `I have analyzed your request: "${messageText}". In modern AI SaaS architectures, using type-safe React 19 components and high-efficiency vector search yields optimal speed and developer experience!`;
+        if (query.includes('quiz') || query.includes('practice')) {
+          aiResponseText = "Here are 3 quick practice questions:\n1. What is the key difference between useEffect and useLayoutEffect?\n2. How do Vector Embeddings compute cosine similarity in Pinecone?\n3. Name two CSS containment properties.";
+        } else if (query.includes('summarize') || query.includes('module')) {
+          aiResponseText = "Module 3 Summary: You covered Asynchronous State Handling, Optimistic UI updates, and Custom Hook abstractions. Your assignment score was 98/100!";
+        } else {
+          aiResponseText = `I have analyzed your request: "${messageText}". In modern AI SaaS architectures, using type-safe React 19 components and high-efficiency vector search yields optimal speed and developer experience!`;
+        }
       }
 
       const aiMsg: ChatMessage = {

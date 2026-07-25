@@ -94,18 +94,6 @@ export const Profile: React.FC = () => {
 
           <div className="space-y-3 text-xs font-medium">
             <div className="p-3 bg-slate-50 border border-sky-100 rounded-2xl flex items-center justify-between">
-              <span className="text-slate-500">Firebase User ID</span>
-              <span className="font-mono text-sky-700 font-semibold truncate max-w-50">{user?.uid || 'N/A'}</span>
-            </div>
-            
-            <div className="p-3 bg-slate-50 border border-sky-100 rounded-2xl flex items-center justify-between">
-              <span className="text-slate-500">Authentication Method</span>
-              <span className="font-bold text-slate-900 flex items-center gap-1.5">
-                {isGithubUser ? 'GitHub OAuth 2.0' : 'Email & Password'}
-              </span>
-            </div>
-
-            <div className="p-3 bg-slate-50 border border-sky-100 rounded-2xl flex items-center justify-between">
               <span className="text-slate-500">Verification Status</span>
               <span className="font-semibold text-emerald-600 flex items-center gap-1">
                 <CheckCircle2 className="w-3.5 h-3.5" />

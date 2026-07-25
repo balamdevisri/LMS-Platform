@@ -6,7 +6,6 @@ import {
   FileText,
   Calendar,
   Award,
-  BarChart3,
   Bell,
   Search,
   User,
@@ -43,10 +42,11 @@ export const DashboardLayout: React.FC = () => {
 
   const navItems = isAdminRoute
     ? [
-        { name: 'Admin Overview', href: '/admin/dashboard', icon: LayoutDashboard },
-        { name: 'Course Management', href: '/admin/courses', icon: BookOpen },
-        { name: 'Student Management', href: '/admin/students', icon: UserCheck },
-        { name: 'Instructor Management', href: '/admin/instructors', icon: GraduationCap },
+        { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
+        { name: 'User Management', href: '/admin/users', icon: UserCheck },
+        { name: 'Courses', href: '/admin/courses', icon: BookOpen },
+        { name: 'Students', href: '/admin/students', icon: UserCheck },
+        { name: 'Instructors', href: '/admin/instructors', icon: GraduationCap },
       ]
     : [
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -54,7 +54,6 @@ export const DashboardLayout: React.FC = () => {
         { name: 'Assignments & Quizzes', href: '/dashboard?tab=assignments', icon: FileText },
         { name: 'Schedule & Calendar', href: '/dashboard?tab=calendar', icon: Calendar },
         { name: 'Certificates', href: '/dashboard?tab=certificates', icon: Award },
-        { name: 'Analytics & Reports', href: '/dashboard?tab=analytics', icon: BarChart3 },
       ];
 
   const sampleNotifications = [

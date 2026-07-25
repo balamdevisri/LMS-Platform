@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -20,13 +20,32 @@ import {
   Layers,
   Check,
   Play,
+  Loader2
 } from 'lucide-react';
 import { KaizenQVideoPlayer } from '@/components/common/KaizenQVideoPlayer';
 import { BlueSmokeTheme } from '@/components/common/BlueSmokeTheme';
+import { courseService } from '@/services/courseService';
+import type { ICourse } from '../../../shared/types/course';
 
 export const LandingPage: React.FC = () => {
   // FAQ state
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [catalogCourses, setCatalogCourses] = useState<ICourse[]>([]);
+  const [loadingCourses, setLoadingCourses] = useState(true);
+
+  useEffect(() => {
+    const fetchCatalogCourses = async () => {
+      try {
+        const result = await courseService.getCourses({ status: 'published', limit: 6 });
+        setCatalogCourses(result.courses);
+      } catch (err) {
+        console.warn('Failed to load courses for landing page:', err);
+      } finally {
+        setLoadingCourses(false);
+      }
+    };
+    fetchCatalogCourses();
+  }, []);
 
   const toggleFaq = (idx: number) => {
     setOpenFaq(openFaq === idx ? null : idx);
@@ -97,43 +116,6 @@ export const LandingPage: React.FC = () => {
       icon: Sparkles,
       title: 'Skill Gap Radar',
       desc: 'Visualizes student progress against industry benchmarks to highlight areas needing extra practice.',
-    },
-  ];
-
-  // Popular Enterprise Courses
-  const popularCourses = [
-    {
-      id: 1,
-      title: 'Full-Stack Web Development & AI Architecture',
-      instructor: 'Dr. Aris Thorne',
-      rating: 4.9,
-      students: '12,450',
-      duration: '12 Weeks',
-      difficulty: 'Intermediate',
-      progress: 88,
-      thumbnail: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80',
-    },
-    {
-      id: 2,
-      title: 'Autonomous AI Agents & Large Language Models',
-      instructor: 'Elena Rostova',
-      rating: 4.95,
-      students: '18,920',
-      duration: '8 Weeks',
-      difficulty: 'Advanced',
-      progress: 94,
-      thumbnail: 'https://images.unsplash.com/photo-1677442136019-21780efad99a?auto=format&fit=crop&w=800&q=80',
-    },
-    {
-      id: 3,
-      title: 'Cloud DevOps, Kubernetes & Infrastructure Security',
-      instructor: 'Marcus Vance',
-      rating: 4.88,
-      students: '9,310',
-      duration: '10 Weeks',
-      difficulty: 'All Levels',
-      progress: 82,
-      thumbnail: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=800&q=80',
     },
   ];
 
@@ -427,57 +409,74 @@ export const LandingPage: React.FC = () => {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {popularCourses.map((course) => (
-              <div key={course.id} className="bg-white border border-sky-100 hover:border-sky-300 rounded-3xl overflow-hidden flex flex-col group shadow-xs hover:shadow-xl hover:shadow-sky-500/10 transition-all">
-                {/* Thumbnail */}
-                <div className="relative h-48 overflow-hidden bg-slate-100">
-                  <img
-                    src={course.thumbnail}
-                    alt={course.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute top-3 left-3 bg-slate-900/80 backdrop-blur-md text-white text-xs px-2.5 py-1 rounded-lg font-bold">
-                    {course.difficulty}
-                  </div>
-                  <div className="absolute top-3 right-3 bg-sky-500 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-md">
-                    ★ {course.rating}
-                  </div>
-                </div>
-
-                {/* Body */}
-                <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
-                  <div className="space-y-2">
-                    <h3 className="font-heading font-bold text-lg text-slate-900 group-hover:text-sky-600 transition-colors line-clamp-2">
-                      {course.title}
-                    </h3>
-                    <p className="text-xs text-slate-500 font-medium">Instructor: {course.instructor}</p>
-                  </div>
-
-                  <div className="space-y-2 pt-2 border-t border-sky-100 text-xs">
-                    <div className="flex justify-between text-slate-500 font-medium">
-                      <span>{course.students} students</span>
-                      <span>{course.duration}</span>
+          {loadingCourses ? (
+            <div className="py-16 text-center space-y-3">
+              <Loader2 className="w-8 h-8 text-sky-600 animate-spin mx-auto" />
+              <p className="text-xs text-slate-500 font-bold">Loading active course tracks...</p>
+            </div>
+          ) : catalogCourses.length === 0 ? (
+            <div className="py-12 text-center text-slate-500 text-xs font-medium space-y-3 bg-white rounded-3xl border border-sky-100 p-8">
+              <p className="text-slate-800 font-bold text-base">No active course tracks found.</p>
+              <p className="text-slate-500 text-xs">Newly added courses will appear here automatically.</p>
+              <Link to="/courses" className="btn-blue-primary text-xs py-2 px-5 font-bold inline-flex items-center gap-2 mt-2">
+                Explore Full Catalog
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {catalogCourses.map((course) => (
+                <div key={course.id} className="bg-white border border-sky-100 hover:border-sky-300 rounded-3xl overflow-hidden flex flex-col group shadow-xs hover:shadow-xl hover:shadow-sky-500/10 transition-all">
+                  {/* Thumbnail */}
+                  <div className="relative h-48 overflow-hidden bg-slate-100">
+                    <img
+                      src={course.thumbnail}
+                      alt={course.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute top-3 left-3 bg-slate-900/80 backdrop-blur-md text-white text-xs px-2.5 py-1 rounded-lg font-bold capitalize">
+                      {course.level || 'All Levels'}
                     </div>
-
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-[11px] font-bold text-slate-700">
-                        <span>Module Completion</span>
-                        <span className="text-sky-600">{course.progress}%</span>
-                      </div>
-                      <div className="w-full h-2 bg-sky-50 rounded-full overflow-hidden border border-sky-100">
-                        <div className="h-full bg-linear-to-r from-sky-600 to-sky-400 rounded-full" style={{ width: `${course.progress}%` }} />
-                      </div>
+                    <div className="absolute top-3 right-3 bg-sky-500 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-md">
+                      ★ {course.rating || 5.0}
                     </div>
                   </div>
 
-                  <Link to="/dashboard" className="w-full btn-blue-primary text-xs py-2.5 justify-center mt-2">
-                    Enroll Course
-                  </Link>
+                  {/* Body */}
+                  <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
+                    <div className="space-y-2">
+                      <h3 className="font-heading font-bold text-lg text-slate-900 group-hover:text-sky-600 transition-colors line-clamp-2">
+                        {course.title}
+                      </h3>
+                      <p className="text-xs text-slate-500 font-medium">
+                        Instructor: {typeof course.instructor === 'object' ? course.instructor.name : (course.instructor || 'Bhanu Prakash Achari')}
+                      </p>
+                    </div>
+
+                    <div className="space-y-2 pt-2 border-t border-sky-100 text-xs">
+                      <div className="flex justify-between text-slate-500 font-medium">
+                        <span>{course.enrollmentCount ? course.enrollmentCount.toLocaleString() : '28,900'} enrolled</span>
+                        <span>{course.duration}</span>
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-[11px] font-bold text-slate-700">
+                          <span>Interactive AI Lab</span>
+                          <span className="text-sky-600">Active Track</span>
+                        </div>
+                        <div className="w-full h-2 bg-sky-50 rounded-full overflow-hidden border border-sky-100">
+                          <div className="h-full bg-linear-to-r from-sky-600 to-sky-400 rounded-full w-full" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <Link to={`/course/${course.slug || course.id}`} className="w-full btn-blue-primary text-xs py-2.5 justify-center mt-2">
+                      View Course Details
+                    </Link>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
 
 

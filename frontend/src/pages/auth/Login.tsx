@@ -111,20 +111,6 @@ export const Login: React.FC = () => {
 
       {/* Form */}
       <form onSubmit={handleLogin} className="space-y-4">
-        <div className="bg-sky-50/70 p-2.5 rounded-xl border border-sky-200/80 flex items-center justify-between">
-          <span className="text-[11px] font-bold text-sky-800">Admin Account Access:</span>
-          <button
-            type="button"
-            onClick={() => {
-              setEmail('admin@gmail.com');
-              setPassword('manoj');
-            }}
-            className="text-[11px] font-bold text-white bg-sky-600 hover:bg-sky-700 px-2.5 py-1 rounded-lg shadow-xs transition-all cursor-pointer"
-          >
-            🔑 Use admin@gmail.com
-          </button>
-        </div>
-
         <div>
           <label className="text-xs font-bold text-slate-700 block mb-1">Email Address</label>
           <div className="relative">
