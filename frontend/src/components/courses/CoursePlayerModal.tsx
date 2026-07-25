@@ -36,6 +36,7 @@ import {
   ExternalLink,
   Inbox,
   Presentation,
+  Circle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -325,6 +326,8 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
     });
   });
 
+
+
   const [activeModuleIdx, setActiveModuleIdx] = useState(0);
   const [activeTab, setActiveTab] = useState<'content' | 'commands' | 'slides' | 'lab'>('content');
   const [currentSlideIdx, setCurrentSlideIdx] = useState(0);
@@ -364,6 +367,13 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
   const [sessionDownloads, setSessionDownloads] = useState<string[]>([]);
   const [previewingResource, setPreviewingResource] = useState<LessonResource | null>(null);
 
+  // ----------------- PHASE 24: AUTO LESSON COMPLETION STATES -----------------
+  const [videoWatchedPercent, setVideoWatchedPercent] = useState<Record<string, number>>({});
+  const [quizAnswers, setQuizAnswers] = useState<Record<string, Record<number, number>>>({});
+  const [quizSubmitted, setQuizSubmitted] = useState<Record<string, boolean>>({});
+  const [quizPassed, setQuizPassed] = useState<Record<string, boolean>>({});
+  const [assignmentAnswers, setAssignmentAnswers] = useState<Record<string, string>>({});
+
 
 
   // Restore saved checkpoint on mount
@@ -375,6 +385,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
       if (typeof saved.lastSubtopicIdx === 'number') setCurrentSubtopicIdx(saved.lastSubtopicIdx);
       if (saved.completedSubtopics?.length) setCompletedSubtopics(saved.completedSubtopics);
       if (saved.completedModules?.length) setCompletedModules(saved.completedModules);
+      if (saved.inProgressSubtopics?.length) setInProgressSubtopics(saved.inProgressSubtopics);
       toast.info(`📍 Resumed track from Module ${saved.lastModuleIdx + 1}, Lesson ${saved.lastLessonIdx + 1}`);
     }
   }, [course.id]);
@@ -392,6 +403,38 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
 
   const currentLesson = activeCurriculum[currentLessonIdx] || activeCurriculum[0];
   const currentSubtopic: SubtopicDetail = currentLesson?.subtopics?.[currentSubtopicIdx] || currentLesson?.subtopics?.[0];
+
+  const requiredSubtopicSeconds = Math.min(
+    15,
+    Math.max(5, Math.round((currentSubtopic?.content || '').length / 200))
+  );
+
+  const getLessonType = (subtopicId: string): 'video' | 'quiz' | 'assignment' | 'reading' => {
+    if (subtopicId === '1.1.1' || subtopicId === '1.2.2') return 'video';
+    if (subtopicId === '1.1.2') return 'quiz';
+    if (subtopicId === '1.1.3') return 'assignment';
+    return 'reading';
+  };
+
+  const getModuleStatus = (mIdx: number): 'Completed' | 'In Progress' | 'Not Started' => {
+    const moduleLessons = allLessons.filter((l) => l.moduleIdx === mIdx);
+    if (moduleLessons.length === 0) return 'Not Started';
+    const completedCount = moduleLessons.filter((l) => completedSubtopics.includes(l.subtopicId)).length;
+    if (completedCount === moduleLessons.length) return 'Completed';
+    const inProgressCount = moduleLessons.filter((l) =>
+      inProgressSubtopics.includes(l.subtopicId) && !completedSubtopics.includes(l.subtopicId)
+    ).length;
+    if (completedCount > 0 || inProgressCount > 0) return 'In Progress';
+    return 'Not Started';
+  };
+
+  const completedLessonsCount = allLessons.filter((l) => completedSubtopics.includes(l.subtopicId)).length;
+  const courseStatus: 'Completed' | 'In Progress' | 'Not Started' =
+    completedLessonsCount === allLessons.length
+      ? 'Completed'
+      : completedLessonsCount > 0 || inProgressSubtopics.length > 0
+      ? 'In Progress'
+      : 'Not Started';
 
   const currentLessonFlatIdx = allLessons.findIndex(
     (item) =>
@@ -432,6 +475,68 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
       setInProgressSubtopics((prev) => [...prev, currentSubtopic.id]);
     }
   }, [currentSubtopic, completedSubtopics, inProgressSubtopics]);
+
+  // Automatically update completedModules based on lesson completion
+  useEffect(() => {
+    const newlyCompletedModules: number[] = [];
+    syllabus.forEach((_, mIdx) => {
+      const moduleLessons = allLessons.filter((l) => l.moduleIdx === mIdx);
+      const isAllDone = moduleLessons.every((l) => completedSubtopics.includes(l.subtopicId));
+      if (isAllDone && moduleLessons.length > 0) {
+        newlyCompletedModules.push(mIdx);
+      }
+    });
+
+    const isSame =
+      newlyCompletedModules.length === completedModules.length &&
+      newlyCompletedModules.every((v) => completedModules.includes(v));
+
+    if (!isSame) {
+      setCompletedModules(newlyCompletedModules);
+    }
+  }, [completedSubtopics, syllabus, allLessons, completedModules]);
+
+  // Auto-complete reading lesson if timer meets requirements
+  useEffect(() => {
+    if (
+      currentSubtopic &&
+      getLessonType(currentSubtopic.id) === 'reading' &&
+      timerSeconds >= requiredSubtopicSeconds &&
+      !completedSubtopics.includes(currentSubtopic.id)
+    ) {
+      setCompletedSubtopics((prev) => {
+        if (prev.includes(currentSubtopic.id)) return prev;
+        toast.success(`📖 Minimum study time met! Marked lesson as completed.`);
+        return [...prev, currentSubtopic.id];
+      });
+    }
+  }, [timerSeconds, requiredSubtopicSeconds, currentSubtopic?.id, completedSubtopics]);
+
+  // Scroll to end auto completion for Reading lessons
+  useEffect(() => {
+    const mainEl = document.querySelector('main');
+    if (!mainEl || getLessonType(currentSubtopic?.id || '') !== 'reading' || completedSubtopics.includes(currentSubtopic?.id || '')) {
+      return;
+    }
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = mainEl;
+      if (scrollHeight - scrollTop <= clientHeight + 30) {
+        if (!completedSubtopics.includes(currentSubtopic.id)) {
+          setCompletedSubtopics((prev) => {
+            if (prev.includes(currentSubtopic.id)) return prev;
+            toast.success(`📖 Scrolled to end! Reading lesson marked as completed.`);
+            return [...prev, currentSubtopic.id];
+          });
+        }
+      }
+    };
+
+    mainEl.addEventListener('scroll', handleScroll);
+    return () => {
+      mainEl.removeEventListener('scroll', handleScroll);
+    };
+  }, [currentSubtopic?.id, completedSubtopics, activeTab]);
 
   // Reset search when active subtopic changes
   useEffect(() => {
@@ -554,19 +659,16 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
         lastSubtopicTitle: currentSubtopic.title,
         completedSubtopics,
         completedModules,
+        inProgressSubtopics,
         lastUpdated: new Date().toISOString(),
       });
       if (onProgressUpdate) {
         onProgressUpdate(Math.min(100, Math.max(5, progressPercent)));
       }
     }
-  }, [course.id, activeModuleIdx, currentLessonIdx, currentSubtopicIdx, completedSubtopics, completedModules, progressPercent, currentLesson, currentSubtopic]);
+  }, [course.id, activeModuleIdx, currentLessonIdx, currentSubtopicIdx, completedSubtopics, completedModules, inProgressSubtopics, progressPercent, currentLesson, currentSubtopic]);
 
-  // Quick & Fast Spend Timer: Auto-calculated between 5 to 15 seconds based on content length
-  const requiredSubtopicSeconds = Math.min(
-    15,
-    Math.max(5, Math.round((currentSubtopic?.content || '').length / 200))
-  );
+
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -702,13 +804,33 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
 
           <div className="h-6 w-px bg-sky-200 hidden sm:block" />
 
-          <div className="space-y-0.5">
-            <span className="text-[10px] font-bold text-sky-600 uppercase tracking-widest block">
-              {course.category} • Progress: {progressPercent}%
-            </span>
-            <h1 className="font-heading font-extrabold text-xs sm:text-base text-slate-900 truncate max-w-40 sm:max-w-xl">
+          <div className="space-y-1">
+            <h1 className="font-heading font-extrabold text-xs sm:text-sm text-slate-900 truncate max-w-40 sm:max-w-xl leading-none">
               {course.title}
             </h1>
+            <span className="text-[9px] font-bold text-slate-500 block">
+              Category: {course.category}
+            </span>
+          </div>
+
+          <div className="h-6 w-px bg-sky-200 hidden sm:block" />
+
+          {/* Upgraded Animated Progress Tracker */}
+          <div className="hidden md:flex flex-col gap-1 w-48 lg:w-60">
+            <div className="flex items-center justify-between text-[9px] font-extrabold text-slate-600 uppercase">
+              <span className="text-sky-700">{progressPercent}% Completed</span>
+              <span className="text-emerald-700">{completedLessonsCount}/{allLessons.length} Lessons</span>
+            </div>
+            <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden border border-sky-100/50 relative">
+              <div
+                className="h-full bg-linear-to-r from-sky-500 via-indigo-500 to-emerald-500 rounded-full transition-all duration-700 ease-out"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between text-[8px] font-bold text-slate-400 uppercase">
+              <span>Remaining: {allLessons.length - completedLessonsCount}</span>
+              <span>~{Math.max(0, (allLessons.length - completedLessonsCount) * 5)} mins left</span>
+            </div>
           </div>
         </div>
 
@@ -801,14 +923,28 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                 <h2 className="font-heading font-bold text-xs text-sky-900 uppercase tracking-wider flex items-center gap-2">
                   <Layers className="w-4 h-4 text-sky-600" /> Syllabus Flow ({syllabus.length})
                 </h2>
-                <span className="text-[11px] font-semibold text-slate-500">{course.duration}</span>
+                <div className="flex flex-col items-end gap-0.5">
+                  <span className="text-[11px] font-semibold text-slate-500">{course.duration}</span>
+                  {courseStatus === 'Completed' ? (
+                    <span className="text-[8px] font-extrabold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-sm uppercase tracking-wider">
+                      ✔ Course Completed
+                    </span>
+                  ) : courseStatus === 'In Progress' ? (
+                    <span className="text-[8px] font-extrabold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-sm uppercase tracking-wider">
+                      ⏳ Course In Progress
+                    </span>
+                  ) : (
+                    <span className="text-[8px] font-extrabold text-slate-500 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded-sm uppercase tracking-wider">
+                      ○ Course Not Started
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-2.5">
                 {syllabus.map((mod, idx) => {
                   const isActive = idx === activeModuleIdx;
                   const isCompleted = completedModules.includes(idx);
-                  const hasPoints = claimedPointsModules.includes(idx);
                   const isExpanded = !!expandedModules[idx];
                   
                   // Get all lessons for this module
@@ -845,11 +981,21 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                               <span className="font-bold block leading-snug text-slate-900">
                                 Module 0{idx + 1}
                               </span>
-                              {hasPoints && (
-                                <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-300 shrink-0">
-                                  +50 XP
-                                </span>
-                              )}
+                              <div className="flex items-center gap-1.5">
+                                {getModuleStatus(idx) === 'Completed' ? (
+                                  <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+                                    ✔ Completed
+                                  </span>
+                                ) : getModuleStatus(idx) === 'In Progress' ? (
+                                  <span className="text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded animate-pulse">
+                                    ⏳ In Progress
+                                  </span>
+                                ) : (
+                                  <span className="text-[9px] font-bold text-slate-500 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded">
+                                    ○ Not Started
+                                  </span>
+                                )}
+                              </div>
                             </div>
                             <span className="text-[11px] font-semibold block leading-tight text-slate-600 truncate">
                               {mod.title.replace(/^(🟢|🟡|🔵|🔴)\s*Module \d+:\s*/, '')}
@@ -858,9 +1004,12 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                               <span className="flex items-center gap-1 text-slate-500">
                                 <Clock className="w-3.5 h-3.5 text-sky-500" /> {mod.duration}
                               </span>
+                              <span className="text-slate-500">
+                                • {Math.round((moduleLessons.filter(l => completedSubtopics.includes(l.subtopicId)).length / Math.max(1, moduleLessons.length)) * 100)}% progress
+                              </span>
+                            </div>
                             </div>
                           </div>
-                        </div>
                         <ChevronRight className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 mt-1 ${isExpanded ? 'rotate-90' : ''}`} />
                       </button>
 
@@ -875,18 +1024,14 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                             const isLsnLocked = isLessonLocked(item);
                             const isLsnInProgress = inProgressSubtopics.includes(item.subtopicId) && !isLsnDone;
 
-                            let statusIcon = null;
-                            if (isLsnDone) {
-                              statusIcon = <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />;
-                            } else if (isCur) {
-                              statusIcon = <PlayCircle className="w-3.5 h-3.5 text-sky-600 shrink-0" />;
-                            } else if (isLsnLocked) {
-                              statusIcon = <Lock className="w-3.5 h-3.5 text-slate-400 shrink-0" />;
-                            } else if (isLsnInProgress) {
-                              statusIcon = <Clock className="w-3.5 h-3.5 text-sky-500 shrink-0" />;
-                            } else {
-                              statusIcon = <div className="w-3.5 h-3.5 rounded-full border border-slate-300 shrink-0" />;
-                            }
+                            let statusIcon = <Circle className="w-3.5 h-3.5 text-slate-300 shrink-0" />;
+                             if (isLsnDone) {
+                               statusIcon = <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />;
+                             } else if (isLsnLocked) {
+                               statusIcon = <Lock className="w-3.5 h-3.5 text-slate-400 shrink-0" />;
+                             } else if (isCur || isLsnInProgress) {
+                               statusIcon = <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />;
+                             }
 
                             return (
                               <button
@@ -1115,6 +1260,30 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                         </h3>
                       </div>
 
+                      <div className="flex items-center gap-3">
+                        {completedSubtopics.includes(currentSubtopic.id) ? (
+                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-[10px] font-extrabold uppercase shrink-0">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>✔ Completed</span>
+                          </div>
+                        ) : inProgressSubtopics.includes(currentSubtopic.id) ? (
+                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-[10px] font-extrabold uppercase shrink-0">
+                            <Clock className="w-3.5 h-3.5 text-amber-600" />
+                            <span>⏳ In Progress</span>
+                          </div>
+                        ) : getLessonType(currentSubtopic.id) === 'assignment' ? (
+                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-[10px] font-extrabold uppercase shrink-0">
+                            <Clock className="w-3.5 h-3.5 text-amber-500" />
+                            <span>⏳ Pending Submission</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-slate-600 text-[10px] font-extrabold uppercase shrink-0">
+                            <Circle className="w-3.5 h-3.5 text-slate-400" />
+                            <span>○ Not Started</span>
+                          </div>
+                        )}
+                      </div>
+
                       {/* Terminal Icon ONLY for Subtopics with actual Commands */}
                       {currentSubtopic.terminalCommand && (
                         <button
@@ -1126,9 +1295,236 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                       )}
                     </div>
 
-                    <div className="text-xs sm:text-sm leading-relaxed whitespace-pre-line font-normal text-slate-800">
-                      {currentSubtopic.content}
-                    </div>
+                    {/* Dynamic content rendering based on lesson type */}
+                    {getLessonType(currentSubtopic.id) === 'video' && (
+                      <div className="space-y-4">
+                        <div className="relative aspect-video rounded-2xl bg-black overflow-hidden border border-sky-100 flex items-center justify-center">
+                          <video
+                            src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
+                            className="w-full h-full object-cover"
+                            controls
+                            onTimeUpdate={(e) => {
+                              const video = e.currentTarget;
+                              const percent = (video.currentTime / video.duration) * 100;
+                              if (percent > 0) {
+                                setVideoWatchedPercent((prev) => ({
+                                  ...prev,
+                                  [currentSubtopic.id]: percent,
+                                }));
+                              }
+                              if (percent >= 90 && !completedSubtopics.includes(currentSubtopic.id)) {
+                                setCompletedSubtopics((prev) => {
+                                  if (prev.includes(currentSubtopic.id)) return prev;
+                                  toast.success(`🎥 Video Watched! Marked as Completed.`);
+                                  return [...prev, currentSubtopic.id];
+                                });
+                              }
+                            }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-slate-500 bg-slate-50 p-3 rounded-xl border border-sky-100/50">
+                          <span>Progress: {Math.min(100, Math.round(videoWatchedPercent[currentSubtopic.id] || 0))}% watched</span>
+                          {completedSubtopics.includes(currentSubtopic.id) ? (
+                            <span className="text-emerald-600 font-bold flex items-center gap-1">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                              <span>Completed</span>
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setCompletedSubtopics((prev) => {
+                                  if (prev.includes(currentSubtopic.id)) return prev;
+                                  toast.success(`🎥 Video Marked as Completed!`);
+                                  return [...prev, currentSubtopic.id];
+                                });
+                              }}
+                              className="py-1 px-3 rounded-lg bg-sky-600 text-white font-bold text-[11px] cursor-pointer hover:bg-sky-700 transition-all"
+                            >
+                              Mark Complete
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {getLessonType(currentSubtopic.id) === 'quiz' && (
+                      <div className="p-4 sm:p-6 rounded-2xl bg-sky-50/50 border border-sky-100 space-y-4">
+                        <div className="flex items-center justify-between border-b border-sky-100 pb-2">
+                          <h4 className="font-heading font-extrabold text-sm text-slate-900">
+                            Knowledge Check Quiz
+                          </h4>
+                          <span className="text-xs font-bold text-sky-800 bg-sky-100 px-2 py-0.5 rounded-md">
+                            Passing Score: 100%
+                          </span>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <p className="text-xs font-bold text-slate-800">1. Which Linux distribution is known as the enterprise gold standard with commercial support?</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              {['Debian GNU/Linux', 'RHEL (Red Hat Enterprise Linux)', 'Alpine Linux', 'Gentoo Linux'].map((opt, oIdx) => (
+                                <button
+                                  key={oIdx}
+                                  disabled={quizPassed[currentSubtopic.id]}
+                                  onClick={() => setQuizAnswers(prev => ({
+                                    ...prev,
+                                    [currentSubtopic.id]: {
+                                      ...(prev[currentSubtopic.id] || {}),
+                                      0: oIdx
+                                    }
+                                  }))}
+                                  className={`p-2.5 rounded-xl border text-xs text-left cursor-pointer transition-all ${
+                                    quizAnswers[currentSubtopic.id]?.[0] === oIdx
+                                      ? 'bg-sky-600 border-sky-600 text-white font-bold'
+                                      : 'bg-white border-sky-100 text-slate-700 hover:bg-sky-50'
+                                  }`}
+                                >
+                                  {opt}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <p className="text-xs font-bold text-slate-800">2. Which lightweight Linux distribution is widely used as a base image for Docker containers?</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              {['Ubuntu Linux', 'CentOS Linux', 'Fedora Linux', 'Alpine Linux'].map((opt, oIdx) => (
+                                <button
+                                  key={oIdx}
+                                  disabled={quizPassed[currentSubtopic.id]}
+                                  onClick={() => setQuizAnswers(prev => ({
+                                    ...prev,
+                                    [currentSubtopic.id]: {
+                                      ...(prev[currentSubtopic.id] || {}),
+                                      1: oIdx
+                                    }
+                                  }))}
+                                  className={`p-2.5 rounded-xl border text-xs text-left cursor-pointer transition-all ${
+                                    quizAnswers[currentSubtopic.id]?.[1] === oIdx
+                                      ? 'bg-sky-600 border-sky-600 text-white font-bold'
+                                      : 'bg-white border-sky-100 text-slate-700 hover:bg-sky-50'
+                                  }`}
+                                >
+                                  {opt}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="pt-4 border-t border-sky-100 flex items-center justify-between gap-4">
+                          <div>
+                            {quizSubmitted[currentSubtopic.id] && (
+                              <p className={`text-xs font-bold ${quizPassed[currentSubtopic.id] ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                {quizPassed[currentSubtopic.id] ? '✓ Quiz Passed (100% Score)' : '✗ Incorrect Answer(s). Try again!'}
+                              </p>
+                            )}
+                          </div>
+                          {!quizPassed[currentSubtopic.id] ? (
+                            <button
+                              onClick={() => {
+                                const ans1 = quizAnswers[currentSubtopic.id]?.[0];
+                                const ans2 = quizAnswers[currentSubtopic.id]?.[1];
+                                if (ans1 === undefined || ans2 === undefined) {
+                                  toast.warning('Please answer all questions first!');
+                                  return;
+                                }
+                                const isCorrect = ans1 === 1 && ans2 === 3;
+                                setQuizSubmitted(prev => ({ ...prev, [currentSubtopic.id]: true }));
+                                setQuizPassed(prev => ({ ...prev, [currentSubtopic.id]: isCorrect }));
+                                if (isCorrect) {
+                                  setCompletedSubtopics(prev => {
+                                    if (prev.includes(currentSubtopic.id)) return prev;
+                                    toast.success('🎉 Quiz Passed! Lesson Completed.');
+                                    return [...prev, currentSubtopic.id];
+                                  });
+                                } else {
+                                  toast.error('Quiz Failed! Review your choices and resubmit.');
+                                }
+                              }}
+                              className="py-2 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-xs cursor-pointer transition-all"
+                            >
+                              Submit Quiz
+                            </button>
+                          ) : (
+                            <div className="py-2 px-4 rounded-xl bg-emerald-100 text-emerald-800 font-extrabold text-xs flex items-center gap-1.5">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                              <span>Completed</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {getLessonType(currentSubtopic.id) === 'assignment' && (
+                      <div className="p-4 sm:p-6 rounded-2xl bg-amber-50/40 border border-amber-200/60 space-y-4">
+                        <div className="flex items-center justify-between border-b border-amber-200/50 pb-2">
+                          <h4 className="font-heading font-extrabold text-sm text-amber-900">
+                            Practical Core Assignment
+                          </h4>
+                          <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md ${
+                            completedSubtopics.includes(currentSubtopic.id)
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-amber-100 text-amber-800 animate-pulse'
+                          }`}>
+                            {completedSubtopics.includes(currentSubtopic.id) ? '✓ Submitted' : 'Pending Submission'}
+                          </span>
+                        </div>
+
+                        <div className="space-y-3">
+                          <div className="p-3 bg-white rounded-xl border border-amber-200/40 text-xs text-slate-700 space-y-1.5">
+                            <p className="font-bold text-slate-800">Prompt Instructions:</p>
+                            <p>Map the concentric layers of a typical Linux system (Hardware, Kernel, Shell, User Utilities) and construct a brief explanation of how application processes communicate with system hardware via system calls.</p>
+                          </div>
+
+                          <textarea
+                            disabled={completedSubtopics.includes(currentSubtopic.id)}
+                            value={assignmentAnswers[currentSubtopic.id] || ''}
+                            onChange={(e) => setAssignmentAnswers(prev => ({
+                              ...prev,
+                              [currentSubtopic.id]: e.target.value
+                            }))}
+                            placeholder="Write your explanation here..."
+                            rows={4}
+                            className="w-full p-3 rounded-xl border border-amber-200 bg-white text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all font-sans"
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between gap-4 pt-2">
+                          <span className="text-[10px] text-slate-400 font-medium">Auto-saved in local session</span>
+                          {!completedSubtopics.includes(currentSubtopic.id) ? (
+                            <button
+                              onClick={() => {
+                                const content = assignmentAnswers[currentSubtopic.id] || '';
+                                if (content.trim().length < 10) {
+                                  toast.warning('Please write a valid explanation before submitting (minimum 10 characters).');
+                                  return;
+                                }
+                                setCompletedSubtopics(prev => {
+                                  if (prev.includes(currentSubtopic.id)) return prev;
+                                  toast.success('🎉 Assignment Submitted Successfully!');
+                                  return [...prev, currentSubtopic.id];
+                                });
+                              }}
+                              className="py-2 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs cursor-pointer transition-all shadow-md shadow-amber-600/10"
+                            >
+                              Submit Assignment
+                            </button>
+                          ) : (
+                            <div className="py-2 px-4 rounded-xl bg-emerald-100 text-emerald-800 font-extrabold text-xs flex items-center gap-1.5">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                              <span>Completed</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {getLessonType(currentSubtopic.id) === 'reading' && (
+                      <div className="text-xs sm:text-sm leading-relaxed whitespace-pre-line font-normal text-slate-800">
+                        {currentSubtopic.content}
+                      </div>
+                    )}
 
                     {/* Table Data */}
                     {currentSubtopic.tableData && (

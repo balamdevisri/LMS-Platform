@@ -100,6 +100,7 @@ export interface CourseProgressCheckpoint {
   lastSubtopicTitle?: string;
   completedSubtopics: string[];
   completedModules: number[];
+  inProgressSubtopics?: string[];
   lastUpdated: string;
 }
 
