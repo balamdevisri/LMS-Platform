@@ -44,11 +44,41 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface CoursePlayerModalProps {
+export interface CoursePlayerModalProps {
   course: ICourse;
   onClose: () => void;
   onProgressUpdate?: (newProgress: number) => void;
+  initialSubtopicId?: string;
+  initialNotesOpen?: boolean;
+  initialTab?: 'notes' | 'bookmarks';
 }
+
+export const logRecentActivity = (
+  courseId: string | number,
+  courseTitle: string,
+  type: 'started' | 'completed' | 'quiz' | 'assignment' | 'note' | 'bookmark',
+  title: string
+) => {
+  try {
+    const cached = localStorage.getItem('shaivika_user_activities');
+    let list = [];
+    if (cached) {
+      list = JSON.parse(cached);
+    }
+    const newActivity = {
+      id: `act_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      courseId,
+      courseTitle,
+      type,
+      title,
+      timestamp: new Date().toISOString(),
+    };
+    list = [newActivity, ...list].slice(0, 50);
+    localStorage.setItem('shaivika_user_activities', JSON.stringify(list));
+  } catch (e) {
+    console.error(e);
+  }
+};
 
 const ARCHITECTURE_SLIDES = [
   {
@@ -291,6 +321,9 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
   course,
   onClose,
   onProgressUpdate,
+  initialSubtopicId,
+  initialNotesOpen,
+  initialTab,
 }) => {
   const syllabus = course.syllabus || [];
 
@@ -416,6 +449,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [savingStatus, setSavingStatus] = useState<'saving' | 'saved' | null>(null);
 
+  const [isCheckpointLoaded, setIsCheckpointLoaded] = useState(false);
   const videoRef = React.useRef<HTMLVideoElement | null>(null);
 
   // Load notes and bookmarks from localStorage on mount
@@ -440,8 +474,30 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
 
 
 
-  // Restore saved checkpoint on mount
+  // Restore saved checkpoint or initial overrides on mount
   useEffect(() => {
+    // 1. Initial values from props overrides (such as Quick Open or Quick Action notes)
+    if (initialSubtopicId) {
+      const path = allLessons.find((l) => l.subtopicId === initialSubtopicId);
+      if (path) {
+        setActiveModuleIdx(path.moduleIdx);
+        setCurrentLessonIdx(path.lessonIdx);
+        setCurrentSubtopicIdx(path.subtopicIdx);
+        
+        const saved = courseService.getCourseCheckpoint(course.id);
+        if (saved) {
+          if (saved.completedSubtopics?.length) setCompletedSubtopics(saved.completedSubtopics);
+          if (saved.completedModules?.length) setCompletedModules(saved.completedModules);
+          if (saved.inProgressSubtopics?.length) setInProgressSubtopics(saved.inProgressSubtopics);
+        }
+        
+        setIsCheckpointLoaded(true);
+        toast.info(`📍 Opened bookmarked lesson: ${path.subtopicTitle}`);
+        return;
+      }
+    }
+
+    // 2. Normal checkpoint restoration
     const saved = courseService.getCourseCheckpoint(course.id);
     if (saved) {
       if (typeof saved.lastModuleIdx === 'number') setActiveModuleIdx(saved.lastModuleIdx);
@@ -452,7 +508,34 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
       if (saved.inProgressSubtopics?.length) setInProgressSubtopics(saved.inProgressSubtopics);
       toast.info(`📍 Resumed track from Module ${saved.lastModuleIdx + 1}, Lesson ${saved.lastLessonIdx + 1}`);
     }
-  }, [course.id]);
+    setIsCheckpointLoaded(true);
+  }, [course.id, initialSubtopicId]);
+
+  // Load notes/bookmarks panel state on mount
+  useEffect(() => {
+    if (initialNotesOpen) {
+      setIsNotesPanelOpen(true);
+    }
+    if (initialTab) {
+      setRightActiveTab(initialTab);
+    }
+  }, [initialNotesOpen, initialTab]);
+
+  const prevCompletedRef = React.useRef<string[]>([]);
+  useEffect(() => {
+    if (!isCheckpointLoaded) {
+      prevCompletedRef.current = completedSubtopics;
+      return;
+    }
+    completedSubtopics.forEach((subId) => {
+      if (!prevCompletedRef.current.includes(subId)) {
+        const path = allLessons.find((l) => l.subtopicId === subId);
+        const title = path ? path.subtopicTitle : subId;
+        logRecentActivity(course.id, course.title, 'completed', title);
+      }
+    });
+    prevCompletedRef.current = completedSubtopics;
+  }, [completedSubtopics, isCheckpointLoaded, course.id, course.title, allLessons]);
 
   const activeModule = syllabus[activeModuleIdx] || {
     id: `m${activeModuleIdx + 1}`,
@@ -573,8 +656,9 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
   useEffect(() => {
     if (currentSubtopic && !completedSubtopics.includes(currentSubtopic.id) && !inProgressSubtopics.includes(currentSubtopic.id)) {
       setInProgressSubtopics((prev) => [...prev, currentSubtopic.id]);
+      logRecentActivity(course.id, course.title, 'started', currentSubtopic.title);
     }
-  }, [currentSubtopic, completedSubtopics, inProgressSubtopics]);
+  }, [currentSubtopic, completedSubtopics, inProgressSubtopics, course.id, course.title]);
 
   // Automatically update completedModules based on lesson completion
   useEffect(() => {
@@ -807,6 +891,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
     const updatedNotes = [newNote, ...notes];
     setNotes(updatedNotes);
     localStorage.setItem(`shaivika_notes_${course.id}`, JSON.stringify(updatedNotes));
+    logRecentActivity(course.id, course.title, 'note', newNote.title);
 
     setNoteInputTitle('');
     setNoteInputContent('');
@@ -880,6 +965,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
       };
       updated = [...bookmarks, newBookmark];
       toast.success('Lesson bookmarked successfully!');
+      logRecentActivity(course.id, course.title, 'bookmark', currentSubtopic.title);
     }
 
     setBookmarks(updated);
@@ -1718,6 +1804,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                                 setQuizSubmitted(prev => ({ ...prev, [currentSubtopic.id]: true }));
                                 setQuizPassed(prev => ({ ...prev, [currentSubtopic.id]: isCorrect }));
                                 if (isCorrect) {
+                                  logRecentActivity(course.id, course.title, 'quiz', currentSubtopic.title);
                                   setCompletedSubtopics(prev => {
                                     if (prev.includes(currentSubtopic.id)) return prev;
                                     toast.success('🎉 Quiz Passed! Lesson Completed.');
@@ -1785,6 +1872,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                                   toast.warning('Please write a valid explanation before submitting (minimum 10 characters).');
                                   return;
                                 }
+                                logRecentActivity(course.id, course.title, 'assignment', currentSubtopic.title);
                                 setCompletedSubtopics(prev => {
                                   if (prev.includes(currentSubtopic.id)) return prev;
                                   toast.success('🎉 Assignment Submitted Successfully!');

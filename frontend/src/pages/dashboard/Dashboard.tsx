@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import {
   BookOpen,
   Clock,
@@ -13,16 +13,23 @@ import {
   Calendar,
   Sparkles,
   BarChart3,
-  List
+  List,
+  Search,
+  Bookmark,
+  Activity,
+  Info,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCourses } from '@/contexts/CourseContext';
+import { CoursePlayerModal } from '../../components/courses/CoursePlayerModal';
 
 export const Dashboard: React.FC = () => {
   const { user, userProfile } = useAuth();
   const { courses } = useCourses();
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTab = searchParams.get('tab') || 'overview';
+
+  const navigate = useNavigate();
 
   // Certificate Modal State
   const [certificateModalOpen, setCertificateModalOpen] = useState(false);
@@ -31,6 +38,70 @@ export const Dashboard: React.FC = () => {
   const [certCompletionDate, setCertCompletionDate] = useState('');
   const [certCourseTitle, setCertCourseTitle] = useState('');
   const [certCourseInstructor, setCertCourseInstructor] = useState('');
+
+  // Active learning player state
+  const [activePlayerCourse, setActivePlayerCourse] = useState<any | null>(null);
+  const [playerInitialSubtopicId, setPlayerInitialSubtopicId] = useState<string | undefined>(undefined);
+  const [playerInitialNotesOpen, setPlayerInitialNotesOpen] = useState<boolean>(false);
+  const [playerInitialTab, setPlayerInitialTab] = useState<'notes' | 'bookmarks' | undefined>(undefined);
+
+  // Filters & sorting for Learning Hub
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedFilter, setSelectedFilter] = useState<'all' | 'in-progress' | 'completed' | 'recent'>('all');
+  const [selectedSort, setSelectedSort] = useState<'recent-opened' | 'recent-updated' | 'alpha' | 'high-progress' | 'low-progress'>('recent-opened');
+
+  // Bookmarks & Activities
+  const [savedLessons, setSavedLessons] = useState<any[]>([]);
+  const [recentActivities, setRecentActivities] = useState<any[]>([]);
+
+  useEffect(() => {
+    const allBookmarks: any[] = [];
+    courses.forEach((c) => {
+      const cached = localStorage.getItem(`shaivika_bookmarks_${c.id}`);
+      if (cached) {
+        try {
+          const list = JSON.parse(cached);
+          list.forEach((bm: any) => {
+            allBookmarks.push({
+              ...bm,
+              course: c,
+            });
+          });
+        } catch (e) {}
+      }
+    });
+    allBookmarks.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    setSavedLessons(allBookmarks);
+
+    const cachedAct = localStorage.getItem('shaivika_user_activities');
+    if (cachedAct) {
+      try {
+        setRecentActivities(JSON.parse(cachedAct));
+      } catch (e) {}
+    }
+  }, [courses, activePlayerCourse]);
+
+  const getCourseCheckpoint = (courseId: string) => {
+    const data = localStorage.getItem(`shaivika_user_checkpoint_${courseId}_default_student`);
+    if (data) {
+      try {
+        return JSON.parse(data);
+      } catch (e) {}
+    }
+    return null;
+  };
+
+  const handleLaunchPlayer = (
+    course: any,
+    subtopicId?: string,
+    notesOpen = false,
+    tab?: 'notes' | 'bookmarks'
+  ) => {
+    setPlayerInitialSubtopicId(subtopicId);
+    setPlayerInitialNotesOpen(notesOpen);
+    setPlayerInitialTab(tab);
+    setActivePlayerCourse(course);
+  };
 
   // Helper to parse duration string (e.g. "15 mins", "2 hours") to decimal hours
   const parseDurationToHours = (durationStr: string): number => {
@@ -470,6 +541,7 @@ export const Dashboard: React.FC = () => {
       <div className="flex overflow-x-auto gap-2.5 border-b border-slate-200 pb-2 scrollbar-none">
         {[
           { id: 'overview', label: 'Overview Dashboard' },
+          { id: 'continue-learning', label: 'Continue Learning Hub' },
           { id: 'assignments', label: 'Assignments & Quiz Scores' },
           { id: 'calendar', label: 'Deadlines Calendar' },
           { id: 'certificates', label: 'Unlocked Credentials' },
@@ -662,13 +734,13 @@ export const Dashboard: React.FC = () => {
                       </div>
                     </div>
 
-                    <Link
-                      to={`/admin/courses/${cProgress.course.id}`}
+                    <button
+                      onClick={() => handleLaunchPlayer(cProgress.course)}
                       className="btn-blue-primary text-xs py-2.5 justify-center font-bold"
                     >
                       <PlayCircle className="w-4 h-4" />
                       <span>Resume Learning Track</span>
-                    </Link>
+                    </button>
                   </div>
                 ))}
               </div>
@@ -676,6 +748,379 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* ------------------- CONTINUE LEARNING HUB TAB ------------------- */}
+      {currentTab === 'continue-learning' && (() => {
+        // Enriched courses list
+        const enrichedCourses = courses.map((course) => {
+          let totalUnits = 0;
+          let completedUnits = 0;
+          let completedIds: Record<string, boolean> = {};
+          try {
+            const stored = localStorage.getItem(`lms_completed_units_${course.id}`);
+            if (stored) completedIds = JSON.parse(stored);
+          } catch {}
+
+          if (course.modules) {
+            course.modules.forEach((m) => {
+              m.topics.forEach((t) => {
+                t.learningUnits.forEach((u) => {
+                  totalUnits++;
+                  if (completedIds[u.id]) {
+                    completedUnits++;
+                  }
+                });
+              });
+            });
+          }
+
+          const percentage = totalUnits > 0 ? Math.round((completedUnits / totalUnits) * 100) : 0;
+          const checkpoint = getCourseCheckpoint(String(course.id));
+
+          const totalDurationStr = course.duration || '20 hrs';
+          const numMatch = totalDurationStr.match(/([\d.]+)/);
+          const totalHours = numMatch ? parseFloat(numMatch[1]) : 20;
+          const remainingPercentage = 100 - (checkpoint ? checkpoint.progressPercent : percentage);
+          const estimatedRemainingHours = Math.max(0, Math.round((remainingPercentage * totalHours) / 100));
+
+          return {
+            course,
+            percentage: checkpoint ? checkpoint.progressPercent : percentage,
+            lastUpdated: checkpoint ? checkpoint.lastUpdated : null,
+            lastSubtopicTitle: checkpoint ? checkpoint.lastSubtopicTitle : '',
+            checkpoint,
+            totalUnits,
+            completedUnits,
+            estimatedRemainingHours,
+          };
+        });
+
+        // Search & Filters logic
+        const filteredCourses = enrichedCourses.filter((item) => {
+          const q = searchQuery.toLowerCase().trim();
+          if (q) {
+            const matchesTitle = item.course.title.toLowerCase().includes(q);
+            const matchesInstructor = item.course.instructor.toLowerCase().includes(q);
+            const matchesLesson = item.course.modules?.some(m =>
+              m.topics.some(t =>
+                t.learningUnits.some(u => u.title.toLowerCase().includes(q))
+              )
+            ) || false;
+
+            if (!matchesTitle && !matchesInstructor && !matchesLesson) {
+              return false;
+            }
+          }
+
+          if (selectedFilter === 'in-progress') {
+            return item.percentage > 0 && item.percentage < 100;
+          }
+          if (selectedFilter === 'completed') {
+            return item.percentage === 100;
+          }
+          if (selectedFilter === 'recent') {
+            return item.lastUpdated !== null;
+          }
+          return true;
+        });
+
+        // Sorting logic
+        const sortedCourses = [...filteredCourses].sort((a, b) => {
+          if (selectedSort === 'recent-opened' || selectedSort === 'recent-updated') {
+            const timeA = a.lastUpdated ? new Date(a.lastUpdated).getTime() : 0;
+            const timeB = b.lastUpdated ? new Date(b.lastUpdated).getTime() : 0;
+            return timeB - timeA;
+          }
+          if (selectedSort === 'alpha') {
+            return a.course.title.localeCompare(b.course.title);
+          }
+          if (selectedSort === 'high-progress') {
+            return b.percentage - a.percentage;
+          }
+          if (selectedSort === 'low-progress') {
+            return a.percentage - b.percentage;
+          }
+          return 0;
+        });
+
+        const handleResumeCourse = (item: any) => {
+          if (item.percentage === 100) {
+            navigate(`/course/${item.course.slug}`);
+          } else {
+            handleLaunchPlayer(item.course);
+          }
+        };
+
+        return (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            {/* Search and Filters */}
+            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 bg-white p-4.5 rounded-3xl border border-sky-100/85 shadow-2xs">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search Courses by Name, Instructor, or Lesson..."
+                  className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-sky-100 bg-white/70 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 transition-all focus:border-sky-500"
+                />
+              </div>
+              
+              <div className="flex flex-wrap items-center gap-3">
+                <select
+                  value={selectedFilter}
+                  onChange={(e) => setSelectedFilter(e.target.value as any)}
+                  className="px-3.5 py-2.5 rounded-xl border border-sky-100 bg-white text-xs font-bold text-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-500/20"
+                >
+                  <option value="all">All Enrolled Courses</option>
+                  <option value="in-progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                  <option value="recent">Recently Opened</option>
+                </select>
+
+                <select
+                  value={selectedSort}
+                  onChange={(e) => setSelectedSort(e.target.value as any)}
+                  className="px-3.5 py-2.5 rounded-xl border border-sky-100 bg-white text-xs font-bold text-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-500/20"
+                >
+                  <option value="recent-opened">Sort: Recently Opened</option>
+                  <option value="recent-updated">Sort: Recently Updated</option>
+                  <option value="alpha">Sort: Alphabetical</option>
+                  <option value="high-progress">Sort: Highest Progress</option>
+                  <option value="low-progress">Sort: Lowest Progress</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Main Three-Column Dashboard Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+              {/* Column 1: Continue Learning Courses list */}
+              <div className="md:col-span-12 lg:col-span-6 space-y-6">
+                <h3 className="font-heading font-extrabold text-base text-slate-900 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-sky-500 animate-pulse" />
+                  <span>Continue Learning</span>
+                </h3>
+                
+                {sortedCourses.length === 0 ? (
+                  <div className="p-8 text-center rounded-3xl border border-sky-100 bg-white/70 space-y-3">
+                    <div className="w-12 h-12 rounded-2xl bg-sky-50 border border-sky-100 flex items-center justify-center mx-auto">
+                      <Info className="w-6 h-6 text-slate-400" />
+                    </div>
+                    <p className="text-xs text-slate-500 font-medium">No courses available.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {sortedCourses.map((item) => (
+                      <div
+                        key={item.course.id}
+                        className="p-5.5 rounded-3xl border border-sky-100/80 bg-white hover:border-sky-300 transition-all duration-300 shadow-sm hover:shadow-md space-y-4 group font-['Sora'] text-slate-900"
+                      >
+                        <div className="flex gap-4">
+                          <img
+                            src={item.course.thumbnail || 'https://images.unsplash.com/photo-1618401471353-b98aedd07871?auto=format&fit=crop&w=150&q=80'}
+                            alt={item.course.title}
+                            className="w-16 h-16 rounded-2xl object-cover border border-sky-100/60 shrink-0 shadow-3xs"
+                          />
+                          <div className="min-w-0 flex-1 space-y-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="px-2 py-0.5 rounded-md bg-sky-50 border border-sky-200 text-sky-800 text-[9px] font-bold uppercase tracking-wider font-mono">
+                                {item.course.category}
+                              </span>
+                              {item.lastUpdated && (
+                                <span className="text-[9px] text-slate-400 font-bold font-sans">
+                                  Active: {new Date(item.lastUpdated).toLocaleDateString()}
+                                </span>
+                              )}
+                            </div>
+                            <h4 className="font-heading font-extrabold text-sm sm:text-base text-slate-900 group-hover:text-sky-600 transition-colors line-clamp-1">
+                              {item.course.title}
+                            </h4>
+                            <p className="text-[11px] text-slate-500 font-semibold">
+                              Instructor: {item.course.instructor}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between text-[11px] font-bold text-slate-600">
+                            <div className="flex items-center gap-1.5">
+                              <span>Course Progress</span>
+                              <span className="text-[9px] font-bold text-slate-400 font-mono">
+                                ({item.completedUnits} / {item.totalUnits} Lessons)
+                              </span>
+                            </div>
+                            <span className="text-sky-600 font-mono">{item.percentage}%</span>
+                          </div>
+                          <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200/50">
+                            <div
+                              className="h-full bg-linear-to-r from-sky-500 to-indigo-600 transition-all duration-500"
+                              style={{ width: `${item.percentage}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-between gap-3 text-[10px] font-bold text-slate-400 pt-1 border-t border-slate-100">
+                          <span>⏱ Remaining: ~{item.estimatedRemainingHours} hrs</span>
+                          {item.lastSubtopicTitle && (
+                            <span className="truncate max-w-64">
+                              Last visit: <span className="text-slate-600">{item.lastSubtopicTitle}</span>
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Course Card Action Buttons */}
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 pt-2">
+                          <button
+                            onClick={() => handleResumeCourse(item)}
+                            className="py-2.5 px-3 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-[11px] font-extrabold cursor-pointer transition-all flex items-center justify-center gap-1.5 shadow-sm col-span-2"
+                          >
+                            <PlayCircle className="w-4 h-4" />
+                            <span>{item.percentage === 100 ? 'Course Overview' : 'Resume Learning'}</span>
+                          </button>
+                          <button
+                            onClick={() => handleLaunchPlayer(item.course, '1.1.1')}
+                            className="py-2.5 px-3 rounded-xl border border-sky-100 bg-sky-50/50 hover:bg-sky-50 text-sky-800 text-[10px] font-extrabold cursor-pointer transition-all flex items-center justify-center gap-1"
+                          >
+                            Curriculum
+                          </button>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleLaunchPlayer(item.course, undefined, true, 'notes')}
+                              className="flex-1 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-[10px] font-extrabold cursor-pointer transition-all flex items-center justify-center"
+                              title="View Notes"
+                            >
+                              Notes
+                            </button>
+                            <button
+                              onClick={() => handleLaunchPlayer(item.course, undefined, true, 'bookmarks')}
+                              className="flex-1 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-[10px] font-extrabold cursor-pointer transition-all flex items-center justify-center"
+                              title="View Bookmarks"
+                            >
+                              Saved
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Column 2: Saved Lessons */}
+              <div className="md:col-span-6 lg:col-span-3 space-y-6">
+                <h3 className="font-heading font-extrabold text-base text-slate-900 flex items-center gap-2">
+                  <Bookmark className="w-4 h-4 text-amber-500" />
+                  <span>Saved Lessons</span>
+                </h3>
+
+                {savedLessons.length === 0 ? (
+                  <div className="p-8 text-center rounded-3xl border border-slate-100 bg-white/70 space-y-2">
+                    <Bookmark className="w-6 h-6 text-slate-300 mx-auto" />
+                    <p className="text-xs text-slate-400 italic">No saved lessons yet.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3.5">
+                    {savedLessons.map((bm) => (
+                      <div
+                        key={bm.subtopicId}
+                        className="p-4 rounded-2xl border border-sky-100 bg-white shadow-3xs flex flex-col justify-between space-y-2.5 hover:shadow-md transition-all duration-300 font-['Sora'] text-slate-900"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[8px] font-extrabold uppercase text-sky-700 bg-sky-50 border border-sky-100 px-1.5 py-0.5 rounded-md">
+                              {bm.lessonType}
+                            </span>
+                            <span className="text-[8px] font-bold text-slate-400 font-sans">
+                              {new Date(bm.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <h4 className="font-heading font-bold text-xs text-slate-900 truncate" title={bm.subtopicTitle}>
+                            {bm.subtopicTitle}
+                          </h4>
+                          <span className="text-[9px] font-medium text-slate-400 block truncate">
+                            {bm.moduleTitle}
+                          </span>
+                          <span className="text-[9px] font-semibold text-slate-500 block truncate">
+                            Course: {bm.course.title}
+                          </span>
+                        </div>
+
+                        <button
+                          onClick={() => handleLaunchPlayer(bm.course, bm.subtopicId)}
+                          className="w-full py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 text-[10px] font-extrabold cursor-pointer transition-all flex items-center justify-center gap-1 border border-sky-100"
+                        >
+                          Quick Open
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Column 3: Recent Activity */}
+              <div className="md:col-span-6 lg:col-span-3 space-y-6">
+                <h3 className="font-heading font-extrabold text-base text-slate-900 flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4 text-indigo-500" />
+                  <span>Recent Activity</span>
+                </h3>
+
+                {recentActivities.length === 0 ? (
+                  <div className="p-8 text-center rounded-3xl border border-slate-100 bg-white/70 space-y-2">
+                    <Activity className="w-6 h-6 text-slate-300 mx-auto" />
+                    <p className="text-xs text-slate-400 italic">No recent learning activity.</p>
+                  </div>
+                ) : (
+                  <div className="relative border-l border-slate-150 pl-4 ml-2.5 space-y-5">
+                    {recentActivities.slice(0, 10).map((act) => {
+                      let actIcon = <PlayCircle className="w-3.5 h-3.5" />;
+                      let actColor = 'text-blue-500 bg-blue-50 border-blue-100';
+
+                      if (act.type === 'completed') {
+                        actIcon = <CheckCircle2 className="w-3.5 h-3.5" />;
+                        actColor = 'text-emerald-600 bg-emerald-50 border-emerald-100';
+                      } else if (act.type === 'quiz') {
+                        actIcon = <Award className="w-3.5 h-3.5" />;
+                        actColor = 'text-purple-600 bg-purple-50 border-purple-100';
+                      } else if (act.type === 'assignment') {
+                        actIcon = <FileCheck className="w-3.5 h-3.5" />;
+                        actColor = 'text-amber-600 bg-amber-50 border-amber-100';
+                      } else if (act.type === 'note') {
+                        actIcon = <BookOpen className="w-3.5 h-3.5" />;
+                        actColor = 'text-sky-500 bg-sky-50 border-sky-100';
+                      } else if (act.type === 'bookmark') {
+                        actIcon = <Bookmark className="w-3.5 h-3.5" />;
+                        actColor = 'text-pink-500 bg-pink-50 border-pink-100';
+                      }
+
+                      return (
+                        <div key={act.id} className="relative font-['Sora'] text-slate-900 space-y-1">
+                          {/* Timeline Bullet Marker */}
+                          <div className={`absolute -left-[27px] top-0.5 w-6 h-6 rounded-full border flex items-center justify-center ${actColor} shadow-3xs`}>
+                            {actIcon}
+                          </div>
+
+                          <div className="pl-1 min-w-0">
+                            <p className="text-xs font-bold text-slate-800 leading-tight">
+                              {act.title}
+                            </p>
+                            <span className="text-[9px] font-semibold text-slate-400 block truncate">
+                              Course: {act.courseTitle}
+                            </span>
+                            <span className="text-[8px] font-medium text-slate-400 font-sans block pt-0.5">
+                              {new Date(act.timestamp).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ------------------- 2. ASSIGNMENTS & QUIZZES TAB ------------------- */}
       {currentTab === 'assignments' && (
@@ -1018,6 +1463,21 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {activePlayerCourse && (
+        <CoursePlayerModal
+          course={activePlayerCourse}
+          initialSubtopicId={playerInitialSubtopicId}
+          initialNotesOpen={playerInitialNotesOpen}
+          initialTab={playerInitialTab}
+          onClose={() => {
+            setActivePlayerCourse(null);
+            setPlayerInitialSubtopicId(undefined);
+            setPlayerInitialNotesOpen(false);
+            setPlayerInitialTab(undefined);
+          }}
+        />
       )}
 
     </div>
