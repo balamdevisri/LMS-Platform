@@ -37,6 +37,10 @@ import {
   Inbox,
   Presentation,
   Circle,
+  Bookmark,
+  Pin,
+  Edit2,
+  Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -154,6 +158,31 @@ export interface LessonResource {
   size?: string;
   badge: 'Required' | 'Optional' | 'Reference' | 'Starter Code' | 'Project Files';
   uploadedAt: string;
+}
+
+export interface PersonalNote {
+  id: string;
+  courseId: string;
+  subtopicId: string;
+  subtopicTitle: string;
+  moduleTitle: string;
+  lessonType: 'video' | 'quiz' | 'assignment' | 'reading';
+  title: string;
+  content: string;
+  videoTimestamp?: number;
+  isPinned: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LessonBookmark {
+  id: string;
+  courseId: string;
+  subtopicId: string;
+  subtopicTitle: string;
+  moduleTitle: string;
+  lessonType: 'video' | 'quiz' | 'assignment' | 'reading';
+  createdAt: string;
 }
 
 const MOCK_RESOURCES_DATABASE: Record<string, LessonResource[]> = {
@@ -374,6 +403,41 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
   const [quizPassed, setQuizPassed] = useState<Record<string, boolean>>({});
   const [assignmentAnswers, setAssignmentAnswers] = useState<Record<string, string>>({});
 
+  // ----------------- PHASE 25: PERSONAL NOTES & SMART BOOKMARKS STATES -----------------
+  const [notes, setNotes] = useState<PersonalNote[]>([]);
+  const [bookmarks, setBookmarks] = useState<LessonBookmark[]>([]);
+  const [isNotesPanelOpen, setIsNotesPanelOpen] = useState(false);
+  const [rightActiveTab, setRightActiveTab] = useState<'notes' | 'bookmarks'>('notes');
+  const [notesSearch, setNotesSearch] = useState<string>('');
+  const [notesFilter, setNotesFilter] = useState<'all' | 'video' | 'reading' | 'recent' | 'oldest'>('all');
+  const [notesSort, setNotesSort] = useState<'newest' | 'oldest' | 'alpha'>('newest');
+  const [noteInputTitle, setNoteInputTitle] = useState<string>('');
+  const [noteInputContent, setNoteInputContent] = useState<string>('');
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [savingStatus, setSavingStatus] = useState<'saving' | 'saved' | null>(null);
+
+  const videoRef = React.useRef<HTMLVideoElement | null>(null);
+
+  // Load notes and bookmarks from localStorage on mount
+  useEffect(() => {
+    const cachedNotes = localStorage.getItem(`shaivika_notes_${course.id}`);
+    if (cachedNotes) {
+      try {
+        setNotes(JSON.parse(cachedNotes));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    const cachedBookmarks = localStorage.getItem(`shaivika_bookmarks_${course.id}`);
+    if (cachedBookmarks) {
+      try {
+        setBookmarks(JSON.parse(cachedBookmarks));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }, [course.id]);
+
 
 
   // Restore saved checkpoint on mount
@@ -435,6 +499,42 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
       : completedLessonsCount > 0 || inProgressSubtopics.length > 0
       ? 'In Progress'
       : 'Not Started';
+
+  const isCurrentSubtopicBookmarked = bookmarks.some((b) => b.subtopicId === currentSubtopic?.id);
+
+  const filteredNotes = notes.filter((n) => {
+    const matchesSearch =
+      n.title.toLowerCase().includes(notesSearch.toLowerCase()) ||
+      n.content.toLowerCase().includes(notesSearch.toLowerCase());
+    
+    if (!matchesSearch) return false;
+
+    if (notesFilter === 'video') return n.lessonType === 'video';
+    if (notesFilter === 'reading') return n.lessonType === 'reading';
+    
+    if (notesFilter === 'recent') {
+      const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+      return new Date(n.createdAt).getTime() >= oneDayAgo;
+    }
+    
+    return true;
+  });
+
+  const sortedNotes = [...filteredNotes].sort((a, b) => {
+    if (a.isPinned && !b.isPinned) return -1;
+    if (!a.isPinned && b.isPinned) return 1;
+
+    if (notesSort === 'newest') {
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    }
+    if (notesSort === 'oldest') {
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    }
+    if (notesSort === 'alpha') {
+      return a.title.localeCompare(b.title);
+    }
+    return 0;
+  });
 
   const currentLessonFlatIdx = allLessons.findIndex(
     (item) =>
@@ -631,6 +731,159 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
       setSessionDownloads((prev) => [...prev, res.id]);
     }
     toast.success(`Successfully opened/downloaded: ${res.name}`);
+  };
+
+  // Seek video jump handler
+  const handleJumpToTimestamp = (timestamp: number, subtopicId: string) => {
+    if (currentSubtopic.id !== subtopicId) {
+      const path = allLessons.find(l => l.subtopicId === subtopicId);
+      if (path) {
+        setActiveModuleIdx(path.moduleIdx);
+        setCurrentLessonIdx(path.lessonIdx);
+        setCurrentSubtopicIdx(path.subtopicIdx);
+      }
+    }
+    
+    setTimeout(() => {
+      if (videoRef.current) {
+        videoRef.current.currentTime = timestamp;
+        videoRef.current.play().catch(() => {});
+        toast.info(`Seeking video to ${formatTime(timestamp)}...`);
+      }
+    }, 400);
+  };
+
+  // Debounced auto-save for note edits
+  useEffect(() => {
+    if (!editingNoteId) return;
+
+    setSavingStatus('saving');
+    const timer = setTimeout(() => {
+      setNotes((prevNotes) => {
+        const updated = prevNotes.map((note) =>
+          note.id === editingNoteId
+            ? { ...note, title: noteInputTitle, content: noteInputContent, updatedAt: new Date().toISOString() }
+            : note
+        );
+        localStorage.setItem(`shaivika_notes_${course.id}`, JSON.stringify(updated));
+        return updated;
+      });
+      setSavingStatus('saved');
+      const clearTimer = setTimeout(() => setSavingStatus(null), 1500);
+      return () => clearTimeout(clearTimer);
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [noteInputTitle, noteInputContent, editingNoteId, course.id]);
+
+  const handleAddNote = () => {
+    if (!noteInputContent.trim()) {
+      toast.warning('Note content cannot be empty.');
+      return;
+    }
+
+    const lessonType = getLessonType(currentSubtopic.id);
+    let videoTimestamp: number | undefined;
+
+    if (lessonType === 'video' && videoRef.current) {
+      videoTimestamp = Math.floor(videoRef.current.currentTime);
+    }
+
+    const newNote: PersonalNote = {
+      id: `note_${Date.now()}`,
+      courseId: course.id,
+      subtopicId: currentSubtopic.id,
+      subtopicTitle: currentSubtopic.title,
+      moduleTitle: activeModule.title,
+      lessonType,
+      title: noteInputTitle.trim() || `Note on ${currentSubtopic.title}`,
+      content: noteInputContent,
+      videoTimestamp,
+      isPinned: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const updatedNotes = [newNote, ...notes];
+    setNotes(updatedNotes);
+    localStorage.setItem(`shaivika_notes_${course.id}`, JSON.stringify(updatedNotes));
+
+    setNoteInputTitle('');
+    setNoteInputContent('');
+    toast.success('Note added successfully!');
+  };
+
+  const handleTogglePinNote = (noteId: string) => {
+    const updated = notes.map((n) => (n.id === noteId ? { ...n, isPinned: !n.isPinned } : n));
+    setNotes(updated);
+    localStorage.setItem(`shaivika_notes_${course.id}`, JSON.stringify(updated));
+    toast.success('Note pin status toggled.');
+  };
+
+  const handleDeleteNote = (noteId: string) => {
+    const updated = notes.filter((n) => n.id !== noteId);
+    setNotes(updated);
+    localStorage.setItem(`shaivika_notes_${course.id}`, JSON.stringify(updated));
+    if (editingNoteId === noteId) {
+      setEditingNoteId(null);
+      setNoteInputTitle('');
+      setNoteInputContent('');
+    }
+    toast.success('Note deleted.');
+  };
+
+  const handleExportNotes = () => {
+    const markdownContent = notes
+      .map(
+        (n) =>
+          `# ${n.title || 'Untitled Note'}\n` +
+          `**Lesson:** ${n.subtopicTitle} (${n.lessonType})\n` +
+          `**Created:** ${new Date(n.createdAt).toLocaleString()}\n` +
+          `**Pinned:** ${n.isPinned ? 'Yes' : 'No'}\n` +
+          `${n.videoTimestamp !== undefined ? `**Video Timestamp:** ${formatTime(n.videoTimestamp)}\n` : ''}` +
+          `\n` +
+          `${n.content}\n` +
+          `\n---\n`
+      )
+      .join('\n');
+
+    const blob = new Blob([markdownContent], { type: 'text/markdown;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `${course.title.replace(/\s+/g, '_')}_Study_Notes.md`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Study notes exported successfully as Markdown (.md)!');
+  };
+
+  const handleToggleBookmark = () => {
+    if (!currentSubtopic) return;
+
+    const isBookmarked = bookmarks.some((b) => b.subtopicId === currentSubtopic.id);
+    let updated: LessonBookmark[];
+
+    if (isBookmarked) {
+      updated = bookmarks.filter((b) => b.subtopicId !== currentSubtopic.id);
+      toast.info('Bookmark removed.');
+    } else {
+      const lessonType = getLessonType(currentSubtopic.id);
+      const newBookmark: LessonBookmark = {
+        id: currentSubtopic.id,
+        courseId: course.id,
+        subtopicId: currentSubtopic.id,
+        subtopicTitle: currentSubtopic.title,
+        moduleTitle: activeModule.title,
+        lessonType,
+        createdAt: new Date().toISOString(),
+      };
+      updated = [...bookmarks, newBookmark];
+      toast.success('Lesson bookmarked successfully!');
+    }
+
+    setBookmarks(updated);
+    localStorage.setItem(`shaivika_bookmarks_${course.id}`, JSON.stringify(updated));
   };
 
   const isLessonLocked = (item: CourseLessonPath) => {
@@ -858,6 +1111,37 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
           >
             <FolderDown className="w-4 h-4" />
             <span className="hidden md:inline">Resources</span>
+          </button>
+
+          {/* Bookmark Toggle Icon Button */}
+          <button
+            onClick={handleToggleBookmark}
+            className={`p-2 rounded-xl border transition-all cursor-pointer ${
+              isCurrentSubtopicBookmarked
+                ? 'bg-amber-50 border-amber-300 text-amber-600 shadow-2xs animate-in'
+                : 'bg-slate-50 border-slate-200 text-slate-400 hover:text-slate-600'
+            }`}
+            title={isCurrentSubtopicBookmarked ? 'Remove Bookmark' : 'Bookmark this Lesson'}
+          >
+            <Bookmark className={`w-4 h-4 ${isCurrentSubtopicBookmarked ? 'fill-amber-500 text-amber-500' : ''}`} />
+          </button>
+
+          {/* Notes & Bookmarks Toggle Button */}
+          <button
+            onClick={() => setIsNotesPanelOpen(!isNotesPanelOpen)}
+            className={`py-1.5 px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
+              isNotesPanelOpen
+                ? 'bg-sky-100 border-sky-300 text-sky-800'
+                : 'bg-white border-sky-200 text-slate-700 hover:bg-sky-50'
+            }`}
+          >
+            <BookOpen className="w-4 h-4 text-sky-600" />
+            <span className="hidden lg:inline">Notes & Bookmarks</span>
+            {bookmarks.length > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full bg-amber-100 border border-amber-200 text-amber-800 text-[9px] font-extrabold leading-none">
+                {bookmarks.length}
+              </span>
+            )}
           </button>
 
           {/* XP Reward Badge */}
@@ -1300,6 +1584,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                       <div className="space-y-4">
                         <div className="relative aspect-video rounded-2xl bg-black overflow-hidden border border-sky-100 flex items-center justify-center">
                           <video
+                            ref={videoRef}
                             src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
                             className="w-full h-full object-cover"
                             controls
@@ -1957,6 +2242,301 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
             </div>
           </footer>
         </main>
+ 
+        {/* RIGHT PANEL: PERSONAL NOTES & SMART BOOKMARKS */}
+        {isNotesPanelOpen && (
+          <aside
+            className={`shrink-0 border-l p-4 sm:p-5 flex flex-col justify-between overflow-y-auto space-y-4 transition-all duration-300 ${
+              mobileMenuOpen ? 'hidden' : ''
+            } w-full md:w-80 lg:w-96 ${
+              isReadingMode ? 'bg-[#f4efe4] border-[#e2d9c8]' : 'bg-sky-50/60 border-sky-100'
+            } fixed inset-y-16 right-0 z-30 md:static h-[calc(100vh-64px)]`}
+          >
+            {/* Header with Switch Tabs (My Notes vs Bookmarks) */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-sky-200">
+                <div className="flex items-center gap-2">
+                  <span className="font-heading font-extrabold text-xs text-sky-900 uppercase tracking-wider">
+                    Study Assistant
+                  </span>
+                </div>
+                <button
+                  onClick={() => setIsNotesPanelOpen(false)}
+                  className="p-1 rounded-lg hover:bg-rose-100 hover:text-rose-700 text-slate-500 transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Tabs Switcher */}
+              <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-slate-100/80 border border-sky-100/50">
+                <button
+                  onClick={() => setRightActiveTab('notes')}
+                  className={`py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    rightActiveTab === 'notes'
+                      ? 'bg-white text-sky-950 shadow-xs'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  My Notes
+                </button>
+                <button
+                  onClick={() => setRightActiveTab('bookmarks')}
+                  className={`py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    rightActiveTab === 'bookmarks'
+                      ? 'bg-white text-sky-950 shadow-xs'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Bookmarks ({bookmarks.length})
+                </button>
+              </div>
+            </div>
+
+            {/* TAB CONTENT: MY NOTES */}
+            {rightActiveTab === 'notes' && (
+              <div className="flex-1 flex flex-col min-h-0 space-y-4 overflow-y-auto pt-2">
+                {/* Note Editor Card */}
+                <div className="p-4 rounded-2xl bg-white border border-sky-100 shadow-xs space-y-3.5 relative">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-extrabold text-sky-800 bg-sky-50 border border-sky-100 px-2 py-0.5 rounded-md">
+                      {editingNoteId ? '✏ Editing Note' : '📝 Create Study Note'}
+                    </span>
+                    {savingStatus && (
+                      <span className="text-[9px] font-bold text-sky-600 animate-pulse">
+                        {savingStatus === 'saving' ? 'Saving...' : 'Saved ✓'}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      value={noteInputTitle}
+                      onChange={(e) => setNoteInputTitle(e.target.value)}
+                      placeholder="Note title (optional)..."
+                      className="w-full p-2.5 rounded-xl border border-sky-100 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all"
+                    />
+                    <textarea
+                      value={noteInputContent}
+                      onChange={(e) => setNoteInputContent(e.target.value)}
+                      placeholder="Write your study notes here..."
+                      rows={3}
+                      className="w-full p-2.5 rounded-xl border border-sky-100 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all font-sans"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 pt-1">
+                    {getLessonType(currentSubtopic.id) === 'video' && videoRef.current && (
+                      <span className="text-[10px] text-slate-400 font-medium">
+                        ⏱ Will tag at {formatTime(Math.floor(videoRef.current.currentTime))}
+                      </span>
+                    )}
+                    <div className="flex items-center gap-1.5 ml-auto">
+                      {editingNoteId && (
+                        <button
+                          onClick={() => {
+                            setEditingNoteId(null);
+                            setNoteInputTitle('');
+                            setNoteInputContent('');
+                          }}
+                          className="py-1.5 px-3 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-[10px] font-bold cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                      <button
+                        onClick={editingNoteId ? () => setEditingNoteId(null) : handleAddNote}
+                        className="py-1.5 px-3.5 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-[10px] font-extrabold cursor-pointer transition-all shadow-sm"
+                      >
+                        {editingNoteId ? 'Finish Editing' : 'Add Note'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Filters, Sorting & Search Panel */}
+                {notes.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={notesSearch}
+                        onChange={(e) => setNotesSearch(e.target.value)}
+                        placeholder="Search Notes..."
+                        className="w-full pl-8 pr-4 py-1.5 rounded-xl border border-sky-100 bg-white/70 text-xs text-slate-800 focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <select
+                        value={notesFilter}
+                        onChange={(e) => setNotesFilter(e.target.value as any)}
+                        className="flex-1 px-2 py-1 rounded-lg border border-sky-100 bg-white/80 text-[10px] font-medium text-slate-700 focus:outline-none cursor-pointer"
+                      >
+                        <option value="all">Filter: All</option>
+                        <option value="video">Filter: Videos</option>
+                        <option value="reading">Filter: Readings</option>
+                        <option value="recent">Filter: 24h Recent</option>
+                      </select>
+
+                      <select
+                        value={notesSort}
+                        onChange={(e) => setNotesSort(e.target.value as any)}
+                        className="flex-1 px-2 py-1 rounded-lg border border-sky-100 bg-white/80 text-[10px] font-medium text-slate-700 focus:outline-none cursor-pointer"
+                      >
+                        <option value="newest">Sort: Newest</option>
+                        <option value="oldest">Sort: Oldest</option>
+                        <option value="alpha">Sort: A-Z</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                {/* Note Cards List */}
+                {sortedNotes.length === 0 ? (
+                  <div className="text-center py-8 space-y-2 bg-white/40 rounded-2xl border border-sky-100/50 p-4">
+                    <Inbox className="w-5 h-5 text-slate-400 mx-auto" />
+                    <p className="text-[11px] text-slate-500 font-medium">
+                      {notesSearch ? 'No notes matched search query.' : 'No notes written yet.'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 flex-1 overflow-y-auto pr-1">
+                    {sortedNotes.map((note) => (
+                      <div
+                        key={note.id}
+                        className={`p-3.5 rounded-2xl border transition-all duration-200 bg-white hover:shadow-sm space-y-2.5 relative group ${
+                          note.isPinned ? 'border-amber-300 bg-amber-50/5' : 'border-sky-100/60'
+                        }`}
+                      >
+                        {/* Note Actions (Pin, Edit, Delete) */}
+                        <div className="absolute top-3 right-3 flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => handleTogglePinNote(note.id)}
+                            className={`p-1 rounded-md transition-colors cursor-pointer ${
+                              note.isPinned ? 'text-amber-600 bg-amber-100/50' : 'text-slate-400 hover:bg-slate-100'
+                            }`}
+                            title={note.isPinned ? 'Unpin note' : 'Pin note'}
+                          >
+                            <Pin className="w-3 h-3 fill-current animate-in" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingNoteId(note.id);
+                              setNoteInputTitle(note.title);
+                              setNoteInputContent(note.content);
+                            }}
+                            className="p-1 rounded-md text-slate-400 hover:text-sky-700 hover:bg-sky-50 transition-colors cursor-pointer"
+                            title="Edit note"
+                          >
+                            <Edit2 className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteNote(note.id)}
+                            className="p-1 rounded-md text-slate-400 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
+                            title="Delete note"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+
+                        <div className="space-y-1 pr-16 min-w-0">
+                          {/* Note meta: Timestamp & Type */}
+                          <div className="flex flex-wrap items-center gap-1.5 text-[9px] font-semibold text-slate-400">
+                            <span className="uppercase text-sky-700 bg-sky-50 border border-sky-100 px-1 rounded-sm">
+                              {note.lessonType}
+                            </span>
+                            {note.videoTimestamp !== undefined && (
+                              <button
+                                onClick={() => handleJumpToTimestamp(note.videoTimestamp!, note.subtopicId)}
+                                className="text-sky-600 hover:underline font-extrabold flex items-center gap-0.5 cursor-pointer"
+                                title="Click to jump playback position"
+                              >
+                                ⏱ {formatTime(note.videoTimestamp)}
+                              </button>
+                            )}
+                            <span className="truncate max-w-28" title={note.subtopicTitle}>
+                              {note.subtopicTitle}
+                            </span>
+                          </div>
+                          <h5 className="font-heading font-extrabold text-xs text-slate-800 truncate">
+                            {note.title}
+                          </h5>
+                        </div>
+
+                        <p className="text-[11px] leading-relaxed text-slate-600 font-sans whitespace-pre-wrap">
+                          {note.content}
+                        </p>
+
+                        <div className="text-[8px] text-slate-400 font-medium pt-1 border-t border-slate-100 flex justify-between">
+                          <span>Created: {new Date(note.createdAt).toLocaleDateString()}</span>
+                          {note.updatedAt !== note.createdAt && <span>Edited</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Export Notes Button */}
+                {notes.length > 0 && (
+                  <button
+                    onClick={handleExportNotes}
+                    className="w-full py-2.5 rounded-xl border border-sky-200 text-sky-800 hover:bg-sky-50 text-xs font-bold cursor-pointer transition-all flex items-center justify-center gap-1.5 shrink-0 bg-white"
+                  >
+                    <Download className="w-4 h-4" /> Export Notes (.md)
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* TAB CONTENT: BOOKMARKS */}
+            {rightActiveTab === 'bookmarks' && (
+              <div className="flex-1 flex flex-col min-h-0 space-y-3 overflow-y-auto pt-2">
+                {bookmarks.length === 0 ? (
+                  <div className="text-center py-10 space-y-2 bg-white/40 rounded-2xl border border-sky-100/50 p-4">
+                    <Bookmark className="w-5 h-5 text-slate-400 mx-auto" />
+                    <p className="text-[11px] text-slate-500 font-medium">No bookmarks saved yet.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5 overflow-y-auto flex-1">
+                    {bookmarks.map((bm) => (
+                      <button
+                        key={bm.subtopicId}
+                        onClick={() => {
+                          const path = allLessons.find((l) => l.subtopicId === bm.subtopicId);
+                          if (path) {
+                            setActiveModuleIdx(path.moduleIdx);
+                            setCurrentLessonIdx(path.lessonIdx);
+                            setCurrentSubtopicIdx(path.subtopicIdx);
+                            toast.success(`Navigated to bookmark: ${bm.subtopicTitle}`);
+                          }
+                        }}
+                        className="w-full text-left p-3.5 rounded-2xl border border-sky-100/60 bg-white hover:bg-sky-50 hover:shadow-xs transition-all duration-200 flex flex-col gap-1.5 cursor-pointer group"
+                      >
+                        <div className="flex items-center justify-between w-full">
+                          <span className="text-[8px] font-extrabold uppercase text-sky-700 bg-sky-50 border border-sky-100 px-1.5 py-0.5 rounded-md">
+                            {bm.lessonType}
+                          </span>
+                          <span className="text-[8px] font-medium text-slate-400 font-sans">
+                            Saved: {new Date(bm.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <h4 className="font-heading font-extrabold text-xs text-slate-800 truncate group-hover:text-sky-900 transition-colors">
+                          {bm.subtopicTitle}
+                        </h4>
+                        <span className="text-[9px] font-medium text-slate-400 block truncate">
+                          {bm.moduleTitle}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </aside>
+        )}
       </div>
 
       {/* GAMIFIED MOTIVATIONAL CELEBRATION MODAL */}
