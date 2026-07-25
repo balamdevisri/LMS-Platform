@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import type { ICourse } from '../../../../shared/types/course';
 import { courseService } from '../../services/courseService';
 import { InteractiveTerminalModal } from './InteractiveTerminalModal';
 import { MODULE_1_FULL_CURRICULUM } from '../../data/linuxModuleContent';
 import { MODULE_2_FULL_CURRICULUM } from '../../data/linuxModule2Content';
 import { MODULE_3_FULL_CURRICULUM } from '../../data/linuxModule3Content';
-import type { SubtopicDetail } from '../../data/linuxModuleContent';
+import type { SubtopicDetail, LessonDetail } from '../../data/linuxModuleContent';
 import {
   PlayCircle,
   CheckCircle2,
@@ -145,6 +146,68 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
   onProgressUpdate,
 }) => {
   const syllabus = course.syllabus || [];
+
+  // 1. Dynamic Curriculum Loader
+  const getCurriculumForModule = (mIdx: number): LessonDetail[] => {
+    let baseCurriculum: LessonDetail[] = [];
+    if (mIdx === 2) {
+      baseCurriculum = MODULE_3_FULL_CURRICULUM;
+    } else if (mIdx === 1) {
+      baseCurriculum = MODULE_2_FULL_CURRICULUM;
+    } else {
+      baseCurriculum = MODULE_1_FULL_CURRICULUM;
+    }
+
+    const modNum = mIdx + 1;
+    if (modNum !== 1 && modNum !== 2 && modNum !== 3) {
+      return baseCurriculum.map((lesson: LessonDetail) => ({
+        ...lesson,
+        title: lesson.title.replace(/Lesson 1\./g, `Lesson ${modNum}.`),
+        subtopics: lesson.subtopics.map((sub: SubtopicDetail) => ({
+          ...sub,
+          id: sub.id.replace(/^1\./, `${modNum}.`),
+          title: sub.title.replace(/^1\./, `${modNum}.`),
+        })),
+      }));
+    }
+    return baseCurriculum;
+  };
+
+  // Flattened array of all lessons across all modules
+  interface CourseLessonPath {
+    moduleIdx: number;
+    lessonIdx: number;
+    subtopicIdx: number;
+    subtopicId: string;
+    subtopicTitle: string;
+    topicTitle: string;
+    moduleTitle: string;
+    subtopic: SubtopicDetail;
+    lesson: LessonDetail;
+    module: any;
+  }
+
+  const allLessons: CourseLessonPath[] = [];
+  syllabus.forEach((mod: any, mIdx: number) => {
+    const curr = getCurriculumForModule(mIdx);
+    curr.forEach((lesson: LessonDetail, lIdx: number) => {
+      lesson.subtopics.forEach((sub: SubtopicDetail, sIdx: number) => {
+        allLessons.push({
+          moduleIdx: mIdx,
+          lessonIdx: lIdx,
+          subtopicIdx: sIdx,
+          subtopicId: sub.id,
+          subtopicTitle: sub.title,
+          topicTitle: lesson.title,
+          moduleTitle: mod.title,
+          subtopic: sub,
+          lesson: lesson,
+          module: mod,
+        });
+      });
+    });
+  });
+
   const [activeModuleIdx, setActiveModuleIdx] = useState(0);
   const [activeTab, setActiveTab] = useState<'content' | 'commands' | 'slides' | 'lab'>('content');
   const [currentSlideIdx, setCurrentSlideIdx] = useState(0);
@@ -171,12 +234,12 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
   const [userXP, setUserXP] = useState(courseService.getUserXPPoints());
 
   // Dynamic Curriculum for active Module
-  const activeCurriculum =
-    activeModuleIdx === 2
-      ? MODULE_3_FULL_CURRICULUM
-      : activeModuleIdx === 1
-      ? MODULE_2_FULL_CURRICULUM
-      : MODULE_1_FULL_CURRICULUM;
+  const activeCurriculum = getCurriculumForModule(activeModuleIdx);
+
+  // Collapsible Sidebar & In Progress tracking states
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [expandedModules, setExpandedModules] = useState<Record<number, boolean>>({ 0: true });
+  const [inProgressSubtopics, setInProgressSubtopics] = useState<string[]>([]);
 
   // Restore saved checkpoint on mount
   useEffect(() => {
@@ -199,11 +262,112 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
   };
 
   const activeSlide = ARCHITECTURE_SLIDES[currentSlideIdx];
-  const progressPercent = Math.round((completedSubtopics.length / 15) * 100);
+  const progressPercent = Math.round((completedSubtopics.length / allLessons.length) * 100);
   const activeCommands = MODULE_COMMAND_TABLES[activeModuleIdx] || MODULE_COMMAND_TABLES[0];
 
   const currentLesson = activeCurriculum[currentLessonIdx] || activeCurriculum[0];
   const currentSubtopic: SubtopicDetail = currentLesson?.subtopics?.[currentSubtopicIdx] || currentLesson?.subtopics?.[0];
+
+  const currentLessonFlatIdx = allLessons.findIndex(
+    (item) =>
+      item.moduleIdx === activeModuleIdx &&
+      item.lessonIdx === currentLessonIdx &&
+      item.subtopicIdx === currentSubtopicIdx
+  );
+
+  const safeFlatIdx = currentLessonFlatIdx === -1 ? 0 : currentLessonFlatIdx;
+
+  // Automatically mark current lesson as In Progress if it's not completed
+  useEffect(() => {
+    if (currentSubtopic && !completedSubtopics.includes(currentSubtopic.id) && !inProgressSubtopics.includes(currentSubtopic.id)) {
+      setInProgressSubtopics((prev) => [...prev, currentSubtopic.id]);
+    }
+  }, [currentSubtopic, completedSubtopics, inProgressSubtopics]);
+
+  // Expand module on change
+  useEffect(() => {
+    setExpandedModules((prev) => ({
+      ...prev,
+      [activeModuleIdx]: true,
+    }));
+  }, [activeModuleIdx]);
+
+  const handlePrevLesson = () => {
+    if (safeFlatIdx > 0) {
+      const prevItem = allLessons[safeFlatIdx - 1];
+      setActiveModuleIdx(prevItem.moduleIdx);
+      setCurrentLessonIdx(prevItem.lessonIdx);
+      setCurrentSubtopicIdx(prevItem.subtopicIdx);
+    }
+  };
+
+  const handleNextLesson = () => {
+    if (safeFlatIdx < allLessons.length - 1) {
+      const nextItem = allLessons[safeFlatIdx + 1];
+      setActiveModuleIdx(nextItem.moduleIdx);
+      setCurrentLessonIdx(nextItem.lessonIdx);
+      setCurrentSubtopicIdx(nextItem.subtopicIdx);
+    }
+  };
+
+  // Keyboard Shortcuts: ArrowLeft (Previous Lesson), ArrowRight (Next Lesson), Escape (Close)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        document.activeElement?.tagName === 'INPUT' ||
+        document.activeElement?.tagName === 'TEXTAREA' ||
+        activeTerminalCmd !== null ||
+        isResourcesOpen
+      ) {
+        return;
+      }
+
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        handlePrevLesson();
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        handleNextLesson();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [safeFlatIdx, allLessons, activeTerminalCmd, isResourcesOpen]);
+
+  // Smooth scroll content to top and sidebar to active lesson
+  useEffect(() => {
+    const mainEl = document.querySelector('main');
+    if (mainEl) {
+      mainEl.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    if (currentSubtopic) {
+      const element = document.getElementById(`lesson-item-${currentSubtopic.id}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+  }, [activeModuleIdx, currentLessonIdx, currentSubtopicIdx, currentSubtopic]);
+
+  const isLessonLocked = (item: CourseLessonPath) => {
+    const mIdx = item.moduleIdx;
+    if (mIdx > 0 && !completedModules.includes(mIdx - 1)) {
+      return true;
+    }
+    const moduleLessons = allLessons.filter((l) => l.moduleIdx === mIdx);
+    const indexInModule = moduleLessons.findIndex((l) => l.subtopicId === item.subtopicId);
+    if (indexInModule === 0) {
+      return false;
+    }
+    const prevLessonInModule = moduleLessons[indexInModule - 1];
+    return !completedSubtopics.includes(prevLessonInModule.subtopicId);
+  };
 
   // Auto-save checkpoint continuously whenever position or completion changes
   useEffect(() => {
@@ -283,27 +447,18 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
 
   const advanceNextSubtopic = () => {
     setCelebrationMessage(null);
-    if (currentSubtopicIdx < currentLesson.subtopics.length - 1) {
-      setCurrentSubtopicIdx(currentSubtopicIdx + 1);
-      toast.success(`Advancing to Subtopic ${currentLesson.subtopics[currentSubtopicIdx + 1].id}!`);
-    } else if (currentLessonIdx < activeCurriculum.length - 1) {
-      setCurrentLessonIdx(currentLessonIdx + 1);
-      setCurrentSubtopicIdx(0);
-      toast.success(`Topic Complete! Moving to ${activeCurriculum[currentLessonIdx + 1].title}!`);
+    if (safeFlatIdx < allLessons.length - 1) {
+      const nextItem = allLessons[safeFlatIdx + 1];
+      setActiveModuleIdx(nextItem.moduleIdx);
+      setCurrentLessonIdx(nextItem.lessonIdx);
+      setCurrentSubtopicIdx(nextItem.subtopicIdx);
+      toast.success(`Advancing to Lesson ${nextItem.subtopicId}!`);
     } else {
-      toast.success(`🎉 Module ${activeModuleIdx + 1} Fully Mastered! XP Bonus Granted!`);
+      toast.success(`🎉 Course Completed! XP Bonus Granted!`);
     }
   };
 
-  const handlePrevSubtopic = () => {
-    if (currentSubtopicIdx > 0) {
-      setCurrentSubtopicIdx(currentSubtopicIdx - 1);
-    } else if (currentLessonIdx > 0) {
-      const prevLsnIdx = currentLessonIdx - 1;
-      setCurrentLessonIdx(prevLsnIdx);
-      setCurrentSubtopicIdx(activeCurriculum[prevLsnIdx].subtopics.length - 1);
-    }
-  };
+
 
   const handlePrevModule = () => {
     if (activeModuleIdx > 0) {
@@ -348,11 +503,21 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
         isReadingMode ? 'bg-[#f4efe4] border-[#e2d9c8]' : 'bg-white border-sky-100'
       }`}>
         <div className="flex items-center gap-3 sm:gap-4">
+          {/* Mobile Menu Toggle Button (Drawer) */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 rounded-xl bg-sky-50 border border-sky-200 lg:hidden text-sky-700 cursor-pointer"
+            className="p-2 rounded-xl bg-sky-50 border border-sky-200 md:hidden text-sky-700 cursor-pointer"
           >
             <MenuIcon className="w-4 h-4" />
+          </button>
+
+          {/* Desktop/Tablet Collapse Sidebar Toggle Button */}
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="hidden md:flex p-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 transition-colors items-center gap-2 text-xs font-bold cursor-pointer"
+          >
+            <MenuIcon className="w-4 h-4" />
+            <span className="hidden lg:inline">{sidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}</span>
           </button>
 
           <button
@@ -416,106 +581,219 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
       </header>
 
       {/* ----------------- 2. MAIN CLASSROOM BODY (WHITE & SKY BLUE THEME) ----------------- */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 overflow-hidden relative">
+      <div className="flex-1 flex overflow-hidden relative">
         {/* LEFT SIDEBAR: Mobile Drawer / Desktop Sidebar */}
-        <aside className={`lg:col-span-1 border-r p-4 sm:p-5 flex flex-col justify-between overflow-y-auto space-y-4 transition-all duration-300 ${
-          mobileMenuOpen ? 'fixed inset-y-16 left-0 z-40 w-72 shadow-2xl bg-white' : 'hidden lg:flex'
+        <aside className={`shrink-0 border-r p-4 sm:p-5 flex flex-col justify-between overflow-y-auto space-y-4 transition-all duration-300 ${
+          mobileMenuOpen
+            ? 'fixed inset-y-16 left-0 z-40 w-72 shadow-2xl bg-white'
+            : 'hidden md:flex'
+        } ${
+          sidebarCollapsed
+            ? 'md:w-16 md:p-2'
+            : 'md:w-72 lg:w-80'
         } ${isReadingMode ? 'bg-[#f4efe4] border-[#e2d9c8]' : 'bg-sky-50/60 border-sky-100'}`}>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-sky-200">
-              <h2 className="font-heading font-bold text-xs text-sky-900 uppercase tracking-wider flex items-center gap-2">
-                <Layers className="w-4 h-4 text-sky-600" /> Syllabus Flow ({syllabus.length})
-              </h2>
-              <span className="text-[11px] font-semibold text-slate-500">{course.duration}</span>
-            </div>
-
-            <div className="space-y-2.5">
+          {sidebarCollapsed ? (
+            <div className="flex flex-col items-center gap-4">
               {syllabus.map((mod, idx) => {
                 const isActive = idx === activeModuleIdx;
                 const isCompleted = completedModules.includes(idx);
-                const hasPoints = claimedPointsModules.includes(idx);
-
                 return (
                   <button
                     key={mod.id || idx}
                     onClick={() => {
+                      setSidebarCollapsed(false);
                       if (idx > 0 && !completedModules.includes(idx - 1)) {
                         setLockedModulePopup(idx);
-                        toast.error(`🔒 Please complete Module 0${idx} first before unlocking Module 0${idx + 1}!`);
                         return;
                       }
                       setActiveModuleIdx(idx);
-                      setMobileMenuOpen(false);
                     }}
-                    className={`w-full text-left p-3.5 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 ${
+                    title={mod.title}
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all border cursor-pointer ${
                       isActive
-                        ? 'bg-sky-600 border-sky-500 text-white shadow-md shadow-sky-600/20'
+                        ? 'bg-sky-600 border-sky-500 text-white shadow-md'
                         : isCompleted
-                        ? 'bg-emerald-50 border-emerald-200 text-emerald-900 hover:bg-emerald-100/60'
-                        : 'bg-white border-sky-100 text-slate-700 hover:bg-sky-100/50'
+                        ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
+                        : 'bg-white border-sky-100 text-slate-600 hover:bg-sky-50'
                     }`}
                   >
-                    <div className="mt-0.5 shrink-0">
-                      {isCompleted ? (
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                      ) : isActive ? (
-                        <PlayCircle className="w-4 h-4 text-white animate-pulse" />
-                      ) : (
-                        <div className="w-4 h-4 rounded-full border border-sky-300 text-[10px] font-bold flex items-center justify-center text-sky-600">
-                          {idx + 1}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="space-y-1 text-xs flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className={`font-bold block leading-snug ${isActive ? 'text-white' : 'text-slate-900'}`}>
-                          Module 0{idx + 1}
-                        </span>
-                        {hasPoints && (
-                          <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-300">
-                            +50 XP
-                          </span>
-                        )}
-                      </div>
-                      <span className={`text-[11px] font-semibold block leading-tight ${isActive ? 'text-sky-100' : 'text-slate-600'}`}>
-                        {mod.title.replace(/^(🟢|🟡|🔵|🔴)\s*Module \d+:\s*/, '')}
-                      </span>
-                      <div className="flex items-center gap-3 text-[10px] font-medium pt-1">
-                        <span className={`flex items-center gap-1 ${isActive ? 'text-sky-100' : 'text-slate-500'}`}>
-                          <Clock className="w-3 h-3 text-sky-500" /> {mod.duration}
-                        </span>
-                      </div>
-                    </div>
+                    {isCompleted ? <CheckCircle2 className="w-4 h-4" /> : idx + 1}
                   </button>
                 );
               })}
             </div>
-          </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-sky-200">
+                <h2 className="font-heading font-bold text-xs text-sky-900 uppercase tracking-wider flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-sky-600" /> Syllabus Flow ({syllabus.length})
+                </h2>
+                <span className="text-[11px] font-semibold text-slate-500">{course.duration}</span>
+              </div>
 
-          <div className="p-3.5 rounded-2xl bg-white border border-sky-100 shadow-xs space-y-2">
-            <span className="text-[10px] font-bold text-sky-600 uppercase tracking-wider block">
-              Lead Instructor
-            </span>
-            <div className="flex items-center gap-3">
-              <img
-                src={course.instructor.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
-                alt={course.instructor.name}
-                className="w-9 h-9 rounded-full object-cover border border-sky-300"
-              />
-              <div>
-                <h4 className="font-heading font-bold text-xs text-slate-900">{course.instructor.name}</h4>
-                <p className="text-[10px] text-slate-500">{course.instructor.role || 'Senior Specialist'}</p>
+              <div className="space-y-2.5">
+                {syllabus.map((mod, idx) => {
+                  const isActive = idx === activeModuleIdx;
+                  const isCompleted = completedModules.includes(idx);
+                  const hasPoints = claimedPointsModules.includes(idx);
+                  const isExpanded = !!expandedModules[idx];
+                  
+                  // Get all lessons for this module
+                  const moduleLessons = allLessons.filter(l => l.moduleIdx === idx);
+
+                  return (
+                    <div key={mod.id || idx} className={`border rounded-2xl overflow-hidden transition-all duration-300 ${
+                      isActive ? 'border-sky-300 bg-sky-50/30' : 'border-sky-100 bg-white'
+                    }`}>
+                      <button
+                        onClick={() => {
+                          setExpandedModules(prev => ({
+                            ...prev,
+                            [idx]: !prev[idx]
+                          }));
+                        }}
+                        className="w-full text-left p-3.5 transition-all cursor-pointer flex items-start justify-between gap-3"
+                      >
+                        <div className="flex items-start gap-3 min-w-0 flex-1">
+                          <div className="mt-0.5 shrink-0">
+                            {isCompleted ? (
+                              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                            ) : isActive ? (
+                              <PlayCircle className="w-4 h-4 text-sky-600 animate-pulse" />
+                            ) : (
+                              <div className="w-4 h-4 rounded-full border border-sky-300 text-[10px] font-bold flex items-center justify-center text-sky-600">
+                                {idx + 1}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="space-y-1 text-xs min-w-0 flex-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-bold block leading-snug text-slate-900">
+                                Module 0{idx + 1}
+                              </span>
+                              {hasPoints && (
+                                <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-300 shrink-0">
+                                  +50 XP
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[11px] font-semibold block leading-tight text-slate-600 truncate">
+                              {mod.title.replace(/^(🟢|🟡|🔵|🔴)\s*Module \d+:\s*/, '')}
+                            </span>
+                            <div className="flex items-center gap-3 text-[10px] font-medium pt-0.5">
+                              <span className="flex items-center gap-1 text-slate-500">
+                                <Clock className="w-3.5 h-3.5 text-sky-500" /> {mod.duration}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <ChevronRight className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 mt-1 ${isExpanded ? 'rotate-90' : ''}`} />
+                      </button>
+
+                      {/* Subtopic / Lesson list inside the expanded module */}
+                      {isExpanded && (
+                        <div className="pl-4 pr-2 pb-3.5 space-y-1 border-t border-sky-100/50 bg-white/50 pt-2">
+                          {moduleLessons.map((item) => {
+                            const isCur = item.moduleIdx === activeModuleIdx &&
+                                          item.lessonIdx === currentLessonIdx &&
+                                          item.subtopicIdx === currentSubtopicIdx;
+                            const isLsnDone = completedSubtopics.includes(item.subtopicId);
+                            const isLsnLocked = isLessonLocked(item);
+                            const isLsnInProgress = inProgressSubtopics.includes(item.subtopicId) && !isLsnDone;
+
+                            let statusIcon = null;
+                            if (isLsnDone) {
+                              statusIcon = <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />;
+                            } else if (isCur) {
+                              statusIcon = <PlayCircle className="w-3.5 h-3.5 text-sky-600 shrink-0" />;
+                            } else if (isLsnLocked) {
+                              statusIcon = <Lock className="w-3.5 h-3.5 text-slate-400 shrink-0" />;
+                            } else if (isLsnInProgress) {
+                              statusIcon = <Clock className="w-3.5 h-3.5 text-sky-500 shrink-0" />;
+                            } else {
+                              statusIcon = <div className="w-3.5 h-3.5 rounded-full border border-slate-300 shrink-0" />;
+                            }
+
+                            return (
+                              <button
+                                key={item.subtopicId}
+                                id={`lesson-item-${item.subtopicId}`}
+                                onClick={() => {
+                                  if (isLsnLocked) {
+                                    toast.error(`🔒 This lesson is locked. Complete preceding lessons first.`);
+                                    return;
+                                  }
+                                  setActiveModuleIdx(item.moduleIdx);
+                                  setCurrentLessonIdx(item.lessonIdx);
+                                  setCurrentSubtopicIdx(item.subtopicIdx);
+                                  setMobileMenuOpen(false);
+                                }}
+                                className={`w-full text-left p-2.5 rounded-xl text-[11px] flex items-start gap-2.5 transition-all duration-200 cursor-pointer ${
+                                  isCur
+                                    ? 'bg-sky-100/80 text-sky-950 font-bold border-l-2 border-sky-600 shadow-2xs'
+                                    : 'hover:bg-slate-100/60 text-slate-700 font-medium'
+                                }`}
+                              >
+                                <div className="mt-0.5 shrink-0">{statusIcon}</div>
+                                <div className="flex-1 min-w-0">
+                                  <span className="block truncate leading-tight">{item.subtopicTitle}</span>
+                                  <span className="text-[9px] text-slate-400 font-normal mt-0.5 block">
+                                    {isLsnDone ? 'Completed' : isLsnInProgress ? 'In Progress' : isLsnLocked ? 'Locked' : 'Not Started'}
+                                  </span>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
-          </div>
+          )}
+
+          {!sidebarCollapsed && (
+            <div className="p-3.5 rounded-2xl bg-white border border-sky-100 shadow-xs space-y-2">
+              <span className="text-[10px] font-bold text-sky-600 uppercase tracking-wider block">
+                Lead Instructor
+              </span>
+              <div className="flex items-center gap-3">
+                <img
+                  src={course.instructor.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
+                  alt={course.instructor.name}
+                  className="w-9 h-9 rounded-full object-cover border border-sky-300"
+                />
+                <div>
+                  <h4 className="font-heading font-bold text-xs text-slate-900">{course.instructor.name}</h4>
+                  <p className="text-[10px] text-slate-500">{course.instructor.role || 'Senior Specialist'}</p>
+                </div>
+              </div>
+            </div>
+          )}
         </aside>
 
         {/* RIGHT MAIN CLASSROOM CONTENT VIEWER */}
-        <main className={`lg:col-span-3 p-4 sm:p-10 flex flex-col justify-between overflow-y-auto space-y-8 transition-colors ${
+        <main className={`flex-1 p-4 sm:p-10 flex flex-col justify-between overflow-y-auto space-y-8 transition-colors ${
           isReadingMode ? 'bg-[#faf6ee]' : 'bg-slate-50'
         }`}>
           <div className="space-y-8 max-w-5xl mx-auto w-full">
+            {/* Breadcrumb Display */}
+            <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 font-medium pb-2 border-b border-sky-100">
+              <span className="text-slate-400 hover:text-sky-600 transition-colors cursor-pointer">{course.title}</span>
+              <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+              <span className="text-slate-400 hover:text-sky-600 transition-colors cursor-pointer">Module 0{activeModuleIdx + 1}</span>
+              <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+              <span className="text-slate-400 truncate max-w-xs" title={currentLesson.title}>
+                {currentLesson.title.replace(/^(Lesson \d+\.\d+:\s*|Topic \d+:\s*)/, '')}
+              </span>
+              <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+              <span className="text-sky-600 font-bold truncate max-w-xs animate-in fade-in duration-200" title={currentSubtopic.title}>
+                {currentSubtopic.title.replace(/^(\d+\.\d+\.\d+\s*)/, '')}
+              </span>
+            </div>
+
             {/* Top Module Header & Navigation Tabs */}
             <div className="space-y-4 border-b border-sky-200 pb-6">
               <div className="flex flex-wrap items-center justify-between gap-4">
@@ -606,7 +884,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                       Topic {currentLessonIdx + 1}: {currentLesson.title}
                     </span>
                     <div className="flex flex-wrap gap-2">
-                      {currentLesson.subtopics.map((sub, sIdx) => {
+                      {currentLesson.subtopics.map((sub: SubtopicDetail, sIdx: number) => {
                         const isCur = sIdx === currentSubtopicIdx;
                         const isDone = completedSubtopics.includes(sub.id);
 
@@ -643,7 +921,11 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                   </div>
 
                   {/* Active Subtopic Card */}
-                  <div
+                  <motion.div
+                    key={`${activeModuleIdx}_${currentLessonIdx}_${currentSubtopicIdx}`}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25, ease: 'easeOut' }}
                     className={`p-6 sm:p-8 rounded-3xl border space-y-6 shadow-md backdrop-blur-xl ${
                       isReadingMode
                         ? 'bg-[#f4efe4] border-[#e2d9c8]'
@@ -725,11 +1007,11 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                     {/* SUBTOPIC COMPLETION & GAMIFIED SCORE CLAIM BUTTON */}
                     <div className="pt-6 border-t border-sky-100 flex flex-col sm:flex-row items-center justify-between gap-4">
                       <button
-                        onClick={handlePrevSubtopic}
-                        disabled={currentLessonIdx === 0 && currentSubtopicIdx === 0}
-                        className="py-2.5 px-4 rounded-xl bg-sky-50 border border-sky-200 text-sky-800 hover:bg-sky-100 disabled:opacity-40 text-xs font-bold cursor-pointer"
+                        onClick={handlePrevLesson}
+                        disabled={safeFlatIdx === 0}
+                        className="py-2.5 px-4 rounded-xl bg-sky-50 border border-sky-200 text-sky-800 hover:bg-sky-100 disabled:opacity-40 disabled:pointer-events-none text-xs font-bold cursor-pointer transition-all duration-200"
                       >
-                        ◄ Previous Subtopic
+                        ◄ Previous Lesson
                       </button>
 
                       {!isSubtopicTimeMet && !isSubtopicCompleted ? (
@@ -746,24 +1028,24 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                           className={`py-3.5 px-7 rounded-2xl text-white font-extrabold text-xs shadow-md flex items-center gap-2 cursor-pointer transition-all duration-300 ${
                             isSubtopicCompleted
                               ? 'bg-sky-600 hover:bg-sky-700 shadow-sky-600/20'
-                              : 'bg-linear-to-r from-sky-600 via-indigo-600 to-amber-500 hover:from-sky-500 hover:to-amber-400 shadow-sky-500/25 animate-bounce'
+                              : 'bg-linear-to-r from-sky-600 via-indigo-600 to-amber-500 hover:from-sky-500 hover:to-amber-400 shadow-sky-500/25'
                           }`}
                         >
                           {!isSubtopicCompleted ? (
                             <>
                               <Gift className="w-4 h-4 text-amber-200" />
-                              <span>🎁 Claim +20 XP & Unlock Next Subtopic ➔</span>
+                              <span>🎁 Claim +20 XP & Unlock Next Lesson ➔</span>
                             </>
                           ) : (
                             <>
-                              <span>Next Subtopic ➔</span>
+                              <span>Next Lesson ➔</span>
                               <ChevronRight className="w-4 h-4" />
                             </>
                           )}
                         </button>
                       )}
                     </div>
-                  </div>
+                  </motion.div>
                 </div>
               </div>
             )}
