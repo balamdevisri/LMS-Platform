@@ -31,6 +31,11 @@ import {
   FileText,
   Code,
   Flame,
+  FileArchive,
+  Search,
+  ExternalLink,
+  Inbox,
+  Presentation,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -140,6 +145,118 @@ const MOTIVATION_QUOTES = [
   '🎯 POWER MOVE! You mastered the concept! Keep building your tech empire!',
 ];
 
+export interface LessonResource {
+  id: string;
+  name: string;
+  url: string;
+  type: 'pdf' | 'zip' | 'docx' | 'ppt' | 'image' | 'code' | 'link';
+  size?: string;
+  badge: 'Required' | 'Optional' | 'Reference' | 'Starter Code' | 'Project Files';
+  uploadedAt: string;
+}
+
+const MOCK_RESOURCES_DATABASE: Record<string, LessonResource[]> = {
+  '1.1.1': [
+    {
+      id: 'res_1.1.1_1',
+      name: 'Linux Evolution History Outline.pdf',
+      url: 'https://arxiv.org/pdf/1709.06732.pdf',
+      type: 'pdf',
+      size: '1.8 MB',
+      badge: 'Required',
+      uploadedAt: '2026-07-15T09:00:00Z',
+    },
+    {
+      id: 'res_1.1.1_2',
+      name: 'UNIX vs Linux Architecture Slides.ppt',
+      url: '/assets/resources/unix_vs_linux_architecture.ppt',
+      type: 'ppt',
+      size: '5.2 MB',
+      badge: 'Reference',
+      uploadedAt: '2026-07-16T10:30:00Z',
+    },
+    {
+      id: 'res_1.1.1_3',
+      name: 'Richard Stallman GNU Manifesto.docx',
+      url: '/assets/resources/gnu_manifesto.docx',
+      type: 'docx',
+      size: '340 KB',
+      badge: 'Optional',
+      uploadedAt: '2026-07-14T08:15:00Z',
+    },
+  ],
+  '1.1.2': [
+    {
+      id: 'res_1.1.2_1',
+      name: 'DistroWatch Live Rankings & Directory.lnk',
+      url: 'https://distrowatch.com',
+      type: 'link',
+      badge: 'Reference',
+      uploadedAt: '2026-07-17T11:00:00Z',
+    },
+    {
+      id: 'res_1.1.2_2',
+      name: 'Alpine Linux Spec Sheet.pdf',
+      url: 'https://arxiv.org/pdf/2203.01311.pdf',
+      type: 'pdf',
+      size: '850 KB',
+      badge: 'Optional',
+      uploadedAt: '2026-07-18T14:20:00Z',
+    },
+  ],
+  '1.1.3': [
+    {
+      id: 'res_1.1.3_1',
+      name: 'OS Architecture Concept Map.png',
+      url: '/assets/images/linux_os_architecture.png',
+      type: 'image',
+      size: '1.2 MB',
+      badge: 'Project Files',
+      uploadedAt: '2026-07-19T09:00:00Z',
+    },
+    {
+      id: 'res_1.1.3_2',
+      name: 'Kernel Space System Call Code.c',
+      url: '/assets/resources/syscall_example.c',
+      type: 'code',
+      size: '15 KB',
+      badge: 'Starter Code',
+      uploadedAt: '2026-07-19T16:45:00Z',
+    },
+  ],
+  '1.2.1': [
+    {
+      id: 'res_1.2.1_1',
+      name: 'Virtual File System Spec.pdf',
+      url: 'https://arxiv.org/pdf/1908.05603.pdf',
+      type: 'pdf',
+      size: '2.9 MB',
+      badge: 'Required',
+      uploadedAt: '2026-07-20T10:00:00Z',
+    },
+  ],
+  '1.2.2': [
+    {
+      id: 'res_1.2.2_1',
+      name: 'Loadable Kernel Module Template.zip',
+      url: '/assets/resources/lkm_template.zip',
+      type: 'zip',
+      size: '4.1 MB',
+      badge: 'Starter Code',
+      uploadedAt: '2026-07-21T09:30:00Z',
+    },
+    {
+      id: 'res_1.2.2_2',
+      name: 'Compiling Custom LKM Tutorial.pdf',
+      url: 'https://arxiv.org/pdf/2105.02989.pdf',
+      type: 'pdf',
+      size: '3.3 MB',
+      badge: 'Reference',
+      uploadedAt: '2026-07-22T13:10:00Z',
+    },
+  ],
+};
+
 export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
   course,
   onClose,
@@ -241,6 +358,14 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
   const [expandedModules, setExpandedModules] = useState<Record<number, boolean>>({ 0: true });
   const [inProgressSubtopics, setInProgressSubtopics] = useState<string[]>([]);
 
+  // ----------------- PHASE 23: LESSON RESOURCES STATES -----------------
+  const [resourcesSearch, setResourcesSearch] = useState<string>('');
+  const [resourcesSort, setResourcesSort] = useState<string>('newest');
+  const [sessionDownloads, setSessionDownloads] = useState<string[]>([]);
+  const [previewingResource, setPreviewingResource] = useState<LessonResource | null>(null);
+
+
+
   // Restore saved checkpoint on mount
   useEffect(() => {
     const saved = courseService.getCourseCheckpoint(course.id);
@@ -277,12 +402,41 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
 
   const safeFlatIdx = currentLessonFlatIdx === -1 ? 0 : currentLessonFlatIdx;
 
+  const currentResources = MOCK_RESOURCES_DATABASE[currentSubtopic?.id || ''] || [];
+
+  // Filter resources by search term
+  const filteredResources = currentResources.filter((res) =>
+    res.name.toLowerCase().includes(resourcesSearch.toLowerCase())
+  );
+
+  // Sort resources
+  const sortedResources = [...filteredResources].sort((a, b) => {
+    if (resourcesSort === 'newest') {
+      return new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime();
+    }
+    if (resourcesSort === 'oldest') {
+      return new Date(a.uploadedAt).getTime() - new Date(b.uploadedAt).getTime();
+    }
+    if (resourcesSort === 'name') {
+      return a.name.localeCompare(b.name);
+    }
+    if (resourcesSort === 'type') {
+      return a.type.localeCompare(b.type);
+    }
+    return 0;
+  });
+
   // Automatically mark current lesson as In Progress if it's not completed
   useEffect(() => {
     if (currentSubtopic && !completedSubtopics.includes(currentSubtopic.id) && !inProgressSubtopics.includes(currentSubtopic.id)) {
       setInProgressSubtopics((prev) => [...prev, currentSubtopic.id]);
     }
   }, [currentSubtopic, completedSubtopics, inProgressSubtopics]);
+
+  // Reset search when active subtopic changes
+  useEffect(() => {
+    setResourcesSearch('');
+  }, [currentSubtopic?.id]);
 
   // Expand module on change
   useEffect(() => {
@@ -317,7 +471,8 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
         document.activeElement?.tagName === 'INPUT' ||
         document.activeElement?.tagName === 'TEXTAREA' ||
         activeTerminalCmd !== null ||
-        isResourcesOpen
+        isResourcesOpen ||
+        previewingResource !== null
       ) {
         return;
       }
@@ -338,7 +493,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [safeFlatIdx, allLessons, activeTerminalCmd, isResourcesOpen]);
+  }, [safeFlatIdx, allLessons, activeTerminalCmd, isResourcesOpen, previewingResource]);
 
   // Smooth scroll content to top and sidebar to active lesson
   useEffect(() => {
@@ -354,6 +509,24 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
       }
     }
   }, [activeModuleIdx, currentLessonIdx, currentSubtopicIdx, currentSubtopic]);
+
+  const handleDownloadResource = (res: LessonResource) => {
+    if (res.type === 'link') {
+      window.open(res.url, '_blank', 'noopener,noreferrer');
+    } else {
+      const link = document.createElement('a');
+      link.href = res.url;
+      link.download = res.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    if (!sessionDownloads.includes(res.id)) {
+      setSessionDownloads((prev) => [...prev, res.id]);
+    }
+    toast.success(`Successfully opened/downloaded: ${res.name}`);
+  };
 
   const isLessonLocked = (item: CourseLessonPath) => {
     const mIdx = item.moduleIdx;
@@ -1047,6 +1220,185 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                     </div>
                   </motion.div>
                 </div>
+
+                {/* ----------------- PHASE 23: LESSON RESOURCES PANEL ----------------- */}
+                <div
+                  className={`p-6 sm:p-8 rounded-3xl border shadow-md backdrop-blur-xl transition-all duration-300 mt-8 ${
+                    isReadingMode
+                      ? 'bg-[#f4efe4] border-[#e2d9c8]'
+                      : 'bg-white border-sky-100'
+                  }`}
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-sky-100/60 pb-4 mb-6">
+                    <div className="flex items-center gap-2">
+                      <FolderDown className="w-5 h-5 text-sky-600" />
+                      <h3 className="font-heading font-extrabold text-base sm:text-lg text-slate-900">
+                        Lesson Resources
+                      </h3>
+                      {currentResources.length > 0 && (
+                        <span className="px-2 py-0.5 rounded-full bg-sky-100 border border-sky-200 text-sky-800 text-[10px] font-bold">
+                          {currentResources.length}
+                        </span>
+                      )}
+                    </div>
+
+                    {currentResources.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        {/* Search Input */}
+                        <div className="relative">
+                          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                          <input
+                            type="text"
+                            value={resourcesSearch}
+                            onChange={(e) => setResourcesSearch(e.target.value)}
+                            placeholder="Search Resources..."
+                            className="pl-9 pr-4 py-1.5 rounded-xl border border-sky-100 bg-slate-50/50 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all w-full sm:w-44"
+                          />
+                        </div>
+
+                        {/* Sort Dropdown */}
+                        <select
+                          value={resourcesSort}
+                          onChange={(e) => setResourcesSort(e.target.value)}
+                          className="px-3 py-1.5 rounded-xl border border-sky-100 bg-slate-50/50 text-xs text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 cursor-pointer transition-all"
+                        >
+                          <option value="newest">Sort: Newest</option>
+                          <option value="oldest">Sort: Oldest</option>
+                          <option value="name">Sort: Name</option>
+                          <option value="type">Sort: Type</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Resources list / Empty State */}
+                  {currentResources.length === 0 ? (
+                    <div className="text-center py-10 space-y-3">
+                      <div className="w-14 h-14 rounded-full bg-sky-50 border border-sky-100 text-sky-500 mx-auto flex items-center justify-center shadow-xs">
+                        <Inbox className="w-6 h-6 text-sky-600" />
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className="font-heading font-extrabold text-sm text-slate-800">
+                          No Resources Available
+                        </h4>
+                        <p className="text-xs text-slate-500 max-w-sm mx-auto font-normal">
+                          There are no downloadable materials or references configured for this lesson subtopic.
+                        </p>
+                      </div>
+                    </div>
+                  ) : sortedResources.length === 0 ? (
+                    <div className="text-center py-10 space-y-2">
+                      <p className="text-xs text-slate-500 font-medium">
+                        No resources matched your search query: <span className="font-bold text-slate-700">"{resourcesSearch}"</span>.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {sortedResources.map((res) => {
+                        const isDownloaded = sessionDownloads.includes(res.id);
+                        
+                        // Select file icon
+                        let fileIcon = <FileText className="w-5 h-5 text-sky-600" />;
+                        if (res.type === 'zip') {
+                          fileIcon = <FileArchive className="w-5 h-5 text-amber-600" />;
+                        } else if (res.type === 'image') {
+                          fileIcon = <ImageIcon className="w-5 h-5 text-emerald-600" />;
+                        } else if (res.type === 'code') {
+                          fileIcon = <Code className="w-5 h-5 text-purple-600" />;
+                        } else if (res.type === 'link') {
+                          fileIcon = <ExternalLink className="w-5 h-5 text-sky-500" />;
+                        } else if (res.type === 'ppt') {
+                          fileIcon = <Presentation className="w-5 h-5 text-rose-500" />;
+                        }
+
+                        // Select badge style
+                        let badgeStyle = "bg-sky-50 text-sky-800 border border-sky-100";
+                        if (res.badge === 'Required') {
+                          badgeStyle = "bg-rose-50 text-rose-800 border border-rose-100";
+                        } else if (res.badge === 'Starter Code') {
+                          badgeStyle = "bg-purple-50 text-purple-800 border border-purple-100";
+                        } else if (res.badge === 'Project Files') {
+                          badgeStyle = "bg-emerald-50 text-emerald-800 border border-emerald-100";
+                        } else if (res.badge === 'Optional') {
+                          badgeStyle = "bg-slate-100 text-slate-700 border border-slate-200";
+                        }
+
+                        return (
+                          <div
+                            key={res.id}
+                            className={`p-4 rounded-2xl border transition-all duration-200 flex flex-col justify-between gap-3 group hover:shadow-md hover:-translate-y-0.5 ${
+                              isReadingMode
+                                ? 'bg-[#faf6ee]/70 border-[#e2d9c8] hover:border-amber-400/40'
+                                : 'bg-slate-50/50 border-sky-100/60 hover:bg-white hover:border-sky-300'
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className={`p-2.5 rounded-xl border ${
+                                isReadingMode ? 'bg-[#f4efe4] border-[#e2d9c8]' : 'bg-white border-sky-100/40 shadow-2xs'
+                              }`}>
+                                {fileIcon}
+                              </div>
+
+                              <div className="space-y-1 min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md ${badgeStyle}`}>
+                                    {res.badge}
+                                  </span>
+                                  {res.size && (
+                                    <span className="text-[9px] text-slate-400 font-medium font-sans">
+                                      {res.size}
+                                    </span>
+                                  )}
+                                  <span className="text-[9px] text-slate-400 font-medium uppercase font-sans">
+                                    {res.type}
+                                  </span>
+                                </div>
+                                <h4 className="font-heading font-extrabold text-xs text-slate-800 group-hover:text-sky-900 transition-colors truncate" title={res.name}>
+                                  {res.name}
+                                </h4>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 pt-2 border-t border-sky-100/50 mt-auto">
+                              {/* Preview Button for PDF / Image */}
+                              {(res.type === 'pdf' || res.type === 'image') && (
+                                <button
+                                  onClick={() => setPreviewingResource(res)}
+                                  className="flex-1 py-1.5 px-3 rounded-xl border border-sky-200 text-sky-800 hover:bg-sky-50 text-[11px] font-bold cursor-pointer transition-all flex items-center justify-center gap-1"
+                                >
+                                  <ImageIcon className="w-3.5 h-3.5" />
+                                  <span>Preview</span>
+                                </button>
+                              )}
+
+                              {/* Download Button */}
+                              <button
+                                onClick={() => handleDownloadResource(res)}
+                                className={`flex-1 py-1.5 px-3 rounded-xl text-[11px] font-bold cursor-pointer transition-all flex items-center justify-center gap-1.5 ${
+                                  isDownloaded
+                                    ? 'bg-emerald-50 border border-emerald-300 text-emerald-800'
+                                    : 'bg-sky-600 text-white hover:bg-sky-700 shadow-sm shadow-sky-600/10'
+                                }`}
+                              >
+                                {isDownloaded ? (
+                                  <>
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                    <span>✓ Downloaded</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Download className="w-3.5 h-3.5" />
+                                    <span>{res.type === 'link' ? 'Open Link' : 'Download'}</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -1320,6 +1672,77 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
           initialCommand={activeTerminalCmd}
           onClose={() => setActiveTerminalCmd(null)}
         />
+      )}
+
+      {/* ----------------- PHASE 23: RESOURCE INLINE PREVIEW MODAL ----------------- */}
+      {previewingResource && (
+        <div className="fixed inset-0 z-[60] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in zoom-in-95 duration-200 font-['Sora']">
+          <div className="bg-white border border-sky-300 rounded-3xl p-6 max-w-4xl w-full flex flex-col gap-4 shadow-2xl relative overflow-hidden text-slate-900 h-[85vh]">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-sky-100 pb-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="p-2 rounded-xl bg-sky-50 border border-sky-100 text-sky-600">
+                  {previewingResource.type === 'image' ? <ImageIcon className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-heading font-extrabold text-sm sm:text-base text-slate-900 truncate" title={previewingResource.name}>
+                    {previewingResource.name}
+                  </h3>
+                  <p className="text-[10px] text-slate-400 font-medium">
+                    {previewingResource.size || ''} • {previewingResource.badge}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setPreviewingResource(null)}
+                className="p-1.5 rounded-xl bg-slate-100 hover:bg-rose-100 hover:text-rose-700 text-slate-500 transition-all cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body / Viewer */}
+            <div className="flex-1 overflow-auto bg-slate-50 rounded-2xl flex items-center justify-center p-2 relative">
+              {previewingResource.type === 'pdf' ? (
+                <iframe
+                  src={previewingResource.url}
+                  className="w-full h-full border-0 rounded-xl bg-white shadow-inner"
+                  title={previewingResource.name}
+                />
+              ) : previewingResource.type === 'image' ? (
+                <img
+                  src={previewingResource.url}
+                  alt={previewingResource.name}
+                  className="max-w-full max-h-full object-contain rounded-xl shadow-md"
+                />
+              ) : (
+                <div className="text-center p-6">
+                  <p className="text-xs text-slate-500">Preview not supported for this file type.</p>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-sky-100">
+              <button
+                onClick={() => setPreviewingResource(null)}
+                className="py-2.5 px-4 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold cursor-pointer transition-all"
+              >
+                Close Preview
+              </button>
+              <button
+                onClick={() => {
+                  handleDownloadResource(previewingResource);
+                  setPreviewingResource(null);
+                }}
+                className="py-2.5 px-5 rounded-xl bg-sky-600 text-white hover:bg-sky-700 text-xs font-bold flex items-center gap-1.5 shadow-md shadow-sky-600/10 cursor-pointer transition-all"
+              >
+                <Download className="w-4 h-4" />
+                <span>Download File</span>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
