@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   BookOpen,
@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   ChevronRight,
   Star,
+  Award,
   Clock,
   Sparkles,
   HelpCircle,
@@ -13,6 +14,7 @@ import {
   ChevronDown,
   Layers,
   Play,
+  Bot,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCourses } from '@/contexts/CourseContext';
@@ -48,8 +50,21 @@ export const CourseView: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'intro' | 'index' | 'terminal' | 'quiz'>('intro');
   const [activeModule, setActiveModule] = useState<number | null>(1);
-  const [completedLessons, setCompletedLessons] = useState<number[]>([101, 102]);
-  const [selectedLessonId, setSelectedLessonId] = useState<number | null>(101);
+  const [completedLessons, setCompletedLessons] = useState<any[]>([101, 102]);
+  const [selectedLessonId, setSelectedLessonId] = useState<any | null>(101);
+
+  // Reset values when course changes
+  React.useEffect(() => {
+    if (isGitCourse) {
+      setSelectedLessonId('git-les-101');
+      setCompletedLessons([]);
+      setActiveModule(1);
+    } else {
+      setSelectedLessonId(101);
+      setCompletedLessons([101, 102]);
+      setActiveModule(1);
+    }
+  }, [courseId, isGitCourse]);
 
   // Terminal Simulator State
   const [terminalInput, setTerminalInput] = useState('');
@@ -68,28 +83,64 @@ export const CourseView: React.FC = () => {
     let output = '';
     const cmdLower = cleanCmd.toLowerCase();
 
-    if (cmdLower === 'help') {
-      output = 'Available commands: ls, pwd, whoami, uname -a, cat intro.txt, systemctl status, clear';
-    } else if (cmdLower === 'pwd') {
-      output = '/home/student/linux-essentials';
-    } else if (cmdLower.includes('ls')) {
-      output = 'drwxr-xr-x 4 student student 4096 Jul 22 20:30 .\ndrwxr-xr-x 3 student student 4096 Jul 22 20:30 ..\n-rw-r--r-- 1 student student  842 Jul 22 20:30 intro.txt\n-rwxr-xr-x 1 student student 1024 Jul 22 20:30 backup.sh';
-    } else if (cmdLower.includes('mkdir')) {
-      output = `[OK] Directory structure created: ${cleanCmd}`;
-    } else if (cmdLower.includes('touch')) {
-      output = `[OK] Created file(s) successfully: ${cleanCmd}`;
-    } else if (cmdLower.includes('cp')) {
-      output = `[OK] Copied target file/directory recursively.`;
-    } else if (cmdLower.includes('mv')) {
-      output = `[OK] Moved / renamed item successfully.`;
-    } else if (cmdLower.includes('rm')) {
-      output = `[OK] Removed file/directory permanently.`;
-    } else if (cmdLower === 'whoami') {
-      output = 'student@shaivika-lms';
-    } else if (cmdLower.includes('tree')) {
-      output = '.\n├── bin\n├── devops_lab\n│   └── scripts\n│       ├── build.sh\n│       └── deploy.sh\n└── test.sh';
+    if (isGitCourse) {
+      if (cmdLower === 'help') {
+        output = 'Available git commands: git init, git status, git add, git commit, git log, git remote, git push, git clone, git branch, git checkout, git merge, git rebase, git stash';
+      } else if (cmdLower.startsWith('git init')) {
+        output = 'Initialized empty Git repository in /home/student/workspace/.git/';
+      } else if (cmdLower.startsWith('git status')) {
+        output = `On branch main\nNo commits yet\n\nUntracked files:\n  (use "git add <file>..." to include in what will be committed)\n\tindex.html\n\nnothing added to commit but untracked files present (use "git add" to track)`;
+      } else if (cmdLower.startsWith('git add .') || cmdLower.startsWith('git add index.html')) {
+        output = '[OK] Staged modifications and untracked files into index.';
+      } else if (cmdLower.startsWith('git commit')) {
+        output = `[main (root-commit) 7ca8c2f] feat: initial commit\n 1 file changed, 10 insertions(+)\n create mode 100644 index.html`;
+      } else if (cmdLower.startsWith('git log --oneline')) {
+        output = '7ca8c2f feat: initial commit';
+      } else if (cmdLower.startsWith('git log')) {
+        output = `commit 7ca8c2fd265ea58a2d1f (HEAD -> main)\nAuthor: Student <student@shaivika.ai>\nDate:   Jul 23 20:26:10 2026\n\n    feat: initial commit`;
+      } else if (cmdLower.startsWith('git remote -v')) {
+        output = 'origin\thttps://github.com/student/git-github-mastery.git (fetch)\norigin\thttps://github.com/student/git-github-mastery.git (push)';
+      } else if (cmdLower.startsWith('git remote add')) {
+        output = '[OK] Configured remote origin successfully.';
+      } else if (cmdLower.startsWith('git push')) {
+        output = `Enumerating objects: 3, done.\nCounting objects: 100% (3/3), done.\nWriting objects: 100% (3/3), 284 bytes, done.\nTo https://github.com/student/git-github-mastery.git\n * [new branch]      main -> main`;
+      } else if (cmdLower.startsWith('git clone')) {
+        output = 'Cloning into \'repo\'...\nremote: Enumerating objects: 12, done.\nremote: Total 12 (delta 2)\nReceiving objects: 100% (12/12), done.';
+      } else if (cmdLower.startsWith('git branch')) {
+        output = '* main\n  feature/auth';
+      } else if (cmdLower.startsWith('git switch') || cmdLower.startsWith('git checkout')) {
+        output = 'Switched to branch \'feature/auth\'';
+      } else if (cmdLower.startsWith('git merge')) {
+        output = 'Updating 7ca8c2f..48df21b\nFast-forward\n index.html | 2 +-\n 1 file changed, 1 insertion(+), 1 deletion(-)';
+      } else if (cmdLower.startsWith('git stash')) {
+        output = 'Saved working directory and index state WIP on main: 7ca8c2f feat: initial commit';
+      } else {
+        output = `git: '${cleanCmd}' is simulated successfully. Use 'git status' or 'git log' to see snapshots.`;
+      }
     } else {
-      output = `bash: ${cleanCmd}: command simulated successfully.`;
+      if (cmdLower === 'help') {
+        output = 'Available commands: ls, pwd, whoami, uname -a, cat intro.txt, systemctl status, clear';
+      } else if (cmdLower === 'pwd') {
+        output = '/home/student/linux-essentials';
+      } else if (cmdLower.includes('ls')) {
+        output = 'drwxr-xr-x 4 student student 4096 Jul 22 20:30 .\ndrwxr-xr-x 3 student student 4096 Jul 22 20:30 ..\n-rw-r--r-- 1 student student  842 Jul 22 20:30 intro.txt\n-rwxr-xr-x 1 student student 1024 Jul 22 20:30 backup.sh';
+      } else if (cmdLower.includes('mkdir')) {
+        output = `[OK] Directory structure created: ${cleanCmd}`;
+      } else if (cmdLower.includes('touch')) {
+        output = `[OK] Created file(s) successfully: ${cleanCmd}`;
+      } else if (cmdLower.includes('cp')) {
+        output = `[OK] Copied target file/directory recursively.`;
+      } else if (cmdLower.includes('mv')) {
+        output = `[OK] Moved / renamed item successfully.`;
+      } else if (cmdLower.includes('rm')) {
+        output = `[OK] Removed file/directory permanently.`;
+      } else if (cmdLower === 'whoami') {
+        output = 'student@shaivika-lms';
+      } else if (cmdLower.includes('tree')) {
+        output = '.\n├── bin\n├── devops_lab\n│   └── scripts\n│       ├── build.sh\n│       └── deploy.sh\n└── test.sh';
+      } else {
+        output = `bash: ${cleanCmd}: command simulated successfully.`;
+      }
     }
 
     setTerminalHistory((prev) => [...prev, { cmd: cleanCmd, output }]);
@@ -97,7 +148,7 @@ export const CourseView: React.FC = () => {
     toast.success(`Executed "${cleanCmd}" in CLI Terminal Lab!`);
   };
 
-  const courseData = {
+  const linuxCourseData = {
     id: dynamicCourse?.id || courseId || '1',
     title: dynamicCourse?.title || 'Introduction to Linux & System Administration',
     subtitle: dynamicCourse?.subtitle || '🐧 Linux Essentials',
@@ -110,35 +161,90 @@ export const CourseView: React.FC = () => {
     duration: dynamicCourse?.duration || '32 hrs',
     category: dynamicCourse?.category || 'Linux & Systems',
     level: dynamicCourse?.level || 'Beginner to Advanced',
-    thumbnail: dynamicCourse?.thumbnail || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=300&auto=format&fit=crop&q=80',
+    thumbnail: dynamicCourse?.thumbnail || '/assets/images/linux_course_thumbnail.png',
     introText: typeof dynamicCourse?.description === 'string' ? dynamicCourse.description.split('\n\n') : [
       `Welcome to Linux Essentials! Linux is one of the world's most powerful and widely used operating systems, powering everything from web servers and cloud platforms to Android devices, supercomputers, and embedded systems.`,
-      `This course is designed for beginners who want to build a strong foundation in Linux. You will learn how Linux works, how to navigate the terminal, manage files and directories, understand permissions, and perform essential system operations using real-world commands.`
+      `This course is designed for beginners who want to build a strong foundation in Linux. You will learn how Linux works, how to navigate the terminal, manage files and directories, understand permissions, and perform essential system operations using real-world commands.`,
+      `By the end of this course, you'll have the confidence to work efficiently in any Linux environment and be prepared for advanced topics such as shell scripting, DevOps, cloud computing, and cybersecurity.`,
     ],
     outcomes: [
       'Master essential Linux CLI terminal navigation commands (cd, ls, pwd, find)',
       'Understand File System Hierarchy Standard (FHS) and directory structure',
       'Manage user accounts, groups, file permissions (chmod, chown) & umask',
-      'Monitor processes, manage background jobs & configure Systemd services'
+      'Monitor processes, manage background jobs & configure Systemd services',
+      'Write automated Bash shell scripts with variables, conditionals & loops',
+      'Configure SSH hardening, Linux Firewall (UFW) and basic networking tools',
+    ],
+    modules: [
+      {
+        id: 1,
+        title: 'Module 1: Linux Architecture, Kernel & CLI Fundamentals',
+        duration: '8 Hours • 5 Lessons',
+        lessons: [
+          { id: 101, title: '1.1 Introduction to Unix & Linux Operating System Architecture', duration: '45 mins', type: 'video' },
+          { id: 102, title: '1.2 Understanding Shell Architecture & Command Anatomy', duration: '60 mins', type: 'lab' },
+          { id: 103, title: '1.3 Navigating Files & Directories (pwd, ls -la, cd, tree)', duration: '50 mins', type: 'lab' },
+          { id: 104, title: '1.4 Creating, Copying, Moving & Deleting Files (mkdir, cp, mv, rm)', duration: '60 mins', type: 'lab' },
+          { id: 105, title: '1.5 Quiz & Hands-on Terminal Practice: Module 1', duration: '30 mins', type: 'quiz' },
+        ],
+      },
+      {
+        id: 2,
+        title: 'Module 2: File System Hierarchy, Permissions & Ownership',
+        duration: '8 Hours • 5 Lessons',
+        lessons: [
+          { id: 201, title: '2.1 Linux File System Hierarchy Standard (/root, /etc, /var, /usr)', duration: '55 mins', type: 'video' },
+          { id: 202, title: '2.2 File Permissions Demystified: Read, Write & Execute (chmod 755)', duration: '65 mins', type: 'lab' },
+          { id: 203, title: '2.3 User & Group Management (chown, chgrp, useradd, sudo)', duration: '60 mins', type: 'lab' },
+          { id: 204, title: '2.4 Text Search & Inspection Tools (cat, grep, head, tail, less)', duration: '70 mins', type: 'lab' },
+          { id: 205, title: '2.5 Module 2 Practice Quiz', duration: '30 mins', type: 'quiz' },
+        ],
+      },
+      {
+        id: 3,
+        title: 'Module 3: Process Management, Systemd Services & Cron Jobs',
+        duration: '8 Hours • 5 Lessons',
+        lessons: [
+          { id: 301, title: '3.1 Inspecting Active System Processes (top, htop, ps aux, kill)', duration: '60 mins', type: 'video' },
+          { id: 302, title: '3.2 Controlling Daemon Services with Systemd (systemctl status/start)', duration: '75 mins', type: 'lab' },
+          { id: 303, title: '3.3 Job Automation with Cron & Crontab Schedules', duration: '50 mins', type: 'lab' },
+          { id: 304, title: '3.4 Monitoring System Logs with Journalctl', duration: '45 mins', type: 'lab' },
+          { id: 305, title: '3.5 Module 3 Hands-on Assessment', duration: '40 mins', type: 'quiz' },
+        ],
+      },
+      {
+        id: 4,
+        title: 'Module 4: Bash Scripting, Networking & Security Hardening',
+        duration: '8 Hours • 5 Lessons',
+        lessons: [
+          { id: 401, title: '4.1 Writing Your First Bash Script: Shebang (#!/bin/bash) & Variables', duration: '80 mins', type: 'lab' },
+          { id: 402, title: '4.2 Control Flow in Shell Scripts: If/Else Statements & Loops', duration: '90 mins', type: 'lab' },
+          { id: 403, title: '4.3 Network Diagnostics (ping, netstat, ss, curl, ip addr)', duration: '60 mins', type: 'lab' },
+          { id: 404, title: '4.4 SSH Key Pair Authentication & UFW Firewall Rules', duration: '70 mins', type: 'lab' },
+          { id: 405, title: '4.5 Final Course Capstone Project & Certificate Exam', duration: '90 mins', type: 'quiz' },
+        ],
+      },
     ],
     quizQuestions: [
       {
-        id: 'q1',
-        questionText: 'Which layer of the Operating System directly manages hardware resources like CPU and RAM?',
+        id: 1,
+        question: 'Which layer of the Operating System directly manages hardware resources like CPU and RAM?',
         options: ['Shell', 'GUI', 'Kernel', 'User Space'],
-        correctAnswerIndex: 2,
-        marks: 5,
-        explanation: 'The Kernel is the core component that interacts directly with physical hardware.'
+        correct: 2,
       },
       {
-        id: 'q2',
-        questionText: 'In the command cp -r folder1 folder2, what does the -r option stand for?',
+        id: 2,
+        question: 'In the command cp -r folder1 folder2, what does the -r option stand for?',
         options: ['Remove', 'Recursive', 'Read-only', 'Revert'],
-        correctAnswerIndex: 1,
-        marks: 5,
-        explanation: '-r stands for recursive, which copies directories and their contents.'
-      }
-    ]
+        correct: 1,
+      },
+      {
+        id: 3,
+        question: 'What command takes you back to your previous working directory?',
+        options: ['cd ..', 'cd ~', 'cd -', 'pwd'],
+        correct: 2,
+      },
+    ],
   };
 
   const gitCourseData = {
@@ -374,7 +480,7 @@ export const CourseView: React.FC = () => {
   );
 
   // Module 1 Lessons Rich Content Renderer
-  const module1LessonsContent: { [key: number]: any } = {
+  const module1LessonsContent: { [key: string | number]: any } = {
     101: {
       title: '1.1 Introduction to Unix & Linux Operating System Architecture',
       time: '45 mins',
@@ -540,7 +646,7 @@ export const CourseView: React.FC = () => {
 
           <div className="space-y-3">
             <h4 className="font-heading font-bold text-sm text-slate-900">🛠️ Core Navigation Commands Table & Quick Execution</h4>
-
+            
             <div className="space-y-2">
               <InteractiveCmd cmd="pwd" desc="Print Working Directory (Displays absolute path)" />
               <InteractiveCmd cmd="ls -la /home" desc="List all files & details in /home directory" />
@@ -580,913 +686,932 @@ export const CourseView: React.FC = () => {
               </button>
             </div>
           </div>
+        </div>
+      ),
+    },
 
-          {/* Center: Current lesson indicator */}
-          <div className="hidden lg:flex items-center gap-2 bg-slate-50 border border-slate-150 px-4 py-1.5 rounded-full text-xs font-semibold text-slate-655 max-w-md truncate">
-            <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse shrink-0" />
-            <span className="text-slate-400">Playing:</span>
-            <span className="truncate text-slate-700 font-bold">{activePlayerUnit.title}</span>
-          </div>
+    104: {
+      title: '1.4 Creating, Copying, Moving & Deleting Files',
+      time: '60 mins',
+      badge: 'File Operations',
+      render: (
+        <div className="space-y-6">
+          <div className="space-y-3">
+            <h4 className="font-heading font-bold text-sm text-slate-900">🛠️ Essential File Operations</h4>
 
-          {/* Right side: Badge and sidebar toggles */}
-          <div className="flex items-center gap-2.5 shrink-0">
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-800 text-[10px] sm:text-xs font-bold shadow-3xs">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-              <span>Student Preview</span>
+            <div className="p-4 bg-slate-50 rounded-2xl border border-sky-100 space-y-2">
+              <span className="font-bold text-xs text-sky-900 block">1. Creating Folders & Files (mkdir, touch)</span>
+              <InteractiveCmd cmd="mkdir project" desc="Create a single folder" />
+              <InteractiveCmd cmd="mkdir -p project/src/components" desc="Create nested directory tree" />
+              <InteractiveCmd cmd="touch project/index.js project/README.md" desc="Create empty files" />
             </div>
 
-            <div className="h-6 w-px bg-slate-200" />
-
-            <button
-              onClick={() => setLeftSidebarOpen(!leftSidebarOpen)}
-              className={`p-2 rounded-xl border transition-all cursor-pointer ${leftSidebarOpen
-                  ? 'bg-sky-50 border-sky-300 text-sky-750'
-                  : 'bg-white border-slate-200 text-slate-400 hover:text-slate-700'
-                }`}
-              title="Toggle Curriculum Sidebar"
-            >
-              <Menu className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setRightSidebarOpen(!rightSidebarOpen)}
-              className={`p-2 rounded-xl border transition-all cursor-pointer ${rightSidebarOpen
-                  ? 'bg-sky-50 border-sky-300 text-sky-750'
-                  : 'bg-white border-slate-200 text-slate-400 hover:text-slate-700'
-                }`}
-              title="Toggle Progress Sidebar"
-            >
-              <Info className="w-4 h-4" />
-            </button>
-          </div>
-        </header>
-
-        {/* Player Workspace Grid */ }
-  <div className="flex-1 flex overflow-hidden relative">
-
-    {/* Mobile sidebar overlay when either sidebar is open */}
-    <div className={`fixed inset-0 top-16 bg-slate-900/30 backdrop-blur-xs z-40 lg:hidden transition-opacity duration-300 ${(leftSidebarOpen || rightSidebarOpen) ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-      }`} onClick={() => { setLeftSidebarOpen(false); setRightSidebarOpen(false); }} />
-
-    {/* LEFT SIDEBAR: Syllabus Tree */}
-    <aside className={`fixed lg:static top-16 bottom-0 left-0 z-50 lg:z-10 w-80 bg-white border-r border-slate-200 flex flex-col shrink-0 transition-transform duration-300 ease-in-out ${leftSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:hidden lg:translate-x-0'
-      }`}>
-      <div className="p-4 border-b border-slate-100 bg-slate-50/50 shrink-0">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-450 block">Curriculum Syllabus</h3>
-          <div className="flex items-center gap-1.5 text-[10px] font-bold text-sky-700">
-            <button onClick={expandAllModules} className="hover:underline cursor-pointer">Expand All</button>
-            <span>•</span>
-            <button onClick={collapseAllModules} className="hover:underline cursor-pointer">Collapse All</button>
-          </div>
-        </div>
-        <span className="text-[11px] text-slate-500 font-medium block">
-          {completedCount} of {totalCount} lessons completed
-        </span>
-        <div className="w-full h-1.5 bg-slate-100 rounded-full border border-slate-205 mt-2.5 overflow-hidden">
-          <div className="h-full bg-emerald-500 rounded-full transition-all duration-300" style={{ width: `${completionPercentage}%` }} />
-        </div>
-      </div>
-
-      {/* Modules Accordion list */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-3">
-        {modulesToRender.map((m: any, mIdx: number) => {
-          const isModuleOpen = !!expandedModules[String(m.id)];
-          return (
-            <div key={m.id} className="border border-slate-150 rounded-2xl overflow-hidden bg-slate-50/30">
-              <button
-                onClick={() => {
-                  setExpandedModules(prev => ({
-                    ...prev,
-                    [String(m.id)]: !prev[String(m.id)]
-                  }));
-                }}
-                className="w-full p-3 bg-slate-50 hover:bg-slate-100 border-b border-slate-150 flex items-center justify-between transition-colors text-left cursor-pointer"
-              >
-                <div className="min-w-0 pr-2">
-                  <h4 className="text-xs font-extrabold text-slate-800 leading-normal truncate">
-                    M{mIdx + 1}: {m.title.replace(/^Module \d+:\s*/, '')}
-                  </h4>
-                  <span className="text-[9px] font-bold text-slate-455 block font-mono mt-0.5">{m.duration || '4 hours'}</span>
-                </div>
-                <ChevronDown className={`w-4 h-4 text-slate-450 shrink-0 transition-transform ${isModuleOpen ? 'rotate-180 text-sky-655' : ''}`} />
-              </button>
-
-              {isModuleOpen && (
-                <div className="p-2 space-y-2.5 bg-white border-t border-slate-100">
-                  {m.topics?.map((t: any) => (
-                    <div key={t.id} className="space-y-1 pt-1 border-b border-slate-50 last:border-b-0 pb-1.5 last:pb-0">
-                      <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest pl-2 block mb-1 truncate">
-                        {t.title}
-                      </span>
-                      <div className="space-y-1">
-                        {t.learningUnits?.map((unit: any) => {
-                          const isUnitDone = !!completedUnitIds[String(unit.id)];
-                          const isUnitActive = activePlayerUnit.id === unit.id;
-
-                          let UnitIcon = Play;
-                          if (unit.type === 'Reading') UnitIcon = FileText;
-                          if (unit.type === 'Quiz') UnitIcon = HelpCircle;
-                          if (unit.type === 'Assignment') UnitIcon = FileCode;
-
-                          return (
-                            <div
-                              key={unit.id}
-                              onClick={() => setActivePlayerUnit(unit)}
-                              className={`w-full text-left p-2.5 rounded-xl border text-xs flex items-start gap-2.5 transition-all cursor-pointer ${isUnitActive
-                                  ? 'bg-sky-50 border-sky-300 text-sky-850 font-bold ring-2 ring-sky-300/10'
-                                  : 'bg-white border-transparent text-slate-650 hover:bg-slate-55'
-                                }`}
-                            >
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleUnitComplete(unit.id);
-                                }}
-                                className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 mt-0.5 transition-colors cursor-pointer ${isUnitDone
-                                    ? 'bg-emerald-500 border-emerald-500 text-white'
-                                    : 'border-slate-300 hover:border-sky-500 bg-white'
-                                  }`}
-                                title={isUnitDone ? "Mark Incomplete" : "Mark Complete"}
-                              >
-                                {isUnitDone && <Check className="w-3 h-3 stroke-[3]" />}
-                              </button>
-
-                              <div className="min-w-0 flex-1">
-                                <span className="block truncate">{unit.title}</span>
-                                <span className="text-[9px] text-slate-400 font-semibold flex items-center gap-1 mt-0.5 uppercase tracking-wide">
-                                  <UnitIcon className="w-3 h-3 text-slate-400 shrink-0" />
-                                  <span>{unit.type} • {unit.duration || '15 mins'}</span>
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+            <div className="p-4 bg-slate-50 rounded-2xl border border-sky-100 space-y-2">
+              <span className="font-bold text-xs text-sky-900 block">2. Copying Files & Directories (cp)</span>
+              <InteractiveCmd cmd="cp file.txt copy_file.txt" desc="Copy a single file" />
+              <InteractiveCmd cmd="cp -r project/ project_backup/" desc="Copy a directory recursively (-r)" />
             </div>
-          );
-        })}
-      </div>
-    </aside>
 
-    {/* CENTER CONTENT */}
-    <main className="flex-1 flex flex-col overflow-hidden bg-slate-50 relative">
-      <div className="flex-grow overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6">
+            <div className="p-4 bg-slate-50 rounded-2xl border border-sky-100 space-y-2">
+              <span className="font-bold text-xs text-sky-900 block">3. Moving & Renaming (mv)</span>
+              <InteractiveCmd cmd="mv old_name.txt new_name.txt" desc="Rename a file" />
+              <InteractiveCmd cmd="mv report.pdf ~/Documents/" desc="Move file to another directory" />
+            </div>
 
-        {/* breadcrumbs */}
-        <div className="flex items-center justify-between border-b border-slate-205 pb-4">
-          <div className="min-w-0">
-            <span className="text-[10px] text-slate-400 uppercase tracking-widest font-extrabold block">
-              {activeModuleItem ? `Module ${modulesToRender.indexOf(activeModuleItem) + 1}` : 'Module'} • {activeTopicItem?.title || 'Topic'}
-            </span>
-            <h1 className="font-heading font-extrabold text-lg sm:text-xl md:text-2xl text-slate-900 mt-1 leading-tight">
-              {activePlayerUnit.title}
-            </h1>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-md border uppercase tracking-wider font-mono ${activePlayerUnit.type === 'Quiz'
-                ? 'bg-amber-50 border-amber-250 text-amber-800'
-                : activePlayerUnit.type === 'Assignment'
-                  ? 'bg-indigo-50 border-indigo-250 text-indigo-850'
-                  : 'bg-sky-50 border-sky-200 text-sky-800'
-              }`}>
-              {activePlayerUnit.type}
-            </span>
-            {activePlayerUnit.duration && (
-              <span className="text-[10px] font-bold text-slate-450 font-mono flex items-center gap-1.5 bg-white border border-slate-200 px-2.5 py-1 rounded-md shadow-3xs">
-                <Clock className="w-3.5 h-3.5 text-slate-400" />
-                <span>{activePlayerUnit.duration} Est</span>
+            <div className="p-4 bg-rose-50/70 rounded-2xl border border-rose-200 space-y-2">
+              <span className="font-bold text-xs text-rose-900 flex items-center gap-1">
+                ⚠️ 4. Deleting Files & Directories (rm, rmdir) — Permanent!
               </span>
-            )}
-          </div>
-        </div>
-
-        {/* dynamic lesson page viewer */}
-        <div className="bg-white border border-slate-200 rounded-3xl p-4 sm:p-6 shadow-3xs">
-
-          {/* VIDEO TYPE */}
-          {activePlayerUnit.type === 'Video' && (
-            <div className="space-y-6">
-              {activePlayerUnit.videoUrl ? (
-                <div className="aspect-video w-full rounded-2xl overflow-hidden border border-slate-250 bg-slate-950 shadow-md">
-                  <iframe
-                    src={getEmbedUrl(activePlayerUnit.videoUrl)}
-                    title={activePlayerUnit.title}
-                    className="w-full h-full border-0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
-                </div>
-              ) : (
-                /* Custom Video Player Simulation */
-                <div className="space-y-4">
-                  <div className="aspect-video w-full rounded-2xl overflow-hidden border border-slate-300 bg-slate-900 shadow-lg relative flex flex-col justify-between p-4 group select-none">
-
-                    <div className="absolute inset-0 bg-gradient-to-b from-slate-950/20 via-slate-900/40 to-slate-950/95 flex flex-col items-center justify-center p-6 text-center z-0">
-                      <Play className={`w-14 h-14 text-sky-400 transition-all duration-300 transform group-hover:scale-110 ${videoPlaying ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100'}`} />
-                      <div className={`mt-4 space-y-1 ${videoPlaying ? 'opacity-0 pointer-events-none' : 'opacity-100 transition-opacity'}`}>
-                        <h4 className="text-sm font-bold text-white uppercase tracking-wider">{activePlayerUnit.title}</h4>
-                        <p className="text-xs text-slate-300 max-w-sm mx-auto">Click play below to simulate watching this lesson video to completion.</p>
-                      </div>
-                    </div>
-
-                    <div className="w-full flex items-center justify-between text-white/95 text-[10px] font-bold z-10 p-2 bg-slate-950/50 rounded-xl backdrop-blur-xs opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <span className="truncate max-w-xs">{activePlayerUnit.title}</span>
-                      <span className="font-mono bg-sky-600/90 px-2 py-0.5 rounded uppercase">LMS Stream 1</span>
-                    </div>
-
-                    <div className="h-10 w-full" />
-
-                    <div className="w-full bg-slate-950/80 p-3 rounded-xl border border-slate-800 backdrop-blur-md flex flex-col gap-2.5 z-10 select-none shadow-xl">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold font-mono text-slate-300">{formatTime(elapsedSeconds)}</span>
-                        <div
-                          className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700/80 cursor-pointer relative"
-                          onClick={(e) => {
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            const clickX = e.clientX - rect.left;
-                            const percentage = Math.round((clickX / rect.width) * 100);
-                            setVideoProgress(percentage);
-                          }}
-                        >
-                          <div
-                            className="h-full bg-sky-500 rounded-full transition-all duration-150"
-                            style={{ width: `${videoProgress}%` }}
-                          />
-                        </div>
-                        <span className="text-[10px] font-bold font-mono text-slate-300">{formatTime(totalSeconds)}</span>
-                      </div>
-
-                      <div className="flex items-center justify-between text-white text-xs">
-                        <div className="flex items-center gap-3">
-                          <button
-                            onClick={() => setVideoPlaying(!videoPlaying)}
-                            className="p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer text-sky-400 hover:text-sky-350"
-                            title={videoPlaying ? 'Pause' : 'Play'}
-                          >
-                            {videoPlaying ? (
-                              <span className="flex items-center justify-center gap-0.5">
-                                <span className="w-1 h-3.5 bg-current rounded-xs" />
-                                <span className="w-1 h-3.5 bg-current rounded-xs" />
-                              </span>
-                            ) : (
-                              <Play className="w-4 h-4 fill-current" />
-                            )}
-                          </button>
-
-                          <button
-                            onClick={() => { setVideoProgress(0); setVideoPlaying(true); }}
-                            className="p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer text-slate-400 hover:text-white"
-                            title="Restart"
-                          >
-                            <RotateCcw className="w-3.5 h-3.5" />
-                          </button>
-
-                          <div className="flex items-center gap-1.5 pl-1.5">
-                            <button
-                              onClick={() => setVideoMuted(!videoMuted)}
-                              className="text-slate-300 hover:text-white transition-colors cursor-pointer"
-                            >
-                              {videoMuted ? <VolumeX className="w-3.5 h-3.5 text-rose-450" /> : <Volume2 className="w-3.5 h-3.5 text-sky-400" />}
-                            </button>
-                            <input
-                              type="range"
-                              min="0"
-                              max="100"
-                              value={videoMuted ? 0 : videoVolume}
-                              onChange={(e) => {
-                                setVideoVolume(Number(e.target.value));
-                                setVideoMuted(false);
-                              }}
-                              className="w-16 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-500 hidden sm:inline"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg px-2 py-0.5 gap-1 text-[9px] font-bold">
-                            <span className="text-slate-450">Speed:</span>
-                            <select
-                              value={videoSpeed}
-                              onChange={(e) => setVideoSpeed(Number(e.target.value))}
-                              className="bg-transparent text-sky-400 outline-hidden font-bold border-none cursor-pointer"
-                            >
-                              <option value="1" className="bg-slate-950 text-white">1.0x</option>
-                              <option value="1.5" className="bg-slate-950 text-white">1.5x</option>
-                              <option value="2" className="bg-slate-950 text-white">2.0x</option>
-                            </select>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-3 pt-2">
-                <h3 className="font-heading font-extrabold text-xs sm:text-sm text-slate-900 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-sky-655" />
-                  <span>Lesson Description</span>
-                </h3>
-                <p className="text-xs sm:text-sm text-slate-650 font-medium leading-relaxed bg-slate-50 p-4 border border-slate-150 rounded-2xl">
-                  {activePlayerUnit.description || 'Watch the lecture video completely to unlock next topic milestones.'}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* READING TYPE */}
-          {activePlayerUnit.type === 'Reading' && (
-            <div className="space-y-6 max-w-4xl mx-auto">
-              <div className="flex justify-between items-center bg-sky-50/50 border border-sky-150 p-3 rounded-2xl">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-extrabold text-sky-700 bg-white border border-sky-200 px-2 py-0.5 rounded-md uppercase tracking-wider font-mono">
-                    Document Reader
-                  </span>
-                  <span className="text-[10px] font-bold text-slate-450 block font-mono">
-                    {getEstimatedReadingTime(activePlayerUnit.readingMarkdown || activePlayerUnit.readingContent || '')}
-                  </span>
-                </div>
-                <div className="w-24 h-1.5 bg-slate-100 rounded-full border overflow-hidden hidden sm:block">
-                  <div className="h-full bg-sky-500 rounded-full animate-pulse" style={{ width: '75%' }} />
-                </div>
-              </div>
-
-              <article
-                className="text-xs sm:text-sm leading-relaxed text-slate-700 prose prose-slate max-w-none font-medium p-2 overflow-x-auto"
-                dangerouslySetInnerHTML={{ __html: parseMarkdown(activePlayerUnit.readingMarkdown || activePlayerUnit.readingContent || '### Reading content\nNo content written yet.') }}
-              />
-            </div>
-          )}
-
-          {/* QUIZ TYPE */}
-          {activePlayerUnit.type === 'Quiz' && (
-            <div className="space-y-6 max-w-3xl mx-auto">
-              <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-200/80 space-y-2 flex items-start gap-3">
-                <HelpCircle className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
-                <div>
-                  <h4 className="text-xs font-bold text-amber-900 uppercase tracking-widest">Interactive Practice Quiz</h4>
-                  <p className="text-[10px] sm:text-xs text-amber-800 leading-normal font-medium mt-0.5">
-                    Passing criteria: score at least <strong className="font-bold">{activePlayerUnit.quizPassingScore || 70}%</strong>.
-                  </p>
-                </div>
-              </div>
-
-              {!activePlayerUnit.quizQuestions || activePlayerUnit.quizQuestions.length === 0 ? (
-                <p className="text-xs text-slate-450 italic">No quiz questions configured for this block.</p>
-              ) : (
-                <div className="space-y-6">
-                  {activePlayerUnit.quizQuestions.map((q: any, idx: number) => {
-                    const selectedIdx = quizAnswers[q.id];
-                    return (
-                      <div key={q.id} className="p-5 rounded-2xl border border-slate-150 bg-slate-50/50 space-y-3">
-                        <div className="flex items-start justify-between gap-4">
-                          <h4 className="text-xs sm:text-sm font-bold text-slate-900">
-                            {idx + 1}. {q.questionText}
-                          </h4>
-                          <span className="text-[9px] font-extrabold font-mono text-slate-450 uppercase shrink-0 bg-white border px-2 py-0.5 rounded">
-                            {q.marks || 5} pts
-                          </span>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs font-medium">
-                          {q.options?.map((opt: string, oIdx: number) => {
-                            const isSelected = selectedIdx === oIdx;
-                            const isCorrect = q.correctAnswerIndex === oIdx;
-
-                            let btnClass = 'border-slate-200 bg-white text-slate-800 hover:bg-slate-50';
-                            if (quizSubmitted) {
-                              if (isCorrect) {
-                                btnClass = 'border-emerald-300 bg-emerald-50 text-emerald-955 font-bold';
-                              } else if (isSelected) {
-                                btnClass = 'border-rose-300 bg-rose-50 text-rose-955 font-bold';
-                              } else {
-                                btnClass = 'border-slate-100 bg-slate-50 text-slate-400';
-                              }
-                            } else if (isSelected) {
-                              btnClass = 'border-sky-500 bg-sky-50 text-sky-800 font-bold ring-2 ring-sky-300/30';
-                            }
-
-                            return (
-                              <button
-                                key={oIdx}
-                                disabled={quizSubmitted}
-                                onClick={() => setQuizAnswers({ ...quizAnswers, [q.id]: oIdx })}
-                                className={`p-3.5 rounded-xl border text-left transition-all flex items-center justify-between cursor-pointer ${btnClass}`}
-                              >
-                                <span>{opt}</span>
-                                {quizSubmitted && isCorrect && <Check className="w-4 h-4 text-emerald-600 shrink-0" />}
-                                {quizSubmitted && isSelected && !isCorrect && <X className="w-4 h-4 text-rose-600 shrink-0" />}
-                              </button>
-                            );
-                          })}
-                        </div>
-
-                        {quizSubmitted && q.explanation && (
-                          <div className="p-3 bg-white border border-slate-150 rounded-xl mt-3 text-[10px] sm:text-xs font-medium text-slate-600 leading-relaxed">
-                            <strong className="text-slate-800 block font-bold mb-0.5">Explanation:</strong>
-                            {q.explanation}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-
-                  {quizSubmitted ? (
-                    (() => {
-                      const totalQuizMarks = activePlayerUnit.quizQuestions.reduce((acc: number, q: any) => acc + (q.marks || 5), 0);
-                      const scoredMarks = activePlayerUnit.quizQuestions.reduce((acc: number, q: any) => {
-                        return acc + (quizAnswers[q.id] === q.correctAnswerIndex ? (q.marks || 5) : 0);
-                      }, 0);
-                      const percentage = totalQuizMarks > 0 ? Math.round((scoredMarks / totalQuizMarks) * 100) : 0;
-                      const isPassed = percentage >= (activePlayerUnit.quizPassingScore || 70);
-
-                      return (
-                        <div className={`p-5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${isPassed ? 'bg-emerald-50 border-emerald-250 text-emerald-850' : 'bg-rose-50 border-rose-250 text-rose-850'
-                          }`}>
-                          <div className="space-y-1">
-                            <span className="text-sm font-extrabold flex items-center gap-1.5">
-                              {isPassed ? (
-                                <>
-                                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                                  <span>Quiz Passed! Milestones Met</span>
-                                </>
-                              ) : (
-                                <>
-                                  <X className="w-5 h-5 text-rose-600" />
-                                  <span>Retry Recommended</span>
-                                </>
-                              )}
-                            </span>
-                            <span className="text-xs font-semibold block font-mono">
-                              Score: {scoredMarks} / {totalQuizMarks} marks ({percentage}%) — passing score: {activePlayerUnit.quizPassingScore || 70}%
-                            </span>
-                          </div>
-                          <button
-                            onClick={() => {
-                              setQuizSubmitted(false);
-                              setQuizAnswers({});
-                            }}
-                            className="btn-blue-primary text-[11px] py-2 px-4 font-bold cursor-pointer rounded-xl max-w-fit"
-                          >
-                            Retry Quiz
-                          </button>
-                        </div>
-                      );
-                    })()
-                  ) : (
-                    <button
-                      onClick={() => {
-                        const unanswered = activePlayerUnit.quizQuestions.filter((q: any) => quizAnswers[q.id] === undefined);
-                        if (unanswered.length > 0) {
-                          toast.warning(`Please answer all ${unanswered.length} questions before submitting.`);
-                          return;
-                        }
-                        setQuizSubmitted(true);
-
-                        const totalQuizMarks = activePlayerUnit.quizQuestions.reduce((acc: number, q: any) => acc + (q.marks || 5), 0);
-                        const scoredMarks = activePlayerUnit.quizQuestions.reduce((acc: number, q: any) => {
-                          return acc + (quizAnswers[q.id] === q.correctAnswerIndex ? (q.marks || 5) : 0);
-                        }, 0);
-                        const percentage = totalQuizMarks > 0 ? Math.round((scoredMarks / totalQuizMarks) * 100) : 0;
-
-                        localStorage.setItem(`lms_quiz_score_${activePlayerUnit.id}`, JSON.stringify({
-                          score: scoredMarks,
-                          total: totalQuizMarks,
-                          percentage,
-                          date: new Date().toLocaleDateString('en-US')
-                        }));
-
-                        toast.success('Quiz submitted successfully!');
-                        if (percentage >= (activePlayerUnit.quizPassingScore || 70)) {
-                          toggleUnitComplete(activePlayerUnit.id);
-                        }
-                      }}
-                      className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold text-xs cursor-pointer shadow-md transition-all active:scale-98"
-                    >
-                      Submit Quiz Answers
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ASSIGNMENT TYPE */}
-          {activePlayerUnit.type === 'Assignment' && (
-            <div className="space-y-6 max-w-3xl mx-auto">
-              <div className="p-4 rounded-2xl bg-indigo-505 bg-indigo-50/5 border border-indigo-200/60 space-y-2 font-medium flex items-start gap-3">
-                <FileCode className="w-5 h-5 text-indigo-600 mt-0.5 shrink-0" />
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h4 className="text-xs font-bold text-indigo-900 uppercase tracking-widest block">Project Assignment</h4>
-                    <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${assignmentStatus === 'Submitted'
-                        ? 'bg-emerald-50 border-emerald-250 text-emerald-800'
-                        : 'bg-slate-100 border-slate-200 text-slate-600'
-                      }`}>
-                      {assignmentStatus.toUpperCase()}
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-slate-500 leading-normal mt-1">
-                    Follow the instructions, attach your files, and click submit.
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-2 bg-slate-50 p-4 border border-slate-150 rounded-2xl">
-                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider block">Instructions</h4>
-                <div className="text-xs text-slate-700 leading-relaxed font-medium prose prose-slate">
-                  {activePlayerUnit.assignmentInstructions ? (
-                    <div dangerouslySetInnerHTML={{ __html: parseMarkdown(activePlayerUnit.assignmentInstructions) }} />
-                  ) : (
-                    <p>Complete lab exercises and submit build logs / code repositories.</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-b border-slate-100 py-4 font-mono text-xs font-bold text-slate-700">
-                <div>
-                  <span className="text-[9px] text-slate-400 block font-sans mb-0.5 font-bold uppercase tracking-wider">Maximum Points</span>
-                  <span className="text-slate-800 font-extrabold text-sm">{activePlayerUnit.assignmentMaxMarks || 100} Marks</span>
-                </div>
-                <div>
-                  <span className="text-[9px] text-slate-400 block font-sans mb-0.5 font-bold uppercase tracking-wider">Deadline Schedule</span>
-                  <span className="text-slate-850 truncate block max-w-full font-bold">{activePlayerUnit.assignmentDeadline || '7 Days'}</span>
-                </div>
-                <div>
-                  <span className="text-[9px] text-slate-400 block font-sans mb-0.5 font-bold uppercase tracking-wider">Accepted Formats</span>
-                  <span className="text-sky-700 font-bold">{activePlayerUnit.assignmentAllowedTypes || 'PDF, ZIP, TXT'}</span>
-                </div>
-              </div>
-
-              {activePlayerUnit.assignmentRubric && (
-                <div className="space-y-2.5 bg-sky-50/30 border border-sky-100 p-4 rounded-2xl">
-                  <span className="text-[10px] font-extrabold text-sky-850 uppercase tracking-wider block">Grading Rubric Criteria</span>
-                  <p className="text-xs text-slate-650 font-medium leading-relaxed whitespace-pre-line">{activePlayerUnit.assignmentRubric}</p>
-                </div>
-              )}
-
-              <div className="space-y-4 pt-2">
-                {assignmentStatus === 'Submitted' ? (
-                  <div className="p-5 bg-emerald-50 border border-emerald-250 rounded-2xl space-y-3 font-medium">
-                    <div className="flex items-start gap-2.5">
-                      <CheckCircle2 className="w-5 h-5 text-emerald-600 mt-0.5 shrink-0" />
-                      <div>
-                        <span className="text-xs font-bold text-emerald-950 block">Assignment Submitted Successfully!</span>
-                        <p className="text-[10px] text-emerald-800 leading-normal mt-0.5">Your instructor will grade your draft shortly.</p>
-                      </div>
-                    </div>
-                    <div className="bg-white border border-emerald-200 rounded-xl p-3 space-y-1.5">
-                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Submitted Artifacts</span>
-                      {attachedFiles.length === 0 ? (
-                        <div className="flex items-center gap-2 text-xs text-slate-500 font-mono py-1">
-                          <File className="w-4 h-4 text-emerald-600" />
-                          <span>default_submission_payload.zip (1.1 MB)</span>
-                        </div>
-                      ) : (
-                        attachedFiles.map((file, fIdx) => (
-                          <div key={fIdx} className="flex items-center justify-between text-xs text-slate-700 font-mono py-1 border-b last:border-b-0 border-slate-100">
-                            <div className="flex items-center gap-2">
-                              <File className="w-4 h-4 text-emerald-600" />
-                              <span>{file.name}</span>
-                            </div>
-                            <span className="text-[10px] text-slate-450 font-sans">{file.size}</span>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                    <button
-                      onClick={() => {
-                        setAssignmentStatus('Not Submitted');
-                        toast.info('Assignment submission set back to draft.');
-                      }}
-                      className="text-[10px] text-rose-600 hover:text-rose-800 underline font-bold mt-1.5 block cursor-pointer transition-colors"
-                    >
-                      Cancel Submission & Revert to Draft
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div
-                      onClick={handleFileUploadSimulation}
-                      className="border-2 border-dashed border-slate-200 bg-slate-50 hover:bg-sky-50/20 hover:border-sky-300 rounded-2xl p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2 group"
-                    >
-                      <Download className="w-8 h-8 text-slate-400 group-hover:text-sky-500 transition-colors transform group-hover:-translate-y-0.5" />
-                      <span className="text-xs font-bold text-slate-700">Drag & Drop assignment deliverables</span>
-                      <span className="text-[10px] text-slate-400 font-semibold block">Or click to simulate attaching a file ({activePlayerUnit.assignmentAllowedTypes || 'ZIP, PDF'})</span>
-                    </div>
-
-                    {attachedFiles.length > 0 && (
-                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
-                        <span className="text-[9px] font-bold text-slate-450 uppercase tracking-wider block">Attached Draft Files</span>
-                        {attachedFiles.map((file, fIdx) => (
-                          <div key={fIdx} className="flex items-center justify-between text-xs text-slate-700 font-mono p-1.5 bg-white border border-slate-150 rounded-lg">
-                            <div className="flex items-center gap-2">
-                              <File className="w-4 h-4 text-sky-550" />
-                              <span>{file.name}</span>
-                            </div>
-                            <div className="flex items-center gap-2.5">
-                              <span className="text-[10px] text-slate-400 font-sans">{file.size}</span>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setAttachedFiles(attachedFiles.filter((_, i) => i !== fIdx));
-                                }}
-                                className="text-slate-400 hover:text-rose-600 p-0.5 rounded cursor-pointer"
-                                title="Delete file"
-                              >
-                                <X className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    <button
-                      onClick={() => {
-                        setAssignmentStatus('Submitted');
-                        toast.success('Assignment submission simulated!');
-                        toggleUnitComplete(activePlayerUnit.id);
-                      }}
-                      className="btn-blue-primary w-full py-3 text-xs font-bold shadow-md cursor-pointer justify-center rounded-xl"
-                    >
-                      Submit Assignment
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-        </div>
-      </div>
-
-      {/* PLAYER FOOTER CONTROLS NAVIGATION BAR */}
-      <footer className="sticky bottom-0 border-t border-slate-200/80 p-4 sm:p-5 bg-white flex items-center justify-between shrink-0 select-none z-10 shadow-lg">
-        <button
-          disabled={!prevUnit}
-          onClick={() => {
-            setActivePlayerUnit(prevUnit);
-          }}
-          className="py-2.5 px-4 rounded-xl border border-slate-200 text-xs font-bold text-slate-650 bg-white hover:bg-slate-55 hover:text-slate-900 disabled:opacity-40 disabled:hover:bg-white cursor-pointer flex items-center gap-1.5 transition-all shadow-3xs"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Previous Lesson</span>
-        </button>
-
-        <button
-          onClick={() => toggleUnitComplete(activePlayerUnit.id)}
-          className={`py-2.5 px-6 rounded-xl text-xs font-bold cursor-pointer transition-all flex items-center gap-1.5 ${isCompleted
-              ? 'bg-emerald-50 text-emerald-800 border border-emerald-250 hover:bg-emerald-100'
-              : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-md shadow-emerald-500/20 hover:scale-102'
-            }`}
-        >
-          {isCompleted ? <CheckCircle2 className="w-4 h-4 text-emerald-700" /> : <Play className="w-4 h-4 fill-current text-white/90" />}
-          <span>{isCompleted ? 'Completed' : 'Mark Complete'}</span>
-        </button>
-
-        <button
-          disabled={!nextUnit}
-          onClick={() => {
-            setActivePlayerUnit(nextUnit);
-          }}
-          className="py-2.5 px-4 rounded-xl border border-slate-200 text-xs font-bold text-slate-650 bg-white hover:bg-slate-55 hover:text-slate-900 disabled:opacity-40 disabled:hover:bg-white cursor-pointer flex items-center gap-1.5 transition-all shadow-3xs"
-        >
-          <span>Next Lesson</span>
-          <ArrowRight className="w-4 h-4" />
-        </button>
-      </footer>
-    </main>
-
-    {/* RIGHT SIDEBAR */}
-    <aside className={`fixed lg:static top-16 bottom-0 right-0 z-50 lg:z-10 w-80 bg-white border-l border-slate-200 flex flex-col shrink-0 transition-transform duration-300 ease-in-out ${rightSidebarOpen ? 'translate-x-0' : 'translate-x-full lg:hidden lg:translate-x-0'
-      }`}>
-      <div className="p-4 border-b border-slate-100 bg-slate-50/50 shrink-0">
-        <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-450 block">Lesson Progress Info</h3>
-      </div>
-
-      <div className="flex-grow overflow-y-auto p-4 space-y-6">
-        {/* circular gauge */}
-        <div className="flex flex-col items-center justify-center p-4 bg-sky-50/40 rounded-2xl border border-sky-100/60 shadow-3xs relative overflow-hidden">
-          <div className="relative w-28 h-28 flex items-center justify-center">
-            <svg className="w-full h-full transform -rotate-90">
-              <circle cx="56" cy="56" r="46" stroke="#F0F9FF" strokeWidth="8" fill="transparent" />
-              <circle cx="56" cy="56" r="46" stroke="#0284C7" strokeWidth="8" fill="transparent"
-                strokeDasharray={2 * Math.PI * 46}
-                strokeDashoffset={2 * Math.PI * 46 * (1 - completionPercentage / 100)}
-                strokeLinecap="round"
-                className="transition-all duration-500 ease-out"
-              />
-            </svg>
-            <div className="absolute flex flex-col items-center justify-center">
-              <span className="text-xl font-extrabold text-slate-900 leading-none">{completionPercentage}%</span>
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-1 block">Complete</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 w-full mt-4 text-center border-t border-sky-100 pt-3">
-            <div>
-              <span className="text-[9px] text-slate-450 uppercase font-semibold block">Completed</span>
-              <span className="text-xs font-extrabold text-emerald-600 block mt-0.5">{completedCount} Lessons</span>
-            </div>
-            <div>
-              <span className="text-[9px] text-slate-450 uppercase font-semibold block">Remaining</span>
-              <span className="text-xs font-extrabold text-slate-700 block mt-0.5">{totalCount - completedCount} Lessons</span>
+              <InteractiveCmd cmd="rm file.txt" desc="Remove a file" />
+              <InteractiveCmd cmd="rmdir empty_folder/" desc="Remove empty directory" />
+              <InteractiveCmd cmd="rm -rf unwanted_folder/" desc="Force delete directory and contents (-rf)" />
             </div>
           </div>
         </div>
+      ),
+    },
 
-        {/* remaining time */}
-        <div className="p-4 rounded-2xl bg-white border border-slate-150 space-y-2">
-          <div className="flex items-center justify-between text-xs font-bold text-slate-750">
-            <span className="text-slate-450 uppercase text-[9px] tracking-wider font-semibold block">Time Remaining</span>
-            <span className="text-sky-655 bg-sky-50 px-2 py-0.5 rounded font-mono text-[10px]">{remainingDurationStr}</span>
+    105: {
+      title: '1.5 Quiz & Hands-on Terminal Practice',
+      time: '30 mins',
+      badge: 'Lab Challenge',
+      render: (
+        <div className="space-y-6">
+          <div className="space-y-3">
+            <h4 className="font-heading font-bold text-sm text-slate-900">🧪 Hands-on Lab Challenge</h4>
+            <p className="text-xs text-slate-700 font-medium">Run the following scenario in your terminal:</p>
+
+            <div className="p-4 bg-sky-50 rounded-2xl border border-sky-200 text-xs space-y-2 font-medium">
+              <div className="font-bold text-sky-900">Challenge Scenario Steps:</div>
+              <ol className="list-decimal pl-4 space-y-1 text-slate-700">
+                <li>Create directory structure: <code className="bg-white px-1.5 py-0.5 rounded border font-mono">devops_lab/scripts</code></li>
+                <li>Change directory into <code className="bg-white px-1.5 py-0.5 rounded border font-mono">devops_lab/scripts</code></li>
+                <li>Create three empty files: <code className="bg-white px-1.5 py-0.5 rounded border font-mono">deploy.sh, build.sh, test.sh</code></li>
+                <li>Move <code className="bg-white px-1.5 py-0.5 rounded border font-mono">test.sh</code> one level up into <code className="bg-white px-1.5 py-0.5 rounded border font-mono">devops_lab</code></li>
+                <li>Verify final structure using <code className="bg-white px-1.5 py-0.5 rounded border font-mono">tree</code> or <code className="bg-white px-1.5 py-0.5 rounded border font-mono">ls -la</code></li>
+              </ol>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <span className="font-bold text-xs text-slate-900 block">Verification Commands (Run Step-by-Step):</span>
+              <InteractiveCmd cmd="mkdir -p devops_lab/scripts" desc="Step 1: Create nested directory" />
+              <InteractiveCmd cmd="cd devops_lab/scripts" desc="Step 2: Change directory" />
+              <InteractiveCmd cmd="touch deploy.sh build.sh test.sh" desc="Step 3: Create empty files" />
+              <InteractiveCmd cmd="mv test.sh .." desc="Step 4: Move test.sh up one level" />
+              <InteractiveCmd cmd="cd .." desc="Step 5: Change to devops_lab" />
+              <InteractiveCmd cmd="ls -R" desc="Step 6: Verify recursive directory structure" />
+            </div>
           </div>
-          <p className="text-[10px] text-slate-500 leading-normal font-medium">Estimated time remaining is calculated based on incomplete syllabus units.</p>
         </div>
+      ),
+    },
 
-        {/* Active module details */}
-        {activeModuleItem && (
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-150 space-y-2">
-            <span className="text-[9px] text-slate-455 uppercase tracking-wider font-extrabold block">Current Module</span>
-            <h4 className="text-xs font-bold text-slate-800 leading-normal">
-              {activeModuleItem.title}
-            </h4>
-            {activeModuleItem.description && (
-              <p className="text-[10px] text-slate-500 leading-relaxed font-medium">
-                {activeModuleItem.description}
-              </p>
-            )}
+    // Module 2 Gamified Lessons
+    201: {
+      title: '2.1 Linux File System Hierarchy Standard',
+      time: '55 mins',
+      badge: 'The Citadel Sectors',
+      render: (
+        <div className="space-y-6">
+          <div className="bg-sky-50/80 p-4 sm:p-5 rounded-2xl border border-sky-200/80 space-y-2">
+            <span className="text-xs font-bold text-sky-800 uppercase tracking-wider block">🎮 GAMIFIED LORE: "THE CITADEL SECTORS"</span>
+            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
+              "Welcome to the Linux Core Citadel. The File System Hierarchy Standard (FHS) is the map of our digital megacity. Every directory is a dedicated sector with a specific security clearance and purpose."
+            </p>
           </div>
-        )}
 
-        <div className="space-y-3">
-          <h4 className="font-heading font-bold text-sm text-slate-900">📋 Capstone Implementation Verification Commands</h4>
+          <div className="bg-slate-950 p-4 sm:p-5 rounded-2xl border border-slate-800 font-mono text-xs text-slate-300 space-y-1.5 shadow-lg">
+            <div className="text-sky-400 font-bold">/ (Root Level 0)</div>
+            <div className="pl-4">├── <span className="text-rose-400 font-bold">/root</span> (Admin Sanctuary)</div>
+            <div className="pl-4">├── <span className="text-amber-400 font-bold">/etc</span>  (Control Center)</div>
+            <div className="pl-4">├── <span className="text-emerald-400 font-bold">/var</span>  (Live Telemetry & Logs)</div>
+            <div className="pl-4">└── <span className="text-sky-300 font-bold">/usr</span>  (User Arsenal)</div>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="font-heading font-bold text-sm text-slate-900">🏢 Key Sectors Breakdown Table</h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-sky-50 border-b border-sky-200 text-sky-900 font-bold">
+                    <th className="p-3">Sector</th>
+                    <th className="p-3">Description</th>
+                    <th className="p-3">Access Level</th>
+                    <th className="p-3">Gamified Analogy</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-sky-100 font-medium text-slate-800">
+                  <tr className="hover:bg-slate-50">
+                    <td className="p-3 font-mono font-bold text-rose-600">/root</td>
+                    <td className="p-3">Superuser / System Admin home folder</td>
+                    <td className="p-3 font-bold text-rose-600">🔴 Restricted (Root Only)</td>
+                    <td className="p-3">The High Command Sanctum</td>
+                  </tr>
+                  <tr className="hover:bg-slate-50">
+                    <td className="p-3 font-mono font-bold text-amber-600">/etc</td>
+                    <td className="p-3">System-wide configuration files</td>
+                    <td className="p-3 font-bold text-amber-600">🟡 Admin Write / All Read</td>
+                    <td className="p-3">The Power Grid & Control Switches</td>
+                  </tr>
+                  <tr className="hover:bg-slate-50">
+                    <td className="p-3 font-mono font-bold text-emerald-600">/var</td>
+                    <td className="p-3">Variable data (logs, databases, mail queues)</td>
+                    <td className="p-3 font-bold text-emerald-600">🟢 Dynamic System Writes</td>
+                    <td className="p-3">Live Radar & Flight Recorders</td>
+                  </tr>
+                  <tr className="hover:bg-slate-50">
+                    <td className="p-3 font-mono font-bold text-sky-600">/usr</td>
+                    <td className="p-3">User binaries, libraries, and documentation</td>
+                    <td className="p-3 font-bold text-sky-600">🔵 Read-Only for Users</td>
+                    <td className="p-3">The Equipment Arsenal</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      ),
+    },
+
+    202: {
+      title: '2.2 File Permissions Demystified',
+      time: '65 mins',
+      badge: 'Access Badges & Octal Math',
+      render: (
+        <div className="space-y-6">
+          <div className="bg-sky-50/80 p-4 sm:p-5 rounded-2xl border border-sky-200/80 space-y-2">
+            <span className="text-xs font-bold text-sky-800 uppercase tracking-wider block">🎮 GAMIFIED LORE: "ACCESS BADGES & SECURITY KEYPADS"</span>
+            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
+              "Every data file is locked inside a digital vault. To access it, you need the right Access Badge. Permissions dictate who can Read (r), Write (w), or Execute (x) operations."
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="font-heading font-bold text-sm text-slate-900">🔐 Permission Matrix & Octal Math</h4>
+            <div className="bg-slate-950 p-4 sm:p-6 rounded-2xl border border-slate-800 font-mono text-xs space-y-3 shadow-xl">
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="p-3 bg-sky-950/80 border border-sky-500/40 rounded-xl">
+                  <span className="text-sky-400 font-bold block text-[11px]">Owner (User)</span>
+                  <span className="text-white text-sm font-bold block mt-1">r  w  x</span>
+                  <span className="text-sky-300 text-[10px] block mt-1">4 + 2 + 1 = 7</span>
+                </div>
+                <div className="p-3 bg-amber-950/80 border border-amber-500/40 rounded-xl">
+                  <span className="text-amber-400 font-bold block text-[11px]">Group</span>
+                  <span className="text-white text-sm font-bold block mt-1">r  -  x</span>
+                  <span className="text-amber-300 text-[10px] block mt-1">4 + 0 + 1 = 5</span>
+                </div>
+                <div className="p-3 bg-emerald-950/80 border border-emerald-500/40 rounded-xl">
+                  <span className="text-emerald-400 font-bold block text-[11px]">Others</span>
+                  <span className="text-white text-sm font-bold block mt-1">r  -  x</span>
+                  <span className="text-emerald-300 text-[10px] block mt-1">4 + 0 + 1 = 5</span>
+                </div>
+              </div>
+
+              <div className="pt-2 text-center text-emerald-400 font-bold text-sm border-t border-slate-800">
+                Combined Octal Permission: 755
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-1">
+              <div className="p-3 bg-slate-50 rounded-xl border border-sky-100 font-medium">
+                <span className="font-bold text-sky-900 block">r (Read) = 4:</span> Scan / view file contents.
+              </div>
+              <div className="p-3 bg-slate-50 rounded-xl border border-sky-100 font-medium">
+                <span className="font-bold text-amber-900 block">w (Write) = 2:</span> Modify / rewrite data.
+              </div>
+              <div className="p-3 bg-slate-50 rounded-xl border border-sky-100 font-medium">
+                <span className="font-bold text-emerald-900 block">x (Execute) = 1:</span> Run executable program.
+              </div>
+            </div>
+          </div>
 
           <div className="space-y-2">
-            <InteractiveCmd cmd="sudo useradd -m -s /bin/bash deploy_admin" desc="Step 1: Create deploy_admin user" />
-            <InteractiveCmd cmd="sudo ufw allow 22/tcp && sudo ufw allow 80/tcp" desc="Step 2: Lock down firewall ports" />
-            <InteractiveCmd cmd="./health_audit.sh" desc="Step 3: Execute health audit script" />
-            <InteractiveCmd cmd="crontab -l" desc="Step 4: Verify 15-minute cron automation deployment" />
+            <h4 className="font-heading font-bold text-sm text-slate-900">🛠️ Key Permission Commands:</h4>
+            <InteractiveCmd cmd="chmod 755 deployment_script.sh" desc="Grant Owner full control (7), Group & Others read+execute (5)" />
+            <InteractiveCmd cmd="chmod 600 private_key.pem" desc="Restrict file access strictly to the Owner only (600)" />
           </div>
         </div>
+      ),
+    },
 
-        <div className="p-6 rounded-3xl bg-emerald-50 border border-emerald-200 text-center space-y-3 shadow-md">
-          <Award className="w-10 h-10 text-emerald-600 mx-auto animate-bounce" />
-          <h3 className="font-heading font-extrabold text-xl text-emerald-900">
-            🏆 ISO Verified Linux System Administrator Certification
-          </h3>
-          <p className="text-xs text-emerald-800 font-medium max-w-lg mx-auto">
-            Complete all 4 module practical labs to unlock your verifiable ISO digital certificate badge!
-          </p>
-          <button
-            onClick={() => toast.success('Congratulations! Linux Essentials Certificate Unlocked!')}
-            className="btn-blue-primary text-xs py-3 px-6 font-extrabold shadow-lg shadow-sky-500/20 cursor-pointer"
-          >
-            Claim Verifiable ISO Certificate
-          </button>
+    203: {
+      title: '2.3 User & Group Management',
+      time: '60 mins',
+      badge: 'Guilds & Superuser Overdrive',
+      render: (
+        <div className="space-y-6">
+          <div className="bg-sky-50/80 p-4 sm:p-5 rounded-2xl border border-sky-200/80 space-y-2">
+            <span className="text-xs font-bold text-sky-800 uppercase tracking-wider block">🎮 GAMIFIED LORE: "GUILDS, ROLES & SUPERUSER OVERDRIVE"</span>
+            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
+              "In a multi-user OS, users belong to Guilds (Groups). When standard privileges aren't enough, sudo allows you to trigger Superuser Overdrive to override system boundaries."
+            </p>
+          </div>
+
+          <div className="bg-slate-950 p-4 sm:p-5 rounded-2xl border border-slate-800 font-mono text-xs shadow-xl flex items-center justify-between gap-3 text-slate-300">
+            <div className="p-2.5 bg-slate-900 rounded-xl border border-slate-700 text-center flex-1">
+              <span className="font-bold text-sky-400 block text-[11px]">Regular User</span>
+              <span className="text-white text-[10px]">Dev-01</span>
+            </div>
+            <div className="text-amber-400 font-bold text-[10px] text-center">
+              {'───( types: sudo )───►'}
+            </div>
+            <div className="p-2.5 bg-rose-950/80 rounded-xl border border-rose-500/40 text-center flex-1">
+              <span className="font-bold text-rose-400 block text-[11px]">Superuser Overdrive</span>
+              <span className="text-white text-[10px]">Root Privilege</span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <h4 className="font-heading font-bold text-sm text-slate-900">🛠️ Management Commands:</h4>
+            <InteractiveCmd cmd="sudo useradd -m -s /bin/bash operative_01" desc="Create a new agent user account" />
+            <InteractiveCmd cmd="sudo usermod -aG devops operative_01" desc="Assign operative to the 'devops' guild group" />
+            <InteractiveCmd cmd="sudo chown -R operative_01:devops /opt/secure_vault" desc="Transfer directory ownership to user & group" />
+          </div>
         </div>
-      </div>
+      ),
+    },
+
+    204: {
+      title: '2.4 Text Search & Inspection Tools',
+      time: '70 mins',
+      badge: 'Scanner Drones & Thermal Scopes',
+      render: (
+        <div className="space-y-6">
+          <div className="bg-sky-50/80 p-4 sm:p-5 rounded-2xl border border-sky-200/80 space-y-2">
+            <span className="text-xs font-bold text-sky-800 uppercase tracking-wider block">🎮 GAMIFIED LORE: "SCANNER DRONES & THERMAL SCOPES"</span>
+            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
+              "Searching through megabytes of raw server telemetry manually is impossible. Equipping scanner tools like grep and tail turns your terminal into a deep-range tactical radar."
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="font-heading font-bold text-sm text-slate-900">🛠️ Tactical Toolkit & Commands:</h4>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div className="p-3 bg-slate-50 rounded-xl border border-sky-100 font-medium">
+                <span className="font-bold text-sky-900 block">cat / less:</span> Display full files / Paginated view.
+              </div>
+              <div className="p-3 bg-slate-50 rounded-xl border border-sky-100 font-medium">
+                <span className="font-bold text-amber-900 block">head -n 20:</span> Inspect first 20 lines of a file.
+              </div>
+            </div>
+
+            <InteractiveCmd cmd="tail -f /var/log/syslog" desc="Live-stream real-time incoming system log entries" />
+            <InteractiveCmd cmd='grep -rn "ERROR" /var/log/' desc="Search for ERROR recursively with line numbers across all logs" />
+            <InteractiveCmd cmd='tail -f /var/log/syslog | grep --color "CRITICAL"' desc="Real-time system log monitoring pipeline filtered for CRITICAL" />
+          </div>
+        </div>
+      ),
+    },
+
+    205: {
+      title: '2.5 Module 2 Practice Quiz',
+      time: '30 mins',
+      badge: 'Module 2 Assessment',
+      render: (
+        <div className="space-y-6">
+          <div className="space-y-4">
+            <h4 className="font-heading font-bold text-sm text-slate-900">🎯 Module 2 Assessment Questions</h4>
+
+            <div className="p-4 rounded-2xl bg-slate-50 border border-sky-100 space-y-2 text-xs">
+              <span className="font-bold text-slate-900 block">Q1. Where are global system configuration files stored in the Linux FHS?</span>
+              <div className="grid grid-cols-2 gap-2 font-medium">
+                <div className="p-2 rounded-xl bg-white border border-sky-100">A) /var</div>
+                <div className="p-2 rounded-xl bg-white border border-sky-100">B) /usr</div>
+                <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-300 font-bold text-emerald-800">C) /etc (Correct)</div>
+                <div className="p-2 rounded-xl bg-white border border-sky-100">D) /root</div>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 border border-sky-100 space-y-2 text-xs">
+              <span className="font-bold text-slate-900 block">Q2. What numeric permission code gives Owner Full Access (rwx), Group Read & Execute (r-x), and Others No Access (---)?</span>
+              <div className="grid grid-cols-2 gap-2 font-medium">
+                <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-300 font-bold text-emerald-800">A) 750 (Correct)</div>
+                <div className="p-2 rounded-xl bg-white border border-sky-100">B) 755</div>
+                <div className="p-2 rounded-xl bg-white border border-sky-100">C) 644</div>
+                <div className="p-2 rounded-xl bg-white border border-sky-100">D) 777</div>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 border border-sky-100 space-y-2 text-xs">
+              <span className="font-bold text-slate-900 block">Q3. Which command continuously monitors incoming changes at the end of a log file in real-time?</span>
+              <div className="grid grid-cols-2 gap-2 font-medium">
+                <div className="p-2 rounded-xl bg-white border border-sky-100">A) head -f</div>
+                <div className="p-2 rounded-xl bg-white border border-sky-100">B) cat -r</div>
+                <div className="p-2 rounded-xl bg-white border border-sky-100">C) grep -live</div>
+                <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-300 font-bold text-emerald-800">D) tail -f (Correct)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ),
+    },
+
+    // Module 3 Gamified Lessons
+    301: {
+      title: '3.1 Inspecting Active System Processes',
+      time: '60 mins',
+      badge: 'Threat Radar & Process Extermination',
+      render: (
+        <div className="space-y-6">
+          <div className="bg-sky-50/80 p-4 sm:p-5 rounded-2xl border border-sky-200/80 space-y-2">
+            <span className="text-xs font-bold text-sky-800 uppercase tracking-wider block">🎮 GAMIFIED LORE: "THE THREAT RADAR & PROCESS EXTERMINATION"</span>
+            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
+              "Every application running on your system spawns a Process with a unique PID (Process ID). Some consume minimal energy, while rogue 'zombie' processes drain system memory like rogue AI entities. Your terminal acts as the threat radar to detect and terminate them."
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="font-heading font-bold text-sm text-slate-900">📡 SYSTEM THREAT RADAR</h4>
+            <div className="bg-slate-950 p-4 sm:p-5 rounded-2xl border border-slate-800 font-mono text-xs space-y-2 shadow-xl text-slate-300">
+              <div className="text-sky-400 font-bold border-b border-slate-800 pb-1">LIVE SYSTEM THREAT MONITOR:</div>
+              <div className="flex justify-between text-slate-400">
+                <span>PID 1024 [ nginx ]</span>
+                <span className="text-emerald-400 font-bold">0.2% CPU (Normal)</span>
+              </div>
+              <div className="flex justify-between text-rose-400 font-bold bg-rose-950/40 p-1.5 rounded-lg border border-rose-500/30">
+                <span>PID 4096 [ python ]</span>
+                <span>98.5% CPU ⚠️ (Rogue Process)</span>
+              </div>
+              <div className="pt-2 text-center text-emerald-400 font-bold border-t border-slate-800">
+                Execute: kill -9 4096 💥 Terminated!
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-1">
+              <div className="p-3 bg-slate-50 rounded-xl border border-sky-100 font-medium">
+                <span className="font-bold text-sky-900 block">ps aux:</span> Snapshots all running processes.
+              </div>
+              <div className="p-3 bg-slate-50 rounded-xl border border-sky-100 font-medium">
+                <span className="font-bold text-amber-900 block">top / htop:</span> Real-time live CPU & RAM usage monitor.
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <InteractiveCmd cmd="ps aux | grep python" desc="Find rogue Python processes consuming memory" />
+              <InteractiveCmd cmd="kill -9 4096" desc="Forcefully terminate a rogue process immediately (PID 4096)" />
+            </div>
+          </div>
+        </div>
+      ),
+    },
+
+    302: {
+      title: '3.2 Controlling Daemon Services with Systemd',
+      time: '75 mins',
+      badge: 'Power Grid & Automated Drones',
+      render: (
+        <div className="space-y-6">
+          <div className="bg-sky-50/80 p-4 sm:p-5 rounded-2xl border border-sky-200/80 space-y-2">
+            <span className="text-xs font-bold text-sky-800 uppercase tracking-wider block">🎮 GAMIFIED LORE: "POWER GRID & AUTOMATED DRONES"</span>
+            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
+              "Daemons are background services—like web servers or database engines—that operate silently without direct user interaction. Systemd is the master power controller managing these background systems."
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="font-heading font-bold text-sm text-slate-900">🛠️ Essential Systemctl Commands Table:</h4>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-sky-50 border-b border-sky-200 text-sky-900 font-bold">
+                    <th className="p-3">Action</th>
+                    <th className="p-3">Command</th>
+                    <th className="p-3">Purpose</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-sky-100 font-medium text-slate-800">
+                  <tr className="hover:bg-slate-50">
+                    <td className="p-3 font-bold text-sky-700">Check Status</td>
+                    <td className="p-3 font-mono font-bold">systemctl status nginx</td>
+                    <td className="p-3">View live operational status & recent log alerts</td>
+                  </tr>
+                  <tr className="hover:bg-slate-50">
+                    <td className="p-3 font-bold text-emerald-700">Power On</td>
+                    <td className="p-3 font-mono font-bold">sudo systemctl start nginx</td>
+                    <td className="p-3">Launch the background service immediately</td>
+                  </tr>
+                  <tr className="hover:bg-slate-50">
+                    <td className="p-3 font-bold text-rose-700">Power Off</td>
+                    <td className="p-3 font-mono font-bold">sudo systemctl stop nginx</td>
+                    <td className="p-3">Shutdown / suspend the service</td>
+                  </tr>
+                  <tr className="hover:bg-slate-50">
+                    <td className="p-3 font-bold text-indigo-700">Auto-Boot</td>
+                    <td className="p-3 font-mono font-bold">sudo systemctl enable nginx</td>
+                    <td className="p-3">Ensure service boots automatically on system startup</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <InteractiveCmd cmd="systemctl status nginx" desc="Check live status of Nginx web service" />
+              <InteractiveCmd cmd="sudo systemctl start nginx" desc="Power on Nginx background daemon" />
+              <InteractiveCmd cmd="sudo systemctl stop nginx" desc="Power off Nginx background daemon" />
+              <InteractiveCmd cmd="sudo systemctl enable nginx" desc="Enable auto-boot on system startup" />
+            </div>
+          </div>
+        </div>
+      ),
+    },
+
+    303: {
+      title: '3.3 Job Automation with Cron & Crontab Schedules',
+      time: '50 mins',
+      badge: 'Automated Time-Warp Directives',
+      render: (
+        <div className="space-y-6">
+          <div className="bg-sky-50/80 p-4 sm:p-5 rounded-2xl border border-sky-200/80 space-y-2">
+            <span className="text-xs font-bold text-sky-800 uppercase tracking-wider block">🎮 GAMIFIED LORE: "AUTOMATED TIME-WARP DIRECTIVES"</span>
+            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
+              "Why execute daily backups or health checks manually when you can program automated background scripts? Cron is your system's automated scheduler that executes commands at precise timestamps."
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="font-heading font-bold text-sm text-slate-900">⏱️ Crontab Syntax Blueprint</h4>
+            <div className="bg-slate-950 p-4 sm:p-5 rounded-2xl border border-slate-800 font-mono text-xs space-y-2 shadow-xl text-slate-300">
+              <div className="text-emerald-400 font-bold">* * * * *  /path/to/script.sh</div>
+              <div className="text-[11px] text-slate-400 grid grid-cols-5 gap-1 text-center pt-1 border-t border-slate-800">
+                <div>Minute (0-59)</div>
+                <div>Hour (0-23)</div>
+                <div>Day of Mo (1-31)</div>
+                <div>Month (1-12)</div>
+                <div>Day of Wk (0-6)</div>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <InteractiveCmd cmd="crontab -e" desc="Edit current user's automation crontab matrix" />
+              <InteractiveCmd cmd="30 2 * * * /usr/local/bin/backup_db.sh" desc="Run database backup script every night at 2:30 AM" />
+              <InteractiveCmd cmd="*/15 * * * * /scripts/health_check.sh" desc="Run health check ping every 15 minutes" />
+            </div>
+          </div>
+        </div>
+      ),
+    },
+
+    304: {
+      title: '3.4 Monitoring System Logs with Journalctl',
+      time: '45 mins',
+      badge: 'The Black Box Flight Recorder',
+      render: (
+        <div className="space-y-6">
+          <div className="bg-sky-50/80 p-4 sm:p-5 rounded-2xl border border-sky-200/80 space-y-2">
+            <span className="text-xs font-bold text-sky-800 uppercase tracking-wider block">🎮 GAMIFIED LORE: "THE BLACK BOX FLIGHT RECORDER"</span>
+            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
+              "When a system crash occurs, systemd-journald records every system event, kernel alert, and service output into a central, binary black box recorder. journalctl is your extraction scope."
+            </p>
+          </div>
+
+          <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 font-mono text-xs shadow-xl text-center space-y-1 text-slate-300">
+            <div className="text-rose-400 font-bold">[ System Crash / Error Alert ]</div>
+            <div className="text-slate-500">│  ▼ Logged into systemd-journald</div>
+            <div className="text-emerald-400 font-bold">journalctl -u nginx</div>
+            <div className="text-sky-300 text-[11px] italic">"Critical Error: Out of Memory at 22:15"</div>
+          </div>
+
+          <div className="space-y-2">
+            <h4 className="font-heading font-bold text-sm text-slate-900">🛠️ Diagnostic Extraction Commands:</h4>
+            <InteractiveCmd cmd="journalctl -f" desc="View real-time live system logs" />
+            <InteractiveCmd cmd="journalctl -u nginx" desc="Extract logs specifically for Nginx web server" />
+            <InteractiveCmd cmd="journalctl -b -p err" desc="Inspect high-severity system error logs from current boot" />
+          </div>
+        </div>
+      ),
+    },
+
+    305: {
+      title: '3.5 Module 3 Hands-on Assessment',
+      time: '40 mins',
+      badge: 'Incident Response Briefing',
+      render: (
+        <div className="space-y-6">
+          <div className="bg-rose-50/80 p-4 sm:p-5 rounded-2xl border border-rose-200 space-y-2">
+            <span className="text-xs font-bold text-rose-800 uppercase tracking-wider block">🚨 INCIDENT RESPONSE: "RESCUING THE OVERLOADED SERVER"</span>
+            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
+              "Mission Objective: A rogue background process is overloading CPU resources, causing the primary web service to crash. Your objective as a DevOps System Administrator is to diagnose, terminate, automate, and restore normal operational parameters."
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="font-heading font-bold text-sm text-slate-900">📝 Step-by-Step Task Objectives & Commands</h4>
+
+            <div className="space-y-2">
+              <InteractiveCmd cmd="ps aux | grep python" desc="Task 1: Identify rogue Python high-CPU process" />
+              <InteractiveCmd cmd="kill -9 4096" desc="Task 1: Terminate rogue process PID 4096" />
+              <InteractiveCmd cmd="systemctl status nginx" desc="Task 2: Check status of crashed web service" />
+              <InteractiveCmd cmd="sudo systemctl restart nginx" desc="Task 2: Restart web service" />
+              <InteractiveCmd cmd="*/10 * * * * /opt/monitor.sh" desc="Task 3: Schedule cron healthcheck every 10 mins" />
+              <InteractiveCmd cmd="journalctl -u nginx" desc="Task 4: Forensic audit system logs for incident timestamp" />
+            </div>
+          </div>
+        </div>
+      ),
+    },
+
+    // Module 4 Gamified Lessons
+    401: {
+      title: '4.1 Writing Your First Bash Script',
+      time: '80 mins',
+      badge: 'Forging Automation Macros',
+      render: (
+        <div className="space-y-6">
+          <div className="bg-sky-50/80 p-4 sm:p-5 rounded-2xl border border-sky-200/80 space-y-2">
+            <span className="text-xs font-bold text-sky-800 uppercase tracking-wider block">🎮 GAMIFIED LORE: "FORGING AUTOMATION MACROS"</span>
+            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
+              "Manually executing individual commands is like firing single shots. Writing a Bash Script turns your commands into an automated rapid-fire macro. The Shebang (#!/bin/bash) tells the OS kernel which interpreter to use to execute your script."
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="font-heading font-bold text-sm text-slate-900">📜 AUTOMATION SCRIPT ANATOMY</h4>
+            <div className="bg-slate-950 p-4 sm:p-5 rounded-2xl border border-slate-800 font-mono text-xs space-y-2 shadow-xl text-slate-300">
+              <div className="text-amber-400 font-bold">#!/bin/bash</div>
+              <div className="text-slate-400"># Define Variables (No spaces around '=')</div>
+              <div><span className="text-sky-400">SERVER_NAME</span>="Alpha-Node"</div>
+              <div><span className="text-sky-400">BACKUP_DIR</span>="/var/backups"</div>
+              <div className="pt-2 text-emerald-400">echo "Deploying update on $SERVER_NAME..."</div>
+              <div className="text-emerald-400">echo "Target backup location: ${'{'}BACKUP_DIR{'}'}"</div>
+            </div>
+
+            <div className="p-3 bg-sky-50 rounded-xl border border-sky-200 text-xs font-medium">
+              <span className="font-bold text-sky-900 block">💡 Pro-Tip:</span>
+              Execute <code className="bg-white px-1.5 py-0.5 rounded border border-sky-200 font-mono">chmod +x script.sh</code> to grant execute permissions before running <code className="bg-white px-1.5 py-0.5 rounded border border-sky-200 font-mono">./script.sh</code>.
+            </div>
+
+            <div className="space-y-2">
+              <InteractiveCmd cmd="chmod +x deploy.sh" desc="Grant execute permission to script" />
+              <InteractiveCmd cmd="./deploy.sh" desc="Execute automation script macro" />
+            </div>
+          </div>
+        </div>
+      ),
+    },
+
+    402: {
+      title: '4.2 Control Flow in Shell Scripts',
+      time: '90 mins',
+      badge: 'Cybernetic Logic Gates & Loops',
+      render: (
+        <div className="space-y-6">
+          <div className="bg-sky-50/80 p-4 sm:p-5 rounded-2xl border border-sky-200/80 space-y-2">
+            <span className="text-xs font-bold text-sky-800 uppercase tracking-wider block">🎮 GAMIFIED LORE: "CYBERNETIC LOGIC GATES & LOOPS"</span>
+            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
+              "Static scripts execute linearly, but dynamic scripts make tactical decisions based on system states using If/Else Statements and repeat operations across multiple nodes using Loops."
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="font-heading font-bold text-sm text-slate-900">🛠️ Logic & Iteration Examples:</h4>
+
+            <div className="p-4 bg-slate-50 rounded-2xl border border-sky-100 space-y-2 text-xs font-mono">
+              <span className="font-bold text-slate-900 font-sans block">1. Conditional Logic (if/else disk alert):</span>
+              <div className="bg-slate-950 p-3.5 rounded-xl text-slate-300 space-y-1">
+                <div className="text-amber-400 font-bold">THRESHOLD=80</div>
+                <div className="text-emerald-400">if [ "$CURRENT_USAGE" -gt "$THRESHOLD" ]; then</div>
+                <div className="pl-4 text-rose-400">echo "⚠️ ALERT: Disk Usage is critically high!"</div>
+                <div className="text-emerald-400">else</div>
+                <div className="pl-4 text-sky-300">echo "🟢 OK: Disk usage is normal."</div>
+                <div className="text-emerald-400">fi</div>
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-50 rounded-2xl border border-sky-100 space-y-2 text-xs font-mono">
+              <span className="font-bold text-slate-900 font-sans block">2. Iterating through Nodes (for loop across IPs):</span>
+              <div className="bg-slate-950 p-3.5 rounded-xl text-slate-300 space-y-1">
+                <div className="text-sky-400">SERVERS=("192.168.1.10" "192.168.1.11" "192.168.1.12")</div>
+                <div className="text-emerald-400">for IP in "${'{'}SERVERS[@]{'}'}"; do</div>
+                <div className="pl-4 text-amber-300">echo "📡 Scanning target node: $IP..."</div>
+                <div className="text-emerald-400">done</div>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <InteractiveCmd cmd="./check_disk.sh" desc="Execute conditional disk usage alert script" />
+              <InteractiveCmd cmd="./scan_nodes.sh" desc="Execute node scanner loop script" />
+            </div>
+          </div>
+        </div>
+      ),
+    },
+
+    403: {
+      title: '4.3 Network Diagnostics',
+      time: '60 mins',
+      badge: 'Cyber Scanners & Telemetry Radar',
+      render: (
+        <div className="space-y-6">
+          <div className="bg-sky-50/80 p-4 sm:p-5 rounded-2xl border border-sky-200/80 space-y-2">
+            <span className="text-xs font-bold text-sky-800 uppercase tracking-wider block">🎮 GAMIFIED LORE: "CYBER SCANNERS & TELEMETRY RADAR"</span>
+            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
+              "When data packets stall, network diagnostic tools turn your terminal into a deep-space scanner to ping targets, inspect active socket ports, and test API endpoints."
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="font-heading font-bold text-sm text-slate-900">📡 Diagnostic Tool Arsenal:</h4>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-sky-50 border-b border-sky-200 text-sky-900 font-bold">
+                    <th className="p-3">Tool</th>
+                    <th className="p-3">Full Form / Description</th>
+                    <th className="p-3">Gamified Analogy</th>
+                    <th className="p-3">Primary Use</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-sky-100 font-medium text-slate-800">
+                  <tr className="hover:bg-slate-50">
+                    <td className="p-3 font-mono font-bold text-sky-700">ip addr</td>
+                    <td className="p-3">IP Address Show</td>
+                    <td className="p-3">Local Identification Badge</td>
+                    <td className="p-3">Find machine's local/public IP</td>
+                  </tr>
+                  <tr className="hover:bg-slate-50">
+                    <td className="p-3 font-mono font-bold text-emerald-700">ping</td>
+                    <td className="p-3">Packet InterNet Groper</td>
+                    <td className="p-3">Pulse Echo Locator</td>
+                    <td className="p-3">Check if remote host is reachable</td>
+                  </tr>
+                  <tr className="hover:bg-slate-50">
+                    <td className="p-3 font-mono font-bold text-amber-700">ss / netstat</td>
+                    <td className="p-3">Socket Statistics</td>
+                    <td className="p-3">Open Port Radar</td>
+                    <td className="p-3">List listening open ports (80/443)</td>
+                  </tr>
+                  <tr className="hover:bg-slate-50">
+                    <td className="p-3 font-mono font-bold text-purple-700">curl</td>
+                    <td className="p-3">Client URL</td>
+                    <td className="p-3">Tactical Data Retrieval Drone</td>
+                    <td className="p-3">Query web servers & API endpoints</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <InteractiveCmd cmd="curl -I https://api.github.com" desc="Test API endpoint response and print HTTP headers" />
+              <InteractiveCmd cmd="sudo ss -tulpn" desc="Inspect all listening TCP ports and running process names" />
+              <InteractiveCmd cmd="ping -c 4 google.com" desc="Send 4 pulse echo ICMP packets to target domain" />
+            </div>
+          </div>
+        </div>
+      ),
+    },
+
+    404: {
+      title: '4.4 SSH Key Pair Authentication & UFW Firewall',
+      time: '70 mins',
+      badge: 'Encrypted Portal Keys & Citadel Shields',
+      render: (
+        <div className="space-y-6">
+          <div className="bg-sky-50/80 p-4 sm:p-5 rounded-2xl border border-sky-200/80 space-y-2">
+            <span className="text-xs font-bold text-sky-800 uppercase tracking-wider block">🎮 GAMIFIED LORE: "ENCRYPTED PORTAL KEYS & CITADEL DEFENSE SHIELDS"</span>
+            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
+              "Passwords can be brute-forced. SSH Key Pair Authentication uses asymmetric encryption (Public & Private Keys) to open secure encrypted portals. UFW (Uncomplicated Firewall) acts as the defensive shield blocking unauthorized network traffic."
+            </p>
+          </div>
+
+          <div className="bg-slate-950 p-4 sm:p-5 rounded-2xl border border-slate-800 font-mono text-xs shadow-xl flex items-center justify-between gap-3 text-slate-300">
+            <div className="p-2.5 bg-slate-900 rounded-xl border border-slate-700 text-center flex-1">
+              <span className="font-bold text-sky-400 block text-[11px]">Private Key</span>
+              <span className="text-white text-[10px]">(id_ed25519)</span>
+            </div>
+            <div className="text-emerald-400 font-bold text-[10px] text-center">
+              {'🔐 Encrypted Portal ═════════►'}
+            </div>
+            <div className="p-2.5 bg-sky-950/80 rounded-xl border border-sky-500/40 text-center flex-1">
+              <span className="font-bold text-sky-400 block text-[11px]">Public Key</span>
+              <span className="text-white text-[10px]">(authorized_keys)</span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <h4 className="font-heading font-bold text-sm text-slate-900">🛠️ Key Citadel Defense Commands:</h4>
+            <InteractiveCmd cmd='ssh-keygen -t ed25519 -C "admin@citadel.com"' desc="Generate secure ED25519 SSH Key Pair" />
+            <InteractiveCmd cmd="ssh-copy-id user@remote_server_ip" desc="Deploy public key to remote server" />
+            <InteractiveCmd cmd="sudo ufw default deny incoming" desc="Set UFW firewall default incoming shield block" />
+            <InteractiveCmd cmd="sudo ufw allow 22/tcp" desc="Allow SSH access on port 22" />
+            <InteractiveCmd cmd="sudo ufw allow 80/tcp" desc="Allow HTTP web traffic on port 80" />
+            <InteractiveCmd cmd="sudo ufw enable" desc="Enable UFW firewall defensive shield" />
+          </div>
+        </div>
+      ),
+    },
+
+    405: {
+      title: '4.5 Final Course Capstone Project & Certificate Exam',
+      time: '90 mins',
+      badge: 'Operation Citadel Shield & Certification',
+      render: (
+        <div className="space-y-6">
+          <div className="bg-sky-900 text-white p-6 sm:p-8 rounded-3xl shadow-2xl border border-sky-700 space-y-4">
+            <div className="flex items-center gap-2 border-b border-sky-700 pb-3">
+              <Award className="w-6 h-6 text-amber-400" />
+              <h3 className="font-heading font-extrabold text-xl text-white">
+                🚀 CAPSTONE MISSION BRIEFING: "OPERATION CITADEL SHIELD"
+              </h3>
+            </div>
+
+            <p className="text-xs sm:text-sm text-sky-100 font-medium leading-relaxed">
+              Scenario: You are tasked with setting up and securing a multi-tier Linux web server environment from scratch, automating system health checks, and locking down unauthorized network access.
+            </p>
+
+            <div className="p-4 bg-sky-950/80 rounded-2xl border border-sky-600/50 text-xs font-mono text-sky-300 space-y-2">
+              <div className="font-bold text-amber-300">CAPSTONE PIPELINE WORKFLOW:</div>
+              <div>1. User Setup {'──►'} 2. Firewall Shield {'──►'} 3. Automation Script {'──►'} 4. Final Audit</div>
+              <div className="text-[11px] text-slate-400">(chown/sudo) ➜ (UFW Ports 22,80) ➜ (Disk & Log Check) ➜ (Crontab Deployment)</div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="font-heading font-bold text-sm text-slate-900">📋 Capstone Implementation Verification Commands</h4>
+
+            <div className="space-y-2">
+              <InteractiveCmd cmd="sudo useradd -m -s /bin/bash deploy_admin" desc="Step 1: Create deploy_admin user" />
+              <InteractiveCmd cmd="sudo ufw allow 22/tcp && sudo ufw allow 80/tcp" desc="Step 2: Lock down firewall ports" />
+              <InteractiveCmd cmd="./health_audit.sh" desc="Step 3: Execute health audit script" />
+              <InteractiveCmd cmd="crontab -l" desc="Step 4: Verify 15-minute cron automation deployment" />
+            </div>
+          </div>
+
+          <div className="p-6 rounded-3xl bg-emerald-50 border border-emerald-200 text-center space-y-3 shadow-md">
+            <Award className="w-10 h-10 text-emerald-600 mx-auto animate-bounce" />
+            <h3 className="font-heading font-extrabold text-xl text-emerald-900">
+              🏆 ISO Verified Linux System Administrator Certification
+            </h3>
+            <p className="text-xs text-emerald-800 font-medium max-w-lg mx-auto">
+              Complete all 4 module practical labs to unlock your verifiable ISO digital certificate badge!
+            </p>
+            <button
+              onClick={() => toast.success('Congratulations! Linux Essentials Certificate Unlocked!')}
+              className="btn-blue-primary text-xs py-3 px-6 font-extrabold shadow-lg shadow-sky-500/20 cursor-pointer"
+            >
+              Claim Verifiable ISO Certificate
+            </button>
+          </div>
+        </div>
       ),
     },
   };
 
   const handleTerminalExecute = (e: React.FormEvent) => {
-        e.preventDefault();
-      const command = terminalInput.trim();
-      if (!command) return;
+    e.preventDefault();
+    const command = terminalInput.trim();
+    if (!command) return;
 
-      executeCommandInTerminal(command);
-      setTerminalInput('');
+    executeCommandInTerminal(command);
+    setTerminalInput('');
   };
 
-  const toggleLessonComplete = (lessonId: number) => {
+  const toggleLessonComplete = (lessonId: number | string) => {
     if (completedLessons.includes(lessonId)) {
-        setCompletedLessons(completedLessons.filter((id) => id !== lessonId));
+      setCompletedLessons(completedLessons.filter((id) => id !== lessonId));
     } else {
-        setCompletedLessons([...completedLessons, lessonId]);
+      setCompletedLessons([...completedLessons, lessonId]);
       toast.success('Lesson marked as completed!');
     }
   };
 
   const calculateScore = () => {
-        let score = 0;
+    let score = 0;
     courseData.quizQuestions.forEach((q) => {
       if (quizAnswers[q.id] === q.correct) {
         score++;
       }
     });
-      return score;
+    return score;
   };
 
-      return (
-      <div className="space-y-8 font-['Sora'] text-slate-900 max-w-7xl mx-auto pb-16">
-
-        {/* Header Banner */}
-        <div className="bg-white/95 backdrop-blur-2xl border border-sky-200/80 p-6 sm:p-8 rounded-3xl shadow-xl shadow-sky-500/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-xs text-slate-500 mb-1 font-medium">
-              <Link to="/dashboard" className="hover:text-sky-600 flex items-center gap-1">
-                <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
-              </Link>
-              <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-              <span className="text-sky-600 font-bold">{dynamicCourse?.category || courseData.category}</span>
-            </div>
-
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50 border border-sky-200 text-sky-700 text-xs font-bold">
-              <Terminal className="w-3.5 h-3.5 text-sky-500" />
-              <span>{courseData.subtitle}</span>
-            </div>
-
-            <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-slate-900 leading-tight">
-              {dynamicCourse?.title || courseData.title}
-            </h1>
-
-            <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600 pt-1 font-medium">
-              <span className="flex items-center gap-1 font-bold text-amber-600">
-                <Star className="w-4 h-4 fill-current text-amber-400" />
-                {courseData.rating} ({courseData.reviews} reviews)
-              </span>
-              <span className="flex items-center gap-1 text-slate-600">
-                <Clock className="w-3.5 h-3.5 text-sky-600" /> {dynamicCourse?.duration || courseData.duration}
-              </span>
-            </div>
+  return (
+    <div className="space-y-8 font-['Sora'] text-slate-900 max-w-7xl mx-auto pb-16">
+      
+      {/* Header Banner */}
+      <div className="bg-white/95 backdrop-blur-2xl border border-sky-200/80 p-6 sm:p-8 rounded-3xl shadow-xl shadow-sky-500/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-xs text-slate-500 font-semibold">
+            <Link to="/courses" className="hover:text-sky-600 flex items-center gap-1">
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Catalog
+            </Link>
+            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+            <span className="text-sky-600 font-bold">{courseData.category}</span>
           </div>
 
-          <div className="flex items-center gap-3 bg-sky-50/80 p-4 rounded-2xl border border-sky-200/80 shrink-0">
-            <img
-              src={courseData.avatar}
-              alt={courseData.instructor}
-              className="w-12 h-12 rounded-full object-cover border-2 border-sky-400 shrink-0"
-            />
-            <div>
-              <span className="text-[10px] text-slate-500 font-semibold block uppercase tracking-wider">Instructor</span>
-              <span className="font-bold text-sm text-slate-900 block">{dynamicCourse?.instructor || courseData.instructor}</span>
-              <span className="text-[11px] text-sky-700 block font-medium">{courseData.role}</span>
-            </div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50 border border-sky-200 text-sky-700 text-xs font-bold">
+            <Terminal className="w-3.5 h-3.5 text-sky-500" />
+            <span>{courseData.subtitle}</span>
+          </div>
+
+          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-slate-900 leading-tight">
+            {courseData.title}
+          </h1>
+
+          <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600 pt-1 font-medium">
+            <span className="flex items-center gap-1 font-bold text-amber-600">
+              <Star className="w-4 h-4 fill-current text-amber-400" />
+              {courseData.rating} ({courseData.reviews} reviews)
+            </span>
+            <span className="flex items-center gap-1 text-slate-600">
+              <Clock className="w-3.5 h-3.5 text-sky-600" /> {courseData.duration}
+            </span>
+            <span className="bg-sky-50 text-sky-700 font-bold px-2.5 py-0.5 rounded-lg border border-sky-200 text-[11px]">
+              {courseData.level}
+            </span>
           </div>
         </div>
 
-        {/* Main Tab Navigation Header */}
-        <div className="bg-white/90 border border-sky-200/80 p-2 rounded-2xl shadow-sm flex overflow-x-auto gap-2">
-          <button
-            onClick={() => setActiveTab('intro')}
-            className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${activeTab === 'intro'
-                ? 'bg-sky-600 text-white shadow-md shadow-sky-500/20'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-sky-50'
-              }`}
-          >
-            <BookOpen className="w-4 h-4" />
-            <span>Introduction & Overview</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('index')}
-            className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${activeTab === 'index'
-                ? 'bg-sky-600 text-white shadow-md shadow-sky-500/20'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-sky-50'
-              }`}
-          >
-            <Layers className="w-4 h-4" />
-            <span>Syllabus Curriculum</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('terminal')}
-            className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${activeTab === 'terminal'
-                ? 'bg-sky-600 text-white shadow-md shadow-sky-500/20'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-sky-50'
-              }`}
-          >
-            <Terminal className="w-4 h-4" />
-            <span>Live CLI Terminal Lab</span>
-          </button>
+        <div className="flex items-center gap-3 bg-sky-50/80 p-4 rounded-2xl border border-sky-200/80 shrink-0">
+          <img
+            src={courseData.avatar}
+            alt={courseData.instructor}
+            className="w-12 h-12 rounded-full object-cover border-2 border-sky-400 shrink-0"
+          />
+          <div>
+            <span className="text-[10px] text-slate-500 font-semibold block uppercase tracking-wider">Instructor</span>
+            <span className="font-bold text-sm text-slate-900 block">{courseData.instructor}</span>
+            <span className="text-[11px] text-sky-700 block font-medium">{courseData.role}</span>
+          </div>
         </div>
+      </div>
 
-        {/* Tab 1: Introduction */}
-        {activeTab === 'intro' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-6">
-              <div className="bg-white/95 border border-sky-200/80 p-6 sm:p-8 rounded-3xl shadow-xl shadow-sky-500/10 space-y-4">
-                <div className="flex items-center gap-2 border-b border-sky-100 pb-3">
-                  <Sparkles className="w-5 h-5 text-sky-600 animate-pulse" />
-                  <h2 className="font-heading font-extrabold text-lg sm:text-xl text-slate-900">
-                    Course Description
-                  </h2>
-                </div>
-                <div className="space-y-4 text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
-                  {courseData.introText.map((p, idx) => (
-                    <p key={idx}>{p}</p>
-                  ))}
-                </div>
+      {/* Main Tab Navigation Header */}
+      <div className="bg-white/90 border border-sky-200/80 p-2 rounded-2xl shadow-sm flex overflow-x-auto gap-2">
+        <button
+          onClick={() => setActiveTab('intro')}
+          className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${
+            activeTab === 'intro'
+              ? 'bg-sky-600 text-white shadow-md shadow-sky-500/20'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-sky-50'
+          }`}
+        >
+          <BookOpen className="w-4 h-4" />
+          <span>Introduction & Overview</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('index')}
+          className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${
+            activeTab === 'index'
+              ? 'bg-sky-600 text-white shadow-md shadow-sky-500/20'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-sky-50'
+          }`}
+        >
+          <Layers className="w-4 h-4" />
+          <span>Modules & Index Tree</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('terminal')}
+          className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${
+            activeTab === 'terminal'
+              ? 'bg-sky-600 text-white shadow-md shadow-sky-500/20'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-sky-50'
+          }`}
+        >
+          <Terminal className="w-4 h-4" />
+          <span>Live CLI Terminal Lab</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('quiz')}
+          className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${
+            activeTab === 'quiz'
+              ? 'bg-sky-600 text-white shadow-md shadow-sky-500/20'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-sky-50'
+          }`}
+        >
+          <HelpCircle className="w-4 h-4" />
+          <span>AI Knowledge Quiz</span>
+        </button>
+      </div>
+
+      {/* Tab 1: Course Introduction & Overview */}
+      {activeTab === 'intro' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-6">
+            
+            {/* Introduction Card */}
+            <div className="bg-white/95 border border-sky-200/80 p-6 sm:p-8 rounded-3xl shadow-xl shadow-sky-500/10 space-y-4">
+              <div className="flex items-center gap-2 border-b border-sky-100 pb-3">
+                <Sparkles className="w-5 h-5 text-sky-600 animate-pulse" />
+                <h2 className="font-heading font-extrabold text-lg sm:text-xl text-slate-900">
+                  Course Introduction
+                </h2>
               </div>
 
-              {/* Module 1 Deep Dive: Architecture Diagrams & Linux Distros */}
+              <div className="space-y-4 text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
+                {courseData.introText.map((p, idx) => (
+                  <p key={idx}>{p}</p>
+                ))}
+              </div>
+            </div>
+
+            {!isGitCourse ? (
+              /* Module 1 Deep Dive: Architecture Diagrams & Linux Distros */
               <div className="bg-white/95 border border-sky-200/80 p-6 sm:p-8 rounded-3xl shadow-xl shadow-sky-500/10 space-y-6">
                 <div className="flex items-center justify-between border-b border-sky-100 pb-3">
                   <div className="flex items-center gap-2">
@@ -1596,220 +1721,536 @@ export const CourseView: React.FC = () => {
                   </div>
                 </div>
               </div>
+            ) : (
+              /* Git Architecture Visualization Card */
+              <div className="bg-white/95 border border-sky-200/80 p-6 sm:p-8 rounded-3xl shadow-xl shadow-sky-500/10 space-y-6">
+                <div className="flex items-center justify-between border-b border-sky-100 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Terminal className="w-5 h-5 text-sky-600" />
+                    <h3 className="font-heading font-extrabold text-lg sm:text-xl text-slate-900">
+                      Git Architecture & Workflow Lifecycles
+                    </h3>
+                  </div>
+                  <span className="text-xs font-bold text-sky-700 bg-sky-50 px-3 py-1 rounded-full border border-sky-200">
+                    Distributed Version Control
+                  </span>
+                </div>
 
-              {/* Learning Outcomes Card */}
-              <div className="bg-white/95 border border-sky-200/80 p-6 sm:p-8 rounded-3xl shadow-xl shadow-sky-500/10 space-y-4">
-                <h3 className="font-heading font-bold text-lg text-slate-900 flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                  <span>What You Will Learn</span>
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-medium">
-                  {courseData.outcomes.map((outcome, idx) => (
-                    <div key={idx} className="p-3 rounded-2xl bg-sky-50/70 border border-sky-100 flex items-start gap-2.5 text-slate-800">
-                      <CheckCircle2 className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
-                      <span>{outcome}</span>
+                <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
+                  Git manages project history as a series of content snapshots. Files move dynamically through stages as you edit, stage, commit locally, and synchronize upstream to GitHub.
+                </p>
+
+                {/* Responsive Git Lifecycle Diagram */}
+                <div className="space-y-4 bg-slate-900/95 p-5 rounded-2xl border border-slate-800 text-white font-mono">
+                  <h4 className="font-heading font-bold text-xs sm:text-sm text-slate-200 flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Local to Remote Git Pipeline
+                  </h4>
+                  
+                  <div className="flex flex-col md:flex-row items-stretch justify-between gap-3 text-center text-[11px]">
+                    <div className="flex-1 p-3.5 bg-red-950/40 border border-red-900/50 rounded-xl flex flex-col justify-between">
+                      <div>
+                        <h5 className="font-bold text-red-400 text-xs">Working Directory</h5>
+                        <p className="text-[10px] text-slate-400 mt-1">Untracked & Modified files</p>
+                      </div>
+                      <div className="text-slate-500 text-[10px] mt-2 italic">Local workspace</div>
                     </div>
+                    
+                    <div className="flex items-center justify-center text-emerald-400 font-extrabold text-xs py-1 md:py-0">
+                      <span className="md:hidden">▼ git add</span>
+                      <span className="hidden md:inline">➔ git add ➔</span>
+                    </div>
+
+                    <div className="flex-1 p-3.5 bg-amber-950/40 border border-amber-900/50 rounded-xl flex flex-col justify-between">
+                      <div>
+                        <h5 className="font-bold text-amber-400 text-xs">Staging Area</h5>
+                        <p className="text-[10px] text-slate-400 mt-1">Snapshot index file (.git/index)</p>
+                      </div>
+                      <div className="text-slate-500 text-[10px] mt-2 italic">Prepared modifications</div>
+                    </div>
+
+                    <div className="flex items-center justify-center text-emerald-400 font-extrabold text-xs py-1 md:py-0">
+                      <span className="md:hidden">▼ git commit</span>
+                      <span className="hidden md:inline">➔ git commit ➔</span>
+                    </div>
+
+                    <div className="flex-1 p-3.5 bg-blue-950/40 border border-blue-900/50 rounded-xl flex flex-col justify-between">
+                      <div>
+                        <h5 className="font-bold text-blue-400 text-xs">Local Repo</h5>
+                        <p className="text-[10px] text-slate-400 mt-1">Object database commits (.git/objects)</p>
+                      </div>
+                      <div className="text-slate-500 text-[10px] mt-2 italic">Permanent snapshot (HEAD)</div>
+                    </div>
+
+                    <div className="flex items-center justify-center text-emerald-400 font-extrabold text-xs py-1 md:py-0">
+                      <span className="md:hidden">▼ git push</span>
+                      <span className="hidden md:inline">➔ git push ➔</span>
+                    </div>
+
+                    <div className="flex-1 p-3.5 bg-emerald-950/40 border border-emerald-900/50 rounded-xl flex flex-col justify-between">
+                      <div>
+                        <h5 className="font-bold text-emerald-400 text-xs">Remote GitHub</h5>
+                        <p className="text-[10px] text-slate-400 mt-1">Public or private hosting upstream</p>
+                      </div>
+                      <div className="text-slate-500 text-[10px] mt-2 italic">Cloud sharing hub</div>
+                    </div>
+                  </div>
+                  
+                  <p className="text-[10px] text-slate-400 leading-relaxed pt-2 border-t border-slate-800">
+                    * Run <strong>git pull</strong> or <strong>git clone</strong> to synchronize remote repositories back to your local environment.
+                  </p>
+                </div>
+
+                {/* Git Workflow Steps */}
+                <div className="space-y-4 pt-4 border-t border-sky-100">
+                  <div className="space-y-1">
+                    <h3 className="font-heading font-extrabold text-lg text-slate-900">
+                      Git Collaboration Best Practices
+                    </h3>
+                    <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                      Follow standard branch-based pipelines to build robust, bug-free software packages dynamically.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    {[
+                      { title: '1. Branch Strategy', desc: 'Never commit directly to main. Create feature branches (e.g. feature/auth, bugfix/layout) to isolate developmental changes.' },
+                      { title: '2. Small Commits', desc: 'Keep commits small and descriptive. Use conventional commit prefix messages (feat: , fix: , docs: ) to document progress.' },
+                      { title: '3. Pull Requests', desc: 'Open Pull Requests (PR) early to discuss additions. Assign teammates for code reviews and require checkmarks before merge.' },
+                      { title: '4. Rebase vs Merge', desc: 'Use rebasing to maintain linear commit flows, and merging to record explicit branch additions in the history logs.' },
+                    ].map((step, i) => (
+                      <div key={i} className="p-4 rounded-2xl border border-sky-100 bg-slate-50/50 space-y-1">
+                        <span className="font-extrabold text-slate-900 block">{step.title}</span>
+                        <p className="text-[11px] text-slate-600 font-medium leading-relaxed">{step.desc}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Learning Outcomes Card */}
+            <div className="bg-white/95 border border-sky-200/80 p-6 sm:p-8 rounded-3xl shadow-xl shadow-sky-500/10 space-y-4">
+              <h3 className="font-heading font-bold text-lg text-slate-900 flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                <span>What You Will Learn</span>
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-medium">
+                {courseData.outcomes.map((outcome, idx) => (
+                  <div key={idx} className="p-3 rounded-2xl bg-sky-50/70 border border-sky-100 flex items-start gap-2.5 text-slate-800">
+                    <CheckCircle2 className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
+                    <span>{outcome}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>
+
+          {/* Sidebar Quick Info */}
+          <div className="space-y-6">
+            <div className="bg-white/95 border border-sky-200/80 p-6 rounded-3xl shadow-xl shadow-sky-500/10 space-y-4">
+              <h3 className="font-heading font-bold text-base text-slate-900">Course Overview</h3>
+
+              <div className="space-y-3 text-xs font-medium">
+                <div className="flex justify-between py-2 border-b border-sky-100">
+                  <span className="text-slate-500">Total Duration</span>
+                  <span className="font-bold text-slate-900">{courseData.duration}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-sky-100">
+                  <span className="text-slate-500">Modules</span>
+                  <span className="font-bold text-slate-900">{courseData.modules.length} Modules</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-sky-100">
+                  <span className="text-slate-500">Total Lessons</span>
+                  <span className="font-bold text-slate-900">{courseData.modules.flatMap((m) => m.lessons).length} Lessons</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-sky-100">
+                  <span className="text-slate-500">Interactive Labs</span>
+                  <span className="font-bold text-slate-900">{courseData.modules.flatMap((m) => m.lessons).filter((l) => l.type === 'lab').length} CLI Labs</span>
+                </div>
+                <div className="flex justify-between py-2">
+                  <span className="text-slate-500">Certificate</span>
+                  <span className="font-bold text-emerald-600 flex items-center gap-1">
+                    <Award className="w-3.5 h-3.5" /> ISO Verified
+                  </span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setActiveTab('index')}
+                className="btn-blue-primary w-full py-3 text-xs font-bold shadow-lg shadow-sky-500/20 flex items-center justify-center gap-2 cursor-pointer mt-2"
+              >
+                <span>View Modules & Start Learning</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 2: Modules & Index Tree */}
+      {activeTab === 'index' && (
+        <div className="bg-white/95 border border-sky-200/80 p-6 sm:p-8 rounded-3xl shadow-xl shadow-sky-500/10 space-y-6">
+          <div className="flex items-center justify-between border-b border-sky-100 pb-4">
+            <div>
+              <h2 className="font-heading font-extrabold text-xl text-slate-900">
+                Course Curriculum & Modules Index
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">Click any lesson to read its content inline and run commands directly in the CLI terminal.</p>
+            </div>
+            <span className="text-xs font-bold text-sky-700 bg-sky-50 px-3 py-1 rounded-full border border-sky-200">
+              {completedLessons.length} / {courseData.modules.flatMap((m) => m.lessons).length} Lessons Completed
+            </span>
+          </div>
+
+          <div className="space-y-4">
+            {courseData.modules.map((mod) => {
+              const isOpen = activeModule === mod.id;
+              return (
+                <div key={mod.id} className="border border-sky-200/80 rounded-2xl overflow-hidden bg-slate-50/50">
+                  <button
+                    onClick={() => setActiveModule(isOpen ? null : mod.id)}
+                    className="w-full p-4 sm:p-5 flex items-center justify-between bg-white hover:bg-sky-50/50 transition-colors text-left cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-xl bg-sky-100 text-sky-700 font-bold text-xs flex items-center justify-center shrink-0 border border-sky-200">
+                        {mod.id}
+                      </div>
+                      <div>
+                        <h3 className="font-heading font-bold text-sm sm:text-base text-slate-900">
+                          {mod.title}
+                        </h3>
+                        <span className="text-[11px] text-slate-500 font-medium">{mod.duration}</span>
+                      </div>
+                    </div>
+
+                    <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${isOpen ? 'rotate-180 text-sky-600' : ''}`} />
+                  </button>
+
+                  {isOpen && (
+                    <div className="p-4 border-t border-sky-100 space-y-3 bg-slate-50">
+                      {mod.lessons.map((lesson) => {
+                        const isDone = completedLessons.includes(lesson.id);
+                        const isSelected = selectedLessonId === lesson.id;
+                        return (
+                          <div key={lesson.id} className="space-y-2">
+                            <div
+                              className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between gap-3 text-xs ${
+                                isSelected
+                                  ? 'bg-sky-50/90 border-sky-400 shadow-md ring-2 ring-sky-400/20'
+                                  : 'bg-white border-sky-100 hover:border-sky-300 hover:shadow-xs'
+                              }`}
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <button
+                                  onClick={() => toggleLessonComplete(lesson.id)}
+                                  className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
+                                    isDone ? 'bg-emerald-500 text-white' : 'border border-slate-300 hover:border-sky-500'
+                                  }`}
+                                >
+                                  {isDone && <CheckCircle2 className="w-3.5 h-3.5" />}
+                                </button>
+                                <button
+                                  onClick={() => setSelectedLessonId(isSelected ? null : lesson.id)}
+                                  className="text-left font-bold text-slate-900 hover:text-sky-600 transition-colors truncate cursor-pointer"
+                                >
+                                  {lesson.title}
+                                </button>
+                              </div>
+
+                              <div className="flex items-center gap-2 shrink-0">
+                                <span className="text-[10px] text-slate-500 font-mono">{lesson.duration}</span>
+                                <button
+                                  onClick={() => setSelectedLessonId(isSelected ? null : lesson.id)}
+                                  className={`px-3 py-1 font-bold rounded-lg border text-[11px] transition-all cursor-pointer ${
+                                    isSelected
+                                      ? 'bg-sky-600 text-white border-sky-600 shadow-xs'
+                                      : 'bg-sky-50 hover:bg-sky-600 hover:text-white text-sky-700 border-sky-200'
+                                  }`}
+                                >
+                                  {isSelected ? 'Hide Topic' : 'View Topic'}
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Direct Inline Topic Content Drawer */}
+                            {isSelected && (() => {
+                              const activeLessonObj = isGitCourse 
+                                ? (gitLessonsData[lesson.id] || {
+                                    id: lesson.id,
+                                    title: lesson.title,
+                                    time: lesson.duration || '15 mins',
+                                    badge: 'Topic Guide',
+                                    content: `### ${lesson.title}\nDetailed syllabus notes for this topic are prepared. Practice related commands in the terminal lab!`,
+                                  })
+                                : module1LessonsContent[lesson.id];
+
+                              const allLessons = courseData.modules.flatMap((m) => m.lessons);
+                              const currentLessonIndex = allLessons.findIndex((l) => l.id === lesson.id);
+                              const hasPrevLesson = currentLessonIndex > 0;
+                              const hasNextLesson = currentLessonIndex < allLessons.length - 1;
+
+                              const handlePrevLesson = () => {
+                                if (hasPrevLesson) {
+                                  setSelectedLessonId(allLessons[currentLessonIndex - 1].id);
+                                }
+                              };
+
+                              const handleNextLesson = () => {
+                                if (hasNextLesson) {
+                                  setSelectedLessonId(allLessons[currentLessonIndex + 1].id);
+                                }
+                              };
+
+                              const isDone = completedLessons.includes(lesson.id);
+
+                              return (
+                                <div className="p-5 sm:p-6 bg-white rounded-2xl border border-sky-200 shadow-lg space-y-4 animate-in fade-in slide-in-from-top-2">
+                                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-sky-100 pb-3">
+                                    <span className="text-xs font-bold text-sky-700 bg-sky-50 px-3 py-1 rounded-full border border-sky-200">
+                                      {activeLessonObj?.badge || 'Interactive Lesson'} • {lesson.duration || activeLessonObj?.time}
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        onClick={() => {
+                                          const event = new CustomEvent('open-ai-tutor', {
+                                            detail: {
+                                              lessonTitle: lesson.title,
+                                              lessonContent: activeLessonObj?.content || ''
+                                            }
+                                          });
+                                          window.dispatchEvent(event);
+                                          toast.info('AI Tutor panel activated for this topic!');
+                                        }}
+                                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-lg text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                                      >
+                                        <Bot className="w-3.5 h-3.5" />
+                                        <span>Ask AI Tutor</span>
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          setActiveTab('terminal');
+                                          toast.info('Interactive CLI Terminal Lab launched!');
+                                        }}
+                                        className="btn-blue-primary text-xs py-1.5 px-3 font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                                      >
+                                        <Terminal className="w-3.5 h-3.5" />
+                                        <span>Launch Terminal Lab</span>
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  {isGitCourse ? (
+                                    <div className="space-y-4">
+                                      {/* Markdown content */}
+                                      <div className="text-slate-700 space-y-2">
+                                        {activeLessonObj?.content && renderMarkdown(activeLessonObj.content)}
+                                      </div>
+
+                                      {/* Practice Commands */}
+                                      {activeLessonObj?.commands && activeLessonObj.commands.length > 0 && (
+                                        <div className="space-y-2 mt-4">
+                                          <h5 className="font-heading font-bold text-xs text-slate-500 uppercase tracking-wider">Practice Commands:</h5>
+                                          {activeLessonObj.commands.map((cmdObj: any, cidx: number) => (
+                                            <InteractiveCmd key={cidx} cmd={cmdObj.command} desc={cmdObj.description} />
+                                          ))}
+                                        </div>
+                                      )}
+
+                                      {/* Study Resources */}
+                                      {activeLessonObj?.resources && activeLessonObj.resources.length > 0 && (
+                                        <div className="space-y-2 mt-4 pt-4 border-t border-sky-100">
+                                          <h5 className="font-heading font-bold text-xs text-slate-500 uppercase tracking-wider">Study Resources:</h5>
+                                          <div className="flex flex-wrap gap-2">
+                                            {activeLessonObj.resources.map((res: any, ridx: number) => (
+                                              <a
+                                                key={ridx}
+                                                href={res.url}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="px-3 py-1.5 bg-sky-50 hover:bg-sky-100 text-sky-700 rounded-lg text-[11px] font-bold border border-sky-200 flex items-center gap-1.5"
+                                              >
+                                                <BookOpen className="w-3.5 h-3.5" />
+                                                <span>{res.title}</span>
+                                              </a>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    /* Linux Course render content fallback */
+                                    activeLessonObj?.render || (
+                                      <div className="p-4 bg-sky-50 text-slate-700 rounded-2xl text-xs font-medium">
+                                        Detailed topic guide for this lesson is ready. Practice hands-on Linux CLI commands in the Terminal Lab!
+                                      </div>
+                                    )
+                                  )}
+
+                                  {/* Next/Prev Navigation and Mark as Complete */}
+                                  <div className="flex items-center justify-between pt-5 border-t border-sky-100 mt-6">
+                                    <button
+                                      disabled={!hasPrevLesson}
+                                      onClick={handlePrevLesson}
+                                      className={`px-4 py-2 border rounded-xl text-xs font-bold transition-all flex items-center gap-1 ${
+                                        hasPrevLesson
+                                          ? 'border-sky-200 text-slate-700 hover:bg-sky-50 cursor-pointer'
+                                          : 'border-slate-100 text-slate-300 bg-slate-50 cursor-not-allowed'
+                                      }`}
+                                    >
+                                      <span>Previous Topic</span>
+                                    </button>
+
+                                    <button
+                                      onClick={() => toggleLessonComplete(lesson.id)}
+                                      className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer ${
+                                        isDone
+                                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                          : 'bg-emerald-600 hover:bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/10'
+                                      }`}
+                                    >
+                                      <CheckCircle2 className="w-4 h-4" />
+                                      <span>{isDone ? 'Topic Completed' : 'Mark as Complete'}</span>
+                                    </button>
+
+                                    <button
+                                      disabled={!hasNextLesson}
+                                      onClick={handleNextLesson}
+                                      className={`px-4 py-2 border rounded-xl text-xs font-bold transition-all flex items-center gap-1 ${
+                                        hasNextLesson
+                                          ? 'border-sky-200 text-slate-700 hover:bg-sky-50 cursor-pointer'
+                                          : 'border-slate-100 text-slate-300 bg-slate-50 cursor-not-allowed'
+                                      }`}
+                                    >
+                                      <span>Next Topic</span>
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Tab 3: Live Interactive Terminal */}
+      {activeTab === 'terminal' && (
+        <div className="bg-slate-950 rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-800 space-y-4 font-mono text-xs text-emerald-400">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3 text-slate-400">
+            <div className="flex items-center gap-2">
+              <Terminal className="w-4 h-4 text-emerald-400" />
+              <span className="font-bold text-white text-sm">Interactive Linux CLI Terminal Lab</span>
+            </div>
+            <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-md border border-emerald-500/20">
+              Online • Kernel 6.8.0
+            </span>
+          </div>
+
+          <div className="space-y-3 min-h-75 max-h-112 overflow-y-auto p-2">
+            <p className="text-slate-400">
+              Type Linux CLI commands below or click <span className="text-emerald-300">"▶ Run in Terminal"</span> next to any command in the curriculum!
+            </p>
+
+            {terminalHistory.map((h, i) => (
+              <div key={i} className="space-y-1">
+                <div className="flex items-center gap-2 text-sky-400 font-bold">
+                  <span>student@shaivika-lms:~$</span>
+                  <span className="text-white">{h.cmd}</span>
+                </div>
+                <pre className="text-slate-300 whitespace-pre-wrap pl-4 text-[11px] leading-relaxed">{h.output}</pre>
+              </div>
+            ))}
+          </div>
+
+          <form onSubmit={handleTerminalExecute} className="flex items-center gap-2 pt-2 border-t border-slate-800">
+            <span className="text-sky-400 font-bold shrink-0">student@shaivika-lms:~$</span>
+            <input
+              type="text"
+              value={terminalInput}
+              onChange={(e) => setTerminalInput(e.target.value)}
+              placeholder="Type Linux command here..."
+              className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-xs text-white focus:outline-hidden font-mono"
+            />
+            <button type="submit" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl transition-all cursor-pointer shrink-0">
+              Run
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* Tab 4: AI Knowledge Quiz */}
+      {activeTab === 'quiz' && (
+        <div className="bg-white/95 border border-sky-200/80 p-6 sm:p-8 rounded-3xl shadow-xl shadow-sky-500/10 space-y-6">
+          <div className="flex items-center justify-between border-b border-sky-100 pb-4">
+            <div>
+              <h2 className="font-heading font-extrabold text-xl text-slate-900">
+                Linux Essentials Knowledge Check
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">Test your understanding of Linux commands and file system permissions.</p>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            {courseData.quizQuestions.map((q, idx) => (
+              <div key={q.id} className="p-5 rounded-2xl bg-slate-50 border border-sky-100 space-y-3">
+                <h4 className="font-bold text-sm text-slate-900">
+                  {idx + 1}. {q.question}
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-medium">
+                  {q.options.map((opt, optIdx) => (
+                    <button
+                      key={optIdx}
+                      type="button"
+                      onClick={() => setQuizAnswers({ ...quizAnswers, [q.id]: optIdx })}
+                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                        quizAnswers[q.id] === optIdx
+                          ? 'bg-sky-600 text-white border-sky-600 shadow-xs'
+                          : 'bg-white text-slate-800 border-sky-200 hover:bg-sky-50'
+                      }`}
+                    >
+                      {opt}
+                    </button>
                   ))}
                 </div>
               </div>
-            </div>
-
-            <div className="space-y-6">
-              <div className="bg-white/95 border border-sky-200/80 p-6 rounded-3xl shadow-xl shadow-sky-500/10 space-y-4">
-                <h3 className="font-heading font-bold text-base text-slate-900">Course Info</h3>
-                <div className="space-y-3 text-xs font-medium">
-                  <div className="flex justify-between py-2 border-b border-sky-100">
-                    <span className="text-slate-500">Total Duration</span>
-                    <span className="font-bold text-slate-900">32 Hours</span>
-                  </div>
-                  <div className="flex justify-between py-2 border-b border-sky-100">
-                    <span className="text-slate-500">Modules</span>
-                    <span className="font-bold text-slate-900">4 Modules</span>
-                  </div>
-                  <div className="flex justify-between py-2 border-b border-sky-100">
-                    <span className="text-slate-500">Total Lessons</span>
-                    <span className="font-bold text-slate-900">20 Lessons</span>
-                  </div>
-                  <div className="flex justify-between py-2 border-b border-sky-100">
-                    <span className="text-slate-500">Interactive Labs</span>
-                    <span className="font-bold text-slate-900">14 CLI Labs</span>
-                  </div>
-                  <div className="flex justify-between py-2">
-                    <span className="text-slate-500">Certificate</span>
-                    <span className="font-bold text-emerald-600 flex items-center gap-1">
-                      <Award className="w-3.5 h-3.5" /> ISO Verified
-                    </span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => setActiveTab('index')}
-                  className="btn-blue-primary w-full py-3 text-xs font-bold shadow-lg shadow-sky-500/20 flex items-center justify-center gap-2 cursor-pointer mt-2"
-                >
-                  <span>View Curriculum</span>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
+            ))}
           </div>
-        )}
 
-        {/* Tab 2: Syllabus tree */}
-        {activeTab === 'index' && (
-          <div className="bg-white/95 border border-sky-200/80 p-6 sm:p-8 rounded-3xl shadow-xl shadow-sky-500/10 space-y-6">
-            <div className="flex items-center justify-between border-b border-sky-100 pb-4">
-              <div>
-                <h2 className="font-heading font-extrabold text-xl text-slate-900">
-                  Course Curriculum & Modules Index
-                </h2>
-                <p className="text-xs text-slate-500 mt-0.5">Click any lesson to open the Learning Player workspace.</p>
-              </div>
-              <span className="text-xs font-bold text-sky-700 bg-sky-50 px-3 py-1 rounded-full border border-sky-200">
-                {completedLessons.length} / 20 Lessons Completed
-              </span>
+          {quizSubmitted ? (
+            <div className="p-5 rounded-2xl bg-emerald-50 border border-emerald-200 text-center space-y-2">
+              <h3 className="font-heading font-bold text-lg text-emerald-800">
+                Quiz Complete! Score: {calculateScore()} / {courseData.quizQuestions.length}
+              </h3>
+              <p className="text-xs text-emerald-700 font-medium">
+                Great job! You have demonstrated strong competency in fundamental Linux commands.
+              </p>
             </div>
+          ) : (
+            <button
+              onClick={() => {
+                setQuizSubmitted(true);
+                toast.success('Quiz submitted successfully!');
+              }}
+              className="btn-blue-primary w-full py-3 text-xs font-bold shadow-lg shadow-sky-500/20 cursor-pointer"
+            >
+              Submit Quiz & Check Score
+            </button>
+          )}
+        </div>
+      )}
 
-            <div className="space-y-4">
-              {dynamicCourse?.modules?.map((mod: any, modIdx: number) => {
-                const isOpen = activeModule === mod.id;
-                return (
-                  <div key={mod.id} className="border border-sky-200/80 rounded-2xl overflow-hidden bg-slate-50/50">
-                    <button
-                      onClick={() => setActiveModule(isOpen ? null : mod.id)}
-                      className="w-full p-4 sm:p-5 flex items-center justify-between bg-white hover:bg-sky-50/50 transition-colors text-left cursor-pointer"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-sky-100 text-sky-700 font-bold text-xs flex items-center justify-center shrink-0 border border-sky-200">
-                          {modIdx + 1}
-                        </div>
-                        <div>
-                          <h3 className="font-heading font-bold text-sm sm:text-base text-slate-900">
-                            {mod.title}
-                          </h3>
-                          <span className="text-[11px] text-slate-500 font-medium">{mod.duration || '4 hours'}</span>
-                        </div>
-                      </div>
-                      <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${isOpen ? 'rotate-180 text-sky-600' : ''}`} />
-                    </button>
-
-                    {isOpen && (
-                      <div className="p-4 border-t border-sky-100 space-y-3 bg-slate-50">
-                        {mod.lessons.map((lesson) => {
-                          const isDone = completedLessons.includes(lesson.id);
-                          const isSelected = selectedLessonId === lesson.id;
-                          return (
-                            <div key={lesson.id} className="space-y-2">
-                              <div
-                                className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between gap-3 text-xs ${isSelected
-                                    ? 'bg-sky-50/90 border-sky-400 shadow-md ring-2 ring-sky-400/20'
-                                    : 'bg-white border-sky-100 hover:border-sky-300 hover:shadow-xs'
-                                  }`}
-                              >
-                                <div className="flex items-center gap-3 min-w-0">
-                                  <button
-                                    onClick={() => toggleLessonComplete(lesson.id)}
-                                    className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors cursor-pointer shrink-0 ${isDone ? 'bg-emerald-500 text-white' : 'border border-slate-300 hover:border-sky-500'
-                                      }`}
-                                  >
-                                    {isDone && <CheckCircle2 className="w-3.5 h-3.5" />}
-                                  </button>
-                                  <button
-                                    onClick={() => setSelectedLessonId(isSelected ? null : lesson.id)}
-                                    className="text-left font-bold text-slate-900 hover:text-sky-600 transition-colors truncate cursor-pointer"
-                                  >
-                                    {lesson.title}
-                                  </button>
-                                </div>
-
-                                <div className="flex items-center gap-2 shrink-0">
-                                  <span className="text-[10px] text-slate-500 font-mono">{lesson.duration}</span>
-                                  <button
-                                    onClick={() => setSelectedLessonId(isSelected ? null : lesson.id)}
-                                    className={`px-3 py-1 font-bold rounded-lg border text-[11px] transition-all cursor-pointer ${isSelected
-                                        ? 'bg-sky-600 text-white border-sky-600 shadow-xs'
-                                        : 'bg-sky-50 hover:bg-sky-600 hover:text-white text-sky-700 border-sky-200'
-                                      }`}
-                                  >
-                                    {isSelected ? 'Hide Topic' : 'View Topic'}
-                                  </button>
-                                </div>
-                              </div>
-
-                              {/* Direct Inline Topic Content Drawer */}
-                              {isSelected && (
-                                <div className="p-5 sm:p-6 bg-white rounded-2xl border border-sky-200 shadow-lg space-y-4 animate-in fade-in slide-in-from-top-2">
-                                  <div className="flex items-center justify-between border-b border-sky-100 pb-3">
-                                    <span className="text-xs font-bold text-sky-700 bg-sky-50 px-3 py-1 rounded-full border border-sky-200">
-                                      {module1LessonsContent[lesson.id]?.badge || 'Interactive Lesson'} • {lesson.duration}
-                                    </span>
-                                    <button
-                                      onClick={() => {
-                                        setActiveTab('terminal');
-                                        toast.info('Interactive CLI Terminal Lab launched!');
-                                      }}
-                                      className="btn-blue-primary text-xs py-1.5 px-3 font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
-                                    >
-                                      <Terminal className="w-3.5 h-3.5" />
-                                      <span>Launch Terminal Lab</span>
-                                    </button>
-                                  </div>
-
-                                  {module1LessonsContent[lesson.id]?.render || (
-                                    <div className="p-4 bg-sky-50 text-slate-700 rounded-2xl text-xs font-medium">
-                                      Detailed topic guide for this lesson is ready. Practice hands-on Linux CLI commands in the Terminal Lab!
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Tab 3: Terminal */}
-        {activeTab === 'terminal' && (
-          <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl flex flex-col space-y-4 font-mono text-slate-300">
-            <div className="flex items-center justify-between border-b border-slate-850 pb-3">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Live CLI Unix Terminal Lab</span>
-            </div>
-
-            <div className="h-64 overflow-y-auto space-y-2 p-2 bg-slate-950 rounded-2xl border border-slate-850 text-xs">
-              {terminalHistory.map((item, idx) => (
-                <div key={idx} className="space-y-1">
-                  <div className="flex gap-2">
-                    <span className="text-sky-400 font-bold">student@shaivika-lms:~$</span>
-                    <span>{item.cmd}</span>
-                  </div>
-                  <div className="text-slate-400 whitespace-pre-wrap pl-4 pb-2">{item.output}</div>
-                </div>
-              ))}
-            </div>
-
-            <form onSubmit={handleTerminalExecute} className="flex items-center gap-2 pt-2 border-t border-slate-800">
-              <span className="text-sky-400 font-bold shrink-0">student@shaivika-lms:~$</span>
-              <input
-                type="text"
-                value={terminalInput}
-                onChange={(e) => setTerminalInput(e.target.value)}
-                placeholder="Type Linux command here..."
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-xs text-white focus:outline-hidden font-mono"
-              />
-              <button type="submit" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl transition-all cursor-pointer shrink-0">
-                Run
-              </button>
-            </form>
-          </div>
-        )}
-
-      </div>
-      );
+    </div>
+  );
 };
 
-      export default CourseView;
+export default CourseView;
