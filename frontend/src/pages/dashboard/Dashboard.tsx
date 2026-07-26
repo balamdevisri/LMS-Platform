@@ -8,8 +8,6 @@ import {
   CheckCircle2,
   PlayCircle,
   ChevronRight,
-  X,
-  Eye,
   Calendar,
   Sparkles,
   BarChart3,
@@ -31,6 +29,12 @@ import { AssignmentPortal } from '@/components/courses/AssignmentPortal';
 import { AIAssistantPanel } from '@/components/ai/AIAssistantPanel';
 import { AIQuizPortal } from '../../components/courses/AIQuizPortal';
 import { PracticeLab } from '../../components/courses/PracticeLab';
+import { CertificateService } from '@/services/achievementService';
+import type { Certificate } from '@/services/achievementService';
+import { CertificatePreviewModal } from '../../components/courses/CertificatePreviewModal';
+import { AchievementsDashboard } from '../../components/courses/AchievementsDashboard';
+import { LeaderboardView } from '../../components/courses/LeaderboardView';
+import { ShieldAlert } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
   const { user, userProfile } = useAuth();
@@ -41,12 +45,7 @@ export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
 
   // Certificate Modal State
-  const [certificateModalOpen, setCertificateModalOpen] = useState(false);
-  const [certStudentName, setCertStudentName] = useState(userProfile?.name || user?.displayName || 'Jane Devson');
-  const [certUniqueId, setCertUniqueId] = useState('');
-  const [certCompletionDate, setCertCompletionDate] = useState('');
-  const [certCourseTitle, setCertCourseTitle] = useState('');
-  const [certCourseInstructor, setCertCourseInstructor] = useState('');
+  const [activePreviewCert, setActivePreviewCert] = useState<Certificate | null>(null);
 
   // Active learning player state
   const [activePlayerCourse, setActivePlayerCourse] = useState<any | null>(null);
@@ -286,8 +285,16 @@ export const Dashboard: React.FC = () => {
   });
   const avgQuizScore = quizCount > 0 ? Math.round(quizPercentagesSum / quizCount) : 92.5; // realistic fallback
 
-  // Unlocked Certificates
-  const unlockedCertificates = coursesProgress.filter((c) => c.percentage === 100);
+  // Unlocked Certificates (dynamically check eligibility and generate verified credentials)
+  const certificateService = React.useMemo(() => new CertificateService(), []);
+  const studentName = userProfile?.name || user?.displayName || 'Scholar student';
+  const earnedCerts = React.useMemo(() => {
+    return certificateService.checkEligibilityAndGenerate(
+      coursesProgress,
+      studentName,
+      userProfile?.uid || user?.uid || 'default_student'
+    );
+  }, [coursesProgress, studentName, userProfile, user]);
 
   // Active courses (progress > 0 and < 100)
   let activeLearningCourses = coursesProgress.filter((c) => c.percentage > 0 && c.percentage < 100);
@@ -353,231 +360,7 @@ export const Dashboard: React.FC = () => {
     });
   });
 
-  const handleOpenCertificateModal = (cTitle: string, cInstructor: string) => {
-    const randomHex = Math.floor(100000 + Math.random() * 900000).toString(16).toUpperCase();
-    setCertUniqueId(`KQ-CERT-${randomHex}`);
-    
-    const today = new Date();
-    const formatted = today.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-    setCertCompletionDate(formatted);
-    setCertCourseTitle(cTitle);
-    setCertCourseInstructor(cInstructor);
-    setCertificateModalOpen(true);
-  };
 
-  const handlePrintCertificate = () => {
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Kaizen Q Certificate - ${certCourseTitle}</title>
-            <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,500&display=swap" rel="stylesheet">
-            <style>
-              body {
-                margin: 0;
-                padding: 0;
-                background: #fafafa;
-                font-family: 'Sora', sans-serif;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                height: 100vh;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-              }
-              .cert-container {
-                width: 800px;
-                height: 560px;
-                background: white;
-                border: 20px solid #f59e0b; /* Amber gold border */
-                padding: 40px;
-                box-sizing: border-box;
-                position: relative;
-                text-align: center;
-                box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-              }
-              .cert-inner {
-                border: 2px solid #fbbf24;
-                height: 100%;
-                width: 100%;
-                box-sizing: border-box;
-                padding: 30px;
-                display: flex;
-                flex-direction: column;
-                justify-content: space-between;
-              }
-              .branding {
-                font-size: 16px;
-                font-weight: 800;
-                letter-spacing: 0.1em;
-                color: #0f172a;
-                text-transform: uppercase;
-              }
-              .cert-title {
-                font-family: 'Playfair Display', serif;
-                font-size: 32px;
-                font-weight: 700;
-                color: #b45309;
-                margin: 10px 0 0 0;
-              }
-              .cert-subtitle {
-                font-size: 10px;
-                text-transform: uppercase;
-                letter-spacing: 0.15em;
-                color: #64748b;
-                margin: 5px 0 0 0;
-              }
-              .recipient-label {
-                font-size: 11px;
-                color: #64748b;
-                font-style: italic;
-                margin-top: 15px;
-              }
-              .recipient-name {
-                font-family: 'Playfair Display', serif;
-                font-size: 36px;
-                font-weight: 700;
-                color: #0f172a;
-                border-bottom: 2px solid #e2e8f0;
-                display: inline-block;
-                padding-bottom: 5px;
-                min-width: 300px;
-                margin: 10px auto;
-              }
-              .cert-text {
-                font-size: 12px;
-                color: #475569;
-                line-height: 1.6;
-                max-width: 500px;
-                margin: 10px auto 0 auto;
-                font-weight: 500;
-              }
-              .course-name {
-                font-weight: 700;
-                color: #0f172a;
-              }
-              .footer-signatures {
-                display: flex;
-                justify-content: space-between;
-                align-items: flex-end;
-                margin-top: 30px;
-              }
-              .sig-block {
-                width: 180px;
-                text-align: center;
-              }
-              .sig-line {
-                border-top: 1px solid #cbd5e1;
-                margin-top: 8px;
-                padding-top: 5px;
-                font-size: 9px;
-                font-weight: 700;
-                color: #64748b;
-                text-transform: uppercase;
-                letter-spacing: 0.05em;
-              }
-              .sig-name {
-                font-size: 11px;
-                font-weight: 700;
-                color: #1e293b;
-              }
-              .cert-seal {
-                width: 70px;
-                height: 70px;
-                background: radial-gradient(circle, #fcd34d 0%, #fbbf24 100%);
-                border: 4px double #d97706;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 8px;
-                font-weight: 800;
-                color: #78350f;
-                text-transform: uppercase;
-                box-shadow: 0 4px 10px rgba(217, 119, 6, 0.15);
-              }
-              .cert-meta {
-                position: absolute;
-                bottom: 15px;
-                left: 0;
-                right: 0;
-                display: flex;
-                justify-content: space-between;
-                padding: 0 50px;
-                font-size: 8px;
-                font-weight: 750;
-                color: #94a3b8;
-                font-family: monospace;
-              }
-              @media print {
-                body {
-                  background: white;
-                }
-                .cert-container {
-                  box-shadow: none;
-                  border-color: #f59e0b !important;
-                  -webkit-print-color-adjust: exact;
-                  print-color-adjust: exact;
-                }
-              }
-            </style>
-          </head>
-          <body>
-            <div class="cert-container">
-              <div class="cert-inner">
-                <div>
-                  <div class="branding">Kaizen Q</div>
-                  <div class="cert-title">Certificate of Completion</div>
-                  <div class="cert-subtitle">Enterprise Learning Management System</div>
-                </div>
-
-                <div>
-                  <div class="recipient-label">This credential is proudly presented to</div>
-                  <div class="recipient-name">${certStudentName}</div>
-                  <div class="cert-text">
-                    for successfully mastering all lectures, coding challenges, quizzes, and project evaluations in the course track
-                    <div class="course-name" style="margin-top: 5px; font-size: 14px;">${certCourseTitle}</div>
-                  </div>
-                </div>
-
-                <div class="footer-signatures">
-                  <div class="sig-block">
-                    <div class="sig-name">${certCourseInstructor}</div>
-                    <div class="sig-line">Lead Instructor</div>
-                  </div>
-                  
-                  <div class="cert-seal">
-                    <div>Official Seal</div>
-                  </div>
-
-                  <div class="sig-block">
-                    <div class="sig-name">Kaizen Q Academic Board</div>
-                    <div class="sig-line">Registrar Division</div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="cert-meta">
-                <span>DATE: ${certCompletionDate}</span>
-                <span>CERTIFICATE ID: ${certUniqueId}</span>
-              </div>
-            </div>
-            <script>
-              window.onload = function() {
-                window.print();
-              }
-            </script>
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-    }
-  };
 
   return (
     <div className="space-y-8 text-slate-900 font-['Sora'] max-w-7xl mx-auto pb-12 animate-in fade-in duration-300">
@@ -617,6 +400,8 @@ export const Dashboard: React.FC = () => {
           { id: 'assignments', label: 'Assignments & Quiz Scores' },
           { id: 'calendar', label: 'Deadlines Calendar' },
           { id: 'certificates', label: 'Unlocked Credentials' },
+          { id: 'achievements', label: 'Achievements & Badges' },
+          { id: 'leaderboard', label: 'Cohort Leaderboard' },
           { id: 'analytics', label: 'Learning Analytics' },
           { id: 'discussions', label: `Discussion Center${totalUnreadDiscussions > 0 ? ` (${totalUnreadDiscussions})` : ''}` },
           { id: 'ai-quizzes', label: 'AI Assessment Center' },
@@ -683,7 +468,7 @@ export const Dashboard: React.FC = () => {
                 <Award className="w-4 h-4 text-cyan-500" />
               </div>
               <div>
-                <span className="font-heading font-extrabold text-2xl text-slate-900 block">{unlockedCertificates.length} Unlocked</span>
+                <span className="font-heading font-extrabold text-2xl text-slate-900 block">{earnedCerts.length} Unlocked</span>
                 <button
                   onClick={() => setSearchParams({ tab: 'certificates' })}
                   className="text-[10px] text-blue-600 hover:underline font-bold mt-1 block text-left"
@@ -1354,51 +1139,119 @@ export const Dashboard: React.FC = () => {
       )}
 
       {/* ------------------- 4. CERTIFICATES TAB ------------------- */}
-      {currentTab === 'certificates' && (
-        <div className="space-y-6 animate-in fade-in duration-300">
-          <div className="bg-linear-to-r from-blue-600 via-indigo-600 to-violet-600 text-white p-8 rounded-3xl space-y-4 border border-blue-400/30 shadow-xl shadow-blue-500/10">
-            <div className="flex items-center gap-3">
-              <Award className="w-10 h-10 text-cyan-300 shrink-0" />
-              <div>
-                <h3 className="font-heading font-extrabold text-xl text-white">Verified Digital Credentials</h3>
-                <p className="text-xs text-blue-100">ISO/IEC 27001 Authenticated Course Track Certificates</p>
+      {currentTab === 'certificates' && (() => {
+        // Find In-Progress courses (progress between 1% and 99%)
+        const inProgressCerts = coursesProgress.filter(c => c.percentage > 0 && c.percentage < 100);
+
+        return (
+          <div className="space-y-8 animate-in fade-in duration-200 text-slate-800">
+            
+            {/* Header Description */}
+            <div className="bg-linear-to-r from-slate-900 to-indigo-950 text-white p-6 sm:p-8 rounded-3xl space-y-3 shadow-xl">
+              <div className="flex items-center gap-3 select-none">
+                <Award className="w-10 h-10 text-cyan-400 shrink-0" />
+                <div>
+                  <h3 className="font-heading font-extrabold text-lg text-white">Certificate Center</h3>
+                  <p className="text-xs text-slate-455">ISO/IEC 27001 Authenticated Digital Course Credentials</p>
+                </div>
               </div>
             </div>
 
-            {unlockedCertificates.length === 0 ? (
-              <div className="pt-4 pb-2">
-                <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 text-center space-y-2 max-w-md">
-                  <X className="w-8 h-8 text-white/60 mx-auto" />
-                  <h4 className="text-xs font-bold text-white">No Credentials Unlocked Yet</h4>
-                  <p className="text-[10px] text-blue-100 leading-normal font-medium">
-                    Master all learning units (100% completion) in any course track to unlock and customize certificates.
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="pt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
-                {unlockedCertificates.map((cProgress, idx) => (
-                  <div key={idx} className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 space-y-3 flex flex-col justify-between">
-                    <div className="space-y-1">
-                      <span className="text-[9px] text-cyan-300 font-mono font-bold uppercase tracking-wider block">Verified Academic Pass</span>
-                      <h4 className="font-heading font-bold text-base text-white">{cProgress.course.title}</h4>
-                      <p className="text-[10px] text-blue-100 font-medium">Lead Instructor: {cProgress.course.instructor}</p>
-                    </div>
-                    <button
-                      onClick={() => handleOpenCertificateModal(cProgress.course.title, cProgress.course.instructor)}
-                      className="bg-white text-blue-600 font-heading font-extrabold text-xs py-2.5 px-4 rounded-xl hover:bg-slate-50 transition-all flex items-center justify-center gap-1.5 shadow-md w-full cursor-pointer mt-2"
-                    >
-                      <Eye className="w-4 h-4 text-blue-600" />
-                      <span>View & Customize PDF</span>
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+            {/* Grid Split */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              
+              {/* Earned Certificates Left list */}
+              <div className="lg:col-span-8 space-y-4">
+                <h4 className="font-heading font-extrabold text-sm text-slate-900 border-b border-slate-100 pb-2 flex items-center gap-1.5">
+                  <Award className="w-5 h-5 text-emerald-500" />
+                  <span>Earned Digital Certificates ({earnedCerts.length})</span>
+                </h4>
 
+                {earnedCerts.length === 0 ? (
+                  <div className="p-8 text-center border-2 border-dashed border-slate-150 rounded-2xl text-slate-400 space-y-2 py-12 bg-white shadow-3xs max-w-lg">
+                    <Award className="w-10 h-10 text-slate-300 mx-auto" />
+                    <p className="text-xs font-bold">No Earned Certificates Yet</p>
+                    <p className="text-[10px] text-slate-500 leading-normal max-w-xs mx-auto">
+                      Complete 100% of any course syllabus, including mandatory quizzes and assignments, to unlock credentials.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    {earnedCerts.map((cert) => (
+                      <div key={cert.id} className="p-5 bg-white border border-sky-100 rounded-2xl shadow-3xs flex flex-col justify-between space-y-4">
+                        <div className="space-y-1">
+                          <span className="text-[9px] text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded font-mono font-bold uppercase tracking-wider block w-fit">
+                            Verified Graduate Pass
+                          </span>
+                          <h5 className="font-heading font-bold text-sm text-slate-900 truncate" title={cert.courseTitle}>
+                            {cert.courseTitle}
+                          </h5>
+                          <span className="text-[10px] text-slate-400 block font-medium">Instructor: {cert.instructorName}</span>
+                          <span className="text-[10px] text-slate-400 block font-medium">Issued: {cert.completionDate}</span>
+                        </div>
+
+                        <button
+                          onClick={() => setActivePreviewCert(cert)}
+                          className="w-full bg-slate-900 hover:bg-slate-850 text-white font-heading font-extrabold text-[11px] py-2.5 px-4 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
+                        >
+                          <Award className="w-4 h-4 text-cyan-400" />
+                          <span>View Verified Credential</span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* In Progress / Expired sidebar Right */}
+              <div className="lg:col-span-4 space-y-6">
+                
+                {/* In Progress */}
+                <div className="space-y-3.5">
+                  <h4 className="font-heading font-extrabold text-sm text-slate-900 border-b border-slate-100 pb-2">
+                    In Progress Certifications
+                  </h4>
+                  
+                  {inProgressCerts.length === 0 ? (
+                    <p className="text-[11px] text-slate-400 italic">No course tracks currently in progress.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {inProgressCerts.map((item, idx) => (
+                        <div key={idx} className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2 shadow-3xs">
+                          <div className="flex items-center justify-between text-[10px] font-bold text-slate-400">
+                            <span className="truncate max-w-40 text-slate-700">{item.course.title}</span>
+                            <span className="font-mono text-blue-600 font-extrabold shrink-0">{item.percentage}%</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="h-full bg-blue-600 rounded-full" style={{ width: `${item.percentage}%` }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Expired Placeholder */}
+                <div className="space-y-3.5 pt-2">
+                  <h4 className="font-heading font-extrabold text-sm text-slate-900 border-b border-slate-100 pb-2">
+                    Renewal & Expiration Ranks
+                  </h4>
+                  <div className="p-4 bg-slate-50 border border-slate-250 rounded-2xl flex items-start gap-2.5 text-[10px] leading-relaxed text-slate-500 font-semibold select-none">
+                    <ShieldAlert className="w-4.5 h-4.5 text-slate-400 shrink-0" />
+                    <div>
+                      <span>No Expired Certifications</span>
+                      <p className="mt-0.5 text-[9px] text-slate-400">All Kaizen Q credentials remain indefinitely valid. Future enterprise renewal status will display here.</p>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+        );
+      })()}
       {/* ------------------- 5. ANALYTICS TAB ------------------- */}
       {currentTab === 'analytics' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in duration-300">
@@ -1509,97 +1362,22 @@ export const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {/* ----------------- CERTIFICATE MODAL ----------------- */}
-      {certificateModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-2xl w-full shadow-2xl space-y-6 border border-sky-200 animate-in zoom-in-95 text-slate-900 font-['Sora']">
-            <div className="flex items-center justify-between border-b border-sky-100 pb-3">
-              <h3 className="font-heading font-bold text-lg text-slate-900 flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-amber-500" />
-                <span>Configure & Generate Certificate</span>
-              </h3>
-              <button
-                onClick={() => setCertificateModalOpen(false)}
-                className="text-slate-400 hover:text-slate-900 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      {/* ------------------- 9. ACHIEVEMENTS & BADGES TAB ------------------- */}
+      {currentTab === 'achievements' && (
+        <AchievementsDashboard />
+      )}
 
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Recipient Name</label>
-                <input
-                  type="text"
-                  value={certStudentName}
-                  onChange={(e) => setCertStudentName(e.target.value)}
-                  placeholder="Enter your name as it should appear..."
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 text-xs text-slate-900 focus:outline-hidden transition-all font-bold"
-                />
-              </div>
+      {/* ------------------- 10. LEADERBOARD TAB ------------------- */}
+      {currentTab === 'leaderboard' && (
+        <LeaderboardView />
+      )}
 
-              {/* Certificate Preview Box */}
-              <div className="border-4 border-amber-500 rounded-2xl p-6 bg-amber-50/5 relative text-center space-y-6 select-none overflow-hidden max-w-full font-sans">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-amber-400/20 to-transparent rounded-bl-full pointer-events-none" />
-                
-                <div className="space-y-1">
-                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-900 font-mono">Kaizen Q Academy</span>
-                  <h4 className="font-serif text-xl sm:text-2xl font-extrabold text-amber-800 leading-tight">Certificate of Completion</h4>
-                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block">Enterprise Learning Credential</span>
-                </div>
-
-                <div className="space-y-2">
-                  <span className="text-[10px] text-slate-500 italic block">This is proudly presented to</span>
-                  <span className="font-serif text-2xl font-extrabold text-slate-950 border-b border-slate-200 pb-1.5 px-6 inline-block min-w-[200px]">
-                    {certStudentName || 'Your Name'}
-                  </span>
-                  <p className="text-[10px] text-slate-500 max-w-md mx-auto leading-relaxed">
-                    for successfully mastering all modules, labs, and evaluation milestones for the course track
-                  </p>
-                  <span className="text-xs font-extrabold text-slate-800 block uppercase tracking-wide">
-                    {certCourseTitle}
-                  </span>
-                </div>
-
-                <div className="flex items-end justify-between pt-4 text-[9px] font-bold text-slate-450">
-                  <div className="text-center w-1/3">
-                    <span className="text-slate-800 block text-[10px] font-semibold">{certCourseInstructor}</span>
-                    <span className="border-t border-slate-200 pt-1 block uppercase tracking-wider">Lead Instructor</span>
-                  </div>
-                  <div className="w-16 h-16 rounded-full border-4 border-double border-amber-500 bg-amber-50 flex items-center justify-center text-[8px] font-extrabold text-amber-800 uppercase tracking-wider shrink-0 shadow-sm mx-auto">
-                    Seal
-                  </div>
-                  <div className="text-center w-1/3">
-                    <span className="text-slate-800 block text-[10px] font-semibold">Kaizen Q Board</span>
-                    <span className="border-t border-slate-200 pt-1 block uppercase tracking-wider">Academic Registrar</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between text-[8px] font-mono font-bold text-slate-400 border-t border-slate-100 pt-3">
-                  <span>DATE: {certCompletionDate}</span>
-                  <span>ID: {certUniqueId}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-2 flex items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setCertificateModalOpen(false)}
-                className="py-2.5 px-4 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer"
-              >
-                Close
-              </button>
-              <button
-                type="button"
-                onClick={handlePrintCertificate}
-                className="py-2.5 px-5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-md shadow-amber-500/20"
-              >
-                <span>Print / Save PDF Certificate</span>
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* ----------------- CERTIFICATE PREVIEW MODAL ----------------- */}
+      {activePreviewCert && (
+        <CertificatePreviewModal
+          certificate={activePreviewCert}
+          onClose={() => setActivePreviewCert(null)}
+        />
       )}
 
       {activePlayerCourse && (
