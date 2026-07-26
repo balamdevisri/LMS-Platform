@@ -191,6 +191,13 @@ export const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
     const text = customText || inputMessage;
     if (!text.trim()) return;
 
+    if (text.toLowerCase().includes('generate mcq') || text.toLowerCase().includes('generate quiz') || text.toLowerCase().includes('generate ai quiz')) {
+      window.dispatchEvent(new CustomEvent('open-ai-quiz'));
+      toast.success('Launching AI Quiz Generator workspace!');
+      if (!customText) setInputMessage('');
+      return;
+    }
+
     if (!customText) setInputMessage('');
 
     const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });

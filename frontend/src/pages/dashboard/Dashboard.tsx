@@ -19,6 +19,7 @@ import {
   Activity,
   Info,
   Bot,
+  Brain,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -28,6 +29,7 @@ import { DiscussionCenter } from '@/components/courses/DiscussionCenter';
 import { discussionService } from '@/services/discussionService';
 import { AssignmentPortal } from '@/components/courses/AssignmentPortal';
 import { AIAssistantPanel } from '@/components/ai/AIAssistantPanel';
+import { AIQuizPortal } from '../../components/courses/AIQuizPortal';
 
 export const Dashboard: React.FC = () => {
   const { user, userProfile } = useAuth();
@@ -59,6 +61,7 @@ export const Dashboard: React.FC = () => {
   } | null>(null);
 
   const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
+  const [isQuizPortalOpen, setIsQuizPortalOpen] = useState(false);
   const [aiLessonContext, setAiLessonContext] = useState<{
     courseId: string;
     courseTitle: string;
@@ -615,6 +618,7 @@ export const Dashboard: React.FC = () => {
           { id: 'certificates', label: 'Unlocked Credentials' },
           { id: 'analytics', label: 'Learning Analytics' },
           { id: 'discussions', label: `Discussion Center${totalUnreadDiscussions > 0 ? ` (${totalUnreadDiscussions})` : ''}` },
+          { id: 'ai-quizzes', label: 'AI Assessment Center' },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -1480,6 +1484,19 @@ export const Dashboard: React.FC = () => {
         </div>
       )}
 
+      {/* ------------------- 7. AI QUIZZES CENTER TAB ------------------- */}
+      {currentTab === 'ai-quizzes' && (
+        <div className="space-y-6 animate-in fade-in duration-300">
+          <AIQuizPortal
+            courseId={aiLessonContext?.courseId || defaultAiContext.courseId}
+            courseTitle={aiLessonContext?.courseTitle || defaultAiContext.courseTitle}
+            lessonId={aiLessonContext?.id || defaultAiContext.id}
+            lessonTitle={aiLessonContext?.title || defaultAiContext.title}
+            lessonContent={aiLessonContext?.content || defaultAiContext.content}
+          />
+        </div>
+      )}
+
       {/* ----------------- CERTIFICATE MODAL ----------------- */}
       {certificateModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
@@ -1605,7 +1622,7 @@ export const Dashboard: React.FC = () => {
       )}
 
       {/* Floating AI Assistant Trigger */}
-      {!isAiPanelOpen && (
+      {currentTab !== 'ai-quizzes' && !isAiPanelOpen && (
         <button
           onClick={() => {
             if (!aiLessonContext) {
@@ -1621,6 +1638,27 @@ export const Dashboard: React.FC = () => {
             <Bot className="w-7 h-7 text-emerald-400" />
             <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full animate-ping" />
             <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full" />
+          </div>
+        </button>
+      )}
+
+      {/* Floating AI Quiz Generator Trigger */}
+      {currentTab !== 'ai-quizzes' && !isQuizPortalOpen && (
+        <button
+          onClick={() => {
+            if (!aiLessonContext) {
+              setAiLessonContext(defaultAiContext);
+            }
+            setIsQuizPortalOpen(true);
+            toast.success('AI Quiz Generator panel activated!');
+          }}
+          className="fixed bottom-24 right-6 z-40 w-14 h-14 rounded-full bg-slate-900 text-white shadow-xl shadow-slate-950/40 flex items-center justify-center hover:scale-110 hover:bg-slate-850 transition-all duration-300 border border-slate-700 cursor-pointer"
+          title="Open AI Quiz Generator"
+        >
+          <div className="relative">
+            <Brain className="w-7 h-7 text-purple-400" />
+            <span className="absolute -top-1 -right-1 w-3 h-3 bg-purple-500 border-2 border-slate-900 rounded-full animate-ping" />
+            <span className="absolute -top-1 -right-1 w-3 h-3 bg-purple-500 border-2 border-slate-900 rounded-full" />
           </div>
         </button>
       )}
@@ -1641,6 +1679,19 @@ export const Dashboard: React.FC = () => {
           onClose={() => setIsAiPanelOpen(false)}
           isDocked={false}
         />
+      )}
+
+      {isQuizPortalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 font-['Sora']">
+          <AIQuizPortal
+            courseId={aiLessonContext?.courseId || defaultAiContext.courseId}
+            courseTitle={aiLessonContext?.courseTitle || defaultAiContext.courseTitle}
+            lessonId={aiLessonContext?.id || defaultAiContext.id}
+            lessonTitle={aiLessonContext?.title || defaultAiContext.title}
+            lessonContent={aiLessonContext?.content || defaultAiContext.content}
+            onClose={() => setIsQuizPortalOpen(false)}
+          />
+        </div>
       )}
 
     </div>

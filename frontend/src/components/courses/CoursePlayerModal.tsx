@@ -43,6 +43,7 @@ import {
   Trash2,
   MessageSquare,
   HelpCircle,
+  Brain,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -50,6 +51,7 @@ import { DiscussionCenter } from './DiscussionCenter';
 import { discussionService } from '@/services/discussionService';
 import { AssignmentPortal } from './AssignmentPortal';
 import { AIAssistantPanel } from '../ai/AIAssistantPanel';
+import { AIQuizPortal } from './AIQuizPortal';
 
 export interface CoursePlayerModalProps {
   course: ICourse;
@@ -463,6 +465,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
   const [bookmarks, setBookmarks] = useState<LessonBookmark[]>([]);
   const [isNotesPanelOpen, setIsNotesPanelOpen] = useState(false);
   const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
+  const [isQuizPortalOpen, setIsQuizPortalOpen] = useState(false);
   const [rightActiveTab, setRightActiveTab] = useState<'notes' | 'bookmarks'>('notes');
   const [notesSearch, setNotesSearch] = useState<string>('');
   const [notesFilter, setNotesFilter] = useState<'all' | 'video' | 'reading' | 'recent' | 'oldest'>('all');
@@ -494,6 +497,16 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
       }
     }
   }, [course.id]);
+
+  useEffect(() => {
+    const handleOpenQuiz = () => {
+      setIsQuizPortalOpen(true);
+      setIsAiPanelOpen(false);
+      setIsNotesPanelOpen(false);
+    };
+    window.addEventListener('open-ai-quiz', handleOpenQuiz);
+    return () => window.removeEventListener('open-ai-quiz', handleOpenQuiz);
+  }, []);
 
 
 
@@ -1261,6 +1274,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
             onClick={() => {
               setIsAiPanelOpen(!isAiPanelOpen);
               setIsNotesPanelOpen(false);
+              setIsQuizPortalOpen(false);
             }}
             className={`py-1.5 px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
               isAiPanelOpen
@@ -1270,6 +1284,23 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
           >
             <Sparkles className="w-4 h-4 text-emerald-600 animate-pulse" />
             <span className="hidden lg:inline">AI Tutor</span>
+          </button>
+
+          {/* AI Quiz Generator Toggle Button */}
+          <button
+            onClick={() => {
+              setIsQuizPortalOpen(!isQuizPortalOpen);
+              setIsAiPanelOpen(false);
+              setIsNotesPanelOpen(false);
+            }}
+            className={`py-1.5 px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
+              isQuizPortalOpen
+                ? 'bg-purple-100 border-purple-300 text-purple-800'
+                : 'bg-white border-sky-200 text-slate-700 hover:bg-sky-50'
+            }`}
+          >
+            <Brain className="w-4 h-4 text-purple-600" />
+            <span className="hidden lg:inline">AI Quiz</span>
           </button>
 
           {/* XP Reward Badge */}
@@ -2696,6 +2727,19 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
           />
         )}
       </div>
+
+      {isQuizPortalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 font-['Sora']">
+          <AIQuizPortal
+            courseId={String(course.id)}
+            courseTitle={course.title}
+            lessonId={currentSubtopic?.id || ''}
+            lessonTitle={currentSubtopic?.title || 'Current Syllabus Lesson'}
+            lessonContent={currentSubtopic?.content || ''}
+            onClose={() => setIsQuizPortalOpen(false)}
+          />
+        </div>
+      )}
 
       {/* GAMIFIED MOTIVATIONAL CELEBRATION MODAL */}
       {celebrationMessage && (
