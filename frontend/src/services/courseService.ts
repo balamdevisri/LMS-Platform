@@ -1,6 +1,14 @@
 import { db } from '@/firebase';
 import { doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
-import type { ICourse, CreateCourseDTO, UpdateCourseDTO, CourseFilterOptions, CoursePaginationResult } from '../../../shared/types/course';
+import type {
+  ICourse,
+  CreateCourseDTO,
+  UpdateCourseDTO,
+  CourseFilterOptions,
+  CoursePaginationResult,
+  CourseStatus,
+  CourseLevel
+} from '../../../shared/types/course';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -73,6 +81,51 @@ const DEFAULT_COURSES: ICourse[] = [
     createdAt: new Date('2026-01-15').toISOString(),
     updatedAt: new Date('2026-02-10').toISOString(),
   },
+  {
+    id: 'git-github-mastery',
+    title: 'Git & GitHub Mastery',
+    slug: 'git-github-mastery',
+    shortDescription: 'Learn Git & GitHub from beginner to professional, including version control, branching, pull requests, and CI/CD.',
+    description: 'Learn Git & GitHub from beginner to professional, including version control, branching, pull requests, GitHub Actions, CI/CD, Codespaces, and Copilot.',
+    thumbnail: 'https://images.unsplash.com/photo-1618401471353-b98aedd07871?auto=format&fit=crop&w=1200&q=80',
+    banner: 'https://images.unsplash.com/photo-1618401471353-b98aedd07871?auto=format&fit=crop&w=1200&q=80',
+    category: 'Development Tools',
+    level: 'all_levels',
+    duration: '20 Hours',
+    language: 'English',
+    price: 0,
+    instructor: {
+      id: 'inst_kaizen',
+      name: 'Kaizen Q Team',
+      role: 'Senior Technical Instructor',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    },
+    skills: ['Git CLI', 'Version Control', 'GitHub Actions', 'Codespaces', 'Semantic Versioning'],
+    prerequisites: ['Basic computer literacy'],
+    learningOutcomes: [
+      'Master version control concepts and the local Git commit cycle',
+      'Create pull requests and manage collaborative branching strategies',
+      'Build continuous integration pipelines using GitHub Actions',
+      'Manage issues, milestones, and Kanban boards with GitHub Projects'
+    ],
+    status: 'published',
+    visibility: 'public',
+    featured: true,
+    tags: ['git', 'github', 'devops', 'version-control'],
+    enrollmentCount: 180,
+    rating: 5.0,
+    ratingCount: 180,
+    syllabus: [
+      { id: 'git-mod-1', title: 'Module 1: Version Control & Git Basics', description: 'Version Control and local Git commit cycle.', duration: '3 hours', lessonsCount: 4 },
+      { id: 'git-mod-2', title: 'Module 2: GitHub Foundations', description: 'Cloud hosting, branching, and pull requests.', duration: '3 hours', lessonsCount: 4 },
+      { id: 'git-mod-3', title: 'Module 3: Advanced Git', description: 'Interactive rebasing, stashing, and reflog.', duration: '4 hours', lessonsCount: 4 },
+      { id: 'git-mod-4', title: 'Module 4: Repository Management', description: 'PR reviews, branch protection, and tagging.', duration: '3 hours', lessonsCount: 4 },
+      { id: 'git-mod-5', title: 'Module 5: GitHub Actions', description: 'Automating tests, security, and CD.', duration: '4 hours', lessonsCount: 4 },
+      { id: 'git-mod-6', title: 'Module 6: Modern GitHub Ecosystem', description: 'Codespaces, Copilot, and projects.', duration: '3 hours', lessonsCount: 4 }
+    ],
+    createdAt: new Date('2026-01-20').toISOString(),
+    updatedAt: new Date('2026-02-15').toISOString(),
+  }
 ];
 
 export interface EnrollmentRecord {
@@ -111,27 +164,111 @@ class CourseService {
   private xpClaimsKey = 'shaivika_user_xp_claims';
   private checkpointKey = 'shaivika_user_checkpoint';
 
+  private mapCourseItemToICourse(c: any): ICourse {
+    const id = String(c.id) === '1' ? 'course_linux_101' : String(c.id);
+    const slug = c.slug || c.title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    
+    let status: CourseStatus = 'published';
+    if (c.status) {
+      const s = c.status.toLowerCase();
+      if (s === 'published') status = 'published';
+      else if (s === 'draft') status = 'draft';
+      else if (s === 'archived') status = 'archived';
+    }
+
+    let level: CourseLevel = 'all_levels';
+    if (c.level) {
+      const lvl = c.level.toLowerCase();
+      if (lvl.includes('beginner') && lvl.includes('advanced')) level = 'all_levels';
+      else if (lvl.includes('beginner')) level = 'beginner';
+      else if (lvl.includes('intermediate')) level = 'intermediate';
+      else if (lvl.includes('advanced')) level = 'advanced';
+    }
+
+    const rating = typeof c.rating === 'number' ? c.rating : 5.0;
+    const ratingCount = typeof c.reviews === 'number' ? c.reviews : (typeof c.reviews === 'string' ? parseInt(c.reviews.replace(/[^0-9]/g, ''), 10) || 0 : 0);
+
+    const syllabus = c.modules ? c.modules.map((m: any) => ({
+      id: m.id,
+      title: m.title,
+      description: m.description || '',
+      lessonsCount: m.topics ? m.topics.reduce((acc: number, t: any) => acc + (t.learningUnits ? t.learningUnits.length : 0), 0) : 0,
+      duration: m.duration || ''
+    })) : (c.syllabus ? c.syllabus.map((s: string, idx: number) => ({
+      id: `s-${idx}`,
+      title: s,
+      description: '',
+      lessonsCount: 1,
+      duration: ''
+    })) : []);
+
+    const instructor = typeof c.instructor === 'object' && c.instructor !== null ? c.instructor : {
+      id: 'inst_' + (c.instructor || 'instructor').toLowerCase().replace(/[^a-z0-9]/g, ''),
+      name: c.instructor || 'Bhanu Prakash Achari',
+      role: c.role || 'Senior Technical Instructor',
+      avatar: c.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
+    };
+
+    const skills = c.skills || (c.modules ? c.modules.flatMap((m: any) => m.topics ? m.topics.map((t: any) => t.title) : []) : []);
+
+    return {
+      id,
+      title: c.title,
+      slug,
+      shortDescription: c.subtitle || c.description || '',
+      description: c.description || '',
+      thumbnail: c.thumbnail || '/assets/images/linux_course_thumbnail.png',
+      banner: c.banner || c.thumbnail || '/assets/images/linux_course_thumbnail.png',
+      category: c.category || 'Linux & Systems',
+      level,
+      duration: c.duration || '20 hrs',
+      language: c.language || 'English',
+      price: c.price || 0,
+      instructor,
+      skills,
+      prerequisites: c.prerequisites || ['Basic terminal awareness is helpful'],
+      learningOutcomes: c.learningOutcomes || (c.syllabus || []),
+      status,
+      visibility: c.visibility || 'public',
+      featured: c.featured !== undefined ? c.featured : true,
+      tags: c.tags || [c.category?.toLowerCase() || 'general'],
+      enrollmentCount: typeof c.students === 'string' ? (parseInt(c.students.replace(/[^0-9]/g, ''), 10) || 0) : (c.students || 0),
+      rating,
+      ratingCount,
+      syllabus,
+      createdAt: c.createdAt || new Date().toISOString(),
+      updatedAt: c.updatedAt || new Date().toISOString()
+    };
+  }
+
   private getStoredCourses(): ICourse[] {
-    const data = localStorage.getItem(this.localCacheKey);
+    const data = localStorage.getItem('shaivika_courses_data');
+    let list: ICourse[] = [];
     if (data) {
       try {
-        const parsed: ICourse[] = JSON.parse(data);
-        const filtered = parsed.filter(
-          (c) => c.id !== 'course_ai_llm_202' && c.id !== 'course_devops_303'
-        );
-        if (filtered.length !== parsed.length) {
-          localStorage.setItem(this.localCacheKey, JSON.stringify(filtered));
-        }
-        return filtered;
+        const parsed = JSON.parse(data) as any[];
+        list = parsed.map(c => this.mapCourseItemToICourse(c));
       } catch (e) {
-        console.warn('Error parsing cached course data:', e);
+        console.warn('Error parsing cached course data from shaivika_courses_data:', e);
       }
     }
-    localStorage.setItem(this.localCacheKey, JSON.stringify(DEFAULT_COURSES));
-    return DEFAULT_COURSES;
+
+    if (list.length === 0) {
+      list = [...DEFAULT_COURSES];
+    } else {
+      // Ensure default courses exist and merge them
+      DEFAULT_COURSES.forEach((def) => {
+        if (!list.find((item) => String(item.id) === String(def.id))) {
+          list.push(def);
+        }
+      });
+    }
+
+    return list;
   }
 
   private saveStoredCourses(courses: ICourse[]): void {
+    localStorage.setItem('shaivika_courses_data', JSON.stringify(courses));
     localStorage.setItem(this.localCacheKey, JSON.stringify(courses));
   }
 

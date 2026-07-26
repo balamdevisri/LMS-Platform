@@ -762,8 +762,9 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const toggleCourseStatus = async (id: number | string) => {
+    const targetId = String(id) === 'course_linux_101' ? '1' : String(id);
     const updated = courses.map((c) => {
-      if (String(c.id) === String(id)) {
+      if (String(c.id) === targetId) {
         const nextStatus: 'Published' | 'Draft' = c.status === 'Published' ? 'Draft' : 'Published';
         return { ...c, status: nextStatus };
       }
@@ -774,9 +775,9 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     if (db) {
       try {
-        const target = updated.find((c) => String(c.id) === String(id));
+        const target = updated.find((c) => String(c.id) === targetId);
         if (target) {
-          await updateDoc(doc(db, 'courses', String(id)), { status: target.status });
+          await updateDoc(doc(db, 'courses', String(targetId)), { status: target.status });
         }
       } catch (e) {
         console.warn('Firestore updateDoc notice:', e);
@@ -785,17 +786,20 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const deleteCourse = async (id: number | string) => {
-    const updated = courses.filter((c) => String(c.id) !== String(id));
+    const targetId = String(id) === 'course_linux_101' ? '1' : String(id);
+    const updated = courses.filter((c) => String(c.id) !== targetId);
     setCourses(updated);
   };
 
   const getCourseById = (id: number | string): CourseItem | undefined => {
-    return courses.find((c) => String(c.id) === String(id)) || initialDefaultCourses[0];
+    const targetId = String(id) === 'course_linux_101' ? '1' : String(id);
+    return courses.find((c) => String(c.id) === targetId) || initialDefaultCourses[0];
   };
 
   const updateCourse = async (id: number | string, updates: Partial<CourseItem>) => {
+    const targetId = String(id) === 'course_linux_101' ? '1' : String(id);
     const updated = courses.map((c) => {
-      if (String(c.id) === String(id)) {
+      if (String(c.id) === targetId) {
         return { ...c, ...updates };
       }
       return c;
@@ -804,7 +808,7 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     if (db) {
       try {
-        await updateDoc(doc(db, 'courses', String(id)), updates);
+        await updateDoc(doc(db, 'courses', String(targetId)), updates);
       } catch (e) {
         console.warn('Firestore updateCourse notice:', e);
       }
