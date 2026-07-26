@@ -43,6 +43,7 @@ interface PracticeLabProps {
   courseTitle?: string;
   onClose?: () => void;
   standalone?: boolean;
+  customChallenge?: any;
 }
 
 const challengeProvider = new ChallengeProvider();
@@ -57,7 +58,8 @@ export const PracticeLab: React.FC<PracticeLabProps> = ({
   courseId = '1',
   courseTitle = 'Linux & System Administration',
   onClose: _onClose,
-  standalone = false
+  standalone = false,
+  customChallenge
 }) => {
   // 1. Resolve Active Challenge
   const [activeChallenge, setActiveChallenge] = useState<Challenge | null>(null);
@@ -68,7 +70,9 @@ export const PracticeLab: React.FC<PracticeLabProps> = ({
     setChallengesList(list);
 
     let resolved: Challenge | undefined;
-    if (challengeId) {
+    if (customChallenge) {
+      resolved = customChallenge;
+    } else if (challengeId) {
       resolved = challengeProvider.getChallengeById(challengeId);
     } else if (lessonId) {
       resolved = challengeProvider.getChallengeForLesson(lessonId);
@@ -80,7 +84,7 @@ export const PracticeLab: React.FC<PracticeLabProps> = ({
     } else if (list.length > 0) {
       setActiveChallenge(list[0]);
     }
-  }, [challengeId, lessonId]);
+  }, [challengeId, lessonId, customChallenge]);
 
   // 2. Editor & Console States
   const [activeLanguage, setActiveLanguage] = useState<string>('javascript');

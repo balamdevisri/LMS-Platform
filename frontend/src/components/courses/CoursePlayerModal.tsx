@@ -342,6 +342,22 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
 
   // 1. Dynamic Curriculum Loader
   const getCurriculumForModule = (mIdx: number): LessonDetail[] => {
+    const courseAny = course as any;
+    if (courseAny.modules && courseAny.modules[mIdx]) {
+      const mod = courseAny.modules[mIdx];
+      return mod.topics.map((t: any) => ({
+        title: t.title,
+        badge: t.id || 'Topic',
+        subtopics: t.learningUnits.map((u: any) => ({
+          id: u.id,
+          title: u.title,
+          content: u.readingContent || u.description || '',
+          type: u.type,
+          learningUnit: u,
+        })),
+      }));
+    }
+
     let baseCurriculum: LessonDetail[] = [];
     if (mIdx === 2) {
       baseCurriculum = MODULE_3_FULL_CURRICULUM;
@@ -598,6 +614,14 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
   );
 
   const getLessonType = (subtopicId: string): 'video' | 'quiz' | 'assignment' | 'reading' => {
+    const found = allLessons.find(l => l.subtopicId === subtopicId);
+    if (found && found.subtopic && (found.subtopic as any).type) {
+      const type = (found.subtopic as any).type.toLowerCase();
+      if (type === 'video') return 'video';
+      if (type === 'quiz') return 'quiz';
+      if (type === 'assignment') return 'assignment';
+      return 'reading';
+    }
     if (subtopicId === '1.1.1' || subtopicId === '1.2.2') return 'video';
     if (subtopicId === '1.1.2') return 'quiz';
     if (subtopicId === '1.1.3') return 'assignment';
@@ -669,7 +693,22 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
 
   const safeFlatIdx = currentLessonFlatIdx === -1 ? 0 : currentLessonFlatIdx;
 
-  const currentResources = MOCK_RESOURCES_DATABASE[currentSubtopic?.id || ''] || [];
+  const currentResources: LessonResource[] = [
+    ...(MOCK_RESOURCES_DATABASE[currentSubtopic?.id || ''] || []),
+    ...(((currentSubtopic as any).learningUnit?.resources || []) as any[]).map(res => ({
+      id: res.id,
+      name: res.name,
+      url: res.fileUrl || `https://dummy-file-url/${res.name}`,
+      type: (res.category === 'PDF' ? 'pdf' : 
+             res.category === 'ZIP' ? 'zip' : 
+             res.category === 'DOCX' ? 'docx' :
+             res.category === 'Image' ? 'image' :
+             res.category === 'Source Code' ? 'code' : 'link') as any,
+      size: res.fileSize || '1.5 MB',
+      badge: 'Required' as any,
+      uploadedAt: new Date().toISOString()
+    }))
+  ];
 
   // Filter resources by search term
   const filteredResources = currentResources.filter((res) =>
@@ -1859,109 +1898,206 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                       <div className="p-4 sm:p-6 rounded-2xl bg-sky-50/50 border border-sky-100 space-y-4">
                         <div className="flex items-center justify-between border-b border-sky-100 pb-2">
                           <h4 className="font-heading font-extrabold text-sm text-slate-900">
-                            Knowledge Check Quiz
+                            Knowledge Check Quiz: {currentSubtopic.title}
                           </h4>
                           <span className="text-xs font-bold text-sky-800 bg-sky-100 px-2 py-0.5 rounded-md">
-                            Passing Score: 100%
+                            Passing Score: {(currentSubtopic as any).learningUnit?.quizPassingScore || 70}%
                           </span>
                         </div>
 
-                        <div className="space-y-4">
-                          <div className="space-y-2">
-                            <p className="text-xs font-bold text-slate-800">1. Which Linux distribution is known as the enterprise gold standard with commercial support?</p>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                              {['Debian GNU/Linux', 'RHEL (Red Hat Enterprise Linux)', 'Alpine Linux', 'Gentoo Linux'].map((opt, oIdx) => (
-                                <button
-                                  key={oIdx}
-                                  disabled={quizPassed[currentSubtopic.id]}
-                                  onClick={() => setQuizAnswers(prev => ({
-                                    ...prev,
-                                    [currentSubtopic.id]: {
-                                      ...(prev[currentSubtopic.id] || {}),
-                                      0: oIdx
-                                    }
-                                  }))}
-                                  className={`p-2.5 rounded-xl border text-xs text-left cursor-pointer transition-all ${
-                                    quizAnswers[currentSubtopic.id]?.[0] === oIdx
-                                      ? 'bg-sky-600 border-sky-600 text-white font-bold'
-                                      : 'bg-white border-sky-100 text-slate-700 hover:bg-sky-50'
-                                  }`}
-                                >
-                                  {opt}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
+                        {(currentSubtopic as any).learningUnit?.quizQuestions && (currentSubtopic as any).learningUnit.quizQuestions.length > 0 ? (
+                          <div className="space-y-4">
+                            {((currentSubtopic as any).learningUnit.quizQuestions as any[]).map((q, qIdx) => (
+                              <div key={q.id || qIdx} className="space-y-2">
+                                <p className="text-xs font-bold text-slate-800">{qIdx + 1}. {q.questionText}</p>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                  {q.options.map((opt: string, oIdx: number) => {
+                                    const isSelected = quizAnswers[currentSubtopic.id]?.[qIdx] === oIdx;
+                                    return (
+                                      <button
+                                        key={oIdx}
+                                        disabled={quizPassed[currentSubtopic.id]}
+                                        onClick={() => setQuizAnswers(prev => ({
+                                          ...prev,
+                                          [currentSubtopic.id]: {
+                                            ...(prev[currentSubtopic.id] || {}),
+                                            [qIdx]: oIdx
+                                          }
+                                        }))}
+                                        className={`p-2.5 rounded-xl border text-xs text-left cursor-pointer transition-all ${
+                                          isSelected
+                                            ? 'bg-sky-600 border-sky-600 text-white font-bold'
+                                            : 'bg-white border-sky-100 text-slate-700 hover:bg-sky-50'
+                                        }`}
+                                      >
+                                        {opt}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                                {quizSubmitted[currentSubtopic.id] && q.explanation && (
+                                  <p className="text-[10px] text-slate-500 bg-white p-2 rounded-lg border border-slate-100 mt-1">
+                                    💡 <strong>Explanation:</strong> {q.explanation}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
 
-                          <div className="space-y-2">
-                            <p className="text-xs font-bold text-slate-800">2. Which lightweight Linux distribution is widely used as a base image for Docker containers?</p>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                              {['Ubuntu Linux', 'CentOS Linux', 'Fedora Linux', 'Alpine Linux'].map((opt, oIdx) => (
+                            <div className="pt-4 border-t border-sky-100 flex items-center justify-between gap-4">
+                              <div>
+                                {quizSubmitted[currentSubtopic.id] && (
+                                  <p className={`text-xs font-bold ${quizPassed[currentSubtopic.id] ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                    {quizPassed[currentSubtopic.id] ? '✓ Quiz Passed!' : '✗ Some answers were incorrect. Try again!'}
+                                  </p>
+                                )}
+                              </div>
+                              {!quizPassed[currentSubtopic.id] ? (
                                 <button
-                                  key={oIdx}
-                                  disabled={quizPassed[currentSubtopic.id]}
-                                  onClick={() => setQuizAnswers(prev => ({
-                                    ...prev,
-                                    [currentSubtopic.id]: {
-                                      ...(prev[currentSubtopic.id] || {}),
-                                      1: oIdx
+                                  onClick={() => {
+                                    const questions = (currentSubtopic as any).learningUnit.quizQuestions;
+                                    const userAns = quizAnswers[currentSubtopic.id] || {};
+                                    const answeredCount = Object.keys(userAns).length;
+                                    if (answeredCount < questions.length) {
+                                      toast.warning('Please answer all questions first!');
+                                      return;
                                     }
-                                  }))}
-                                  className={`p-2.5 rounded-xl border text-xs text-left cursor-pointer transition-all ${
-                                    quizAnswers[currentSubtopic.id]?.[1] === oIdx
-                                      ? 'bg-sky-600 border-sky-600 text-white font-bold'
-                                      : 'bg-white border-sky-100 text-slate-700 hover:bg-sky-50'
-                                  }`}
-                                >
-                                  {opt}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
 
-                        <div className="pt-4 border-t border-sky-100 flex items-center justify-between gap-4">
-                          <div>
-                            {quizSubmitted[currentSubtopic.id] && (
-                              <p className={`text-xs font-bold ${quizPassed[currentSubtopic.id] ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                {quizPassed[currentSubtopic.id] ? '✓ Quiz Passed (100% Score)' : '✗ Incorrect Answer(s). Try again!'}
-                              </p>
-                            )}
-                          </div>
-                          {!quizPassed[currentSubtopic.id] ? (
-                            <button
-                              onClick={() => {
-                                const ans1 = quizAnswers[currentSubtopic.id]?.[0];
-                                const ans2 = quizAnswers[currentSubtopic.id]?.[1];
-                                if (ans1 === undefined || ans2 === undefined) {
-                                  toast.warning('Please answer all questions first!');
-                                  return;
-                                }
-                                const isCorrect = ans1 === 1 && ans2 === 3;
-                                setQuizSubmitted(prev => ({ ...prev, [currentSubtopic.id]: true }));
-                                setQuizPassed(prev => ({ ...prev, [currentSubtopic.id]: isCorrect }));
-                                if (isCorrect) {
-                                  logRecentActivity(course.id, course.title, 'quiz', currentSubtopic.title);
-                                  setCompletedSubtopics(prev => {
-                                    if (prev.includes(currentSubtopic.id)) return prev;
-                                    toast.success('🎉 Quiz Passed! Lesson Completed.');
-                                    return [...prev, currentSubtopic.id];
-                                  });
-                                } else {
-                                  toast.error('Quiz Failed! Review your choices and resubmit.');
-                                }
-                              }}
-                              className="py-2 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-xs cursor-pointer transition-all"
-                            >
-                              Submit Quiz
-                            </button>
-                          ) : (
-                            <div className="py-2 px-4 rounded-xl bg-emerald-100 text-emerald-800 font-extrabold text-xs flex items-center gap-1.5">
-                              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                              <span>Completed</span>
+                                    let correctCount = 0;
+                                    questions.forEach((q: any, idx: number) => {
+                                      if (userAns[idx] === q.correctAnswerIndex) {
+                                        correctCount++;
+                                      }
+                                    });
+
+                                    const scorePercent = (correctCount / questions.length) * 100;
+                                    const passing = (currentSubtopic as any).learningUnit.quizPassingScore || 70;
+                                    const passed = scorePercent >= passing;
+
+                                    setQuizSubmitted(prev => ({ ...prev, [currentSubtopic.id]: true }));
+                                    setQuizPassed(prev => ({ ...prev, [currentSubtopic.id]: passed }));
+                                    
+                                    if (passed) {
+                                      logRecentActivity(course.id, course.title, 'quiz', currentSubtopic.title);
+                                      setCompletedSubtopics(prev => {
+                                        if (prev.includes(currentSubtopic.id)) return prev;
+                                        toast.success('🎉 Quiz Passed! Lesson Completed.');
+                                        return [...prev, currentSubtopic.id];
+                                      });
+                                    } else {
+                                      toast.error(`Quiz Failed. You got ${Math.round(scorePercent)}% (Required: ${passing}%)`);
+                                    }
+                                  }}
+                                  className="py-2 px-5 bg-sky-600 hover:bg-sky-500 text-white font-extrabold rounded-xl text-xs transition-all shadow-xs cursor-pointer"
+                                >
+                                  Submit Answers
+                                </button>
+                              ) : (
+                                <div className="py-2 px-4 rounded-xl bg-emerald-100 text-emerald-800 font-extrabold text-xs flex items-center gap-1.5">
+                                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                                  <span>Completed</span>
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
+                          </div>
+                        ) : (
+                          // Fallback to legacy hardcoded quiz content
+                          <div className="space-y-4">
+                            <div className="space-y-2">
+                              <p className="text-xs font-bold text-slate-800">1. Which Linux distribution is known as the enterprise gold standard with commercial support?</p>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {['Debian GNU/Linux', 'RHEL (Red Hat Enterprise Linux)', 'Alpine Linux', 'Gentoo Linux'].map((opt, oIdx) => (
+                                  <button
+                                    key={oIdx}
+                                    disabled={quizPassed[currentSubtopic.id]}
+                                    onClick={() => setQuizAnswers(prev => ({
+                                      ...prev,
+                                      [currentSubtopic.id]: {
+                                        ...(prev[currentSubtopic.id] || {}),
+                                        0: oIdx
+                                      }
+                                    }))}
+                                    className={`p-2.5 rounded-xl border text-xs text-left cursor-pointer transition-all ${
+                                      quizAnswers[currentSubtopic.id]?.[0] === oIdx
+                                        ? 'bg-sky-600 border-sky-600 text-white font-bold'
+                                        : 'bg-white border-sky-100 text-slate-700 hover:bg-sky-50'
+                                    }`}
+                                  >
+                                    {opt}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <p className="text-xs font-bold text-slate-800">2. Which lightweight Linux distribution is widely used as a base image for Docker containers?</p>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {['Ubuntu Linux', 'CentOS Linux', 'Fedora Linux', 'Alpine Linux'].map((opt, oIdx) => (
+                                  <button
+                                    key={oIdx}
+                                    disabled={quizPassed[currentSubtopic.id]}
+                                    onClick={() => setQuizAnswers(prev => ({
+                                      ...prev,
+                                      [currentSubtopic.id]: {
+                                        ...(prev[currentSubtopic.id] || {}),
+                                        1: oIdx
+                                      }
+                                    }))}
+                                    className={`p-2.5 rounded-xl border text-xs text-left cursor-pointer transition-all ${
+                                      quizAnswers[currentSubtopic.id]?.[1] === oIdx
+                                        ? 'bg-sky-600 border-sky-600 text-white font-bold'
+                                        : 'bg-white border-sky-100 text-slate-700 hover:bg-sky-50'
+                                    }`}
+                                  >
+                                    {opt}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="pt-4 border-t border-sky-100 flex items-center justify-between gap-4">
+                              <div>
+                                {quizSubmitted[currentSubtopic.id] && (
+                                  <p className={`text-xs font-bold ${quizPassed[currentSubtopic.id] ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                    {quizPassed[currentSubtopic.id] ? '✓ Quiz Passed (100% Score)' : '✗ Incorrect Answer(s). Try again!'}
+                                  </p>
+                                )}
+                              </div>
+                              {!quizPassed[currentSubtopic.id] ? (
+                                <button
+                                  onClick={() => {
+                                    const ans1 = quizAnswers[currentSubtopic.id]?.[0];
+                                    const ans2 = quizAnswers[currentSubtopic.id]?.[1];
+                                    if (ans1 === undefined || ans2 === undefined) {
+                                      toast.warning('Please answer all questions first!');
+                                      return;
+                                    }
+                                    const isCorrect = ans1 === 1 && ans2 === 3;
+                                    setQuizSubmitted(prev => ({ ...prev, [currentSubtopic.id]: true }));
+                                    setQuizPassed(prev => ({ ...prev, [currentSubtopic.id]: isCorrect }));
+                                    if (isCorrect) {
+                                      logRecentActivity(course.id, course.title, 'quiz', currentSubtopic.title);
+                                      setCompletedSubtopics(prev => {
+                                        if (prev.includes(currentSubtopic.id)) return prev;
+                                        toast.success('🎉 Quiz Passed! Lesson Completed.');
+                                        return [...prev, currentSubtopic.id];
+                                      });
+                                    } else {
+                                      toast.error('Quiz Failed! Review your choices and resubmit.');
+                                    }
+                                  }}
+                                  className="py-2 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-xs cursor-pointer transition-all"
+                                >
+                                  Submit Quiz
+                                </button>
+                              ) : (
+                                <div className="py-2 px-4 rounded-xl bg-emerald-100 text-emerald-800 font-extrabold text-xs flex items-center gap-1.5">
+                                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                                  <span>Completed</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -1970,12 +2106,12 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                         assignmentId={currentSubtopic.id}
                         assignmentTitle={currentSubtopic.title}
                         courseId={String(course.id)}
-                        dueDate="2026-07-25T23:59:59Z"
-                        maxMarks={100}
-                        passingMarks={70}
-                        instructions="Map the concentric layers of a typical Linux system (Hardware, Kernel, Shell, User Utilities) and construct a brief explanation of how application processes communicate with system hardware via system calls. Test commands in the terminal."
-                        description="Linux Concentric Layers Architecture Assignment"
-                        allowedTypes={['.pdf', '.docx', '.zip', '.sh', '.js', '.png', '.jpg']}
+                        dueDate={(currentSubtopic as any).learningUnit?.assignmentDeadline || "2026-07-25T23:59:59Z"}
+                        maxMarks={(currentSubtopic as any).learningUnit?.assignmentMaxMarks || 100}
+                        passingMarks={Math.round(((currentSubtopic as any).learningUnit?.assignmentMaxMarks || 100) * 0.7)}
+                        instructions={(currentSubtopic as any).learningUnit?.assignmentInstructions || "Map the concentric layers of a typical Linux system (Hardware, Kernel, Shell, User Utilities)..."}
+                        description={(currentSubtopic as any).learningUnit?.description || "Linux Concentric Layers Architecture Assignment"}
+                        allowedTypes={(currentSubtopic as any).learningUnit?.assignmentAllowedTypes?.split(',').map((s: string) => s.trim().toLowerCase()) || ['.pdf', '.docx', '.zip', '.sh', '.js', '.png', '.jpg']}
                       />
                     )}
 
@@ -2381,6 +2517,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                   lessonTitle={currentSubtopic?.title}
                   courseId={String(course.id)}
                   courseTitle={course.title}
+                  customChallenge={(currentSubtopic as any).learningUnit?.practiceLabChallenge}
                 />
               </div>
             )}
