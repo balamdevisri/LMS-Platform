@@ -18,13 +18,16 @@ import {
   Bookmark,
   Activity,
   Info,
+  Bot,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCourses } from '@/contexts/CourseContext';
 import { CoursePlayerModal } from '../../components/courses/CoursePlayerModal';
 import { DiscussionCenter } from '@/components/courses/DiscussionCenter';
 import { discussionService } from '@/services/discussionService';
 import { AssignmentPortal } from '@/components/courses/AssignmentPortal';
+import { AIAssistantPanel } from '@/components/ai/AIAssistantPanel';
 
 export const Dashboard: React.FC = () => {
   const { user, userProfile } = useAuth();
@@ -54,6 +57,45 @@ export const Dashboard: React.FC = () => {
     courseId: string;
     dueDate?: string;
   } | null>(null);
+
+  const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
+  const [aiLessonContext, setAiLessonContext] = useState<{
+    courseId: string;
+    courseTitle: string;
+    moduleId?: string;
+    moduleTitle?: string;
+    id: string;
+    title: string;
+    type: string;
+    content: string;
+  } | null>(null);
+
+  const defaultAiContext = React.useMemo(() => {
+    if (courses && courses.length > 0) {
+      const activeCourse = courses[0];
+      const firstModule = activeCourse.modules?.[0];
+      // Check topics or lessons depending on syllabus schema
+      const firstTopic = firstModule?.topics?.[0] || (firstModule as any)?.lessons?.[0];
+      return {
+        courseId: String(activeCourse.id),
+        courseTitle: activeCourse.title,
+        moduleId: firstModule ? '1' : undefined,
+        moduleTitle: firstModule?.title,
+        id: firstTopic ? String(firstTopic.id) : 'dashboard_overview',
+        title: firstTopic?.title || 'Course Hub Welcome Overview',
+        type: 'reading',
+        content: 'Overview of courses and dashboard metrics.'
+      };
+    }
+    return {
+      courseId: 'dashboard',
+      courseTitle: 'Dashboard Overview',
+      id: 'dashboard_overview',
+      title: 'Course Hub Welcome Overview',
+      type: 'reading',
+      content: 'Overview of courses and dashboard metrics.'
+    };
+  }, [courses]);
 
   // Filters & sorting for Learning Hub
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -1560,6 +1602,45 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Floating AI Assistant Trigger */}
+      {!isAiPanelOpen && (
+        <button
+          onClick={() => {
+            if (!aiLessonContext) {
+              setAiLessonContext(defaultAiContext);
+            }
+            setIsAiPanelOpen(true);
+            toast.success('AI Tutor panel activated!');
+          }}
+          className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-slate-900 text-white shadow-xl shadow-slate-950/40 flex items-center justify-center hover:scale-110 hover:bg-slate-850 transition-all duration-300 border border-slate-700 cursor-pointer"
+          title="Open AI Learning Assistant"
+        >
+          <div className="relative">
+            <Bot className="w-7 h-7 text-emerald-400" />
+            <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full animate-ping" />
+            <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full" />
+          </div>
+        </button>
+      )}
+
+      {isAiPanelOpen && (
+        <AIAssistantPanel
+          courseId={aiLessonContext?.courseId || defaultAiContext.courseId}
+          courseTitle={aiLessonContext?.courseTitle || defaultAiContext.courseTitle}
+          moduleId={aiLessonContext?.moduleId || defaultAiContext.moduleId}
+          moduleTitle={aiLessonContext?.moduleTitle || defaultAiContext.moduleTitle}
+          topicId={aiLessonContext?.id || defaultAiContext.id}
+          topicTitle={aiLessonContext?.title || defaultAiContext.title}
+          lessonId={aiLessonContext?.id || defaultAiContext.id}
+          lessonTitle={aiLessonContext?.title || defaultAiContext.title}
+          lessonType={aiLessonContext?.type || defaultAiContext.type}
+          lessonContent={aiLessonContext?.content || defaultAiContext.content}
+          isOpen={isAiPanelOpen}
+          onClose={() => setIsAiPanelOpen(false)}
+          isDocked={false}
+        />
       )}
 
     </div>

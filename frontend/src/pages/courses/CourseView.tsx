@@ -25,6 +25,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { DiscussionCenter } from '@/components/courses/DiscussionCenter';
 import { discussionService } from '@/services/discussionService';
 import { AssignmentPortal } from '@/components/courses/AssignmentPortal';
+import { AIAssistantPanel } from '@/components/ai/AIAssistantPanel';
 
 export const CourseView: React.FC = () => {
   const { courseId, slug } = useParams();
@@ -72,6 +73,16 @@ export const CourseView: React.FC = () => {
     title: string;
     courseId: string;
     dueDate?: string;
+  } | null>(null);
+
+  const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
+  const [aiLessonContext, setAiLessonContext] = useState<{
+    id: string;
+    title: string;
+    type: string;
+    content: string;
+    moduleId?: string;
+    moduleTitle?: string;
   } | null>(null);
 
   const updateUnread = () => {
@@ -2073,14 +2084,16 @@ export const CourseView: React.FC = () => {
                                     <div className="flex items-center gap-2">
                                       <button
                                         onClick={() => {
-                                          const event = new CustomEvent('open-ai-tutor', {
-                                            detail: {
-                                              lessonTitle: lesson.title,
-                                              lessonContent: activeLessonObj?.content || ''
-                                            }
+                                          setAiLessonContext({
+                                            id: String(lesson.id),
+                                            title: lesson.title,
+                                            type: lesson.type || 'reading',
+                                            content: activeLessonObj?.content || '',
+                                            moduleId: String(activeModule),
+                                            moduleTitle: courseData.modules.find(m => m.id === activeModule)?.title || ''
                                           });
-                                          window.dispatchEvent(event);
-                                          toast.info('AI Tutor panel activated for this topic!');
+                                          setIsAiPanelOpen(true);
+                                          toast.success('AI Tutor panel activated for this topic!');
                                         }}
                                         className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-lg text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
                                       >
@@ -2373,6 +2386,23 @@ export const CourseView: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+      {isAiPanelOpen && (
+        <AIAssistantPanel
+          courseId={String(courseData.id)}
+          courseTitle={courseData.title}
+          moduleId={aiLessonContext?.moduleId || '1'}
+          moduleTitle={aiLessonContext?.moduleTitle || ''}
+          topicId={aiLessonContext?.id || ''}
+          topicTitle={aiLessonContext?.title || ''}
+          lessonId={aiLessonContext?.id || ''}
+          lessonTitle={aiLessonContext?.title || 'Course Details Overview'}
+          lessonType={aiLessonContext?.type || 'reading'}
+          lessonContent={aiLessonContext?.content || 'No lesson content active.'}
+          isOpen={isAiPanelOpen}
+          onClose={() => setIsAiPanelOpen(false)}
+          isDocked={false}
+        />
       )}
 
     </div>

@@ -49,6 +49,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { DiscussionCenter } from './DiscussionCenter';
 import { discussionService } from '@/services/discussionService';
 import { AssignmentPortal } from './AssignmentPortal';
+import { AIAssistantPanel } from '../ai/AIAssistantPanel';
 
 export interface CoursePlayerModalProps {
   course: ICourse;
@@ -461,6 +462,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
   const [notes, setNotes] = useState<PersonalNote[]>([]);
   const [bookmarks, setBookmarks] = useState<LessonBookmark[]>([]);
   const [isNotesPanelOpen, setIsNotesPanelOpen] = useState(false);
+  const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
   const [rightActiveTab, setRightActiveTab] = useState<'notes' | 'bookmarks'>('notes');
   const [notesSearch, setNotesSearch] = useState<string>('');
   const [notesFilter, setNotesFilter] = useState<'all' | 'video' | 'reading' | 'recent' | 'oldest'>('all');
@@ -1235,7 +1237,10 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
 
           {/* Notes & Bookmarks Toggle Button */}
           <button
-            onClick={() => setIsNotesPanelOpen(!isNotesPanelOpen)}
+            onClick={() => {
+              setIsNotesPanelOpen(!isNotesPanelOpen);
+              setIsAiPanelOpen(false);
+            }}
             className={`py-1.5 px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
               isNotesPanelOpen
                 ? 'bg-sky-100 border-sky-300 text-sky-800'
@@ -1249,6 +1254,22 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                 {bookmarks.length}
               </span>
             )}
+          </button>
+
+          {/* AI Learning Assistant Toggle Button */}
+          <button
+            onClick={() => {
+              setIsAiPanelOpen(!isAiPanelOpen);
+              setIsNotesPanelOpen(false);
+            }}
+            className={`py-1.5 px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
+              isAiPanelOpen
+                ? 'bg-emerald-100 border-emerald-300 text-emerald-800'
+                : 'bg-white border-sky-200 text-slate-700 hover:bg-sky-50'
+            }`}
+          >
+            <Sparkles className="w-4 h-4 text-emerald-600 animate-pulse" />
+            <span className="hidden lg:inline">AI Tutor</span>
           </button>
 
           {/* XP Reward Badge */}
@@ -2654,6 +2675,25 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
               </div>
             )}
           </aside>
+        )}
+
+        {/* RIGHT PANEL: AI LEARNING ASSISTANT */}
+        {isAiPanelOpen && (
+          <AIAssistantPanel
+            courseId={String(course.id)}
+            courseTitle={course.title}
+            moduleId={String(activeModuleIdx + 1)}
+            moduleTitle={syllabus?.[activeModuleIdx]?.title || ''}
+            topicId={currentSubtopic?.id || ''}
+            topicTitle={currentSubtopic?.title || ''}
+            lessonId={currentSubtopic?.id || ''}
+            lessonTitle={currentSubtopic?.title || ''}
+            lessonType={getLessonType(currentSubtopic?.id || '')}
+            lessonContent={currentSubtopic?.content || ''}
+            isOpen={isAiPanelOpen}
+            onClose={() => setIsAiPanelOpen(false)}
+            isDocked={true}
+          />
         )}
       </div>
 
