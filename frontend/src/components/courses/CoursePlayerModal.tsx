@@ -41,8 +41,13 @@ import {
   Pin,
   Edit2,
   Trash2,
+  MessageSquare,
+  HelpCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import { DiscussionCenter } from './DiscussionCenter';
+import { discussionService } from '@/services/discussionService';
 
 export interface CoursePlayerModalProps {
   course: ICourse;
@@ -390,10 +395,26 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
 
 
 
+  const { userProfile, user } = useAuth();
+  const currentUserId = userProfile?.uid || user?.uid || 'default_student';
+
   const [activeModuleIdx, setActiveModuleIdx] = useState(0);
-  const [activeTab, setActiveTab] = useState<'content' | 'commands' | 'slides' | 'lab'>('content');
+  const [activeTab, setActiveTab] = useState<'content' | 'commands' | 'slides' | 'lab' | 'discussions'>('content');
   const [currentSlideIdx, setCurrentSlideIdx] = useState(0);
   const [completedModules, setCompletedModules] = useState<number[]>([0]);
+
+  const [unreadDiscussions, setUnreadDiscussions] = useState(0);
+  const [forceOpenCreateQuestion, setForceOpenCreateQuestion] = useState(false);
+  const [targetLessonId, setTargetLessonId] = useState<string | undefined>(undefined);
+  const [targetLessonName, setTargetLessonName] = useState<string | undefined>(undefined);
+
+  const updateUnread = () => {
+    setUnreadDiscussions(discussionService.getUnreadCount(String(course.id), currentUserId));
+  };
+
+  useEffect(() => {
+    updateUnread();
+  }, [course.id, currentUserId]);
 
   // Sequential Subtopic Stepper State
   const [currentLessonIdx, setCurrentLessonIdx] = useState(0);
@@ -1550,7 +1571,12 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                 )}
 
                 <button
-                  onClick={() => setActiveTab('lab')}
+                  onClick={() => {
+                    setActiveTab('lab');
+                    setForceOpenCreateQuestion(false);
+                    setTargetLessonId(undefined);
+                    setTargetLessonName(undefined);
+                  }}
                   className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
                     activeTab === 'lab'
                       ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20'
@@ -1558,6 +1584,27 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                   }`}
                 >
                   <Sparkles className="w-4 h-4 text-purple-600" /> Live Lab
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveTab('discussions');
+                    setForceOpenCreateQuestion(false);
+                    setTargetLessonId(undefined);
+                    setTargetLessonName(undefined);
+                  }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                    activeTab === 'discussions'
+                      ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20'
+                      : 'bg-white border border-sky-200 text-slate-700 hover:bg-sky-50'
+                  }`}
+                >
+                  <MessageSquare className="w-4 h-4" /> Discussion Center
+                  {unreadDiscussions > 0 && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[9px] font-extrabold leading-none animate-pulse">
+                      {unreadDiscussions}
+                    </span>
+                  )}
                 </button>
               </div>
             </div>
@@ -1654,15 +1701,30 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                         )}
                       </div>
 
-                      {/* Terminal Icon ONLY for Subtopics with actual Commands */}
-                      {currentSubtopic.terminalCommand && (
+                      <div className="flex items-center gap-2 shrink-0">
                         <button
-                          onClick={() => setActiveTerminalCmd(currentSubtopic.terminalCommand!)}
-                          className="py-2 px-3.5 rounded-xl bg-black border border-slate-800 text-emerald-400 hover:bg-slate-900 transition-all cursor-pointer text-xs font-extrabold flex items-center gap-2 shrink-0 shadow-md"
+                          onClick={() => {
+                            setActiveTab('discussions');
+                            setForceOpenCreateQuestion(true);
+                            setTargetLessonId(String(currentSubtopic.id));
+                            setTargetLessonName(currentSubtopic.title);
+                            toast.info('Opening Q&A center for this lesson...');
+                          }}
+                          className="py-2 px-3.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-105 transition-all cursor-pointer text-xs font-extrabold flex items-center gap-1.5"
                         >
-                          <Terminal className="w-4 h-4 text-emerald-400" /> Launch Black Terminal Sandbox
+                          <HelpCircle className="w-4 h-4 text-indigo-600" />
+                          <span>Ask a Question</span>
                         </button>
-                      )}
+
+                        {currentSubtopic.terminalCommand && (
+                          <button
+                            onClick={() => setActiveTerminalCmd(currentSubtopic.terminalCommand!)}
+                            className="py-2 px-3.5 rounded-xl bg-black border border-slate-800 text-emerald-400 hover:bg-slate-900 transition-all cursor-pointer text-xs font-extrabold flex items-center gap-2 shadow-md"
+                          >
+                            <Terminal className="w-4 h-4 text-emerald-400" /> Launch Black Terminal Sandbox
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     {/* Dynamic content rendering based on lesson type */}
@@ -2284,6 +2346,25 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                     </button>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* TAB 5: DISCUSSION CENTER */}
+            {activeTab === 'discussions' && (
+              <div className="space-y-6 animate-in fade-in duration-200">
+                <DiscussionCenter
+                  courseId={String(course.id)}
+                  currentLessonId={targetLessonId}
+                  currentLessonName={targetLessonName}
+                  forceCreateOpen={forceOpenCreateQuestion}
+                  onCloseCreate={() => {
+                    setForceOpenCreateQuestion(false);
+                    setTargetLessonId(undefined);
+                    setTargetLessonName(undefined);
+                  }}
+                  onUnreadCountChange={updateUnread}
+                  lessonsList={allLessons.map(l => ({ id: String(l.subtopicId), title: l.subtopicTitle }))}
+                />
               </div>
             )}
           </div>

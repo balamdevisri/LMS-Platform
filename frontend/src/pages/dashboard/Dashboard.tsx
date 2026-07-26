@@ -22,6 +22,8 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { useCourses } from '@/contexts/CourseContext';
 import { CoursePlayerModal } from '../../components/courses/CoursePlayerModal';
+import { DiscussionCenter } from '@/components/courses/DiscussionCenter';
+import { discussionService } from '@/services/discussionService';
 
 export const Dashboard: React.FC = () => {
   const { user, userProfile } = useAuth();
@@ -53,6 +55,17 @@ export const Dashboard: React.FC = () => {
   // Bookmarks & Activities
   const [savedLessons, setSavedLessons] = useState<any[]>([]);
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
+  
+  const [totalUnreadDiscussions, setTotalUnreadDiscussions] = useState(0);
+  const [selectedCourseId, setSelectedCourseId] = useState<string>('');
+
+  const updateUnreadCount = () => {
+    let count = 0;
+    courses.forEach((c) => {
+      count += discussionService.getUnreadCount(String(c.id), userProfile?.uid || user?.uid || 'default_student');
+    });
+    setTotalUnreadDiscussions(count);
+  };
 
   useEffect(() => {
     const allBookmarks: any[] = [];
@@ -79,7 +92,12 @@ export const Dashboard: React.FC = () => {
         setRecentActivities(JSON.parse(cachedAct));
       } catch (e) {}
     }
-  }, [courses, activePlayerCourse]);
+
+    if (courses.length > 0 && !selectedCourseId) {
+      setSelectedCourseId(String(courses[0].id));
+    }
+    updateUnreadCount();
+  }, [courses, activePlayerCourse, userProfile, user]);
 
   const getCourseCheckpoint = (courseId: string) => {
     const data = localStorage.getItem(`shaivika_user_checkpoint_${courseId}_default_student`);
@@ -546,6 +564,7 @@ export const Dashboard: React.FC = () => {
           { id: 'calendar', label: 'Deadlines Calendar' },
           { id: 'certificates', label: 'Unlocked Credentials' },
           { id: 'analytics', label: 'Learning Analytics' },
+          { id: 'discussions', label: `Discussion Center${totalUnreadDiscussions > 0 ? ` (${totalUnreadDiscussions})` : ''}` },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -1369,6 +1388,40 @@ export const Dashboard: React.FC = () => {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ------------------- 6. DISCUSSION CENTER TAB ------------------- */}
+      {currentTab === 'discussions' && (
+        <div className="space-y-6 animate-in fade-in duration-300">
+          <div className="bg-white border border-sky-200/60 p-5 rounded-3xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="font-heading font-extrabold text-base text-slate-900">Discussion Center & Doubt Resolution</h3>
+              <p className="text-xs text-slate-500 mt-0.5 font-medium">Browse discussion channels, clear your doubts, and collaborate with peers.</p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-600 whitespace-nowrap">Select Course:</span>
+              <select
+                value={selectedCourseId}
+                onChange={(e) => setSelectedCourseId(e.target.value)}
+                className="bg-slate-50 hover:bg-slate-100 py-2.5 px-4 rounded-xl text-xs font-bold border border-slate-200 focus:border-blue-500 outline-none transition-all cursor-pointer font-semibold"
+              >
+                {courses.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {selectedCourseId && (
+            <DiscussionCenter
+              courseId={selectedCourseId}
+              onUnreadCountChange={updateUnreadCount}
+            />
+          )}
         </div>
       )}
 

@@ -15,10 +15,14 @@ import {
   Layers,
   Play,
   Bot,
+  MessageSquare,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCourses } from '@/contexts/CourseContext';
 import { gitLessonsData } from '@/data/gitLessonsData';
+import { useAuth } from '@/contexts/AuthContext';
+import { DiscussionCenter } from '@/components/courses/DiscussionCenter';
+import { discussionService } from '@/services/discussionService';
 
 export const CourseView: React.FC = () => {
   const { courseId, slug } = useParams();
@@ -48,10 +52,27 @@ export const CourseView: React.FC = () => {
     });
   };
 
-  const [activeTab, setActiveTab] = useState<'intro' | 'index' | 'terminal' | 'quiz'>('intro');
+  const { userProfile, user } = useAuth();
+  const currentUserId = userProfile?.uid || user?.uid || 'default_student';
+
+  const [activeTab, setActiveTab] = useState<'intro' | 'index' | 'terminal' | 'quiz' | 'discussions'>('intro');
   const [activeModule, setActiveModule] = useState<number | null>(1);
   const [completedLessons, setCompletedLessons] = useState<any[]>([101, 102]);
   const [selectedLessonId, setSelectedLessonId] = useState<any | null>(101);
+
+  const [unreadDiscussions, setUnreadDiscussions] = useState(0);
+  const [forceOpenCreateQuestion, setForceOpenCreateQuestion] = useState(false);
+  const [targetLessonId, setTargetLessonId] = useState<string | undefined>(undefined);
+  const [targetLessonName, setTargetLessonName] = useState<string | undefined>(undefined);
+
+  const updateUnread = () => {
+    const activeId = dynamicCourse?.id || idOrSlug;
+    setUnreadDiscussions(discussionService.getUnreadCount(String(activeId), currentUserId));
+  };
+
+  React.useEffect(() => {
+    updateUnread();
+  }, [idOrSlug, currentUserId]);
 
   // Reset values when course changes
   React.useEffect(() => {
@@ -1577,7 +1598,12 @@ export const CourseView: React.FC = () => {
         </button>
 
         <button
-          onClick={() => setActiveTab('quiz')}
+          onClick={() => {
+            setActiveTab('quiz');
+            setForceOpenCreateQuestion(false);
+            setTargetLessonId(undefined);
+            setTargetLessonName(undefined);
+          }}
           className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${
             activeTab === 'quiz'
               ? 'bg-sky-600 text-white shadow-md shadow-sky-500/20'
@@ -1586,6 +1612,28 @@ export const CourseView: React.FC = () => {
         >
           <HelpCircle className="w-4 h-4" />
           <span>AI Knowledge Quiz</span>
+        </button>
+
+        <button
+          onClick={() => {
+            setActiveTab('discussions');
+            setForceOpenCreateQuestion(false);
+            setTargetLessonId(undefined);
+            setTargetLessonName(undefined);
+          }}
+          className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${
+            activeTab === 'discussions'
+              ? 'bg-sky-600 text-white shadow-md shadow-sky-500/20'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-sky-50'
+          }`}
+        >
+          <MessageSquare className="w-4 h-4" />
+          <span>Discussion Center</span>
+          {unreadDiscussions > 0 && (
+            <span className="px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[9px] font-extrabold leading-none animate-pulse">
+              {unreadDiscussions}
+            </span>
+          )}
         </button>
       </div>
 
@@ -2029,6 +2077,21 @@ export const CourseView: React.FC = () => {
                                         <Bot className="w-3.5 h-3.5" />
                                         <span>Ask AI Tutor</span>
                                       </button>
+                                      
+                                      <button
+                                        onClick={() => {
+                                          setActiveTab('discussions');
+                                          setForceOpenCreateQuestion(true);
+                                          setTargetLessonId(String(lesson.id));
+                                          setTargetLessonName(lesson.title);
+                                          toast.info('Opening Q&A center for this lesson...');
+                                        }}
+                                        className="px-3 py-1.5 bg-indigo-650 hover:bg-indigo-600 text-white font-bold rounded-lg text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                                      >
+                                        <MessageSquare className="w-3.5 h-3.5" />
+                                        <span>Ask a Question</span>
+                                      </button>
+
                                       <button
                                         onClick={() => {
                                           setActiveTab('terminal');
@@ -2246,6 +2309,25 @@ export const CourseView: React.FC = () => {
               Submit Quiz & Check Score
             </button>
           )}
+        </div>
+      )}
+
+      {/* Tab 5: Discussion Center */}
+      {activeTab === 'discussions' && (
+        <div className="space-y-6 animate-in fade-in duration-300">
+          <DiscussionCenter
+            courseId={String(courseData.id)}
+            currentLessonId={targetLessonId}
+            currentLessonName={targetLessonName}
+            forceCreateOpen={forceOpenCreateQuestion}
+            onCloseCreate={() => {
+              setForceOpenCreateQuestion(false);
+              setTargetLessonId(undefined);
+              setTargetLessonName(undefined);
+            }}
+            onUnreadCountChange={updateUnread}
+            lessonsList={courseData.modules.flatMap(m => m.lessons).map(l => ({ id: String(l.id), title: l.title }))}
+          />
         </div>
       )}
 
