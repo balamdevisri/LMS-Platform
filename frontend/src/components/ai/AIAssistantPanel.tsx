@@ -20,6 +20,7 @@ import {
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { mockAIProvider } from '@/services/aiProvider';
+import { ChallengeProvider } from '@/services/practice/practiceEngine';
 import type {
   AIChatMessage,
   LessonSummary,
@@ -61,6 +62,9 @@ export const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
 }) => {
   const { userProfile, user } = useAuth();
   const currentUserId = userProfile?.uid || user?.uid || 'default_student';
+
+  const challengeProvider = new ChallengeProvider();
+  const hasChallenge = !!challengeProvider.getChallengeForLesson(lessonId);
 
   // --- RESIZE & LAYOUT STATES ---
   const [panelWidth, setPanelWidth] = useState<number>(380);
@@ -118,10 +122,14 @@ export const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
       }
     } else {
       // Default welcome context
+      let welcomeText = `Hello! I am your Shaivika AI Learning Assistant. 🧠\n\nI have loaded the syllabus context for "**${lessonTitle}**" (${lessonType.toUpperCase()} lesson).\n\nAsk me anything about this topic, generate practice questions, or view the lesson summary using the tabs above!`;
+      if (hasChallenge) {
+        welcomeText += `\n\n💻 **Practice Lab Challenge Enabled**: This topic contains a coding challenge! Try asking me:\n- *"Explain my code"*\n- *"Find bugs in my solution"*\n- *"Suggest optimizations"*\n- *"Explain space complexity"*`;
+      }
       const welcome: AIChatMessage = {
         id: 'welcome_ai',
         sender: 'ai',
-        text: `Hello! I am your Shaivika AI Learning Assistant. 🧠\n\nI have loaded the syllabus context for "**${lessonTitle}**" (${lessonType.toUpperCase()} lesson).\n\nAsk me anything about this topic, generate practice questions, or view the lesson summary using the tabs above!`,
+        text: welcomeText,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setMessages([welcome]);
@@ -556,6 +564,21 @@ export const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
                       className="p-2 text-left rounded-xl bg-white border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/10 text-[10px] font-bold text-slate-700 hover:text-emerald-800 transition-all cursor-pointer shadow-3xs"
                     >
                       {prompt}
+                    </button>
+                  ))}
+
+                  {hasChallenge && [
+                    'Explain my code',
+                    'Find bugs in my solution',
+                    'Suggest optimizations',
+                    'Explain space complexity'
+                  ].map(prompt => (
+                    <button
+                      key={prompt}
+                      onClick={() => handleSendMessage(prompt)}
+                      className="p-2 text-left rounded-xl bg-slate-900 border border-slate-800 hover:border-emerald-500 hover:bg-emerald-950/20 text-[10px] font-bold text-white hover:text-emerald-400 transition-all cursor-pointer shadow-3xs"
+                    >
+                      💻 {prompt}
                     </button>
                   ))}
                 </div>

@@ -52,6 +52,10 @@ import { discussionService } from '@/services/discussionService';
 import { AssignmentPortal } from './AssignmentPortal';
 import { AIAssistantPanel } from '../ai/AIAssistantPanel';
 import { AIQuizPortal } from './AIQuizPortal';
+import { PracticeLab } from './PracticeLab';
+import { ChallengeProvider } from '../../services/practice/practiceEngine';
+
+const challengeProvider = new ChallengeProvider();
 
 export interface CoursePlayerModalProps {
   course: ICourse;
@@ -403,7 +407,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
   const currentUserId = userProfile?.uid || user?.uid || 'default_student';
 
   const [activeModuleIdx, setActiveModuleIdx] = useState(0);
-  const [activeTab, setActiveTab] = useState<'content' | 'commands' | 'slides' | 'lab' | 'discussions'>('content');
+  const [activeTab, setActiveTab] = useState<'content' | 'commands' | 'slides' | 'lab' | 'discussions' | 'practice-lab'>('content');
   const [currentSlideIdx, setCurrentSlideIdx] = useState(0);
   const [completedModules, setCompletedModules] = useState<number[]>([0]);
 
@@ -586,6 +590,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
 
   const currentLesson = activeCurriculum[currentLessonIdx] || activeCurriculum[0];
   const currentSubtopic: SubtopicDetail = currentLesson?.subtopics?.[currentSubtopicIdx] || currentLesson?.subtopics?.[0];
+  const hasChallenge = currentSubtopic ? !!challengeProvider.getChallengeForLesson(currentSubtopic.id) : false;
 
   const requiredSubtopicSeconds = Math.min(
     15,
@@ -1638,6 +1643,24 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                   <Sparkles className="w-4 h-4 text-purple-600" /> Live Lab
                 </button>
 
+                {hasChallenge && (
+                  <button
+                    onClick={() => {
+                      setActiveTab('practice-lab');
+                      setForceOpenCreateQuestion(false);
+                      setTargetLessonId(undefined);
+                      setTargetLessonName(undefined);
+                    }}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                      activeTab === 'practice-lab'
+                        ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20'
+                        : 'bg-white border border-sky-200 text-slate-700 hover:bg-sky-50'
+                    }`}
+                  >
+                    <Code className="w-4 h-4 text-emerald-600 animate-pulse" /> Practice Lab
+                  </button>
+                )}
+
                 <button
                   onClick={() => {
                     setActiveTab('discussions');
@@ -2347,6 +2370,18 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                     </button>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* TAB: PRACTICE LAB */}
+            {activeTab === 'practice-lab' && (
+              <div className="flex-1 min-h-[500px] md:h-[600px] border border-slate-800 rounded-3xl overflow-hidden shadow-2xl animate-in fade-in duration-200">
+                <PracticeLab
+                  lessonId={currentSubtopic?.id}
+                  lessonTitle={currentSubtopic?.title}
+                  courseId={String(course.id)}
+                  courseTitle={course.title}
+                />
               </div>
             )}
 

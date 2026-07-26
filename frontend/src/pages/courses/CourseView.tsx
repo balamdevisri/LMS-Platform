@@ -26,6 +26,11 @@ import { DiscussionCenter } from '@/components/courses/DiscussionCenter';
 import { discussionService } from '@/services/discussionService';
 import { AssignmentPortal } from '@/components/courses/AssignmentPortal';
 import { AIAssistantPanel } from '@/components/ai/AIAssistantPanel';
+import { PracticeLab } from '@/components/courses/PracticeLab';
+import { ChallengeProvider } from '@/services/practice/practiceEngine';
+import { Code } from 'lucide-react';
+
+const challengeProvider = new ChallengeProvider();
 
 export const CourseView: React.FC = () => {
   const { courseId, slug } = useParams();
@@ -58,7 +63,7 @@ export const CourseView: React.FC = () => {
   const { userProfile, user } = useAuth();
   const currentUserId = userProfile?.uid || user?.uid || 'default_student';
 
-  const [activeTab, setActiveTab] = useState<'intro' | 'index' | 'terminal' | 'quiz' | 'discussions'>('intro');
+  const [activeTab, setActiveTab] = useState<'intro' | 'index' | 'terminal' | 'quiz' | 'discussions' | 'practice-lab'>('intro');
   const [activeModule, setActiveModule] = useState<number | null>(1);
   const [completedLessons, setCompletedLessons] = useState<any[]>([101, 102]);
   const [selectedLessonId, setSelectedLessonId] = useState<any | null>(101);
@@ -500,6 +505,7 @@ export const CourseView: React.FC = () => {
   }
 
   const courseData = (isGitCourse ? gitCourseData : linuxCourseData) as CourseDataInterface;
+  const hasChallenge = selectedLessonId ? !!challengeProvider.getChallengeForLesson(selectedLessonId) : false;
 
   // Reusable Interactive Command Box with Auto Terminal Execution
   const InteractiveCmd: React.FC<{ cmd: string; desc?: string }> = ({ cmd, desc }) => (
@@ -1655,6 +1661,25 @@ export const CourseView: React.FC = () => {
             </span>
           )}
         </button>
+
+        {hasChallenge && (
+          <button
+            onClick={() => {
+              setActiveTab('practice-lab');
+              setForceOpenCreateQuestion(false);
+              setTargetLessonId(undefined);
+              setTargetLessonName(undefined);
+            }}
+            className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${
+              activeTab === 'practice-lab'
+                ? 'bg-sky-600 text-white shadow-md shadow-sky-500/20'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-sky-50'
+            }`}
+          >
+            <Code className="w-4 h-4 text-emerald-600" />
+            <span>Practice Lab</span>
+          </button>
+        )}
       </div>
 
       {/* Tab 1: Course Introduction & Overview */}
@@ -2143,6 +2168,19 @@ export const CourseView: React.FC = () => {
                                         <Terminal className="w-3.5 h-3.5" />
                                         <span>Launch Terminal Lab</span>
                                       </button>
+
+                                      {hasChallenge && (
+                                        <button
+                                          onClick={() => {
+                                            setActiveTab('practice-lab');
+                                            toast.info('Practice Lab launched!');
+                                          }}
+                                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-lg text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                                        >
+                                          <Code className="w-3.5 h-3.5 animate-pulse" />
+                                          <span>Launch Practice Lab</span>
+                                        </button>
+                                      )}
                                     </div>
                                   </div>
 
@@ -2350,6 +2388,18 @@ export const CourseView: React.FC = () => {
               Submit Quiz & Check Score
             </button>
           )}
+        </div>
+      )}
+
+      {/* Tab: Practice Lab */}
+      {activeTab === 'practice-lab' && (
+        <div className="flex-1 min-h-[500px] md:h-[600px] border border-slate-800 rounded-3xl overflow-hidden shadow-2xl animate-in fade-in duration-200">
+          <PracticeLab
+            lessonId={selectedLessonId}
+            lessonTitle={courseData.modules.flatMap(m => m.lessons).find(l => String(l.id) === String(selectedLessonId))?.title}
+            courseId={String(courseData.id)}
+            courseTitle={courseData.title}
+          />
         </div>
       )}
 

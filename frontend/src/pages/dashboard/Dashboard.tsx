@@ -30,6 +30,7 @@ import { discussionService } from '@/services/discussionService';
 import { AssignmentPortal } from '@/components/courses/AssignmentPortal';
 import { AIAssistantPanel } from '@/components/ai/AIAssistantPanel';
 import { AIQuizPortal } from '../../components/courses/AIQuizPortal';
+import { PracticeLab } from '../../components/courses/PracticeLab';
 
 export const Dashboard: React.FC = () => {
   const { user, userProfile } = useAuth();
@@ -619,6 +620,7 @@ export const Dashboard: React.FC = () => {
           { id: 'analytics', label: 'Learning Analytics' },
           { id: 'discussions', label: `Discussion Center${totalUnreadDiscussions > 0 ? ` (${totalUnreadDiscussions})` : ''}` },
           { id: 'ai-quizzes', label: 'AI Assessment Center' },
+          { id: 'practice-lab', label: 'Practice Lab Sandbox' },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -1493,6 +1495,16 @@ export const Dashboard: React.FC = () => {
             lessonId={aiLessonContext?.id || defaultAiContext.id}
             lessonTitle={aiLessonContext?.title || defaultAiContext.title}
             lessonContent={aiLessonContext?.content || defaultAiContext.content}
+          />
+        </div>
+      )}
+
+      {/* ------------------- 8. PRACTICE LAB SANDBOX TAB ------------------- */}
+      {currentTab === 'practice-lab' && (
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl animate-in fade-in duration-300 h-[650px] p-2">
+          <PracticeLab
+            standalone={true}
+            courseId={selectedCourseId || '1'}
           />
         </div>
       )}

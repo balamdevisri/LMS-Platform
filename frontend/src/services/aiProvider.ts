@@ -91,6 +91,45 @@ class MockAIProvider implements AIProvider {
     const query = message.toLowerCase().trim();
     const topic = context.lessonTitle || 'the lesson';
 
+    // Code Review Intercepts
+    const lastCode = typeof window !== 'undefined' ? localStorage.getItem('shaivika_last_active_code') : null;
+    const lastLang = typeof window !== 'undefined' ? localStorage.getItem('shaivika_last_active_language') || 'javascript' : 'javascript';
+
+    if (query.includes('explain my code') || query.includes('explain code')) {
+      if (!lastCode) return "I couldn't find any code in your Practice Lab. Please write or load some code in the Practice Lab editor first!";
+      return `### AI Code Explanation (Language: ${lastLang.toUpperCase()})\n\nHere is a review of your code in the editor:\n\n\`\`\`${lastLang}\n${lastCode}\n\`\`\`\n\n1. **Structure**: Your code correctly implements the base solution interface.\n2. **Logic Flow**: It processes input values linearly or using loops.\n3. **Return Value**: The parsed output is compiled and returned.\n\nLet me know if you want to find bugs or optimize this code!`;
+    }
+
+    if (query.includes('find bugs') || query.includes('bugs in my code') || query.includes('bug in my code')) {
+      if (!lastCode) return "I couldn't find any code in your Practice Lab. Please write or load some code in the Practice Lab editor first!";
+      return `### AI Bug Finder (${lastLang.toUpperCase()})\n\nAnalyzing code for bugs:\n\n\`\`\`${lastLang}\n${lastCode}\n\`\`\`\n\n1. **Validation Checks**: Ensure your parameters handle empty or undefined values.\n2. **Boundary Checks**: Check if loop indexes are off-by-one.\n3. **Syntax**: Ensure all matching brackets and brackets are closed.`;
+    }
+
+    if (query.includes('suggest optimizations') || query.includes('optimize my code') || query.includes('optimization')) {
+      if (!lastCode) return "I couldn't find any code in your Practice Lab. Please write or load some code in the Practice Lab editor first!";
+      return `### AI Optimizations Suggestions (${lastLang.toUpperCase()})\n\nReviewing performance optimizations:\n\n\`\`\`${lastLang}\n${lastCode}\n\`\`\`\n\n- **Loop Allocations**: Avoid re-instantiating heavy variables inside loops.\n- **Return Fast**: Return results immediately when a condition fails to save cycles.`;
+    }
+
+    if (query.includes('improve readability') || query.includes('readability')) {
+      if (!lastCode) return "I couldn't find any code in your Practice Lab. Please write or load some code in the Practice Lab editor first!";
+      return `### AI Readability Analysis (${lastLang.toUpperCase()})\n\nReviewing naming and structure formatting:\n\n- Use descriptive parameter names.\n- Add helper comments documenting loops or logical assumptions.`;
+    }
+
+    if (query.includes('improve performance') || query.includes('performance')) {
+      if (!lastCode) return "I couldn't find any code in your Practice Lab. Please write or load some code in the Practice Lab editor first!";
+      return `### AI Performance Analysis (${lastLang.toUpperCase()})\n\n- Ensure execution scales linearly O(N).\n- Bypass unneeded operations.`;
+    }
+
+    if (query.includes('time complexity')) {
+      if (!lastCode) return "I couldn't find any code in your Practice Lab. Please write or load some code in the Practice Lab editor first!";
+      return `### AI Complexity: Time Complexity (${lastLang.toUpperCase()})\n\nYour code runs in **O(N)** linear time. Scalability is optimal for processing standard inputs.`;
+    }
+
+    if (query.includes('space complexity')) {
+      if (!lastCode) return "I couldn't find any code in your Practice Lab. Please write or load some code in the Practice Lab editor first!";
+      return `### AI Complexity: Space Complexity (${lastLang.toUpperCase()})\n\nYour solution runs in **O(1)** auxiliary space if output collections are excluded, or **O(N)** for returned arrays.`;
+    }
+
     // 1. Check for specific quick triggers
     if (query.includes('explain this lesson') || query.includes('explain the lesson')) {
       return `Here is a detailed explanation of "**${topic}**":\n\nThis lesson covers core concepts in ${context.courseTitle}. In systems engineering, understanding the configuration paradigms and execution sequences is crucial. \n\nKey takeaways include:\n1. Establishing proper permissions and settings.\n2. Running diagnostic tests using local sandboxes.\n3. Analyzing output streams for error logs.\n\nWould you like me to go deeper into any particular system call, permission settings, or configurations?`;
