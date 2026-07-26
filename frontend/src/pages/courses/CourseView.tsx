@@ -16,6 +16,7 @@ import {
   Play,
   Bot,
   MessageSquare,
+  FileCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCourses } from '@/contexts/CourseContext';
@@ -23,6 +24,7 @@ import { gitLessonsData } from '@/data/gitLessonsData';
 import { useAuth } from '@/contexts/AuthContext';
 import { DiscussionCenter } from '@/components/courses/DiscussionCenter';
 import { discussionService } from '@/services/discussionService';
+import { AssignmentPortal } from '@/components/courses/AssignmentPortal';
 
 export const CourseView: React.FC = () => {
   const { courseId, slug } = useParams();
@@ -64,6 +66,13 @@ export const CourseView: React.FC = () => {
   const [forceOpenCreateQuestion, setForceOpenCreateQuestion] = useState(false);
   const [targetLessonId, setTargetLessonId] = useState<string | undefined>(undefined);
   const [targetLessonName, setTargetLessonName] = useState<string | undefined>(undefined);
+
+  const [selectedAssignmentForPortal, setSelectedAssignmentForPortal] = useState<{
+    id: string;
+    title: string;
+    courseId: string;
+    dueDate?: string;
+  } | null>(null);
 
   const updateUnread = () => {
     const activeId = dynamicCourse?.id || idOrSlug;
@@ -2053,6 +2062,7 @@ export const CourseView: React.FC = () => {
                               };
 
                               const isDone = completedLessons.includes(lesson.id);
+                              const isAssignmentType = lesson.type === 'assignment' || lesson.type === 'Assignment' || lesson.title?.toLowerCase().includes('assignment') || lesson.id === 103;
 
                               return (
                                 <div className="p-5 sm:p-6 bg-white rounded-2xl border border-sky-200 shadow-lg space-y-4 animate-in fade-in slide-in-from-top-2">
@@ -2091,6 +2101,24 @@ export const CourseView: React.FC = () => {
                                         <MessageSquare className="w-3.5 h-3.5" />
                                         <span>Ask a Question</span>
                                       </button>
+
+                                      {isAssignmentType && (
+                                        <button
+                                          onClick={() => {
+                                            setSelectedAssignmentForPortal({
+                                              id: String(lesson.id),
+                                              title: lesson.title,
+                                              courseId: String(courseData.id),
+                                              dueDate: '2026-07-25T23:59:59Z'
+                                            });
+                                            toast.info('Opening assignment workspace...');
+                                          }}
+                                          className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                                        >
+                                          <FileCheck className="w-3.5 h-3.5" />
+                                          <span>Submit Assignment</span>
+                                        </button>
+                                      )}
 
                                       <button
                                         onClick={() => {
@@ -2328,6 +2356,22 @@ export const CourseView: React.FC = () => {
             onUnreadCountChange={updateUnread}
             lessonsList={courseData.modules.flatMap(m => m.lessons).map(l => ({ id: String(l.id), title: l.title }))}
           />
+        </div>
+      )}
+
+      {selectedAssignmentForPortal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl overflow-hidden shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col">
+            <div className="overflow-y-auto">
+              <AssignmentPortal
+                assignmentId={selectedAssignmentForPortal.id}
+                assignmentTitle={selectedAssignmentForPortal.title}
+                courseId={selectedAssignmentForPortal.courseId}
+                dueDate={selectedAssignmentForPortal.dueDate}
+                onClose={() => setSelectedAssignmentForPortal(null)}
+              />
+            </div>
+          </div>
         </div>
       )}
 

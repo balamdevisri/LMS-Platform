@@ -24,6 +24,7 @@ import { useCourses } from '@/contexts/CourseContext';
 import { CoursePlayerModal } from '../../components/courses/CoursePlayerModal';
 import { DiscussionCenter } from '@/components/courses/DiscussionCenter';
 import { discussionService } from '@/services/discussionService';
+import { AssignmentPortal } from '@/components/courses/AssignmentPortal';
 
 export const Dashboard: React.FC = () => {
   const { user, userProfile } = useAuth();
@@ -46,6 +47,13 @@ export const Dashboard: React.FC = () => {
   const [playerInitialSubtopicId, setPlayerInitialSubtopicId] = useState<string | undefined>(undefined);
   const [playerInitialNotesOpen, setPlayerInitialNotesOpen] = useState<boolean>(false);
   const [playerInitialTab, setPlayerInitialTab] = useState<'notes' | 'bookmarks' | undefined>(undefined);
+
+  const [selectedAssignmentForPortal, setSelectedAssignmentForPortal] = useState<{
+    id: string;
+    title: string;
+    courseId: string;
+    dueDate?: string;
+  } | null>(null);
 
   // Filters & sorting for Learning Hub
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -1174,12 +1182,17 @@ export const Dashboard: React.FC = () => {
                         <td className="py-3.5 px-4 text-slate-500 font-mono">{item.unit.assignmentDeadline || '7 days'}</td>
                         <td className="py-3.5 px-4 text-slate-500 font-mono">{item.unit.assignmentMaxMarks || 100} Marks</td>
                         <td className="py-3.5 px-4 text-right">
-                          <Link
-                            to={`/admin/courses/${item.courseId}`}
-                            className="inline-flex items-center text-[10px] font-bold text-sky-700 bg-sky-50 px-2.5 py-1 rounded-md border hover:bg-sky-100 transition-all cursor-pointer"
+                          <button
+                            onClick={() => setSelectedAssignmentForPortal({
+                              id: item.unit.id || '1.1.3',
+                              title: item.unit.title,
+                              courseId: String(item.courseId),
+                              dueDate: '2026-07-25T23:59:59Z'
+                            })}
+                            className="inline-flex items-center text-[10px] font-bold text-sky-700 bg-sky-50 px-2.5 py-1 rounded-md border border-sky-200 hover:bg-sky-100 transition-all cursor-pointer shadow-3xs"
                           >
-                            <span>Open Task</span>
-                          </Link>
+                            <span>Open Workspace</span>
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -1531,6 +1544,22 @@ export const Dashboard: React.FC = () => {
             setPlayerInitialTab(undefined);
           }}
         />
+      )}
+
+      {selectedAssignmentForPortal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl overflow-hidden shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col">
+            <div className="overflow-y-auto">
+              <AssignmentPortal
+                assignmentId={selectedAssignmentForPortal.id}
+                assignmentTitle={selectedAssignmentForPortal.title}
+                courseId={selectedAssignmentForPortal.courseId}
+                dueDate={selectedAssignmentForPortal.dueDate}
+                onClose={() => setSelectedAssignmentForPortal(null)}
+              />
+            </div>
+          </div>
+        </div>
       )}
 
     </div>

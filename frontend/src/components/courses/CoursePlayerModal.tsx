@@ -48,6 +48,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { DiscussionCenter } from './DiscussionCenter';
 import { discussionService } from '@/services/discussionService';
+import { AssignmentPortal } from './AssignmentPortal';
 
 export interface CoursePlayerModalProps {
   course: ICourse;
@@ -455,7 +456,6 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
   const [quizAnswers, setQuizAnswers] = useState<Record<string, Record<number, number>>>({});
   const [quizSubmitted, setQuizSubmitted] = useState<Record<string, boolean>>({});
   const [quizPassed, setQuizPassed] = useState<Record<string, boolean>>({});
-  const [assignmentAnswers, setAssignmentAnswers] = useState<Record<string, string>>({});
 
   // ----------------- PHASE 25: PERSONAL NOTES & SMART BOOKMARKS STATES -----------------
   const [notes, setNotes] = useState<PersonalNote[]>([]);
@@ -1891,68 +1891,17 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                     )}
 
                     {getLessonType(currentSubtopic.id) === 'assignment' && (
-                      <div className="p-4 sm:p-6 rounded-2xl bg-amber-50/40 border border-amber-200/60 space-y-4">
-                        <div className="flex items-center justify-between border-b border-amber-200/50 pb-2">
-                          <h4 className="font-heading font-extrabold text-sm text-amber-900">
-                            Practical Core Assignment
-                          </h4>
-                          <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md ${
-                            completedSubtopics.includes(currentSubtopic.id)
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : 'bg-amber-100 text-amber-800 animate-pulse'
-                          }`}>
-                            {completedSubtopics.includes(currentSubtopic.id) ? '✓ Submitted' : 'Pending Submission'}
-                          </span>
-                        </div>
-
-                        <div className="space-y-3">
-                          <div className="p-3 bg-white rounded-xl border border-amber-200/40 text-xs text-slate-700 space-y-1.5">
-                            <p className="font-bold text-slate-800">Prompt Instructions:</p>
-                            <p>Map the concentric layers of a typical Linux system (Hardware, Kernel, Shell, User Utilities) and construct a brief explanation of how application processes communicate with system hardware via system calls.</p>
-                          </div>
-
-                          <textarea
-                            disabled={completedSubtopics.includes(currentSubtopic.id)}
-                            value={assignmentAnswers[currentSubtopic.id] || ''}
-                            onChange={(e) => setAssignmentAnswers(prev => ({
-                              ...prev,
-                              [currentSubtopic.id]: e.target.value
-                            }))}
-                            placeholder="Write your explanation here..."
-                            rows={4}
-                            className="w-full p-3 rounded-xl border border-amber-200 bg-white text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all font-sans"
-                          />
-                        </div>
-
-                        <div className="flex items-center justify-between gap-4 pt-2">
-                          <span className="text-[10px] text-slate-400 font-medium">Auto-saved in local session</span>
-                          {!completedSubtopics.includes(currentSubtopic.id) ? (
-                            <button
-                              onClick={() => {
-                                const content = assignmentAnswers[currentSubtopic.id] || '';
-                                if (content.trim().length < 10) {
-                                  toast.warning('Please write a valid explanation before submitting (minimum 10 characters).');
-                                  return;
-                                }
-                                logRecentActivity(course.id, course.title, 'assignment', currentSubtopic.title);
-                                setCompletedSubtopics(prev => {
-                                  if (prev.includes(currentSubtopic.id)) return prev;
-                                  toast.success('🎉 Assignment Submitted Successfully!');
-                                  return [...prev, currentSubtopic.id];
-                                });
-                              }}
-                              className="py-2 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs cursor-pointer transition-all shadow-md shadow-amber-600/10"
-                            >
-                              Submit Assignment
-                            </button>
-                          ) : (
-                            <div className="py-2 px-4 rounded-xl bg-emerald-100 text-emerald-800 font-extrabold text-xs flex items-center gap-1.5">
-                              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                              <span>Completed</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                      <AssignmentPortal
+                        assignmentId={currentSubtopic.id}
+                        assignmentTitle={currentSubtopic.title}
+                        courseId={String(course.id)}
+                        dueDate="2026-07-25T23:59:59Z"
+                        maxMarks={100}
+                        passingMarks={70}
+                        instructions="Map the concentric layers of a typical Linux system (Hardware, Kernel, Shell, User Utilities) and construct a brief explanation of how application processes communicate with system hardware via system calls. Test commands in the terminal."
+                        description="Linux Concentric Layers Architecture Assignment"
+                        allowedTypes={['.pdf', '.docx', '.zip', '.sh', '.js', '.png', '.jpg']}
+                      />
                     )}
 
                     {getLessonType(currentSubtopic.id) === 'reading' && (

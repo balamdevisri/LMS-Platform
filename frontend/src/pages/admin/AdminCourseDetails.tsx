@@ -25,6 +25,7 @@ import {
   Check
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { AssignmentPortal } from '@/components/courses/AssignmentPortal';
 import {
   useCourses,
   type ModuleItem,
@@ -88,7 +89,32 @@ export const AdminCourseDetails: React.FC = () => {
   const [activeUnit, setActiveUnit] = useState<LearningUnitItem | null>(null);
   const [drawerModuleId, setDrawerModuleId] = useState<string | null>(null);
   const [drawerTopicId, setDrawerTopicId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit');
+  const [activeTab, setActiveTab] = useState<'edit' | 'preview' | 'grading'>('edit');
+  const [selectedGradingAssignmentId, setSelectedGradingAssignmentId] = useState<string>('1.1.3');
+
+  // Extract all assignments in this course dynamically
+  const courseAssignments = React.useMemo(() => {
+    const list: Array<{ id: string; title: string }> = [];
+    // Always include Linux assignment 1.1.3 for testing
+    list.push({ id: '1.1.3', title: '1.3 Practical Core Assignment: concentric Linux layers' });
+    
+    course?.modules?.forEach((m) => {
+      m.topics?.forEach((t) => {
+        t.learningUnits?.forEach((u) => {
+          if (u.type === 'Assignment') {
+            list.push({ id: String(u.id), title: u.title });
+          }
+        });
+      });
+    });
+
+    const seen = new Set<string>();
+    return list.filter((item) => {
+      if (seen.has(item.id)) return false;
+      seen.add(item.id);
+      return true;
+    });
+  }, [course]);
 
   // Student Preview Mode Toggle
   const [isStudentPreviewMode, setIsStudentPreviewMode] = useState(false);
@@ -1527,9 +1553,38 @@ export const AdminCourseDetails: React.FC = () => {
         </div>
       )}
 
+      {/* Main Tabs Switcher */}
+      {!isStudentPreviewMode && (
+        <div className="flex border-b border-slate-200 gap-6 text-sm font-bold bg-white p-4 rounded-3xl border border-sky-100/50 shadow-3xs mb-6">
+          <button
+            type="button"
+            onClick={() => setActiveTab('edit')}
+            className={`pb-1 transition-all border-b-2 cursor-pointer ${
+              activeTab === 'edit'
+                ? 'border-sky-600 text-sky-700'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            Curriculum Builder
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('grading')}
+            className={`pb-1 transition-all border-b-2 cursor-pointer ${
+              activeTab === 'grading'
+                ? 'border-sky-600 text-sky-700'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            Assignment Grading Center
+          </button>
+        </div>
+      )}
+
       {/* Main Grid: Modules & Sidebar */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left: Modules Section */}
+      {(isStudentPreviewMode || activeTab === 'edit') && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left: Modules Section */}
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white/90 border border-sky-200/80 rounded-3xl p-6 sm:p-8 space-y-6 shadow-sm">
             <div className="flex items-center justify-between border-b border-sky-100 pb-4">
@@ -1952,6 +2007,40 @@ export const AdminCourseDetails: React.FC = () => {
           </div>
         </div>
       </div>
+      )}
+
+      {/* Grading Center View */}
+      {!isStudentPreviewMode && activeTab === 'grading' && (
+        <div className="space-y-6 animate-in fade-in duration-300">
+          <div className="bg-white border border-sky-200 p-6 rounded-3xl shadow-xs space-y-4">
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
+              Select Course Assignment to Evaluate
+            </label>
+            <div className="relative">
+              <select
+                value={selectedGradingAssignmentId}
+                onChange={(e) => setSelectedGradingAssignmentId(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-xs font-bold text-slate-800 focus:outline-hidden cursor-pointer"
+              >
+                {courseAssignments.map((ass) => (
+                  <option key={ass.id} value={ass.id}>
+                    {ass.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <AssignmentPortal
+            assignmentId={selectedGradingAssignmentId}
+            assignmentTitle={
+              courseAssignments.find((a) => a.id === selectedGradingAssignmentId)?.title ||
+              'Course Assignment'
+            }
+            courseId={String(courseId)}
+          />
+        </div>
+      )}
 
       {/* ================= MODALS SECTION ================= */}
 
