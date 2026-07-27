@@ -92,7 +92,8 @@ class StudentService {
    * Directly fetch all students from Firestore users collection.
    */
   async fetchFirestoreStudentsDirectly(): Promise<StudentUser[]> {
-    if (!db) return this.getLocalStudents();
+    const currentLocal = this.getLocalStudents();
+    if (!db) return currentLocal;
 
     try {
       const usersRef = collection(db, 'users');
@@ -104,7 +105,7 @@ class StudentService {
         const email = (data.email || '').toLowerCase();
         const role = (data.role || 'student').toLowerCase();
 
-        if (role !== 'admin' && email) {
+        if (role !== 'admin') {
           const photoURL = data.photoURL || data.avatar || '';
           const isGithub =
             data.provider === 'github.com' ||
@@ -117,7 +118,7 @@ class StudentService {
           firestoreStudents.push({
             id: docSnap.id,
             name: data.name || data.displayName || data.fullName || email.split('@')[0] || 'Student User',
-            email: data.email || email,
+            email: data.email || email || `${docSnap.id}@shaivika.ai`,
             joined: data.createdAt
               ? new Date(data.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
               : 'Recently',
@@ -133,17 +134,20 @@ class StudentService {
         }
       });
 
-      const currentLocal = this.getLocalStudents();
       const combinedMap = new Map<string, StudentUser>();
-      currentLocal.forEach((st) => combinedMap.set(st.email.toLowerCase(), st));
-      firestoreStudents.forEach((st) => combinedMap.set(st.email.toLowerCase(), st));
+      // 1. Add Default Roster
+      DEFAULT_STUDENTS.forEach((st) => combinedMap.set((st.email || st.id).toLowerCase(), st));
+      // 2. Add Local Storage Roster
+      currentLocal.forEach((st) => combinedMap.set((st.email || st.id).toLowerCase(), st));
+      // 3. Add Firestore Documents
+      firestoreStudents.forEach((st) => combinedMap.set((st.email || st.id).toLowerCase(), st));
 
       const finalStudents = Array.from(combinedMap.values());
       this.saveLocalStudents(finalStudents);
       return finalStudents;
     } catch (e) {
       console.warn('Direct Firestore fetch error:', e);
-      return this.getLocalStudents();
+      return currentLocal;
     }
   }
 
@@ -190,7 +194,7 @@ class StudentService {
             const email = (data.email || '').toLowerCase();
             const role = (data.role || 'student').toLowerCase();
 
-            if (role !== 'admin' && email) {
+            if (role !== 'admin') {
               const photoURL = data.photoURL || data.avatar || '';
               const isGithub =
                 data.provider === 'github.com' ||
@@ -203,7 +207,7 @@ class StudentService {
               firestoreStudents.push({
                 id: docSnap.id,
                 name: data.name || data.displayName || data.fullName || email.split('@')[0] || 'Student User',
-                email: data.email || email,
+                email: data.email || email || `${docSnap.id}@shaivika.ai`,
                 joined: data.createdAt
                   ? new Date(data.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                   : 'Recently',
@@ -221,8 +225,9 @@ class StudentService {
 
           const currentLocal = this.getLocalStudents();
           const combinedMap = new Map<string, StudentUser>();
-          currentLocal.forEach((st) => combinedMap.set(st.email.toLowerCase(), st));
-          firestoreStudents.forEach((st) => combinedMap.set(st.email.toLowerCase(), st));
+          DEFAULT_STUDENTS.forEach((st) => combinedMap.set((st.email || st.id).toLowerCase(), st));
+          currentLocal.forEach((st) => combinedMap.set((st.email || st.id).toLowerCase(), st));
+          firestoreStudents.forEach((st) => combinedMap.set((st.email || st.id).toLowerCase(), st));
 
           const finalStudents = Array.from(combinedMap.values());
           localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(finalStudents));
