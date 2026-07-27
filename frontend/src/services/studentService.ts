@@ -80,6 +80,9 @@ class StudentService {
   private saveLocalStudents(students: StudentUser[]): void {
     try {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(students));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('shaivika_student_updated'));
+      }
     } catch (e) {
       console.warn('Failed to save local students cache:', e);
     }
@@ -130,29 +133,36 @@ class StudentService {
         }
       });
 
-      if (firestoreStudents.length > 0) {
-        const combinedMap = new Map<string, StudentUser>();
-        // Add defaults first
-        DEFAULT_STUDENTS.forEach((st) => combinedMap.set(st.email.toLowerCase(), st));
-        // Override with Firestore docs
-        firestoreStudents.forEach((st) => combinedMap.set(st.email.toLowerCase(), st));
-        const finalResults = Array.from(combinedMap.values());
-        this.saveLocalStudents(finalResults);
-        return finalResults;
-      }
-    } catch (e) {
-      console.warn('Direct Firestore fetch notice:', e);
-    }
+      const currentLocal = this.getLocalStudents();
+      const combinedMap = new Map<string, StudentUser>();
+      currentLocal.forEach((st) => combinedMap.set(st.email.toLowerCase(), st));
+      firestoreStudents.forEach((st) => combinedMap.set(st.email.toLowerCase(), st));
 
-    return this.getLocalStudents();
+      const finalStudents = Array.from(combinedMap.values());
+      this.saveLocalStudents(finalStudents);
+      return finalStudents;
+    } catch (e) {
+      console.warn('Direct Firestore fetch error:', e);
+      return this.getLocalStudents();
+    }
   }
 
   /**
-   * Subscribe to real-time student updates from Firestore database.
+   * Subscribe to real-time student updates from Firestore database and local storage.
    */
   subscribeToStudents(callback: (students: StudentUser[]) => void): () => void {
+    const handleUpdate = () => {
+      const latest = this.getLocalStudents();
+      callback(latest);
+    };
+
     const initialData = this.getLocalStudents();
     callback(initialData);
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('shaivika_student_updated', handleUpdate);
+      window.addEventListener('storage', handleUpdate);
+    }
 
     // Also trigger direct one-shot fetch for immediate population
     this.fetchFirestoreStudentsDirectly().then((fetched) => {
@@ -160,7 +170,12 @@ class StudentService {
     });
 
     if (!db) {
-      return () => {};
+      return () => {
+        if (typeof window !== 'undefined') {
+          window.removeEventListener('shaivika_student_updated', handleUpdate);
+          window.removeEventListener('storage', handleUpdate);
+        }
+      };
     }
 
     try {
@@ -204,12 +219,13 @@ class StudentService {
             }
           });
 
+          const currentLocal = this.getLocalStudents();
           const combinedMap = new Map<string, StudentUser>();
-          initialData.forEach((st) => combinedMap.set(st.email.toLowerCase(), st));
+          currentLocal.forEach((st) => combinedMap.set(st.email.toLowerCase(), st));
           firestoreStudents.forEach((st) => combinedMap.set(st.email.toLowerCase(), st));
 
           const finalStudents = Array.from(combinedMap.values());
-          this.saveLocalStudents(finalStudents);
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(finalStudents));
           callback(finalStudents);
         },
         (error) => {
@@ -218,10 +234,21 @@ class StudentService {
         }
       );
 
-      return unsubscribe;
+      return () => {
+        if (unsubscribe) unsubscribe();
+        if (typeof window !== 'undefined') {
+          window.removeEventListener('shaivika_student_updated', handleUpdate);
+          window.removeEventListener('storage', handleUpdate);
+        }
+      };
     } catch (e) {
       console.warn('Realtime subscription error:', e);
-      return () => {};
+      return () => {
+        if (typeof window !== 'undefined') {
+          window.removeEventListener('shaivika_student_updated', handleUpdate);
+          window.removeEventListener('storage', handleUpdate);
+        }
+      };
     }
   }
 
