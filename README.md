@@ -82,3 +82,4 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 ## Contribution Guide
 We welcome contributions! Please review our contribution guidelines (to be added) before submitting a pull request.
 "# shaivika-AI-LMS-platform-" 
+"# shaivika-LMS-platform" 
