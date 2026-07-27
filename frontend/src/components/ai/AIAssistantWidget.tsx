@@ -124,54 +124,54 @@ export const AIAssistantWidget: React.FC = () => {
 
       {/* Slide-over AI Panel */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 z-50 w-full max-w-md bg-[#0F172A] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[560px] animate-in fade-in slide-in-from-bottom-5 duration-300 text-white">
+        <div className="fixed bottom-6 right-6 z-50 w-full max-w-md bg-white border border-sky-200 rounded-3xl shadow-2xl overflow-hidden flex flex-col h-[560px] animate-in fade-in slide-in-from-bottom-5 duration-300 text-slate-900 font-['Sora']">
           {/* Header */}
-          <div className="bg-[#020617] p-4 text-white flex items-center justify-between border-b border-white/10">
+          <div className="bg-linear-to-r from-sky-600 via-blue-600 to-indigo-600 p-4 text-white flex items-center justify-between shadow-xs">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#059669] to-[#10B981] flex items-center justify-center text-white">
-                <Sparkles className="w-5 h-5" />
+              <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white border border-white/30">
+                <Sparkles className="w-5 h-5 text-sky-200 animate-pulse" />
               </div>
               <div>
-                <h3 className="font-heading font-semibold text-sm flex items-center gap-1.5">
+                <h3 className="font-heading font-bold text-sm flex items-center gap-1.5">
                   Shaivika AI Tutor
-                  <span className="px-2 py-0.5 text-[10px] bg-[#10B981]/20 text-[#34D399] rounded-full font-sans border border-[#10B981]/30">
+                  <span className="px-2 py-0.5 text-[10px] bg-white/20 text-white rounded-full font-sans border border-white/30">
                     GPT-4o Engine
                   </span>
                 </h3>
-                <p className="text-xs text-[#94A3B8]">Contextual Mentor & Code Helper</p>
+                <p className="text-xs text-sky-100 font-medium">Contextual Mentor & Code Helper</p>
               </div>
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="text-[#94A3B8] hover:text-white p-1 rounded-lg hover:bg-white/5 transition-colors"
+              className="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Messages Container */}
-          <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-[#020617]">
+          <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-sky-50/30">
             {messages.map((msg) => (
               <div
                 key={msg.id}
                 className={`flex gap-2.5 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 {msg.sender === 'ai' && (
-                  <div className="w-7 h-7 rounded-lg bg-[#10B981] text-white flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <div className="w-7 h-7 rounded-lg bg-sky-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
                     <Bot className="w-4 h-4" />
                   </div>
                 )}
                 <div
                   className={`max-w-[80%] rounded-2xl p-3 text-xs sm:text-sm whitespace-pre-line leading-relaxed ${
                     msg.sender === 'user'
-                      ? 'bg-[#10B981] text-white rounded-tr-none font-medium'
-                      : 'bg-[#0F172A] border border-white/10 text-slate-100 shadow-sm rounded-tl-none'
+                      ? 'bg-linear-to-r from-sky-600 to-blue-600 text-white rounded-tr-none font-medium shadow-xs'
+                      : 'bg-white border border-sky-100 text-slate-800 shadow-xs rounded-tl-none font-sans'
                   }`}
                 >
                   {msg.text}
                   <div
-                    className={`text-[10px] mt-1 text-right ${
-                      msg.sender === 'user' ? 'text-emerald-100' : 'text-[#94A3B8]'
+                    className={`text-[10px] mt-1 text-right font-mono ${
+                      msg.sender === 'user' ? 'text-sky-100' : 'text-slate-400'
                     }`}
                   >
                     {msg.timestamp}
@@ -181,8 +181,8 @@ export const AIAssistantWidget: React.FC = () => {
             ))}
 
             {isTyping && (
-              <div className="flex gap-2.5 items-center text-[#94A3B8] text-xs py-2">
-                <div className="w-7 h-7 rounded-lg bg-[#10B981] text-white flex items-center justify-center">
+              <div className="flex gap-2.5 items-center text-sky-700 text-xs py-2 font-medium">
+                <div className="w-7 h-7 rounded-lg bg-sky-600 text-white flex items-center justify-center">
                   <RefreshCw className="w-4 h-4 animate-spin" />
                 </div>
                 <span>AI is reasoning and crafting response...</span>
@@ -191,21 +191,21 @@ export const AIAssistantWidget: React.FC = () => {
           </div>
 
           {/* Quick Prompts */}
-          <div className="p-2.5 bg-[#0F172A] border-t border-white/10 overflow-x-auto flex gap-2">
+          <div className="p-2.5 bg-white border-t border-sky-100 overflow-x-auto flex gap-2">
             {quickPrompts.map((prompt, idx) => (
               <button
                 key={idx}
                 onClick={() => handleSend(prompt)}
-                className="text-xs bg-[#020617] hover:bg-[#10B981]/20 text-[#94A3B8] hover:text-[#34D399] px-2.5 py-1.5 rounded-lg border border-white/10 whitespace-nowrap transition-colors flex items-center gap-1"
+                className="text-xs bg-sky-50 hover:bg-sky-100 text-sky-800 hover:text-sky-900 px-3 py-1.5 rounded-xl border border-sky-200/80 whitespace-nowrap transition-colors flex items-center gap-1 font-bold cursor-pointer"
               >
-                <Zap className="w-3 h-3 text-[#10B981]" />
+                <Zap className="w-3 h-3 text-sky-600" />
                 {prompt}
               </button>
             ))}
           </div>
 
           {/* Input Area */}
-          <div className="p-3 bg-[#0F172A] border-t border-white/10">
+          <div className="p-3 bg-white border-t border-sky-100">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -218,12 +218,12 @@ export const AIAssistantWidget: React.FC = () => {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ask about syllabus, code, quizzes..."
-                className="flex-1 bg-[#020617] border border-white/10 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#10B981]"
+                className="flex-1 bg-slate-50 border border-sky-200 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-hidden focus:border-sky-500 font-medium"
               />
               <button
                 type="submit"
                 disabled={!input.trim()}
-                className="bg-[#10B981] disabled:opacity-50 hover:bg-[#059669] text-white p-2.5 rounded-xl transition-all shadow-md shadow-emerald-950/50"
+                className="bg-sky-600 disabled:opacity-50 hover:bg-sky-700 text-white p-2.5 rounded-xl transition-all shadow-md shadow-sky-500/20 cursor-pointer"
               >
                 <Send className="w-4 h-4" />
               </button>

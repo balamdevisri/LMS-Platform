@@ -45,7 +45,7 @@ export const LoadingScreen: React.FC<{ onComplete?: () => void }> = ({ onComplet
         key="loading-screen"
         initial={{ opacity: 1 }}
         exit={{ opacity: 0, scale: 1.05, transition: { duration: 0.8, ease: "easeInOut" } }}
-        className="fixed inset-0 z-50 bg-[#020617] flex flex-col items-center justify-center p-6 text-white select-none overflow-hidden"
+        className="fixed inset-0 z-50 bg-linear-to-br from-slate-50 via-sky-50 to-indigo-50 flex flex-col items-center justify-center p-6 text-slate-900 select-none overflow-hidden"
       >
         {/* Background Ambient Glows */}
         <motion.div
