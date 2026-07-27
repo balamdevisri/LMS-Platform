@@ -13,6 +13,10 @@ To build a globally accessible, intelligent learning platform that adapts to ind
 - **Responsive UI/UX**: Built with modern web technologies for a seamless cross-device experience.
 - **Comprehensive Knowledge Base**: Centralized, version-controlled markdown knowledge resources for platform documentation and course materials.
 
+## Prerequisites
+- **Node.js**: `Node.js >= 20.12.0` (Recommended: `Node.js 22 LTS`).
+- **npm**: `npm >= 10.0.0`.
+
 ## Technology Stack
 ### Frontend
 - **Framework**: React with Vite
@@ -49,21 +53,22 @@ shaivika-lms-ai/
 ```
 
 ## Installation
-*(Note: Application code is currently in the scaffolding phase. These steps will become active once the initial services are populated.)*
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/your-org/shaivika-lms-ai.git
-   cd shaivika-lms-ai
+   git clone https://github.com/bhanuprakashachari5092/shaivika-LMS-platform.git
+   cd shaivika-LMS-platform
    ```
 
 2. **Install monorepo dependencies:**
    ```bash
-   npm install
+   npm ci
    ```
 
-3. **Install frontend and backend dependencies:**
-   *(Handled automatically via npm workspaces, or you can navigate and install manually)*
+3. **Build applications:**
+   ```bash
+   npm run build
+   ```
 
 ## Development Workflow
 1. **Branching Strategy**: Use standard Git Flow (e.g., `feature/`, `bugfix/`, `hotfix/`).
@@ -71,7 +76,7 @@ shaivika-lms-ai/
    - Run `npm run dev:frontend` to start the Vite server.
    - Run `npm run dev:backend` to start the Node server.
    - Run `npm run dev` to start both concurrently.
-3. **Linting and Formatting**: Ensure all code passes `npm run lint` and `npm run format` before pushing.
+3. **Linting and Building**: Ensure all code passes `npm run lint` and `npm run build` before pushing.
 
 ## Roadmap
 See [docs/Roadmap.md](docs/Roadmap.md) for detailed future plans and milestone tracking.
@@ -80,9 +85,4 @@ See [docs/Roadmap.md](docs/Roadmap.md) for detailed future plans and milestone t
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ## Contribution Guide
-We welcome contributions! Please review our contribution guidelines (to be added) before submitting a pull request.
-"# shaivika-AI-LMS-platform-" 
-"# shaivika-LMS-platform" 
-"# shaivika-LMS-platform" 
-"# shaivika-LMS-platform" 
-"# shaivika-LMS-platform" 
+We welcome contributions! Please review our contribution guidelines before submitting a pull request.

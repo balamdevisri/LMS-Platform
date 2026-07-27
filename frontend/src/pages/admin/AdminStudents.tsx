@@ -6,6 +6,7 @@ import { studentService, type StudentUser } from '@/services/studentService';
 export const AdminStudents: React.FC = () => {
   const [students, setStudents] = useState<StudentUser[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [providerFilter, setProviderFilter] = useState<'all' | 'github' | 'manual'>('all');
   const [loading, setLoading] = useState(true);
   
   // Modals State
@@ -18,6 +19,7 @@ export const AdminStudents: React.FC = () => {
   // Form State for Adding Student
   const [newStudentName, setNewStudentName] = useState('');
   const [newStudentEmail, setNewStudentEmail] = useState('');
+  const [newStudentProvider, setNewStudentProvider] = useState<'password' | 'github.com'>('password');
 
   // Subscribe to Real-Time Students Updates from Firestore & DB
   useEffect(() => {
@@ -29,11 +31,20 @@ export const AdminStudents: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  const filteredStudents = students.filter(
-    (st) =>
-      st.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      st.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const githubCount = students.filter((s) => s.provider === 'github.com' || s.photoURL?.includes('github')).length;
+  const manualCount = students.length - githubCount;
+
+  const filteredStudents = students.filter((st) => {
+    const name = (st.name || '').toLowerCase();
+    const email = (st.email || '').toLowerCase();
+    const query = searchQuery.toLowerCase();
+    const matchesSearch = name.includes(query) || email.includes(query);
+
+    const isGithub = st.provider === 'github.com' || Boolean(st.photoURL && st.photoURL.includes('github'));
+    if (providerFilter === 'github') return matchesSearch && isGithub;
+    if (providerFilter === 'manual') return matchesSearch && !isGithub;
+    return matchesSearch;
+  });
 
   const handleAddStudent = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,11 +55,12 @@ export const AdminStudents: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      await studentService.addStudent(newStudentName, newStudentEmail);
+      await studentService.addStudent(newStudentName, newStudentEmail, newStudentProvider);
       toast.success(`Real-time student account created for ${newStudentName}!`);
       setModalOpen(false);
       setNewStudentName('');
       setNewStudentEmail('');
+      setNewStudentProvider('password');
     } catch (e) {
       toast.error('Failed to register student.');
     } finally {
@@ -134,21 +146,49 @@ export const AdminStudents: React.FC = () => {
       <div className="bg-white/90 border border-sky-200/80 rounded-3xl p-6 space-y-4 shadow-sm">
         
         {/* Search Bar & Stats */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="relative w-full sm:w-96">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+            <button
+              onClick={() => setProviderFilter('all')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                providerFilter === 'all'
+                  ? 'bg-sky-600 text-white shadow-xs'
+                  : 'bg-slate-50 text-slate-600 hover:bg-sky-50 border border-slate-200'
+              }`}
+            >
+              All Accounts ({students.length})
+            </button>
+            <button
+              onClick={() => setProviderFilter('github')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                providerFilter === 'github'
+                  ? 'bg-slate-900 text-cyan-300 border border-slate-700 shadow-xs'
+                  : 'bg-slate-50 text-slate-600 hover:bg-sky-50 border border-slate-200'
+              }`}
+            >
+              🐱 GitHub OAuth ({githubCount})
+            </button>
+            <button
+              onClick={() => setProviderFilter('manual')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                providerFilter === 'manual'
+                  ? 'bg-sky-100 text-sky-800 border border-sky-300 shadow-xs'
+                  : 'bg-slate-50 text-slate-600 hover:bg-sky-50 border border-slate-200'
+              }`}
+            >
+              ✉️ Email / Manual ({manualCount})
+            </button>
+          </div>
+
+          <div className="relative w-full md:w-80">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search active real-time students..."
-              className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-900 focus:outline-hidden transition-all font-medium"
+              className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2 pl-10 pr-4 text-xs text-slate-900 focus:outline-hidden transition-all font-medium"
             />
-          </div>
-
-          <div className="text-xs font-bold text-slate-500 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-            <span>Showing {filteredStudents.length} of {students.length} Live Students</span>
           </div>
         </div>
 
@@ -169,6 +209,7 @@ export const AdminStudents: React.FC = () => {
                 <tr className="border-b border-sky-100 text-slate-500 font-bold uppercase text-[10px] tracking-wider">
                   <th className="py-3 px-4">Student Name</th>
                   <th className="py-3 px-4">Email Address</th>
+                  <th className="py-3 px-4">Registration Method</th>
                   <th className="py-3 px-4">Role</th>
                   <th className="py-3 px-4">Enrolled Tracks</th>
                   <th className="py-3 px-4">Status</th>
@@ -177,42 +218,60 @@ export const AdminStudents: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-sky-100">
-                {filteredStudents.map((st) => (
-                  <tr key={st.id} className="hover:bg-sky-50/50 transition-colors">
-                    <td className="py-3.5 px-4 font-bold text-slate-900 flex items-center gap-2.5">
-                      {st.photoURL ? (
-                        <img src={st.photoURL} alt={st.name} className="w-8 h-8 rounded-full object-cover border border-sky-300" />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center font-extrabold text-xs border border-sky-200">
-                          {st.name.charAt(0)}
+                {filteredStudents.map((st) => {
+                  const isGithub = st.provider === 'github.com' || (st.photoURL && st.photoURL.includes('github'));
+                  return (
+                    <tr key={st.id} className="hover:bg-sky-50/50 transition-colors">
+                      <td className="py-3.5 px-4 font-bold text-slate-900 flex items-center gap-2.5">
+                        {st.photoURL ? (
+                          <img src={st.photoURL} alt={st.name} className="w-8 h-8 rounded-full object-cover border border-sky-300" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center font-extrabold text-xs border border-sky-200">
+                            {st.name.charAt(0)}
+                          </div>
+                        )}
+                        <div>
+                          <span className="block">{st.name}</span>
+                          {st.githubUsername && (
+                            <span className="text-[10px] text-sky-600 font-mono font-semibold">@{st.githubUsername}</span>
+                          )}
                         </div>
-                      )}
-                      <span>{st.name}</span>
-                    </td>
-                    <td className="py-3.5 px-4 text-slate-600 font-medium">
-                      <div className="flex items-center gap-1.5">
-                        <Mail className="w-3.5 h-3.5 text-sky-500" />
-                        <span>{st.email}</span>
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span className="px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800 text-[10px] font-mono font-bold uppercase border border-sky-200">
-                        {st.role}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-slate-700 font-bold font-mono">{st.courses} Track(s)</td>
-                    <td className="py-3.5 px-4">
-                      <button
-                        onClick={() => toggleStudentStatus(st)}
-                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-all cursor-pointer ${
-                          st.status === 'Active'
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : 'bg-rose-50 text-rose-700 border-rose-200'
-                        }`}
-                      >
-                        {st.status}
-                      </button>
-                    </td>
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-600 font-medium">
+                        <div className="flex items-center gap-1.5">
+                          <Mail className="w-3.5 h-3.5 text-sky-500" />
+                          <span>{st.email}</span>
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        {isGithub ? (
+                          <span className="px-2.5 py-0.5 rounded-full bg-slate-900 text-cyan-300 text-[10px] font-mono font-bold border border-slate-700 inline-flex items-center gap-1">
+                            🐱 GitHub OAuth
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800 text-[10px] font-mono font-bold border border-sky-200 inline-flex items-center gap-1">
+                            ✉️ Email / Manual
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className="px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800 text-[10px] font-mono font-bold uppercase border border-sky-200">
+                          {st.role}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-700 font-bold font-mono">{st.courses} Track(s)</td>
+                      <td className="py-3.5 px-4">
+                        <button
+                          onClick={() => toggleStudentStatus(st)}
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-all cursor-pointer ${
+                            st.status === 'Active'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : 'bg-rose-50 text-rose-700 border-rose-200'
+                          }`}
+                        >
+                          {st.status}
+                        </button>
+                      </td>
                     <td className="py-3.5 px-4 text-slate-500 font-medium text-[11px]">{st.joined}</td>
                     
                     {/* ACTIONS COLUMN */}
@@ -242,7 +301,8 @@ export const AdminStudents: React.FC = () => {
                       </div>
                     </td>
                   </tr>
-                ))}
+                );
+              })}
               </tbody>
             </table>
           )}
@@ -285,6 +345,18 @@ export const AdminStudents: React.FC = () => {
                   placeholder="jane@university.edu"
                   className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 text-xs text-slate-900 focus:outline-hidden transition-all font-medium"
                 />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Registration Method</label>
+                <select
+                  value={newStudentProvider}
+                  onChange={(e) => setNewStudentProvider(e.target.value as 'password' | 'github.com')}
+                  className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 text-xs text-slate-900 focus:outline-hidden transition-all font-medium cursor-pointer"
+                >
+                  <option value="password">✉️ Manual / Email Account</option>
+                  <option value="github.com">🐱 GitHub OAuth Account</option>
+                </select>
               </div>
 
               <div className="pt-2 flex items-center justify-end gap-3">

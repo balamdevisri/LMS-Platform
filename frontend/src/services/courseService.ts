@@ -37,9 +37,9 @@ const DEFAULT_COURSES: ICourse[] = [
     visibility: 'public',
     featured: true,
     tags: ['linux', 'sysadmin', 'bash', 'kernel', 'devops', 'security'],
-    enrollmentCount: 28900,
-    rating: 4.9,
-    ratingCount: 1450,
+    enrollmentCount: 3,
+    rating: 5.0,
+    ratingCount: 145,
     syllabus: [
       {
         id: 'm1',
@@ -156,11 +156,7 @@ class CourseService {
         return parsed;
       } catch (e) {}
     }
-    const defaultEnrollments: Record<string, EnrollmentRecord[]> = {
-      default_student: [
-        { courseId: 'course_linux_101', progress: 25, enrolledAt: new Date().toISOString() },
-      ],
-    };
+    const defaultEnrollments: Record<string, EnrollmentRecord[]> = {};
     localStorage.setItem(this.enrollmentsKey, JSON.stringify(defaultEnrollments));
     return defaultEnrollments;
   }
@@ -170,8 +166,8 @@ class CourseService {
   }
 
   getUserXPPoints(userId = 'default_student'): number {
-    const pts = localStorage.getItem(`${this.pointsKey}_${userId}`);
-    return pts ? parseInt(pts, 10) : 150;
+    const claims = this.getXPClaimLogs(userId);
+    return claims.reduce((sum, c) => sum + (c.xp || 0), 0);
   }
 
   addXPPoints(points: number, userId = 'default_student'): number {
@@ -185,45 +181,17 @@ class CourseService {
     const data = localStorage.getItem(`${this.xpClaimsKey}_${userId}`);
     if (data) {
       try {
-        return JSON.parse(data);
+        const parsed: XPClaimRecord[] = JSON.parse(data);
+        const filtered = parsed.filter(
+          (c) => c.id !== 'claim_1' && c.id !== 'claim_2' && c.id !== 'claim_3' && c.id !== 'claim_4'
+        );
+        if (filtered.length !== parsed.length) {
+          localStorage.setItem(`${this.xpClaimsKey}_${userId}`, JSON.stringify(filtered));
+        }
+        return filtered;
       } catch (e) {}
     }
-    const initialClaims: XPClaimRecord[] = [
-      {
-        id: 'claim_1',
-        title: 'Completed Subtopic 1.1.1: Monolithic Kernel Architecture',
-        xp: 20,
-        category: 'Subtopic Completion',
-        timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
-        courseId: 'course_linux_101',
-        courseTitle: 'Linux Systems & Administration Mastery',
-      },
-      {
-        id: 'claim_2',
-        title: 'Module 1 Live Interactive Terminal Hands-on Lab',
-        xp: 50,
-        category: 'AI Terminal Lab',
-        timestamp: new Date(Date.now() - 3600000 * 5).toISOString(),
-        courseId: 'course_linux_101',
-        courseTitle: 'Linux Systems & Administration Mastery',
-      },
-      {
-        id: 'claim_3',
-        title: 'System Calls & POSIX File Security Checkpoint Quiz',
-        xp: 30,
-        category: 'Quiz Evaluation',
-        timestamp: new Date(Date.now() - 3600000 * 24).toISOString(),
-        courseId: 'course_linux_101',
-        courseTitle: 'Linux Systems & Administration Mastery',
-      },
-      {
-        id: 'claim_4',
-        title: 'Student Account Onboarding & Setup Bonus',
-        xp: 50,
-        category: 'Daily Login',
-        timestamp: new Date(Date.now() - 3600000 * 48).toISOString(),
-      },
-    ];
+    const initialClaims: XPClaimRecord[] = [];
     localStorage.setItem(`${this.xpClaimsKey}_${userId}`, JSON.stringify(initialClaims));
     return initialClaims;
   }

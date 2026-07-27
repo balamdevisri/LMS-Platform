@@ -33,7 +33,7 @@ export const Dashboard: React.FC = () => {
   const [loadingCourses, setLoadingCourses] = useState(true);
 
   // XP & Claims State
-  const [totalXP, setTotalXP] = useState(150);
+  const [totalXP, setTotalXP] = useState(0);
   const [xpClaims, setXpClaims] = useState<XPClaimRecord[]>([]);
 
   // Completed courses check (only 100% completed courses unlock certificates)
@@ -52,17 +52,19 @@ export const Dashboard: React.FC = () => {
   const [certificateModalOpen, setCertificateModalOpen] = useState(false);
 
   // Fetch courses and XP claims dynamically from courseService
+  const activeUserId = user?.uid || 'default_student';
+
   const loadDashboardData = useCallback(async () => {
     setLoadingCourses(true);
     try {
-      const enrolled = await courseService.getEnrolledCourses('default_student');
+      const enrolled = await courseService.getEnrolledCourses(activeUserId);
       const catalogResult = await courseService.getCourses({ status: 'published', limit: 8 });
       setEnrolledCourses(enrolled);
       setCatalogCourses(catalogResult.courses);
 
       // Load XP Points & Claims
-      const xp = courseService.getUserXPPoints('default_student');
-      const claims = courseService.getXPClaimLogs('default_student');
+      const xp = courseService.getUserXPPoints(activeUserId);
+      const claims = courseService.getXPClaimLogs(activeUserId);
       setTotalXP(xp);
       setXpClaims(claims);
     } catch (err) {
@@ -70,7 +72,7 @@ export const Dashboard: React.FC = () => {
     } finally {
       setLoadingCourses(false);
     }
-  }, []);
+  }, [activeUserId]);
 
   useEffect(() => {
     loadDashboardData();
@@ -78,7 +80,7 @@ export const Dashboard: React.FC = () => {
 
   const handleEnrollFree = async (course: ICourse) => {
     try {
-      const res = await courseService.enrollCourse(course.id, 'default_student');
+      const res = await courseService.enrollCourse(course.id, activeUserId);
       if (res.success) {
         toast.success(`Enrolled free in "${course.title}"!`);
         await loadDashboardData();
@@ -210,38 +212,51 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* DYNAMIC: Currently Enrolled Tracks (Continue Learning from Middle Checkpoint) */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-heading font-bold text-xl text-slate-900 flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-blue-600" /> Continue Learning (Resume Exact Position)
-              </h3>
-              <span className="text-xs font-semibold text-slate-500">
-                {enrolledCourses.length} Active Track{enrolledCourses.length !== 1 ? 's' : ''}
-              </span>
-            </div>
-
-            {loadingCourses ? (
+          {/* DYNAMIC: Currently Enrolled Tracks (Only displayed when student is enrolled in courses) */}
+          {loadingCourses ? (
+            <div className="space-y-4">
+              <div className="h-6 w-48 bg-slate-200 rounded-lg animate-pulse" />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-pulse">
                 <div className="h-44 bg-slate-100 rounded-2xl border border-slate-200" />
                 <div className="h-44 bg-slate-100 rounded-2xl border border-slate-200" />
               </div>
-            ) : enrolledCourses.length === 0 ? (
-              <div className="p-8 text-center bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-                <Sparkles className="w-8 h-8 text-blue-600 mx-auto" />
-                <h4 className="font-bold text-sm text-slate-900">You haven't enrolled in any course tracks yet</h4>
-                <p className="text-xs text-slate-500">Browse our free courses below and click 'Enroll Free' to start learning.</p>
-                <Link to="/courses" className="btn-blue-primary text-xs py-2 px-4 inline-flex">
-                  Browse Free Courses Catalog
-                </Link>
+            </div>
+          ) : (
+            enrolledCourses.length > 0 && (
+              <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-heading font-bold text-xl text-slate-900 flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-blue-600" /> Continue Learning (Resume Exact Position)
+                </h3>
+                <span className="text-xs font-semibold text-slate-500">
+                  {enrolledCourses.length} Active Track{enrolledCourses.length !== 1 ? 's' : ''}
+                </span>
               </div>
-            ) : (
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {enrolledCourses.map((course) => {
-                  const checkpoint = courseService.getCourseCheckpoint(course.id, 'default_student');
-                  const progress = checkpoint?.progressPercent || course.progress || 25;
+                  const checkpoint = courseService.getCourseCheckpoint(course.id, activeUserId);
+                  
+                  // Calculate dynamic percentage from completed lesson IDs cache if present
+                  let dynamicProgress = 0;
+                  try {
+                    const savedCompletedStr = localStorage.getItem(`shaivika_completed_${course.id}`);
+                    if (savedCompletedStr) {
+                      const completedIds: any[] = JSON.parse(savedCompletedStr);
+                      const isGit = String(course.id).includes('git') || String(course.slug).includes('git');
+                      const totalLessons = isGit ? 31 : 20;
+                      if (completedIds && completedIds.length > 0) {
+                        dynamicProgress = Math.min(100, Math.round((completedIds.length / totalLessons) * 100));
+                      }
+                    }
+                  } catch (e) {}
+
+                  if (dynamicProgress === 0) {
+                    dynamicProgress = checkpoint?.progressPercent || course.progress || 0;
+                  }
+
                   const lastModule = checkpoint ? checkpoint.lastModuleIdx + 1 : 1;
-                  const lastSubtopicTitle = checkpoint?.lastSubtopicTitle || 'Kernel Architecture';
+                  const lastSubtopicTitle = checkpoint?.lastSubtopicTitle || 'Kernel Architecture & Environment Setup';
 
                   return (
                     <div
@@ -275,18 +290,18 @@ export const Dashboard: React.FC = () => {
                       <div className="space-y-1">
                         <div className="flex justify-between text-xs font-semibold text-slate-700">
                           <span>Overall Track Completion</span>
-                          <span className="text-blue-600">{progress}% Completed</span>
+                          <span className="text-blue-600">{dynamicProgress}% Completed</span>
                         </div>
                         <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
                           <div
                             className="h-full bg-linear-to-r from-blue-500 to-indigo-600 transition-all duration-500"
-                            style={{ width: `${progress}%` }}
+                            style={{ width: `${dynamicProgress}%` }}
                           />
                         </div>
                       </div>
 
                       <Link
-                        to={`/course/${course.slug}`}
+                        to={`/course/${course.slug || course.id}?mode=learn`}
                         className="btn-blue-primary text-xs py-2.5 justify-center font-bold flex items-center gap-2"
                       >
                         <PlayCircle className="w-4 h-4" />
@@ -296,8 +311,8 @@ export const Dashboard: React.FC = () => {
                   );
                 })}
               </div>
-            )}
-          </div>
+            </div>
+          ))}
 
           {/* DETAILED CLAIMED XP BREAKDOWN & HISTORY */}
           <div className="bg-white/95 border border-amber-200/80 rounded-3xl p-6 space-y-4 shadow-sm">

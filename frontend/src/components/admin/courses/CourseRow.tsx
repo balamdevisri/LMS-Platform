@@ -37,20 +37,20 @@ export const CourseRow: React.FC<CourseRowProps> = ({
 
   // Format creation date safely
   const formatDate = (dateVal: any) => {
-    if (!dateVal) return 'N/A';
+    if (!dateVal) return new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     if (typeof dateVal.toDate === 'function') {
-      return dateVal.toDate().toLocaleDateString();
+      return dateVal.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     }
     if (dateVal instanceof Date) {
-      return dateVal.toLocaleDateString();
+      return dateVal.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     }
-    if (typeof dateVal === 'string') {
-      return new Date(dateVal).toLocaleDateString();
+    if (typeof dateVal === 'string' || typeof dateVal === 'number') {
+      const d = new Date(dateVal);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      }
     }
-    if (typeof dateVal === 'number') {
-      return new Date(dateVal).toLocaleDateString();
-    }
-    return 'N/A';
+    return new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   return (

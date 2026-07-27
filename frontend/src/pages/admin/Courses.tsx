@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BookOpen, Plus, Sparkles, BookCheck, FileEdit, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCourses } from '@/contexts/CourseContext';
+import { studentService } from '@/services/studentService';
 import CourseStatsCard from '@/components/admin/courses/CourseStatsCard';
 import CourseSearchBar from '@/components/admin/courses/CourseSearchBar';
 import CourseFilters from '@/components/admin/courses/CourseFilters';
@@ -10,6 +11,7 @@ import EmptyCourses from '@/components/admin/courses/EmptyCourses';
 
 export const Courses: React.FC = () => {
   const { courses, toggleCourseStatus, deleteCourse } = useCourses();
+  const [realStudentsCount, setRealStudentsCount] = useState<number>(0);
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
@@ -18,16 +20,24 @@ export const Courses: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState('All');
   const [selectedSort, setSelectedSort] = useState('Newest');
 
+  // Subscribe to real-time student count
+  useEffect(() => {
+    const unsub = studentService.subscribeToStudents((studentsList) => {
+      setRealStudentsCount(studentsList.length);
+    });
+    return () => unsub();
+  }, []);
+
   // Dynamic filter dropdown options based on current database courses
   const categories = Array.from(new Set(courses.map((c) => c.category).filter((c): c is string => !!c)));
   const levels = Array.from(new Set(courses.map((c) => c.level).filter((l): l is string => !!l)));
 
-  // Calculate statistics
+  // Calculate statistics dynamically
   const totalCourses = courses.length;
   const publishedCoursesCount = courses.filter((c) => c.status === 'Published').length;
   const draftCoursesCount = courses.filter((c) => c.status === 'Draft').length;
 
-  const totalStudentsEnrolled = courses.reduce((sum, c) => {
+  const totalStudentsEnrolled = realStudentsCount > 0 ? realStudentsCount : courses.reduce((sum, c) => {
     const parsed = parseInt(String(c.students).replace(/,/g, '')) || 0;
     return sum + parsed;
   }, 0);

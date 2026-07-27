@@ -121,7 +121,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             firebaseUser.uid,
             calculatedName,
             firebaseUser.email || '',
-            firebaseUser.photoURL || undefined
+            firebaseUser.photoURL || undefined,
+            isGithub ? 'github.com' : 'password',
+            calculatedUsername
           );
         }
 
@@ -150,7 +152,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             firebaseUser.uid,
             newProfile.fullName,
             newProfile.email,
-            firebaseUser.photoURL || undefined
+            firebaseUser.photoURL || undefined,
+            isGithub ? 'github.com' : 'password',
+            calculatedUsername
           );
         }
 

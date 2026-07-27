@@ -454,7 +454,7 @@ export const LandingPage: React.FC = () => {
 
                     <div className="space-y-2 pt-2 border-t border-sky-100 text-xs">
                       <div className="flex justify-between text-slate-500 font-medium">
-                        <span>{course.enrollmentCount ? course.enrollmentCount.toLocaleString() : '28,900'} enrolled</span>
+                        <span>{(course.enrollmentCount || 0).toLocaleString()} enrolled</span>
                         <span>{course.duration}</span>
                       </div>
 

@@ -1,0 +1,228 @@
+import React from 'react';
+import { CodeBlock } from './CodeBlock';
+import { Sparkles, AlertTriangle, Info, CheckCircle2, FileText } from 'lucide-react';
+
+interface MarkdownRendererProps {
+  content: string;
+  isNightMode?: boolean;
+}
+
+export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isNightMode = false }) => {
+  if (!content) return null;
+
+  // Split lines to parse markdown blocks
+  const lines = content.split('\n');
+  const elements: React.ReactNode[] = [];
+
+  let inCodeBlock = false;
+  let codeBuffer: string[] = [];
+  let codeLang = 'bash';
+
+  lines.forEach((line, index) => {
+    // Check code block fence
+    if (line.trim().startsWith('```')) {
+      if (inCodeBlock) {
+        // End code block
+        elements.push(
+          <CodeBlock
+            key={`code-${index}`}
+            code={codeBuffer.join('\n')}
+            language={codeLang || 'bash'}
+          />
+        );
+        codeBuffer = [];
+        inCodeBlock = false;
+      } else {
+        // Start code block
+        inCodeBlock = true;
+        codeLang = line.trim().replace('```', '') || 'bash';
+      }
+      return;
+    }
+
+    if (inCodeBlock) {
+      codeBuffer.push(line);
+      return;
+    }
+
+    // Markdown Images: ![alt](url)
+    const imgMatch = line.trim().match(/^!\[(.*?)\]\((.*?)\)$/);
+    if (imgMatch) {
+      const altText = imgMatch[1];
+      const imgSrc = imgMatch[2];
+      elements.push(
+        <figure
+          key={index}
+          className={`my-6 rounded-3xl overflow-hidden p-3 shadow-xl backdrop-blur-xl border ${
+            isNightMode
+              ? 'bg-slate-900 border-slate-800 shadow-slate-950/50'
+              : 'bg-white border-sky-100 shadow-sky-500/5'
+          }`}
+        >
+          <div
+            className={`rounded-2xl overflow-hidden flex items-center justify-center border ${
+              isNightMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-sky-100'
+            }`}
+          >
+            <img
+              src={imgSrc}
+              alt={altText}
+              className="w-full h-auto object-contain hover:scale-[1.01] transition-transform duration-300 max-h-125"
+            />
+          </div>
+          {altText && (
+            <figcaption
+              className={`text-center text-xs font-mono font-semibold pt-3 pb-1 flex items-center justify-center gap-1.5 ${
+                isNightMode ? 'text-cyan-300' : 'text-sky-700'
+              }`}
+            >
+              <Sparkles className={`w-3.5 h-3.5 ${isNightMode ? 'text-cyan-400' : 'text-sky-500'}`} />
+              <span>{altText}</span>
+            </figcaption>
+          )}
+        </figure>
+      );
+      return;
+    }
+
+    // Headers
+    if (line.startsWith('### ')) {
+      elements.push(
+        <h3
+          key={index}
+          className={`text-xl sm:text-2xl font-heading font-extrabold mt-8 mb-3 flex items-center gap-2 border-b pb-2 ${
+            isNightMode ? 'text-white border-slate-800' : 'text-slate-900 border-sky-100'
+          }`}
+        >
+          <Sparkles className={`w-5 h-5 ${isNightMode ? 'text-cyan-400' : 'text-sky-500'}`} />
+          {line.replace('### ', '')}
+        </h3>
+      );
+      return;
+    }
+
+    if (line.startsWith('#### ')) {
+      elements.push(
+        <h4
+          key={index}
+          className={`text-lg font-heading font-bold mt-6 mb-2 flex items-center gap-2 ${
+            isNightMode ? 'text-cyan-300' : 'text-sky-700'
+          }`}
+        >
+          <FileText className={`w-4 h-4 ${isNightMode ? 'text-cyan-400' : 'text-sky-500'}`} />
+          {line.replace('#### ', '')}
+        </h4>
+      );
+      return;
+    }
+
+    // Callouts / Alerts
+    if (line.startsWith('> [!NOTE]') || line.startsWith('> [!TIP]')) {
+      elements.push(
+        <div
+          key={index}
+          className={`my-4 p-4 rounded-2xl text-sm flex items-start gap-3 border shadow-xs ${
+            isNightMode
+              ? 'bg-cyan-950/40 border-cyan-500/40 text-cyan-200'
+              : 'bg-sky-50 border-sky-200 text-sky-900'
+          }`}
+        >
+          <Info className={`w-5 h-5 shrink-0 mt-0.5 ${isNightMode ? 'text-cyan-400' : 'text-sky-600'}`} />
+          <div>{line.replace(/^>\s*\[!(NOTE|TIP)\]\s*/, '')}</div>
+        </div>
+      );
+      return;
+    }
+
+    if (line.startsWith('> [!WARNING]') || line.startsWith('> [!IMPORTANT]')) {
+      elements.push(
+        <div
+          key={index}
+          className={`my-4 p-4 rounded-2xl text-sm flex items-start gap-3 border shadow-xs ${
+            isNightMode
+              ? 'bg-amber-950/40 border-amber-500/40 text-amber-200'
+              : 'bg-amber-50 border-amber-200 text-amber-900'
+          }`}
+        >
+          <AlertTriangle className={`w-5 h-5 shrink-0 mt-0.5 ${isNightMode ? 'text-amber-400' : 'text-amber-600'}`} />
+          <div>{line.replace(/^>\s*\[!(WARNING|IMPORTANT)\]\s*/, '')}</div>
+        </div>
+      );
+      return;
+    }
+
+    // Bullet points
+    if (line.startsWith('- ') || line.startsWith('* ')) {
+      const text = line.replace(/^[-*]\s*/, '');
+      elements.push(
+        <li
+          key={index}
+          className={`ml-4 my-2 text-sm sm:text-base flex items-start gap-2 leading-relaxed ${
+            isNightMode ? 'text-slate-200' : 'text-slate-700'
+          }`}
+        >
+          <CheckCircle2 className={`w-4 h-4 shrink-0 mt-1 ${isNightMode ? 'text-cyan-400' : 'text-sky-500'}`} />
+          <span>{renderInlineStyles(text, isNightMode)}</span>
+        </li>
+      );
+      return;
+    }
+
+    // Empty lines
+    if (line.trim() === '') {
+      elements.push(<div key={index} className="h-3" />);
+      return;
+    }
+
+    // Normal paragraph
+    elements.push(
+      <p
+        key={index}
+        className={`text-sm sm:text-base leading-relaxed my-2 ${
+          isNightMode ? 'text-slate-200' : 'text-slate-700'
+        }`}
+      >
+        {renderInlineStyles(line, isNightMode)}
+      </p>
+    );
+  });
+
+  return (
+    <div className={`markdown-content ${isNightMode ? 'text-slate-100' : 'text-slate-800'}`}>
+      {elements}
+    </div>
+  );
+};
+
+// Helper for bold and inline code formatting with Night Mode contrast
+function renderInlineStyles(text: string, isNightMode: boolean = false): React.ReactNode {
+  const parts = text.split(/(`[^`]+`|\*\*[^*]+\*\*)/g);
+
+  return parts.map((part, i) => {
+    if (part.startsWith('`') && part.endsWith('`')) {
+      return (
+        <code
+          key={i}
+          className={`px-2 py-0.5 rounded-md font-mono text-xs font-semibold border ${
+            isNightMode
+              ? 'bg-slate-900 text-cyan-300 border-slate-800'
+              : 'bg-sky-50 text-sky-700 border-sky-200'
+          }`}
+        >
+          {part.slice(1, -1)}
+        </code>
+      );
+    }
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return (
+        <strong
+          key={i}
+          className={`font-bold ${isNightMode ? 'text-white' : 'text-slate-900'}`}
+        >
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    return part;
+  });
+}

@@ -5,6 +5,7 @@ import {
   setDoc,
   updateDoc,
   deleteDoc,
+  getDocs,
   onSnapshot
 } from 'firebase/firestore';
 
@@ -17,16 +18,49 @@ export interface StudentUser {
   role: 'student' | 'admin' | 'instructor';
   status: 'Active' | 'Suspended';
   photoURL?: string;
+  provider?: 'github.com' | 'password' | string;
+  githubUsername?: string;
   createdAt?: string;
   lastLogin?: string;
 }
 
-const LOCAL_STORAGE_KEY = 'shaivika_realtime_students_v2';
-const MOCK_EMAILS = [
-  'alex.johnson@stanford.edu',
-  'sam.wu@mit.edu',
-  'd.miller@tech.org',
-  'elena@berkeley.edu'
+const LOCAL_STORAGE_KEY = 'shaivika_realtime_students_v3';
+
+const DEFAULT_STUDENTS: StudentUser[] = [
+  {
+    id: 'st_101',
+    name: 'Bhanu Prakash Achari',
+    email: 'bhanuprakashachari5092@gmail.com',
+    joined: 'Jul 24, 2026',
+    courses: 2,
+    role: 'student',
+    status: 'Active',
+    photoURL: 'https://avatars.githubusercontent.com/u/10001?v=4',
+    provider: 'github.com',
+    githubUsername: 'bhanuprakash5092',
+  },
+  {
+    id: 'st_102',
+    name: 'Priya Sharma',
+    email: 'priya.sharma@shaivika.ai',
+    joined: 'Jul 22, 2026',
+    courses: 1,
+    role: 'student',
+    status: 'Active',
+    provider: 'password',
+  },
+  {
+    id: 'st_103',
+    name: 'Alex Chen',
+    email: 'alex.chen@shaivika.ai',
+    joined: 'Jul 20, 2026',
+    courses: 1,
+    role: 'student',
+    status: 'Active',
+    photoURL: 'https://avatars.githubusercontent.com/u/10002?v=4',
+    provider: 'github.com',
+    githubUsername: 'alexc-dev',
+  },
 ];
 
 class StudentService {
@@ -35,26 +69,95 @@ class StudentService {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (saved) {
         const parsed: StudentUser[] = JSON.parse(saved);
-        // Filter out any legacy mock data
-        return parsed.filter((s) => !MOCK_EMAILS.includes(s.email.toLowerCase()));
+        if (parsed.length > 0) return parsed;
       }
     } catch (e) {
       console.warn('Failed to parse local students cache:', e);
     }
-    return [];
+    return DEFAULT_STUDENTS;
   }
 
   private saveLocalStudents(students: StudentUser[]): void {
-    const clean = students.filter((s) => !MOCK_EMAILS.includes(s.email.toLowerCase()));
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(clean));
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(students));
+    } catch (e) {
+      console.warn('Failed to save local students cache:', e);
+    }
+  }
+
+  /**
+   * Directly fetch all students from Firestore users collection.
+   */
+  async fetchFirestoreStudentsDirectly(): Promise<StudentUser[]> {
+    if (!db) return this.getLocalStudents();
+
+    try {
+      const usersRef = collection(db, 'users');
+      const querySnapshot = await getDocs(usersRef);
+      const firestoreStudents: StudentUser[] = [];
+
+      querySnapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        const email = (data.email || '').toLowerCase();
+        const role = (data.role || 'student').toLowerCase();
+
+        if (role !== 'admin' && email) {
+          const photoURL = data.photoURL || data.avatar || '';
+          const isGithub =
+            data.provider === 'github.com' ||
+            data.providerId === 'github.com' ||
+            photoURL.includes('githubusercontent');
+
+          const provider = isGithub ? 'github.com' : 'password';
+          const githubUsername = data.githubUsername || (isGithub ? email.split('@')[0] : undefined);
+
+          firestoreStudents.push({
+            id: docSnap.id,
+            name: data.name || data.displayName || data.fullName || email.split('@')[0] || 'Student User',
+            email: data.email || email,
+            joined: data.createdAt
+              ? new Date(data.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+              : 'Recently',
+            courses: data.enrolledCoursesCount || 1,
+            role: 'student',
+            status: data.status || 'Active',
+            photoURL,
+            provider,
+            githubUsername,
+            createdAt: data.createdAt,
+            lastLogin: data.lastLogin,
+          });
+        }
+      });
+
+      if (firestoreStudents.length > 0) {
+        const combinedMap = new Map<string, StudentUser>();
+        // Add defaults first
+        DEFAULT_STUDENTS.forEach((st) => combinedMap.set(st.email.toLowerCase(), st));
+        // Override with Firestore docs
+        firestoreStudents.forEach((st) => combinedMap.set(st.email.toLowerCase(), st));
+        const finalResults = Array.from(combinedMap.values());
+        this.saveLocalStudents(finalResults);
+        return finalResults;
+      }
+    } catch (e) {
+      console.warn('Direct Firestore fetch notice:', e);
+    }
+
+    return this.getLocalStudents();
   }
 
   /**
    * Subscribe to real-time student updates from Firestore database.
    */
   subscribeToStudents(callback: (students: StudentUser[]) => void): () => void {
-    const localData = this.getLocalStudents();
-    callback(localData);
+    const initialData = this.getLocalStudents();
+    callback(initialData);
+
+    // Also trigger direct one-shot fetch for immediate population
+    this.fetchFirestoreStudentsDirectly().then((fetched) => {
+      if (fetched.length > 0) callback(fetched);
+    });
 
     if (!db) {
       return () => {};
@@ -72,31 +175,40 @@ class StudentService {
             const email = (data.email || '').toLowerCase();
             const role = (data.role || 'student').toLowerCase();
 
-            // Filter out mock data and only include actual registered student accounts
-            if (!MOCK_EMAILS.includes(email) && (role === 'student' || role === 'user')) {
+            if (role !== 'admin' && email) {
+              const photoURL = data.photoURL || data.avatar || '';
+              const isGithub =
+                data.provider === 'github.com' ||
+                data.providerId === 'github.com' ||
+                photoURL.includes('githubusercontent');
+
+              const provider = isGithub ? 'github.com' : 'password';
+              const githubUsername = data.githubUsername || (isGithub ? email.split('@')[0] : undefined);
+
               firestoreStudents.push({
                 id: docSnap.id,
-                name: data.name || data.displayName || email.split('@')[0] || 'Student User',
-                email: data.email || '',
+                name: data.name || data.displayName || data.fullName || email.split('@')[0] || 'Student User',
+                email: data.email || email,
                 joined: data.createdAt
                   ? new Date(data.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                   : 'Recently',
                 courses: data.enrolledCoursesCount || 1,
                 role: 'student',
                 status: data.status || 'Active',
-                photoURL: data.photoURL || '',
+                photoURL,
+                provider,
+                githubUsername,
                 createdAt: data.createdAt,
                 lastLogin: data.lastLogin,
               });
             }
           });
 
-          // Combine with locally added custom students (non-mock)
-          const localOnly = localData.filter(
-            (ls) => !firestoreStudents.some((fs) => fs.email.toLowerCase() === ls.email.toLowerCase())
-          );
-          const finalStudents = [...firestoreStudents, ...localOnly];
+          const combinedMap = new Map<string, StudentUser>();
+          initialData.forEach((st) => combinedMap.set(st.email.toLowerCase(), st));
+          firestoreStudents.forEach((st) => combinedMap.set(st.email.toLowerCase(), st));
 
+          const finalStudents = Array.from(combinedMap.values());
           this.saveLocalStudents(finalStudents);
           callback(finalStudents);
         },
@@ -113,29 +225,63 @@ class StudentService {
     }
   }
 
-  registerSignedUpStudent(uid: string, name: string, email: string, photoURL?: string): void {
-    if (MOCK_EMAILS.includes(email.toLowerCase())) return;
+  registerSignedUpStudent(
+    uid: string,
+    name: string,
+    email: string,
+    photoURL?: string,
+    provider?: string,
+    githubUsername?: string
+  ): void {
+    if (!email) return;
     
+    const isGithub = provider === 'github.com' || (photoURL && photoURL.includes('githubusercontent'));
     const newStudent: StudentUser = {
       id: uid || `st_${Date.now()}`,
-      name,
+      name: name || email.split('@')[0],
       email,
       joined: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
       courses: 1,
       role: 'student',
       status: 'Active',
       photoURL: photoURL || '',
+      provider: isGithub ? 'github.com' : 'password',
+      githubUsername: githubUsername || (isGithub ? email.split('@')[0] : undefined),
       createdAt: new Date().toISOString(),
     };
 
     const current = this.getLocalStudents();
-    if (!current.some((s) => s.email.toLowerCase() === email.toLowerCase())) {
+    const existingIdx = current.findIndex((s) => s.email.toLowerCase() === email.toLowerCase());
+    if (existingIdx !== -1) {
+      current[existingIdx] = { ...current[existingIdx], ...newStudent };
+      this.saveLocalStudents(current);
+    } else {
       const updated = [newStudent, ...current];
       this.saveLocalStudents(updated);
     }
+
+    if (db && uid) {
+      try {
+        setDoc(doc(db, 'users', uid), {
+          uid,
+          name: newStudent.name,
+          email: newStudent.email,
+          photoURL: newStudent.photoURL,
+          provider: newStudent.provider,
+          githubUsername: newStudent.githubUsername,
+          role: 'student',
+          status: 'Active',
+          createdAt: newStudent.createdAt,
+          enrolledCoursesCount: 1,
+        }, { merge: true }).catch((err) => console.warn('Firestore setDoc notice:', err));
+      } catch (err) {
+        console.warn('Firestore sync notice:', err);
+      }
+    }
   }
 
-  async addStudent(name: string, email: string): Promise<StudentUser> {
+  async addStudent(name: string, email: string, provider: 'github.com' | 'password' = 'password'): Promise<StudentUser> {
+    const isGithub = provider === 'github.com';
     const newStudent: StudentUser = {
       id: `st_${Date.now()}`,
       name,
@@ -144,6 +290,8 @@ class StudentService {
       courses: 1,
       role: 'student',
       status: 'Active',
+      provider,
+      githubUsername: isGithub ? email.split('@')[0] : undefined,
     };
 
     const current = this.getLocalStudents();
@@ -158,6 +306,7 @@ class StudentService {
           email: newStudent.email,
           role: 'student',
           status: 'Active',
+          provider,
           createdAt: new Date().toISOString(),
           enrolledCoursesCount: 1,
         });
@@ -180,6 +329,7 @@ class StudentService {
           name: student.name,
           email: student.email,
           status: student.status,
+          provider: student.provider,
           enrolledCoursesCount: student.courses,
         });
       } catch (err) {

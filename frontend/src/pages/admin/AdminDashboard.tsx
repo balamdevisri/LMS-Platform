@@ -403,15 +403,35 @@ export const AdminDashboard: React.FC = () => {
                     No registered students found in database.
                   </div>
                 ) : (
-                  studentsList.map((st) => (
-                    <div key={st.id} className="p-3 rounded-2xl bg-slate-50 border border-sky-100 flex items-center justify-between text-xs">
-                      <div className="space-y-0.5">
-                        <div className="font-bold text-slate-900 flex items-center gap-2">
-                          <span>{st.name}</span>
-                          <span className="text-[10px] text-slate-400 font-medium">({st.joined})</span>
+                  studentsList.map((st) => {
+                    const isGithub = st.provider === 'github.com' || (st.photoURL && st.photoURL.includes('github'));
+                    return (
+                      <div key={st.id} className="p-3 rounded-2xl bg-slate-50 border border-sky-100 flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-3 min-w-0">
+                          {st.photoURL ? (
+                            <img src={st.photoURL} alt={st.name} className="w-8 h-8 rounded-full object-cover border border-sky-300 shrink-0 shadow-xs" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-linear-to-r from-sky-500 to-blue-600 text-white flex items-center justify-center font-extrabold text-xs shrink-0 shadow-xs">
+                              {st.name.charAt(0)}
+                            </div>
+                          )}
+                          <div className="space-y-0.5 min-w-0">
+                            <div className="font-bold text-slate-900 flex items-center gap-2">
+                              <span className="truncate max-w-36">{st.name}</span>
+                              {isGithub ? (
+                                <span className="px-2 py-0.5 rounded-full bg-slate-900 text-cyan-300 text-[9px] font-mono font-bold border border-slate-700 shrink-0">
+                                  🐱 GitHub
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 text-[9px] font-mono font-bold border border-sky-200 shrink-0">
+                                  ✉️ Email
+                                </span>
+                              )}
+                              <span className="text-[10px] text-slate-400 font-medium shrink-0">({st.joined})</span>
+                            </div>
+                            <div className="text-[11px] text-slate-500 font-medium truncate">{st.email}</div>
+                          </div>
                         </div>
-                        <div className="text-[11px] text-slate-500 font-medium">{st.email}</div>
-                      </div>
 
                       <div className="flex items-center gap-1.5">
                         <button
@@ -431,8 +451,8 @@ export const AdminDashboard: React.FC = () => {
                         </button>
                       </div>
                     </div>
-                  ))
-                )}
+                  );
+                }))}
               </div>
             </div>
           </div>
