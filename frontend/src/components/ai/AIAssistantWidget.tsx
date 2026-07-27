@@ -110,21 +110,21 @@ export const AIAssistantWidget: React.FC = () => {
       {/* Floating Trigger Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className={`fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-gradient-to-tr from-[#059669] to-[#10B981] text-white shadow-xl shadow-emerald-950/60 flex items-center justify-center hover:scale-110 transition-all duration-300 ${
+        className={`fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-linear-to-tr from-sky-600 via-blue-600 to-indigo-600 text-white shadow-xl shadow-sky-500/30 flex items-center justify-center hover:scale-110 transition-all duration-300 ${
           isOpen ? 'hidden' : 'flex'
         }`}
         title="Open Shaivika AI Tutor"
       >
         <div className="relative">
           <Bot className="w-7 h-7" />
-          <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[#34D399] border-2 border-[#020617] rounded-full animate-ping" />
-          <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[#34D399] border-2 border-[#020617] rounded-full" />
+          <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-emerald-400 border-2 border-white rounded-full animate-ping" />
+          <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-emerald-400 border-2 border-white rounded-full" />
         </div>
       </button>
 
       {/* Slide-over AI Panel */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 z-50 w-full max-w-md bg-white border border-sky-200 rounded-3xl shadow-2xl overflow-hidden flex flex-col h-[560px] animate-in fade-in slide-in-from-bottom-5 duration-300 text-slate-900 font-['Sora']">
+        <div className="fixed bottom-6 right-6 z-50 w-full max-w-md bg-white border border-sky-200 rounded-3xl shadow-2xl overflow-hidden flex flex-col h-140 animate-in fade-in slide-in-from-bottom-5 duration-300 text-slate-900 font-['Sora']">
           {/* Header */}
           <div className="bg-linear-to-r from-sky-600 via-blue-600 to-indigo-600 p-4 text-white flex items-center justify-between shadow-xs">
             <div className="flex items-center gap-3">
@@ -218,7 +218,7 @@ export const AIAssistantWidget: React.FC = () => {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ask about syllabus, code, quizzes..."
-                className="flex-1 bg-slate-50 border border-sky-200 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-hidden focus:border-sky-500 font-medium"
+                className="flex-1 bg-slate-50 border border-sky-200 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-hidden font-medium"
               />
               <button
                 type="submit"
