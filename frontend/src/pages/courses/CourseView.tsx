@@ -42,7 +42,7 @@ export const CourseView: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { courseId, slug } = useParams();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [, setSearchParams] = useSearchParams();
 
   const studentAvatar = userProfile?.photoURL || user?.photoURL || undefined;
   const studentName = userProfile?.name || user?.displayName || userProfile?.githubUsername || 'Student User';
@@ -62,29 +62,12 @@ export const CourseView: React.FC = () => {
     return courseService.isCourseEnrolled(targetCourseId, userId);
   });
 
-  const initialMode = searchParams.get('mode') === 'learn';
-  const [isLearningMode, setIsLearningMode] = useState(initialMode && isEnrolled);
+  const [isLearningMode, setIsLearningMode] = useState(false);
 
   useEffect(() => {
     const enrolled = courseService.isCourseEnrolled(targetCourseId, userId);
     setIsEnrolled(enrolled);
   }, [targetCourseId, userId]);
-
-  // Require student authentication & enrollment to enter learning mode
-  useEffect(() => {
-    if (initialMode) {
-      if (!user) {
-        setIsLearningMode(false);
-        setSearchParams({});
-        toast.warning('🔒 Please sign in as a student to access the learning environment!');
-        navigate('/auth/login', { state: { from: location } });
-      } else if (!isEnrolled) {
-        setIsLearningMode(false);
-        setSearchParams({});
-        toast.warning('🔒 Enrollment required! Please click "Enroll in Course" to access lessons.');
-      }
-    }
-  }, [initialMode, user, isEnrolled, navigate, location, setSearchParams]);
 
   const handleEnroll = async () => {
     if (!user) {

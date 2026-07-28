@@ -600,7 +600,7 @@ export const Dashboard: React.FC = () => {
                         </div>
 
                         <Link
-                          to={`/course/${course.slug || course.id}?mode=learn`}
+                          to={`/course/${course.slug || course.id}`}
                           className="btn-blue-primary text-xs py-2.5 justify-center font-bold flex items-center gap-2"
                         >
                           <PlayCircle className="w-4 h-4" />
