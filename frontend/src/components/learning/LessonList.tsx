@@ -1,5 +1,6 @@
 import React from 'react';
-import { CheckCircle2, PlayCircle, BookOpen, Terminal, HelpCircle, Circle } from 'lucide-react';
+import { CheckCircle2, PlayCircle, BookOpen, Terminal, HelpCircle, Circle, Lock } from 'lucide-react';
+import { toast } from 'sonner';
 
 export interface LessonItemData {
   id: string | number;
@@ -14,6 +15,8 @@ interface LessonListProps {
   completedLessonIds: (string | number)[];
   onSelectLesson: (id: string | number) => void;
   isNightMode?: boolean;
+  isUnlocked?: boolean;
+  prevModuleTitle?: string;
 }
 
 export const LessonList: React.FC<LessonListProps> = ({
@@ -22,6 +25,8 @@ export const LessonList: React.FC<LessonListProps> = ({
   completedLessonIds,
   onSelectLesson,
   isNightMode = false,
+  isUnlocked = true,
+  prevModuleTitle,
 }) => {
   const getIcon = (type?: string) => {
     switch (type) {
@@ -36,6 +41,14 @@ export const LessonList: React.FC<LessonListProps> = ({
     }
   };
 
+  const handleLessonClick = (id: string | number) => {
+    if (!isUnlocked) {
+      toast.warning(`🔒 Module Locked! Complete all lessons in "${prevModuleTitle || 'Previous Module'}" & claim XP first!`);
+      return;
+    }
+    onSelectLesson(id);
+  };
+
   return (
     <div className="space-y-1 py-1">
       {lessons.map((lesson) => {
@@ -45,9 +58,11 @@ export const LessonList: React.FC<LessonListProps> = ({
         return (
           <button
             key={lesson.id}
-            onClick={() => onSelectLesson(lesson.id)}
+            onClick={() => handleLessonClick(lesson.id)}
             className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-left text-xs cursor-pointer ${
-              isSelected
+              !isUnlocked
+                ? 'opacity-60 bg-slate-100/40 dark:bg-slate-900/40 cursor-not-allowed'
+                : isSelected
                 ? isNightMode
                   ? 'bg-slate-900 border border-cyan-500/60 text-cyan-300 font-bold shadow-xs'
                   : 'bg-sky-100/90 border border-sky-300 text-sky-950 font-bold shadow-xs'
@@ -57,7 +72,9 @@ export const LessonList: React.FC<LessonListProps> = ({
             }`}
           >
             <div className="flex items-center gap-2.5 min-w-0">
-              {isCompleted ? (
+              {!isUnlocked ? (
+                <Lock className="w-4 h-4 shrink-0 text-amber-500" />
+              ) : isCompleted ? (
                 <CheckCircle2 className={`w-4 h-4 shrink-0 ${isNightMode ? 'text-emerald-400 fill-emerald-950' : 'text-emerald-600 fill-emerald-100'}`} />
               ) : isSelected ? (
                 <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${isNightMode ? 'border-cyan-400' : 'border-sky-600'}`}>
@@ -73,7 +90,7 @@ export const LessonList: React.FC<LessonListProps> = ({
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              {getIcon(lesson.type)}
+              {!isUnlocked ? <Lock className="w-3.5 h-3.5 text-amber-500" /> : getIcon(lesson.type)}
               {lesson.duration && (
                 <span className={`text-[10px] font-mono ${isNightMode ? 'text-slate-400' : 'text-slate-400'}`}>{lesson.duration}</span>
               )}

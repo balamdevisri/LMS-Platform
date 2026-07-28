@@ -105,6 +105,18 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
   const hasPrevLesson = activeIndex > 0;
   const hasNextLesson = activeIndex < allLessons.length - 1;
 
+  const isLessonUnlocked = (lessonId: string | number): boolean => {
+    const modIdx = modules.findIndex((m) =>
+      m.lessons.some((l) => String(l.id) === String(lessonId))
+    );
+    if (modIdx <= 0) return true;
+
+    const prevMod = modules[modIdx - 1];
+    return prevMod ? prevMod.lessons.every((l) =>
+      completedLessonIds.some((id) => String(id) === String(l.id))
+    ) : true;
+  };
+
   const handlePrevLesson = () => {
     if (hasPrevLesson) {
       setSelectedLessonId(allLessons[activeIndex - 1].id);
@@ -114,7 +126,20 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
 
   const handleNextLesson = () => {
     if (hasNextLesson) {
-      setSelectedLessonId(allLessons[activeIndex + 1].id);
+      const nextLesson = allLessons[activeIndex + 1];
+      if (!isLessonUnlocked(nextLesson.id)) {
+        const currentMod = modules.find((m) =>
+          m.lessons.some((l) => String(l.id) === String(selectedLessonId))
+        );
+        const nextMod = modules.find((m) =>
+          m.lessons.some((l) => String(l.id) === String(nextLesson.id))
+        );
+        toast.warning(
+          `🔒 Module Locked! Complete all lessons in "${currentMod?.title || 'Current Module'}" & claim XP rewards first to unlock "${nextMod?.title || 'Next Module'}"!`
+        );
+        return;
+      }
+      setSelectedLessonId(nextLesson.id);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
@@ -480,6 +505,19 @@ Use the interactive terminal below to practice these commands:
         selectedLessonId={selectedLessonId}
         completedLessonIds={completedLessonIds}
         onSelectLesson={(id) => {
+          if (!isLessonUnlocked(id)) {
+            const targetMod = modules.find((m) =>
+              m.lessons.some((l) => String(l.id) === String(id))
+            );
+            const modIdx = modules.findIndex((m) =>
+              m.lessons.some((l) => String(l.id) === String(id))
+            );
+            const prevMod = modIdx > 0 ? modules[modIdx - 1] : null;
+            toast.warning(
+              `🔒 Module Locked! Complete all lessons in "${prevMod?.title || 'Previous Module'}" & claim XP rewards first to unlock "${targetMod?.title || 'Next Module'}"!`
+            );
+            return;
+          }
           setSelectedLessonId(id);
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
