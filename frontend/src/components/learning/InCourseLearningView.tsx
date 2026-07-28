@@ -139,27 +139,118 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       }
     }
 
+    const lessonTitleLower = currentLessonData.title.toLowerCase();
+    const lessonIdStr = String(currentLessonData.id).toLowerCase();
+
+    let moduleImageMarkdown = '';
+    let sectionTitle = '1. Core Operating Principles';
+
+    if (
+      lessonTitleLower.includes('kernel') ||
+      lessonTitleLower.includes('lkm') ||
+      lessonIdStr.includes('1.2')
+    ) {
+      sectionTitle = '1. Kernel Architecture & System Call Execution';
+      moduleImageMarkdown = `\n![Linux Kernel Mechanics & LKMs](/assets/images/topic_kernel_mechanics.png)\n`;
+    } else if (
+      lessonTitleLower.includes('editor') ||
+      lessonTitleLower.includes('vim') ||
+      lessonTitleLower.includes('nano') ||
+      lessonIdStr.includes('1.5')
+    ) {
+      sectionTitle = '1. Terminal Text Editors & Modal Editing Operations';
+      moduleImageMarkdown = `\n![Vim and Nano Terminal Text Editors](/assets/images/topic_text_editors.png)\n`;
+    } else if (
+      lessonTitleLower.includes('user') ||
+      lessonTitleLower.includes('group') ||
+      lessonTitleLower.includes('shadow') ||
+      lessonIdStr.includes('2.2')
+    ) {
+      sectionTitle = '1. User & Group Security Administration';
+      moduleImageMarkdown = `\n![User & Group Security Administration](/assets/images/topic_user_groups.png)\n`;
+    } else if (
+      lessonTitleLower.includes('permission') ||
+      lessonTitleLower.includes('chmod') ||
+      lessonTitleLower.includes('acl') ||
+      lessonIdStr.includes('2.3')
+    ) {
+      sectionTitle = '1. File Permissions & POSIX Access Control Lists';
+      moduleImageMarkdown = `\n![Linux File Permissions & ACL Matrix](/assets/images/linux_permissions_fhs.png)\n`;
+    } else if (
+      lessonTitleLower.includes('storage') ||
+      lessonTitleLower.includes('mount') ||
+      lessonTitleLower.includes('partition') ||
+      lessonIdStr.includes('2.4')
+    ) {
+      sectionTitle = '1. Storage Drives, Partitioning & Mount Points';
+      moduleImageMarkdown = `\n![Storage Drives & Mounting Pipelines](/assets/images/topic_storage_mounting.png)\n`;
+    } else if (
+      lessonTitleLower.includes('process') ||
+      lessonTitleLower.includes('top') ||
+      lessonTitleLower.includes('htop') ||
+      lessonIdStr.includes('3.1')
+    ) {
+      sectionTitle = '1. Process Lifecycles & Task Monitoring';
+      moduleImageMarkdown = `\n![Linux Process Monitoring & Control](/assets/images/topic_process_control.png)\n`;
+    } else if (
+      lessonTitleLower.includes('systemd') ||
+      lessonTitleLower.includes('service') ||
+      lessonTitleLower.includes('cron') ||
+      lessonIdStr.includes('3.2') ||
+      lessonIdStr.includes('3.3')
+    ) {
+      sectionTitle = '1. Systemd Daemons & Crontab Automation';
+      moduleImageMarkdown = `\n![Systemd Daemons & Service Management](/assets/images/linux_process_systemd.png)\n`;
+    } else if (
+      lessonTitleLower.includes('bash') ||
+      lessonTitleLower.includes('script') ||
+      lessonIdStr.includes('4.1')
+    ) {
+      sectionTitle = '1. Bash Script Control Structures & Loops';
+      moduleImageMarkdown = `\n![Bash Scripting Control Structures](/assets/images/topic_bash_control_loops.png)\n`;
+    } else if (
+      lessonTitleLower.includes('ssh') ||
+      lessonTitleLower.includes('key') ||
+      lessonIdStr.includes('4.3')
+    ) {
+      sectionTitle = '1. SSH Cryptographic Keys & Remote Access Security';
+      moduleImageMarkdown = `\n![SSH Keys & Remote Access Security](/assets/images/topic_ssh_keys.png)\n`;
+    } else if (
+      lessonTitleLower.includes('firewall') ||
+      lessonTitleLower.includes('ufw') ||
+      lessonTitleLower.includes('network') ||
+      lessonIdStr.includes('4.2') ||
+      lessonIdStr.includes('4.4')
+    ) {
+      sectionTitle = '1. Network Diagnostics & Host Firewall Hardening';
+      moduleImageMarkdown = `\n![Network Diagnostics & Security Hardening](/assets/images/linux_bash_security.png)\n`;
+    } else if (
+      lessonTitleLower.includes('fhs') ||
+      lessonTitleLower.includes('hierarchy') ||
+      lessonIdStr.includes('2.1')
+    ) {
+      sectionTitle = '1. Filesystem Hierarchy Standard (FHS)';
+      moduleImageMarkdown = `\n![Filesystem Hierarchy Standard](/assets/images/linux_permissions_fhs.png)\n`;
+    } else {
+      sectionTitle = '1. Core Operating Principles & Layered Architecture';
+      moduleImageMarkdown = `\n![Linux OS Architecture Diagram](/assets/images/linux_os_architecture.png)\n`;
+    }
+
     const content = `### ${currentLessonData.title}
 
 Welcome to **${currentLessonData.title}**! In this comprehensive lesson, you will master core concepts, production architecture patterns, and hands-on commands.
 
 > [!NOTE]
-> Read through the concepts below, inspect the architecture diagrams, and execute commands in the live terminal sandbox to unlock your **+50 XP** reward!
+> Read through the concepts below, inspect the topic technical architecture diagram, and execute commands in the live terminal sandbox to unlock your **+50 XP** reward!
 
-#### 1. Core Operating Principles
-Linux is built around modular Unix design principles. Everything is represented as a file or stream. Understanding file descriptors, process isolation, and permission matrices is essential for system administration and DevOps pipelines.
-
-![Linux OS Architecture Diagram](/assets/images/linux_os_architecture.png)
-
+#### ${sectionTitle}
+Linux is built around modular Unix design principles. Everything is represented as a file or stream. Understanding system boundaries, process isolation, and security matrices is essential for system administration and DevOps pipelines.
+${moduleImageMarkdown}
 #### 2. Kernel Subsystems & Resource Management
 The Linux kernel operates as a monolithic architecture running with full supervisor privileges in CPU Ring 0. It manages process scheduling, virtual memory paging, block I/O drivers, and network sockets efficiently.
 
-![Linux Kernel Managers Diagram](/assets/images/linux_kernel_managers.png)
-
-#### 3. Monolithic vs Microkernel Architecture
-Monolithic kernels execute core services inside a unified kernel memory space, ensuring near-zero IPC latency and maximum throughput compared to microkernels.
-
-![Monolithic vs Microkernel Architecture](/assets/images/linux_monolithic_vs_microkernel.png)
+#### 3. Execution Pipeline & Terminal Diagnostics
+System commands execute in unprivileged User Space (CPU Ring 3) and interact with hardware via system calls (syscalls).
 
 #### 4. Critical Administration Commands
 Use the interactive terminal below to practice these commands:

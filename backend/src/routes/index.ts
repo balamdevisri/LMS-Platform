@@ -7,6 +7,8 @@ import quizRoutes from '../modules/quiz/quiz.routes';
 import assignmentRoutes from '../modules/assignments/assignment.routes';
 import analyticsRoutes from '../modules/analytics/analytic.routes';
 import aiRoutes from '../modules/ai/ai.routes';
+import emailRoutes from './emailRoutes';
+import aiLmsRoutes from './aiLmsRoutes';
 
 const router = Router();
 
@@ -22,5 +24,7 @@ router.use('/quizzes', quizRoutes);
 router.use('/assignments', assignmentRoutes);
 router.use('/analytics', analyticsRoutes);
 router.use('/ai', aiRoutes);
+router.use('/email', emailRoutes);
+router.use('/ai-lms', aiLmsRoutes);
 
 export default router;
