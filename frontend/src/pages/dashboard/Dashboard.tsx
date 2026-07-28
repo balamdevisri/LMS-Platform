@@ -1288,8 +1288,6 @@ export const Dashboard: React.FC = () => {
                   <p className="text-xs text-slate-455">ISO/IEC 27001 Authenticated Digital Course Credentials</p>
                 </div>
               </div>
-            </div>
-
             {/* Grid Split */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               
@@ -1421,6 +1419,16 @@ export const Dashboard: React.FC = () => {
               <h3 className="font-heading font-bold text-base text-slate-900 flex items-center gap-1.5">
                 <Sparkles className="w-5 h-5 text-amber-500 animate-pulse" />
                 <span>Verified Milestones</span>
+=======
+            <div className="p-8 rounded-2xl bg-linear-to-b from-blue-50 via-indigo-50 to-white border-4 border-double border-indigo-200 space-y-4">
+              <Award className="w-12 h-12 text-blue-600 mx-auto" />
+              <h2 className="font-heading font-extrabold text-xl text-slate-900 uppercase tracking-wide">
+                Certificate of Enterprise Completion
+              </h2>
+              <p className="text-xs text-slate-500 font-medium">This is to certify that</p>
+              <h3 className="font-heading font-bold text-lg text-blue-600 underline">
+                {userProfile?.name || user?.displayName || 'Student'}
+>>>>>>> b35b8c8 (fix: remove hardcoded author/instructor name and use dynamic team/student fallbacks)
               </h3>
               <p className="text-xs text-slate-500 leading-relaxed">
                 Academic progress audits indicate that you have completed <strong className="text-slate-800 font-semibold">{totalCompletedUnitsCount} learning items</strong> out of the total <strong className="text-slate-800 font-semibold">{totalGlobalUnitsCount} syllabus units</strong>.

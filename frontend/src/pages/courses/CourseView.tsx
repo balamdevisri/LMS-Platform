@@ -45,7 +45,7 @@ export const CourseView: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const studentAvatar = userProfile?.photoURL || user?.photoURL || undefined;
-  const studentName = userProfile?.name || user?.displayName || userProfile?.githubUsername || 'Bhanu Prakash Achari';
+  const studentName = userProfile?.name || user?.displayName || userProfile?.githubUsername || 'Student User';
   const idOrSlug = courseId || slug || '1';
   const { getCourseById } = useCourses();
   const dynamicCourse = getCourseById(idOrSlug);

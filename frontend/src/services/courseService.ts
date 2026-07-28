@@ -20,8 +20,8 @@ const DEFAULT_COURSES: ICourse[] = [
     language: 'English',
     price: 0,
     instructor: {
-      id: 'inst_bhanu',
-      name: 'Bhanu Prakash Achari',
+      id: 'inst_kaizenq',
+      name: 'KaizenQ Systems Team',
       role: 'Linux Systems Architect & LMS Specialist',
       avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
     },

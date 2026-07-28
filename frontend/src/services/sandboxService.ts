@@ -185,8 +185,8 @@ export class SandboxService {
         {
           hash: 'c643b92f183d2a718a92b',
           shortHash: 'c643b92',
-          author: 'Bhanu Prakash Achari',
-          email: 'bhanuprakash@shaivika.ai',
+          author: 'KaizenQ Developer',
+          email: 'developer@shaivika.ai',
           date: '2026-07-28T12:00:00.000Z',
           message: 'feat: add real-time student telemetry drawer & stats cards',
           parents: ['a32ff9b1287e'],

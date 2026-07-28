@@ -29,7 +29,7 @@ interface EnterpriseGitLabProps {
 
 export const EnterpriseGitLab: React.FC<EnterpriseGitLabProps> = ({
   studentId,
-  studentName = 'Bhanu Prakash Achari',
+  studentName = 'Student User',
   onClaimXP,
   isNightMode = true,
 }) => {

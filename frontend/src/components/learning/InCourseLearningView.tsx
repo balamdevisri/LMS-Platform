@@ -44,7 +44,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
 }) => {
   const { user, userProfile } = useAuth();
   const userAvatar = propAvatar || userProfile?.photoURL || user?.photoURL || undefined;
-  const userName = propName && propName !== 'Student' ? propName : (userProfile?.name || user?.displayName || userProfile?.githubUsername || 'Bhanu Prakash Achari');
+  const userName = propName && propName !== 'Student' ? propName : (userProfile?.name || user?.displayName || userProfile?.githubUsername || 'Student User');
   
   const [isNightMode, setIsNightMode] = useState(false);
 
@@ -557,7 +557,7 @@ Use the interactive terminal below to practice these commands:
 
               <EnterpriseGitLab
                 studentId={user?.uid || 'student_101'}
-                studentName={user?.displayName || 'Bhanu Prakash Achari'}
+                studentName={user?.displayName || 'Student User'}
                 onClaimXP={(xp, title) => {
                   const activeUserId = user?.uid || 'default_student';
                   courseService.addXPPoints(xp, activeUserId);

@@ -462,7 +462,7 @@ export const LandingPage: React.FC = () => {
                         {course.title}
                       </h3>
                       <p className="text-xs text-slate-500 font-medium">
-                        Instructor: {typeof course.instructor === 'object' ? course.instructor.name : (course.instructor || 'Bhanu Prakash Achari')}
+                        Instructor: {typeof course.instructor === 'object' ? course.instructor.name : (course.instructor || 'KaizenQ Team')}
                       </p>
                     </div>
 

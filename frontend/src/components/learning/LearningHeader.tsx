@@ -213,7 +213,7 @@ export const LearningHeader: React.FC<LearningHeaderProps> = ({
 
             <div className="hidden sm:flex flex-col text-left">
               <span className={`text-xs font-bold truncate max-w-35 leading-tight ${isNightMode ? 'text-white' : 'text-slate-900'}`}>
-                {userName || 'Bhanu Prakash Achari'}
+                {userName || 'Student'}
               </span>
               <span
                 className={`text-[10px] font-mono font-semibold flex items-center gap-1 ${
