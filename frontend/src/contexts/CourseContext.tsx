@@ -312,10 +312,8 @@ const initialDefaultCoursesRaw: CourseItem[] = [
     badge: 'New Track',
     tracks: '8 Modules (15 Hours)',
     status: 'Published',
-    thumbnail: 'https://images.unsplash.com/photo-1618401471353-b98aedd07871?auto=format&fit=crop&w=1200&q=80',
-    description: 'Transform your development velocity by mastering Git and GitHub. Learn version control, branching, PR review workflows, GitHub Actions, CI/CD, and enterprise release management patterns.',
     thumbnail: '/assets/images/github_course_banner.png',
-    description: 'Learn Git & GitHub from beginner to professional, including version control, branching, pull requests, GitHub Actions, CI/CD, Codespaces, and Copilot.',
+    description: 'Transform your development velocity by mastering Git and GitHub. Learn version control, branching, PR review workflows, GitHub Actions, CI/CD, and enterprise release management patterns.',
     syllabus: [
       'Module 1: Introduction to Git',
       'Module 2: Git Fundamentals',
@@ -419,23 +417,6 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         });
 
         return merged;
-        const parsed = JSON.parse(localSaved);
-        if (Array.isArray(parsed)) {
-          const mapped = parsed.map((c: any) => {
-            const statusVal = c.status && c.status.toLowerCase() === 'published' ? 'Published' : 'Draft';
-            const instructorName = typeof c.instructor === 'object' && c.instructor !== null
-              ? (c.instructor.name || 'Kaizen Q Team')
-              : (c.instructor || 'Kaizen Q Team');
-            return {
-              ...c,
-              status: statusVal,
-              instructor: instructorName,
-            } as CourseItem;
-          });
-          const sanitized = sanitizeCourseList(mapped);
-          localStorage.setItem('shaivika_courses_data', JSON.stringify(sanitized));
-          return sanitized;
-        }
       } catch (e) {
         console.warn('LocalStorage courses parse warning:', e);
       }
