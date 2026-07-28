@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import {
   BookOpen,
@@ -18,6 +18,7 @@ import {
   Info,
   Bot,
   Brain,
+  Zap,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -35,6 +36,9 @@ import { CertificatePreviewModal } from '../../components/courses/CertificatePre
 import { AchievementsDashboard } from '../../components/courses/AchievementsDashboard';
 import { LeaderboardView } from '../../components/courses/LeaderboardView';
 import { ShieldAlert } from 'lucide-react';
+import { courseService } from '@/services/courseService';
+import type { XPClaimRecord } from '@/services/courseService';
+import type { ICourse } from '../../../../shared/types/course';
 
 export const Dashboard: React.FC = () => {
   const { user, userProfile } = useAuth();
@@ -46,7 +50,6 @@ export const Dashboard: React.FC = () => {
 
   // Dynamic Courses State
   const [enrolledCourses, setEnrolledCourses] = useState<ICourse[]>([]);
-  const [catalogCourses, setCatalogCourses] = useState<ICourse[]>([]);
   const [loadingCourses, setLoadingCourses] = useState(true);
 
   // XP & Claims State
@@ -60,11 +63,6 @@ export const Dashboard: React.FC = () => {
   });
   const completedCoursesCount = completedCourses.length;
 
-  // Quiz Modal State
-  const [quizModalOpen, setQuizModalOpen] = useState(false);
-  const [quizScore, setQuizScore] = useState<number | null>(null);
-  const [selectedAnswers, setSelectedAnswers] = useState<{ [key: number]: number }>({});
-
   // Certificate Modal State
   const [activePreviewCert, setActivePreviewCert] = useState<Certificate | null>(null);
 
@@ -75,9 +73,7 @@ export const Dashboard: React.FC = () => {
     setLoadingCourses(true);
     try {
       const enrolled = await courseService.getEnrolledCourses(activeUserId);
-      const catalogResult = await courseService.getCourses({ status: 'published', limit: 8 });
       setEnrolledCourses(enrolled);
-      setCatalogCourses(catalogResult.courses);
 
       // Load XP Points & Claims
       const xp = courseService.getUserXPPoints(activeUserId);
@@ -94,18 +90,6 @@ export const Dashboard: React.FC = () => {
   useEffect(() => {
     loadDashboardData();
   }, [loadDashboardData]);
-
-  const handleEnrollFree = async (course: ICourse) => {
-    try {
-      const res = await courseService.enrollCourse(course.id, activeUserId);
-      if (res.success) {
-        toast.success(`Enrolled free in "${course.title}"!`);
-        await loadDashboardData();
-      }
-    } catch (e) {
-      toast.error('Enrollment failed.');
-    }
-  };
 
   // Active learning player state
   const [activePlayerCourse, setActivePlayerCourse] = useState<any | null>(null);
@@ -317,33 +301,11 @@ export const Dashboard: React.FC = () => {
   });
 
   // Analytics Metrics
-  const activeEnrolledCount = coursesProgress.length;
   const liveHoursCompleted = coursesProgress.reduce((acc, c) => acc + c.completedDurationHours, 0);
   const totalCompletedUnitsCount = coursesProgress.reduce((acc, c) => acc + c.completedUnits, 0);
   const totalGlobalUnitsCount = coursesProgress.reduce((acc, c) => acc + c.totalUnits, 0);
   
-  // Calculate average quiz percentage from localStorage
-  let quizPercentagesSum = 0;
-  let quizCount = 0;
-  courses.forEach((c) => {
-    c.modules?.forEach((m) => {
-      m.topics.forEach((t) => {
-        t.learningUnits.forEach((u) => {
-          if (u.type === 'Quiz') {
-            try {
-              const stored = localStorage.getItem(`lms_quiz_score_${u.id}`);
-              if (stored) {
-                const parsed = JSON.parse(stored);
-                quizPercentagesSum += parsed.percentage;
-                quizCount++;
-              }
-            } catch {}
-          }
-        });
-      });
-    });
-  });
-  const avgQuizScore = quizCount > 0 ? Math.round(quizPercentagesSum / quizCount) : 92.5; // realistic fallback
+
 
   // Unlocked Certificates (dynamically check eligibility and generate verified credentials)
   const certificateService = React.useMemo(() => new CertificateService(), []);

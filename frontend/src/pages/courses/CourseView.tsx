@@ -7,6 +7,36 @@ import { toast } from 'sonner';
 import { CourseDetailsPage } from '@/components/learning/CourseDetailsPage';
 import { InCourseLearningView } from '@/components/learning/InCourseLearningView';
 
+const mapCourseModulesToPlayerModules = (modules?: any[]): any[] => {
+  if (!modules) return [];
+  return modules.map((m) => {
+    if (m.lessons && Array.isArray(m.lessons)) {
+      return m;
+    }
+    const lessons: any[] = [];
+    if (m.topics && Array.isArray(m.topics)) {
+      m.topics.forEach((t: any) => {
+        if (t.learningUnits && Array.isArray(t.learningUnits)) {
+          t.learningUnits.forEach((u: any) => {
+            lessons.push({
+              id: u.id,
+              title: u.title,
+              duration: u.duration || '15 mins',
+              type: u.type?.toLowerCase() || 'reading',
+            });
+          });
+        }
+      });
+    }
+    return {
+      id: m.id,
+      title: m.title,
+      duration: m.duration || '4 hours',
+      lessons,
+    };
+  });
+};
+
 export const CourseView: React.FC = () => {
   const { user, userProfile } = useAuth();
   const navigate = useNavigate();
@@ -253,9 +283,11 @@ export const CourseView: React.FC = () => {
   const activeCourseData = {
     ...(isGitCourse ? gitCourseData : linuxCourseData),
     ...dynamicCourse,
-    modules: (dynamicCourse?.modules && dynamicCourse.modules.length > 0)
-      ? dynamicCourse.modules
-      : (isGitCourse ? gitCourseData.modules : linuxCourseData.modules)
+    modules: mapCourseModulesToPlayerModules(
+      (dynamicCourse?.modules && dynamicCourse.modules.length > 0)
+        ? dynamicCourse.modules
+        : (isGitCourse ? gitCourseData.modules : linuxCourseData.modules)
+    )
   };
 
   if (isLearningMode) {

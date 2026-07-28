@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { db } from '@/firebase';
-import { collection, getDocs, doc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, updateDoc } from 'firebase/firestore';
 import { gitCourseModules } from '@/data/gitCourseFullData';
+import { courseService } from '@/services/courseService';
 
 export type LearningUnitType = 'Video' | 'Reading' | 'Quiz' | 'Assignment';
 
@@ -86,8 +87,8 @@ interface CourseContextType {
   toggleCourseStatus: (id: number | string) => Promise<void>;
   deleteCourse: (id: number | string) => Promise<void>;
   getCourseById: (id: number | string) => CourseItem | undefined;
-  refreshCourses?: () => Promise<void>;
-  updateCourse?: (id: number | string, updates: Partial<CourseItem>) => Promise<void>;
+  refreshCourses: () => Promise<void>;
+  updateCourse: (id: number | string, updates: Partial<CourseItem>) => Promise<void>;
 }
 
 // Helper to enrich learning units with default content if missing
@@ -403,7 +404,8 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     if (!db) return;
     try {
-      const loaded = await CourseService.getCourses();
+      const loadedResult = await courseService.getCourses();
+      const loaded = loadedResult.courses;
       if (loaded && loaded.length > 0) {
         const normalized = loaded.map((c: any) => {
           const statusVal = c.status && c.status.toLowerCase() === 'published' ? 'Published' : 'Draft';

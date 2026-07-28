@@ -1090,7 +1090,6 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
 
 
   // Mandatory 15 Seconds Spended Time per Subtopic before Claiming XP
-  const requiredSubtopicSeconds = 15;
 
   useEffect(() => {
     setTimerSeconds(0);
