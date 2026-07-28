@@ -118,18 +118,30 @@ export const ModulesTab: React.FC<ModulesTabProps> = ({
       </div>
 
       <div className="space-y-3 pt-1">
-        {filteredModules.map((module) => (
-          <ModuleAccordion
-            key={module.id}
-            module={module}
-            isOpen={!!openModules[String(module.id)]}
-            onToggle={() => toggleModule(module.id)}
-            selectedLessonId={selectedLessonId}
-            completedLessonIds={completedLessonIds}
-            onSelectLesson={onSelectLesson}
-            isNightMode={isNightMode}
-          />
-        ))}
+        {filteredModules.map((module, idx) => {
+          const prevModule = idx > 0 ? filteredModules[idx - 1] : null;
+          const isPrevCompleted = prevModule
+            ? prevModule.lessons.every((l) =>
+                completedLessonIds.some((id) => String(id) === String(l.id))
+              )
+            : true;
+          const isUnlocked = idx === 0 || isPrevCompleted;
+
+          return (
+            <ModuleAccordion
+              key={module.id}
+              module={module}
+              isOpen={!!openModules[String(module.id)]}
+              onToggle={() => toggleModule(module.id)}
+              selectedLessonId={selectedLessonId}
+              completedLessonIds={completedLessonIds}
+              onSelectLesson={onSelectLesson}
+              isNightMode={isNightMode}
+              isUnlocked={isUnlocked}
+              prevModuleTitle={prevModule?.title}
+            />
+          );
+        })}
       </div>
     </div>
   );

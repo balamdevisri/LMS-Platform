@@ -9,6 +9,7 @@ import { gitLessonsData } from '@/data/gitLessonsData';
 import { useAuth } from '@/contexts/AuthContext';
 import { courseService } from '@/services/courseService';
 import { FloatingBubbles } from './FloatingBubbles';
+import { EnterpriseGitLab } from '../labs/git/EnterpriseGitLab';
 import { toast } from 'sonner';
 
 export function calculateEstimatedDuration(content: string, commandCount: number = 0): string {
@@ -105,6 +106,18 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
   const hasPrevLesson = activeIndex > 0;
   const hasNextLesson = activeIndex < allLessons.length - 1;
 
+  const isLessonUnlocked = (lessonId: string | number): boolean => {
+    const modIdx = modules.findIndex((m) =>
+      m.lessons.some((l) => String(l.id) === String(lessonId))
+    );
+    if (modIdx <= 0) return true;
+
+    const prevMod = modules[modIdx - 1];
+    return prevMod ? prevMod.lessons.every((l) =>
+      completedLessonIds.some((id) => String(id) === String(l.id))
+    ) : true;
+  };
+
   const handlePrevLesson = () => {
     if (hasPrevLesson) {
       setSelectedLessonId(allLessons[activeIndex - 1].id);
@@ -114,7 +127,20 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
 
   const handleNextLesson = () => {
     if (hasNextLesson) {
-      setSelectedLessonId(allLessons[activeIndex + 1].id);
+      const nextLesson = allLessons[activeIndex + 1];
+      if (!isLessonUnlocked(nextLesson.id)) {
+        const currentMod = modules.find((m) =>
+          m.lessons.some((l) => String(l.id) === String(selectedLessonId))
+        );
+        const nextMod = modules.find((m) =>
+          m.lessons.some((l) => String(l.id) === String(nextLesson.id))
+        );
+        toast.warning(
+          `🔒 Module Locked! Complete all lessons in "${currentMod?.title || 'Current Module'}" & claim XP rewards first to unlock "${nextMod?.title || 'Next Module'}"!`
+        );
+        return;
+      }
+      setSelectedLessonId(nextLesson.id);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
@@ -146,12 +172,37 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
     let sectionTitle = '1. Core Operating Principles';
 
     if (
+      lessonTitleLower.includes('history') ||
+      lessonTitleLower.includes('distro') ||
+      lessonTitleLower.includes('overview') ||
+      lessonIdStr.includes('1.1')
+    ) {
+      sectionTitle = '1. Linux Architecture & Operating System History';
+      moduleImageMarkdown = `\n![Linux OS History & Enterprise Distros](/assets/images/topic_linux_history_distros.png)\n`;
+    } else if (
       lessonTitleLower.includes('kernel') ||
       lessonTitleLower.includes('lkm') ||
+      lessonTitleLower.includes('syscall') ||
       lessonIdStr.includes('1.2')
     ) {
       sectionTitle = '1. Kernel Architecture & System Call Execution';
-      moduleImageMarkdown = `\n![Linux Kernel Mechanics & LKMs](/assets/images/topic_kernel_mechanics.png)\n`;
+      moduleImageMarkdown = `\n![Linux Kernel Architecture Mechanics](/assets/images/topic_kernel_architecture.png)\n`;
+    } else if (
+      lessonTitleLower.includes('navigation') ||
+      lessonTitleLower.includes('cli basics') ||
+      lessonTitleLower.includes('prompt') ||
+      lessonIdStr.includes('1.3')
+    ) {
+      sectionTitle = '1. Terminal CLI Navigation & Path Exploration';
+      moduleImageMarkdown = `\n![Terminal CLI Navigation & Paths](/assets/images/topic_terminal_cli_navigation.png)\n`;
+    } else if (
+      lessonTitleLower.includes('redirection') ||
+      lessonTitleLower.includes('pipe') ||
+      lessonTitleLower.includes('filter') ||
+      lessonIdStr.includes('1.4')
+    ) {
+      sectionTitle = '1. I/O Redirection & Pipeline Processing';
+      moduleImageMarkdown = `\n![Linux I/O Redirection & Streams](/assets/images/topic_io_redirection_pipes.png)\n`;
     } else if (
       lessonTitleLower.includes('editor') ||
       lessonTitleLower.includes('vim') ||
@@ -225,34 +276,98 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       sectionTitle = '1. Network Diagnostics & Host Firewall Hardening';
       moduleImageMarkdown = `\n![Network Diagnostics & Security Hardening](/assets/images/linux_bash_security.png)\n`;
     } else if (
+      lessonTitleLower.includes('action') ||
+      lessonTitleLower.includes('ci') ||
+      lessonTitleLower.includes('pipeline')
+    ) {
+      sectionTitle = '1. GitHub Actions & Automated CI/CD Pipelines';
+      moduleImageMarkdown = `\n![GitHub Actions CI/CD Pipeline](/assets/images/github_actions_ci_cd.png)\n`;
+    } else if (
+      lessonTitleLower.includes('branch') ||
+      lessonTitleLower.includes('pull') ||
+      lessonTitleLower.includes('merge') ||
+      lessonTitleLower.includes('review')
+    ) {
+      sectionTitle = '1. Branching Strategies & Pull Request Code Reviews';
+      moduleImageMarkdown = `\n![Git Branching & Pull Requests](/assets/images/git_branching_merging.png)\n`;
+    } else if (
+      lessonTitleLower.includes('git') ||
+      lessonTitleLower.includes('commit') ||
+      lessonTitleLower.includes('version')
+    ) {
+      sectionTitle = '1. Git CLI Version Control & Local Workspace Setup';
+      moduleImageMarkdown = `\n![Git CLI Version Control Terminal](/assets/images/git_basics_terminal.png)\n`;
+    } else if (
       lessonTitleLower.includes('fhs') ||
       lessonTitleLower.includes('hierarchy') ||
       lessonIdStr.includes('2.1')
     ) {
       sectionTitle = '1. Filesystem Hierarchy Standard (FHS)';
-      moduleImageMarkdown = `\n![Filesystem Hierarchy Standard](/assets/images/linux_permissions_fhs.png)\n`;
+      moduleImageMarkdown = `\n![Filesystem Hierarchy Standard Diagram](/assets/images/linux_fhs_hierarchy.png)\n`;
     } else {
       sectionTitle = '1. Core Operating Principles & Layered Architecture';
-      moduleImageMarkdown = `\n![Linux OS Architecture Diagram](/assets/images/linux_os_architecture.png)\n`;
+      moduleImageMarkdown = `\n![Core OS Architecture Principles](/assets/images/topic_core_os_principles.png)\n`;
+    }
+
+    let topicDescription = 'Linux is built around modular Unix design principles where everything is represented as a file or stream. Understanding system boundaries, process isolation, and security matrices is essential for system administration and DevOps pipelines.';
+    let highlightedTopics = [
+      '⚡ Monolithic Kernel Architecture (CPU Ring 0 Supervisor Mode)',
+      '🛠️ System Call Interface (syscalls) connecting User Space to Hardware',
+      '🔒 POSIX Filesystem Hierarchy Standard & Permission Matrix',
+      '🔄 Process Scheduling, Systemd Daemons & Terminal Pipelines'
+    ];
+
+    if (lessonTitleLower.includes('git') || isGitCourse) {
+      topicDescription = 'Version control is the cornerstone of modern software development. Git enables distributed code tracking, seamless branching, pull request reviews, and automated CI/CD deployment pipelines.';
+      highlightedTopics = [
+        '⚡ Distributed Repository Initialization & Commit History Tracking',
+        '🌿 Branch Creation, Parallel Workflows & Merge Conflict Resolution',
+        '🐱 Remote Synchronization with GitHub & Pull Request Reviews',
+        '🚀 Automated CI/CD Workflow Pipelines with GitHub Actions'
+      ];
+    } else if (lessonTitleLower.includes('kernel') || lessonTitleLower.includes('lkm')) {
+      topicDescription = 'The Monolithic Linux Kernel executes in CPU Ring 0 with full supervisor authority, managing CPU scheduling, RAM memory paging, system calls, and Loadable Kernel Modules (LKMs).';
+      highlightedTopics = [
+        '⚡ CPU Execution Rings (Ring 0 Supervisor vs Ring 3 User Space)',
+        '🛠️ Monolithic Kernel Subsystems & LKMs (lsmod, modprobe)',
+        '🔍 System Call Interface execution (strace, sysenter)',
+        '🔄 Process Context Switching & Interrupt Handling'
+      ];
+    } else if (lessonTitleLower.includes('permission') || lessonTitleLower.includes('chmod') || lessonTitleLower.includes('acl')) {
+      topicDescription = 'Linux security relies on POSIX User-Group-Other permission masks (rwx) and fine-grained Access Control Lists (ACLs) to enforce data privacy and access control.';
+      highlightedTopics = [
+        '🔒 Octal & Symbolic Permission Notation (chmod 755, chmod 644)',
+        '👤 User & Group Ownership Management (chown, chgrp)',
+        '📌 Special Permission Bits (SUID, SGID, Sticky Bit chmod 1777)',
+        '🛡️ POSIX Access Control Lists (getfacl, setfacl)'
+      ];
+    } else if (lessonTitleLower.includes('process') || lessonTitleLower.includes('systemd') || lessonTitleLower.includes('cron')) {
+      topicDescription = 'Process management and systemd daemon control allow system administrators to run background services, monitor resource usage, and automate scheduled tasks.';
+      highlightedTopics = [
+        '⚡ Process Lifecycle, PIDs, & Termination Signals (SIGKILL, SIGTERM)',
+        '📊 Real-time System Resource Monitoring (top, htop, ps aux)',
+        '🤖 Systemd Unit Files & Daemon Control (systemctl start/status)',
+        '⏰ Automated Task Scheduling with Crontab Syntax (crontab -e)'
+      ];
     }
 
     const content = `### ${currentLessonData.title}
 
 Welcome to **${currentLessonData.title}**! In this comprehensive lesson, you will master core concepts, production architecture patterns, and hands-on commands.
 
-> [!NOTE]
-> Read through the concepts below, inspect the topic technical architecture diagram, and execute commands in the live terminal sandbox to unlock your **+50 XP** reward!
+Read through the concepts below, inspect the topic technical architecture diagram, and execute commands in the live terminal sandbox to unlock your **+50 XP** reward!
 
 #### ${sectionTitle}
-Linux is built around modular Unix design principles. Everything is represented as a file or stream. Understanding system boundaries, process isolation, and security matrices is essential for system administration and DevOps pipelines.
+${topicDescription}
+
 ${moduleImageMarkdown}
-#### 2. Kernel Subsystems & Resource Management
-The Linux kernel operates as a monolithic architecture running with full supervisor privileges in CPU Ring 0. It manages process scheduling, virtual memory paging, block I/O drivers, and network sockets efficiently.
 
-#### 3. Execution Pipeline & Terminal Diagnostics
-System commands execute in unprivileged User Space (CPU Ring 3) and interact with hardware via system calls (syscalls).
+#### 2. Key Learning Highlights & Core Concepts
+${highlightedTopics.map((item) => `- **${item}**`).join('\n')}
 
-#### 4. Critical Administration Commands
+**Pro Tip**: Practice running the commands in the interactive CLI terminal sandbox below to gain real hands-on terminal confidence!
+
+#### 3. Critical Practice Commands
 Use the interactive terminal below to practice these commands:
 - \`uname -a\` : Print system architecture & kernel version
 - \`whoami\` : Print current logged-in user username
@@ -389,6 +504,19 @@ Use the interactive terminal below to practice these commands:
         selectedLessonId={selectedLessonId}
         completedLessonIds={completedLessonIds}
         onSelectLesson={(id) => {
+          if (!isLessonUnlocked(id)) {
+            const targetMod = modules.find((m) =>
+              m.lessons.some((l) => String(l.id) === String(id))
+            );
+            const modIdx = modules.findIndex((m) =>
+              m.lessons.some((l) => String(l.id) === String(id))
+            );
+            const prevMod = modIdx > 0 ? modules[modIdx - 1] : null;
+            toast.warning(
+              `🔒 Module Locked! Complete all lessons in "${prevMod?.title || 'Previous Module'}" & claim XP rewards first to unlock "${targetMod?.title || 'Next Module'}"!`
+            );
+            return;
+          }
           setSelectedLessonId(id);
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
@@ -404,7 +532,7 @@ Use the interactive terminal below to practice these commands:
       />
 
       <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col lg:flex-row gap-10 relative z-10">
-        <main className="flex-1 min-w-0">
+        <main className="flex-1 min-w-0 space-y-8">
           <LessonViewer
             lesson={activeLessonFull}
             isGitCourse={isGitCourse}
@@ -413,6 +541,43 @@ Use the interactive terminal below to practice these commands:
             isCompleted={isCompleted}
             isNightMode={isNightMode}
           />
+
+          {isGitCourse && (
+            <div className="pt-4">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h2 className="font-heading text-lg font-extrabold text-cyan-300 flex items-center gap-2">
+                    <span>⚡ KaizenQ Enterprise Git & GitHub Interactive Lab</span>
+                  </h2>
+                  <p className="text-xs text-slate-400">
+                    Codespaces/GitKraken-style real-time Docker terminal sandbox. Practice all 21 supported Git commands securely.
+                  </p>
+                </div>
+              </div>
+
+              <EnterpriseGitLab
+                studentId={user?.uid || 'student_101'}
+                studentName={user?.displayName || 'Bhanu Prakash Achari'}
+                onClaimXP={(xp, title) => {
+                  const activeUserId = user?.uid || 'default_student';
+                  courseService.addXPPoints(xp, activeUserId);
+                  courseService.addXPClaim(
+                    {
+                      id: `claim_lab_${Date.now()}`,
+                      title: `🏆 Completed Git Lab: ${title}`,
+                      xp,
+                      category: 'AI Terminal Lab',
+                      timestamp: new Date().toISOString(),
+                      courseId: String(courseId),
+                      courseTitle: courseTitle,
+                    },
+                    activeUserId
+                  );
+                }}
+                isNightMode={isNightMode}
+              />
+            </div>
+          )}
         </main>
 
         <RightSidebar

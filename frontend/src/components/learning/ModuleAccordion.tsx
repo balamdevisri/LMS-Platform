@@ -1,6 +1,7 @@
 import React from 'react';
-import { ChevronDown, ChevronUp, Layers, CheckCircle2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Layers, CheckCircle2, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 import { LessonList } from './LessonList';
 import type { LessonItemData } from './LessonList';
 
@@ -19,6 +20,8 @@ interface ModuleAccordionProps {
   completedLessonIds: (string | number)[];
   onSelectLesson: (id: string | number) => void;
   isNightMode?: boolean;
+  isUnlocked?: boolean;
+  prevModuleTitle?: string;
 }
 
 export const ModuleAccordion: React.FC<ModuleAccordionProps> = ({
@@ -29,6 +32,8 @@ export const ModuleAccordion: React.FC<ModuleAccordionProps> = ({
   completedLessonIds,
   onSelectLesson,
   isNightMode = false,
+  isUnlocked = true,
+  prevModuleTitle,
 }) => {
   const completedCount = module.lessons.filter((l) =>
     completedLessonIds.some((id) => String(id) === String(l.id))
@@ -36,16 +41,32 @@ export const ModuleAccordion: React.FC<ModuleAccordionProps> = ({
 
   const isFullyCompleted = completedCount === module.lessons.length && module.lessons.length > 0;
 
+  const handleHeaderClick = () => {
+    if (!isUnlocked) {
+      toast.warning(`🔒 Module Locked! Complete all lessons in "${prevModuleTitle || 'Previous Module'}" & claim XP first!`);
+      return;
+    }
+    onToggle();
+  };
+
   return (
     <div className={`rounded-2xl border overflow-hidden shadow-xs transition-all duration-200 ${
-      isNightMode
+      !isUnlocked
+        ? isNightMode
+          ? 'border-slate-800/60 bg-slate-950/60 opacity-80'
+          : 'border-slate-200 bg-slate-100/60 opacity-85'
+        : isNightMode
         ? 'border-slate-800 bg-slate-900 hover:border-slate-700'
         : 'border-sky-100 bg-white hover:border-sky-200'
     }`}>
       <button
-        onClick={onToggle}
+        onClick={handleHeaderClick}
         className={`w-full flex items-center justify-between p-3.5 text-left transition-all cursor-pointer ${
-          isNightMode
+          !isUnlocked
+            ? isNightMode
+              ? 'bg-slate-950/80 text-slate-500'
+              : 'bg-slate-100/80 text-slate-500'
+            : isNightMode
             ? 'bg-slate-900/80 hover:bg-slate-800/80'
             : 'bg-sky-50/40 hover:bg-sky-50'
         }`}
@@ -53,7 +74,9 @@ export const ModuleAccordion: React.FC<ModuleAccordionProps> = ({
         <div className="flex items-center gap-3 min-w-0">
           <div
             className={`p-2 rounded-xl border shrink-0 ${
-              isFullyCompleted
+              !isUnlocked
+                ? 'bg-slate-200/80 border-slate-300 text-slate-500 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-500'
+                : isFullyCompleted
                 ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
                 : isOpen
                 ? isNightMode
@@ -64,25 +87,40 @@ export const ModuleAccordion: React.FC<ModuleAccordionProps> = ({
                 : 'bg-slate-100 border-slate-200 text-slate-500'
             }`}
           >
-            {isFullyCompleted ? <CheckCircle2 className="w-4 h-4" /> : <Layers className="w-4 h-4" />}
+            {!isUnlocked ? (
+              <Lock className="w-4 h-4 text-amber-500" />
+            ) : isFullyCompleted ? (
+              <CheckCircle2 className="w-4 h-4" />
+            ) : (
+              <Layers className="w-4 h-4" />
+            )}
           </div>
 
           <div className="min-w-0">
-            <h3 className={`text-xs sm:text-sm font-bold truncate leading-snug ${isNightMode ? 'text-white' : 'text-slate-900'}`}>
-              {module.title}
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className={`text-xs sm:text-sm font-bold truncate leading-snug ${isNightMode ? 'text-white' : 'text-slate-900'}`}>
+                {module.title}
+              </h3>
+              {!isUnlocked && (
+                <span className="px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 text-[10px] font-bold border border-amber-300 dark:border-amber-800/80 shrink-0">
+                  🔒 Locked
+                </span>
+              )}
+            </div>
             <div className={`flex items-center gap-2 text-[11px] font-mono mt-0.5 ${isNightMode ? 'text-slate-400' : 'text-slate-500'}`}>
               <span>{module.lessons.length} lessons</span>
               <span>•</span>
-              <span className={`font-semibold ${isNightMode ? 'text-cyan-300' : 'text-sky-600'}`}>
-                {completedCount}/{module.lessons.length} completed
+              <span className={`font-semibold ${!isUnlocked ? 'text-amber-600 dark:text-amber-400' : isNightMode ? 'text-cyan-300' : 'text-sky-600'}`}>
+                {!isUnlocked ? 'Requires Prerequisite' : `${completedCount}/${module.lessons.length} completed`}
               </span>
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-2 shrink-0 ml-2">
-          {isOpen ? (
+          {!isUnlocked ? (
+            <Lock className="w-4 h-4 text-amber-500" />
+          ) : isOpen ? (
             <ChevronUp className={`w-4 h-4 ${isNightMode ? 'text-cyan-400' : 'text-sky-600'}`} />
           ) : (
             <ChevronDown className={`w-4 h-4 ${isNightMode ? 'text-slate-400' : 'text-slate-400'}`} />
@@ -91,7 +129,7 @@ export const ModuleAccordion: React.FC<ModuleAccordionProps> = ({
       </button>
 
       <AnimatePresence initial={false}>
-        {isOpen && (
+        {isOpen && isUnlocked && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
@@ -105,6 +143,8 @@ export const ModuleAccordion: React.FC<ModuleAccordionProps> = ({
               completedLessonIds={completedLessonIds}
               onSelectLesson={onSelectLesson}
               isNightMode={isNightMode}
+              isUnlocked={isUnlocked}
+              prevModuleTitle={prevModuleTitle}
             />
           </motion.div>
         )}

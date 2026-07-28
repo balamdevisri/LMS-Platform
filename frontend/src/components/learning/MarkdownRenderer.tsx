@@ -1,6 +1,6 @@
 import React from 'react';
 import { CodeBlock } from './CodeBlock';
-import { Sparkles, AlertTriangle, Info, CheckCircle2, FileText } from 'lucide-react';
+import { Sparkles, CheckCircle2, FileText } from 'lucide-react';
 
 interface MarkdownRendererProps {
   content: string;
@@ -116,38 +116,28 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
       return;
     }
 
-    // Callouts / Alerts
+    // Callouts / Alerts - rendered cleanly without symbol alert bars
     if (line.startsWith('> [!NOTE]') || line.startsWith('> [!TIP]')) {
-      elements.push(
-        <div
-          key={index}
-          className={`my-4 p-4 rounded-2xl text-sm flex items-start gap-3 border shadow-xs ${
-            isNightMode
-              ? 'bg-cyan-950/40 border-cyan-500/40 text-cyan-200'
-              : 'bg-sky-50 border-sky-200 text-sky-900'
-          }`}
-        >
-          <Info className={`w-5 h-5 shrink-0 mt-0.5 ${isNightMode ? 'text-cyan-400' : 'text-sky-600'}`} />
-          <div>{line.replace(/^>\s*\[!(NOTE|TIP)\]\s*/, '')}</div>
-        </div>
-      );
+      const cleanText = line.replace(/^>\s*\[!(NOTE|TIP)\]\s*/, '');
+      if (cleanText.trim()) {
+        elements.push(
+          <p key={index} className={`my-3 text-sm leading-relaxed font-medium ${isNightMode ? 'text-cyan-200' : 'text-slate-700'}`}>
+            {cleanText}
+          </p>
+        );
+      }
       return;
     }
 
     if (line.startsWith('> [!WARNING]') || line.startsWith('> [!IMPORTANT]')) {
-      elements.push(
-        <div
-          key={index}
-          className={`my-4 p-4 rounded-2xl text-sm flex items-start gap-3 border shadow-xs ${
-            isNightMode
-              ? 'bg-amber-950/40 border-amber-500/40 text-amber-200'
-              : 'bg-amber-50 border-amber-200 text-amber-900'
-          }`}
-        >
-          <AlertTriangle className={`w-5 h-5 shrink-0 mt-0.5 ${isNightMode ? 'text-amber-400' : 'text-amber-600'}`} />
-          <div>{line.replace(/^>\s*\[!(WARNING|IMPORTANT)\]\s*/, '')}</div>
-        </div>
-      );
+      const cleanText = line.replace(/^>\s*\[!(WARNING|IMPORTANT)\]\s*/, '');
+      if (cleanText.trim()) {
+        elements.push(
+          <p key={index} className={`my-3 text-sm leading-relaxed font-medium ${isNightMode ? 'text-amber-200' : 'text-slate-700'}`}>
+            {cleanText}
+          </p>
+        );
+      }
       return;
     }
 

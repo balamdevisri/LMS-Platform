@@ -218,7 +218,7 @@ export const AIAssistantWidget: React.FC = () => {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ask about syllabus, code, quizzes..."
-                className="flex-1 bg-slate-50 border border-sky-200 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-hidden font-medium"
+                className="flex-1 bg-slate-50 border border-sky-200 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-slate-900 placeholder:opacity-60 focus:outline-hidden font-medium"
               />
               <button
                 type="submit"

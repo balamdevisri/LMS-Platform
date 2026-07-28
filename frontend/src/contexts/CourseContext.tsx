@@ -155,8 +155,8 @@ const enrichCourseMockContent = (course: CourseItem): CourseItem => {
 
 const initialDefaultCoursesRaw: CourseItem[] = [
   {
-    id: 1,
-    title: 'Introduction to Linux & System Administration',
+    id: 'course_linux_101',
+    title: 'Linux Systems & Administration Mastery',
     subtitle: '🐧 Linux Essentials',
     instructor: 'Bhanu Prakash Achari',
     role: 'Linux Systems Architect & AI Specialist',
@@ -171,7 +171,7 @@ const initialDefaultCoursesRaw: CourseItem[] = [
     tracks: '4 Modules (32 Hours)',
     status: 'Published',
     thumbnail: '/assets/images/linux_course_thumbnail.png',
-    description: `Welcome to Linux Essentials! Linux is one of the world's most powerful and widely used operating systems, powering everything from web servers and cloud platforms to Android devices, supercomputers, and embedded systems. This course is designed for beginners who want to build a strong foundation in Linux. You will learn how Linux works, how to navigate the terminal, manage files and directories, understand permissions, and perform essential system operations using real-world commands. By the end of this course, you'll have the confidence to work efficiently in any Linux environment and be prepared for advanced topics such as shell scripting, DevOps, cloud computing, and cybersecurity.`,
+    description: `Welcome to Linux Systems & Administration Mastery! Linux powers modern cloud infrastructure, supercomputers, and enterprise AI clusters. In this comprehensive production-ready track, you will explore Linux Kernel mechanics, master file system hierarchy standards (FHS), manage systemd background daemons, automate workflows via Bash scripts, and harden network security using SSH and host firewalls.`,
     syllabus: [
       'Module 1: Linux Architecture, Kernel & CLI Fundamentals',
       'Module 2: File System Hierarchy, Permissions & Ownership',
@@ -314,6 +314,8 @@ const initialDefaultCoursesRaw: CourseItem[] = [
     status: 'Published',
     thumbnail: 'https://images.unsplash.com/photo-1618401471353-b98aedd07871?auto=format&fit=crop&w=1200&q=80',
     description: 'Transform your development velocity by mastering Git and GitHub. Learn version control, branching, PR review workflows, GitHub Actions, CI/CD, and enterprise release management patterns.',
+    thumbnail: '/assets/images/github_course_banner.png',
+    description: 'Learn Git & GitHub from beginner to professional, including version control, branching, pull requests, GitHub Actions, CI/CD, Codespaces, and Copilot.',
     syllabus: [
       'Module 1: Introduction to Git',
       'Module 2: Git Fundamentals',
@@ -329,6 +331,54 @@ const initialDefaultCoursesRaw: CourseItem[] = [
 ];
 
 const initialDefaultCourses = initialDefaultCoursesRaw.map(enrichCourseMockContent);
+const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
+  const map = new Map<string, CourseItem>();
+  list.forEach((c) => {
+    const title = (c.title || '').toLowerCase();
+    if (
+      title.includes('linux systems') ||
+      title.includes('introduction to linux') ||
+      String(c.id) === '1' ||
+      String(c.id) === 'course_linux_101'
+    ) {
+      const key = 'course_linux_101';
+      const updatedItem: CourseItem = {
+        ...c,
+        id: 'course_linux_101',
+        title: 'Linux Systems & Administration Mastery',
+        subtitle: '🐧 Linux Essentials',
+        thumbnail: c.thumbnail || '/assets/images/linux_course_thumbnail.png',
+      };
+      map.set(key, updatedItem);
+    } else if (
+      title.includes('git & github') ||
+      title.includes('git and github') ||
+      String(c.id) === 'git-github-mastery' ||
+      String(c.id) === 'git-github-mastery-course-id'
+    ) {
+      const key = 'git-github-mastery';
+      const updatedItem: CourseItem = {
+        ...c,
+        id: 'git-github-mastery',
+        title: 'Git & GitHub Mastery',
+        subtitle: '⚡ Git & GitHub Mastery',
+        thumbnail: '/assets/images/github_course_banner.png',
+      };
+      map.set(key, updatedItem);
+    } else {
+      map.set(String(c.id), c);
+    }
+  });
+
+  if (!map.has('course_linux_101')) {
+    map.set('course_linux_101', initialDefaultCourses[0]);
+  }
+  if (!map.has('git-github-mastery')) {
+    map.set('git-github-mastery', initialDefaultCourses[1]);
+  }
+
+  return Array.from(map.values());
+};
 
 const CourseContext = createContext<CourseContextType | undefined>(undefined);
 
@@ -369,6 +419,23 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         });
 
         return merged;
+        const parsed = JSON.parse(localSaved);
+        if (Array.isArray(parsed)) {
+          const mapped = parsed.map((c: any) => {
+            const statusVal = c.status && c.status.toLowerCase() === 'published' ? 'Published' : 'Draft';
+            const instructorName = typeof c.instructor === 'object' && c.instructor !== null
+              ? (c.instructor.name || 'Kaizen Q Team')
+              : (c.instructor || 'Kaizen Q Team');
+            return {
+              ...c,
+              status: statusVal,
+              instructor: instructorName,
+            } as CourseItem;
+          });
+          const sanitized = sanitizeCourseList(mapped);
+          localStorage.setItem('shaivika_courses_data', JSON.stringify(sanitized));
+          return sanitized;
+        }
       } catch (e) {
         console.warn('LocalStorage courses parse warning:', e);
       }
@@ -383,7 +450,7 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       try {
         const parsed = JSON.parse(localSaved);
         if (Array.isArray(parsed)) {
-          localList = parsed.map((c: any) => {
+          const mapped = parsed.map((c: any) => {
             const statusVal = c.status && c.status.toLowerCase() === 'published' ? 'Published' : 'Draft';
             const instructorName = typeof c.instructor === 'object' && c.instructor !== null
               ? (c.instructor.name || 'Kaizen Q Team')
@@ -394,6 +461,7 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               instructor: instructorName,
             } as CourseItem;
           });
+          localList = sanitizeCourseList(mapped);
         }
       } catch (e) {
         console.warn('LocalStorage courses parse warning in refreshCourses:', e);
@@ -419,16 +487,7 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           } as CourseItem;
         });
 
-        const merged = [...localList];
-        for (const c of normalized) {
-          const idx = merged.findIndex(item => String(item.id) === String(c.id));
-          if (idx !== -1) {
-            merged[idx] = c;
-          } else {
-            merged.push(c);
-          }
-        }
-
+        const merged = sanitizeCourseList([...localList, ...normalized]);
         setCourses(merged);
         localStorage.setItem('shaivika_courses_data', JSON.stringify(merged));
       }
