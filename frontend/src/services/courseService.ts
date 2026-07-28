@@ -1,6 +1,6 @@
 import { db } from '@/firebase';
-import { doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
-import type { ICourse, CreateCourseDTO, UpdateCourseDTO, CourseFilterOptions, CoursePaginationResult } from '../../../shared/types/course';
+import { doc, setDoc, updateDoc, deleteDoc, collection, getDocs } from 'firebase/firestore';
+import type { ICourse, CreateCourseDTO, UpdateCourseDTO, CourseFilterOptions, CoursePaginationResult, CourseLevel, CourseStatus } from '../../../shared/types/course';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -73,6 +73,59 @@ const DEFAULT_COURSES: ICourse[] = [
     createdAt: new Date('2026-01-15').toISOString(),
     updatedAt: new Date('2026-02-10').toISOString(),
   },
+  {
+    id: 'git-github-mastery-course-id',
+    title: 'Git & GitHub Mastery',
+    slug: 'git-github-mastery',
+    shortDescription: 'Master version control, repository management, and CI/CD pipelines.',
+    description: 'Learn Git & GitHub from beginner to professional, including version control, branching, pull requests, GitHub Actions, CI/CD, Codespaces, and Copilot.',
+    thumbnail: 'https://images.unsplash.com/photo-1618401471353-b98aedd07871?auto=format&fit=crop&w=1200&q=80',
+    banner: 'https://images.unsplash.com/photo-1618401471353-b98aedd07871?auto=format&fit=crop&w=1200&q=80',
+    category: 'Development Tools',
+    level: 'all_levels',
+    duration: '20 Hours',
+    language: 'English',
+    price: 0,
+    instructor: {
+      id: 'instructor-kaizen-q',
+      name: 'Kaizen Q Team',
+      role: 'Senior Technical Instructor',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    },
+    skills: ['Git CLI', 'Branching & Merging', 'Pull Requests', 'GitHub Actions', 'CI/CD Pipelines'],
+    prerequisites: ['Basic computer literacy'],
+    learningOutcomes: [
+      'Create, track and manage repositories locally and on GitHub',
+      'Coordinate branches and execute pull requests and code reviews',
+      'Solve complex merge conflicts and perform rebasing',
+      'Write custom GitHub Actions pipelines for automated testing & Netlify/Vercel deployments',
+    ],
+    status: 'published',
+    visibility: 'public',
+    featured: true,
+    tags: ['git', 'github', 'ci-cd', 'devops', 'version-control'],
+    enrollmentCount: 0,
+    rating: 5.0,
+    ratingCount: 180,
+    syllabus: [
+      {
+        id: 'git-les-101',
+        title: 'Module 1: Version Control & Git Basics',
+        description: 'Introduction to git init, add, commit, status, log, diff, config, and remote synchronization.',
+        lessonsCount: 15,
+        duration: '3 Hours',
+      },
+      {
+        id: 'git-les-201',
+        title: 'Module 2: GitHub Foundations',
+        description: 'GitHub repositories, branches, checkout, merge, pull requests, and collaborative code reviews.',
+        lessonsCount: 16,
+        duration: '3 Hours',
+      },
+    ],
+    createdAt: new Date('2026-07-01').toISOString(),
+    updatedAt: new Date('2026-07-01').toISOString(),
+  }
 ];
 
 export interface EnrollmentRecord {
@@ -103,31 +156,194 @@ export interface CourseProgressCheckpoint {
   lastUpdated: string;
 }
 
+function normalizeCourseToICourse(c: any): ICourse {
+  const instructorObj = typeof c.instructor === 'object' && c.instructor !== null
+    ? {
+        id: c.instructor.id || 'instructor-kaizen-q',
+        name: c.instructor.name || 'Kaizen Q Team',
+        role: c.instructor.role || 'Senior Technical Instructor',
+        avatar: c.instructor.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      }
+    : {
+        id: 'inst_default',
+        name: typeof c.instructor === 'string' ? c.instructor : 'Kaizen Q Team',
+        role: c.role || 'Senior Technical Instructor',
+        avatar: c.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      };
+
+  let normalizedStatus: CourseStatus = 'published';
+  if (c.status) {
+    const s = String(c.status).toLowerCase();
+    if (s === 'published') normalizedStatus = 'published';
+    else if (s === 'draft') normalizedStatus = 'draft';
+    else if (s === 'archived') normalizedStatus = 'archived';
+  }
+
+  let normalizedLevel: CourseLevel = 'all_levels';
+  if (c.level) {
+    const l = String(c.level).toLowerCase();
+    if (l.includes('begin') && l.includes('adv')) normalizedLevel = 'all_levels';
+    else if (l.includes('all')) normalizedLevel = 'all_levels';
+    else if (l.includes('begin')) normalizedLevel = 'beginner';
+    else if (l.includes('inter')) normalizedLevel = 'intermediate';
+    else if (l.includes('adv')) normalizedLevel = 'advanced';
+    else if (['beginner', 'intermediate', 'advanced', 'all_levels'].includes(l)) normalizedLevel = l as CourseLevel;
+  }
+
+  let syllabusArray: any[] = [];
+  if (Array.isArray(c.syllabus)) {
+    syllabusArray = c.syllabus.map((item: any, idx: number) => {
+      if (typeof item === 'string') {
+        return {
+          id: `m${idx + 1}`,
+          title: item,
+          description: '',
+          lessonsCount: 4,
+          duration: '8 Hours',
+        };
+      }
+      return item;
+    });
+  } else if (c.title === 'Git & GitHub Mastery') {
+    syllabusArray = [
+      {
+        id: 'git-les-101',
+        title: 'Module 1: Version Control & Git Basics',
+        description: 'Introduction to git init, add, commit, status, log, diff, config, and remote synchronization.',
+        lessonsCount: 15,
+        duration: '3 Hours',
+      },
+      {
+        id: 'git-les-201',
+        title: 'Module 2: GitHub Foundations',
+        description: 'GitHub repositories, branches, checkout, merge, pull requests, and collaborative code reviews.',
+        lessonsCount: 16,
+        duration: '3 Hours',
+      },
+    ];
+  } else {
+    syllabusArray = [
+      {
+        id: 'm1',
+        title: 'Module 1: Fundamental Concepts & Environment Setup',
+        description: '',
+        lessonsCount: 4,
+        duration: '8 Hours',
+      },
+    ];
+  }
+
+  const slug = c.slug || c.title?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || `course-${c.id}`;
+
+  return {
+    id: String(c.id),
+    title: c.title || 'Untitled Technical Course',
+    slug,
+    shortDescription: c.shortDescription || c.description || 'Enterprise technical course.',
+    description: c.description || 'Enterprise technical course with hands-on labs.',
+    thumbnail: c.thumbnail || '/assets/images/linux_course_thumbnail.png',
+    banner: c.banner || '',
+    category: c.category || 'Linux & Systems',
+    level: normalizedLevel,
+    duration: c.duration || '20 hrs',
+    language: c.language || 'English',
+    price: typeof c.price === 'number' ? c.price : 0,
+    instructor: instructorObj,
+    skills: Array.isArray(c.skills) ? c.skills : [],
+    prerequisites: Array.isArray(c.prerequisites) ? c.prerequisites : [],
+    learningOutcomes: Array.isArray(c.learningOutcomes) ? c.learningOutcomes : [],
+    status: normalizedStatus,
+    visibility: c.visibility || 'public',
+    featured: Boolean(c.featured),
+    tags: Array.isArray(c.tags) ? c.tags : [],
+    enrollmentCount: typeof c.enrollmentCount === 'number' ? c.enrollmentCount : Number(c.students || 0),
+    rating: typeof c.rating === 'number' ? c.rating : 5.0,
+    ratingCount: typeof c.ratingCount === 'number' ? c.ratingCount : (typeof c.reviews === 'number' ? c.reviews : 1),
+    syllabus: syllabusArray,
+    createdAt: c.createdAt || new Date().toISOString(),
+    updatedAt: c.updatedAt || new Date().toISOString(),
+  };
+}
+
 class CourseService {
-  private localCacheKey = 'shaivika_enterprise_courses';
+  private localCacheKey = 'shaivika_courses_data';
   private enrollmentsKey = 'shaivika_user_enrollments';
   private pointsKey = 'shaivika_user_xp_points';
   private xpClaimsKey = 'shaivika_user_xp_claims';
   private checkpointKey = 'shaivika_user_checkpoint';
 
+  private normalizeCourseToICourse(c: any): ICourse {
+    return normalizeCourseToICourse(c);
+  }
+
   private getStoredCourses(): ICourse[] {
-    const data = localStorage.getItem(this.localCacheKey);
-    if (data) {
+    const mergedList: ICourse[] = [];
+    const idSet = new Set<string>();
+
+    // 1. Add Default Mock Courses
+    for (const c of DEFAULT_COURSES) {
+      const normalized = this.normalizeCourseToICourse(c);
+      mergedList.push(normalized);
+      idSet.add(normalized.id);
+    }
+
+    // 2. Read from 'shaivika_courses_data' (Admin Portal local storage key)
+    const adminData = localStorage.getItem('shaivika_courses_data');
+    if (adminData) {
       try {
-        const parsed: ICourse[] = JSON.parse(data);
-        const filtered = parsed.filter(
-          (c) => c.id !== 'course_ai_llm_202' && c.id !== 'course_devops_303'
-        );
-        if (filtered.length !== parsed.length) {
-          localStorage.setItem(this.localCacheKey, JSON.stringify(filtered));
+        const parsed = JSON.parse(adminData);
+        if (Array.isArray(parsed)) {
+          for (const c of parsed) {
+            const normalized = this.normalizeCourseToICourse(c);
+            const existingIdx = mergedList.findIndex(
+              (item) => String(item.id) === String(normalized.id) || item.slug === normalized.slug
+            );
+            if (existingIdx !== -1) {
+              mergedList[existingIdx] = normalized;
+            } else {
+              mergedList.push(normalized);
+            }
+            idSet.add(normalized.id);
+          }
         }
-        return filtered;
       } catch (e) {
-        console.warn('Error parsing cached course data:', e);
+        console.warn('Error parsing shaivika_courses_data:', e);
       }
     }
-    localStorage.setItem(this.localCacheKey, JSON.stringify(DEFAULT_COURSES));
-    return DEFAULT_COURSES;
+
+    // 3. Read from 'shaivika_enterprise_courses' (Student Portal legacy cache key)
+    const studentData = localStorage.getItem('shaivika_enterprise_courses');
+    if (studentData) {
+      try {
+        const parsed = JSON.parse(studentData);
+        if (Array.isArray(parsed)) {
+          for (const c of parsed) {
+            if (c.id === 'course_ai_llm_202' || c.id === 'course_devops_303') {
+              continue;
+            }
+            const normalized = this.normalizeCourseToICourse(c);
+            const existingIdx = mergedList.findIndex(
+              (item) => String(item.id) === String(normalized.id) || item.slug === normalized.slug
+            );
+            if (existingIdx !== -1) {
+              mergedList[existingIdx] = {
+                ...normalized,
+                ...mergedList[existingIdx],
+                progress: c.progress !== undefined ? c.progress : mergedList[existingIdx].progress,
+                isEnrolled: c.isEnrolled !== undefined ? c.isEnrolled : mergedList[existingIdx].isEnrolled,
+              };
+            } else {
+              mergedList.push(normalized);
+            }
+            idSet.add(normalized.id);
+          }
+        }
+      } catch (e) {
+        console.warn('Error parsing shaivika_enterprise_courses:', e);
+      }
+    }
+
+    return mergedList;
   }
 
   private saveStoredCourses(courses: ICourse[]): void {
@@ -226,6 +442,7 @@ class CourseService {
   }
 
   async getCourses(options: CourseFilterOptions = {}): Promise<CoursePaginationResult> {
+    // Try API first
     try {
       const params = new URLSearchParams();
       if (options.search) params.append('search', options.search);
@@ -244,16 +461,39 @@ class CourseService {
       }
     } catch (err) {}
 
+    // Try Firestore directly if available
+    if (db) {
+      try {
+        const querySnapshot = await getDocs(collection(db, 'courses'));
+        const loaded: ICourse[] = [];
+        querySnapshot.forEach((docSnap) => {
+          loaded.push(this.normalizeCourseToICourse({ id: docSnap.id, ...docSnap.data() }));
+        });
+        if (loaded.length > 0) {
+          localStorage.setItem('shaivika_courses_data', JSON.stringify(loaded));
+        }
+      } catch (err) {
+        console.warn('Firestore fetch in getCourses failed, falling back to localStorage:', err);
+      }
+    }
+
     let list = this.getStoredCourses();
 
     if (options.status && options.status !== 'all') {
       list = list.filter((c) => c.status === options.status);
     }
     if (options.category && options.category !== 'All') {
-      list = list.filter((c) => c.category === options.category);
+      const selectedCat = options.category.toLowerCase();
+      list = list.filter((c) => {
+        const courseCat = c.category.toLowerCase();
+        return courseCat === selectedCat ||
+               (selectedCat.includes('development') && courseCat.includes('development')) ||
+               (selectedCat.includes('linux') && courseCat.includes('linux')) ||
+               (selectedCat.includes('sys') && courseCat.includes('sys'));
+      });
     }
     if (options.level && options.level !== 'all') {
-      list = list.filter((c) => c.level === options.level);
+      list = list.filter((c) => c.level === options.level || c.level === 'all_levels');
     }
     if (options.search) {
       const term = options.search.toLowerCase();

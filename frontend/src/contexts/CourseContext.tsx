@@ -24,6 +24,8 @@ export interface CourseItem {
   createdAt?: string;
 }
 
+
+
 interface CourseContextType {
   courses: CourseItem[];
   publishedCourses: CourseItem[];
@@ -31,6 +33,7 @@ interface CourseContextType {
   toggleCourseStatus: (id: number | string) => Promise<void>;
   deleteCourse: (id: number | string) => Promise<void>;
   getCourseById: (id: number | string) => CourseItem | undefined;
+  refreshCourses?: () => Promise<void>;
 }
 
 const initialDefaultCourses: CourseItem[] = [
@@ -97,7 +100,20 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const localSaved = localStorage.getItem('shaivika_courses_data');
     if (localSaved) {
       try {
-        return JSON.parse(localSaved);
+        const parsed = JSON.parse(localSaved);
+        if (Array.isArray(parsed)) {
+          return parsed.map((c: any) => {
+            const statusVal = c.status && c.status.toLowerCase() === 'published' ? 'Published' : 'Draft';
+            const instructorName = typeof c.instructor === 'object' && c.instructor !== null
+              ? (c.instructor.name || 'Kaizen Q Team')
+              : (c.instructor || 'Kaizen Q Team');
+            return {
+              ...c,
+              status: statusVal,
+              instructor: instructorName,
+            } as CourseItem;
+          });
+        }
       } catch (e) {
         console.warn('LocalStorage courses parse warning:', e);
       }
@@ -105,21 +121,69 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return initialDefaultCourses;
   });
 
+  const refreshCourses = async () => {
+    const localSaved = localStorage.getItem('shaivika_courses_data');
+    let localList = initialDefaultCourses;
+    if (localSaved) {
+      try {
+        const parsed = JSON.parse(localSaved);
+        if (Array.isArray(parsed)) {
+          localList = parsed.map((c: any) => {
+            const statusVal = c.status && c.status.toLowerCase() === 'published' ? 'Published' : 'Draft';
+            const instructorName = typeof c.instructor === 'object' && c.instructor !== null
+              ? (c.instructor.name || 'Kaizen Q Team')
+              : (c.instructor || 'Kaizen Q Team');
+            return {
+              ...c,
+              status: statusVal,
+              instructor: instructorName,
+            } as CourseItem;
+          });
+        }
+      } catch (e) {
+        console.warn('LocalStorage courses parse warning in refreshCourses:', e);
+      }
+    }
+    
+    setCourses(localList);
+
+    if (!db) return;
+    try {
+      const loaded = await CourseService.getCourses();
+      if (loaded && loaded.length > 0) {
+        const normalized = loaded.map((c: any) => {
+          const statusVal = c.status && c.status.toLowerCase() === 'published' ? 'Published' : 'Draft';
+          const instructorName = typeof c.instructor === 'object' && c.instructor !== null
+            ? (c.instructor.name || 'Kaizen Q Team')
+            : (c.instructor || 'Kaizen Q Team');
+          return {
+            ...c,
+            status: statusVal,
+            instructor: instructorName,
+          } as CourseItem;
+        });
+
+        const merged = [...localList];
+        for (const c of normalized) {
+          const idx = merged.findIndex(item => String(item.id) === String(c.id));
+          if (idx !== -1) {
+            merged[idx] = c;
+          } else {
+            merged.push(c);
+          }
+        }
+
+        setCourses(merged);
+        localStorage.setItem('shaivika_courses_data', JSON.stringify(merged));
+      }
+    } catch (err) {
+      console.warn('Firestore courses fetch notice in refreshCourses:', err);
+    }
+  };
+
   // Sync with Firestore if available
   useEffect(() => {
-    const syncFirestoreCourses = async () => {
-      if (!db) return;
-      try {
-        const loaded = await CourseService.getCourses();
-        if (loaded && loaded.length > 0) {
-          setCourses(loaded);
-          localStorage.setItem('shaivika_courses_data', JSON.stringify(loaded));
-        }
-      } catch (err) {
-        console.warn('Firestore courses fetch notice:', err);
-      }
-    };
-    syncFirestoreCourses();
+    refreshCourses();
   }, []);
 
   // Update LocalStorage whenever courses state changes
@@ -212,6 +276,7 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         toggleCourseStatus,
         deleteCourse,
         getCourseById,
+        refreshCourses,
       }}
     >
       {children}
