@@ -34,11 +34,13 @@ export const WindowsPowerShellTerminal: React.FC<WindowsPowerShellTerminalProps>
     },
   ]);
 
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (containerRef.current) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+    }
   }, [logs]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -160,7 +162,7 @@ export const WindowsPowerShellTerminal: React.FC<WindowsPowerShellTerminalProps>
       </div>
 
       {/* TERMINAL CONTENT SCREEN */}
-      <div className="p-4 flex-1 overflow-y-auto space-y-3 text-xs leading-relaxed font-mono custom-scrollbar">
+      <div ref={containerRef} className="p-4 flex-1 overflow-y-auto space-y-3 text-xs leading-relaxed font-mono custom-scrollbar">
         {logs.map((log) => (
           <div key={log.id} className="space-y-1">
             {log.command && (
@@ -195,11 +197,9 @@ export const WindowsPowerShellTerminal: React.FC<WindowsPowerShellTerminalProps>
             onChange={(e) => setInputVal(e.target.value)}
             onKeyDown={handleKeyDown}
             className="flex-1 bg-transparent text-white focus:outline-none font-mono text-xs caret-cyan-400"
-            autoFocus
             spellCheck={false}
           />
         </div>
-        <div ref={bottomRef} />
       </div>
     </div>
   );
