@@ -177,9 +177,9 @@ export const CourseView: React.FC = () => {
   };
 
   const gitCourseData = {
-    id: 'git-github-mastery-course-id',
+    id: 'git-github-mastery',
     title: 'Git & GitHub Mastery',
-    subtitle: '🛠️ Git & GitHub Mastery',
+    subtitle: '⚡ Git & GitHub Mastery',
     instructor: 'Admin',
     role: 'LMS Platform Systems Lead',
     avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
@@ -189,7 +189,7 @@ export const CourseView: React.FC = () => {
     duration: '20 Hours',
     category: 'Development Tools',
     level: 'Beginner to Advanced',
-    thumbnail: 'https://images.unsplash.com/photo-1618401471353-b98aedd07871?auto=format&fit=crop&w=1200&q=80',
+    thumbnail: '/assets/images/github_course_banner.png',
     introText: [
       `Welcome to Git & GitHub Mastery! Version control is a foundational skill for all developers. This course will take you from Git basics to advanced pipelines.`,
       `You will learn local repository initialization, stage-commit lifecycles, remote repository synchronization, pull requests, code reviews, rebasing, and automated pipelines using GitHub Actions.`,
