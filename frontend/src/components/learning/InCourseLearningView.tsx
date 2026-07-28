@@ -225,12 +225,34 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       sectionTitle = '1. Network Diagnostics & Host Firewall Hardening';
       moduleImageMarkdown = `\n![Network Diagnostics & Security Hardening](/assets/images/linux_bash_security.png)\n`;
     } else if (
+      lessonTitleLower.includes('action') ||
+      lessonTitleLower.includes('ci') ||
+      lessonTitleLower.includes('pipeline')
+    ) {
+      sectionTitle = '1. GitHub Actions & Automated CI/CD Pipelines';
+      moduleImageMarkdown = `\n![GitHub Actions CI/CD Pipeline](/assets/images/github_actions_ci_cd.png)\n`;
+    } else if (
+      lessonTitleLower.includes('branch') ||
+      lessonTitleLower.includes('pull') ||
+      lessonTitleLower.includes('merge') ||
+      lessonTitleLower.includes('review')
+    ) {
+      sectionTitle = '1. Branching Strategies & Pull Request Code Reviews';
+      moduleImageMarkdown = `\n![Git Branching & Pull Requests](/assets/images/git_branching_merging.png)\n`;
+    } else if (
+      lessonTitleLower.includes('git') ||
+      lessonTitleLower.includes('commit') ||
+      lessonTitleLower.includes('version')
+    ) {
+      sectionTitle = '1. Git CLI Version Control & Local Workspace Setup';
+      moduleImageMarkdown = `\n![Git CLI Version Control Terminal](/assets/images/git_basics_terminal.png)\n`;
+    } else if (
       lessonTitleLower.includes('fhs') ||
       lessonTitleLower.includes('hierarchy') ||
       lessonIdStr.includes('2.1')
     ) {
       sectionTitle = '1. Filesystem Hierarchy Standard (FHS)';
-      moduleImageMarkdown = `\n![Filesystem Hierarchy Standard](/assets/images/linux_permissions_fhs.png)\n`;
+      moduleImageMarkdown = `\n![Filesystem Hierarchy Standard Diagram](/assets/images/linux_fhs_hierarchy.png)\n`;
     } else {
       sectionTitle = '1. Core Operating Principles & Layered Architecture';
       moduleImageMarkdown = `\n![Linux OS Architecture Diagram](/assets/images/linux_os_architecture.png)\n`;
