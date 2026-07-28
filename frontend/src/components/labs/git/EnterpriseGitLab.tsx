@@ -4,10 +4,8 @@ import {
   GitCommit,
   Folder,
   FileCode,
-  Terminal as TerminalIcon,
   RefreshCw,
   Plus,
-  Play,
   UploadCloud,
   DownloadCloud,
   Layers,
@@ -19,6 +17,7 @@ import type { GitRepositoryState, GitFileStatus, GitStashItem } from '@/services
 import { GitBranchGraph } from './GitBranchGraph';
 import { GitDiffViewer } from './GitDiffViewer';
 import { GitTaskPanel } from './GitTaskPanel';
+import { WindowsPowerShellTerminal } from './WindowsPowerShellTerminal';
 
 interface EnterpriseGitLabProps {
   studentId: string;
@@ -34,17 +33,6 @@ export const EnterpriseGitLab: React.FC<EnterpriseGitLabProps> = ({
   isNightMode = true,
 }) => {
   const sandboxService = SandboxService.getInstance();
-
-  const [terminalInput, setTerminalInput] = useState('');
-  const [terminalLogs, setTerminalLogs] = useState<
-    { type: 'input' | 'output' | 'error'; text: string }[]
-  >([
-    {
-      type: 'output',
-      text: '⚡ KaizenQ Professional Docker Git Sandbox Initialized.\nType "git status", "git log", "git branch", or any supported Git command below.\nSecurity Guard Protocol Active: Restricted access outside /home/student/workspace.',
-    },
-  ]);
-  const [isExecuting, setIsExecuting] = useState(false);
 
   const [repoState, setRepoState] = useState<GitRepositoryState>({
     currentBranch: 'main',
@@ -79,40 +67,20 @@ export const EnterpriseGitLab: React.FC<EnterpriseGitLabProps> = ({
   const [newBranchName, setNewBranchName] = useState('');
 
   const handleRunCommand = async (cmdToRun?: string) => {
-    const commandStr = (cmdToRun || terminalInput).trim();
+    const commandStr = (cmdToRun || '').trim();
     if (!commandStr) return;
-
-    setIsExecuting(true);
-    setTerminalLogs((prev) => [...prev, { type: 'input', text: `$ ${commandStr}` }]);
-    if (!cmdToRun) setTerminalInput('');
 
     try {
       const response = await sandboxService.executeGitCommand(studentId, commandStr);
-
-      if (response.exitCode === 0 && response.stdout) {
-        setTerminalLogs((prev) => [...prev, { type: 'output', text: response.stdout }]);
+      if (response.stderr && response.stderr.includes('Permission Denied')) {
+        toast.error('🔒 Security Alert: Intercepted forbidden command or path traversal attempt!');
       }
-      if (response.stderr) {
-        setTerminalLogs((prev) => [
-          ...prev,
-          { type: response.exitCode === 0 ? 'output' : 'error', text: response.stderr },
-        ]);
-        if (response.stderr.includes('Permission Denied')) {
-          toast.error('🔒 Security Alert: Intercepted forbidden command or path traversal attempt!');
-        }
-      }
-
       setRepoState(response.state);
       if (response.state.files.length > 0 && !selectedFile) {
         setSelectedFile(response.state.files[0]);
       }
     } catch (e: any) {
-      setTerminalLogs((prev) => [
-        ...prev,
-        { type: 'error', text: `Execution Exception: ${e.message || 'Failed to execute command'}` },
-      ]);
-    } finally {
-      setIsExecuting(false);
+      console.error('Git Sandbox Execution Error:', e);
     }
   };
 
@@ -395,61 +363,8 @@ export const EnterpriseGitLab: React.FC<EnterpriseGitLabProps> = ({
             />
           </div>
 
-          <div className="h-1/2 bg-slate-950 p-3 flex flex-col space-y-2">
-            <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
-              <div className="flex items-center gap-2">
-                <TerminalIcon className="w-4 h-4 text-cyan-400" />
-                <span className="font-bold text-xs text-cyan-300">Interactive Docker Git Terminal</span>
-              </div>
-              <button
-                onClick={() => setTerminalLogs([])}
-                className="text-[10px] text-slate-400 hover:text-slate-200 cursor-pointer"
-              >
-                Clear Output
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto font-mono text-xs space-y-1.5 p-2 bg-slate-900/60 rounded-xl border border-slate-800/80">
-              {terminalLogs.map((log, idx) => (
-                <div
-                  key={idx}
-                  className={`whitespace-pre-wrap leading-relaxed ${
-                    log.type === 'input'
-                      ? 'text-cyan-300 font-bold'
-                      : log.type === 'error'
-                      ? 'text-rose-400 bg-rose-950/40 p-1.5 rounded-lg border border-rose-800'
-                      : 'text-slate-300'
-                  }`}
-                >
-                  {log.text}
-                </div>
-              ))}
-            </div>
-
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleRunCommand();
-              }}
-              className="flex items-center gap-2 pt-1"
-            >
-              <span className="text-cyan-400 font-bold text-xs">$</span>
-              <input
-                type="text"
-                value={terminalInput}
-                onChange={(e) => setTerminalInput(e.target.value)}
-                placeholder="git commit -m 'feat: update code' (Type any Git command...)"
-                className="flex-1 bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-100 focus:outline-hidden font-mono"
-              />
-              <button
-                type="submit"
-                disabled={isExecuting}
-                className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs rounded-xl transition-colors shadow-xs cursor-pointer flex items-center gap-1.5"
-              >
-                <Play className="w-3.5 h-3.5" />
-                <span>Run</span>
-              </button>
-            </form>
+          <div className="h-1/2 p-2 overflow-hidden bg-slate-950">
+            <WindowsPowerShellTerminal onCommandRun={(cmd) => handleRunCommand(cmd)} />
           </div>
 
         </div>
