@@ -1,6 +1,7 @@
 import { db } from '@/firebase';
 import { doc, setDoc, updateDoc, deleteDoc, collection, getDocs } from 'firebase/firestore';
 import type { ICourse, CreateCourseDTO, UpdateCourseDTO, CourseFilterOptions, CoursePaginationResult, CourseLevel, CourseStatus } from '../../../shared/types/course';
+import { gitCourseModules } from '@/data/gitCourseFullData';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -77,7 +78,7 @@ const DEFAULT_COURSES: ICourse[] = [
     id: 'git-github-mastery',
     title: 'Git & GitHub Mastery',
     slug: 'git-github-mastery',
-    shortDescription: 'Master version control, repository management, and CI/CD pipelines.',
+    shortDescription: 'Learn Git & GitHub from beginner to professional, including version control, branching, pull requests, and CI/CD.',
     description: 'Learn Git & GitHub from beginner to professional, including version control, branching, pull requests, GitHub Actions, CI/CD, Codespaces, and Copilot.',
     thumbnail: '/assets/images/github_course_banner.png',
     banner: '/assets/images/github_course_banner.png',
@@ -87,44 +88,37 @@ const DEFAULT_COURSES: ICourse[] = [
     language: 'English',
     price: 0,
     instructor: {
-      id: 'instructor-kaizen-q',
+      id: 'inst_kaizen',
       name: 'Kaizen Q Team',
       role: 'Senior Technical Instructor',
       avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
     },
-    skills: ['Git CLI', 'Branching & Merging', 'Pull Requests', 'GitHub Actions', 'CI/CD Pipelines'],
+    skills: ['Git CLI', 'Version Control', 'GitHub Actions', 'Codespaces', 'Semantic Versioning'],
     prerequisites: ['Basic computer literacy'],
     learningOutcomes: [
-      'Create, track and manage repositories locally and on GitHub',
-      'Coordinate branches and execute pull requests and code reviews',
-      'Solve complex merge conflicts and perform rebasing',
-      'Write custom GitHub Actions pipelines for automated testing & Netlify/Vercel deployments',
+      'Master version control concepts and the local Git commit cycle',
+      'Create pull requests and manage collaborative branching strategies',
+      'Build continuous integration pipelines using GitHub Actions',
+      'Manage issues, milestones, and Kanban boards with GitHub Projects'
     ],
     status: 'published',
     visibility: 'public',
     featured: true,
-    tags: ['git', 'github', 'ci-cd', 'devops', 'version-control'],
-    enrollmentCount: 0,
+    tags: ['git', 'github', 'devops', 'version-control'],
+    enrollmentCount: 180,
     rating: 5.0,
     ratingCount: 180,
     syllabus: [
-      {
-        id: 'git-les-101',
-        title: 'Module 1: Version Control & Git Basics',
-        description: 'Introduction to git init, add, commit, status, log, diff, config, and remote synchronization.',
-        lessonsCount: 15,
-        duration: '3 Hours',
-      },
-      {
-        id: 'git-les-201',
-        title: 'Module 2: GitHub Foundations',
-        description: 'GitHub repositories, branches, checkout, merge, pull requests, and collaborative code reviews.',
-        lessonsCount: 16,
-        duration: '3 Hours',
-      },
+      { id: 'git-mod-1', title: 'Module 1: Version Control & Git Basics', description: 'Version Control and local Git commit cycle.', duration: '3 hours', lessonsCount: 4 },
+      { id: 'git-mod-2', title: 'Module 2: GitHub Foundations', description: 'Cloud hosting, branching, and pull requests.', duration: '3 hours', lessonsCount: 4 },
+      { id: 'git-mod-3', title: 'Module 3: Advanced Git', description: 'Interactive rebasing, stashing, and reflog.', duration: '4 hours', lessonsCount: 4 },
+      { id: 'git-mod-4', title: 'Module 4: Repository Management', description: 'PR reviews, branch protection, and tagging.', duration: '3 hours', lessonsCount: 4 },
+      { id: 'git-mod-5', title: 'Module 5: GitHub Actions', description: 'Automating tests, security, and CD.', duration: '4 hours', lessonsCount: 4 },
+      { id: 'git-mod-6', title: 'Module 6: Modern GitHub Ecosystem', description: 'Codespaces, Copilot, and projects.', duration: '3 hours', lessonsCount: 4 }
     ],
-    createdAt: new Date('2026-07-01').toISOString(),
-    updatedAt: new Date('2026-07-01').toISOString(),
+    modules: gitCourseModules,
+    createdAt: new Date('2026-01-20').toISOString(),
+    updatedAt: new Date('2026-02-15').toISOString(),
   }
 ];
 
@@ -153,6 +147,7 @@ export interface CourseProgressCheckpoint {
   lastSubtopicTitle?: string;
   completedSubtopics: string[];
   completedModules: number[];
+  inProgressSubtopics?: string[];
   lastUpdated: string;
 }
 
@@ -191,7 +186,15 @@ function normalizeCourseToICourse(c: any): ICourse {
   }
 
   let syllabusArray: any[] = [];
-  if (Array.isArray(c.syllabus)) {
+  if (c.modules && Array.isArray(c.modules)) {
+    syllabusArray = c.modules.map((m: any) => ({
+      id: m.id,
+      title: m.title,
+      description: m.description || '',
+      lessonsCount: m.topics ? m.topics.reduce((acc: number, t: any) => acc + (t.learningUnits ? t.learningUnits.length : 0), 0) : 0,
+      duration: m.duration || '4 hours'
+    }));
+  } else if (Array.isArray(c.syllabus)) {
     syllabusArray = c.syllabus.map((item: any, idx: number) => {
       if (typeof item === 'string') {
         return {
@@ -206,20 +209,12 @@ function normalizeCourseToICourse(c: any): ICourse {
     });
   } else if (c.title === 'Git & GitHub Mastery') {
     syllabusArray = [
-      {
-        id: 'git-les-101',
-        title: 'Module 1: Version Control & Git Basics',
-        description: 'Introduction to git init, add, commit, status, log, diff, config, and remote synchronization.',
-        lessonsCount: 15,
-        duration: '3 Hours',
-      },
-      {
-        id: 'git-les-201',
-        title: 'Module 2: GitHub Foundations',
-        description: 'GitHub repositories, branches, checkout, merge, pull requests, and collaborative code reviews.',
-        lessonsCount: 16,
-        duration: '3 Hours',
-      },
+      { id: 'git-mod-1', title: 'Module 1: Version Control & Git Basics', description: 'Version Control and local Git commit cycle.', duration: '3 hours', lessonsCount: 4 },
+      { id: 'git-mod-2', title: 'Module 2: GitHub Foundations', description: 'Cloud hosting, branching, and pull requests.', duration: '3 hours', lessonsCount: 4 },
+      { id: 'git-mod-3', title: 'Module 3: Advanced Git', description: 'Interactive rebasing, stashing, and reflog.', duration: '4 hours', lessonsCount: 4 },
+      { id: 'git-mod-4', title: 'Module 4: Repository Management', description: 'PR reviews, branch protection, and tagging.', duration: '3 hours', lessonsCount: 4 },
+      { id: 'git-mod-5', title: 'Module 5: GitHub Actions', description: 'Automating tests, security, and CD.', duration: '4 hours', lessonsCount: 4 },
+      { id: 'git-mod-6', title: 'Module 6: Modern GitHub Ecosystem', description: 'Codespaces, Copilot, and projects.', duration: '3 hours', lessonsCount: 4 }
     ];
   } else {
     syllabusArray = [
@@ -260,6 +255,7 @@ function normalizeCourseToICourse(c: any): ICourse {
     rating: typeof c.rating === 'number' ? c.rating : 5.0,
     ratingCount: typeof c.ratingCount === 'number' ? c.ratingCount : (typeof c.reviews === 'number' ? c.reviews : 1),
     syllabus: syllabusArray,
+    modules: c.modules || [],
     createdAt: c.createdAt || new Date().toISOString(),
     updatedAt: c.updatedAt || new Date().toISOString(),
   };
@@ -272,7 +268,7 @@ class CourseService {
   private xpClaimsKey = 'shaivika_user_xp_claims';
   private checkpointKey = 'shaivika_user_checkpoint';
 
-  private normalizeCourseToICourse(c: any): ICourse {
+  normalizeCourseToICourse(c: any): ICourse {
     return normalizeCourseToICourse(c);
   }
 
@@ -347,6 +343,7 @@ class CourseService {
   }
 
   private saveStoredCourses(courses: ICourse[]): void {
+    localStorage.setItem('shaivika_courses_data', JSON.stringify(courses));
     localStorage.setItem(this.localCacheKey, JSON.stringify(courses));
   }
 

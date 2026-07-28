@@ -43,6 +43,7 @@ export interface ICourse {
   aiGenerated?: boolean;
   aiPrompt?: string;
   aiMetadata?: Record<string, any>;
+  modules?: any[];
   progress?: number; // Enrollment completion percentage (0-100)
   isEnrolled?: boolean; // Whether current student is enrolled
   createdAt: string;

@@ -84,10 +84,10 @@ export const DashboardLayout: React.FC = () => {
   const navItems = isAdminRoute
     ? [
         { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
-        { name: 'User Management', href: '/admin/users', icon: UserCheck },
         { name: 'Courses', href: '/admin/courses', icon: BookOpen },
         { name: 'Students', href: '/admin/students', icon: UserCheck },
         { name: 'Instructors', href: '/admin/instructors', icon: GraduationCap },
+        { name: 'Content Management', href: '/admin/content-management', icon: FileText },
       ]
     : [
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },

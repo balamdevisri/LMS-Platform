@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { MoreVertical, Eye, Edit, Globe, FileText, Trash2 } from 'lucide-react';
 import type { CourseItem } from '@/contexts/CourseContext';
 
@@ -172,6 +173,15 @@ export const CourseRow: React.FC<CourseRowProps> = ({
                 <Edit className="w-3.5 h-3.5 text-slate-400" />
                 <span>Edit Details</span>
               </button>
+
+              <Link
+                to={`/admin/courses/${course.id}`}
+                onClick={() => setMenuOpen(false)}
+                className="w-full flex items-center gap-2 px-2.5 py-2 text-xs font-semibold text-slate-600 hover:text-sky-600 hover:bg-sky-50 rounded-xl transition-colors cursor-pointer"
+              >
+                <FileText className="w-3.5 h-3.5 text-slate-400" />
+                <span>Build Curriculum</span>
+              </Link>
 
               <button
                 onClick={() => {
