@@ -354,8 +354,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
 
 Welcome to **${currentLessonData.title}**! In this comprehensive lesson, you will master core concepts, production architecture patterns, and hands-on commands.
 
-> [!NOTE]
-> Read through the concepts below, inspect the topic technical architecture diagram, and execute commands in the live terminal sandbox to unlock your **+50 XP** reward!
+Read through the concepts below, inspect the topic technical architecture diagram, and execute commands in the live terminal sandbox to unlock your **+50 XP** reward!
 
 #### ${sectionTitle}
 ${topicDescription}
@@ -365,8 +364,7 @@ ${moduleImageMarkdown}
 #### 2. Key Learning Highlights & Core Concepts
 ${highlightedTopics.map((item) => `- **${item}**`).join('\n')}
 
-> [!IMPORTANT]
-> **Pro Tip**: Practice running the commands in the interactive CLI terminal sandbox below to gain real hands-on terminal confidence!
+**Pro Tip**: Practice running the commands in the interactive CLI terminal sandbox below to gain real hands-on terminal confidence!
 
 #### 3. Critical Practice Commands
 Use the interactive terminal below to practice these commands:
