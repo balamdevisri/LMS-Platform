@@ -10,7 +10,7 @@ export const Footer: React.FC = () => {
       <div className="absolute top-0 right-1/4 w-96 h-96 bg-sky-400/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-sky-100">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 pb-12 border-b border-sky-100">
           
           {/* Brand & Newsletter */}
           <div className="lg:col-span-2 space-y-4">
@@ -51,17 +51,6 @@ export const Footer: React.FC = () => {
               <li><a href="#features" className="hover:text-sky-600 transition-colors">AI Features</a></li>
               <li><a href="#pricing" className="hover:text-sky-600 transition-colors">Pricing Plans</a></li>
               <li><Link to="/dashboard" className="hover:text-sky-600 transition-colors">Interactive Workspace</Link></li>
-            </ul>
-          </div>
-
-          {/* Resources & Support */}
-          <div>
-            <h4 className="font-heading font-bold text-slate-900 text-sm mb-4">Resources</h4>
-            <ul className="space-y-2.5 text-xs font-medium">
-              <li><a href="#about" className="hover:text-sky-600 transition-colors">Documentation</a></li>
-              <li><a href="#about" className="hover:text-sky-600 transition-colors">AI API Reference</a></li>
-              <li><a href="#about" className="hover:text-sky-600 transition-colors">Help Center & FAQ</a></li>
-              <li><a href="#about" className="hover:text-sky-600 transition-colors">24/7 AI Support</a></li>
             </ul>
           </div>
 
