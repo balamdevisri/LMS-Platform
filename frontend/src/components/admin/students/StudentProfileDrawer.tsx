@@ -76,7 +76,7 @@ export const StudentProfileDrawer: React.FC<StudentProfileDrawerProps> = ({
         <div className="p-6 space-y-6 flex-1 text-slate-900">
           
           {/* Profile Overview Card */}
-          <div className="bg-gradient-to-br from-sky-50/80 to-blue-50/40 p-6 rounded-3xl border border-sky-100 space-y-5">
+          <div className="bg-linear-to-br from-sky-50/80 to-blue-50/40 p-6 rounded-3xl border border-sky-100 space-y-5">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 {student.photoURL ? (
@@ -86,7 +86,7 @@ export const StudentProfileDrawer: React.FC<StudentProfileDrawerProps> = ({
                     className="w-16 h-16 rounded-2xl object-cover border-2 border-sky-400 shadow-md shadow-sky-500/10"
                   />
                 ) : (
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-r from-sky-500 to-blue-600 text-white flex items-center justify-center font-heading font-extrabold text-2xl shadow-md shadow-sky-500/20">
+                  <div className="w-16 h-16 rounded-2xl bg-linear-to-r from-sky-500 to-blue-600 text-white flex items-center justify-center font-heading font-extrabold text-2xl shadow-md shadow-sky-500/20">
                     {student.name.charAt(0)}
                   </div>
                 )}
@@ -296,7 +296,7 @@ export const StudentProfileDrawer: React.FC<StudentProfileDrawerProps> = ({
 
           {/* Linux Lab Progress Panel */}
           {student.linuxLabProgress && (
-            <div className="bg-gradient-to-br from-slate-900 to-slate-950 text-white p-5 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
+            <div className="bg-linear-to-br from-slate-900 to-slate-950 text-white p-5 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Terminal className="w-5 h-5 text-cyan-400" />
