@@ -15,7 +15,6 @@ import { toast } from 'sonner';
 import { SandboxService } from '@/services/sandboxService';
 import type { GitRepositoryState, GitFileStatus, GitStashItem } from '@/services/sandboxService';
 import { GitBranchGraph } from './GitBranchGraph';
-import { GitDiffViewer } from './GitDiffViewer';
 import { WindowsPowerShellTerminal } from './WindowsPowerShellTerminal';
 
 interface EnterpriseGitLabProps {
@@ -350,22 +349,9 @@ export const EnterpriseGitLab: React.FC<EnterpriseGitLabProps> = ({
 
         </div>
 
-        {/* CENTER PANEL: DIFF INSPECTOR & POWERSHELL TERMINAL */}
-        <div className="flex-1 flex flex-col min-w-0">
-          
-          <div className="h-2/5 border-b border-slate-800 p-2 overflow-hidden">
-            <GitDiffViewer
-              selectedFile={selectedFile}
-              isNightMode={isNightMode}
-              onStageFile={(path) => handleRunCommand(`git add ${path}`)}
-              onUnstageFile={(path) => handleRunCommand(`git restore --staged ${path}`)}
-            />
-          </div>
-
-          <div className="h-3/5 p-2 overflow-hidden bg-slate-950">
-            <WindowsPowerShellTerminal onCommandRun={(cmd) => handleRunCommand(cmd)} />
-          </div>
-
+        {/* MAIN PANEL: FULL-HEIGHT POWERSHELL TERMINAL */}
+        <div className="flex-1 flex flex-col min-w-0 bg-slate-950 p-2 overflow-hidden">
+          <WindowsPowerShellTerminal onCommandRun={(cmd) => handleRunCommand(cmd)} />
         </div>
 
       </div>
