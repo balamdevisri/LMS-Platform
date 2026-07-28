@@ -134,7 +134,7 @@ export const EnterpriseGitLab: React.FC<EnterpriseGitLabProps> = ({
   const handleSyncPull = () => handleRunCommand('git pull origin main');
 
   return (
-    <div className={`rounded-3xl border overflow-hidden shadow-2xl font-mono flex flex-col h-[750px] transition-colors ${
+    <div className={`rounded-3xl border overflow-hidden shadow-2xl font-mono flex flex-col h-187.5 transition-colors ${
       isNightMode ? 'bg-slate-950 border-slate-800 text-slate-100' : 'bg-slate-900 border-sky-200 text-slate-100'
     }`}>
       

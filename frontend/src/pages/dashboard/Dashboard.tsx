@@ -666,7 +666,7 @@ export const Dashboard: React.FC = () => {
                   <p className="text-[10px] text-slate-500 leading-normal font-medium">No pending homework assignments.</p>
                 </div>
               ) : (
-                <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
+                <div className="space-y-3 max-h-55 overflow-y-auto pr-1">
                   {upcomingAssignments.slice(0, 3).map((item, idx) => (
                     <div key={idx} className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex gap-3 items-start shadow-3xs">
                       <div className="w-10 h-10 rounded-lg bg-amber-100 border border-amber-200 text-amber-700 flex items-center justify-center font-bold text-[10px] shrink-0">
@@ -717,7 +717,7 @@ export const Dashboard: React.FC = () => {
                           {claim.category}
                         </span>
                         {claim.courseTitle && (
-                          <span className="text-[10px] font-semibold text-sky-700 max-w-[120px] truncate" title={claim.courseTitle}>
+                          <span className="text-[10px] font-semibold text-sky-700 max-w-30 truncate" title={claim.courseTitle}>
                             {claim.courseTitle}
                           </span>
                         )}
@@ -855,7 +855,7 @@ export const Dashboard: React.FC = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search Courses by Name, Instructor, or Lesson..."
-                  className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-sky-100 bg-white/70 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 transition-all focus:border-sky-500"
+                  className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-sky-100 bg-white/70 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 transition-all"
                 />
               </div>
               
@@ -1089,7 +1089,7 @@ export const Dashboard: React.FC = () => {
                       return (
                         <div key={act.id} className="relative font-['Sora'] text-slate-900 space-y-1">
                           {/* Timeline Bullet Marker */}
-                          <div className={`absolute -left-[27px] top-0.5 w-6 h-6 rounded-full border flex items-center justify-center ${actColor} shadow-3xs`}>
+                          <div className={`absolute -left-6.75 top-0.5 w-6 h-6 rounded-full border flex items-center justify-center ${actColor} shadow-3xs`}>
                             {actIcon}
                           </div>
 
@@ -1451,7 +1451,7 @@ export const Dashboard: React.FC = () => {
               <select
                 value={selectedCourseId}
                 onChange={(e) => setSelectedCourseId(e.target.value)}
-                className="bg-slate-50 hover:bg-slate-100 py-2.5 px-4 rounded-xl text-xs font-bold border border-slate-200 focus:border-blue-500 outline-none transition-all cursor-pointer font-semibold"
+                className="bg-slate-50 hover:bg-slate-100 py-2.5 px-4 rounded-xl text-xs font-bold border border-slate-200 focus:border-blue-500 outline-none transition-all cursor-pointer"
               >
                 {courses.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -1486,7 +1486,7 @@ export const Dashboard: React.FC = () => {
 
       {/* ------------------- 8. PRACTICE LAB SANDBOX TAB ------------------- */}
       {currentTab === 'practice-lab' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl animate-in fade-in duration-300 h-[650px] p-2">
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl animate-in fade-in duration-300 h-162.5 p-2">
           <PracticeLab
             standalone={true}
             courseId={selectedCourseId || '1'}
