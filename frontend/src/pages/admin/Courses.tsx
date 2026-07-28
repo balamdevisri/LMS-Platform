@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { BookOpen, Plus, Sparkles, BookCheck, FileEdit, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCourses } from '@/contexts/CourseContext';
@@ -10,7 +11,8 @@ import CourseTable from '@/components/admin/courses/CourseTable';
 import EmptyCourses from '@/components/admin/courses/EmptyCourses';
 
 export const Courses: React.FC = () => {
-  const { courses, toggleCourseStatus, deleteCourse } = useCourses();
+  const navigate = useNavigate();
+  const { courses, toggleCourseStatus, deleteCourse, refreshCourses } = useCourses();
   const [realStudentsCount, setRealStudentsCount] = useState<number>(0);
 
   // Search & Filter State
@@ -27,6 +29,13 @@ export const Courses: React.FC = () => {
     });
     return () => unsub();
   }, []);
+
+  // Sync courses on mount
+  useEffect(() => {
+    if (refreshCourses) {
+      refreshCourses();
+    }
+  }, [refreshCourses]);
 
   // Dynamic filter dropdown options based on current database courses
   const categories = Array.from(new Set(courses.map((c) => c.category).filter((c): c is string => !!c)));
@@ -78,7 +87,7 @@ export const Courses: React.FC = () => {
 
   // Action Handlers
   const handleCreateCourseClick = () => {
-    toast.info('Create Course Form feature is under development.');
+    navigate('/admin/courses/create');
   };
 
   const handleView = (course: any) => {
@@ -86,7 +95,7 @@ export const Courses: React.FC = () => {
   };
 
   const handleEdit = (course: any) => {
-    toast.info(`Edit Course Form for "${course.title}" is under development.`);
+    navigate(`/admin/courses/${course.id}/edit`);
   };
 
   const handleTogglePublish = async (course: any) => {
