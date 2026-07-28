@@ -124,20 +124,22 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({
         </p>
       </section>
 
-      <section className="my-8">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className={`text-lg font-bold flex items-center gap-2 font-heading ${isNightMode ? 'text-white' : 'text-slate-900'}`}>
-            <TerminalIcon className="w-5 h-5 text-emerald-500" />
-            Hands-on CLI Terminal Sandbox
-          </h3>
-          <span className={`text-xs font-mono ${isNightMode ? 'text-slate-400' : 'text-slate-500'}`}>Live Interactive Execution</span>
-        </div>
-        <Terminal
-          initialCommands={lesson.commands || []}
-          isGitCourse={isGitCourse}
-          onExecuteCommand={onExecuteCommand}
-        />
-      </section>
+      {!isGitCourse && (
+        <section className="my-8">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className={`text-lg font-bold flex items-center gap-2 font-heading ${isNightMode ? 'text-white' : 'text-slate-900'}`}>
+              <TerminalIcon className="w-5 h-5 text-emerald-500" />
+              Hands-on CLI Terminal Sandbox
+            </h3>
+            <span className={`text-xs font-mono ${isNightMode ? 'text-slate-400' : 'text-slate-500'}`}>Live Interactive Execution</span>
+          </div>
+          <Terminal
+            initialCommands={lesson.commands || []}
+            isGitCourse={isGitCourse}
+            onExecuteCommand={onExecuteCommand}
+          />
+        </section>
+      )}
 
       <footer
         className={`mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 p-6 rounded-3xl border shadow-xl ${
