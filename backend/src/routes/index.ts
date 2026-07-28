@@ -9,6 +9,7 @@ import analyticsRoutes from '../modules/analytics/analytic.routes';
 import aiRoutes from '../modules/ai/ai.routes';
 import emailRoutes from './emailRoutes';
 import aiLmsRoutes from './aiLmsRoutes';
+import sandboxRoutes from './sandboxRoutes';
 
 const router = Router();
 
@@ -26,5 +27,6 @@ router.use('/analytics', analyticsRoutes);
 router.use('/ai', aiRoutes);
 router.use('/email', emailRoutes);
 router.use('/ai-lms', aiLmsRoutes);
+router.use('/sandbox', sandboxRoutes);
 
 export default router;

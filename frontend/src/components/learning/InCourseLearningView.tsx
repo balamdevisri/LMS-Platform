@@ -9,6 +9,7 @@ import { gitLessonsData } from '@/data/gitLessonsData';
 import { useAuth } from '@/contexts/AuthContext';
 import { courseService } from '@/services/courseService';
 import { FloatingBubbles } from './FloatingBubbles';
+import { EnterpriseGitLab } from '../labs/git/EnterpriseGitLab';
 import { toast } from 'sonner';
 
 export function calculateEstimatedDuration(content: string, commandCount: number = 0): string {
@@ -531,7 +532,7 @@ Use the interactive terminal below to practice these commands:
       />
 
       <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col lg:flex-row gap-10 relative z-10">
-        <main className="flex-1 min-w-0">
+        <main className="flex-1 min-w-0 space-y-8">
           <LessonViewer
             lesson={activeLessonFull}
             isGitCourse={isGitCourse}
@@ -540,6 +541,43 @@ Use the interactive terminal below to practice these commands:
             isCompleted={isCompleted}
             isNightMode={isNightMode}
           />
+
+          {isGitCourse && (
+            <div className="pt-4">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h2 className="font-heading text-lg font-extrabold text-cyan-300 flex items-center gap-2">
+                    <span>⚡ KaizenQ Enterprise Git & GitHub Interactive Lab</span>
+                  </h2>
+                  <p className="text-xs text-slate-400">
+                    Codespaces/GitKraken-style real-time Docker terminal sandbox. Practice all 21 supported Git commands securely.
+                  </p>
+                </div>
+              </div>
+
+              <EnterpriseGitLab
+                studentId={user?.uid || 'student_101'}
+                studentName={user?.displayName || 'Bhanu Prakash Achari'}
+                onClaimXP={(xp, title) => {
+                  const activeUserId = user?.uid || 'default_student';
+                  courseService.addXPPoints(xp, activeUserId);
+                  courseService.addXPClaim(
+                    {
+                      id: `claim_lab_${Date.now()}`,
+                      title: `🏆 Completed Git Lab: ${title}`,
+                      xp,
+                      category: 'AI Terminal Lab',
+                      timestamp: new Date().toISOString(),
+                      courseId: String(courseId),
+                      courseTitle: courseTitle,
+                    },
+                    activeUserId
+                  );
+                }}
+                isNightMode={isNightMode}
+              />
+            </div>
+          )}
         </main>
 
         <RightSidebar
