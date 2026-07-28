@@ -8,73 +8,167 @@ import {
   getDocs,
   onSnapshot
 } from 'firebase/firestore';
+import type {
+  UserProfile,
+  UserStatus,
+  ExtendedStudentStats
+} from '@/types/user';
 
-export interface StudentUser {
+export interface StudentUser extends UserProfile {
   id: string;
   name: string;
-  email: string;
   joined: string;
   courses: number;
-  role: 'student' | 'admin' | 'instructor';
-  status: 'Active' | 'Suspended';
-  photoURL?: string;
-  provider?: 'github.com' | 'password' | string;
-  githubUsername?: string;
-  createdAt?: string;
-  lastLogin?: string;
 }
 
 const LOCAL_STORAGE_KEY = 'shaivika_realtime_students_v3';
 
-const DEFAULT_STUDENTS: StudentUser[] = [
-  {
-    id: 'st_101',
-    name: 'Bhanu Prakash Achari',
-    email: 'bhanuprakashachari5092@gmail.com',
-    joined: 'Jul 24, 2026',
-    courses: 2,
-    role: 'student',
-    status: 'Active',
-    photoURL: 'https://avatars.githubusercontent.com/u/10001?v=4',
-    provider: 'github.com',
-    githubUsername: 'bhanuprakash5092',
-  },
-  {
-    id: 'st_102',
-    name: 'Priya Sharma',
-    email: 'priya.sharma@shaivika.ai',
-    joined: 'Jul 22, 2026',
-    courses: 1,
-    role: 'student',
-    status: 'Active',
-    provider: 'password',
-  },
-  {
-    id: 'st_103',
-    name: 'Alex Chen',
-    email: 'alex.chen@shaivika.ai',
-    joined: 'Jul 20, 2026',
-    courses: 1,
-    role: 'student',
-    status: 'Active',
-    photoURL: 'https://avatars.githubusercontent.com/u/10002?v=4',
-    provider: 'github.com',
-    githubUsername: 'alexc-dev',
-  },
-];
+const DEFAULT_STUDENTS: StudentUser[] = [];
 
 class StudentService {
-  private getLocalStudents(): StudentUser[] {
+  private isMockUser(st: any): boolean {
+    const id = String(st.id || st.uid || '');
+    const email = (st.email || '').toLowerCase();
+    return (
+      id === 'st_101' ||
+      id === 'st_102' ||
+      id === 'st_103' ||
+      email === 'priya.sharma@shaivika.ai' ||
+      email === 'alex.chen@shaivika.ai' ||
+      email === 'bhanuprakashachari5092@gmail.com'
+    );
+  }
+
+  /**
+   * Reads local students map combined from storage & defaults.
+   */
+  public getLocalStudents(): StudentUser[] {
+    const combinedMap = new Map<string, StudentUser>();
+
+    // 1. Realtime Students Cache (shaivika_realtime_students_v3 - Highest Priority)
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (saved) {
         const parsed: StudentUser[] = JSON.parse(saved);
-        if (parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) {
+          parsed.forEach((st) => {
+            if ((st.email || st.id || st.uid) && !this.isMockUser(st)) {
+              const key = (st.email || st.id || st.uid).toLowerCase();
+              combinedMap.set(key, this.normalizeStudentData(st));
+            }
+          });
+        }
       }
     } catch (e) {
       console.warn('Failed to parse local students cache:', e);
     }
-    return DEFAULT_STUDENTS;
+
+    // 2. Admin Users Store (shaivika_admin_users_v3)
+    try {
+      const adminUsersRaw = localStorage.getItem('shaivika_admin_users_v3');
+      if (adminUsersRaw) {
+        const adminUsers = JSON.parse(adminUsersRaw);
+        if (Array.isArray(adminUsers)) {
+          adminUsers.forEach((u: any) => {
+            const role = (u.role || 'student').toLowerCase();
+            if (role !== 'admin' && u.email && !this.isMockUser(u)) {
+              const emailLower = u.email.toLowerCase();
+              if (!combinedMap.has(emailLower)) {
+                combinedMap.set(emailLower, this.normalizeStudentData(u));
+              }
+            }
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to parse admin users cache:', e);
+    }
+
+    // 3. Fallback Base Roster (DEFAULT_STUDENTS)
+    DEFAULT_STUDENTS.forEach((st) => {
+      if (!this.isMockUser(st)) {
+        const key = (st.email || st.id).toLowerCase();
+        if (!combinedMap.has(key)) {
+          combinedMap.set(key, st);
+        }
+      }
+    });
+
+    const result = Array.from(combinedMap.values());
+    return result.sort((a, b) => {
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return timeB - timeA;
+    });
+  }
+
+  private normalizeStudentData(data: any): StudentUser {
+    const email = data.email || '';
+    const id = data.id || data.uid || `st_${Date.now()}`;
+    const name = data.name || data.fullName || data.displayName || email.split('@')[0] || 'Student User';
+    const photoURL = data.photoURL || data.profilePhoto || data.avatar || '';
+    const isGithub =
+      data.provider === 'github.com' ||
+      data.providerId === 'github.com' ||
+      photoURL.includes('githubusercontent');
+
+    const statusVal = data.status || (data.isActive === false ? 'Suspended' : 'Active');
+
+    return {
+      id,
+      uid: id,
+      name,
+      fullName: name,
+      email,
+      photoURL,
+      profilePhoto: photoURL,
+      role: 'student',
+      status: statusVal as UserStatus,
+      isActive: statusVal === 'Active',
+      joined: data.joined || (data.createdAt
+        ? new Date(data.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        : 'Recently'),
+      joinedAt: data.joinedAt || data.createdAt || new Date().toISOString(),
+      courses: data.courses || data.courseCount || data.enrolledCoursesCount || 1,
+      courseCount: data.courseCount || data.courses || 1,
+      completedCourses: data.completedCourses || data.completedCoursesCount || 0,
+      currentCourse: data.currentCourse || 'Linux Systems & Administration Mastery',
+      learningScore: data.learningScore || data.learningProgressPercent || 85,
+      provider: isGithub ? 'github.com' : (data.provider || 'password'),
+      githubUsername: data.githubUsername || (isGithub ? email.split('@')[0] : undefined),
+      branch: data.branch || 'AI & Computer Science',
+      year: data.year || '1st Year',
+      college: data.college || 'Shaivika AI Foundation Institute',
+      phone: data.phone || '+1 (555) 019-2831',
+      github: data.github || (isGithub ? `https://github.com/${data.githubUsername || email.split('@')[0]}` : undefined),
+      linkedin: data.linkedin || '',
+      portfolio: data.portfolio || '',
+      bio: data.bio || 'Enthusiastic KaizenQ learner mastering Linux, AI, and DevOps.',
+      skills: data.skills || ['Linux', 'Git', 'Python', 'AI Foundation'],
+      emailVerified: data.emailVerified ?? data.isVerified ?? true,
+      isVerified: data.isVerified ?? data.emailVerified ?? true,
+      createdAt: data.createdAt || new Date().toISOString(),
+      lastLogin: data.lastLogin || new Date().toISOString(),
+      updatedAt: data.updatedAt || new Date().toISOString(),
+      quizScores: data.quizScores || [
+        { id: 'q1', title: 'Linux Command Line Fundamentals', score: 90, maxScore: 100, date: '2026-07-25' }
+      ],
+      assignmentScores: data.assignmentScores || [
+        { id: 'a1', title: 'Interactive CLI Sandbox Assignment', score: 95, maxScore: 100, date: '2026-07-26' }
+      ],
+      certificates: data.certificates || [],
+      linuxLabProgress: data.linuxLabProgress || {
+        completedModules: 10,
+        totalModules: 18,
+        terminalCommandsRun: 210,
+        score: 88,
+        lastAccess: 'Just now',
+        activeLabTitle: 'Linux File System & CLI Security',
+      },
+      recentActivity: data.recentActivity || [
+        { id: 'act1', action: 'Joined KaizenQ Learning Platform', timestamp: 'Recently', type: 'login' }
+      ]
+    };
   }
 
   private saveLocalStudents(students: StudentUser[]): void {
@@ -86,6 +180,37 @@ class StudentService {
     } catch (e) {
       console.warn('Failed to save local students cache:', e);
     }
+  }
+
+  /**
+   * Calculate top statistics for Student Management Dashboard.
+   */
+  public calculateStudentStats(students: StudentUser[]): ExtendedStudentStats {
+    const totalStudents = students.length;
+    let activeStudents = 0;
+    let verifiedStudents = 0;
+    let enrolledStudents = 0;
+    let completedCourses = 0;
+    let totalProgressSum = 0;
+
+    students.forEach((st) => {
+      if (st.status === 'Active' || st.isActive) activeStudents++;
+      if (st.isVerified || st.emailVerified) verifiedStudents++;
+      if ((st.courses || st.courseCount || 0) > 0) enrolledStudents++;
+      completedCourses += st.completedCourses || 0;
+      totalProgressSum += st.learningScore || 80;
+    });
+
+    const avgProgress = totalStudents > 0 ? Math.round(totalProgressSum / totalStudents) : 0;
+
+    return {
+      totalStudents,
+      activeStudents,
+      verifiedStudents,
+      enrolledStudents,
+      completedCourses,
+      avgProgress,
+    };
   }
 
   /**
@@ -102,51 +227,30 @@ class StudentService {
 
       querySnapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        const email = (data.email || '').toLowerCase();
         const role = (data.role || 'student').toLowerCase();
 
-        if (role !== 'admin') {
-          const photoURL = data.photoURL || data.avatar || '';
-          const isGithub =
-            data.provider === 'github.com' ||
-            data.providerId === 'github.com' ||
-            photoURL.includes('githubusercontent');
-
-          const provider = isGithub ? 'github.com' : 'password';
-          const githubUsername = data.githubUsername || (isGithub ? email.split('@')[0] : undefined);
-
-          firestoreStudents.push({
-            id: docSnap.id,
-            name: data.name || data.displayName || data.fullName || email.split('@')[0] || 'Student User',
-            email: data.email || email || `${docSnap.id}@shaivika.ai`,
-            joined: data.createdAt
-              ? new Date(data.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-              : 'Recently',
-            courses: data.enrolledCoursesCount || 1,
-            role: 'student',
-            status: data.status || 'Active',
-            photoURL,
-            provider,
-            githubUsername,
-            createdAt: data.createdAt,
-            lastLogin: data.lastLogin,
-          });
+        if (role !== 'admin' && role !== 'instructor') {
+          firestoreStudents.push(this.normalizeStudentData({ ...data, id: docSnap.id, uid: docSnap.id }));
         }
       });
 
       const combinedMap = new Map<string, StudentUser>();
-      // 1. Add Default Roster
-      DEFAULT_STUDENTS.forEach((st) => combinedMap.set((st.email || st.id).toLowerCase(), st));
-      // 2. Add Local Storage Roster
-      currentLocal.forEach((st) => combinedMap.set((st.email || st.id).toLowerCase(), st));
-      // 3. Add Firestore Documents
       firestoreStudents.forEach((st) => combinedMap.set((st.email || st.id).toLowerCase(), st));
+      currentLocal.forEach((st) => {
+        const key = (st.email || st.id).toLowerCase();
+        if (!combinedMap.has(key)) combinedMap.set(key, st);
+      });
 
-      const finalStudents = Array.from(combinedMap.values());
+      const finalStudents = Array.from(combinedMap.values()).sort((a, b) => {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return timeB - timeA;
+      });
+
       this.saveLocalStudents(finalStudents);
       return finalStudents;
     } catch (e) {
-      console.warn('Direct Firestore fetch error:', e);
+      console.warn('Direct Firestore fetch notice:', e);
       return currentLocal;
     }
   }
@@ -168,7 +272,6 @@ class StudentService {
       window.addEventListener('storage', handleUpdate);
     }
 
-    // Also trigger direct one-shot fetch for immediate population
     this.fetchFirestoreStudentsDirectly().then((fetched) => {
       if (fetched.length > 0) callback(fetched);
     });
@@ -191,45 +294,32 @@ class StudentService {
           
           snapshot.forEach((docSnap) => {
             const data = docSnap.data();
-            const email = (data.email || '').toLowerCase();
             const role = (data.role || 'student').toLowerCase();
 
-            if (role !== 'admin') {
-              const photoURL = data.photoURL || data.avatar || '';
-              const isGithub =
-                data.provider === 'github.com' ||
-                data.providerId === 'github.com' ||
-                photoURL.includes('githubusercontent');
-
-              const provider = isGithub ? 'github.com' : 'password';
-              const githubUsername = data.githubUsername || (isGithub ? email.split('@')[0] : undefined);
-
-              firestoreStudents.push({
-                id: docSnap.id,
-                name: data.name || data.displayName || data.fullName || email.split('@')[0] || 'Student User',
-                email: data.email || email || `${docSnap.id}@shaivika.ai`,
-                joined: data.createdAt
-                  ? new Date(data.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                  : 'Recently',
-                courses: data.enrolledCoursesCount || 1,
-                role: 'student',
-                status: data.status || 'Active',
-                photoURL,
-                provider,
-                githubUsername,
-                createdAt: data.createdAt,
-                lastLogin: data.lastLogin,
-              });
+            if (role !== 'admin' && role !== 'instructor') {
+              firestoreStudents.push(this.normalizeStudentData({ ...data, id: docSnap.id, uid: docSnap.id }));
             }
           });
 
           const currentLocal = this.getLocalStudents();
           const combinedMap = new Map<string, StudentUser>();
-          DEFAULT_STUDENTS.forEach((st) => combinedMap.set((st.email || st.id).toLowerCase(), st));
-          currentLocal.forEach((st) => combinedMap.set((st.email || st.id).toLowerCase(), st));
-          firestoreStudents.forEach((st) => combinedMap.set((st.email || st.id).toLowerCase(), st));
 
-          const finalStudents = Array.from(combinedMap.values());
+          firestoreStudents.forEach((st) => combinedMap.set((st.email || st.id).toLowerCase(), st));
+          currentLocal.forEach((st) => {
+            const key = (st.email || st.id).toLowerCase();
+            if (!combinedMap.has(key)) combinedMap.set(key, st);
+          });
+          DEFAULT_STUDENTS.forEach((st) => {
+            const key = (st.email || st.id).toLowerCase();
+            if (!combinedMap.has(key)) combinedMap.set(key, st);
+          });
+
+          const finalStudents = Array.from(combinedMap.values()).sort((a, b) => {
+            const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return timeB - timeA;
+          });
+
           localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(finalStudents));
           callback(finalStudents);
         },
@@ -247,7 +337,7 @@ class StudentService {
         }
       };
     } catch (e) {
-      console.warn('Realtime subscription error:', e);
+      console.warn('Realtime subscription notice:', e);
       return () => {
         if (typeof window !== 'undefined') {
           window.removeEventListener('shaivika_student_updated', handleUpdate);
@@ -268,19 +358,19 @@ class StudentService {
     if (!email) return;
     
     const isGithub = provider === 'github.com' || (photoURL && photoURL.includes('githubusercontent'));
-    const newStudent: StudentUser = {
+    const newStudent = this.normalizeStudentData({
       id: uid || `st_${Date.now()}`,
+      uid: uid || `st_${Date.now()}`,
       name: name || email.split('@')[0],
+      fullName: name || email.split('@')[0],
       email,
-      joined: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      courses: 1,
-      role: 'student',
-      status: 'Active',
       photoURL: photoURL || '',
       provider: isGithub ? 'github.com' : 'password',
       githubUsername: githubUsername || (isGithub ? email.split('@')[0] : undefined),
+      status: 'Active',
+      role: 'student',
       createdAt: new Date().toISOString(),
-    };
+    });
 
     const current = this.getLocalStudents();
     const existingIdx = current.findIndex((s) => s.email.toLowerCase() === email.toLowerCase());
@@ -292,19 +382,50 @@ class StudentService {
       this.saveLocalStudents(updated);
     }
 
+    try {
+      const adminUsersRaw = localStorage.getItem('shaivika_admin_users_v3');
+      const adminUsers = adminUsersRaw ? JSON.parse(adminUsersRaw) : [];
+      const idx = adminUsers.findIndex((u: any) => u.email?.toLowerCase() === email.toLowerCase());
+      if (idx !== -1) {
+        adminUsers[idx] = { ...adminUsers[idx], ...newStudent };
+      } else {
+        adminUsers.unshift(newStudent);
+      }
+      localStorage.setItem('shaivika_admin_users_v3', JSON.stringify(adminUsers));
+    } catch (e) {
+      console.warn('Failed to sync to admin users store:', e);
+    }
+
     if (db && uid) {
       try {
         setDoc(doc(db, 'users', uid), {
           uid,
+          fullName: newStudent.fullName,
           name: newStudent.name,
           email: newStudent.email,
           photoURL: newStudent.photoURL,
+          profilePhoto: newStudent.photoURL,
           provider: newStudent.provider,
           githubUsername: newStudent.githubUsername,
           role: 'student',
           status: 'Active',
+          branch: newStudent.branch,
+          year: newStudent.year,
+          college: newStudent.college,
+          phone: newStudent.phone,
+          github: newStudent.github,
+          bio: newStudent.bio,
+          skills: newStudent.skills,
+          emailVerified: true,
+          isActive: true,
+          courseCount: 1,
+          completedCourses: 0,
+          currentCourse: newStudent.currentCourse,
+          learningScore: 85,
+          joinedAt: newStudent.joinedAt,
           createdAt: newStudent.createdAt,
-          enrolledCoursesCount: 1,
+          lastLogin: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         }, { merge: true }).catch((err) => console.warn('Firestore setDoc notice:', err));
       } catch (err) {
         console.warn('Firestore sync notice:', err);
@@ -314,17 +435,18 @@ class StudentService {
 
   async addStudent(name: string, email: string, provider: 'github.com' | 'password' = 'password'): Promise<StudentUser> {
     const isGithub = provider === 'github.com';
-    const newStudent: StudentUser = {
+    const newStudent = this.normalizeStudentData({
       id: `st_${Date.now()}`,
+      uid: `st_${Date.now()}`,
       name,
+      fullName: name,
       email,
-      joined: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      courses: 1,
-      role: 'student',
-      status: 'Active',
       provider,
       githubUsername: isGithub ? email.split('@')[0] : undefined,
-    };
+      status: 'Active',
+      role: 'student',
+      createdAt: new Date().toISOString(),
+    });
 
     const current = this.getLocalStudents();
     const updated = [newStudent, ...current];
@@ -334,13 +456,19 @@ class StudentService {
       try {
         await setDoc(doc(db, 'users', newStudent.id), {
           uid: newStudent.id,
+          fullName: newStudent.name,
           name: newStudent.name,
           email: newStudent.email,
           role: 'student',
           status: 'Active',
           provider,
           createdAt: new Date().toISOString(),
-          enrolledCoursesCount: 1,
+          updatedAt: new Date().toISOString(),
+          isActive: true,
+          emailVerified: true,
+          learningScore: 85,
+          courseCount: 1,
+          completedCourses: 0,
         });
       } catch (err) {
         console.warn('Firestore add student notice:', err);
@@ -352,17 +480,25 @@ class StudentService {
 
   async updateStudent(student: StudentUser): Promise<void> {
     const current = this.getLocalStudents();
-    const updated = current.map((s) => (s.id === student.id ? student : s));
+    const updated = current.map((s) => (s.id === student.id || s.uid === student.uid ? student : s));
     this.saveLocalStudents(updated);
 
     if (db && student.id) {
       try {
         await updateDoc(doc(db, 'users', student.id), {
+          fullName: student.name || student.fullName,
           name: student.name,
           email: student.email,
           status: student.status,
+          isActive: student.status === 'Active',
+          branch: student.branch,
+          year: student.year,
+          college: student.college,
+          phone: student.phone,
+          bio: student.bio,
+          skills: student.skills,
           provider: student.provider,
-          enrolledCoursesCount: student.courses,
+          updatedAt: new Date().toISOString(),
         });
       } catch (err) {
         console.warn('Firestore update student notice:', err);
@@ -370,9 +506,26 @@ class StudentService {
     }
   }
 
+  async toggleStudentStatus(id: string): Promise<StudentUser | null> {
+    const current = this.getLocalStudents();
+    const target = current.find((s) => s.id === id || s.uid === id);
+    if (!target) return null;
+
+    const newStatus: UserStatus = target.status === 'Active' ? 'Suspended' : 'Active';
+    const updatedStudent: StudentUser = {
+      ...target,
+      status: newStatus,
+      isActive: newStatus === 'Active',
+      updatedAt: new Date().toISOString(),
+    };
+
+    await this.updateStudent(updatedStudent);
+    return updatedStudent;
+  }
+
   async deleteStudent(id: string): Promise<void> {
     const current = this.getLocalStudents();
-    const updated = current.filter((s) => s.id !== id);
+    const updated = current.filter((s) => s.id !== id && s.uid !== id);
     this.saveLocalStudents(updated);
 
     if (db && id) {
@@ -382,6 +535,52 @@ class StudentService {
         console.warn('Firestore delete student notice:', err);
       }
     }
+  }
+
+  exportStudentsToCSV(students: StudentUser[]): void {
+    const headers = [
+      'UID',
+      'Full Name',
+      'Email',
+      'Branch',
+      'Year',
+      'College',
+      'Phone',
+      'Provider',
+      'Current Course',
+      'Learning Score',
+      'Enrolled Courses',
+      'Completed Courses',
+      'Status',
+      'Joined Date',
+    ];
+
+    const rows = students.map((s) => [
+      `"${s.uid || s.id}"`,
+      `"${s.fullName || s.name}"`,
+      `"${s.email}"`,
+      `"${s.branch || 'N/A'}"`,
+      `"${s.year || 'N/A'}"`,
+      `"${s.college || 'N/A'}"`,
+      `"${s.phone || 'N/A'}"`,
+      `"${s.provider || 'password'}"`,
+      `"${s.currentCourse || 'N/A'}"`,
+      `"${s.learningScore || 80}%"`,
+      `"${s.courses || s.courseCount || 1}"`,
+      `"${s.completedCourses || 0}"`,
+      `"${s.status}"`,
+      `"${s.joined || s.joinedAt || 'N/A'}"`,
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `KaizenQ_Students_Export_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 }
 
