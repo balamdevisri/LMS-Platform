@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Star,
   Award,
@@ -10,6 +11,7 @@ import {
   HelpCircle,
   ShieldCheck,
   ArrowRight,
+  ArrowLeft,
   UserPlus,
   PlayCircle,
 } from 'lucide-react';
@@ -55,6 +57,7 @@ export const CourseDetailsPage: React.FC<CourseDetailsProps> = ({
   isEnrolled = false,
   onEnroll,
 }) => {
+  const navigate = useNavigate();
   const [openModuleId, setOpenModuleId] = useState<string | number | null>(course.modules[0]?.id || null);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
 
@@ -117,6 +120,16 @@ export const CourseDetailsPage: React.FC<CourseDetailsProps> = ({
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-20">
       <section className="relative overflow-hidden bg-linear-to-b from-sky-50/80 via-white to-slate-50 border-b border-sky-100 pt-28 sm:pt-32 lg:pt-36 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-sky-400/10 via-transparent to-transparent pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6 relative z-10">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-white hover:bg-sky-50 border border-sky-200/80 text-sky-800 text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
+          >
+            <ArrowLeft className="w-4 h-4 text-sky-600" />
+            <span>Back to Dashboard</span>
+          </button>
+        </div>
 
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 items-center relative z-10">
           <div className="lg:col-span-7 space-y-6">

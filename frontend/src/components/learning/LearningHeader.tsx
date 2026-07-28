@@ -56,15 +56,15 @@ export const LearningHeader: React.FC<LearningHeaderProps> = ({
 
         <button
           onClick={onBackToCourseDetails}
-          className={`hidden md:flex items-center gap-2 px-3.5 py-2.5 rounded-2xl border transition-all text-xs sm:text-sm font-bold cursor-pointer shrink-0 ${
+          className={`flex items-center gap-1.5 px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-2xl border transition-all text-xs sm:text-sm font-bold cursor-pointer shrink-0 active:scale-95 ${
             isNightMode
               ? 'bg-slate-900/90 hover:bg-slate-800 border-slate-800 text-slate-300 hover:text-white'
               : 'bg-sky-50/80 hover:bg-sky-100/80 border-sky-100 text-sky-700 hover:text-sky-900'
           }`}
-          title="Back to Course Overview"
+          title="Back to Course Overview Page"
         >
           <ArrowLeft className={`w-4 h-4 ${isNightMode ? 'text-cyan-400' : 'text-sky-600'}`} />
-          <span>Overview</span>
+          <span>Back to Overview</span>
         </button>
 
         <div className="min-w-0 flex flex-col justify-center space-y-0.5 sm:space-y-1">
