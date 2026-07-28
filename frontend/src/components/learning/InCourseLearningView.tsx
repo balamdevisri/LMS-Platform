@@ -10,6 +10,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { courseService } from '@/services/courseService';
 import { FloatingBubbles } from './FloatingBubbles';
 import { EnterpriseGitLab } from '../labs/git/EnterpriseGitLab';
+import { AIQuizPortal } from '../courses/AIQuizPortal';
+import { AITutorDrawer } from './AITutorDrawer';
+import { Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function calculateEstimatedDuration(content: string, commandCount: number = 0): string {
@@ -84,6 +87,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeCourseTab, setActiveCourseTab] = useState('modules');
+  const [isAITutorOpen, setIsAITutorOpen] = useState(false);
 
   const [bookmarkedLessonIds, setBookmarkedLessonIds] = useState<(string | number)[]>(() => {
     try {
@@ -607,10 +611,32 @@ Use the interactive terminal below to practice these commands:
                     activeUserId
                   );
                 }}
-                isNightMode={isNightMode}
               />
             </div>
           )}
+
+          {/* AI Quiz Generator & Assessment Portal Section */}
+          <div className="pt-6 border-t border-slate-800/80 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="font-heading text-lg font-extrabold text-amber-400 flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-amber-400 animate-pulse" />
+                  <span>AI Quiz Generator & Adaptive Assessment</span>
+                </h2>
+                <p className="text-xs text-slate-400">
+                  Generate instant AI quizzes for <strong>{activeLessonFull.title}</strong> to test your mastery & claim XP!
+                </p>
+              </div>
+            </div>
+
+            <AIQuizPortal
+              courseId={String(courseId)}
+              courseTitle={courseTitle}
+              lessonId={String(selectedLessonId)}
+              lessonTitle={activeLessonFull.title}
+              lessonContent={activeLessonFull.content}
+            />
+          </div>
         </main>
 
         <RightSidebar
@@ -627,6 +653,24 @@ Use the interactive terminal below to practice these commands:
           isNightMode={isNightMode}
         />
       </div>
+
+      {/* Floating AI Learning Assistant Trigger Button */}
+      <button
+        onClick={() => setIsAITutorOpen(true)}
+        className="fixed bottom-6 right-6 z-50 p-4 rounded-full bg-linear-to-r from-amber-500 via-amber-400 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-extrabold shadow-2xl shadow-amber-500/40 flex items-center gap-2.5 transition-all duration-300 hover:scale-105 active:scale-95 border-2 border-amber-300/80 cursor-pointer"
+        title="Open AI Learning Assistant"
+      >
+        <Sparkles className="w-5 h-5 fill-slate-950 animate-pulse" />
+        <span className="text-xs tracking-wide">AI Learning Assistant</span>
+      </button>
+
+      {/* AI Learning Assistant Drawer */}
+      <AITutorDrawer
+        isOpen={isAITutorOpen}
+        onClose={() => setIsAITutorOpen(false)}
+        lessonTitle={activeLessonFull.title}
+        courseTitle={courseTitle}
+      />
     </div>
   );
 };
