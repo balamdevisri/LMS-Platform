@@ -155,11 +155,17 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
         </button>
 
         <button
-          onClick={onNextLesson}
+          onClick={() => {
+            if (!isCompleted) {
+              toast.warning('🔒 XP Reward Pending! Please click "⚡ Claim +50 XP" to claim your XP before continuing to the next lesson!');
+              return;
+            }
+            onNextLesson();
+          }}
           className={`w-full py-3 px-4 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer border ${
             isNightMode
-              ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-white'
-              : 'bg-sky-50/80 hover:bg-sky-100/80 border-sky-100 text-slate-800'
+              ? 'bg-slate-800/80 hover:bg-slate-800 border-slate-700 text-slate-200'
+              : 'bg-sky-50 hover:bg-sky-100/80 border-sky-100 text-sky-800'
           }`}
         >
           <span>Continue to Next Lesson</span>

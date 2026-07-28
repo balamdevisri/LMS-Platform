@@ -148,6 +148,14 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
 
   const handleNextLesson = () => {
     if (hasNextLesson) {
+      const isCurrentCompleted = completedLessonIds.some((id) => String(id) === String(selectedLessonId));
+      if (!isCurrentCompleted) {
+        toast.warning(
+          `🔒 XP Reward Pending! Please click "⚡ Claim +50 XP" to claim your XP before continuing to the next lesson!`
+        );
+        return;
+      }
+
       const nextLesson = allLessons[activeIndex + 1];
       if (!isLessonUnlocked(nextLesson.id)) {
         const currentMod = modules.find((m) =>
@@ -162,7 +170,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         return;
       }
       setSelectedLessonId(nextLesson.id);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: 'instant' });
     }
   };
 
