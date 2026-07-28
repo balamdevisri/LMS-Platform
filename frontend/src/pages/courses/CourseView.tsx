@@ -250,7 +250,13 @@ export const CourseView: React.FC = () => {
     ],
   };
 
-  const activeCourseData = isGitCourse ? gitCourseData : linuxCourseData;
+  const activeCourseData = {
+    ...(isGitCourse ? gitCourseData : linuxCourseData),
+    ...dynamicCourse,
+    modules: (dynamicCourse?.modules && dynamicCourse.modules.length > 0)
+      ? dynamicCourse.modules
+      : (isGitCourse ? gitCourseData.modules : linuxCourseData.modules)
+  };
 
   if (isLearningMode) {
     return (
