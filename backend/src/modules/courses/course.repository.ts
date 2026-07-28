@@ -83,33 +83,63 @@ export class CourseRepository {
       return { courses: [], total: 0, page: 1, limit: 10, totalPages: 0 };
     }
 
-    let query: any = this.collection;
-
-    if (options.status && options.status !== 'all') {
-      query = query.where('status', '==', options.status);
-    }
-    if (options.category && options.category !== 'All') {
-      query = query.where('category', '==', options.category);
-    }
-    if (options.level && options.level !== 'all') {
-      query = query.where('level', '==', options.level);
-    }
-    if (options.featured) {
-      query = query.where('featured', '==', true);
-    }
-
-    const snapshot = await query.get();
+    const snapshot = await this.collection.get();
     let courses: ICourse[] = snapshot.docs.map((doc: any) => doc.data() as ICourse);
 
-    // In-memory filter for search terms (keyword in title, description, skills, category)
+    // 1. Filter by status (case-insensitive)
+    if (options.status && options.status !== 'all') {
+      const selectedStatus = options.status.toLowerCase();
+      courses = courses.filter((c) => {
+        if (!c.status) return false;
+        const s = c.status.toLowerCase();
+        return s === selectedStatus || 
+               (selectedStatus === 'published' && s === 'published') ||
+               (selectedStatus === 'draft' && s === 'draft');
+      });
+    }
+
+    // 2. Filter by category (case-insensitive, substring/smart matching)
+    if (options.category && options.category !== 'All') {
+      const selectedCat = options.category.toLowerCase();
+      courses = courses.filter((c) => {
+        if (!c.category) return false;
+        const courseCat = c.category.toLowerCase();
+        return courseCat === selectedCat ||
+               (selectedCat.includes('development') && courseCat.includes('development')) ||
+               (selectedCat.includes('linux') && courseCat.includes('linux')) ||
+               (selectedCat.includes('sys') && courseCat.includes('sys'));
+      });
+    }
+
+    // 3. Filter by level (case-insensitive, smart matching)
+    if (options.level && options.level !== 'all') {
+      const selectedLevel = options.level.toLowerCase();
+      courses = courses.filter((c) => {
+        if (!c.level) return false;
+        const l = c.level.toLowerCase();
+        if (selectedLevel === 'all_levels' || l === 'all_levels') return true;
+        if (selectedLevel.includes('begin') && l.includes('begin')) return true;
+        if (selectedLevel.includes('inter') && l.includes('inter')) return true;
+        if (selectedLevel.includes('adv') && l.includes('adv')) return true;
+        return l === selectedLevel;
+      });
+    }
+
+    // 4. Filter by featured
+    if (options.featured) {
+      courses = courses.filter((c) => c.featured === true);
+    }
+
+    // 5. In-memory filter for search terms (keyword in title, description, skills, category)
     if (options.search) {
       const term = options.search.toLowerCase();
       courses = courses.filter(
         (c) =>
           c.title.toLowerCase().includes(term) ||
-          c.shortDescription.toLowerCase().includes(term) ||
+          (c.shortDescription && c.shortDescription.toLowerCase().includes(term)) ||
+          (c.description && c.description.toLowerCase().includes(term)) ||
           c.category.toLowerCase().includes(term) ||
-          c.skills.some((s) => s.toLowerCase().includes(term))
+          (c.skills && c.skills.some((s) => s.toLowerCase().includes(term)))
       );
     }
 

@@ -9,7 +9,7 @@ import * as admin from 'firebase-admin';
  * Formats Zod validation errors into a human-readable comma-separated string.
  */
 const formatZodError = (err: ZodError): string => {
-  return err.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ');
+  return err.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ');
 };
 
 export class CourseService {

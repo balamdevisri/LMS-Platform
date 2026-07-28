@@ -268,7 +268,7 @@ class CourseService {
   private xpClaimsKey = 'shaivika_user_xp_claims';
   private checkpointKey = 'shaivika_user_checkpoint';
 
-  private normalizeCourseToICourse(c: any): ICourse {
+  normalizeCourseToICourse(c: any): ICourse {
     return normalizeCourseToICourse(c);
   }
 
