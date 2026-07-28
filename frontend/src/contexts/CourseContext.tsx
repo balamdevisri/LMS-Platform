@@ -38,6 +38,32 @@ interface CourseContextType {
 
 const initialDefaultCourses: CourseItem[] = [
   {
+    id: 'course_linux_101',
+    title: 'Linux Systems & Administration Mastery',
+    subtitle: '🐧 Linux Essentials',
+    instructor: 'Bhanu Prakash Achari',
+    role: 'Linux Systems Architect & AI Specialist',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    rating: 5.0,
+    reviews: 145,
+    students: '3',
+    duration: '32 hrs',
+    category: 'Linux & Systems',
+    level: 'Beginner to Advanced',
+    badge: 'Featured Track',
+    tracks: '4 Modules (32 Hours)',
+    status: 'Published',
+    thumbnail: '/assets/images/linux_course_thumbnail.png',
+    description: `Welcome to Linux Systems & Administration Mastery! Linux powers modern cloud infrastructure, supercomputers, and enterprise AI clusters. In this comprehensive production-ready track, you will explore Linux Kernel mechanics, master file system hierarchy standards (FHS), manage systemd background daemons, automate workflows via Bash scripts, and harden network security using SSH and host firewalls.`,
+    syllabus: [
+      'Module 1: Linux Architecture, Kernel & CLI Fundamentals',
+      'Module 2: File System Hierarchy, Permissions & Ownership',
+      'Module 3: Process Management, Systemd Services & Cron Jobs',
+      'Module 4: Bash Scripting, Networking & Security Hardening',
+    ],
+    createdAt: new Date('2026-07-01').toISOString(),
+  },
+  {
     id: 'git-github-mastery',
     title: 'Git & GitHub Mastery',
     subtitle: '⚡ Git & GitHub Mastery',
@@ -77,9 +103,21 @@ const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
       String(c.id) === '1' ||
       String(c.id) === 'course_linux_101'
     ) {
-      return;
-    }
-    if (title.includes('git & github') || title.includes('git and github') || String(c.id) === 'git-github-mastery') {
+      const key = 'course_linux_101';
+      const updatedItem: CourseItem = {
+        ...c,
+        id: 'course_linux_101',
+        title: 'Linux Systems & Administration Mastery',
+        subtitle: '🐧 Linux Essentials',
+        thumbnail: c.thumbnail || '/assets/images/linux_course_thumbnail.png',
+      };
+      map.set(key, updatedItem);
+    } else if (
+      title.includes('git & github') ||
+      title.includes('git and github') ||
+      String(c.id) === 'git-github-mastery' ||
+      String(c.id) === 'git-github-mastery-course-id'
+    ) {
       const key = 'git-github-mastery';
       const updatedItem: CourseItem = {
         ...c,
@@ -94,8 +132,11 @@ const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
     }
   });
 
-  if (map.size === 0) {
-    initialDefaultCourses.forEach((c) => map.set(String(c.id), c));
+  if (!map.has('course_linux_101')) {
+    map.set('course_linux_101', initialDefaultCourses[0]);
+  }
+  if (!map.has('git-github-mastery')) {
+    map.set('git-github-mastery', initialDefaultCourses[1]);
   }
 
   return Array.from(map.values());
