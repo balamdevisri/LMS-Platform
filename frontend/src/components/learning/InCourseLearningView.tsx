@@ -280,7 +280,49 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       moduleImageMarkdown = `\n![Filesystem Hierarchy Standard Diagram](/assets/images/linux_fhs_hierarchy.png)\n`;
     } else {
       sectionTitle = '1. Core Operating Principles & Layered Architecture';
-      moduleImageMarkdown = `\n![Linux OS Architecture Diagram](/assets/images/linux_os_architecture.png)\n`;
+      moduleImageMarkdown = `\n![Core OS Architecture Principles](/assets/images/topic_core_os_principles.png)\n`;
+    }
+
+    let topicDescription = 'Linux is built around modular Unix design principles where everything is represented as a file or stream. Understanding system boundaries, process isolation, and security matrices is essential for system administration and DevOps pipelines.';
+    let highlightedTopics = [
+      '⚡ Monolithic Kernel Architecture (CPU Ring 0 Supervisor Mode)',
+      '🛠️ System Call Interface (syscalls) connecting User Space to Hardware',
+      '🔒 POSIX Filesystem Hierarchy Standard & Permission Matrix',
+      '🔄 Process Scheduling, Systemd Daemons & Terminal Pipelines'
+    ];
+
+    if (lessonTitleLower.includes('git') || isGitCourse) {
+      topicDescription = 'Version control is the cornerstone of modern software development. Git enables distributed code tracking, seamless branching, pull request reviews, and automated CI/CD deployment pipelines.';
+      highlightedTopics = [
+        '⚡ Distributed Repository Initialization & Commit History Tracking',
+        '🌿 Branch Creation, Parallel Workflows & Merge Conflict Resolution',
+        '🐱 Remote Synchronization with GitHub & Pull Request Reviews',
+        '🚀 Automated CI/CD Workflow Pipelines with GitHub Actions'
+      ];
+    } else if (lessonTitleLower.includes('kernel') || lessonTitleLower.includes('lkm')) {
+      topicDescription = 'The Monolithic Linux Kernel executes in CPU Ring 0 with full supervisor authority, managing CPU scheduling, RAM memory paging, system calls, and Loadable Kernel Modules (LKMs).';
+      highlightedTopics = [
+        '⚡ CPU Execution Rings (Ring 0 Supervisor vs Ring 3 User Space)',
+        '🛠️ Monolithic Kernel Subsystems & LKMs (lsmod, modprobe)',
+        '🔍 System Call Interface execution (strace, sysenter)',
+        '🔄 Process Context Switching & Interrupt Handling'
+      ];
+    } else if (lessonTitleLower.includes('permission') || lessonTitleLower.includes('chmod') || lessonTitleLower.includes('acl')) {
+      topicDescription = 'Linux security relies on POSIX User-Group-Other permission masks (rwx) and fine-grained Access Control Lists (ACLs) to enforce data privacy and access control.';
+      highlightedTopics = [
+        '🔒 Octal & Symbolic Permission Notation (chmod 755, chmod 644)',
+        '👤 User & Group Ownership Management (chown, chgrp)',
+        '📌 Special Permission Bits (SUID, SGID, Sticky Bit chmod 1777)',
+        '🛡️ POSIX Access Control Lists (getfacl, setfacl)'
+      ];
+    } else if (lessonTitleLower.includes('process') || lessonTitleLower.includes('systemd') || lessonTitleLower.includes('cron')) {
+      topicDescription = 'Process management and systemd daemon control allow system administrators to run background services, monitor resource usage, and automate scheduled tasks.';
+      highlightedTopics = [
+        '⚡ Process Lifecycle, PIDs, & Termination Signals (SIGKILL, SIGTERM)',
+        '📊 Real-time System Resource Monitoring (top, htop, ps aux)',
+        '🤖 Systemd Unit Files & Daemon Control (systemctl start/status)',
+        '⏰ Automated Task Scheduling with Crontab Syntax (crontab -e)'
+      ];
     }
 
     const content = `### ${currentLessonData.title}
@@ -291,15 +333,17 @@ Welcome to **${currentLessonData.title}**! In this comprehensive lesson, you wil
 > Read through the concepts below, inspect the topic technical architecture diagram, and execute commands in the live terminal sandbox to unlock your **+50 XP** reward!
 
 #### ${sectionTitle}
-Linux is built around modular Unix design principles. Everything is represented as a file or stream. Understanding system boundaries, process isolation, and security matrices is essential for system administration and DevOps pipelines.
+${topicDescription}
+
 ${moduleImageMarkdown}
-#### 2. Kernel Subsystems & Resource Management
-The Linux kernel operates as a monolithic architecture running with full supervisor privileges in CPU Ring 0. It manages process scheduling, virtual memory paging, block I/O drivers, and network sockets efficiently.
 
-#### 3. Execution Pipeline & Terminal Diagnostics
-System commands execute in unprivileged User Space (CPU Ring 3) and interact with hardware via system calls (syscalls).
+#### 2. Key Learning Highlights & Core Concepts
+${highlightedTopics.map((item) => `- **${item}**`).join('\n')}
 
-#### 4. Critical Administration Commands
+> [!IMPORTANT]
+> **Pro Tip**: Practice running the commands in the interactive CLI terminal sandbox below to gain real hands-on terminal confidence!
+
+#### 3. Critical Practice Commands
 Use the interactive terminal below to practice these commands:
 - \`uname -a\` : Print system architecture & kernel version
 - \`whoami\` : Print current logged-in user username
