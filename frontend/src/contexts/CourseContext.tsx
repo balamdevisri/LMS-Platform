@@ -38,32 +38,6 @@ interface CourseContextType {
 
 const initialDefaultCourses: CourseItem[] = [
   {
-    id: 1,
-    title: 'Introduction to Linux & System Administration',
-    subtitle: '🐧 Linux Essentials',
-    instructor: 'Bhanu Prakash Achari',
-    role: 'Linux Systems Architect & AI Specialist',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    rating: 5.0,
-    reviews: 145,
-    students: '3',
-    duration: '32 hrs',
-    category: 'Linux & Systems',
-    level: 'Beginner to Advanced',
-    badge: 'Featured Track',
-    tracks: '4 Modules (32 Hours)',
-    status: 'Published',
-    thumbnail: '/assets/images/linux_course_thumbnail.png',
-    description: `Welcome to Linux Essentials! Linux is one of the world's most powerful and widely used operating systems, powering everything from web servers and cloud platforms to Android devices, supercomputers, and embedded systems. This course is designed for beginners who want to build a strong foundation in Linux. You will learn how Linux works, how to navigate the terminal, manage files and directories, understand permissions, and perform essential system operations using real-world commands. By the end of this course, you'll have the confidence to work efficiently in any Linux environment and be prepared for advanced topics such as shell scripting, DevOps, cloud computing, and cybersecurity.`,
-    syllabus: [
-      'Module 1: Linux Architecture, Kernel & CLI Fundamentals',
-      'Module 2: File System Hierarchy, Permissions & Ownership',
-      'Module 3: Process Management, Systemd Services & Cron Jobs',
-      'Module 4: Bash Scripting, Networking & Security Hardening',
-    ],
-    createdAt: new Date('2026-07-01').toISOString(),
-  },
-  {
     id: 'git-github-mastery',
     title: 'Git & GitHub Mastery',
     subtitle: '⚡ Git & GitHub Mastery',
@@ -79,7 +53,7 @@ const initialDefaultCourses: CourseItem[] = [
     badge: 'New Track',
     tracks: '6 Modules (20 Hours)',
     status: 'Published',
-    thumbnail: "https://images.unsplash.com/photo-1618401471353-b98aedd07871?auto=format&fit=crop&w=1200&q=80",
+    thumbnail: '/assets/images/github_course_banner.png',
     description: 'Learn Git & GitHub from beginner to professional, including version control, branching, pull requests, GitHub Actions, CI/CD, Codespaces, and Copilot.',
     syllabus: [
       'Module 1: Version Control & Git Basics',
@@ -93,6 +67,40 @@ const initialDefaultCourses: CourseItem[] = [
   }
 ];
 
+const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
+  const map = new Map<string, CourseItem>();
+  list.forEach((c) => {
+    const title = (c.title || '').toLowerCase();
+    if (
+      title.includes('linux systems') ||
+      title.includes('introduction to linux') ||
+      String(c.id) === '1' ||
+      String(c.id) === 'course_linux_101'
+    ) {
+      return;
+    }
+    if (title.includes('git & github') || title.includes('git and github') || String(c.id) === 'git-github-mastery') {
+      const key = 'git-github-mastery';
+      const updatedItem: CourseItem = {
+        ...c,
+        id: 'git-github-mastery',
+        title: 'Git & GitHub Mastery',
+        subtitle: '⚡ Git & GitHub Mastery',
+        thumbnail: '/assets/images/github_course_banner.png',
+      };
+      map.set(key, updatedItem);
+    } else {
+      map.set(String(c.id), c);
+    }
+  });
+
+  if (map.size === 0) {
+    initialDefaultCourses.forEach((c) => map.set(String(c.id), c));
+  }
+
+  return Array.from(map.values());
+};
+
 const CourseContext = createContext<CourseContextType | undefined>(undefined);
 
 export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -102,7 +110,7 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       try {
         const parsed = JSON.parse(localSaved);
         if (Array.isArray(parsed)) {
-          return parsed.map((c: any) => {
+          const mapped = parsed.map((c: any) => {
             const statusVal = c.status && c.status.toLowerCase() === 'published' ? 'Published' : 'Draft';
             const instructorName = typeof c.instructor === 'object' && c.instructor !== null
               ? (c.instructor.name || 'Kaizen Q Team')
@@ -113,6 +121,9 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               instructor: instructorName,
             } as CourseItem;
           });
+          const sanitized = sanitizeCourseList(mapped);
+          localStorage.setItem('shaivika_courses_data', JSON.stringify(sanitized));
+          return sanitized;
         }
       } catch (e) {
         console.warn('LocalStorage courses parse warning:', e);
@@ -128,7 +139,7 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       try {
         const parsed = JSON.parse(localSaved);
         if (Array.isArray(parsed)) {
-          localList = parsed.map((c: any) => {
+          const mapped = parsed.map((c: any) => {
             const statusVal = c.status && c.status.toLowerCase() === 'published' ? 'Published' : 'Draft';
             const instructorName = typeof c.instructor === 'object' && c.instructor !== null
               ? (c.instructor.name || 'Kaizen Q Team')
@@ -139,6 +150,7 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               instructor: instructorName,
             } as CourseItem;
           });
+          localList = sanitizeCourseList(mapped);
         }
       } catch (e) {
         console.warn('LocalStorage courses parse warning in refreshCourses:', e);
@@ -163,16 +175,7 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           } as CourseItem;
         });
 
-        const merged = [...localList];
-        for (const c of normalized) {
-          const idx = merged.findIndex(item => String(item.id) === String(c.id));
-          if (idx !== -1) {
-            merged[idx] = c;
-          } else {
-            merged.push(c);
-          }
-        }
-
+        const merged = sanitizeCourseList([...localList, ...normalized]);
         setCourses(merged);
         localStorage.setItem('shaivika_courses_data', JSON.stringify(merged));
       }
