@@ -65,6 +65,10 @@ export const CourseView: React.FC = () => {
   const [isLearningMode, setIsLearningMode] = useState(false);
 
   useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [location.pathname, isLearningMode]);
+
+  useEffect(() => {
     const enrolled = courseService.isCourseEnrolled(targetCourseId, userId);
     setIsEnrolled(enrolled);
   }, [targetCourseId, userId]);
@@ -82,7 +86,7 @@ export const CourseView: React.FC = () => {
         setIsEnrolled(true);
         setIsLearningMode(true);
         setSearchParams({ mode: 'learn' });
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       }
     } catch (e) {
       toast.error('Failed to enroll in course.');
@@ -101,7 +105,7 @@ export const CourseView: React.FC = () => {
     }
     setIsLearningMode(true);
     setSearchParams({ mode: 'learn' });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   };
 
   const handleBackToDetails = () => {

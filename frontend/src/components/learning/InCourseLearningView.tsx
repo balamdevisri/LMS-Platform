@@ -57,13 +57,6 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
     return modules.flatMap((mod) => mod.lessons);
   }, [modules]);
 
-  const [selectedLessonId, setSelectedLessonId] = useState<string | number>(
-    allLessons[0]?.id || (isGitCourse ? 'git-les-101' : 101)
-  );
-
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [activeCourseTab, setActiveCourseTab] = useState('modules');
-
   const [completedLessonIds, setCompletedLessonIds] = useState<(string | number)[]>(() => {
     try {
       const saved = localStorage.getItem(`shaivika_completed_${courseId}`);
@@ -73,6 +66,25 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
     }
   });
 
+  const [selectedLessonId, setSelectedLessonId] = useState<string | number>(() => {
+    try {
+      const lastActive = localStorage.getItem(`shaivika_last_active_${courseId}`);
+      if (lastActive) return lastActive;
+    } catch {}
+
+    try {
+      const saved = localStorage.getItem(`shaivika_completed_${courseId}`);
+      const completedIds: (string | number)[] = saved ? JSON.parse(saved) : [];
+      const firstUncompleted = allLessons.find(l => !completedIds.includes(l.id));
+      if (firstUncompleted) return firstUncompleted.id;
+    } catch {}
+
+    return allLessons[0]?.id || (isGitCourse ? 'git-les-101' : 101);
+  });
+
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [activeCourseTab, setActiveCourseTab] = useState('modules');
+
   const [bookmarkedLessonIds, setBookmarkedLessonIds] = useState<(string | number)[]>(() => {
     try {
       const saved = localStorage.getItem(`shaivika_bookmarks_${courseId}`);
@@ -81,6 +93,15 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       return [];
     }
   });
+
+  useEffect(() => {
+    if (selectedLessonId) {
+      try {
+        localStorage.setItem(`shaivika_last_active_${courseId}`, String(selectedLessonId));
+      } catch {}
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [selectedLessonId, courseId]);
 
   useEffect(() => {
     try {
