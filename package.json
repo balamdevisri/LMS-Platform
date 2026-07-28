@@ -27,6 +27,7 @@
   "author": "SHAIVIKA",
   "license": "MIT",
   "dependencies": {
-    "firebase": "^12.16.0"
+    "firebase": "^12.16.0",
+    "resend": "^6.18.0"
   }
 }

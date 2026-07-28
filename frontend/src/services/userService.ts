@@ -59,16 +59,59 @@ export class UserService {
   }
 
   /**
-   * Read local users cache
+   * Read local users cache merged with real-time student registrations
    */
   public getLocalUsers(): UserProfile[] {
+    const userMap = new Map<string, UserProfile>();
+
+    // 1. Add stored admin users
     try {
       const raw = localStorage.getItem(LOCAL_USERS_KEY);
-      if (raw) return JSON.parse(raw);
+      if (raw) {
+        const parsed: UserProfile[] = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          parsed.forEach((u) => {
+            if (u.email || u.uid) userMap.set((u.email || u.uid).toLowerCase(), u);
+          });
+        }
+      }
     } catch (e) {
       console.warn('Failed to parse local users:', e);
     }
-    return [];
+
+    // 2. Add real-time student roster
+    try {
+      const studentRaw = localStorage.getItem('shaivika_realtime_students_v3');
+      if (studentRaw) {
+        const students = JSON.parse(studentRaw);
+        if (Array.isArray(students)) {
+          students.forEach((s: any) => {
+            if (s.email) {
+              const emailLower = s.email.toLowerCase();
+              if (!userMap.has(emailLower)) {
+                userMap.set(emailLower, {
+                  uid: s.id || `st_${Date.now()}`,
+                  fullName: s.name || emailLower.split('@')[0],
+                  name: s.name || emailLower.split('@')[0],
+                  email: s.email,
+                  photoURL: s.photoURL || null,
+                  role: 'student',
+                  status: s.status === 'Suspended' ? 'Blocked' : 'Active',
+                  provider: s.provider === 'github.com' ? 'github.com' : 'password',
+                  createdAt: s.createdAt || new Date().toISOString(),
+                  isVerified: true,
+                  enrolledCoursesCount: s.courses || 1,
+                } as UserProfile);
+              }
+            }
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to merge student users:', e);
+    }
+
+    return Array.from(userMap.values());
   }
 
   /**
@@ -77,6 +120,9 @@ export class UserService {
   public saveLocalUsers(users: UserProfile[]): void {
     try {
       localStorage.setItem(LOCAL_USERS_KEY, JSON.stringify(users));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('shaivika_admin_users_updated'));
+      }
     } catch (e) {
       console.warn('Failed to save local users:', e);
     }
@@ -86,11 +132,27 @@ export class UserService {
    * Subscribe to Real-Time Firestore Users Collection
    */
   public subscribeToUsers(callback: (users: UserProfile[], stats: UserStatistics) => void): () => void {
-    const localData = this.getLocalUsers();
-    callback(localData, this.calculateStatistics(localData));
+    const handleUpdate = () => {
+      const localData = this.getLocalUsers();
+      callback(localData, this.calculateStatistics(localData));
+    };
+
+    handleUpdate();
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('shaivika_student_updated', handleUpdate);
+      window.addEventListener('shaivika_admin_users_updated', handleUpdate);
+      window.addEventListener('storage', handleUpdate);
+    }
 
     if (!db) {
-      return () => {};
+      return () => {
+        if (typeof window !== 'undefined') {
+          window.removeEventListener('shaivika_student_updated', handleUpdate);
+          window.removeEventListener('shaivika_admin_users_updated', handleUpdate);
+          window.removeEventListener('storage', handleUpdate);
+        }
+      };
     }
 
     try {
@@ -143,8 +205,9 @@ export class UserService {
           });
 
           // Merge local cache non-duplicates
-          const localOnly = localData.filter(
-            (lu) => !firestoreUsers.some((fu) => fu.email.toLowerCase() === lu.email.toLowerCase())
+          const currentLocal = this.getLocalUsers();
+          const localOnly = currentLocal.filter(
+            (lu: UserProfile) => !firestoreUsers.some((fu) => fu.email.toLowerCase() === (lu.email || '').toLowerCase())
           );
           const finalUsers = [...firestoreUsers, ...localOnly];
 

@@ -96,10 +96,10 @@ export const logRecentActivity = (
 const ARCHITECTURE_SLIDES = [
   {
     id: 'slide_1',
-    title: 'Unix & Linux Concentric Layered Architecture',
+    title: 'Module 1: Unix & Linux Concentric Layered Architecture',
     subtitle: 'Rings of Isolation: Hardware ➔ Kernel ➔ Shell ➔ User Applications',
     image: '/assets/images/linux_os_architecture.png',
-    badge: 'Layered Ring Model',
+    badge: 'Module 1 • OS Architecture',
     description: `Linux organizes execution into isolated concentric rings. At the core is physical Hardware (CPU, Memory, Devices). Direct access to Hardware is restricted exclusively to the Kernel (Core Control Program). Applications (Web Browsers, Editors, Python scripts) run in User Space and communicate with the Shell via System Calls & System Requests.`,
     takeaways: [
       'Kernel manages CPU, RAM, and hardware device access exclusively.',
@@ -109,28 +109,41 @@ const ARCHITECTURE_SLIDES = [
   },
   {
     id: 'slide_2',
-    title: 'Monolithic Kernel (Linux) vs Microkernel (Minix)',
-    subtitle: 'Unified Kernel Memory Space vs Isolated User-Space Drivers',
-    image: '/assets/images/linux_monolithic_vs_microkernel.png',
-    badge: 'Kernel Architectural Comparison',
-    description: `Linux utilizes a Monolithic Kernel architecture where the File System, Device Drivers, Inter-Process Communication (IPC), and Process Scheduler operate within a single, highly-optimized Kernel Space for maximum execution performance. In contrast, Microkernels move File Systems and Drivers into User Space, relying on message passing.`,
+    title: 'Module 2: File System Hierarchy Standard (FHS) & POSIX Permissions',
+    subtitle: 'Root Directory Structure, Octal Notation (755, 644) and POSIX ACLs',
+    image: '/assets/images/linux_permissions_fhs.png',
+    badge: 'Module 2 • FHS & Permissions',
+    description: `Linux organizes all files under a single root tree (/). File permissions are governed by 3 security tiers: Owner (u), Group (g), and Others (o), using Read (4), Write (2), and Execute (1) octal bits. Advanced ACLs grant granular user-level access rules.`,
     takeaways: [
-      'Monolithic Kernel (Linux): High speed execution, direct memory sharing between subsystems.',
-      'Microkernel (Minix): Increased fault isolation, but higher IPC messaging overhead.',
-      'Modern Linux uses dynamic loadable kernel modules (.ko) for modular flexibility.',
+      'Root (/) directory serves as the unified mount point for all physical and virtual drives.',
+      'Octal permissions matrix: 755 (rwxr-xr-x) for executables, 644 (rw-r--r--) for readable documents.',
+      'chmod, chown, and setfacl control access permissions dynamically across users.',
     ],
   },
   {
     id: 'slide_3',
-    title: 'Linux Kernel Subsystem Managers & Hardware Pipelines',
-    subtitle: 'Process Scheduler, Memory Manager, Device Drivers, File System Manager',
-    image: '/assets/images/linux_kernel_managers.png',
-    badge: 'Subsystem Managers',
-    description: `Inside the Linux Kernel chamber, 4 primary Manager Subsystems coordinate data flow directly to Physical Hardware: 1) Process Scheduler (CPU queue allocation), 2) Memory Manager (Virtual vs Physical RAM mapping), 3) Device Drivers Manager (Disk/Hardware control), and 4) File System Manager (Hierarchical Directory Tree).`,
+    title: 'Module 3: Process Management, Systemd Services & Cron Jobs',
+    subtitle: 'CPU Scheduler, Process Lifecycles (PIDs), Systemctl Daemons and Crontab',
+    image: '/assets/images/linux_process_systemd.png',
+    badge: 'Module 3 • Process & Systemd',
+    description: `Inside the Linux Kernel chamber, Process Scheduler allocates CPU time slices across PIDs. Systemd acts as the PID 1 init daemon managing system services (systemctl start/stop/status) and cron schedules automated task execution.`,
     takeaways: [
-      'Process Scheduler: Allocates CPU time slices across active threads and processes.',
-      'Memory Manager: Translates virtual memory addresses to physical RAM hardware.',
-      'File System Manager: Maps files, inodes, and permissions to physical storage sectors.',
+      'Systemd (PID 1): Initializes target environments and maintains background daemons.',
+      'Process Signals: SIGTERM (15) for graceful exit, SIGKILL (9) for instant termination.',
+      'Crontab: Automated task scheduler running periodic background maintenance jobs.',
+    ],
+  },
+  {
+    id: 'slide_4',
+    title: 'Module 4: Bash Scripting Automation & Host Security Hardening',
+    subtitle: 'Bash Control Structures, SSH Cryptographic Keys & Host Firewall Security',
+    image: '/assets/images/linux_bash_security.png',
+    badge: 'Module 4 • Bash & Security',
+    description: `Enterprise DevOps engineers combine Bash shell scripting with cryptographic SSH key authentication and UFW/iptables firewalls to automate infrastructure pipelines while maintaining zero-trust security postures.`,
+    takeaways: [
+      'Bash Automation: Combines conditional loops, function parameters, and exit codes.',
+      'SSH Key Pair Cryptography: RSA 4096-bit and Ed25519 public/private keys replace plain passwords.',
+      'UFW Firewall: Manages ingress/egress port filtering to defend server endpoints.',
     ],
   },
 ];
@@ -1707,18 +1720,19 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                   <Terminal className="w-4 h-4 text-emerald-600" /> Commands Matrix
                 </button>
 
-                {activeModuleIdx === 0 && (
-                  <button
-                    onClick={() => setActiveTab('slides')}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-                      activeTab === 'slides'
-                        ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20'
-                        : 'bg-white border border-sky-200 text-slate-700 hover:bg-sky-50'
-                    }`}
-                  >
-                    <ImageIcon className="w-4 h-4 text-sky-600" /> Diagrams
-                  </button>
-                )}
+                <button
+                  onClick={() => {
+                    setCurrentSlideIdx(Math.min(activeModuleIdx, ARCHITECTURE_SLIDES.length - 1));
+                    setActiveTab('slides');
+                  }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                    activeTab === 'slides'
+                      ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20'
+                      : 'bg-white border border-sky-200 text-slate-700 hover:bg-sky-50'
+                  }`}
+                >
+                  <ImageIcon className="w-4 h-4 text-sky-600" /> Module Diagrams
+                </button>
 
                 <button
                   onClick={() => {

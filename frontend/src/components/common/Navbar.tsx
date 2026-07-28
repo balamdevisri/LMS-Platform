@@ -44,14 +44,19 @@ export const Navbar: React.FC = () => {
     }
   };
 
+  interface NavItem {
+    name: string;
+    href: string;
+    badge?: boolean;
+  }
+
   // Role-based Navigation Links
-  const getNavLinks = () => {
+  const getNavLinks = (): NavItem[] => {
     if (!user || !userProfile) {
       return [
         { name: 'Home', href: '/' },
         { name: 'Courses', href: '/#courses' },
         { name: 'Features', href: '/#features' },
-        { name: 'AI Tutor', href: '/#ai-overview', badge: true },
         { name: 'Pricing', href: '/#pricing' },
         { name: 'About', href: '/#about' },
         { name: 'Contact', href: '/#contact' },
@@ -72,7 +77,6 @@ export const Navbar: React.FC = () => {
     return [
       { name: 'Dashboard', href: '/dashboard' },
       { name: 'Courses', href: '/#courses' },
-      { name: 'AI Tutor', href: '/#ai-overview', badge: true },
       { name: 'Profile', href: '/dashboard' },
     ];
   };

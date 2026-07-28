@@ -76,6 +76,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ...(calculatedUsername ? { githubUsername: calculatedUsername } : {}),
     };
 
+    const syncStudent = (profile: UserProfile) => {
+      if (profile.role === 'student') {
+        studentService.registerSignedUpStudent(
+          profile.uid,
+          profile.fullName || profile.name || firebaseUser.displayName || 'Student User',
+          profile.email || firebaseUser.email || '',
+          firebaseUser.photoURL || profile.photoURL || undefined,
+          isGithub ? 'github.com' : 'password',
+          calculatedUsername
+        );
+      }
+    };
+
     if (!db) {
       const fallback: UserProfile = {
         uid: firebaseUser.uid,
@@ -92,6 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isVerified: firebaseUser.emailVerified || isGithub || isAdmin || false,
         githubUsername: calculatedUsername,
       };
+      syncStudent(fallback);
       setUserProfile(fallback);
       return fallback;
     }
@@ -114,19 +128,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ...baseProfileData,
           role: finalRole,
           lastLogin: new Date().toISOString(),
-        });
+        }).catch((err) => console.warn('Firestore updateDoc notice:', err));
 
-        if (finalRole === 'student') {
-          studentService.registerSignedUpStudent(
-            firebaseUser.uid,
-            calculatedName,
-            firebaseUser.email || '',
-            firebaseUser.photoURL || undefined,
-            isGithub ? 'github.com' : 'password',
-            calculatedUsername
-          );
-        }
-
+        syncStudent(updatedPayload);
         setUserProfile(updatedPayload);
         return updatedPayload;
       } else {
@@ -136,27 +140,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           name: calculatedName,
           email: firebaseUser.email || '',
           photoURL: firebaseUser.photoURL || null,
+          profilePhoto: firebaseUser.photoURL || null,
           role: targetRole,
           provider: isGithub ? 'github.com' : 'password',
           providerId: isGithub ? 'github.com' : 'password',
           status: 'Active',
+          branch: 'AI & Computer Science',
+          year: '1st Year',
+          college: 'Shaivika AI Foundation',
+          phone: '+1 (555) 019-2831',
+          github: calculatedUsername ? `https://github.com/${calculatedUsername}` : '',
+          linkedin: '',
+          portfolio: '',
+          bio: 'Enthusiastic KaizenQ learner mastering Linux, AI, and DevOps.',
+          skills: ['Linux', 'Git', 'Python', 'AI Foundation'],
+          emailVerified: firebaseUser.emailVerified || isGithub || isAdmin || false,
+          isActive: true,
+          courseCount: 1,
+          completedCourses: 0,
+          currentCourse: 'Linux Systems & Administration Mastery',
+          learningScore: 85,
+          joinedAt: new Date().toISOString(),
           createdAt: new Date().toISOString(),
           lastLogin: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
           isVerified: firebaseUser.emailVerified || isGithub || isAdmin || false,
           githubUsername: calculatedUsername,
         };
-        await setDoc(userRef, newProfile);
 
-        if (targetRole === 'student') {
-          studentService.registerSignedUpStudent(
-            firebaseUser.uid,
-            newProfile.fullName,
-            newProfile.email,
-            firebaseUser.photoURL || undefined,
-            isGithub ? 'github.com' : 'password',
-            calculatedUsername
-          );
-        }
+        syncStudent(newProfile);
+
+        await setDoc(userRef, newProfile).catch((err) => console.warn('Firestore setDoc notice:', err));
 
         setUserProfile(newProfile);
         return newProfile;
@@ -178,6 +192,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isVerified: firebaseUser.emailVerified || isGithub || isAdmin || false,
         githubUsername: calculatedUsername,
       };
+      syncStudent(fallbackProfile);
       setUserProfile(fallbackProfile);
       return fallbackProfile;
     }

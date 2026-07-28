@@ -22,9 +22,19 @@ export const isFirestoreInitialized = (): boolean => {
 };
 
 /**
- * Course collection getter.
+ * Enterprise Collection Getters
  */
 export const coursesCollection = () => getCollection('courses');
+export const courseModulesCollection = () => getCollection('course_modules');
+export const courseLessonsCollection = () => getCollection('course_lessons');
+export const courseKnowledgeCollection = () => getCollection('course_knowledge');
+export const questionBankCollection = () => getCollection('question_bank');
+export const studentProgressCollection = () => getCollection('student_progress');
+export const studentAnalysisCollection = () => getCollection('student_analysis');
+export const generatedQuizzesCollection = () => getCollection('generated_quizzes');
+export const quizAttemptsCollection = () => getCollection('quiz_attempts');
+
+// Legacy Aliases
 export const modulesCollection = () => getCollection('modules');
 export const lessonsCollection = () => getCollection('lessons');
 export const quizzesCollection = () => getCollection('quizzes');
@@ -32,3 +42,4 @@ export const resourcesCollection = () => getCollection('resources');
 export const assignmentsCollection = () => getCollection('assignments');
 export const progressCollection = () => getCollection('progress');
 export const certificatesCollection = () => getCollection('certificates');
+export const emailLogsCollection = () => getCollection('email_logs');

@@ -119,8 +119,22 @@ export const LandingPage: React.FC = () => {
     },
   ];
 
-  // Testimonials
+  // Student Testimonials
   const testimonials = [
+    {
+      name: 'Priya Sharma',
+      role: 'DevOps Engineer',
+      quote: 'The distraction-free learning environment and built-in interactive CLI lab made mastering Git and Linux effortless. Highly recommend!',
+      rating: 5,
+      avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80',
+    },
+    {
+      name: 'Alex Chen',
+      role: 'Full-Stack Developer',
+      quote: 'Cleanest LMS interface I have ever used! Compares with Microsoft Learn and Codecademy.',
+      rating: 5,
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+    },
     {
       name: 'Sarah Jenkins',
       role: 'Lead Software Engineer at CloudTech',
@@ -553,32 +567,51 @@ export const LandingPage: React.FC = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
             <div className="text-center max-w-2xl mx-auto space-y-2">
               <span className="text-xs font-bold text-sky-700 uppercase tracking-widest bg-sky-100 px-3.5 py-1.5 rounded-full border border-sky-200">
-                Student Reviews
+                Student Testimonials
               </span>
               <h2 className="font-heading font-extrabold text-3xl sm:text-4xl text-slate-900">
                 Loved by 50,000+ Active Learners
               </h2>
+              <p className="text-xs sm:text-sm text-slate-600 font-medium">
+                Hear directly from software engineers, developers, and students excelling with Kaizen Q.
+              </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
               {testimonials.map((tm, idx) => (
-                <div key={idx} className="bg-white p-8 rounded-3xl border border-sky-100 shadow-xs space-y-6">
-                  <div className="flex items-center gap-1 text-amber-400">
-                    {[...Array(tm.rating)].map((_, i) => (
-                      <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-                    ))}
+                <motion.div
+                  key={idx}
+                  whileHover={{ y: -5 }}
+                  transition={{ duration: 0.2 }}
+                  className="bg-white p-6 sm:p-8 rounded-3xl border border-sky-100/80 shadow-md shadow-sky-500/5 hover:border-sky-300 hover:shadow-xl hover:shadow-sky-500/10 transition-all flex flex-col justify-between space-y-6"
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1 text-amber-400">
+                        {[...Array(tm.rating)].map((_, i) => (
+                          <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                        ))}
+                      </div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-sky-700 bg-sky-50 border border-sky-200 px-2.5 py-1 rounded-full">
+                        Verified Learner
+                      </span>
+                    </div>
+                    <p className="text-xs sm:text-sm text-slate-700 italic leading-relaxed font-medium">
+                      "{tm.quote}"
+                    </p>
                   </div>
-                  <p className="text-xs sm:text-sm text-slate-700 italic leading-relaxed font-medium">
-                    "{tm.quote}"
-                  </p>
-                  <div className="flex items-center gap-3 pt-4 border-t border-sky-100">
-                    <img src={tm.avatar} alt={tm.name} className="w-10 h-10 rounded-full object-cover border-2 border-sky-500" />
+                  <div className="flex items-center gap-3.5 pt-4 border-t border-sky-100">
+                    <img
+                      src={tm.avatar}
+                      alt={tm.name}
+                      className="w-11 h-11 rounded-full object-cover border-2 border-sky-400 shadow-xs"
+                    />
                     <div>
                       <h4 className="font-heading font-bold text-sm text-slate-900">{tm.name}</h4>
-                      <p className="text-xs text-slate-500 font-medium">{tm.role}</p>
+                      <p className="text-xs text-sky-600 font-semibold">{tm.role}</p>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
           </div>
