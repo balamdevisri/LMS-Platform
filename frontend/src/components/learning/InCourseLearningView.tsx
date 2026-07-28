@@ -146,12 +146,37 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
     let sectionTitle = '1. Core Operating Principles';
 
     if (
+      lessonTitleLower.includes('history') ||
+      lessonTitleLower.includes('distro') ||
+      lessonTitleLower.includes('overview') ||
+      lessonIdStr.includes('1.1')
+    ) {
+      sectionTitle = '1. Linux Architecture & Operating System History';
+      moduleImageMarkdown = `\n![Linux OS History & Enterprise Distros](/assets/images/topic_linux_history_distros.png)\n`;
+    } else if (
       lessonTitleLower.includes('kernel') ||
       lessonTitleLower.includes('lkm') ||
+      lessonTitleLower.includes('syscall') ||
       lessonIdStr.includes('1.2')
     ) {
       sectionTitle = '1. Kernel Architecture & System Call Execution';
-      moduleImageMarkdown = `\n![Linux Kernel Mechanics & LKMs](/assets/images/topic_kernel_mechanics.png)\n`;
+      moduleImageMarkdown = `\n![Linux Kernel Architecture Mechanics](/assets/images/topic_kernel_architecture.png)\n`;
+    } else if (
+      lessonTitleLower.includes('navigation') ||
+      lessonTitleLower.includes('cli basics') ||
+      lessonTitleLower.includes('prompt') ||
+      lessonIdStr.includes('1.3')
+    ) {
+      sectionTitle = '1. Terminal CLI Navigation & Path Exploration';
+      moduleImageMarkdown = `\n![Terminal CLI Navigation & Paths](/assets/images/topic_terminal_cli_navigation.png)\n`;
+    } else if (
+      lessonTitleLower.includes('redirection') ||
+      lessonTitleLower.includes('pipe') ||
+      lessonTitleLower.includes('filter') ||
+      lessonIdStr.includes('1.4')
+    ) {
+      sectionTitle = '1. I/O Redirection & Pipeline Processing';
+      moduleImageMarkdown = `\n![Linux I/O Redirection & Streams](/assets/images/topic_io_redirection_pipes.png)\n`;
     } else if (
       lessonTitleLower.includes('editor') ||
       lessonTitleLower.includes('vim') ||
