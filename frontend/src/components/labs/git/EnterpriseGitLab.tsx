@@ -16,7 +16,6 @@ import { SandboxService } from '@/services/sandboxService';
 import type { GitRepositoryState, GitFileStatus, GitStashItem } from '@/services/sandboxService';
 import { GitBranchGraph } from './GitBranchGraph';
 import { GitDiffViewer } from './GitDiffViewer';
-import { GitTaskPanel } from './GitTaskPanel';
 import { WindowsPowerShellTerminal } from './WindowsPowerShellTerminal';
 
 interface EnterpriseGitLabProps {
@@ -29,7 +28,7 @@ interface EnterpriseGitLabProps {
 export const EnterpriseGitLab: React.FC<EnterpriseGitLabProps> = ({
   studentId,
   studentName = 'Student User',
-  onClaimXP,
+  onClaimXP: _onClaimXP,
   isNightMode = true,
 }) => {
   const sandboxService = SandboxService.getInstance();
@@ -351,10 +350,10 @@ export const EnterpriseGitLab: React.FC<EnterpriseGitLabProps> = ({
 
         </div>
 
-        {/* CENTER PANEL: DIFF INSPECTOR & TERMINAL */}
-        <div className="flex-1 flex flex-col min-w-0 border-r border-slate-800">
+        {/* CENTER PANEL: DIFF INSPECTOR & POWERSHELL TERMINAL */}
+        <div className="flex-1 flex flex-col min-w-0">
           
-          <div className="h-1/2 border-b border-slate-800 p-2 overflow-hidden">
+          <div className="h-2/5 border-b border-slate-800 p-2 overflow-hidden">
             <GitDiffViewer
               selectedFile={selectedFile}
               isNightMode={isNightMode}
@@ -363,20 +362,10 @@ export const EnterpriseGitLab: React.FC<EnterpriseGitLabProps> = ({
             />
           </div>
 
-          <div className="h-1/2 p-2 overflow-hidden bg-slate-950">
+          <div className="h-3/5 p-2 overflow-hidden bg-slate-950">
             <WindowsPowerShellTerminal onCommandRun={(cmd) => handleRunCommand(cmd)} />
           </div>
 
-        </div>
-
-        {/* RIGHT SIDEBAR: LAB TASK VERIFIER & XP TRACKER */}
-        <div className="w-80 bg-slate-950 shrink-0">
-          <GitTaskPanel
-            repoState={repoState}
-            onExecuteSuggestedCommand={(cmd) => handleRunCommand(cmd)}
-            onClaimXP={(xp, title) => onClaimXP && onClaimXP(xp, title)}
-            isNightMode={isNightMode}
-          />
         </div>
 
       </div>
