@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Maximize2, Minus, X, RefreshCw, Copy, Check } from 'lucide-react';
+import { Maximize2, Minimize2, RefreshCw, Copy, Check } from 'lucide-react';
+import { toast } from 'sonner';
 import { PowerShellEngine } from '../../../services/powerShellEngine';
 
 interface WindowsPowerShellTerminalProps {
@@ -24,12 +25,13 @@ export const WindowsPowerShellTerminal: React.FC<WindowsPowerShellTerminalProps>
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState<number>(-1);
   const [copied, setCopied] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([
     {
       id: 'welcome_banner',
       prompt: '',
       command: '',
-      output: `Windows PowerShell\nCopyright (C) Microsoft Corporation. All rights reserved.\n\nInstall the latest PowerShell for new features and improvements! https://aka.ms/PSWindows\n\nKaizenQ AI Practice Workspace: C:\\Users\\Student\\GitLab [Git Version 2.45.2.windows.1]\nType 'git --help' or 'Get-ChildItem' to inspect workspace.\n`,
+      output: `Windows PowerShell\nCopyright (C) Microsoft Corporation. All rights reserved.\n\nInstall the latest PowerShell for new features and improvements! https://aka.ms/PSWindows\n\nKaizenQ AI Practice Workspace: C:\\Users\\Student\\GitLab [Git Version 2.45.2.windows.1]\nWorkspace files: App.tsx, Header.tsx, architecture.md, package.json, README.md, .gitignore\nType 'Get-ChildItem' or 'git status' to inspect workspace.\n`,
       type: 'info',
     },
   ]);
@@ -116,13 +118,33 @@ export const WindowsPowerShellTerminal: React.FC<WindowsPowerShellTerminalProps>
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleResetWorkspace = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    engine.resetWorkspace();
+    setPromptPath('PS C:\\Users\\Student\\GitLab>');
+    setLogs([
+      {
+        id: String(Date.now()),
+        prompt: '',
+        command: '',
+        output: `Windows PowerShell Workspace & Git Repository Reset\nRestored Files: App.tsx, Header.tsx, architecture.md, package.json, README.md, .gitignore\n`,
+        type: 'info',
+      },
+    ]);
+    toast.success('🔄 PowerShell workspace & simulated Git repository reset!');
+  };
+
   return (
     <div
-      className="rounded-2xl border border-slate-800 bg-[#0c1017] text-slate-100 font-mono shadow-2xl overflow-hidden flex flex-col h-full select-text transition-all"
+      className={`transition-all duration-300 select-text ${
+        isFullScreen
+          ? 'fixed inset-0 z-50 rounded-none h-screen w-screen bg-[#0c1017] flex flex-col font-mono shadow-2xl overflow-hidden'
+          : 'rounded-2xl border border-slate-800 bg-[#0c1017] text-slate-100 font-mono shadow-2xl overflow-hidden flex flex-col h-full'
+      }`}
       onClick={() => inputRef.current?.focus()}
     >
       {/* WINDOWS TERMINAL TITLEBAR */}
-      <div className="bg-[#161b22] px-4 py-2 border-b border-slate-800 flex items-center justify-between select-none">
+      <div className="bg-[#161b22] px-4 py-2 border-b border-slate-800 flex items-center justify-between select-none shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="w-5 h-5 rounded bg-blue-600 flex items-center justify-center text-white text-[10px] font-bold">
             PS
@@ -139,25 +161,29 @@ export const WindowsPowerShellTerminal: React.FC<WindowsPowerShellTerminalProps>
         <div className="flex items-center gap-2">
           <button
             onClick={handleCopyLogs}
-            className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-200 transition-colors"
+            className="p-1.5 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
             title="Copy Terminal Logs"
           >
             {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
           </button>
           <button
-            onClick={() => {
-              engine.execute('cls');
-              setLogs([]);
-            }}
-            className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-200 transition-colors"
-            title="Reset PowerShell Session"
+            onClick={handleResetWorkspace}
+            className="p-1.5 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+            title="Refresh PowerShell Workspace & Reset Files"
           >
-            <RefreshCw className="w-3.5 h-3.5" />
+            <RefreshCw className="w-3.5 h-3.5 text-cyan-400" />
           </button>
           <div className="h-3 w-px bg-slate-800 mx-1" />
-          <Minus className="w-3.5 h-3.5 text-slate-500 hover:text-slate-200 cursor-pointer" />
-          <Maximize2 className="w-3 h-3 text-slate-500 hover:text-slate-200 cursor-pointer" />
-          <X className="w-3.5 h-3.5 text-slate-500 hover:text-red-400 cursor-pointer" />
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsFullScreen(!isFullScreen);
+            }}
+            className="p-1.5 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+            title={isFullScreen ? 'Restore Screen' : 'Full Screen Terminal'}
+          >
+            {isFullScreen ? <Minimize2 className="w-3.5 h-3.5 text-cyan-400" /> : <Maximize2 className="w-3.5 h-3.5 text-slate-300" />}
+          </button>
         </div>
       </div>
 

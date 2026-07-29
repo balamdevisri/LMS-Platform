@@ -20,21 +20,29 @@ export interface PowerShellState {
 }
 
 export class PowerShellEngine {
-  private state: PowerShellState;
+  private state!: PowerShellState;
 
   constructor() {
+    this.resetWorkspace();
+  }
+
+  public resetWorkspace() {
     this.state = {
       currentPath: 'C:\\Users\\Student\\GitLab',
       items: new Map<string, DirectoryItem>([
         ['README.md', { name: 'README.md', type: 'file', size: 1420, lastWriteTime: '2026-07-28 10:30', mode: '-a---', content: '# GitLab Enterprise Project\nWelcome to KaizenQ Git Practice Lab!' }],
         ['package.json', { name: 'package.json', type: 'file', size: 680, lastWriteTime: '2026-07-28 11:15', mode: '-a---', content: '{\n  "name": "kaizenq-lab",\n  "version": "1.0.0"\n}' }],
+        ['App.tsx', { name: 'App.tsx', type: 'file', size: 950, lastWriteTime: '2026-07-28 11:40', mode: '-a---', content: 'import React from "react";\nexport default function App() {\n  return <h1>KaizenQ LMS Workspace</h1>;\n}' }],
+        ['Header.tsx', { name: 'Header.tsx', type: 'file', size: 480, lastWriteTime: '2026-07-28 12:00', mode: '-a---', content: 'export const Header = () => <header>Navigation</header>;' }],
+        ['architecture.md', { name: 'architecture.md', type: 'file', size: 1200, lastWriteTime: '2026-07-28 12:15', mode: '-a---', content: '# System Architecture\n- Vite + React + TypeScript\n- PowerShell Engine' }],
+        ['.gitignore', { name: '.gitignore', type: 'file', size: 180, lastWriteTime: '2026-07-28 09:00', mode: '-a---', content: 'node_modules/\ndist/\n.env\n' }],
         ['src', { name: 'src', type: 'directory', lastWriteTime: '2026-07-28 09:00', mode: 'd----' }],
         ['docs', { name: 'docs', type: 'directory', lastWriteTime: '2026-07-28 09:12', mode: 'd----' }],
       ]),
       gitBranch: 'main',
       stagedFiles: ['README.md'],
-      modifiedFiles: ['package.json'],
-      untrackedFiles: ['docs/architecture.md'],
+      modifiedFiles: ['App.tsx', 'package.json'],
+      untrackedFiles: ['Header.tsx', 'architecture.md'],
       commitCount: 3,
     };
   }
