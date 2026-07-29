@@ -30,20 +30,19 @@ export class PowerShellEngine {
     this.state = {
       currentPath: 'C:\\Users\\Student\\GitLab',
       items: new Map<string, DirectoryItem>([
-        ['README.md', { name: 'README.md', type: 'file', size: 1420, lastWriteTime: '2026-07-28 10:30', mode: '-a---', content: '# GitLab Enterprise Project\nWelcome to KaizenQ Git Practice Lab!' }],
-        ['package.json', { name: 'package.json', type: 'file', size: 680, lastWriteTime: '2026-07-28 11:15', mode: '-a---', content: '{\n  "name": "kaizenq-lab",\n  "version": "1.0.0"\n}' }],
-        ['App.tsx', { name: 'App.tsx', type: 'file', size: 950, lastWriteTime: '2026-07-28 11:40', mode: '-a---', content: 'import React from "react";\nexport default function App() {\n  return <h1>KaizenQ LMS Workspace</h1>;\n}' }],
-        ['Header.tsx', { name: 'Header.tsx', type: 'file', size: 480, lastWriteTime: '2026-07-28 12:00', mode: '-a---', content: 'export const Header = () => <header>Navigation</header>;' }],
-        ['architecture.md', { name: 'architecture.md', type: 'file', size: 1200, lastWriteTime: '2026-07-28 12:15', mode: '-a---', content: '# System Architecture\n- Vite + React + TypeScript\n- PowerShell Engine' }],
-        ['.gitignore', { name: '.gitignore', type: 'file', size: 180, lastWriteTime: '2026-07-28 09:00', mode: '-a---', content: 'node_modules/\ndist/\n.env\n' }],
+        ['frontend', { name: 'frontend', type: 'directory', lastWriteTime: '2026-07-28 09:00', mode: 'd----' }],
+        ['backend', { name: 'backend', type: 'directory', lastWriteTime: '2026-07-28 09:15', mode: 'd----' }],
+        ['.gitignore', { name: '.gitignore', type: 'file', size: 185, lastWriteTime: '2026-07-28 09:00', mode: '-a---', content: 'node_modules/\ndist/\n.env\n*.log\n' }],
+        ['README.md', { name: 'README.md', type: 'file', size: 1420, lastWriteTime: '2026-07-28 10:30', mode: '-a---', content: '# KaizenQ AI LMS Fullstack Application\n\nWelcome to the Git & GitHub practice lab!\n\n## Project Structure\n- `frontend/`: React + Vite + TypeScript application\n- `backend/`: Node.js Express API server\n- `.gitignore`: Ignored dependency directories\n' }],
+        ['package.json', { name: 'package.json', type: 'file', size: 680, lastWriteTime: '2026-07-28 11:15', mode: '-a---', content: '{\n  "name": "fullstack-kaizenq-lms",\n  "version": "1.0.0",\n  "scripts": {\n    "dev": "concurrently \\"npm run dev --prefix frontend\\" \\"npm run dev --prefix backend\\""\n  }\n}' }],
         ['src', { name: 'src', type: 'directory', lastWriteTime: '2026-07-28 09:00', mode: 'd----' }],
         ['docs', { name: 'docs', type: 'directory', lastWriteTime: '2026-07-28 09:12', mode: 'd----' }],
       ]),
       gitBranch: 'main',
-      stagedFiles: ['README.md'],
-      modifiedFiles: ['App.tsx', 'package.json'],
-      untrackedFiles: ['Header.tsx', 'architecture.md'],
-      commitCount: 3,
+      stagedFiles: ['README.md', '.gitignore'],
+      modifiedFiles: ['frontend/src/App.tsx', 'backend/server.js', 'package.json'],
+      untrackedFiles: ['frontend/vite.config.ts', 'backend/routes/api.js'],
+      commitCount: 5,
     };
   }
 
@@ -79,7 +78,7 @@ export class PowerShellEngine {
     }
 
     if (mainCmd === 'cd') {
-      const target = args[0] || '';
+      const target = (args[0] || '').replace(/['"]/g, '');
       if (!target || target === '~' || target === '\\') {
         this.state.currentPath = 'C:\\Users\\Student\\GitLab';
         return { output: '', type: 'success', newPromptPath: this.state.currentPath };
@@ -92,7 +91,8 @@ export class PowerShellEngine {
         }
         return { output: '', type: 'success', newPromptPath: this.state.currentPath };
       }
-      if (target === 'src' || target === 'docs') {
+      const validDirs = ['frontend', 'backend', 'src', 'docs'];
+      if (validDirs.includes(target.toLowerCase())) {
         this.state.currentPath = `C:\\Users\\Student\\GitLab\\${target}`;
         return { output: '', type: 'success', newPromptPath: this.state.currentPath };
       }

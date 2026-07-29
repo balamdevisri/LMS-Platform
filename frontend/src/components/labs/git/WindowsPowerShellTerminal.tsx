@@ -45,6 +45,16 @@ export const WindowsPowerShellTerminal: React.FC<WindowsPowerShellTerminalProps>
     }
   }, [logs]);
 
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullScreen) {
+        setIsFullScreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [isFullScreen]);
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -127,24 +137,17 @@ export const WindowsPowerShellTerminal: React.FC<WindowsPowerShellTerminalProps>
         id: String(Date.now()),
         prompt: '',
         command: '',
-        output: `Windows PowerShell Workspace & Git Repository Reset\nRestored Files: App.tsx, Header.tsx, architecture.md, package.json, README.md, .gitignore\n`,
+        output: `Windows PowerShell Workspace & Git Repository Reset\nRestored Files & Directories: frontend/, backend/, .gitignore, README.md, package.json\n`,
         type: 'info',
       },
     ]);
     toast.success('🔄 PowerShell workspace & simulated Git repository reset!');
   };
 
-  return (
-    <div
-      className={`transition-all duration-300 select-text ${
-        isFullScreen
-          ? 'fixed inset-0 z-50 rounded-none h-screen w-screen bg-[#0c1017] flex flex-col font-mono shadow-2xl overflow-hidden'
-          : 'rounded-2xl border border-slate-800 bg-[#0c1017] text-slate-100 font-mono shadow-2xl overflow-hidden flex flex-col h-full'
-      }`}
-      onClick={() => inputRef.current?.focus()}
-    >
+  const renderTerminalInner = () => (
+    <>
       {/* WINDOWS TERMINAL TITLEBAR */}
-      <div className="bg-[#161b22] px-4 py-2 border-b border-slate-800 flex items-center justify-between select-none shrink-0">
+      <div className="bg-[#161b22] px-4 py-2.5 border-b border-slate-800 flex items-center justify-between select-none shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="w-5 h-5 rounded bg-blue-600 flex items-center justify-center text-white text-[10px] font-bold">
             PS
@@ -180,9 +183,9 @@ export const WindowsPowerShellTerminal: React.FC<WindowsPowerShellTerminalProps>
               setIsFullScreen(!isFullScreen);
             }}
             className="p-1.5 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
-            title={isFullScreen ? 'Restore Screen' : 'Full Screen Terminal'}
+            title={isFullScreen ? 'Exit Full Screen (ESC)' : 'Full Screen Terminal'}
           >
-            {isFullScreen ? <Minimize2 className="w-3.5 h-3.5 text-cyan-400" /> : <Maximize2 className="w-3.5 h-3.5 text-slate-300" />}
+            {isFullScreen ? <Minimize2 className="w-4 h-4 text-amber-400 animate-pulse" /> : <Maximize2 className="w-3.5 h-3.5 text-slate-300" />}
           </button>
         </div>
       </div>
@@ -227,6 +230,28 @@ export const WindowsPowerShellTerminal: React.FC<WindowsPowerShellTerminalProps>
           />
         </div>
       </div>
+    </>
+  );
+
+  if (isFullScreen) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-200">
+        <div
+          className="w-full max-w-7xl h-[92vh] rounded-3xl border border-slate-800 bg-[#0c1017] text-slate-100 font-mono shadow-2xl overflow-hidden flex flex-col select-text"
+          onClick={() => inputRef.current?.focus()}
+        >
+          {renderTerminalInner()}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="rounded-2xl border border-slate-800 bg-[#0c1017] text-slate-100 font-mono shadow-2xl overflow-hidden flex flex-col h-full select-text transition-all"
+      onClick={() => inputRef.current?.focus()}
+    >
+      {renderTerminalInner()}
     </div>
   );
 };
