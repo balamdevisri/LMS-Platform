@@ -9,10 +9,11 @@ if (!admin.apps.length) {
 
   if (env.FIREBASE_PROJECT_ID && env.FIREBASE_CLIENT_EMAIL && isValidPrivateKey) {
     try {
+      const privateKey = (env.FIREBASE_PRIVATE_KEY || process.env.FIREBASE_PRIVATE_KEY)?.replace(/\\n/g, '\n');
       const credential = admin.credential.cert({
         projectId: env.FIREBASE_PROJECT_ID,
         clientEmail: env.FIREBASE_CLIENT_EMAIL,
-        privateKey: env.FIREBASE_PRIVATE_KEY!.replace(/\\n/g, '\n'),
+        privateKey,
       });
       admin.initializeApp({ credential });
     } catch (err: any) {
