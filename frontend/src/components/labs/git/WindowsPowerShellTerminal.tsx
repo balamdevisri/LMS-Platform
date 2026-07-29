@@ -38,6 +38,7 @@ export const WindowsPowerShellTerminal: React.FC<WindowsPowerShellTerminalProps>
 
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const terminalWrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (containerRef.current) {
@@ -45,14 +46,40 @@ export const WindowsPowerShellTerminal: React.FC<WindowsPowerShellTerminalProps>
     }
   }, [logs]);
 
+  const toggleFullScreen = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+
+    if (!isFullScreen) {
+      setIsFullScreen(true);
+      const elem = terminalWrapperRef.current || document.documentElement;
+      if (elem && (elem as any).requestFullscreen) {
+        (elem as any).requestFullscreen().catch(() => {});
+      }
+    } else {
+      setIsFullScreen(false);
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+  };
+
   useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isFullScreen) {
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement) {
         setIsFullScreen(false);
       }
     };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullScreen) {
+        toggleFullScreen();
+      }
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
     window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      window.removeEventListener('keydown', handleEscape);
+    };
   }, [isFullScreen]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -178,12 +205,9 @@ export const WindowsPowerShellTerminal: React.FC<WindowsPowerShellTerminalProps>
           </button>
           <div className="h-3 w-px bg-slate-800 mx-1" />
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsFullScreen(!isFullScreen);
-            }}
+            onClick={toggleFullScreen}
             className="p-1.5 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
-            title={isFullScreen ? 'Exit Full Screen (ESC)' : 'Full Screen Terminal'}
+            title={isFullScreen ? 'Exit Full Screen (ESC)' : 'Full Screen Terminal (F11 Mode)'}
           >
             {isFullScreen ? <Minimize2 className="w-4 h-4 text-amber-400 animate-pulse" /> : <Maximize2 className="w-3.5 h-3.5 text-slate-300" />}
           </button>
@@ -235,19 +259,19 @@ export const WindowsPowerShellTerminal: React.FC<WindowsPowerShellTerminalProps>
 
   if (isFullScreen) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-200">
-        <div
-          className="w-full max-w-7xl h-[92vh] rounded-3xl border border-slate-800 bg-[#0c1017] text-slate-100 font-mono shadow-2xl overflow-hidden flex flex-col select-text"
-          onClick={() => inputRef.current?.focus()}
-        >
-          {renderTerminalInner()}
-        </div>
+      <div
+        ref={terminalWrapperRef}
+        className="fixed inset-0 z-[9999] w-screen h-screen bg-[#0c1017] text-slate-100 font-mono flex flex-col overflow-hidden select-text border-none rounded-none m-0 p-0 animate-in fade-in duration-150"
+        onClick={() => inputRef.current?.focus()}
+      >
+        {renderTerminalInner()}
       </div>
     );
   }
 
   return (
     <div
+      ref={terminalWrapperRef}
       className="rounded-2xl border border-slate-800 bg-[#0c1017] text-slate-100 font-mono shadow-2xl overflow-hidden flex flex-col h-full select-text transition-all"
       onClick={() => inputRef.current?.focus()}
     >
