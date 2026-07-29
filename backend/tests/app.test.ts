@@ -2,19 +2,21 @@ import request from 'supertest';
 import app from '../src/app';
 
 describe('GET / Endpoint', () => {
-  it('should return 200 OK with message "Backend Connected Successfully"', async () => {
+  it('should return 200 OK with service status', async () => {
     const response = await request(app).get('/');
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
-      message: 'Backend Connected Successfully',
+      success: true,
+      service: 'KaizenQ Backend',
+      status: 'running',
     });
   });
 
-  it('should return 200 OK on GET /api as well', async () => {
-    const response = await request(app).get('/api');
+  it('should return 200 OK on GET /health endpoint', async () => {
+    const response = await request(app).get('/health');
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({
-      message: 'Backend Connected Successfully',
-    });
+    expect(response.body.status).toBe('healthy');
+    expect(response.body.version).toBe('1.0.0');
+    expect(typeof response.body.uptime).toBe('number');
   });
 });

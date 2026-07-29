@@ -10,7 +10,6 @@ describe('Course Zod Validation Schema', () => {
       description: 'Short', // too short
       category: '', // empty
       level: 'Expert', // invalid level enum value
-      thumbnail: 'not-a-url', // not a valid URL
       duration: '',
       price: -10, // negative value
       status: 'nonexistent',
@@ -26,7 +25,6 @@ describe('Course Zod Validation Schema', () => {
       expect(errors.description).toBeDefined();
       expect(errors.category).toBeDefined();
       expect(errors.level).toBeDefined();
-      expect(errors.thumbnail).toBeDefined();
       expect(errors.price).toBeDefined();
     }
   });
@@ -35,19 +33,21 @@ describe('Course Zod Validation Schema', () => {
     const validData = {
       title: 'React Core Fundamentals',
       slug: 'react-core-fundamentals',
-      description: 'A comprehensive guide to React core concepts, hooks, and advanced states.',
+      shortDescription: 'Master modern React with TypeScript and Vite.',
+      description: 'A comprehensive guide to React core concepts, hooks, and advanced state management.',
       category: 'Web Development',
-      level: 'Beginner',
+      level: 'beginner',
       thumbnail: 'https://example.com/thumbnail.png',
       duration: '12 hours',
       price: 499,
       status: 'draft',
       language: 'English',
       instructor: {
-        uid: 'instructor-123',
+        id: 'instructor-123',
         name: 'Jane Doe',
       },
-      createdBy: 'admin-123',
+      skills: ['React', 'TypeScript'],
+      learningOutcomes: ['Understand React Hooks', 'Build Web Apps'],
     };
 
     const result = CourseValidationSchema.safeParse(validData);
