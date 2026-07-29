@@ -1,6 +1,6 @@
 import { CourseRepository } from './course.repository';
-import { ICourse, CreateCourseDTO, UpdateCourseDTO, CourseFilterOptions, CoursePaginationResult } from '../../../../shared/types/course';
-import { CreateCourseSchema, UpdateCourseSchema } from '../../../../shared/validators/course.validator';
+import { ICourse, CreateCourseDTO, UpdateCourseDTO, CourseFilterOptions, CoursePaginationResult } from '../../types/course';
+import { CreateCourseSchema, UpdateCourseSchema } from '../../validators/course.validator';
 
 export class CourseService {
   private repository: CourseRepository;

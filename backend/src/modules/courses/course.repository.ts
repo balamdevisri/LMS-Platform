@@ -1,5 +1,5 @@
 import { db } from '../../firebase';
-import { ICourse, CreateCourseDTO, UpdateCourseDTO, CourseFilterOptions, CoursePaginationResult } from '../../../../shared/types/course';
+import { ICourse, CreateCourseDTO, UpdateCourseDTO, CourseFilterOptions, CoursePaginationResult } from '../../types/course';
 
 export class CourseRepository {
   private collectionName = 'courses';

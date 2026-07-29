@@ -38,18 +38,25 @@ export class CourseService {
       const parsedData = CourseValidationSchema.parse(data);
 
       // 2. Prevent duplicate slugs
-      const existing = await this.getCourseBySlug(parsedData.slug);
-      if (existing) {
-        throw new ApiError(400, `A course with slug '${parsedData.slug}' already exists.`);
+      if (parsedData.slug) {
+        const existing = await this.getCourseBySlug(parsedData.slug);
+        if (existing) {
+          throw new ApiError(400, `A course with slug '${parsedData.slug}' already exists.`);
+        }
       }
 
       // 3. Prepare document
       const docRef = this.collection().doc(); // Generate auto ID
+      const slug = parsedData.slug || parsedData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
       const courseDoc: Course = {
+        enrollmentCount: 0,
+        rating: 5.0,
+        ratingCount: 0,
         ...parsedData,
+        slug,
         id: docRef.id,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
 
       // 4. Save to Firestore
@@ -95,7 +102,7 @@ export class CourseService {
       const updatedCourse: Course = {
         ...existingCourse,
         ...parsedData,
-        updatedAt: new Date(),
+        updatedAt: new Date().toISOString(),
       };
 
       // 5. Update only the changed fields in Firestore
@@ -196,7 +203,7 @@ export class CourseService {
         const matchTitle = course.title?.toLowerCase().includes(term);
         const matchDesc = course.description?.toLowerCase().includes(term);
         const matchCategory = course.category?.toLowerCase().includes(term);
-        const matchTags = course.tags?.some((tag) => tag.toLowerCase().includes(term));
+        const matchTags = course.tags?.some((tag: string) => tag.toLowerCase().includes(term));
         return matchTitle || matchDesc || matchCategory || matchTags;
       });
     } catch (error) {
