@@ -261,7 +261,7 @@ export const WindowsPowerShellTerminal: React.FC<WindowsPowerShellTerminalProps>
     return (
       <div
         ref={terminalWrapperRef}
-        className="fixed inset-0 z-[9999] w-screen h-screen bg-[#0c1017] text-slate-100 font-mono flex flex-col overflow-hidden select-text border-none rounded-none m-0 p-0 animate-in fade-in duration-150"
+        className="fixed inset-0 z-9999 w-screen h-screen bg-[#0c1017] text-slate-100 font-mono flex flex-col overflow-hidden select-text border-none rounded-none m-0 p-0 animate-in fade-in duration-150"
         onClick={() => inputRef.current?.focus()}
       >
         {renderTerminalInner()}
