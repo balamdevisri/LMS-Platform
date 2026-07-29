@@ -67,23 +67,25 @@ export const LearningHeader: React.FC<LearningHeaderProps> = ({
           <span>Back to Overview</span>
         </button>
 
-        <div className="min-w-0 flex flex-col justify-center space-y-0.5 sm:space-y-1">
+        <div className="min-w-0 flex flex-col justify-center space-y-1">
           <div className="flex items-center gap-2">
             <span
-              className={`text-xs sm:text-sm font-mono font-bold uppercase tracking-wider truncate max-w-36 sm:max-w-64 md:max-w-80 lg:max-w-96 flex items-center gap-1.5 ${
-                isNightMode ? 'text-cyan-400' : 'text-sky-600'
+              className={`text-[11px] sm:text-xs font-sans font-extrabold uppercase tracking-wider truncate max-w-36 sm:max-w-64 md:max-w-80 lg:max-w-96 flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg border ${
+                isNightMode
+                  ? 'bg-cyan-950/70 text-cyan-300 border-cyan-800/80'
+                  : 'bg-sky-50 text-sky-800 border-sky-200'
               }`}
             >
-              <Sparkles className={`w-3.5 h-3.5 ${isNightMode ? 'text-cyan-400' : 'text-sky-500'}`} />
+              <Sparkles className={`w-3 h-3 ${isNightMode ? 'text-cyan-400' : 'text-sky-500'}`} />
               {courseTitle}
             </span>
           </div>
           <h1
-            className={`text-sm sm:text-base lg:text-lg font-heading font-black truncate max-w-36 sm:max-w-64 md:max-w-80 lg:max-w-96 leading-tight ${
+            className={`text-sm sm:text-base lg:text-lg font-heading font-black truncate max-w-36 sm:max-w-64 md:max-w-80 lg:max-w-96 leading-tight tracking-tight ${
               isNightMode ? 'text-white' : 'text-slate-900'
             }`}
           >
-            {lessonTitle}
+            {lessonTitle.replace(/^git-unit-\d+-\d+\s*:?\s*/i, '')}
           </h1>
         </div>
       </div>

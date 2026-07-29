@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Clock, Terminal as TerminalIcon, Sparkles, CheckCircle2, ChevronRight, Zap, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { MarkdownRenderer } from './MarkdownRenderer';
@@ -67,40 +67,69 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({
     toast.success('🎉 +50 XP Claimed! Lesson marked as completed!');
   };
 
+  const formattedBadge = useMemo(() => {
+    let b = lesson.badge || String(lesson.id);
+    if (!b) return 'Core Lesson';
+
+    if (b.includes('git-unit-')) {
+      const match = b.match(/git-unit-(\d+)-(\d+)/);
+      if (match) {
+        return `Module ${match[1]} • Unit ${match[1]}.${match[2]}`;
+      }
+      return 'Hands-on Git Practice';
+    }
+    if (b.includes('git-les-')) {
+      const num = b.replace('git-les-', '');
+      return `Module 1 • Lesson ${num}`;
+    }
+    if (b.startsWith('git-')) {
+      return b.replace('git-', 'Git ').replace(/-/g, ' ');
+    }
+    return b;
+  }, [lesson.badge, lesson.id]);
+
+  const formattedTitle = useMemo(() => {
+    if (!lesson.title) return '';
+    return lesson.title.replace(/^git-unit-\d+-\d+\s*:?\s*/i, '');
+  }, [lesson.title]);
+
   return (
     <article className="w-full space-y-8 py-2 px-1">
-      <header className={`space-y-4 border-b pb-6 ${isNightMode ? 'border-slate-800' : 'border-sky-100'}`}>
-        <div className="flex flex-wrap items-center gap-2">
-          {lesson.badge && (
+      <header className={`space-y-4 border-b pb-8 ${isNightMode ? 'border-slate-800/80' : 'border-sky-100'}`}>
+        <div className="flex flex-wrap items-center gap-3">
+          {formattedBadge && (
             <span
-              className={`px-3 py-1 rounded-full text-xs font-mono font-bold border ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-sans font-bold flex items-center gap-2 border shadow-xs transition-all ${
                 isNightMode
-                  ? 'bg-slate-900 text-cyan-300 border-slate-800'
-                  : 'bg-sky-100 text-sky-700 border-sky-200'
+                  ? 'bg-cyan-950/80 text-cyan-300 border-cyan-800/80 shadow-cyan-950/40'
+                  : 'bg-sky-100/90 text-sky-800 border-sky-200 shadow-sky-500/10'
               }`}
             >
-              {lesson.badge}
+              <Sparkles className={`w-3.5 h-3.5 ${isNightMode ? 'text-cyan-400' : 'text-sky-600'}`} />
+              <span>{formattedBadge}</span>
             </span>
           )}
+
           <span
-            className={`px-3 py-1 rounded-full text-xs font-mono font-semibold flex items-center gap-1.5 border shadow-xs ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-sans font-semibold flex items-center gap-2 border shadow-xs ${
               isNightMode
-                ? 'bg-slate-900 text-slate-300 border-slate-800'
-                : 'bg-white text-slate-600 border-sky-100'
+                ? 'bg-slate-900/90 text-slate-300 border-slate-800'
+                : 'bg-white text-slate-700 border-sky-100'
             }`}
           >
             <Clock className={`w-3.5 h-3.5 ${isNightMode ? 'text-cyan-400' : 'text-sky-600'}`} />
-            Estimated: {lesson.duration || '15 mins'}
+            <span>Estimated: {lesson.duration || '15 mins'}</span>
           </span>
-
         </div>
 
         <h1
-          className={`text-2xl sm:text-4xl font-heading font-black tracking-tight leading-tight ${
-            isNightMode ? 'text-white' : 'text-slate-900'
+          className={`text-3xl sm:text-4xl lg:text-5xl font-heading font-black tracking-tight leading-tight ${
+            isNightMode
+              ? 'text-transparent bg-clip-text bg-linear-to-r from-white via-slate-100 to-slate-300'
+              : 'text-slate-900'
           }`}
         >
-          {lesson.title}
+          {formattedTitle}
         </h1>
       </header>
 
