@@ -707,10 +707,7 @@ export const Dashboard: React.FC = () => {
                     </div>
                     <div className="flex items-center gap-4 text-xs">
                       <span className="font-bold text-slate-700 dark:text-zinc-300">
-                        ⏱️ <strong className="text-purple-600 dark:text-purple-400">{weeklyChartData[hoveredDayIndex].hours} hrs</strong> study time
-                      </span>
-                      <span className="font-bold text-slate-700 dark:text-zinc-300">
-                        🤖 <strong className="text-sky-600 dark:text-sky-400">{weeklyChartData[hoveredDayIndex].aiChats} AI prompts</strong>
+                        ⏱️ <strong className="text-purple-600 dark:text-purple-400">{weeklyChartData[hoveredDayIndex].hours} hrs</strong> total study time
                       </span>
                     </div>
                   </div>
