@@ -107,7 +107,12 @@ export const Register: React.FC = () => {
       }
     } catch (err: any) {
       console.error('GitHub authentication error:', err);
-      toast.error(err?.message || 'GitHub Authentication failed.');
+      if (err?.code === 'auth/account-exists-with-different-credential' || err?.message?.includes('login using your password')) {
+        toast.error('This email already exists. Please login using your password first to link your GitHub account.');
+        navigate('/auth/login');
+      } else {
+        toast.error(err?.message || 'GitHub Authentication failed.');
+      }
     } finally {
       setIsSubmitting(false);
     }

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import type { User } from 'firebase/auth';
+import type { User, AuthCredential } from 'firebase/auth';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -14,6 +14,8 @@ import {
   GithubAuthProvider,
   signInWithPopup,
   getAdditionalUserInfo,
+  fetchSignInMethodsForEmail,
+  linkWithCredential,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/firebase';
@@ -292,6 +294,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const currentUser = auth.currentUser || userCredential.user;
 
+      // Link pending GitHub credential if present
+      let pendingCredRaw = typeof window !== 'undefined' ? sessionStorage.getItem('pendingGithubCredential') : null;
+      if (pendingCredRaw && currentUser) {
+        try {
+          const parsedObj = JSON.parse(pendingCredRaw);
+          let cred: AuthCredential | null = null;
+          if (parsedObj.accessToken) {
+            cred = GithubAuthProvider.credential(parsedObj.accessToken);
+          }
+          if (cred) {
+            await linkWithCredential(currentUser, cred).catch((linkErr) => console.warn('Account linking notice:', linkErr));
+            sessionStorage.removeItem('pendingGithubCredential');
+            sessionStorage.removeItem('pendingGithubEmail');
+          }
+        } catch (linkCatch) {
+          console.warn('Post-login linking notice:', linkCatch);
+        }
+      }
+
       const isVerifiedQuery = typeof window !== 'undefined' && window.location.search.includes('verified=true');
       const isVerified = currentUser.emailVerified || isVerifiedQuery;
 
@@ -385,12 +406,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     provider.addScope('user:email');
     provider.addScope('read:user');
 
-    const result = await signInWithPopup(auth, provider);
-    const additionalInfo = getAdditionalUserInfo(result);
-    const githubUsername = additionalInfo?.username || (result.user as any).reloadUserInfo?.screenName;
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const additionalInfo = getAdditionalUserInfo(result);
+      const githubUsername = additionalInfo?.username || (result.user as any).reloadUserInfo?.screenName;
 
-    const profile = await fetchUserProfile(result.user, githubUsername);
-    return profile;
+      const profile = await fetchUserProfile(result.user, githubUsername);
+      return profile;
+    } catch (error: any) {
+      if (error.code === 'auth/account-exists-with-different-credential') {
+        const pendingCred = GithubAuthProvider.credentialFromError(error);
+        const email = error.customData?.email || error.email;
+        let existingMethods: string[] = [];
+
+        if (email && auth) {
+          try {
+            existingMethods = await fetchSignInMethodsForEmail(auth, email);
+          } catch (fetchErr) {
+            console.warn('fetchSignInMethodsForEmail notice:', fetchErr);
+          }
+        }
+
+        if (pendingCred) {
+          try {
+            sessionStorage.setItem('pendingGithubCredential', JSON.stringify(pendingCred));
+            if (email) sessionStorage.setItem('pendingGithubEmail', email);
+          } catch (sErr) {
+            console.warn('sessionStorage notice:', sErr);
+          }
+        }
+
+        const customErr: any = new Error(
+          existingMethods.includes('password')
+            ? 'This email already exists. Please login using your password first to link your GitHub account.'
+            : `An account already exists with a different sign-in credential for ${email || 'this email'}. Please sign in with your primary credential.`
+        );
+        customErr.code = 'auth/account-exists-with-different-credential';
+        customErr.email = email;
+        customErr.existingMethods = existingMethods;
+        customErr.pendingCredential = pendingCred;
+        throw customErr;
+      }
+      throw error;
+    }
   };
 
   const logout = async (): Promise<void> => {

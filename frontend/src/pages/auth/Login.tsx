@@ -89,7 +89,12 @@ export const Login: React.FC = () => {
       }
     } catch (err: any) {
       console.error('GitHub authentication error:', err);
-      toast.error(err?.message || 'GitHub Authentication failed.');
+      if (err?.code === 'auth/account-exists-with-different-credential' || err?.message?.includes('login using your password')) {
+        if (err?.email) setEmail(err.email);
+        toast.error('This email already exists. Please login using your password first to link your GitHub account.');
+      } else {
+        toast.error(err?.message || 'GitHub Authentication failed.');
+      }
     } finally {
       setIsSubmitting(false);
     }
