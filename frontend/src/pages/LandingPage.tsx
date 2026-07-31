@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles,
   ArrowRight,
@@ -20,13 +20,168 @@ import {
   Layers,
   Check,
   Play,
-  Loader2
+  Users,
+  Clock,
+  Terminal
 } from 'lucide-react';
 import { KaizenQVideoPlayer } from '@/components/common/KaizenQVideoPlayer';
 import { BlueSmokeTheme } from '@/components/common/BlueSmokeTheme';
-import { ThreeAiOrbCanvas } from '@/components/3d/ThreeAiOrbCanvas';
+import { AiCoreOrb } from '@/components/common/AiCoreOrb';
 import { courseService } from '@/services/courseService';
 import type { ICourse } from '../../../shared/types/course';
+
+// Custom Animated Counter Component
+const AnimatedCounter: React.FC<{ value: number; suffix?: string; prefix?: string }> = ({ value, suffix = '', prefix = '' }) => {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    let start = 0;
+    const end = value;
+    if (start === end) return;
+
+    const duration = 1200; // ms
+    const incrementTime = Math.max(Math.floor(duration / 40), 20);
+    const step = Math.ceil(end / 40);
+
+    const timer = setInterval(() => {
+      start += step;
+      if (start >= end) {
+        clearInterval(timer);
+        setCount(end);
+      } else {
+        setCount(start);
+      }
+    }, incrementTime);
+
+    return () => clearInterval(timer);
+  }, [value]);
+
+  return <span>{prefix}{count.toLocaleString()}{suffix}</span>;
+};
+
+// Premium Course Card Skeleton
+const CourseSkeleton: React.FC = () => {
+  return (
+    <div className="glass-card overflow-hidden flex flex-col border border-[#E6EEF9] dark:border-zinc-800 animate-pulse">
+      <div className="h-52 bg-slate-100 dark:bg-zinc-850" />
+      <div className="p-6 space-y-4 flex-1 flex flex-col justify-between">
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <div className="h-4 bg-slate-200 dark:bg-zinc-800 rounded-md w-1/4" />
+            <div className="h-4 bg-slate-200 dark:bg-zinc-800 rounded-md w-1/4" />
+          </div>
+          <div className="h-6 bg-slate-200 dark:bg-zinc-800 rounded-md w-11/12" />
+          <div className="h-6 bg-slate-200 dark:bg-zinc-800 rounded-md w-3/4" />
+          <div className="h-4 bg-slate-200 dark:bg-zinc-800 rounded-md w-1/3" />
+        </div>
+        <div className="h-11 bg-slate-200 dark:bg-zinc-800 rounded-xl w-full" />
+      </div>
+    </div>
+  );
+};
+
+// Premium Sliding Glow Section Divider
+const AnimatedDivider: React.FC<{ className?: string }> = ({ className = 'my-12' }) => {
+  return (
+    <div className={`relative w-full h-[1px] bg-[#E6EEF9] dark:bg-zinc-850 overflow-hidden max-w-[1280px] mx-auto ${className}`}>
+      <div className="absolute top-0 w-1/3 h-full bg-gradient-to-r from-transparent via-blue-500/20 to-transparent animate-shine" />
+    </div>
+  );
+};
+
+// Reusable Ripple Button Wrapper
+interface RippleButtonProps {
+  children: React.ReactNode;
+  className?: string;
+  to?: string;
+  onClick?: () => void;
+  href?: string;
+  type?: 'button' | 'submit' | 'reset';
+}
+
+const RippleButton: React.FC<RippleButtonProps> = ({ children, className = '', to, onClick, href, type = 'button' }) => {
+  const [ripples, setRipples] = useState<Array<{ id: number; x: number; y: number }>>([]);
+  
+  const createRipple = (e: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
+    const button = e.currentTarget;
+    const rect = button.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    const x = e.clientX - rect.left - size / 2;
+    const y = e.clientY - rect.top - size / 2;
+    
+    const newRipple = {
+      id: Date.now(),
+      x,
+      y,
+    };
+    
+    setRipples((prev) => [...prev, newRipple]);
+    setTimeout(() => {
+      setRipples((prev) => prev.filter((r) => r.id !== newRipple.id));
+    }, 600);
+  };
+
+  const content = (
+    <>
+      <span className="relative z-10 flex items-center justify-center gap-2">{children}</span>
+      {ripples.map((ripple) => (
+        <span
+          key={ripple.id}
+          className="absolute bg-white/25 rounded-full pointer-events-none animate-ripple"
+          style={{
+            width: '200px',
+            height: '200px',
+            left: ripple.x,
+            top: ripple.y,
+          }}
+        />
+      ))}
+    </>
+  );
+
+  if (to) {
+    return (
+      <Link
+        to={to}
+        onClick={(e: any) => {
+          createRipple(e);
+          if (onClick) onClick();
+        }}
+        className={`relative overflow-hidden ${className}`}
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  if (href) {
+    return (
+      <a
+        href={href}
+        onClick={(e: any) => {
+          createRipple(e);
+          if (onClick) onClick();
+        }}
+        className={`relative overflow-hidden ${className}`}
+      >
+        {content}
+      </a>
+    );
+  }
+
+  return (
+    <button
+      type={type}
+      onClick={(e: any) => {
+        createRipple(e);
+        if (onClick) onClick();
+      }}
+      className={`relative overflow-hidden ${className}`}
+    >
+      {content}
+    </button>
+  );
+};
 
 export const LandingPage: React.FC = () => {
   // FAQ state
@@ -37,29 +192,81 @@ export const LandingPage: React.FC = () => {
   useEffect(() => {
     const fetchCatalogCourses = async () => {
       try {
-        const result = await courseService.getCourses({ status: 'published', limit: 6 });
+        const result = await courseService.getCourses({ status: 'published', limit: 30 });
         let list = result.courses || [];
-        const hasLinux = list.some(c => String(c.id) === 'course_linux_101' || (c.title || '').toLowerCase().includes('linux'));
+        
+        // Filter: status = 'published', visibility = 'public', featured = true
+        let featuredList = list.filter(c => 
+          c.status === 'published' && 
+          c.visibility === 'public' && 
+          c.featured === true
+        );
+
+        // Ensure "Linux Systems & Administration Mastery" and "Git & GitHub Mastery" are included
+        const hasLinux = featuredList.some(c => c.slug === 'linux-systems-administration-mastery' || (c.title || '').toLowerCase().includes('linux'));
+        const hasGit = featuredList.some(c => c.slug === 'git-github-mastery' || (c.title || '').toLowerCase().includes('git'));
+
         if (!hasLinux) {
-          const linuxCourse = courseService.normalizeCourseToICourse({
-            id: 'course_linux_101',
-            title: 'Linux Systems & Administration Mastery',
-            slug: 'linux-systems-administration-mastery',
-            shortDescription: 'Enterprise curriculum covering Linux Architecture, Kernel Mechanics, Permissions, Systemd, Bash Scripting, and SSH Security.',
-            category: 'Linux & Systems',
-            level: 'all_levels',
-            duration: '32 hrs',
-            status: 'published',
-            rating: 5.0,
-            ratingCount: 145,
-            thumbnail: '/assets/images/linux_course_thumbnail.png',
-            banner: '/assets/images/linux_os_architecture.png',
-            instructor: { name: 'KaizenQ Systems Team', role: 'Linux Systems Architect & LMS Specialist' },
-            skills: ['Linux CLI', 'Kernel Mechanics', 'Systemd Services', 'Bash Automation', 'SSH & Security']
-          });
-          list = [linuxCourse, ...list];
+          const found = list.find(c => c.slug === 'linux-systems-administration-mastery' || (c.title || '').toLowerCase().includes('linux'));
+          if (found && found.status === 'published' && found.visibility === 'public') {
+            featuredList.push(found);
+          } else {
+            const linuxCourse = courseService.normalizeCourseToICourse({
+              id: 'course_linux_101',
+              title: 'Linux Systems & Administration Mastery',
+              slug: 'linux-systems-administration-mastery',
+              shortDescription: 'Enterprise curriculum covering Linux Architecture, Kernel Mechanics, Permissions, Systemd, Bash Scripting, and SSH Security.',
+              category: 'Linux & Systems',
+              level: 'all_levels',
+              duration: '32 hrs',
+              status: 'published',
+              visibility: 'public',
+              featured: true,
+              rating: 5.0,
+              ratingCount: 145,
+              thumbnail: '/assets/images/linux_course_thumbnail.png',
+              banner: '/assets/images/linux_os_architecture.png',
+              instructor: { name: 'KaizenQ Systems Team', role: 'Linux Systems Architect & LMS Specialist' },
+              skills: ['Linux CLI', 'Kernel Mechanics', 'Systemd Services', 'Bash Automation', 'SSH & Security']
+            });
+            featuredList.push(linuxCourse);
+          }
         }
-        setCatalogCourses(list);
+
+        if (!hasGit) {
+          const found = list.find(c => c.slug === 'git-github-mastery' || (c.title || '').toLowerCase().includes('git'));
+          if (found && found.status === 'published' && found.visibility === 'public') {
+            featuredList.push(found);
+          } else {
+            const gitCourse = courseService.normalizeCourseToICourse({
+              id: 'git-github-mastery',
+              title: 'Git & GitHub Mastery',
+              slug: 'git-github-mastery',
+              shortDescription: 'Learn Git & GitHub from beginner to professional, including version control, branching, pull requests, and CI/CD.',
+              category: 'Development Tools',
+              level: 'all_levels',
+              duration: '20 Hours',
+              status: 'published',
+              visibility: 'public',
+              featured: true,
+              rating: 5.0,
+              ratingCount: 180,
+              thumbnail: '/assets/images/github_course_banner.png',
+              banner: '/assets/images/github_course_banner.png',
+              instructor: { name: 'Kaizen Q Team', role: 'Senior Technical Instructor' },
+              skills: ['Git CLI', 'Version Control', 'GitHub Actions', 'Codespaces', 'Semantic Versioning']
+            });
+            featuredList.push(gitCourse);
+          }
+        }
+
+        // Final verification filter
+        featuredList = featuredList.filter(c => 
+          c.status === 'published' && 
+          c.visibility === 'public'
+        );
+
+        setCatalogCourses(featuredList);
       } catch (err) {
         console.warn('Failed to load courses for landing page:', err);
       } finally {
@@ -194,7 +401,7 @@ export const LandingPage: React.FC = () => {
   const pricingPlans = [
     {
       name: 'Starter Pro',
-      price: '$19',
+      price: '19',
       period: 'per month',
       desc: 'Ideal for individual students and self-paced developers.',
       features: [
@@ -208,7 +415,7 @@ export const LandingPage: React.FC = () => {
     },
     {
       name: 'Pro Academy',
-      price: '$49',
+      price: '49',
       period: 'per seat / month',
       desc: 'Built for engineering teams, bootcamps, and academies.',
       features: [
@@ -223,7 +430,7 @@ export const LandingPage: React.FC = () => {
     },
     {
       name: 'Enterprise Organization',
-      price: '$99',
+      price: '99',
       period: 'per seat / month',
       desc: 'For universities and corporate learning organizations.',
       features: [
@@ -258,286 +465,453 @@ export const LandingPage: React.FC = () => {
     },
   ];
 
+  // Split headline for stagger slide reveal animation
+  const headlineWords = "Transform Learning Into Intelligence.".split(" ");
+
+  // Stagger variants for AI tools and Features
+  const gridContainerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.08,
+      },
+    },
+  };
+
+  const gridItemVariants = {
+    hidden: { opacity: 0, y: 30 },
+    show: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        type: 'spring' as const,
+        stiffness: 80,
+        damping: 15,
+      },
+    },
+  };
+
+  const textContainerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  };
+
+  const wordVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        type: 'spring' as const,
+        stiffness: 110,
+        damping: 17,
+      },
+    },
+  };
+
   return (
     <BlueSmokeTheme>
-      <div className="pt-24 space-y-28 sm:space-y-36 font-['Sora'] select-none">
+      
+      {/* Inject custom micro-keyframes directly in React */}
+      <style>{`
+        @keyframes ripple-effect {
+          0% { transform: scale(0); opacity: 0.55; }
+          100% { transform: scale(3.5); opacity: 0; }
+        }
+        .animate-ripple {
+          animation: ripple-effect 0.6s cubic-bezier(0.1, 0.8, 0.3, 1);
+          transform-origin: center;
+        }
+        @keyframes section-shine {
+          0% { left: -100%; }
+          100% { left: 200%; }
+        }
+        .animate-shine {
+          animation: section-shine 4.5s infinite linear;
+        }
+        .glow-hover {
+          position: relative;
+        }
+        .glow-hover::after {
+          content: '';
+          position: absolute;
+          inset: -1px;
+          border-radius: inherit;
+          background: linear-gradient(135deg, rgba(59, 130, 246, 0.4), rgba(139, 92, 246, 0.4));
+          opacity: 0;
+          z-index: -1;
+          transition: opacity 0.35s ease;
+        }
+        .glow-hover:hover::after {
+          opacity: 1;
+        }
+      `}</style>
+
+      <div className="pt-24 font-['Sora'] select-none">
         
-        {/* ----------------- 1. HERO SECTION (3D CANVAS & ENTERPRISE LAYOUT) ----------------- */}
-        <section className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-16 overflow-hidden min-h-140 flex items-center justify-center">
+        {/* ----------------- 1. HERO SECTION ----------------- */}
+        <section className="relative max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 lg:pt-16 pb-0 overflow-visible min-h-[600px] lg:min-h-[680px] flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-8">
           
-          {/* Background Interactive 3D AI Orb Canvas */}
-          <div className="absolute inset-0 z-0 pointer-events-none opacity-80 dark:opacity-90">
-            <ThreeAiOrbCanvas className="w-full h-full" />
-          </div>
-
-          {/* Background Ambient Glows */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-162.5 h-112.5 bg-purple-500/15 dark:bg-purple-600/20 rounded-full blur-[130px] pointer-events-none animate-pulse" />
-
-          {/* Centered Hero Content Container */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-            className="flex flex-col items-center justify-center text-center space-y-8 max-w-4xl mx-auto relative z-10"
-          >
+          {/* Left Column: Hero Content Container */}
+          <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-6 max-w-2xl lg:max-w-[48%] relative z-10 w-full">
             {/* Badge */}
-            <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-purple-50 dark:bg-zinc-900/80 border border-purple-200 dark:border-purple-800/80 text-purple-700 dark:text-purple-300 text-xs sm:text-sm font-bold tracking-wide backdrop-blur-xl shadow-xs mx-auto">
-              <Sparkles className="w-4 h-4 text-purple-500 animate-pulse" />
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50/80 dark:bg-zinc-900/80 border border-blue-100 dark:border-zinc-800 text-blue-600 dark:text-blue-400 text-xs sm:text-sm font-semibold tracking-wide backdrop-blur-xl shadow-2xs hover:scale-103 active:scale-95 transition-all">
+              <Sparkles className="w-4 h-4 text-blue-500 animate-pulse" />
               <span>Enterprise AI LMS Platform 3.0</span>
             </div>
 
-            {/* Headline */}
-            <h1 className="font-heading font-extrabold text-3xl sm:text-5xl lg:text-6xl text-slate-900 dark:text-white tracking-tight leading-[1.12] text-center">
-              Transform Learning Into Intelligence.{' '}
-              <span className="block mt-2 text-gradient-primary">
-                Powered by KaizenQ AI Engine
-              </span>
-            </h1>
+            {/* Headline with slide stagger animation */}
+            <motion.h1 
+              variants={textContainerVariants}
+              initial="hidden"
+              animate="show"
+              className="font-heading font-extrabold text-4xl sm:text-5xl lg:text-6xl text-slate-900 dark:text-white tracking-tight leading-[1.1] flex flex-wrap justify-center lg:justify-start gap-x-3 gap-y-1.5"
+            >
+              {headlineWords.map((word, i) => (
+                <motion.span 
+                  key={i} 
+                  variants={wordVariants}
+                  className={word === "Intelligence." ? "text-gradient-primary" : ""}
+                >
+                  {word}
+                </motion.span>
+              ))}
+            </motion.h1>
 
             {/* Subtitle */}
-            <p className="text-base sm:text-lg text-slate-600 dark:text-zinc-300 leading-relaxed max-w-2xl mx-auto font-medium text-center">
+            <p className="text-sm sm:text-base lg:text-lg text-slate-650 dark:text-zinc-350 leading-relaxed font-normal">
               Master high-impact engineering & AI tracks with 24/7 intelligent tutoring, real-time sandbox code evaluation, adaptive skill trees, and ISO-verified digital credentials.
             </p>
 
-            {/* CTA Buttons */}
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
-              <Link
+            {/* CTA Buttons with click ripple */}
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 w-full sm:w-auto">
+              <RippleButton
                 to="/dashboard"
-                className="w-full sm:w-auto px-8 py-3.5 bg-linear-to-r from-purple-600 via-indigo-600 to-sky-600 hover:from-purple-500 hover:to-sky-500 text-white font-bold rounded-2xl shadow-xl shadow-purple-500/25 hover:scale-103 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer text-sm"
+                className="w-full sm:w-auto px-8 py-4 btn-premium-primary text-white font-bold rounded-2xl flex items-center justify-center gap-2 text-sm shadow-md"
               >
                 <span>Get Started Free</span>
                 <ArrowRight className="w-4 h-4" />
-              </Link>
+              </RippleButton>
 
-              <a
+              <RippleButton
                 href="#ai-overview"
-                className="w-full sm:w-auto px-8 py-3.5 bg-white/90 dark:bg-zinc-900/90 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-800 dark:text-zinc-100 border border-slate-200 dark:border-zinc-700 font-bold rounded-2xl backdrop-blur-md hover:scale-103 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer text-sm shadow-xs"
+                className="w-full sm:w-auto px-8 py-4 btn-premium-secondary text-slate-800 dark:text-zinc-100 font-bold rounded-2xl flex items-center justify-center gap-2 text-sm shadow-xs border border-[#E6EEF9] dark:border-zinc-700"
               >
-                <Play className="w-4 h-4 text-purple-600 fill-current" />
-                <span>Explore Brand & AI Engine</span>
-              </a>
+                <Play className="w-4 h-4 text-blue-500 fill-current" />
+                <span>Explore AI Engine</span>
+              </RippleButton>
             </div>
 
             {/* Sub-text */}
-            <p className="text-xs text-slate-500 dark:text-zinc-400 font-medium text-center pt-2">
+            <p className="text-[11px] text-slate-500 dark:text-zinc-400 font-medium pt-1">
               Free 14-Day Pro Trial • No credit card required • ISO 27001 & SOC2 Certified
             </p>
-          </motion.div>
+          </div>
 
-        </section>
-
-
-        {/* ----------------- 2. STATISTICS SECTION ----------------- */}
-        <section className="bg-sky-50/70 dark:bg-zinc-900/70 border-y border-sky-100 dark:border-zinc-800 py-12 backdrop-blur-md transition-colors duration-300">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-              
-              <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="space-y-1">
-                <span className="font-heading font-extrabold text-3xl sm:text-4xl lg:text-5xl text-purple-600 dark:text-purple-400">
-                  25,000+
-                </span>
-                <p className="text-xs sm:text-sm font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-wider">Active Students</p>
-              </motion.div>
-
-              <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }} className="space-y-1">
-                <span className="font-heading font-extrabold text-3xl sm:text-4xl lg:text-5xl text-slate-900 dark:text-white">
-                  150+
-                </span>
-                <p className="text-xs sm:text-sm font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-wider">Expert Courses</p>
-              </motion.div>
-
-              <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }} className="space-y-1">
-                <span className="font-heading font-extrabold text-3xl sm:text-4xl lg:text-5xl text-sky-500 dark:text-sky-400">
-                  95%
-                </span>
-                <p className="text-xs sm:text-sm font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-wider">Placement Ready</p>
-              </motion.div>
-
-              <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.3 }} className="space-y-1">
-                <span className="font-heading font-extrabold text-3xl sm:text-4xl lg:text-5xl text-purple-600 dark:text-purple-400">
-                  24/7
-                </span>
-                <p className="text-xs sm:text-sm font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-wider">AI Mentor Access</p>
-              </motion.div>
-
-            </div>
+          {/* Right Column: Interactive AI Core Orb */}
+          <div className="relative w-full lg:w-[48%] h-[500px] sm:h-[600px] flex items-center justify-center z-10 overflow-visible">
+            <AiCoreOrb />
           </div>
         </section>
 
 
-        {/* ----------------- 3. FEATURES SECTION (6 CARDS) ----------------- */}
-        <section id="features" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-          <div className="text-center max-w-2xl mx-auto space-y-3">
-            <span className="text-xs font-bold text-sky-700 uppercase tracking-widest bg-sky-100 px-3.5 py-1.5 rounded-full border border-sky-200">
+        {/* Statistics Divider (Hero -> Stats = 48px) */}
+        <AnimatedDivider className="mt-[24px] mb-[24px]" />
+
+
+        {/* ----------------- 2. STATISTICS SECTION ----------------- */}
+        <section className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-center">
+            
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              whileHover={{ y: -5 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white/80 dark:bg-zinc-900/60 backdrop-blur-md p-6 rounded-2xl border border-[#E6EEF9] dark:border-zinc-800 shadow-2xs hover:shadow-md hover:border-blue-200/50 dark:hover:border-blue-900/50 transition-all flex flex-col items-center justify-center space-y-1 group glow-hover"
+            >
+              <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-zinc-800 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
+                <Users className="w-5 h-5" />
+              </div>
+              <span className="font-heading font-extrabold text-3xl sm:text-4xl text-slate-900 dark:text-white">
+                <AnimatedCounter value={25000} suffix="+" />
+              </span>
+              <p className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-widest">Active Students</p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              whileHover={{ y: -5 }}
+              className="bg-white/80 dark:bg-zinc-900/60 backdrop-blur-md p-6 rounded-2xl border border-[#E6EEF9] dark:border-zinc-800 shadow-2xs hover:shadow-md hover:border-blue-200/50 dark:hover:border-blue-900/50 transition-all flex flex-col items-center justify-center space-y-1 group glow-hover"
+            >
+              <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-zinc-800 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
+                <Layers className="w-5 h-5" />
+              </div>
+              <span className="font-heading font-extrabold text-3xl sm:text-4xl text-slate-900 dark:text-white">
+                <AnimatedCounter value={150} suffix="+" />
+              </span>
+              <p className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-widest">Expert Courses</p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+              whileHover={{ y: -5 }}
+              className="bg-white/80 dark:bg-zinc-900/60 backdrop-blur-md p-6 rounded-2xl border border-[#E6EEF9] dark:border-zinc-800 shadow-2xs hover:shadow-md hover:border-blue-200/50 dark:hover:border-blue-900/50 transition-all flex flex-col items-center justify-center space-y-1 group glow-hover"
+            >
+              <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-zinc-800 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
+                <Award className="w-5 h-5" />
+              </div>
+              <span className="font-heading font-extrabold text-3xl sm:text-4xl text-slate-900 dark:text-white">
+                <AnimatedCounter value={95} suffix="%" />
+              </span>
+              <p className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-widest">Placement Ready</p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3 }}
+              whileHover={{ y: -5 }}
+              className="bg-white/80 dark:bg-zinc-900/60 backdrop-blur-md p-6 rounded-2xl border border-[#E6EEF9] dark:border-zinc-800 shadow-2xs hover:shadow-md hover:border-blue-200/50 dark:hover:border-blue-900/50 transition-all flex flex-col items-center justify-center space-y-1 group glow-hover"
+            >
+              <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-zinc-800 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
+                <Bot className="w-5 h-5" />
+              </div>
+              <span className="font-heading font-extrabold text-3xl sm:text-4xl text-blue-600 dark:text-blue-400">
+                24/7
+              </span>
+              <p className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-widest">AI Mentor Access</p>
+            </motion.div>
+
+          </div>
+        </section>
+
+
+        {/* Core Features Divider (Stats -> Features = 70px) */}
+        <AnimatedDivider className="mt-[35px] mb-[35px]" />
+
+
+        {/* ----------------- 3. FEATURES SECTION ----------------- */}
+        <section id="features" className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-0 space-y-16">
+          <div className="text-center max-w-2xl mx-auto space-y-4">
+            <span className="text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-zinc-900 px-3.5 py-1.5 rounded-full border border-blue-100 dark:border-zinc-850 hover:scale-105 transition-transform duration-200 cursor-pointer">
               Core LMS Features
             </span>
-            <h2 className="font-heading font-extrabold text-3xl sm:text-4xl text-slate-900">
+            <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white tracking-tight">
               Built for Modern High-Growth Education
             </h2>
-            <p className="text-sm text-slate-600 font-medium">
+            <p className="text-sm text-slate-600 dark:text-zinc-400 leading-relaxed font-normal max-w-lg mx-auto">
               Combining world-class course management with real-time AI assistance for students and faculty.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <motion.div 
+            variants={gridContainerVariants}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: '-100px' }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+          >
             {coreFeatures.map((feat, idx) => {
               const Icon = feat.icon;
               return (
                 <motion.div
                   key={idx}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: idx * 0.1 }}
-                  className="bg-white/95 border border-sky-100 p-7 rounded-3xl space-y-4 group transition-all duration-300 hover:-translate-y-1 hover:border-sky-300 shadow-sm hover:shadow-xl hover:shadow-sky-500/10"
+                  variants={gridItemVariants}
+                  className="glass-card p-8 space-y-5 group glow-hover"
                 >
-                  <div className="w-12 h-12 rounded-2xl bg-sky-100 text-sky-600 flex items-center justify-center group-hover:bg-sky-600 group-hover:text-white transition-all duration-300">
-                    <Icon className="w-6 h-6" />
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-500 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-blue-500/10 group-hover:scale-105 transition-transform duration-300">
+                    <Icon className="w-5 h-5" />
                   </div>
-                  <h3 className="font-heading font-bold text-lg text-slate-900 group-hover:text-sky-600 transition-colors">
+                  <h3 className="font-heading font-bold text-lg text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                     {feat.title}
                   </h3>
-                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-zinc-400 leading-relaxed font-normal">
                     {feat.desc}
                   </p>
                 </motion.div>
               );
             })}
-          </div>
+          </motion.div>
         </section>
 
 
-        {/* ----------------- 4. AI FEATURES SECTION (6 TOOLS) ----------------- */}
-        <section id="ai-features" className="bg-sky-50/60 py-20 border-y border-sky-100 relative overflow-hidden">
-          
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-150 h-150 bg-sky-300/15 rounded-full blur-3xl pointer-events-none" />
+        {/* AI Features Divider (Features -> AI Utilities = 80px) */}
+        <AnimatedDivider className="mt-[40px] mb-[40px]" />
 
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12 relative z-10">
-            <div className="text-center max-w-2xl mx-auto space-y-3">
-              <span className="text-xs font-bold text-sky-700 uppercase tracking-widest bg-sky-100 px-3.5 py-1.5 rounded-full border border-sky-200">
+
+        {/* ----------------- 4. AI FEATURES SECTION ----------------- */}
+        <section id="ai-features" className="py-0 relative overflow-hidden">
+          <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 space-y-16 relative z-10">
+            <div className="text-center max-w-2xl mx-auto space-y-4">
+              <span className="text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-zinc-900 px-3.5 py-1.5 rounded-full border border-blue-100 dark:border-zinc-850 hover:scale-105 transition-transform duration-200 cursor-pointer">
                 AI Tools Suite
               </span>
-              <h2 className="font-heading font-extrabold text-3xl sm:text-4xl text-slate-900">
+              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white tracking-tight">
                 6 Powered AI Utilities Included
               </h2>
-              <p className="text-sm text-slate-600 font-medium">
+              <p className="text-sm text-slate-600 dark:text-zinc-400 leading-relaxed font-normal max-w-lg mx-auto">
                 Automate study planning, quiz creation, note summarizing, and interview practice with built-in AI agents.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <motion.div 
+              variants={gridContainerVariants}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, margin: '-100px' }}
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+            >
               {aiToolsList.map((tool, idx) => {
                 const Icon = tool.icon;
                 return (
-                  <div key={idx} className="bg-white/90 p-7 rounded-3xl space-y-4 border border-sky-100 hover:border-sky-300 shadow-xs hover:shadow-md transition-all group">
-                    <div className="w-12 h-12 rounded-2xl bg-linear-to-tr from-sky-500 to-sky-400 text-white flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs">
-                      <Icon className="w-6 h-6" />
+                  <motion.div 
+                    key={idx}
+                    variants={gridItemVariants}
+                    className="glass-card p-8 space-y-5 group glow-hover"
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-zinc-800 text-blue-600 dark:text-blue-400 border border-slate-200/60 dark:border-zinc-700 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white group-hover:scale-105 transition-all duration-300 shadow-2xs">
+                      <Icon className="w-5 h-5" />
                     </div>
-                    <h3 className="font-heading font-bold text-lg text-slate-900 group-hover:text-sky-600 transition-colors">
+                    <h3 className="font-heading font-bold text-lg text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                       {tool.title}
                     </h3>
-                    <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-zinc-400 leading-relaxed font-normal">
                       {tool.desc}
                     </p>
-                  </div>
+                  </motion.div>
                 );
               })}
-            </div>
+            </motion.div>
           </div>
         </section>
 
 
+        {/* Course Divider */}
+        <AnimatedDivider />
+
+
         {/* ----------------- 5. COURSES SECTION ----------------- */}
-        <section id="courses" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div className="space-y-2">
-              <span className="text-xs font-bold text-purple-700 dark:text-purple-400 uppercase tracking-widest bg-purple-100 dark:bg-purple-950/60 px-3.5 py-1.5 rounded-full border border-purple-200 dark:border-purple-800">
+        <section id="courses" className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-0 space-y-16">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="space-y-3">
+              <span className="text-[10px] font-bold text-purple-700 dark:text-purple-400 uppercase tracking-widest bg-purple-50 dark:bg-purple-950/20 px-3.5 py-1.5 rounded-full border border-purple-100 dark:border-purple-900/40">
                 Explore Catalog
               </span>
-              <h2 className="font-heading font-extrabold text-3xl sm:text-4xl text-slate-900 dark:text-white">
+              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white tracking-tight">
                 Featured AI & Engineering Tracks
               </h2>
-              <p className="text-sm text-slate-600 dark:text-zinc-400 font-medium">
+              <p className="text-sm text-slate-600 dark:text-zinc-400 leading-relaxed font-normal">
                 Master high-demand tech tracks guided by 24/7 AI mentors and verified digital credentials.
               </p>
             </div>
-            <Link to="/dashboard" className="px-5 py-2.5 rounded-2xl bg-slate-100 dark:bg-zinc-800 text-slate-800 dark:text-zinc-100 hover:bg-slate-200 dark:hover:bg-zinc-700 text-xs font-bold transition-all flex items-center gap-1.5 self-start md:self-auto shadow-2xs">
+            <Link to="/dashboard" className="px-5 py-3 rounded-2xl bg-white dark:bg-zinc-800 text-slate-800 dark:text-zinc-100 border border-slate-200 dark:border-zinc-700 hover:bg-slate-50 dark:hover:bg-zinc-700 hover:scale-102 transition-all text-xs font-bold flex items-center gap-1.5 self-start md:self-auto shadow-2xs">
               <span>View All Courses</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
 
           {loadingCourses ? (
-            <div className="py-16 text-center space-y-3">
-              <Loader2 className="w-8 h-8 text-purple-600 animate-spin mx-auto" />
-              <p className="text-xs text-slate-500 font-bold">Loading active course tracks...</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-[32px] max-w-4xl mx-auto justify-center items-stretch">
+              <CourseSkeleton />
+              <CourseSkeleton />
             </div>
           ) : catalogCourses.length === 0 ? (
-            <div className="py-12 text-center text-slate-500 text-xs font-medium space-y-3 bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-zinc-800 p-8">
-              <p className="text-slate-800 dark:text-white font-bold text-base">No active course tracks found.</p>
-              <p className="text-slate-500 text-xs">Newly added courses will appear here automatically.</p>
-              <Link to="/courses" className="btn-blue-primary text-xs py-2 px-5 font-bold inline-flex items-center gap-2 mt-2">
+            <div className="py-16 text-center text-slate-550 text-xs font-medium space-y-4 bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-zinc-800 p-8 shadow-2xs">
+              <p className="text-slate-800 dark:text-white font-bold text-lg">No active course tracks found.</p>
+              <p className="text-slate-550 text-xs">Newly added courses will appear here automatically.</p>
+              <Link to="/courses" className="btn-premium-primary text-xs py-2.5 px-6 font-bold inline-flex items-center gap-2 mt-2">
                 Explore Full Catalog
               </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-[32px] max-w-4xl mx-auto justify-center items-stretch">
               {catalogCourses.map((course, idx) => (
-                <div key={course.id || course.slug || idx} className="glass-card overflow-hidden flex flex-col group transition-all duration-300">
+                <div key={course.id || course.slug || idx} className="glass-card overflow-hidden flex flex-col group transition-all duration-350 hover:-translate-y-[6px] hover:shadow-xl hover:shadow-blue-500/10 hover:border-blue-300 dark:hover:border-blue-500/30 glow-hover h-full">
                   {/* Thumbnail */}
-                  <div className="relative h-48 overflow-hidden bg-slate-100 dark:bg-zinc-800">
+                  <div className="relative h-52 overflow-hidden bg-slate-100 dark:bg-zinc-800">
                     <img
                       src={getCourseImage(course)}
                       alt={course.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      className="w-full h-full object-cover group-hover:scale-106 transition-transform duration-500"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src =
                           'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=800&q=80';
                       }}
                     />
-                    <div className="absolute top-3 left-3 bg-slate-900/85 backdrop-blur-md text-white text-xs px-2.5 py-1 rounded-xl font-bold capitalize">
-                      {course.level || 'All Levels'}
+                    <div className="absolute top-3.5 left-3.5 bg-slate-900/85 backdrop-blur-md text-white text-[10px] px-3 py-1 rounded-xl font-bold capitalize select-none hover:scale-105 transition-transform">
+                      {(course.level || 'all_levels').replace('_', ' ')}
                     </div>
-                    <div className="absolute top-3 right-3 bg-purple-600 text-white text-xs font-bold px-2.5 py-1 rounded-xl shadow-md">
-                      ★ {course.rating || 5.0}
+                    <div className="absolute top-3.5 right-3.5 bg-blue-600 text-white text-[10px] font-bold px-3 py-1 rounded-xl shadow-md flex items-center gap-1 select-none hover:scale-105 transition-transform">
+                      <Star className="w-3.5 h-3.5 fill-current text-amber-300" />
+                      <span>{course.rating || 5.0}</span>
                     </div>
                   </div>
 
                   {/* Body */}
-                  <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
-                    <div className="space-y-2">
-                      <h3 className="font-heading font-bold text-lg text-slate-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors line-clamp-2">
+                  <div className="p-5 flex-1 flex flex-col justify-between space-y-5">
+                    <div className="space-y-3">
+                      {/* Badge Row */}
+                      <div className="flex flex-wrap gap-1.5">
+                        <span className="bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 text-[9px] font-bold px-2.5 py-1 rounded-md flex items-center gap-1 hover:scale-105 transition-transform cursor-pointer">
+                          <Sparkles className="w-2.5 h-2.5" /> AI Companion
+                        </span>
+                        <span className="bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-[9px] font-bold px-2.5 py-1 rounded-md flex items-center gap-1 hover:scale-105 transition-transform cursor-pointer">
+                          <Terminal className="w-2.5 h-2.5" /> Interactive Lab
+                        </span>
+                      </div>
+
+                      <h3 className="font-heading font-bold text-lg text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
                         {course.title}
                       </h3>
-                      <p className="text-xs text-slate-500 dark:text-zinc-400 font-medium">
+                      <p className="text-xs text-slate-550 dark:text-zinc-400 font-medium">
                         Instructor: {typeof course.instructor === 'object' ? course.instructor.name : (course.instructor || 'KaizenQ Team')}
                       </p>
                     </div>
 
-                    <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-zinc-800 text-xs">
+                    <div className="space-y-3.5 pt-3 border-t border-slate-100 dark:border-zinc-800 text-xs">
                       <div className="flex justify-between text-slate-500 dark:text-zinc-400 font-medium">
-                        <span>{(course.enrollmentCount || 0).toLocaleString()} enrolled</span>
-                        <span>{course.duration}</span>
+                        <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {(course.enrollmentCount || 102).toLocaleString()} enrolled</span>
+                        <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {course.duration}</span>
                       </div>
 
-                      <div className="space-y-1">
+                      <div className="space-y-1.5">
                         <div className="flex justify-between text-[11px] font-bold text-slate-700 dark:text-zinc-300">
-                          <span>Interactive AI Lab</span>
-                          <span className="text-purple-600 dark:text-purple-400">Active Track</span>
+                          <span>Progress Skill Mapping</span>
+                          <span className="text-blue-600 dark:text-blue-400">100% Concept Coverage</span>
                         </div>
-                        <div className="w-full h-2 bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden border border-slate-200 dark:border-zinc-700">
-                          <div className="h-full bg-linear-to-r from-purple-600 to-indigo-500 rounded-full w-full" />
+                        <div className="w-full h-1.5 bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden border border-slate-200/50 dark:border-zinc-700/50">
+                          <motion.div 
+                            initial={{ width: 0 }} 
+                            whileInView={{ width: '100%' }} 
+                            viewport={{ once: true }} 
+                            className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-full" 
+                          />
                         </div>
                       </div>
                     </div>
 
-                    <Link
+                    <RippleButton
                       to="/dashboard"
-                      className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-purple-600 dark:hover:bg-purple-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-sm group-hover:shadow-md cursor-pointer"
+                      className="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs group-hover:shadow-md cursor-pointer"
                     >
-                      <span>Explore Course Details</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
+                      <span>Explore Course</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </RippleButton>
                   </div>
                 </div>
               ))}
@@ -546,67 +920,117 @@ export const LandingPage: React.FC = () => {
         </section>
 
 
+        {/* Showcase Divider (Featured Courses -> Platform Preview = 80px) */}
+        <AnimatedDivider className="mt-[40px] mb-[40px]" />
+
+
         {/* ----------------- 6. LIVE PLATFORM OVERVIEW SECTION ----------------- */}
-        <section id="ai-overview" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+        <section id="ai-overview" className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-0 space-y-16">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             
             <div className="lg:col-span-6 space-y-6">
-              <span className="text-xs font-bold text-sky-700 uppercase tracking-widest bg-sky-100 px-3.5 py-1.5 rounded-full border border-sky-200">
+              <span className="text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-zinc-900 px-3.5 py-1.5 rounded-full border border-blue-100 dark:border-zinc-850 hover:scale-105 transition-transform duration-200 cursor-pointer">
                 Live AI Platform Overview
               </span>
-              <h2 className="font-heading font-extrabold text-3xl sm:text-4xl text-slate-900 leading-tight">
+              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white leading-tight">
                 Next-Gen Autonomous AI Learning Experience
               </h2>
-              <p className="text-sm sm:text-base text-slate-600 leading-relaxed font-medium">
+              <p className="text-sm sm:text-base text-slate-600 dark:text-zinc-400 leading-relaxed font-normal">
                 Watch Kaizen Q in action. Our AI platform combines real-time code evaluation, automated debugging, RAG knowledge pipelines, and interactive sandboxes designed to accelerate engineering mastery.
               </p>
 
               <div className="space-y-4 pt-2">
-                <div className="flex items-start gap-3.5">
-                  <div className="w-7 h-7 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center shrink-0 mt-0.5">
-                    <Bot className="w-4 h-4" />
+                <div className="flex items-start gap-4">
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-zinc-800 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                    <Bot className="w-4.5 h-4.5" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-slate-900">24/7 Real-Time AI Code Companion</h4>
-                    <p className="text-xs text-slate-600 font-normal">Explains complex code line-by-line and detects bugs instantly.</p>
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white">24/7 Real-Time AI Code Companion</h4>
+                    <p className="text-xs text-slate-650 dark:text-zinc-400 font-normal mt-0.5">Explains complex code line-by-line and detects compilation bugs instantly.</p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3.5">
-                  <div className="w-7 h-7 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center shrink-0 mt-0.5">
-                    <BarChart3 className="w-4 h-4" />
+                <div className="flex items-start gap-4">
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-zinc-800 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                    <BarChart3 className="w-4.5 h-4.5" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-slate-900">Adaptive Skill Tree & Knowledge Graph</h4>
-                    <p className="text-xs text-slate-600 font-normal">Dynamically maps competency gaps and auto-adjusts your pace.</p>
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white">Adaptive Skill Tree & Knowledge Graph</h4>
+                    <p className="text-xs text-slate-650 dark:text-zinc-400 font-normal mt-0.5">Dynamically maps competency gaps and auto-adjusts your path speed.</p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3.5">
-                  <div className="w-7 h-7 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center shrink-0 mt-0.5">
-                    <Award className="w-4 h-4" />
+                <div className="flex items-start gap-4">
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-zinc-800 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                    <Award className="w-4.5 h-4.5" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-slate-900">ISO-Verified Digital Credentials</h4>
-                    <p className="text-xs text-slate-600 font-normal">Cryptographically signed badges ready for instant LinkedIn verification.</p>
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white">ISO-Verified Digital Credentials</h4>
+                    <p className="text-xs text-slate-650 dark:text-zinc-400 font-normal mt-0.5">Cryptographically signed credentials ready for instant LinkedIn verification.</p>
                   </div>
                 </div>
               </div>
 
               <div className="pt-4">
-                <Link
+                <RippleButton
                   to="/dashboard"
-                  className="px-7 py-3 bg-linear-to-r from-sky-600 to-sky-500 hover:from-sky-700 hover:to-sky-600 text-white font-bold text-xs rounded-xl shadow-md shadow-sky-500/20 transition-all inline-flex items-center gap-2"
+                  className="px-8 py-3.5 btn-premium-primary text-white font-bold text-xs rounded-xl shadow-md inline-flex items-center gap-2"
                 >
                   <span>Start Free Trial</span>
                   <ArrowRight className="w-4 h-4" />
-                </Link>
+                </RippleButton>
               </div>
             </div>
 
+            {/* Platform Mockup Showcase */}
             <div className="lg:col-span-6 relative flex justify-center">
-              <div className="relative w-full max-w-xl p-1.5 rounded-[28px] bg-white border border-sky-200 shadow-2xl shadow-sky-500/15">
-                <KaizenQVideoPlayer src="/KaizenQ.mp4" />
+              {/* Blur behind showcase */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[380px] h-[380px] bg-blue-500/10 dark:bg-indigo-500/15 rounded-full blur-[100px] pointer-events-none" />
+
+              {/* Large Browser mockup */}
+              <div className="relative w-full max-w-xl p-1.5 rounded-[22px] bg-white dark:bg-zinc-900 border border-[#E6EEF9] dark:border-zinc-800 shadow-2xl shadow-blue-500/10 dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-10 overflow-hidden">
+                {/* Mockup Header bar */}
+                <div className="flex items-center justify-between px-4 py-2 border-b border-slate-100 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-900/50">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-red-400 inline-block animate-pulse" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block animate-pulse" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-green-455 inline-block animate-pulse" />
+                  </div>
+                  <div className="text-[10px] font-bold text-slate-400 dark:text-zinc-550 select-none bg-white dark:bg-zinc-950 px-8 py-0.5 rounded-md border border-slate-100 dark:border-zinc-800">
+                    lms.kaizenq.ai/dashboard/labs
+                  </div>
+                  <div className="w-8" />
+                </div>
+                
+                {/* Interactive Player / Dashboard View */}
+                <div className="p-1">
+                  <KaizenQVideoPlayer src="/KaizenQ.mp4" />
+                </div>
+
+                {/* Floating micro-cards overlay */}
+                <motion.div 
+                  animate={{ y: [0, -6, 0] }}
+                  transition={{ repeat: Infinity, duration: 4.4, ease: "easeInOut" }}
+                  className="absolute top-12 right-6 p-3 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md rounded-xl border border-blue-200/55 dark:border-zinc-850 shadow-lg text-[10px] font-bold space-y-1.5 max-w-[170px] pointer-events-none z-20"
+                >
+                  <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
+                    <Sparkles className="w-3.5 h-3.5 animate-spin" />
+                    <span>AI Grader Active</span>
+                  </div>
+                  <p className="text-[9px] text-slate-550 dark:text-zinc-400 font-medium">Automatic sandbox test passes at 100%.</p>
+                </motion.div>
+
+                <motion.div 
+                  animate={{ y: [0, 8, 0] }}
+                  transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
+                  className="absolute bottom-6 left-6 p-3 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md rounded-xl border border-emerald-200/60 dark:border-zinc-850 shadow-lg text-[10px] font-bold space-y-1.5 max-w-[180px] pointer-events-none z-20"
+                >
+                  <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                    <Check className="w-3.5 h-3.5 bg-emerald-100 dark:bg-emerald-950 rounded-full p-0.5" />
+                    <span>ISO Verified Badging</span>
+                  </div>
+                  <p className="text-[9px] text-slate-550 dark:text-zinc-400 font-medium">Credly and LinkedIn integrations sync ready.</p>
+                </motion.div>
               </div>
             </div>
 
@@ -614,53 +1038,57 @@ export const LandingPage: React.FC = () => {
         </section>
 
 
+        {/* Testimonials Divider (Platform Preview -> Testimonials = 70px) */}
+        <AnimatedDivider className="mt-[35px] mb-0" />
+
+
         {/* ----------------- 7. TESTIMONIALS SECTION ----------------- */}
-        <section className="bg-sky-50/70 py-16 border-y border-sky-100 backdrop-blur-md">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
-            <div className="text-center max-w-2xl mx-auto space-y-2">
-              <span className="text-xs font-bold text-sky-700 uppercase tracking-widest bg-sky-100 px-3.5 py-1.5 rounded-full border border-sky-200">
+        <section className="pt-[35px] pb-[40px] border-y border-[#E6EEF9] dark:border-zinc-850 bg-slate-50/40 dark:bg-[#0E1325]/20 backdrop-blur-xs">
+          <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
+            <div className="text-center max-w-2xl mx-auto space-y-4">
+              <span className="text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-zinc-900 px-3.5 py-1.5 rounded-full border border-blue-100 dark:border-zinc-850 hover:scale-105 transition-transform duration-200 cursor-pointer">
                 Student Testimonials
               </span>
-              <h2 className="font-heading font-extrabold text-3xl sm:text-4xl text-slate-900">
+              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white tracking-tight">
                 Loved by 50,000+ Active Learners
               </h2>
-              <p className="text-xs sm:text-sm text-slate-600 font-medium">
+              <p className="text-sm text-slate-650 dark:text-zinc-400 leading-relaxed font-normal max-w-md mx-auto">
                 Hear directly from software engineers, developers, and students excelling with Kaizen Q.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {testimonials.map((tm, idx) => (
                 <motion.div
                   key={idx}
                   whileHover={{ y: -5 }}
                   transition={{ duration: 0.2 }}
-                  className="bg-white p-6 sm:p-8 rounded-3xl border border-sky-100/80 shadow-md shadow-sky-500/5 hover:border-sky-300 hover:shadow-xl hover:shadow-sky-500/10 transition-all flex flex-col justify-between space-y-6"
+                  className="bg-white/80 dark:bg-zinc-900/60 backdrop-blur-md p-8 rounded-[22px] border border-[#E6EEF9] dark:border-zinc-800 shadow-sm hover:border-blue-300 dark:hover:border-purple-500/30 hover:shadow-xl hover:shadow-blue-500/5 transition-all flex flex-col justify-between space-y-6 glow-hover"
                 >
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1 text-amber-400">
                         {[...Array(tm.rating)].map((_, i) => (
-                          <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                          <Star key={i} className="w-4 h-4 fill-amber-450 text-amber-450" />
                         ))}
                       </div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-sky-700 bg-sky-50 border border-sky-200 px-2.5 py-1 rounded-full">
+                      <span className="text-[9px] font-bold uppercase tracking-widest text-blue-700 bg-blue-50 border border-blue-150 px-2.5 py-1 rounded-full dark:bg-zinc-950 dark:text-blue-400 dark:border-zinc-800 hover:scale-105 transition-all">
                         Verified Learner
                       </span>
                     </div>
-                    <p className="text-xs sm:text-sm text-slate-700 italic leading-relaxed font-medium">
+                    <p className="text-xs sm:text-sm text-slate-700 dark:text-zinc-300 italic leading-relaxed font-medium">
                       "{tm.quote}"
                     </p>
                   </div>
-                  <div className="flex items-center gap-3.5 pt-4 border-t border-sky-100">
+                  <div className="flex items-center gap-3.5 pt-4 border-t border-slate-100 dark:border-zinc-800">
                     <img
                       src={tm.avatar}
                       alt={tm.name}
-                      className="w-11 h-11 rounded-full object-cover border-2 border-sky-400 shadow-xs"
+                      className="w-11 h-11 rounded-full object-cover border-2 border-blue-400 shadow-xs"
                     />
                     <div>
-                      <h4 className="font-heading font-bold text-sm text-slate-900">{tm.name}</h4>
-                      <p className="text-xs text-sky-600 font-semibold">{tm.role}</p>
+                      <h4 className="font-heading font-bold text-sm text-slate-900 dark:text-white">{tm.name}</h4>
+                      <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold">{tm.role}</p>
                     </div>
                   </div>
                 </motion.div>
@@ -670,140 +1098,172 @@ export const LandingPage: React.FC = () => {
         </section>
 
 
+        {/* Pricing Divider (Testimonials -> Pricing = 80px) */}
+        <AnimatedDivider className="mt-0 mb-[40px]" />
+
+
         {/* ----------------- 8. PRICING SECTION ----------------- */}
-        <section id="pricing" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-          <div className="text-center max-w-2xl mx-auto space-y-3">
-            <span className="text-xs font-bold text-sky-700 uppercase tracking-widest bg-sky-100 px-3.5 py-1.5 rounded-full border border-sky-200">
+        <section id="pricing" className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-0 space-y-16">
+          <div className="text-center max-w-2xl mx-auto space-y-4">
+            <span className="text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-zinc-900 px-3.5 py-1.5 rounded-full border border-blue-100 dark:border-zinc-850 hover:scale-105 transition-transform duration-200 cursor-pointer">
               Transparent Pricing
             </span>
-            <h2 className="font-heading font-extrabold text-3xl sm:text-4xl text-slate-900">
+            <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white tracking-tight">
               Choose Your AI Learning Tier
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch pt-6">
             {pricingPlans.map((plan, idx) => (
               <div
                 key={idx}
-                className={`bg-white rounded-3xl p-8 flex flex-col justify-between space-y-6 border transition-all relative ${
-                  plan.popular ? 'border-sky-500 shadow-xl shadow-sky-500/15 bg-sky-50/40' : 'border-sky-100 shadow-xs'
+                className={`bg-white dark:bg-zinc-900 rounded-[22px] p-8 flex flex-col justify-between space-y-8 border transition-all duration-300 relative glow-hover ${
+                  plan.popular 
+                    ? 'border-2 border-blue-500 shadow-2xl shadow-blue-500/10 dark:shadow-[0_20px_50px_rgba(59,130,246,0.15)] md:scale-[1.04] md:z-10 hover:scale-[1.06]' 
+                    : 'border-[#E6EEF9] dark:border-zinc-800 shadow-xs hover:-translate-y-1.5'
                 }`}
               >
                 {plan.popular && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-sky-600 text-white text-[10px] font-extrabold uppercase px-3.5 py-1 rounded-full shadow-md">
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[9px] font-extrabold uppercase px-4 py-1.5 rounded-full shadow-md tracking-wider animate-pulse">
                     Most Popular Choice
                   </span>
                 )}
 
-                <div className="space-y-4">
-                  <h3 className="font-heading font-bold text-xl text-slate-900">{plan.name}</h3>
+                <div className="space-y-5">
+                  <h3 className="font-heading font-bold text-xl text-slate-900 dark:text-white">{plan.name}</h3>
                   <div className="flex items-baseline gap-1">
-                    <span className="font-heading font-extrabold text-4xl text-slate-900">{plan.price}</span>
-                    <span className="text-xs text-slate-500 font-medium">{plan.period}</span>
+                    <span className="text-xs text-slate-500 dark:text-zinc-400 font-bold">$</span>
+                    <span className="font-heading font-extrabold text-5xl text-slate-900 dark:text-white tracking-tight">{plan.price}</span>
+                    <span className="text-xs text-slate-500 dark:text-zinc-400 font-medium ml-1">/{plan.period}</span>
                   </div>
-                  <p className="text-xs text-slate-600 leading-relaxed font-normal">{plan.desc}</p>
+                  <p className="text-xs text-slate-650 dark:text-zinc-400 leading-relaxed font-normal">{plan.desc}</p>
 
-                  <ul className="space-y-2.5 pt-4 border-t border-sky-100 text-xs text-slate-700 font-medium">
+                  <ul className="space-y-3 pt-5 border-t border-slate-100 dark:border-zinc-800 text-xs text-slate-700 dark:text-zinc-300 font-medium">
                     {plan.features.map((feat, fIdx) => (
-                      <li key={fIdx} className="flex items-center gap-2">
-                        <Check className="w-4 h-4 text-sky-600 shrink-0" />
+                      <li key={fIdx} className="flex items-center gap-2.5">
+                        <Check className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
                         <span>{feat}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
 
-                <Link
+                <RippleButton
                   to="/dashboard"
-                  className={`w-full text-center text-xs py-3 rounded-xl font-bold transition-all ${
+                  className={`w-full text-center text-xs py-3.5 rounded-xl font-bold transition-all ${
                     plan.popular
-                      ? 'btn-blue-primary'
-                      : 'btn-glass-light'
+                      ? 'btn-premium-primary text-white shadow-md'
+                      : 'btn-premium-secondary text-slate-800 dark:text-zinc-100 hover:border-blue-400 border border-[#E6EEF9] dark:border-zinc-800'
                   }`}
                 >
                   {plan.cta}
-                </Link>
+                </RippleButton>
               </div>
             ))}
           </div>
         </section>
 
 
+        {/* FAQ Divider (Pricing -> FAQ = 70px) */}
+        <AnimatedDivider className="mt-[35px] mb-[35px]" />
+
+
         {/* ----------------- 9. FAQ ACCORDION SECTION ----------------- */}
-        <section id="about" className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-          <div className="text-center space-y-2">
-            <span className="text-xs font-bold text-sky-700 uppercase tracking-widest bg-sky-100 px-3.5 py-1.5 rounded-full border border-sky-200">
+        <section id="about" className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-0 space-y-12">
+          <div className="text-center space-y-4">
+            <span className="text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-zinc-900 px-3.5 py-1.5 rounded-full border border-blue-100 dark:border-zinc-850 hover:scale-105 transition-transform duration-200 cursor-pointer">
               Frequently Asked Questions
             </span>
-            <h2 className="font-heading font-extrabold text-3xl sm:text-4xl text-slate-900">
+            <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white tracking-tight">
               Everything You Need to Know
             </h2>
           </div>
 
           <div className="space-y-4">
             {faqs.map((faq, idx) => (
-              <div key={idx} className="bg-white border border-sky-100 rounded-2xl overflow-hidden transition-all shadow-xs">
+              <div key={idx} className="bg-white dark:bg-zinc-900 border border-[#E6EEF9] dark:border-zinc-800 rounded-2xl overflow-hidden transition-all shadow-2xs glow-hover">
                 <button
                   onClick={() => toggleFaq(idx)}
-                  className="w-full text-left p-5 flex items-center justify-between font-heading font-bold text-sm sm:text-base text-slate-900 hover:text-sky-600"
+                  className="w-full text-left p-6 flex items-center justify-between font-heading font-bold text-sm sm:text-base text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                 >
                   <span>{faq.question}</span>
                   <ChevronDown
-                    className={`w-5 h-5 text-sky-500 transition-transform duration-300 ${
+                    className={`w-5 h-5 text-blue-500 transition-transform duration-300 ${
                       openFaq === idx ? 'rotate-180' : ''
                     }`}
                   />
                 </button>
-                {openFaq === idx && (
-                  <div className="px-5 pb-5 text-xs sm:text-sm text-slate-600 leading-relaxed border-t border-sky-100 pt-3 font-normal">
-                    {faq.answer}
-                  </div>
-                )}
+                <AnimatePresence initial={false}>
+                  {openFaq === idx && (
+                    <motion.div
+                      initial="collapsed"
+                      animate="open"
+                      exit="collapsed"
+                      variants={{
+                        open: { opacity: 1, height: "auto" },
+                        collapsed: { opacity: 0, height: 0 }
+                      }}
+                      transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-6 pb-6 text-xs sm:text-sm text-slate-655 dark:text-zinc-400 leading-relaxed border-t border-slate-100 dark:border-zinc-800 pt-4 font-normal">
+                        {faq.answer}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             ))}
           </div>
         </section>
 
 
+        {/* Contact Divider (FAQ -> Contact = 80px) */}
+        <AnimatedDivider className="mt-[40px] mb-[40px]" />
+
+
         {/* ----------------- 10. CONTACT SECTION ----------------- */}
-        <section id="contact" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
-          <div className="bg-linear-to-br from-slate-900 to-sky-950 rounded-3xl p-8 sm:p-12 text-white grid grid-cols-1 lg:grid-cols-12 gap-10 border border-sky-900/60 shadow-2xl">
-            <div className="lg:col-span-5 space-y-6">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-500/20 border border-sky-400/30 text-sky-300 text-xs font-bold">
-                <span>Enterprise Inquiry</span>
+        <section id="contact" className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 pt-0 pb-[60px]">
+          <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-950 to-[#0F172A] rounded-3xl p-8 sm:p-14 text-white grid grid-cols-1 lg:grid-cols-12 gap-12 border border-slate-800 shadow-2xl">
+            {/* Glowing background spotlight */}
+            <div className="absolute top-1/2 right-1/4 -translate-y-1/2 w-[350px] h-[350px] bg-blue-500/10 rounded-full blur-[100px] pointer-events-none" />
+
+            <div className="lg:col-span-5 space-y-6 z-10 flex flex-col justify-center">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-300 text-xs font-bold w-fit">
+                <span>Enterprise Request</span>
               </div>
-              <h2 className="font-heading font-extrabold text-3xl text-white">
+              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-white tracking-tight leading-tight">
                 Ready to Transform Your School or Enterprise?
               </h2>
-              <p className="text-slate-300 text-xs sm:text-sm leading-relaxed font-normal">
-                Schedule a 1-on-1 walkthrough with our AI architects to deploy custom course models and faculty tools.
+              <p className="text-slate-350 text-xs sm:text-sm leading-relaxed font-normal max-w-sm">
+                Schedule a 1-on-1 walkthrough with our AI architects to deploy custom course models and faculty engagement tools.
               </p>
             </div>
 
-            <div className="lg:col-span-7 bg-slate-950/80 p-6 sm:p-8 rounded-2xl border border-sky-800/40 space-y-4">
+            <div className="lg:col-span-7 bg-slate-950/70 p-6 sm:p-10 rounded-2xl border border-slate-800/80 shadow-2xl z-10 space-y-6">
               <h3 className="font-heading font-bold text-lg text-white">Request AI Demonstration</h3>
               <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <input
                     type="text"
                     placeholder="Full Name"
-                    className="bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-hidden"
+                    className="bg-slate-900/60 border border-slate-800 focus:border-blue-500 focus:outline-hidden rounded-xl px-4 py-3.5 text-xs text-white placeholder-slate-500 transition-colors"
                   />
                   <input
                     type="email"
                     placeholder="Work Email"
-                    className="bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-hidden"
+                    className="bg-slate-900/60 border border-slate-800 focus:border-blue-500 focus:outline-hidden rounded-xl px-4 py-3.5 text-xs text-white placeholder-slate-500 transition-colors"
                   />
                 </div>
                 <textarea
-                  rows={3}
-                  placeholder="Institution & student headcount..."
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-hidden"
+                  rows={4}
+                  placeholder="Institution or team details & headcount..."
+                  className="w-full bg-slate-900/60 border border-slate-800 focus:border-blue-500 focus:outline-hidden rounded-xl px-4 py-3.5 text-xs text-white placeholder-slate-500 transition-colors"
                 />
-                <button type="submit" className="btn-blue-primary w-full justify-center text-xs py-3 font-bold">
-                  <span>Submit Inquiry</span>
+                <RippleButton type="submit" className="btn-premium-primary w-full justify-center text-xs py-3.5 font-bold cursor-pointer text-white flex items-center gap-2 rounded-xl">
+                  <span>Submit Demo Inquiry</span>
                   <Send className="w-4 h-4" />
-                </button>
+                </RippleButton>
               </form>
             </div>
           </div>

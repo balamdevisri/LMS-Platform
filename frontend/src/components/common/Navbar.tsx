@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, ArrowRight, User, LogOut, Settings, ChevronDown, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,6 +10,8 @@ export const Navbar: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [activeHash, setActiveHash] = useState(window.location.hash);
+  const [activePath, setActivePath] = useState(window.location.pathname);
 
   const { user, userProfile, logout } = useAuth();
   const navigate = useNavigate();
@@ -17,9 +20,41 @@ export const Navbar: React.FC = () => {
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
+
+      // Scroll spy logic to highlight section names dynamically
+      const sections = ['courses', 'features', 'pricing', 'about', 'contact'];
+      let currentSection = '';
+      
+      for (const section of sections) {
+        const el = document.getElementById(section);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          if (rect.top <= 180 && rect.bottom >= 180) {
+            currentSection = `#${section}`;
+            break;
+          }
+        }
+      }
+      
+      if (currentSection) {
+        setActiveHash(currentSection);
+      } else if (window.scrollY < 200) {
+        setActiveHash('');
+      }
     };
-    window.addEventListener('scroll', handleScroll);
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Sync hash change
+  useEffect(() => {
+    const handleHashChange = () => {
+      setActiveHash(window.location.hash);
+      setActivePath(window.location.pathname);
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
   // Close avatar dropdown when clicking outside
@@ -73,7 +108,6 @@ export const Navbar: React.FC = () => {
       ];
     }
 
-    // Default Student Links
     return [
       { name: 'Dashboard', href: '/dashboard' },
       { name: 'Courses', href: '/#courses' },
@@ -83,95 +117,121 @@ export const Navbar: React.FC = () => {
 
   const navLinks = getNavLinks();
 
+  const isLinkActive = (href: string) => {
+    if (href.startsWith('/#')) {
+      const linkHash = href.substring(1);
+      return activeHash === linkHash || (activeHash === '' && linkHash === '#home');
+    }
+    if (href === '/' && activePath === '/' && activeHash === '') return true;
+    return activePath === href;
+  };
+
   const avatarUrl = userProfile?.photoURL || user?.photoURL || undefined;
   const userInitial = userProfile?.name?.charAt(0).toUpperCase() || user?.displayName?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'S';
 
   return (
-    <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 font-['Sora'] ${
-        isScrolled
-          ? 'bg-white/90 backdrop-blur-xl border-b border-sky-100 py-3 shadow-md shadow-sky-500/5'
-          : 'bg-white/70 backdrop-blur-md py-4 border-b border-sky-50'
-      }`}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between gap-4">
-          
-          {/* Brand Logo */}
-          <BrandLogo size="md" showSubtitle={true} />
+    <header className="fixed top-0 left-0 right-0 z-50 w-full px-4 sm:px-6 lg:px-8 pt-4 pointer-events-none font-['Sora']">
+      <div
+        className={`mx-auto max-w-7xl h-[72px] flex items-center justify-between px-6 rounded-[18px] backdrop-blur-xl transition-all duration-300 pointer-events-auto border ${
+          isScrolled
+            ? 'bg-white/78 border-[#E6EEF9]/80 shadow-[0_8px_30px_rgba(59,130,246,0.06)] dark:bg-[#0E1325]/78 dark:border-slate-800/80 dark:shadow-[0_8px_30px_rgba(0,0,0,0.4)]'
+            : 'bg-white/60 border-slate-100/60 shadow-xs dark:bg-[#0E1325]/60 dark:border-zinc-800/60'
+        }`}
+      >
+        {/* Brand Logo */}
+        <BrandLogo size="md" showSubtitle={true} />
 
-          {/* Center Navigation Links (White & Sky Blue Glass Container) */}
-          <nav className="hidden xl:flex items-center space-x-1 bg-sky-50/80 p-1.5 rounded-full border border-sky-100/80 backdrop-blur-md">
-            {navLinks.map((link) => (
+        {/* Center Navigation Links */}
+        <nav className="hidden xl:flex items-center space-x-1 bg-slate-100/50 dark:bg-zinc-900/40 p-1 rounded-full border border-slate-100 dark:border-zinc-800/80 backdrop-blur-md">
+          {navLinks.map((link) => {
+            const active = isLinkActive(link.href);
+            return (
               <a
                 key={link.name}
                 href={link.href}
-                className="px-3.5 py-1.5 text-xs font-bold text-slate-700 hover:text-sky-600 hover:bg-white rounded-full transition-all flex items-center gap-1.5 shadow-none hover:shadow-xs"
+                className={`relative px-4 py-1.5 text-xs font-bold transition-all duration-200 flex items-center gap-1.5 rounded-full ${
+                  active
+                    ? 'text-blue-600 dark:text-blue-400 bg-white dark:bg-zinc-900 shadow-xs'
+                    : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/40 dark:hover:bg-zinc-900/40'
+                }`}
               >
-                {link.badge && <Sparkles className="w-3 h-3 text-sky-500 animate-pulse" />}
+                {link.badge && <Sparkles className="w-3 h-3 text-blue-500 animate-pulse" />}
                 <span>{link.name}</span>
+                {active && (
+                  <motion.span
+                    layoutId="navActiveDot"
+                    className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-blue-500 rounded-full"
+                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                  />
+                )}
               </a>
-            ))}
-          </nav>
+            );
+          })}
+        </nav>
 
-          {/* Right Action / User Menu Area */}
-          <div className="hidden lg:flex items-center space-x-2.5">
-            {user ? (
-              <div className="relative" ref={menuRef}>
-                {/* User Avatar Dropdown Trigger Button */}
-                <button
-                  onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-2.5 p-1.5 pr-3.5 bg-white/90 hover:bg-sky-50/90 border border-sky-200/80 hover:border-sky-300 rounded-full transition-all cursor-pointer shadow-xs hover:shadow-md"
-                >
-                  <div className="relative">
-                    {avatarUrl ? (
-                      <img
-                        src={avatarUrl}
-                        alt={userProfile?.name || 'Student'}
-                        className="w-8 h-8 rounded-full object-cover border-2 border-sky-400 shadow-xs shrink-0"
-                      />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-linear-to-tr from-sky-600 via-sky-500 to-indigo-600 text-white flex items-center justify-center font-extrabold text-xs border border-sky-300 shadow-xs shrink-0">
-                        {userInitial}
-                      </div>
-                    )}
-                    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-white animate-pulse" />
-                  </div>
+        {/* Right Action / User Menu Area */}
+        <div className="hidden lg:flex items-center space-x-3">
+          {user ? (
+            <div className="relative" ref={menuRef}>
+              <button
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="flex items-center gap-2.5 p-1.5 pr-3.5 bg-white/90 dark:bg-zinc-900/90 hover:bg-slate-50 dark:hover:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-full transition-all cursor-pointer shadow-xs hover:shadow-md"
+              >
+                <div className="relative">
+                  {avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt={userProfile?.name || 'Student'}
+                      className="w-8 h-8 rounded-full object-cover border-2 border-blue-400 shadow-xs shrink-0"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 via-indigo-500 to-purple-600 text-white flex items-center justify-center font-extrabold text-xs border border-blue-300 shadow-xs shrink-0">
+                      {userInitial}
+                    </div>
+                  )}
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-white dark:ring-zinc-900 animate-pulse" />
+                </div>
 
-                  <div className="text-left hidden xl:block">
-                    <span className="text-xs font-bold text-slate-900 block leading-tight">
-                      {userProfile?.name || user?.displayName || user?.email?.split('@')[0] || 'Student User'}
-                    </span>
-                    <span className="text-[10px] font-semibold text-sky-600 uppercase tracking-wider block">
-                      {userProfile?.role || 'Student'}
-                    </span>
-                  </div>
-                  <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`} />
-                </button>
+                <div className="text-left hidden xl:block">
+                  <span className="text-xs font-bold text-slate-900 dark:text-white block leading-tight">
+                    {userProfile?.name || user?.displayName || user?.email?.split('@')[0] || 'Student User'}
+                  </span>
+                  <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider block">
+                    {userProfile?.role || 'Student'}
+                  </span>
+                </div>
+                <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
 
-                {/* Dropdown Menu */}
+              {/* Dropdown Menu */}
+              <AnimatePresence>
                 {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-60 bg-white/95 backdrop-blur-2xl border border-sky-100 rounded-2xl shadow-2xl p-2 z-50 space-y-1 animate-in fade-in slide-in-from-top-2 font-['Sora']">
-                    <div className="p-3 border-b border-sky-100 mb-1 flex items-center gap-3">
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="absolute right-0 mt-2.5 w-60 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-2xl border border-[#E6EEF9] dark:border-zinc-800 rounded-2xl shadow-2xl p-2 z-50 space-y-1"
+                  >
+                    <div className="p-3 border-b border-slate-100 dark:border-zinc-800 mb-1 flex items-center gap-3">
                       {avatarUrl ? (
                         <img
                           src={avatarUrl}
                           alt={userProfile?.name || 'Student'}
-                          className="w-10 h-10 rounded-full object-cover border-2 border-sky-400 shadow-xs shrink-0"
+                          className="w-10 h-10 rounded-full object-cover border-2 border-blue-400 shadow-xs shrink-0"
                         />
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-linear-to-tr from-sky-600 to-indigo-600 text-white flex items-center justify-center font-extrabold text-sm border border-sky-300 shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 text-white flex items-center justify-center font-extrabold text-sm border border-blue-300 shrink-0">
                           {userInitial}
                         </div>
                       )}
                       <div className="overflow-hidden">
-                        <span className="text-xs font-bold text-slate-900 block truncate">
+                        <span className="text-xs font-bold text-slate-900 dark:text-white block truncate">
                           {userProfile?.name || user?.displayName || 'Student User'}
                         </span>
-                        <span className="text-[11px] text-slate-500 block truncate font-medium">
+                        <span className="text-[11px] text-slate-500 dark:text-zinc-400 block truncate font-medium">
                           {user.email}
                         </span>
-                        <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 text-[9px] font-bold uppercase border border-sky-200">
+                        <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 text-[9px] font-bold uppercase border border-blue-100 dark:border-blue-900">
                           {userProfile?.role || 'STUDENT'}
                         </span>
                       </div>
@@ -180,113 +240,124 @@ export const Navbar: React.FC = () => {
                     <Link
                       to={userProfile?.role === 'admin' ? '/admin/dashboard' : '/dashboard'}
                       onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-slate-700 hover:text-sky-600 hover:bg-sky-50 rounded-xl transition-colors"
+                      className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-slate-700 dark:text-zinc-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-zinc-900 rounded-xl transition-colors"
                     >
-                      <User className="w-4 h-4 text-sky-500" />
+                      <User className="w-4 h-4 text-blue-500" />
                       <span>My Student Dashboard</span>
                     </Link>
 
                     <Link
                       to="/dashboard"
                       onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-slate-700 hover:text-sky-600 hover:bg-sky-50 rounded-xl transition-colors"
+                      className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-slate-700 dark:text-zinc-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-zinc-900 rounded-xl transition-colors"
                     >
-                      <Settings className="w-4 h-4 text-sky-500" />
+                      <Settings className="w-4 h-4 text-blue-500" />
                       <span>Account Settings</span>
                     </Link>
 
                     <button
                       onClick={handleLogout}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors text-left cursor-pointer"
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-955/40 rounded-xl transition-colors text-left cursor-pointer"
                     >
                       <LogOut className="w-4 h-4 text-rose-500" />
                       <span>Sign Out</span>
                     </button>
-                  </div>
+                  </motion.div>
                 )}
-              </div>
-            ) : (
-              <>
-                <Link
-                  to="/auth/login"
-                  className="px-4 py-2 text-xs font-bold text-slate-800 hover:text-sky-600 border border-sky-200/80 rounded-xl bg-white hover:bg-sky-50 shadow-xs transition-all"
-                >
-                  Sign In
-                </Link>
-                <Link
-                  to="/dashboard"
-                  className="px-5 py-2.5 rounded-xl bg-linear-to-r from-sky-600 to-sky-500 hover:from-sky-700 hover:to-sky-600 text-white font-bold text-xs shadow-md shadow-sky-500/25 transition-all hover:scale-103 flex items-center gap-1.5"
-                >
-                  <span>Get Started Free</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              </>
-            )}
-          </div>
+              </AnimatePresence>
+            </div>
+          ) : (
+            <>
+              <Link
+                to="/auth/login"
+                className="px-4 py-2 text-xs font-bold text-slate-800 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 border border-slate-200 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-900 hover:bg-slate-50 dark:hover:bg-zinc-800 shadow-2xs transition-all"
+              >
+                Sign In
+              </Link>
+              <Link
+                to="/dashboard"
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all hover:scale-103 flex items-center gap-1.5"
+              >
+                <span>Get Started Free</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </>
+          )}
+        </div>
 
-          {/* Mobile Hamburger Button */}
-          <div className="flex xl:hidden items-center">
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 text-slate-700 hover:text-sky-600 rounded-xl hover:bg-sky-50 transition-colors"
-              aria-label="Toggle Navigation"
-            >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
-          </div>
+        {/* Mobile Hamburger Button */}
+        <div className="flex xl:hidden items-center pointer-events-auto">
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="p-2 text-slate-700 dark:text-zinc-300 hover:text-blue-600 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors"
+            aria-label="Toggle Navigation"
+          >
+            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
         </div>
       </div>
 
       {/* Mobile Navigation Drawer */}
-      {mobileMenuOpen && (
-        <div className="xl:hidden bg-white/95 backdrop-blur-2xl border-b border-sky-100 px-4 pt-3 pb-6 space-y-2 shadow-2xl font-['Sora']">
-          <div className="grid grid-cols-2 gap-1.5 pb-2">
-            {navLinks.map((link) => (
-              <a
-                key={link.name}
-                href={link.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className="px-3.5 py-2.5 text-xs font-bold text-slate-700 hover:text-sky-600 hover:bg-sky-50 rounded-xl flex items-center gap-1.5 border border-sky-100"
-              >
-                {link.badge && <Sparkles className="w-3 h-3 text-sky-500 animate-pulse" />}
-                <span>{link.name}</span>
-              </a>
-            ))}
-          </div>
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="xl:hidden bg-white/95 dark:bg-[#0E1325]/95 backdrop-blur-2xl border border-slate-100 dark:border-zinc-800 rounded-2xl mx-auto mt-2 max-w-7xl p-4 space-y-3 shadow-2xl pointer-events-auto font-['Sora'] overflow-hidden"
+          >
+            <div className="grid grid-cols-2 gap-2 pb-2">
+              {navLinks.map((link) => (
+                <a
+                  key={link.name}
+                  href={link.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`px-3.5 py-2.5 text-xs font-bold transition-all rounded-xl flex items-center gap-1.5 border ${
+                    isLinkActive(link.href)
+                      ? 'text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/30 border-blue-200/50 dark:border-blue-900/50'
+                      : 'text-slate-700 dark:text-zinc-300 hover:text-blue-600 hover:bg-slate-50 dark:hover:bg-zinc-900 border-slate-100 dark:border-zinc-800'
+                  }`}
+                >
+                  {link.badge && <Sparkles className="w-3 h-3 text-blue-500 animate-pulse" />}
+                  <span>{link.name}</span>
+                </a>
+              ))}
+            </div>
 
-          <div className="pt-3 border-t border-sky-100 flex flex-col space-y-2">
-            {!user ? (
-              <>
-                <Link
-                  to="/auth/login"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="w-full text-center py-2.5 text-xs font-bold text-slate-800 border border-sky-200 rounded-xl hover:bg-sky-50"
+            <div className="pt-3 border-t border-slate-100 dark:border-zinc-800 flex flex-col space-y-2">
+              {!user ? (
+                <>
+                  <Link
+                    to="/auth/login"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full text-center py-2.5 text-xs font-bold text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-zinc-700 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 bg-white dark:bg-zinc-900"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    to="/dashboard"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full text-center py-2.5 text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-md flex items-center justify-center gap-2"
+                  >
+                    <span>Get Started Free</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </>
+              ) : (
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    handleLogout();
+                  }}
+                  className="w-full text-center py-2.5 text-xs font-bold text-rose-600 border border-rose-200 dark:border-rose-950 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40"
                 >
-                  Sign In
-                </Link>
-                <Link
-                  to="/dashboard"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="w-full text-center py-2.5 text-xs font-bold text-white bg-linear-to-r from-sky-600 to-sky-500 rounded-xl shadow-md flex items-center justify-center gap-2"
-                >
-                  <span>Get Started Free</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              </>
-            ) : (
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  handleLogout();
-                }}
-                className="w-full text-center py-2.5 text-xs font-bold text-rose-600 border border-rose-200 rounded-xl hover:bg-rose-50"
-              >
-                Sign Out
-              </button>
-            )}
-          </div>
-        </div>
-      )}
+                  Sign Out
+                </button>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 };
