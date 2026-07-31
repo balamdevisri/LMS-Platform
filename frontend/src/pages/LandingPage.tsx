@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { KaizenQVideoPlayer } from '@/components/common/KaizenQVideoPlayer';
 import { BlueSmokeTheme } from '@/components/common/BlueSmokeTheme';
+import { ThreeAiOrbCanvas } from '@/components/3d/ThreeAiOrbCanvas';
 import { courseService } from '@/services/courseService';
 import type { ICourse } from '../../../shared/types/course';
 
@@ -37,7 +38,28 @@ export const LandingPage: React.FC = () => {
     const fetchCatalogCourses = async () => {
       try {
         const result = await courseService.getCourses({ status: 'published', limit: 6 });
-        setCatalogCourses(result.courses);
+        let list = result.courses || [];
+        const hasLinux = list.some(c => String(c.id) === 'course_linux_101' || (c.title || '').toLowerCase().includes('linux'));
+        if (!hasLinux) {
+          const linuxCourse = courseService.normalizeCourseToICourse({
+            id: 'course_linux_101',
+            title: 'Linux Systems & Administration Mastery',
+            slug: 'linux-systems-administration-mastery',
+            shortDescription: 'Enterprise curriculum covering Linux Architecture, Kernel Mechanics, Permissions, Systemd, Bash Scripting, and SSH Security.',
+            category: 'Linux & Systems',
+            level: 'all_levels',
+            duration: '32 hrs',
+            status: 'published',
+            rating: 5.0,
+            ratingCount: 145,
+            thumbnail: '/assets/images/linux_course_thumbnail.png',
+            banner: '/assets/images/linux_os_architecture.png',
+            instructor: { name: 'KaizenQ Systems Team', role: 'Linux Systems Architect & LMS Specialist' },
+            skills: ['Linux CLI', 'Kernel Mechanics', 'Systemd Services', 'Bash Automation', 'SSH & Security']
+          });
+          list = [linuxCourse, ...list];
+        }
+        setCatalogCourses(list);
       } catch (err) {
         console.warn('Failed to load courses for landing page:', err);
       } finally {
@@ -46,6 +68,23 @@ export const LandingPage: React.FC = () => {
     };
     fetchCatalogCourses();
   }, []);
+
+  const getCourseImage = (course: ICourse) => {
+    if (course.thumbnail && course.thumbnail.trim() !== '' && !course.thumbnail.includes('placeholder')) {
+      return course.thumbnail;
+    }
+    if (course.banner && course.banner.trim() !== '' && !course.banner.includes('placeholder')) {
+      return course.banner;
+    }
+    const t = (course.title || '').toLowerCase();
+    const cat = (course.category || '').toLowerCase();
+    if (t.includes('linux') || cat.includes('linux')) return '/assets/images/linux_course_thumbnail.png';
+    if (t.includes('git') || cat.includes('git') || t.includes('github')) return '/assets/images/github_course_banner.png';
+    if (t.includes('ai') || cat.includes('ai') || t.includes('machine learning')) return 'https://images.unsplash.com/photo-1677442136019-21780efad99a?auto=format&fit=crop&w=800&q=80';
+    if (t.includes('devops') || cat.includes('devops') || t.includes('cloud')) return 'https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?auto=format&fit=crop&w=800&q=80';
+    if (t.includes('react') || t.includes('web') || t.includes('javascript')) return 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&w=800&q=80';
+    return 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=800&q=80';
+  };
 
   const toggleFaq = (idx: number) => {
     setOpenFaq(openFaq === idx ? null : idx);
@@ -223,43 +262,48 @@ export const LandingPage: React.FC = () => {
     <BlueSmokeTheme>
       <div className="pt-24 space-y-28 sm:space-y-36 font-['Sora'] select-none">
         
-        {/* ----------------- 1. HERO SECTION (CENTERED WHITE & SKY BLUE SAAS LAYOUT) ----------------- */}
-        <section className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-16 overflow-hidden">
+        {/* ----------------- 1. HERO SECTION (3D CANVAS & ENTERPRISE LAYOUT) ----------------- */}
+        <section className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-16 overflow-hidden min-h-140 flex items-center justify-center">
           
-          {/* Background Ambient Sky Blue Glows */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-162.5 h-112.5 bg-sky-400/20 rounded-full blur-[130px] pointer-events-none animate-pulse" />
+          {/* Background Interactive 3D AI Orb Canvas */}
+          <div className="absolute inset-0 z-0 pointer-events-none opacity-80 dark:opacity-90">
+            <ThreeAiOrbCanvas className="w-full h-full" />
+          </div>
+
+          {/* Background Ambient Glows */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-162.5 h-112.5 bg-purple-500/15 dark:bg-purple-600/20 rounded-full blur-[130px] pointer-events-none animate-pulse" />
 
           {/* Centered Hero Content Container */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: 'easeOut' }}
+            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
             className="flex flex-col items-center justify-center text-center space-y-8 max-w-4xl mx-auto relative z-10"
           >
             {/* Badge */}
-            <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-700 text-xs sm:text-sm font-bold tracking-wide backdrop-blur-xl shadow-xs mx-auto">
-              <Sparkles className="w-4 h-4 text-sky-500 animate-pulse" />
-              <span>Introducing Kaizen Q 3.0 • Powered by Shaivika Groups</span>
+            <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-purple-50 dark:bg-zinc-900/80 border border-purple-200 dark:border-purple-800/80 text-purple-700 dark:text-purple-300 text-xs sm:text-sm font-bold tracking-wide backdrop-blur-xl shadow-xs mx-auto">
+              <Sparkles className="w-4 h-4 text-purple-500 animate-pulse" />
+              <span>Enterprise AI LMS Platform 3.0</span>
             </div>
 
             {/* Headline */}
-            <h1 className="font-heading font-extrabold text-3xl sm:text-5xl lg:text-6xl text-slate-900 tracking-tight leading-[1.12] text-center">
-              Continuous Learning,{' '}
-              <span className="block mt-2 bg-linear-to-r from-sky-600 via-sky-500 to-sky-400 bg-clip-text text-transparent">
-                Powered by Kaizen Q AI
+            <h1 className="font-heading font-extrabold text-3xl sm:text-5xl lg:text-6xl text-slate-900 dark:text-white tracking-tight leading-[1.12] text-center">
+              Transform Learning Into Intelligence.{' '}
+              <span className="block mt-2 text-gradient-primary">
+                Powered by KaizenQ AI Engine
               </span>
             </h1>
 
             {/* Subtitle */}
-            <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl mx-auto font-medium text-center">
-              Empower engineering teams and students with 24/7 AI mentoring, real-time code evaluation, adaptive knowledge graphs, and verifiable digital credentials.
+            <p className="text-base sm:text-lg text-slate-600 dark:text-zinc-300 leading-relaxed max-w-2xl mx-auto font-medium text-center">
+              Master high-impact engineering & AI tracks with 24/7 intelligent tutoring, real-time sandbox code evaluation, adaptive skill trees, and ISO-verified digital credentials.
             </p>
 
             {/* CTA Buttons */}
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
               <Link
                 to="/dashboard"
-                className="w-full sm:w-auto px-8 py-3.5 bg-linear-to-r from-sky-600 to-sky-500 hover:from-sky-700 hover:to-sky-600 text-white font-bold rounded-xl shadow-lg shadow-sky-500/25 hover:scale-103 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer text-sm"
+                className="w-full sm:w-auto px-8 py-3.5 bg-linear-to-r from-purple-600 via-indigo-600 to-sky-600 hover:from-purple-500 hover:to-sky-500 text-white font-bold rounded-2xl shadow-xl shadow-purple-500/25 hover:scale-103 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer text-sm"
               >
                 <span>Get Started Free</span>
                 <ArrowRight className="w-4 h-4" />
@@ -267,15 +311,15 @@ export const LandingPage: React.FC = () => {
 
               <a
                 href="#ai-overview"
-                className="w-full sm:w-auto px-8 py-3.5 bg-white hover:bg-sky-50 text-slate-800 border border-sky-200 font-bold rounded-xl backdrop-blur-md hover:scale-103 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer text-sm shadow-xs"
+                className="w-full sm:w-auto px-8 py-3.5 bg-white/90 dark:bg-zinc-900/90 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-800 dark:text-zinc-100 border border-slate-200 dark:border-zinc-700 font-bold rounded-2xl backdrop-blur-md hover:scale-103 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer text-sm shadow-xs"
               >
-                <Play className="w-4 h-4 text-sky-600 fill-current" />
+                <Play className="w-4 h-4 text-purple-600 fill-current" />
                 <span>Explore Brand & AI Engine</span>
               </a>
             </div>
 
             {/* Sub-text */}
-            <p className="text-xs text-slate-500 font-medium text-center pt-2">
+            <p className="text-xs text-slate-500 dark:text-zinc-400 font-medium text-center pt-2">
               Free 14-Day Pro Trial • No credit card required • ISO 27001 & SOC2 Certified
             </p>
           </motion.div>
@@ -284,36 +328,36 @@ export const LandingPage: React.FC = () => {
 
 
         {/* ----------------- 2. STATISTICS SECTION ----------------- */}
-        <section className="bg-sky-50/70 border-y border-sky-100 py-12 backdrop-blur-md">
+        <section className="bg-sky-50/70 dark:bg-zinc-900/70 border-y border-sky-100 dark:border-zinc-800 py-12 backdrop-blur-md transition-colors duration-300">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
               
               <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="space-y-1">
-                <span className="font-heading font-extrabold text-3xl sm:text-4xl lg:text-5xl text-sky-600">
-                  50K+
+                <span className="font-heading font-extrabold text-3xl sm:text-4xl lg:text-5xl text-purple-600 dark:text-purple-400">
+                  25,000+
                 </span>
-                <p className="text-xs sm:text-sm font-bold text-slate-600 uppercase tracking-wider">Active Students</p>
+                <p className="text-xs sm:text-sm font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-wider">Active Students</p>
               </motion.div>
 
               <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }} className="space-y-1">
-                <span className="font-heading font-extrabold text-3xl sm:text-4xl lg:text-5xl text-slate-900">
-                  250+
+                <span className="font-heading font-extrabold text-3xl sm:text-4xl lg:text-5xl text-slate-900 dark:text-white">
+                  150+
                 </span>
-                <p className="text-xs sm:text-sm font-bold text-slate-600 uppercase tracking-wider">Expert Courses</p>
+                <p className="text-xs sm:text-sm font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-wider">Expert Courses</p>
               </motion.div>
 
               <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }} className="space-y-1">
-                <span className="font-heading font-extrabold text-3xl sm:text-4xl lg:text-5xl text-sky-500">
-                  500+
+                <span className="font-heading font-extrabold text-3xl sm:text-4xl lg:text-5xl text-sky-500 dark:text-sky-400">
+                  95%
                 </span>
-                <p className="text-xs sm:text-sm font-bold text-slate-600 uppercase tracking-wider">AI Mentors</p>
+                <p className="text-xs sm:text-sm font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-wider">Placement Ready</p>
               </motion.div>
 
               <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.3 }} className="space-y-1">
-                <span className="font-heading font-extrabold text-3xl sm:text-4xl lg:text-5xl text-sky-600">
-                  99%
+                <span className="font-heading font-extrabold text-3xl sm:text-4xl lg:text-5xl text-purple-600 dark:text-purple-400">
+                  24/7
                 </span>
-                <p className="text-xs sm:text-sm font-bold text-slate-600 uppercase tracking-wider">Success Rate</p>
+                <p className="text-xs sm:text-sm font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-wider">AI Mentor Access</p>
               </motion.div>
 
             </div>
@@ -407,30 +451,30 @@ export const LandingPage: React.FC = () => {
         <section id="courses" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div className="space-y-2">
-              <span className="text-xs font-bold text-sky-700 uppercase tracking-widest bg-sky-100 px-3.5 py-1.5 rounded-full border border-sky-200">
+              <span className="text-xs font-bold text-purple-700 dark:text-purple-400 uppercase tracking-widest bg-purple-100 dark:bg-purple-950/60 px-3.5 py-1.5 rounded-full border border-purple-200 dark:border-purple-800">
                 Explore Catalog
               </span>
-              <h2 className="font-heading font-extrabold text-3xl sm:text-4xl text-slate-900">
+              <h2 className="font-heading font-extrabold text-3xl sm:text-4xl text-slate-900 dark:text-white">
                 Featured AI & Engineering Tracks
               </h2>
-              <p className="text-sm text-slate-600 font-medium">
+              <p className="text-sm text-slate-600 dark:text-zinc-400 font-medium">
                 Master high-demand tech tracks guided by 24/7 AI mentors and verified digital credentials.
               </p>
             </div>
-            <Link to="/dashboard" className="btn-glass-light text-xs font-bold flex items-center gap-1.5 self-start md:self-auto">
-              <span>View All 250+ Courses</span>
+            <Link to="/dashboard" className="px-5 py-2.5 rounded-2xl bg-slate-100 dark:bg-zinc-800 text-slate-800 dark:text-zinc-100 hover:bg-slate-200 dark:hover:bg-zinc-700 text-xs font-bold transition-all flex items-center gap-1.5 self-start md:self-auto shadow-2xs">
+              <span>View All Courses</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
 
           {loadingCourses ? (
             <div className="py-16 text-center space-y-3">
-              <Loader2 className="w-8 h-8 text-sky-600 animate-spin mx-auto" />
+              <Loader2 className="w-8 h-8 text-purple-600 animate-spin mx-auto" />
               <p className="text-xs text-slate-500 font-bold">Loading active course tracks...</p>
             </div>
           ) : catalogCourses.length === 0 ? (
-            <div className="py-12 text-center text-slate-500 text-xs font-medium space-y-3 bg-white rounded-3xl border border-sky-100 p-8">
-              <p className="text-slate-800 font-bold text-base">No active course tracks found.</p>
+            <div className="py-12 text-center text-slate-500 text-xs font-medium space-y-3 bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-zinc-800 p-8">
+              <p className="text-slate-800 dark:text-white font-bold text-base">No active course tracks found.</p>
               <p className="text-slate-500 text-xs">Newly added courses will appear here automatically.</p>
               <Link to="/courses" className="btn-blue-primary text-xs py-2 px-5 font-bold inline-flex items-center gap-2 mt-2">
                 Explore Full Catalog
@@ -438,19 +482,23 @@ export const LandingPage: React.FC = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {catalogCourses.map((course) => (
-                <div key={course.id} className="bg-white border border-sky-100 hover:border-sky-300 rounded-3xl overflow-hidden flex flex-col group shadow-xs hover:shadow-xl hover:shadow-sky-500/10 transition-all">
+              {catalogCourses.map((course, idx) => (
+                <div key={course.id || course.slug || idx} className="glass-card overflow-hidden flex flex-col group transition-all duration-300">
                   {/* Thumbnail */}
-                  <div className="relative h-48 overflow-hidden bg-slate-100">
+                  <div className="relative h-48 overflow-hidden bg-slate-100 dark:bg-zinc-800">
                     <img
-                      src={course.thumbnail}
+                      src={getCourseImage(course)}
                       alt={course.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src =
+                          'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=800&q=80';
+                      }}
                     />
-                    <div className="absolute top-3 left-3 bg-slate-900/80 backdrop-blur-md text-white text-xs px-2.5 py-1 rounded-lg font-bold capitalize">
+                    <div className="absolute top-3 left-3 bg-slate-900/85 backdrop-blur-md text-white text-xs px-2.5 py-1 rounded-xl font-bold capitalize">
                       {course.level || 'All Levels'}
                     </div>
-                    <div className="absolute top-3 right-3 bg-sky-500 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-md">
+                    <div className="absolute top-3 right-3 bg-purple-600 text-white text-xs font-bold px-2.5 py-1 rounded-xl shadow-md">
                       ★ {course.rating || 5.0}
                     </div>
                   </div>
@@ -458,33 +506,37 @@ export const LandingPage: React.FC = () => {
                   {/* Body */}
                   <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
                     <div className="space-y-2">
-                      <h3 className="font-heading font-bold text-lg text-slate-900 group-hover:text-sky-600 transition-colors line-clamp-2">
+                      <h3 className="font-heading font-bold text-lg text-slate-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors line-clamp-2">
                         {course.title}
                       </h3>
-                      <p className="text-xs text-slate-500 font-medium">
+                      <p className="text-xs text-slate-500 dark:text-zinc-400 font-medium">
                         Instructor: {typeof course.instructor === 'object' ? course.instructor.name : (course.instructor || 'KaizenQ Team')}
                       </p>
                     </div>
 
-                    <div className="space-y-2 pt-2 border-t border-sky-100 text-xs">
-                      <div className="flex justify-between text-slate-500 font-medium">
+                    <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-zinc-800 text-xs">
+                      <div className="flex justify-between text-slate-500 dark:text-zinc-400 font-medium">
                         <span>{(course.enrollmentCount || 0).toLocaleString()} enrolled</span>
                         <span>{course.duration}</span>
                       </div>
 
                       <div className="space-y-1">
-                        <div className="flex justify-between text-[11px] font-bold text-slate-700">
+                        <div className="flex justify-between text-[11px] font-bold text-slate-700 dark:text-zinc-300">
                           <span>Interactive AI Lab</span>
-                          <span className="text-sky-600">Active Track</span>
+                          <span className="text-purple-600 dark:text-purple-400">Active Track</span>
                         </div>
-                        <div className="w-full h-2 bg-sky-50 rounded-full overflow-hidden border border-sky-100">
-                          <div className="h-full bg-linear-to-r from-sky-600 to-sky-400 rounded-full w-full" />
+                        <div className="w-full h-2 bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden border border-slate-200 dark:border-zinc-700">
+                          <div className="h-full bg-linear-to-r from-purple-600 to-indigo-500 rounded-full w-full" />
                         </div>
                       </div>
                     </div>
 
-                    <Link to={`/course/${course.slug || course.id}`} className="w-full btn-blue-primary text-xs py-2.5 justify-center mt-2">
-                      View Course Details
+                    <Link
+                      to="/dashboard"
+                      className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-purple-600 dark:hover:bg-purple-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-sm group-hover:shadow-md cursor-pointer"
+                    >
+                      <span>Explore Course Details</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
                     </Link>
                   </div>
                 </div>

@@ -43,6 +43,7 @@ interface AIAssistantPanelProps {
   isOpen: boolean;
   onClose: () => void;
   isDocked?: boolean; // if true, renders in-line inside learning player; else floats as slide-over drawer
+  isModal?: boolean; // if true, renders full size inside pop-up modal dialog
 }
 
 export const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
@@ -58,7 +59,8 @@ export const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
   lessonContent = 'Syllabus content prepared.',
   isOpen,
   onClose,
-  isDocked = false
+  isDocked = false,
+  isModal = false
 }) => {
   const { userProfile, user } = useAuth();
   const currentUserId = userProfile?.uid || user?.uid || 'default_student';
@@ -389,27 +391,31 @@ export const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
 
   if (!isOpen) return null;
 
-  // Render Sidebar panel container
-  const panelStyles = isDocked
+  // Render Sidebar / Modal panel container
+  const panelStyles = isModal
+    ? `w-full h-full bg-white flex flex-col justify-between relative select-text`
+    : isDocked
     ? `shrink-0 border-l border-slate-200/80 bg-white flex flex-col justify-between h-[calc(100vh-64px)] relative select-text transition-all`
     : `fixed right-0 top-16 bottom-0 z-40 bg-white border-l border-slate-200 shadow-2xl flex flex-col justify-between h-[calc(100vh-64px)] relative select-text transition-all`;
 
   return (
     <aside
-      style={{ width: isDocked ? `${panelWidth}px` : `${panelWidth}px` }}
+      style={!isModal ? { width: `${panelWidth}px` } : undefined}
       className={`${panelStyles} max-w-full`}
     >
       {/* ------------------- RESIZE DRAG HANDLE (Desktop only) ------------------- */}
-      <div
-        onMouseDown={handleMouseDown}
-        className="hidden md:block w-1.5 hover:bg-emerald-500 cursor-col-resize absolute left-0 top-0 bottom-0 z-20 transition-colors"
-        title="Drag left to resize panel width"
-      />
+      {!isModal && (
+        <div
+          onMouseDown={handleMouseDown}
+          className="hidden md:block w-1.5 hover:bg-emerald-500 cursor-col-resize absolute left-0 top-0 bottom-0 z-20 transition-colors"
+          title="Drag left to resize panel width"
+        />
+      )}
 
       {/* ------------------- HEADER ------------------- */}
       <header className="p-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800 shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-600 to-emerald-400 flex items-center justify-center shadow-md">
+          <div className="w-8 h-8 rounded-xl bg-linear-to-tr from-emerald-600 to-emerald-400 flex items-center justify-center shadow-md">
             <Bot className="w-4.5 h-4.5 text-white" />
           </div>
           <div>
@@ -494,7 +500,7 @@ export const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
                     className={`flex gap-2.5 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     {msg.sender === 'ai' && (
-                      <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center flex-shrink-0 shadow-xs mt-0.5">
+                      <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
                         <Bot className="w-4.5 h-4.5" />
                       </div>
                     )}
@@ -957,7 +963,7 @@ export const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 placeholder="Ask your tutor anything..."
-                className="flex-1 bg-slate-100 border border-slate-200 hover:bg-slate-50/50 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-medium"
+                className="flex-1 bg-slate-100 border border-slate-200 hover:bg-slate-50/50 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-medium focus:outline-hidden focus:border-purple-600 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100"
               />
               <button
                 type="submit"

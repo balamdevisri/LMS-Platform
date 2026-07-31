@@ -6,6 +6,7 @@
 import { Router, Request, Response } from 'express';
 import { emailService } from '../services/email/EmailService';
 import { EmailEventType } from '../types/emailTypes';
+import { env } from '../config/env';
 import { z } from 'zod';
 
 const router = Router();
@@ -16,9 +17,33 @@ const sendEmailSchema = z.object({
   payload: z.record(z.any()),
 });
 
+router.get('/test-email', async (req: Request, res: Response) => {
+  try {
+    const targetEmail = (req.query.email as string) || (req.body && req.body.email) || env.SMTP_EMAIL || 'shaivikagroups@gmail.com';
+    const result = await emailService.sendDirectHtmlEmail(
+      targetEmail,
+      'SMTP Test',
+      '<h1>KaizenQ AI LMS</h1><p>Hello Mawa</p>',
+      'Hello Mawa'
+    );
+
+    const info = {
+      accepted: result.accepted || [targetEmail],
+      rejected: result.rejected || [],
+      response: result.response || '250 OK',
+      messageId: result.messageId || null,
+    };
+
+    console.log(info);
+    return res.json(info);
+  } catch (err: any) {
+    console.error(err);
+    return res.status(500).json(err);
+  }
+});
+
 /**
  * POST /api/email/send
- * Programmatically send an event email notification
  */
 router.post('/send', async (req: Request, res: Response) => {
   try {
@@ -57,7 +82,6 @@ router.post('/send', async (req: Request, res: Response) => {
 
 /**
  * POST /api/email/retry
- * Triggers automated retry worker for failed emails
  */
 router.post('/retry', async (req: Request, res: Response) => {
   try {
@@ -78,7 +102,6 @@ router.post('/retry', async (req: Request, res: Response) => {
 
 /**
  * GET /api/email/logs
- * Fetches recent email delivery log records from Firestore
  */
 router.get('/logs', async (req: Request, res: Response) => {
   try {
@@ -99,11 +122,10 @@ router.get('/logs', async (req: Request, res: Response) => {
 
 /**
  * POST /api/email/test
- * Send a sample verification/welcome email to test environment setup
  */
 router.post('/test', async (req: Request, res: Response) => {
   try {
-    const targetEmail = req.body.email || 'student.test@shaivika.com';
+    const targetEmail = req.body.email || env.SMTP_EMAIL || 'kaizenqlms@gmail.com';
     const result = await emailService.sendEventEmail(
       EmailEventType.STUDENT_REGISTRATION,
       targetEmail,

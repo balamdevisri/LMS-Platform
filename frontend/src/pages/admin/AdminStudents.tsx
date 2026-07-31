@@ -17,13 +17,17 @@ import {
   TrendingUp,
   KeyRound,
   Send,
-  ShieldCheck
+  ShieldCheck,
+  Check,
+  XCircle,
+  Code2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { studentService, type StudentUser } from '@/services/studentService';
 import { StudentProfileDrawer } from '@/components/admin/students/StudentProfileDrawer';
 import { EditStudentModal } from '@/components/admin/students/EditStudentModal';
 import { SendEmailModal } from '@/components/admin/students/SendEmailModal';
+import { GitHubPortfolioDrawer } from '@/components/admin/students/GitHubPortfolioDrawer';
 
 export const AdminStudents: React.FC = () => {
   const [students, setStudents] = useState<StudentUser[]>([]);
@@ -41,9 +45,12 @@ export const AdminStudents: React.FC = () => {
   // Modals & Drawer State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [inspectStudent, setInspectStudent] = useState<StudentUser | null>(null);
+  const [inspectGithubStudent, setInspectGithubStudent] = useState<StudentUser | null>(null);
   const [editingStudent, setEditingStudent] = useState<StudentUser | null>(null);
   const [emailStudent, setEmailStudent] = useState<StudentUser | null>(null);
   const [deletingStudentId, setDeletingStudentId] = useState<string | null>(null);
+  const [rejectingStudentId, setRejectingStudentId] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Quick Add Student State
@@ -203,6 +210,31 @@ export const AdminStudents: React.FC = () => {
       }
     } catch (e) {
       toast.error('Failed to update student status.');
+    }
+  };
+
+  const handleApproveStudent = async (id: string) => {
+    try {
+      await studentService.approveStudent(id);
+      toast.success('Student registration Approved! Welcome notification email sent.');
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to approve student');
+    }
+  };
+
+  const handleRejectStudent = async (id: string) => {
+    if (!rejectionReason.trim()) {
+      toast.error('Please enter a rejection reason.');
+      return;
+    }
+    try {
+      await studentService.rejectStudent(id, rejectionReason.trim());
+      toast.success('Student registration Rejected. Rejection email sent.');
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to reject student');
+    } finally {
+      setRejectingStudentId(null);
+      setRejectionReason('');
     }
   };
 
@@ -417,8 +449,9 @@ export const AdminStudents: React.FC = () => {
                 className="w-full bg-slate-50 border border-sky-200 rounded-xl py-1.5 px-2.5 focus:outline-hidden"
               >
                 <option value="ALL">All Statuses</option>
-                <option value="Active">Active Only</option>
-                <option value="Inactive">Suspended Only</option>
+                <option value="pending">⏳ Pending Approval Only</option>
+                <option value="approved">✓ Approved / Active</option>
+                <option value="rejected">✕ Rejected / Suspended</option>
               </select>
             </div>
 
@@ -607,13 +640,15 @@ export const AdminStudents: React.FC = () => {
                       {/* Status */}
                       <td className="py-3.5 px-4">
                         <span
-                          className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${
-                            st.status === 'Active'
-                              ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
-                              : 'bg-rose-100 text-rose-800 border-rose-200'
+                          className={`px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider ${
+                            st.status === 'pending'
+                              ? 'bg-amber-100 text-amber-800 border-amber-300 animate-pulse'
+                              : st.status === 'approved' || st.status === 'Active'
+                              ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                              : 'bg-rose-100 text-rose-800 border-rose-300'
                           }`}
                         >
-                          {st.status}
+                          {st.status === 'pending' ? 'Pending Approval' : st.status}
                         </span>
                       </td>
 
@@ -621,6 +656,37 @@ export const AdminStudents: React.FC = () => {
                       <td className="py-3.5 px-4 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
                           
+                          {/* Approve Action */}
+                          {st.status === 'pending' && (
+                            <button
+                              onClick={() => handleApproveStudent(st.id || st.uid)}
+                              className="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shadow-xs flex items-center gap-1 transition-all cursor-pointer"
+                              title="Approve Student Registration & Send Email"
+                            >
+                              <Check className="w-3.5 h-3.5" /> Approve
+                            </button>
+                          )}
+
+                          {/* Reject Action */}
+                          {st.status === 'pending' && (
+                            <button
+                              onClick={() => setRejectingStudentId(st.id || st.uid)}
+                              className="px-2.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] shadow-xs flex items-center gap-1 transition-all cursor-pointer"
+                              title="Reject Student Registration with Reason"
+                            >
+                              <XCircle className="w-3.5 h-3.5" /> Reject
+                            </button>
+                          )}
+
+                          {/* GitHub Profile & Repos Drawer */}
+                          <button
+                            onClick={() => setInspectGithubStudent(st)}
+                            className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white border border-slate-700 transition-all cursor-pointer"
+                            title="Inspect GitHub Profile & Repositories Portfolio"
+                          >
+                            <Code2 className="w-3.5 h-3.5 text-sky-400" />
+                          </button>
+
                           {/* Inspect Profile Drawer */}
                           <button
                             onClick={() => setInspectStudent(st)}
@@ -643,11 +709,11 @@ export const AdminStudents: React.FC = () => {
                           <button
                             onClick={() => handleToggleStatus(st.id)}
                             className={`p-1.5 rounded-lg transition-all cursor-pointer border ${
-                              st.status === 'Active'
+                              st.status === 'Active' || st.status === 'approved'
                                 ? 'bg-white hover:bg-rose-50 text-rose-600 border-rose-200'
                                 : 'bg-white hover:bg-emerald-50 text-emerald-600 border-emerald-200'
                             }`}
-                            title={st.status === 'Active' ? 'Deactivate Account' : 'Activate Account'}
+                            title={st.status === 'Active' || st.status === 'approved' ? 'Deactivate Account' : 'Activate Account'}
                           >
                             <ShieldCheck className="w-3.5 h-3.5" />
                           </button>
@@ -793,6 +859,64 @@ export const AdminStudents: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* MODAL: REJECTION REASON */}
+      {rejectingStudentId && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-rose-200 max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-rose-100">
+              <div className="flex items-center gap-2 text-rose-600">
+                <XCircle className="w-5 h-5" />
+                <h3 className="font-heading font-extrabold text-base text-slate-900">Reject Student Registration</h3>
+              </div>
+              <button onClick={() => setRejectingStudentId(null)} className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <p className="text-slate-600 font-medium">
+                Please enter the reason for rejecting this student registration. An automated rejection email will be sent to the student explaining the reason.
+              </p>
+
+              <div>
+                <label className="block text-slate-700 font-bold mb-1">Rejection Reason</label>
+                <textarea
+                  rows={3}
+                  required
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  placeholder="e.g. Invalid GitHub Profile or non-college email address format..."
+                  className="w-full bg-slate-50 border border-rose-200 rounded-xl p-3 focus:outline-hidden text-slate-900 font-medium"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setRejectingStudentId(null)}
+                  className="px-4 py-2 rounded-xl text-slate-600 font-bold hover:bg-slate-100 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleRejectStudent(rejectingStudentId)}
+                  className="py-2.5 px-5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-xs cursor-pointer"
+                >
+                  Confirm Rejection & Send Email
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* INSPECT GITHUB PORTFOLIO DRAWER */}
+      <GitHubPortfolioDrawer
+        student={inspectGithubStudent}
+        onClose={() => setInspectGithubStudent(null)}
+      />
 
       {/* INSPECT PROFILE DRAWER */}
       <StudentProfileDrawer

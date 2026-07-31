@@ -16,6 +16,21 @@ export const Login: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Handle email verification link parameters & pre-fill email
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const isVerifiedParam = searchParams.get('verified') === 'true';
+    const emailParam = searchParams.get('email');
+
+    if (emailParam && !email) {
+      setEmail(emailParam);
+    }
+
+    if (isVerifiedParam) {
+      toast.success('🎉 Email verified successfully! You can now sign in to your KaizenQ account.');
+    }
+  }, [location.search]);
+
   // Redirect if user is already logged in
   useEffect(() => {
     if (user && userProfile) {
@@ -48,7 +63,14 @@ export const Login: React.FC = () => {
       }
     } catch (err: any) {
       console.error('Login error:', err);
-      toast.error(err?.message || 'Failed to sign in. Please check your credentials.');
+      if (err?.code === 'EMAIL_NOT_VERIFIED' || err?.message?.includes('verify your email')) {
+        toast.error('Please verify your email before accessing KaizenQ.');
+        navigate('/auth/verify-email', {
+          state: { email: email.toLowerCase().trim() },
+        });
+      } else {
+        toast.error(err?.message || 'Failed to sign in. Please check your credentials.');
+      }
     } finally {
       setIsSubmitting(false);
     }

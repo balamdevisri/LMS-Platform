@@ -9,6 +9,9 @@
 import {
   EmailEventType,
   StudentRegistrationPayload,
+  RegistrationPendingPayload,
+  RegistrationApprovedPayload,
+  RegistrationRejectedPayload,
   EmailVerificationPayload,
   PasswordResetPayload,
   CourseEnrollmentPayload,
@@ -582,6 +585,188 @@ export const buildAdminNotificationTemplate = (
 };
 
 /**
+ * Registration Pending Welcome Email Template (Student Signup Confirmation)
+ */
+export const buildRegistrationPendingTemplate = (payload: RegistrationPendingPayload) => {
+  const subject = `🚀 Welcome to KaizenQ LMS, ${payload.studentName}!`;
+
+  const contentHtml = `
+    <!-- Hero Greeting Header -->
+    <div style="text-align: left; margin-bottom: 24px;">
+      <span style="display: inline-block; background-color: #FEF3C7; color: #D97706; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; padding: 6px 14px; border-radius: 9999px; border: 1px solid #FDE68A;">
+        ⏳ Step 1 Complete • Pending Admin Approval
+      </span>
+      <h1 style="font-size: 24px; font-weight: 800; color: #0F172A; margin: 16px 0 8px 0; letter-spacing: -0.5px;">
+        Welcome to KaizenQ AI LMS!
+      </h1>
+      <p style="font-size: 15px; color: #475569; margin: 0; line-height: 1.6;">
+        Hello <strong>${payload.studentName}</strong>, your student registration form has been successfully submitted and logged in our system.
+      </p>
+    </div>
+
+    <!-- Details Box -->
+    <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-left: 4px solid #0284C7; border-radius: 16px; padding: 22px; margin: 24px 0;">
+      <div style="font-size: 11px; font-weight: 800; color: #64748B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">
+        REGISTRATION PROFILE SUMMARY
+      </div>
+      
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size: 14px; color: #334155;">
+        <tr>
+          <td style="padding: 6px 0; font-weight: 600; width: 140px; color: #64748B;">Student Name:</td>
+          <td style="padding: 6px 0; font-weight: 700; color: #0F172A;">${payload.studentName}</td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 0; font-weight: 600; color: #64748B;">College Email:</td>
+          <td style="padding: 6px 0; font-weight: 700; color: #0284C7; font-family: monospace;">${payload.email}</td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 0; font-weight: 600; color: #64748B;">GitHub URL:</td>
+          <td style="padding: 6px 0;">
+            <a href="${payload.githubUrl}" target="_blank" style="color: #2563EB; font-weight: 700; text-decoration: underline;">
+              ${payload.githubUrl}
+            </a>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 0; font-weight: 600; color: #64748B;">Account Status:</td>
+          <td style="padding: 6px 0;">
+            <span style="background-color: #FEF3C7; color: #B45309; font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 6px; display: inline-block;">
+              ${payload.status || 'Pending Approval'}
+            </span>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Informational Note -->
+    <div style="background-color: #F0F9FF; border: 1px solid #BAE6FD; border-radius: 14px; padding: 18px; margin-bottom: 24px;">
+      <p style="margin: 0; font-size: 14px; color: #0369A1; line-height: 1.6;">
+        💡 <strong>What Happens Next?</strong> Our administration team will review your GitHub portfolio and college details. Once approved, you will receive an instant activation email to access Linux sandboxes, AI code tutors, and certification tracks.
+      </p>
+    </div>
+
+    <p style="font-size: 14px; color: #64748B; margin-top: 24px;">
+      Best regards,<br>
+      <strong style="color: #0F172A;">KaizenQ Engineering Team</strong>
+    </p>
+  `;
+
+  const targetCtaUrl = payload.verificationLink || `https://shaivika-lms.vercel.app/auth/login?verified=true&email=${encodeURIComponent(payload.email)}`;
+
+  return {
+    subject,
+    html: renderMasterLayout({
+      title: subject,
+      preheader: `Welcome to KaizenQ LMS, ${payload.studentName}! Please verify your email to access your account.`,
+      contentHtml,
+      ctaText: '✨ Verify Email & Sign In to KaizenQ',
+      ctaUrl: targetCtaUrl,
+    }),
+  };
+};
+
+/**
+ * Registration Approved Email Template
+ */
+export const buildRegistrationApprovedTemplate = (payload: RegistrationApprovedPayload) => {
+  const subject = `🎉 Congratulations ${payload.studentName}! Your KaizenQ Account is Approved!`;
+  const ctaUrl = payload.dashboardUrl || 'https://shaivika-lms.vercel.app/auth/login';
+
+  const contentHtml = `
+    <!-- Hero Celebration Header -->
+    <div style="text-align: left; margin-bottom: 24px;">
+      <span style="display: inline-block; background-color: #D1FAE5; color: #047857; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; padding: 6px 14px; border-radius: 9999px; border: 1px solid #A7F3D0;">
+        ✅ Account Verified & Approved
+      </span>
+      <h1 style="font-size: 24px; font-weight: 800; color: #0F172A; margin: 16px 0 8px 0; letter-spacing: -0.5px;">
+        Welcome to the KaizenQ LMS Platform!
+      </h1>
+      <p style="font-size: 15px; color: #475569; margin: 0; line-height: 1.6;">
+        Hello <strong>${payload.studentName}</strong>, great news! Your student account has been officially <strong>Approved</strong> by the KaizenQ administration team.
+      </p>
+    </div>
+
+    <!-- Feature Highlights Box -->
+    <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-left: 4px solid #10B981; border-radius: 16px; padding: 22px; margin: 24px 0;">
+      <div style="font-size: 11px; font-weight: 800; color: #059669; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">
+        WHAT YOU CAN DO NOW
+      </div>
+      <ul style="margin: 0; padding-left: 18px; color: #334155; font-size: 14px; line-height: 1.8;">
+        <li>💻 <strong>Real-time Linux Sandboxes:</strong> Run interactive bash commands in browser environment.</li>
+        <li>🤖 <strong>24/7 AI Code Mentor:</strong> Instant pair programming & bug resolution support.</li>
+        <li>🏆 <strong>ISO Cryptographic Credentials:</strong> Earn shareable certificates for your resume.</li>
+      </ul>
+    </div>
+
+    <!-- CTA Prompt -->
+    <p style="font-size: 15px; color: #334155; text-align: center; margin: 28px 0 12px 0; font-weight: 600;">
+      Ready to start your learning journey? Click below to log in:
+    </p>
+  `;
+
+  return {
+    subject,
+    html: renderMasterLayout({
+      title: subject,
+      preheader: `Congratulations ${payload.studentName}! Your KaizenQ student account is approved!`,
+      contentHtml,
+      ctaText: 'Access Student Dashboard 🚀',
+      ctaUrl,
+    }),
+  };
+};
+
+/**
+ * Registration Rejected Email Template
+ */
+export const buildRegistrationRejectedTemplate = (payload: RegistrationRejectedPayload) => {
+  const subject = `KaizenQ LMS Registration Update regarding your account`;
+
+  const contentHtml = `
+    <!-- Header Banner -->
+    <div style="text-align: left; margin-bottom: 24px;">
+      <span style="display: inline-block; background-color: #FEE2E2; color: #B91C1C; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; padding: 6px 14px; border-radius: 9999px; border: 1px solid #FCA5A5;">
+        ❌ Registration Update
+      </span>
+      <h1 style="font-size: 24px; font-weight: 800; color: #0F172A; margin: 16px 0 8px 0; letter-spacing: -0.5px;">
+        Account Registration Status
+      </h1>
+      <p style="font-size: 15px; color: #475569; margin: 0; line-height: 1.6;">
+        Hello <strong>${payload.studentName}</strong>, thank you for your interest in KaizenQ AI LMS. After reviewing your registration application, we are unable to approve your account at this time.
+      </p>
+    </div>
+
+    <!-- Rejection Reason Card -->
+    <div style="background-color: #FEF2F2; border: 1px solid #FECACA; border-left: 4px solid #EF4444; border-radius: 16px; padding: 20px; margin: 24px 0;">
+      <div style="font-size: 11px; font-weight: 800; color: #991B1B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">
+        REASON SPECIFIED BY ADMINISTRATOR
+      </div>
+      <p style="margin: 0; font-size: 14px; color: #7F1D1D; font-weight: 600; line-height: 1.6;">
+        "${payload.reason}"
+      </p>
+    </div>
+
+    <p style="font-size: 14px; color: #475569; line-height: 1.6;">
+      If you believe this was done in error or if you wish to update your GitHub profile or college details, please contact our support team at <a href="mailto:kaizenq.lms@gmail.com" style="color: #0284C7; font-weight: 700;">kaizenq.lms@gmail.com</a>.
+    </p>
+
+    <p style="font-size: 14px; color: #64748B; margin-top: 24px;">
+      Sincerely,<br>
+      <strong style="color: #0F172A;">KaizenQ Support Team</strong>
+    </p>
+  `;
+
+  return {
+    subject,
+    html: renderMasterLayout({
+      title: subject,
+      preheader: 'Update regarding your KaizenQ student registration application.',
+      contentHtml,
+    }),
+  };
+};
+
+/**
  * Registry to build HTML template based on event type
  */
 export const buildEventEmailTemplate = (
@@ -591,6 +776,12 @@ export const buildEventEmailTemplate = (
   switch (eventType) {
     case EmailEventType.STUDENT_REGISTRATION:
       return buildStudentRegistrationTemplate(payload);
+    case EmailEventType.REGISTRATION_PENDING:
+      return buildRegistrationPendingTemplate(payload);
+    case EmailEventType.REGISTRATION_APPROVED:
+      return buildRegistrationApprovedTemplate(payload);
+    case EmailEventType.REGISTRATION_REJECTED:
+      return buildRegistrationRejectedTemplate(payload);
     case EmailEventType.EMAIL_VERIFICATION:
       return buildEmailVerificationTemplate(payload);
     case EmailEventType.PASSWORD_RESET:

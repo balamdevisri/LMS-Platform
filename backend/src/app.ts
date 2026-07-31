@@ -101,6 +101,102 @@ app.get('/health', (_req, res) => {
   });
 });
 
+// 3. Direct GET /api/debug/send-email Endpoint (Immediate Nodemailer Send Without Firebase/Firestore)
+app.get('/api/debug/send-email', async (_req, res) => {
+  const { emailService } = await import('./services/email/EmailService');
+  const targetEmail = 'shaivikagroups@gmail.com';
+  const subject = 'SMTP Test - KaizenQ AI LMS';
+  const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: Arial, sans-serif; background-color: #f0f6ff; padding: 30px; color: #0f172a;">
+  <div style="max-width: 500px; margin: 0 auto; background: #ffffff; border-radius: 16px; padding: 30px; border: 1px solid #bae6fd;">
+    <h1 style="color: #0284c7; margin-top: 0;">KaizenQ AI LMS</h1>
+    <p style="font-size: 15px; color: #334155;">SMTP connection successful.</p>
+    <p style="font-size: 13px; color: #64748b; margin-top: 30px;">KaizenQ Team</p>
+  </div>
+</body>
+</html>`;
+
+  const result = await emailService.sendDirectHtmlEmail(targetEmail, subject, html);
+
+  return res.status(result.success ? 200 : 500).json({
+    success: result.success,
+    accepted: result.accepted || (result.success ? [targetEmail] : []),
+    rejected: result.rejected || [],
+    response: result.response || (result.success ? '250 2.0.0 OK' : 'Failed'),
+    messageId: result.messageId || null,
+    error: result.error || null,
+  });
+});
+
+// 4. Direct GET /api/test-email Endpoint
+app.get('/api/test-email', async (req, res) => {
+  const { emailService } = await import('./services/email/EmailService');
+  const targetEmail = (req.query.email as string) || env.SMTP_EMAIL || 'shaivikagroups@gmail.com';
+  const subject = 'SMTP Test Successful - KaizenQ AI LMS';
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>KaizenQ AI LMS</title>
+</head>
+<body style="margin: 0; padding: 40px; background-color: #f0f6ff; font-family: Arial, sans-serif; color: #0f172a;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td align="center">
+        <div style="max-width: 540px; background-color: #ffffff; border-radius: 16px; border: 1px solid #bae6fd; padding: 36px; box-shadow: 0 10px 25px rgba(2, 132, 199, 0.08); text-align: left;">
+          <div style="background: linear-gradient(135deg, #0284c7, #2563eb); padding: 18px 24px; border-radius: 12px; color: #ffffff; font-size: 20px; font-weight: 800; margin-bottom: 24px;">
+            KaizenQ AI LMS
+          </div>
+          <h2 style="font-size: 22px; font-weight: 800; color: #0f172a; margin-top: 0;">
+            SMTP connection successful.
+          </h2>
+          <p style="font-size: 15px; color: #334155; line-height: 1.6;">
+            This is a test email from KaizenQ AI LMS confirming that Nodemailer + Gmail SMTP is configured properly.
+          </p>
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #0284c7; border-radius: 12px; padding: 16px; margin: 24px 0; font-size: 13px; color: #475569;">
+            <strong>Recipient:</strong> ${targetEmail}<br>
+            <strong>Status:</strong> Verified & Operational
+          </div>
+          <div style="border-top: 1px solid #e0f2fe; padding-top: 20px; margin-top: 28px; font-size: 13px; color: #64748b;">
+            <p style="margin: 0; font-weight: 800; color: #0f172a;">KaizenQ Team</p>
+          </div>
+        </div>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  const result = await emailService.sendDirectHtmlEmail(targetEmail, subject, html);
+
+  if (result.success) {
+    return res.status(200).json({
+      success: true,
+      message: 'SMTP Test Email delivered successfully!',
+      recipientEmail: targetEmail,
+      messageId: result.messageId,
+      accepted: result.accepted || [targetEmail],
+      rejected: result.rejected || [],
+      response: result.response || '250 OK',
+      status: emailService.getTransporterStatus(),
+    });
+  } else {
+    return res.status(500).json({
+      success: false,
+      error: 'SMTP Email Delivery Failed',
+      message: result.error,
+      accepted: result.accepted || [],
+      rejected: result.rejected || [],
+      response: result.response || null,
+      diagnostic: 'If Google rejected credentials (535 BadCredentials), ensure 2-Step Verification is ON for Google Account and an active 16-character App Password is set.',
+      status: emailService.getTransporterStatus(),
+    });
+  }
+});
+
 // API Routes
 app.use('/api', routes);
 

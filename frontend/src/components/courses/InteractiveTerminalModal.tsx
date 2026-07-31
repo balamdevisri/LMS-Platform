@@ -510,7 +510,11 @@ export const InteractiveTerminalModal: React.FC<InteractiveTerminalModalProps> =
           }}
           className="p-3.5 px-5 bg-slate-950 border-t border-slate-800 flex items-center gap-3 text-xs"
         >
-          <span className="text-emerald-400 font-bold shrink-0">student@shaivika-lms:{getPromptPath()}$</span>
+          <span className="text-emerald-400 font-bold shrink-0">
+            <span className="hidden sm:inline">student@shaivika-lms:</span>
+            <span className="sm:hidden">lms:</span>
+            {getPromptPath()}$
+          </span>
           <input
             type="text"
             value={inputVal}

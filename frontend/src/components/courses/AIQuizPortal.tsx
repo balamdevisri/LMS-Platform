@@ -12,7 +12,8 @@ import {
   Check,
   Brain,
   History,
-  Code
+  Code,
+  BookOpen
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { quizService } from '@/services/quizEngine';
@@ -21,6 +22,9 @@ import type {
   AIQuizConfig,
   AIQuizAttempt
 } from '@/services/quizEngine';
+import { courseService } from '@/services/courseService';
+import type { ICourse } from '@/services/courseService';
+import { useCourses } from '@/contexts/CourseContext';
 
 interface AIQuizPortalProps {
   courseId: string;
@@ -39,9 +43,62 @@ export const AIQuizPortal: React.FC<AIQuizPortalProps> = ({
   lessonContent = 'Concentric Linux operating system layers: kernel space and user space.',
   onClose
 }) => {
+  const { courses: contextCourses } = useCourses();
+
   // --- WORKSPACE MODES ---
   // 'config' | 'active' | 'summary' | 'history'
   const [workspaceMode, setWorkspaceMode] = useState<'config' | 'active' | 'summary' | 'history'>('config');
+
+  // --- DYNAMIC COURSES STATE ---
+  const [availableCourses, setAvailableCourses] = useState<ICourse[]>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState<string>(courseId || '');
+  const [selectedCourseTitle, setSelectedCourseTitle] = useState<string>(courseTitle || '');
+
+  useEffect(() => {
+    const loadCourses = async () => {
+      try {
+        const res: any = await courseService.getCourses();
+        const serviceList: ICourse[] = Array.isArray(res) ? res : (res?.courses || []);
+
+        const map = new Map<string, ICourse>();
+
+        // 1. Add Context Courses first (Deduplicated by title/slug)
+        if (contextCourses && contextCourses.length > 0) {
+          contextCourses.forEach((c: any) => {
+            const normalized = courseService.normalizeCourseToICourse(c);
+            const key = (normalized.slug || normalized.title || '').toLowerCase().trim();
+            map.set(key, normalized);
+          });
+        }
+
+        // 2. Add Service Courses (Deduplicated by title/slug)
+        serviceList.forEach((c: any) => {
+          const normalized = courseService.normalizeCourseToICourse(c);
+          const key = (normalized.slug || normalized.title || '').toLowerCase().trim();
+          if (!map.has(key)) {
+            map.set(key, normalized);
+          }
+        });
+
+        const list = Array.from(map.values());
+        setAvailableCourses(list);
+
+        if (list.length > 0) {
+          const match = list.find((c: ICourse) => String(c.id) === String(courseId));
+          if (match) {
+            setSelectedCourseId(String(match.id));
+            setSelectedCourseTitle(match.title);
+          } else if (!selectedCourseId || !list.some(c => String(c.id) === String(selectedCourseId))) {
+            setSelectedCourseId(String(list[0].id));
+            setSelectedCourseTitle(list[0].title);
+          }
+        }
+      } catch (err) {
+        console.warn('Error loading dynamic courses for AI Quiz:', err);
+      }
+    };
+    loadCourses();
+  }, [courseId, contextCourses]);
 
   // --- CONFIG STATE ---
   const [numQuestions, setNumQuestions] = useState<number>(5);
@@ -186,8 +243,8 @@ export const AIQuizPortal: React.FC<AIQuizPortalProps> = ({
 
     try {
       const quizQuestions = await quizService.generateQuiz(
-        courseId,
-        courseTitle,
+        selectedCourseId || courseId,
+        selectedCourseTitle || courseTitle,
         lessonId,
         lessonTitle,
         lessonContent,
@@ -472,36 +529,132 @@ export const AIQuizPortal: React.FC<AIQuizPortalProps> = ({
       </header>
 
       {/* -------------------- WORKSPACE PANELS -------------------- */}
-      <div className="flex-1 overflow-y-auto bg-slate-50/50 p-6 flex flex-col min-h-0">
+      <div className="flex-1 overflow-y-auto bg-slate-50/50 dark:bg-zinc-950/80 p-6 flex flex-col min-h-0 transition-colors duration-300">
         
         {/* ===================== MODE 1: CONFIGURATION ===================== */}
         {workspaceMode === 'config' && (
-          <div className="space-y-6 max-w-2xl mx-auto w-full flex-1 flex flex-col justify-between">
+          <div className="space-y-6 max-w-3xl mx-auto w-full flex-1 flex flex-col justify-between">
             <div className="space-y-5">
-              <div className="p-4 border border-slate-200/80 rounded-2xl bg-white space-y-2 py-5 text-center shadow-3xs">
-                <Sparkles className="w-8 h-8 text-emerald-500 mx-auto animate-pulse" />
-                <h4 className="font-heading font-extrabold text-sm text-slate-900">
-                  Generate an AI quiz from this lesson
+              <div className="p-4 border border-slate-200/80 dark:border-zinc-800 rounded-2xl bg-white dark:bg-zinc-900 space-y-1.5 py-4 text-center shadow-3xs">
+                <Sparkles className="w-7 h-7 text-purple-600 dark:text-purple-400 mx-auto animate-pulse" />
+                <h4 className="font-heading font-extrabold text-sm text-slate-900 dark:text-zinc-100">
+                  AI Quiz Generator Wizard
                 </h4>
-                <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed font-medium">
-                  Configure assessment size, difficulty targets, and question formats. The AI engine parses syllabus contents to structure practice scenarios.
+                <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-md mx-auto leading-relaxed font-medium">
+                  Select your target course and customized level of difficulty to generate dynamic practice questions.
                 </p>
               </div>
 
+              {/* ----------------- STEP 1: SELECT COURSE (OUR ADDED COURSES ONLY) ----------------- */}
+              <div className="p-4 bg-white dark:bg-zinc-900 border border-slate-200/90 dark:border-zinc-800 rounded-2xl space-y-3 shadow-3xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-purple-600 text-white text-[10px] font-black flex items-center justify-center">1</span>
+                    <label className="text-xs font-extrabold text-slate-900 dark:text-zinc-100 uppercase tracking-wider block">
+                      Select Target Course
+                    </label>
+                  </div>
+                  <span className="text-[10px] text-purple-700 dark:text-purple-300 font-extrabold bg-purple-50 dark:bg-purple-950/60 px-2.5 py-0.5 rounded-full border border-purple-200 dark:border-purple-800">
+                    {availableCourses.length} Active Courses
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                  {availableCourses.map((c) => {
+                    const isSelected = String(c.id) === String(selectedCourseId);
+                    return (
+                      <div
+                        key={c.id}
+                        onClick={() => {
+                          setSelectedCourseId(String(c.id));
+                          setSelectedCourseTitle(c.title);
+                        }}
+                        className={`p-3.5 rounded-xl border text-left cursor-pointer transition-all flex items-center gap-3 ${
+                          isSelected
+                            ? 'border-purple-600 dark:border-purple-500 bg-purple-50/60 dark:bg-purple-950/40 ring-2 ring-purple-500/20 shadow-xs'
+                            : 'border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 hover:border-slate-300 dark:hover:border-zinc-700 hover:bg-slate-50/80 dark:hover:bg-zinc-800/80'
+                        }`}
+                      >
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                          isSelected ? 'bg-purple-600 text-white' : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400'
+                        }`}>
+                          <BookOpen className="w-4.5 h-4.5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h5 className="font-extrabold text-xs text-slate-900 dark:text-zinc-100 truncate">
+                            {c.title}
+                          </h5>
+                          <p className="text-[10px] text-slate-500 dark:text-zinc-400 font-medium truncate">
+                            {c.category || 'Core Track'} • {c.level || 'All Levels'}
+                          </p>
+                        </div>
+                        {isSelected && (
+                          <CheckCircle2 className="w-4.5 h-4.5 text-purple-600 dark:text-purple-400 shrink-0" />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* ----------------- STEP 2: SELECT QUIZ LEVEL & TARGET ----------------- */}
+              <div className="p-4 bg-white dark:bg-zinc-900 border border-slate-200/90 dark:border-zinc-800 rounded-2xl space-y-3 shadow-3xs">
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-black flex items-center justify-center">2</span>
+                  <label className="text-xs font-extrabold text-slate-900 dark:text-zinc-100 uppercase tracking-wider block">
+                    Select Quiz Level & Difficulty Target
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                  {[
+                    { id: 'Easy', title: 'Beginner', desc: 'Core terms & concepts' },
+                    { id: 'Medium', title: 'Intermediate', desc: 'Practical scenario tasks' },
+                    { id: 'Hard', title: 'Advanced', desc: 'Complex code & architecture' },
+                    { id: 'Adaptive', title: 'Adaptive AI', desc: 'Real-time level adjustment' }
+                  ].map((lvl) => {
+                    const isSelected = difficulty === lvl.id;
+                    return (
+                      <button
+                        key={lvl.id}
+                        type="button"
+                        onClick={() => setDifficulty(lvl.id as any)}
+                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between space-y-1.5 ${
+                          isSelected
+                            ? 'border-emerald-600 dark:border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/40 ring-2 ring-emerald-500/20 shadow-xs'
+                            : 'border-slate-200 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-slate-50 dark:hover:bg-zinc-800'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-extrabold text-xs text-slate-900 dark:text-zinc-100">
+                            {lvl.title}
+                          </span>
+                          {isSelected && <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />}
+                        </div>
+                        <p className="text-[10px] text-slate-500 dark:text-zinc-400 leading-tight font-medium">
+                          {lvl.desc}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* ----------------- STEP 3: ADDITIONAL OPTIONS ----------------- */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Size Config */}
-                <div className="p-4 bg-white border border-slate-200 rounded-2xl space-y-3.5 shadow-3xs">
+                <div className="p-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl space-y-3 shadow-3xs">
                   <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
                     Assessment Volume
                   </label>
                   <div className="grid grid-cols-4 gap-2">
-                    {[5, 10, 20, 30].map((val) => (
+                    {[5, 10, 15, 20].map((val) => (
                       <button
                         key={val}
                         onClick={() => setNumQuestions(val)}
                         className={`py-2 text-center rounded-xl border text-xs font-bold transition-all cursor-pointer ${
                           numQuestions === val
-                            ? 'border-slate-900 bg-slate-900 text-white shadow-sm'
+                            ? 'border-slate-900 bg-slate-900 text-white shadow-xs'
                             : 'border-slate-200 hover:bg-slate-50 text-slate-700'
                         }`}
                       >
@@ -511,35 +664,50 @@ export const AIQuizPortal: React.FC<AIQuizPortalProps> = ({
                   </div>
                 </div>
 
-                {/* Difficulty Config */}
-                <div className="p-4 bg-white border border-slate-200 rounded-2xl space-y-3.5 shadow-3xs">
-                  <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
-                    Target Difficulty
-                  </label>
-                  <div className="grid grid-cols-4 gap-1.5">
-                    {[
-                      { id: 'Easy', label: 'Easy' },
-                      { id: 'Medium', label: 'Medium' },
-                      { id: 'Hard', label: 'Hard' },
-                      { id: 'Adaptive', label: 'Adapt' }
-                    ].map((val) => (
-                      <button
-                        key={val.id}
-                        onClick={() => setDifficulty(val.id as any)}
-                        className={`py-2 text-center rounded-xl border text-[11px] font-bold transition-all cursor-pointer ${
-                          difficulty === val.id
-                            ? 'border-emerald-600 bg-emerald-600 text-white shadow-sm'
-                            : 'border-slate-200 hover:bg-slate-50 text-slate-700'
-                        }`}
-                      >
-                        {val.label}
-                      </button>
-                    ))}
+                {/* Timer Config */}
+                <div className="p-4 bg-white border border-slate-200 rounded-2xl space-y-3 shadow-3xs">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
+                        Countdown Timer Limit
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-medium">Auto-submits evaluation sheet on timeout.</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={enableTimer}
+                        onChange={(e) => setEnableTimer(e.target.checked)}
+                        className="sr-only peer cursor-pointer"
+                      />
+                      <div className="w-9 h-5 bg-slate-200 peer-focus:outline-hidden rounded-full peer after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
                   </div>
+
+                  {enableTimer && (
+                    <div className="flex items-center gap-2 pt-1">
+                      {[5, 10, 15, 20].map((min) => (
+                        <button
+                          key={min}
+                          onClick={() => {
+                            setTimeLimitMinutes(min);
+                            setNumQuestions(min);
+                          }}
+                          className={`py-1.5 px-3 rounded-lg border text-xs font-bold cursor-pointer ${
+                            timeLimitMinutes === min
+                              ? 'border-slate-800 bg-slate-100 text-slate-800 font-black'
+                              : 'border-slate-200 text-slate-500 hover:bg-slate-50'
+                          }`}
+                        >
+                          {min} Mins
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                {/* Question Types filter */}
-                <div className="p-4 bg-white border border-slate-200 rounded-2xl space-y-3.5 md:col-span-2 shadow-3xs">
+                {/* Question Formats filter */}
+                <div className="p-4 bg-white border border-slate-200 rounded-2xl space-y-3 md:col-span-2 shadow-3xs">
                   <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
                     Supported Question Formats
                   </label>
@@ -555,10 +723,11 @@ export const AIQuizPortal: React.FC<AIQuizPortalProps> = ({
                       return (
                         <button
                           key={type.id}
+                          type="button"
                           onClick={() => handleToggleType(type.id)}
                           className={`py-1.5 px-3 rounded-lg border text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                             isSelected
-                              ? 'border-slate-900 bg-slate-900 text-white'
+                              ? 'border-purple-600 bg-purple-600 text-white'
                               : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-600'
                           }`}
                         >
@@ -569,62 +738,23 @@ export const AIQuizPortal: React.FC<AIQuizPortalProps> = ({
                     })}
                   </div>
                 </div>
-
-                {/* Timer Config */}
-                <div className="p-4 bg-white border border-slate-200 rounded-2xl space-y-3.5 md:col-span-2 shadow-3xs">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
-                        Countdown Timer Limit
-                      </span>
-                      <span className="text-xs text-slate-500 font-medium">Auto-submits evaluation sheets on expiration.</span>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={enableTimer}
-                        onChange={(e) => setEnableTimer(e.target.checked)}
-                        className="sr-only peer cursor-pointer"
-                      />
-                      <div className="w-9 h-5 bg-slate-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
-                    </label>
-                  </div>
-
-                  {enableTimer && (
-                    <div className="flex items-center gap-2 pt-2">
-                      {[5, 10, 15, 20].map((min) => (
-                        <button
-                          key={min}
-                          onClick={() => setTimeLimitMinutes(min)}
-                          className={`py-1.5 px-3 rounded-lg border text-xs font-bold cursor-pointer ${
-                            timeLimitMinutes === min
-                              ? 'border-slate-800 bg-slate-50 text-slate-800 font-black'
-                              : 'border-slate-200 text-slate-500 hover:bg-slate-50'
-                          }`}
-                        >
-                          {min} Minutes
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
               </div>
             </div>
 
             <button
               onClick={handleLaunchQuiz}
               disabled={loadingQuestions}
-              className="w-full py-4 rounded-2xl bg-linear-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-extrabold text-xs shadow-lg hover:shadow-emerald-500/10 cursor-pointer flex items-center justify-center gap-1.5 mt-6"
+              className="w-full py-4 rounded-2xl bg-linear-to-r from-purple-600 via-indigo-600 to-emerald-600 hover:from-purple-500 hover:to-emerald-500 text-white font-extrabold text-xs shadow-xl shadow-purple-600/20 cursor-pointer flex items-center justify-center gap-2 mt-6 transition-all hover:scale-[1.01] active:scale-[0.99]"
             >
               {loadingQuestions ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin text-white" />
-                  <span>Structuring Quiz blueprints...</span>
+                  <span>Generating AI Quiz for {selectedCourseTitle}...</span>
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-4 h-4" />
-                  <span>Build & Start Adaptive Assessment</span>
+                  <Sparkles className="w-4 h-4 text-emerald-300 animate-pulse" />
+                  <span>Start {difficulty} Level AI Quiz ({selectedCourseTitle})</span>
                 </>
               )}
             </button>
@@ -751,7 +881,7 @@ export const AIQuizPortal: React.FC<AIQuizPortalProps> = ({
                         setUserAnswers((prev) => ({ ...prev, [questions[currentIdx].id]: e.target.value }))
                       }
                       placeholder="Write your answer statement here..."
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-xs font-medium text-slate-800 focus:outline-hidden focus:border-emerald-500"
+                      className="w-full bg-slate-50 border border-slate-200 focus:border-purple-600 rounded-xl py-3 px-4 text-xs font-medium text-slate-800 focus:outline-hidden"
                     />
                   </div>
                 )}

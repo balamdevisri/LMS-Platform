@@ -38,7 +38,27 @@ const gracefulShutdown = (signal: string) => {
   });
 };
 
+// Handle Server Startup Errors (e.g. EADDRINUSE)
+server.on('error', (error: NodeJS.ErrnoException) => {
+  if (error.code === 'EADDRINUSE') {
+    logger.error(`❌ PORT ${PORT} is already in use by another process.`);
+    logger.error(`👉 Solution: Run 'netstat -ano | findstr :${PORT}' and 'taskkill /PID <PID> /F' to free the port.`);
+    process.exit(1);
+  } else {
+    logger.error('CRITICAL: Server startup error:', error);
+    process.exit(1);
+  }
+});
+
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+process.once('SIGUSR2', () => {
+  logger.info('Received SIGUSR2 (Nodemon restart). Closing HTTP server...');
+  server.close(() => {
+    logger.info('HTTP server closed for Nodemon restart.');
+    process.kill(process.pid, 'SIGUSR2');
+  });
+});
 
 export default server;

@@ -13,7 +13,6 @@ export const KaizenQLogo: React.FC<KaizenQLogoProps> = ({
   layout = 'horizontal',
   theme = 'light',
   size = 'md',
-  showTagline = true,
   className = '',
 }) => {
   const symbolSizes = {
@@ -30,16 +29,8 @@ export const KaizenQLogo: React.FC<KaizenQLogoProps> = ({
     xl: 'text-7xl',
   };
 
-  const taglineSizes = {
-    sm: 'text-[9px] tracking-[0.24em]',
-    md: 'text-[11px] tracking-[0.3em]',
-    lg: 'text-[14px] tracking-[0.34em]',
-    xl: 'text-[18px] tracking-[0.38em]',
-  };
-
   const iconSize = symbolSizes[size];
   const textColorClass = theme === 'dark' ? 'text-white' : 'text-[#0B1220]';
-  const taglineColorClass = theme === 'dark' ? 'text-slate-300' : 'text-slate-700';
 
   if (layout === 'icon') {
     return <KaizenQSymbol size={iconSize} theme={theme} className={className} />;
@@ -58,13 +49,6 @@ export const KaizenQLogo: React.FC<KaizenQLogoProps> = ({
               Q
             </span>
           </div>
-          {showTagline && (
-            <div className={`font-['Sora'] font-bold uppercase mt-2 flex items-center gap-2 ${taglineSizes[size]} ${taglineColorClass}`}>
-              <span className="w-6 h-0.5 bg-linear-to-r from-[#2563EB] to-[#22D3EE] rounded-full" />
-              <span>POWERED BY <span className="text-blue-500 font-extrabold">SHAIVIKA GROUPS</span></span>
-              <span className="w-6 h-0.5 bg-linear-to-r from-[#2563EB] to-[#22D3EE] rounded-full" />
-            </div>
-          )}
         </div>
       </div>
     );
@@ -83,13 +67,6 @@ export const KaizenQLogo: React.FC<KaizenQLogoProps> = ({
             Q
           </span>
         </div>
-        {showTagline && (
-          <div className={`font-['Sora'] font-bold uppercase leading-tight mt-2 flex items-center gap-2 ${taglineSizes[size]} ${taglineColorClass}`}>
-            <span className="w-5 h-0.5 bg-linear-to-r from-[#2563EB] to-[#22D3EE] rounded-full inline-block" />
-            <span>POWERED BY <span className="text-blue-500 font-extrabold">SHAIVIKA GROUPS</span></span>
-            <span className="w-5 h-0.5 bg-linear-to-r from-[#2563EB] to-[#22D3EE] rounded-full inline-block" />
-          </div>
-        )}
       </div>
     </div>
   );

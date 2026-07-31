@@ -39,7 +39,7 @@ export class CourseService {
       ...data,
       id: data.id || docId,
       title: data.title || 'Untitled Technical Course',
-      subtitle: data.subtitle || (data.title === 'Git & GitHub Mastery' ? '⚡ Git & GitHub Mastery' : '🐧 Linux Essentials'),
+      subtitle: data.subtitle || (data.title === 'Git & GitHub Mastery' ? '⚡ Git & GitHub Mastery' : '🐧 Linux Systems Mastery'),
       instructor: instructorName,
       role: data.role || (data.title === 'Git & GitHub Mastery' ? 'Senior Technical Instructor' : 'Linux Systems Architect & AI Specialist'),
       avatar: data.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',

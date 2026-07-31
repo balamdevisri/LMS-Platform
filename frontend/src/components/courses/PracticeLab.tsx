@@ -18,7 +18,11 @@ import {
   HelpCircle,
   Info,
   Zap,
-  ChevronDown
+  ChevronDown,
+  GripVertical,
+  GripHorizontal,
+  GitBranch,
+  Cpu
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -133,10 +137,282 @@ export const PracticeLab: React.FC<PracticeLabProps> = ({
   const [aiReviewText, setAiReviewText] = useState<string>('');
   const [aiReviewLoading, setAiReviewLoading] = useState<boolean>(false);
 
-  // 6. UI Collapse Toggles (Tablet / Desktop Resizable)
+  // 6. UI Collapse Toggles & Tabs
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState<boolean>(false);
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState<boolean>(false);
   const [activeTabMobile, setActiveTabMobile] = useState<'description' | 'editor' | 'info' | 'output'>('editor');
+
+  // 7. Draggable Resizable Panel State
+  const [leftWidthPx, setLeftWidthPx] = useState<number>(360);
+  const [terminalHeightPx, setTerminalHeightPx] = useState<number>(260);
+  const [isDraggingLeft, setIsDraggingLeft] = useState<boolean>(false);
+  const [isDraggingTerminal, setIsDraggingTerminal] = useState<boolean>(false);
+
+  // 8. Terminal Selector Mode: 'console' | 'linux' | 'github'
+  const [activeTerminalTab, setActiveTerminalTab] = useState<'console' | 'linux' | 'github'>('console');
+
+  // Linux Bash Terminal Simulator State
+  const [linuxInput, setLinuxInput] = useState<string>('');
+  const [linuxHistory, setLinuxHistory] = useState<Array<{ cmd: string; output: string }>>([
+    { cmd: 'uname -a', output: 'Linux kaizenq-lms 6.1.0-cloud #1 SMP PREEMPT_DYNAMIC x86_64 GNU/Linux' },
+    { cmd: 'pwd', output: '/home/student/kaizenq-project' },
+  ]);
+
+  // GitHub CLI Terminal Simulator State
+  const [githubInput, setGithubInput] = useState<string>('');
+  const [stagedFiles, setStagedFiles] = useState<string[]>([]);
+  const [gitCommits, setGitCommits] = useState<Array<{ hash: string; msg: string; date: string }>>([
+    { hash: 'a3f92b1', msg: 'Initial commit & course scaffold', date: '2026-07-28 10:14:02' },
+    { hash: 'c8e19d4', msg: 'Feat: Add Practice Sandbox & AI assessment', date: '2026-07-30 21:50:11' },
+  ]);
+  const [githubHistory, setGithubHistory] = useState<Array<{ cmd: string; output: string }>>([
+    { cmd: 'git status', output: 'On branch main\nYour branch is up to date with \'origin/main\'.\n\nnothing to commit, working tree clean' },
+  ]);
+
+  // Real-Time Live Auto-Run Execution State
+  const [isLiveAutoRun, setIsLiveAutoRun] = useState<boolean>(true);
+
+  // Dynamic Virtual Filesystem State for Linux Terminal
+  const [virtualFS, setVirtualFS] = useState<Record<string, string>>({
+    'package.json': '{\n  "name": "shaivika-lms-lab",\n  "version": "1.0.0",\n  "main": "src/index.ts"\n}',
+    'README.md': '# Shaivika AI Practice Sandbox\nInteractive cloud student environment.',
+    'solution.ts': '// Write solution code here\nconsole.log("Hello from Shaivika LMS!");',
+  });
+
+  // Debounced Live Auto-Run on Code Input
+  useEffect(() => {
+    if (!isLiveAutoRun || !code.trim() || !activeChallenge || activeTabMobile === 'description') return;
+
+    const timer = setTimeout(() => {
+      codeExecutor.runCode(activeChallenge.id, activeLanguage, code, useCustomInput ? customInput : '').then((res) => {
+        setConsoleLogs(res.stdout);
+        setExecError(res.stderr);
+        setRunTimeMs(res.executionTimeMs);
+        setMemoryUsageMb(res.memoryUsageMb);
+      });
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [code, activeLanguage, useCustomInput, customInput, isLiveAutoRun, activeChallenge]);
+
+  // Restrict Text Copying in Practice Sandbox Prompt
+  const handleCopyRestriction = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    toast.error('Copying challenge prompt text is restricted in Practice Sandbox!');
+  };
+
+  // Ultra-Smooth, Sensitive Dragging Window Listeners
+  useEffect(() => {
+    let animationFrameId: number;
+
+    const onMouseMove = (e: MouseEvent) => {
+      animationFrameId = requestAnimationFrame(() => {
+        if (isDraggingLeft) {
+          const newWidth = Math.max(180, Math.min(700, e.clientX));
+          setLeftWidthPx(newWidth);
+        }
+        if (isDraggingTerminal) {
+          const container = document.getElementById('practice-lab-main-container');
+          if (container) {
+            const rect = container.getBoundingClientRect();
+            const newHeight = Math.max(100, Math.min(550, rect.bottom - e.clientY));
+            setTerminalHeightPx(newHeight);
+          }
+        }
+      });
+    };
+
+    const onMouseUp = () => {
+      setIsDraggingLeft(false);
+      setIsDraggingTerminal(false);
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+    };
+
+    if (isDraggingLeft || isDraggingTerminal) {
+      document.body.style.userSelect = 'none';
+      document.body.style.cursor = isDraggingLeft ? 'col-resize' : 'row-resize';
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('mouseup', onMouseUp);
+    }
+
+    return () => {
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+  }, [isDraggingLeft, isDraggingTerminal]);
+
+  // Dynamic Linux Command Execution Handler
+  const handleLinuxCommandSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const raw = linuxInput.trim();
+    if (!raw) return;
+
+    let output = '';
+    const parts = raw.split(' ');
+    const cmd = parts[0].toLowerCase();
+    const arg = parts.slice(1).join(' ');
+
+    if (cmd === 'clear') {
+      setLinuxHistory([]);
+      setLinuxInput('');
+      return;
+    }
+
+    switch (cmd) {
+      case 'help':
+        output = `Available Dynamic Linux Commands:
+  ls, pwd, whoami, uname, cat <file>, touch <file>, mkdir <dir>, rm <file>, systemctl, curl, top, clear`;
+        break;
+      case 'ls':
+        output = Object.keys(virtualFS).join('  ');
+        break;
+      case 'pwd':
+        output = '/home/student/kaizenq-project';
+        break;
+      case 'whoami':
+        output = 'student';
+        break;
+      case 'uname':
+        output = 'Linux kaizenq-lms 6.1.0-cloud #1 SMP PREEMPT_DYNAMIC x86_64 GNU/Linux';
+        break;
+      case 'cat':
+        if (!arg) {
+          output = 'cat: missing filename argument';
+        } else if (virtualFS[arg]) {
+          output = virtualFS[arg];
+        } else {
+          output = `cat: ${arg}: No such file or directory`;
+        }
+        break;
+      case 'touch':
+        if (!arg) {
+          output = 'touch: missing file operand';
+        } else {
+          setVirtualFS((prev) => ({ ...prev, [arg]: `// File ${arg} created dynamic timestamp ${new Date().toLocaleTimeString()}` }));
+          output = `Created file '${arg}' dynamically.`;
+        }
+        break;
+      case 'mkdir':
+        if (!arg) {
+          output = 'mkdir: missing operand';
+        } else {
+          setVirtualFS((prev) => ({ ...prev, [`${arg}/`]: '' }));
+          output = `Created directory '${arg}/' dynamically.`;
+        }
+        break;
+      case 'rm':
+        if (!arg) {
+          output = 'rm: missing operand';
+        } else if (virtualFS[arg] !== undefined || virtualFS[`${arg}/`] !== undefined) {
+          setVirtualFS((prev) => {
+            const next = { ...prev };
+            delete next[arg];
+            delete next[`${arg}/`];
+            return next;
+          });
+          output = `Removed '${arg}' dynamically.`;
+        } else {
+          output = `rm: cannot remove '${arg}': No such file or directory`;
+        }
+        break;
+      case 'systemctl':
+        output = `● nginx.service - Nginx Web Server\n   Loaded: loaded (/lib/systemd/system/nginx.service; enabled)\n   Active: active (running) since Thu 2026-07-30 21:00:00 UTC`;
+        break;
+      case 'curl':
+        output = `HTTP/1.1 200 OK\nContent-Type: application/json\n\n{"status":"healthy","service":"KaizenQ Backend"}`;
+        break;
+      case 'top':
+        output = `top - 22:30:00 up 10 days, 4:25, 1 user, load average: 0.08, 0.05, 0.01\nTasks: 124 total, 1 running, 123 sleeping`;
+        break;
+      default:
+        if (raw.startsWith('echo')) {
+          output = raw.substring(5);
+        } else {
+          output = `bash: ${cmd}: command not found. Type 'help' for available commands.`;
+        }
+    }
+
+    setLinuxHistory((prev) => [...prev, { cmd: raw, output }]);
+    setLinuxInput('');
+  };
+
+  // GitHub CLI Command Execution Handler
+  const handleGithubCommandSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const raw = githubInput.trim();
+    if (!raw) return;
+
+    let output = '';
+    const parts = raw.split(' ');
+    const isGit = parts[0].toLowerCase() === 'git';
+    const subCmd = isGit ? parts[1]?.toLowerCase() : parts[0].toLowerCase();
+    const arg = isGit ? parts.slice(2).join(' ') : parts.slice(1).join(' ');
+
+    if (raw === 'clear') {
+      setGithubHistory([]);
+      setGithubInput('');
+      return;
+    }
+
+    switch (subCmd) {
+      case 'help':
+        output = `Available Git Commands:
+  git status
+  git add <file> | git add .
+  git commit -m "<message>"
+  git push origin main
+  git log
+  git branch
+  git checkout -b <branch>
+  git clone <url>`;
+        break;
+      case 'status':
+        if (stagedFiles.length === 0) {
+          output = `On branch main\nYour branch is up to date with 'origin/main'.\n\nUntracked files:\n  (use "git add <file>..." to include in what will be committed)\n\tsrc/solution.ts\n\nnothing added to commit but untracked files present`;
+        } else {
+          output = `On branch main\nChanges to be committed:\n  (use "git restore --staged <file>..." to unstage)\n\n\tmodified:   ${stagedFiles.join(', ')}`;
+        }
+        break;
+      case 'add':
+        const target = arg || '.';
+        setStagedFiles(['src/solution.ts', 'src/App.tsx']);
+        output = `Staged '${target}' for commit.`;
+        break;
+      case 'commit':
+        if (stagedFiles.length === 0) {
+          output = `On branch main\nNothing to commit, working tree clean. (Stage files with 'git add .')`;
+        } else {
+          const msg = arg ? arg.replace(/["']/g, '') : 'Update source code';
+          const hash = Math.random().toString(36).substring(2, 9);
+          setGitCommits((prev) => [{ hash, msg, date: new Date().toISOString().replace('T', ' ').substring(0, 19) }, ...prev]);
+          setStagedFiles([]);
+          output = `[main ${hash}] ${msg}\n 2 files changed, 45 insertions(+)`;
+        }
+        break;
+      case 'push':
+        output = `Enumerating objects: 5, done.\nCounting objects: 100% (5/5), done.\nWriting objects: 100% (3/3), 482 bytes | 482.00 KiB/s, done.\nTo https://github.com/shaivika-lms/repo.git\n   a3f92b1..c8e19d4  main -> main`;
+        break;
+      case 'log':
+        output = gitCommits.map((c) => `commit ${c.hash}\nAuthor: Student Scholar <student@shaivika.edu>\nDate:   ${c.date}\n\n    ${c.msg}`).join('\n\n');
+        break;
+      case 'branch':
+        output = `* main\n  feature/ai-assessment\n  dev/sandbox`;
+        break;
+      case 'checkout':
+        output = `Switched to branch '${arg || 'main'}'`;
+        break;
+      case 'clone':
+        output = `Cloning into '${arg.split('/').pop()?.replace('.git', '') || 'repository'}'...\nremote: Enumerating objects: 142, done.\nremote: Total 142 (delta 0), reused 0 (delta 0)\nReceiving objects: 100% (142/142), 1.2MB, done.`;
+        break;
+      default:
+        output = `git: '${subCmd}' is not a valid git command. Type 'help' or 'git status'.`;
+    }
+
+    setGithubHistory((prev) => [...prev, { cmd: raw, output }]);
+    setGithubInput('');
+  };
 
   // Ref for synched editor line numbers
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -497,7 +773,7 @@ export const PracticeLab: React.FC<PracticeLabProps> = ({
                   const resolved = challengeProvider.getChallengeById(e.target.value);
                   if (resolved) setActiveChallenge(resolved);
                 }}
-                className="bg-slate-800 border border-slate-700 text-white rounded-lg py-1 px-2.5 text-[11px] font-bold outline-none cursor-pointer focus:border-sky-500 transition-colors pr-6 appearance-none"
+                className="bg-slate-800 border border-slate-700 text-white rounded-lg py-1 px-2.5 text-[11px] font-bold outline-none cursor-pointer hover:border-slate-600 transition-colors pr-6 appearance-none"
               >
                 {challengesList.map((c) => (
                   <option key={c.id} value={c.id}>{c.title}</option>
@@ -515,7 +791,7 @@ export const PracticeLab: React.FC<PracticeLabProps> = ({
             <select
               value={activeLanguage}
               onChange={(e) => setActiveLanguage(e.target.value)}
-              className="bg-slate-800 border border-slate-700 text-white rounded-lg py-1.5 px-3 text-[11px] font-bold outline-none cursor-pointer focus:border-sky-500 transition-colors pr-6 appearance-none"
+              className="bg-slate-800 border border-slate-700 text-white rounded-lg py-1.5 px-3 text-[11px] font-bold outline-none cursor-pointer hover:border-slate-600 transition-colors pr-6 appearance-none"
             >
               <option value="javascript">JavaScript</option>
               <option value="typescript">TypeScript</option>
@@ -635,38 +911,20 @@ export const PracticeLab: React.FC<PracticeLabProps> = ({
         </div>
       </div>
 
-      {/* ---------------- 2. MAIN LAYOUT CONTAINER (RESPONSIVE) ---------------- */}
-      
-      {/* Mobile Tab Stepper header */}
-      <div className="flex md:hidden bg-slate-950 border-b border-slate-800 shrink-0 text-xs font-bold text-slate-400 select-none">
-        {[
-          { id: 'description', label: 'Challenge' },
-          { id: 'editor', label: 'Editor' },
-          { id: 'info', label: 'Lab Info' },
-          { id: 'output', label: 'Output Log' }
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTabMobile(tab.id as any)}
-            className={`flex-1 py-3 text-center border-b-2 transition-all cursor-pointer ${
-              activeTabMobile === tab.id
-                ? 'border-sky-500 text-sky-400 bg-sky-950/10'
-                : 'border-transparent hover:text-white'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="flex-1 flex overflow-hidden relative">
+      <div id="practice-lab-main-container" className="flex-1 flex overflow-hidden relative">
         
         {/* LEFT PANEL: Challenge description */}
-        <aside className={`shrink-0 border-r border-slate-800 flex flex-col overflow-y-auto bg-slate-900 transition-all duration-300 relative select-text ${
-          leftPanelCollapsed ? 'w-0 border-r-0 overflow-hidden' : 'w-72 lg:w-96'
-        } ${
-          activeTabMobile === 'description' ? 'fixed inset-y-14 left-0 right-0 z-10 w-full block' : 'hidden md:flex'
-        }`}>
+        <aside
+          style={{ width: leftPanelCollapsed ? '0px' : `${leftWidthPx}px` }}
+          onCopy={handleCopyRestriction}
+          className={`shrink-0 border-r border-slate-800 flex flex-col overflow-y-auto bg-slate-900 relative select-none ${
+            isDraggingLeft ? 'transition-none' : 'transition-all duration-150'
+          } ${
+            leftPanelCollapsed ? 'w-0 border-r-0 overflow-hidden' : ''
+          } ${
+            activeTabMobile === 'description' ? 'fixed inset-y-14 left-0 right-0 z-10 w-full block' : 'hidden md:flex'
+          }`}
+        >
           {/* Section Header */}
           <div className="p-4 border-b border-slate-800 bg-slate-950/50 flex items-center justify-between sticky top-0 z-10">
             <span className="text-[10px] font-extrabold text-sky-400 tracking-widest uppercase">Challenge Prompt</span>
@@ -747,34 +1005,47 @@ export const PracticeLab: React.FC<PracticeLabProps> = ({
           </div>
         </aside>
 
+        {/* DRAGGABLE VERTICAL SPLITTER HANDLE */}
+        {!leftPanelCollapsed && (
+          <div
+            onMouseDown={() => setIsDraggingLeft(true)}
+            className={`hidden md:flex w-2 hover:w-2.5 bg-slate-900 hover:bg-sky-500 cursor-col-resize shrink-0 transition-colors items-center justify-center group border-r border-slate-800 z-10 ${
+              isDraggingLeft ? 'bg-sky-500 w-2.5' : ''
+            }`}
+            title="Drag left/right to adjust left panel width"
+          >
+            <GripVertical className="w-3.5 h-3.5 text-slate-600 group-hover:text-white" />
+          </div>
+        )}
+
         {/* Toggle Collapse Left Panel Icon Button */}
         <button
           onClick={() => setLeftPanelCollapsed(!leftPanelCollapsed)}
-          className="hidden md:flex absolute left-0 top-1/2 transform -translate-y-1/2 bg-slate-950 text-slate-400 border border-slate-800 hover:text-white hover:bg-slate-900 p-1 rounded-r-lg z-15 shadow-md items-center cursor-pointer transition-colors"
-          style={{ left: leftPanelCollapsed ? '0px' : leftPanelCollapsed ? '0px' : 'none' }}
+          className="hidden md:flex absolute top-1/2 transform -translate-y-1/2 bg-slate-950 text-slate-400 border border-slate-800 hover:text-white hover:bg-slate-900 p-1 rounded-r-lg z-20 shadow-md items-center cursor-pointer transition-colors"
+          style={{ left: leftPanelCollapsed ? '0px' : `${leftWidthPx}px` }}
           title={leftPanelCollapsed ? 'Expand Challenge Prompt' : 'Collapse Challenge Prompt'}
         >
           {leftPanelCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
 
-        {/* CENTER PANEL: Code Editor & Console Logs */}
+        {/* CENTER PANEL: Code Editor & Multi-Terminal Console */}
         <div className={`flex-1 flex flex-col overflow-hidden bg-slate-950 ${
           activeTabMobile === 'editor' ? 'block' : 'hidden md:flex'
         }`}>
           {/* Custom Code Editor */}
-          <div className="flex-1 flex overflow-hidden relative" style={{ fontSize: fontSize === 'sm' ? '11px' : fontSize === 'md' ? '13px' : '15px' }}>
+          <div className="flex-1 flex overflow-hidden relative min-h-32" style={{ fontSize: fontSize === 'sm' ? '11px' : fontSize === 'md' ? '13px' : '15px' }}>
             
             {/* Line Numbers Column */}
             <div
               ref={lineNumRef}
-              className="w-10 select-none text-right pr-2 text-slate-500 font-mono bg-slate-950 border-r border-slate-800/80 pt-3 pb-3 overflow-hidden text-right leading-relaxed h-full shrink-0"
+              className="w-10 select-none text-right pr-2 text-slate-500 font-mono bg-slate-950 border-r border-slate-800/80 pt-3 pb-3 overflow-hidden leading-relaxed h-full shrink-0"
             >
               {editorLines.map((_, idx) => (
                 <div key={idx} className="h-5">{idx + 1}</div>
               ))}
             </div>
 
-            {/* Custom Input Textarea */}
+            {/* Custom Code Textarea */}
             <textarea
               ref={textareaRef}
               value={code}
@@ -789,84 +1060,210 @@ export const PracticeLab: React.FC<PracticeLabProps> = ({
             />
           </div>
 
-          {/* Test cases & custom inputs console wrapper */}
-          <div className="h-64 border-t border-slate-800 bg-slate-900 flex flex-col justify-between shrink-0">
-            {/* Header switcher */}
-            <div className="h-10 border-b border-slate-800 bg-slate-950/40 flex items-center justify-between px-4 select-none shrink-0">
-              <div className="flex items-center gap-4 text-[10px] font-bold text-slate-400">
-                <span className="text-sky-400">CONSOLE OUTPUT</span>
-                <div className="flex items-center gap-1.5">
-                  <input
-                    type="checkbox"
-                    id="custom-input-check"
-                    checked={useCustomInput}
-                    onChange={(e) => setUseCustomInput(e.target.checked)}
-                    className="cursor-pointer rounded accent-sky-500"
-                  />
-                  <label htmlFor="custom-input-check" className="cursor-pointer hover:text-slate-200">Custom Input</label>
-                </div>
-              </div>
+          {/* DRAGGABLE HORIZONTAL SPLITTER HANDLE FOR TERMINAL */}
+          <div
+            onMouseDown={() => setIsDraggingTerminal(true)}
+            className={`h-2 hover:h-2.5 bg-slate-900 hover:bg-sky-500 cursor-row-resize shrink-0 transition-colors flex items-center justify-center group border-t border-slate-800 z-10 ${
+              isDraggingTerminal ? 'bg-sky-500 h-2.5' : ''
+            }`}
+            title="Drag up/down to adjust terminal height"
+          >
+            <GripHorizontal className="w-4 h-4 text-slate-600 group-hover:text-white" />
+          </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2">
+          {/* MULTI-TERMINAL & CONSOLE PANEL (RESIZABLE HEIGHT) */}
+          <div
+            style={{ height: `${terminalHeightPx}px` }}
+            className="border-t border-slate-800 bg-slate-900 flex flex-col justify-between shrink-0"
+          >
+            {/* Terminal Header & Mode Selector */}
+            <div className="h-10 border-b border-slate-800 bg-slate-950/60 flex items-center justify-between px-3 select-none shrink-0 overflow-x-auto">
+              <div className="flex items-center gap-1.5 font-bold text-slate-400 text-xs">
                 <button
-                  onClick={handleRunCode}
-                  disabled={isRunning || isSubmitting}
-                  className="px-3.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-lg text-[10px] transition-all flex items-center gap-1 cursor-pointer disabled:opacity-40"
+                  onClick={() => setActiveTerminalTab('console')}
+                  className={`px-3 py-1 rounded-lg text-[10px] uppercase tracking-wider font-extrabold cursor-pointer transition-all flex items-center gap-1.5 ${
+                    activeTerminalTab === 'console'
+                      ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
+                      : 'hover:bg-slate-800 text-slate-400'
+                  }`}
                 >
-                  {isRunning ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5 text-emerald-400 fill-current" />}
-                  <span>Run Code</span>
+                  <Terminal className="w-3.5 h-3.5" />
+                  <span>Console Output</span>
                 </button>
 
                 <button
-                  onClick={handleSubmitSolution}
-                  disabled={isRunning || isSubmitting}
-                  className="px-4 py-1.5 bg-sky-600 hover:bg-sky-500 text-slate-950 font-extrabold rounded-lg text-[11px] transition-all flex items-center gap-1.5 cursor-pointer shadow-md disabled:opacity-40"
+                  onClick={() => setActiveTerminalTab('linux')}
+                  className={`px-3 py-1 rounded-lg text-[10px] uppercase tracking-wider font-extrabold cursor-pointer transition-all flex items-center gap-1.5 ${
+                    activeTerminalTab === 'linux'
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                      : 'hover:bg-slate-800 text-slate-400'
+                  }`}
                 >
-                  {isSubmitting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                  <span>Submit Solution</span>
+                  <Cpu className="w-3.5 h-3.5" />
+                  <span>Linux Terminal</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTerminalTab('github')}
+                  className={`px-3 py-1 rounded-lg text-[10px] uppercase tracking-wider font-extrabold cursor-pointer transition-all flex items-center gap-1.5 ${
+                    activeTerminalTab === 'github'
+                      ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                      : 'hover:bg-slate-800 text-slate-400'
+                  }`}
+                >
+                  <GitBranch className="w-3.5 h-3.5" />
+                  <span>GitHub CLI</span>
                 </button>
               </div>
-            </div>
 
-            {/* Console Log Display / Custom Input fields */}
-            <div className="flex-1 flex overflow-hidden font-mono text-[10px] leading-relaxed text-slate-300 p-3 select-text">
-              {useCustomInput ? (
-                <div className="w-full h-full flex flex-col gap-2">
-                  <span className="text-slate-500 font-bold text-[9px] uppercase tracking-wider">Provide Custom Input Argument:</span>
-                  <textarea
-                    value={customInput}
-                    onChange={(e) => setCustomInput(e.target.value)}
-                    placeholder={activeChallenge.sampleInput}
-                    className="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-xs text-white focus:outline-none focus:border-sky-500"
-                  />
-                </div>
-              ) : (
-                <div className="flex-1 overflow-y-auto space-y-2 h-full">
-                  {execError && (
-                    <div className="bg-rose-950/40 border border-rose-900/50 p-3 rounded-2xl text-rose-400 space-y-1">
-                      <span className="font-bold block uppercase text-[9px]">Execution Error:</span>
-                      <pre className="whitespace-pre-wrap">{execError}</pre>
-                    </div>
-                  )}
+              {/* Action Buttons for Console Mode */}
+              {activeTerminalTab === 'console' && (
+                <div className="flex items-center gap-2">
+                  <div className="hidden sm:flex items-center gap-1.5 text-[10px] font-bold text-amber-400 bg-amber-950/40 border border-amber-900/60 px-2 py-0.5 rounded-lg mr-1">
+                    <input
+                      type="checkbox"
+                      id="live-autorun-check"
+                      checked={isLiveAutoRun}
+                      onChange={(e) => setIsLiveAutoRun(e.target.checked)}
+                      className="cursor-pointer rounded accent-amber-500"
+                    />
+                    <label htmlFor="live-autorun-check" className="cursor-pointer hover:text-amber-300 flex items-center gap-1">
+                      <Zap className="w-3 h-3 fill-current text-amber-400" />
+                      <span>Live Auto-Run</span>
+                    </label>
+                  </div>
 
-                  {!execError && consoleLogs && (
-                    <pre className="whitespace-pre-wrap text-slate-300">{consoleLogs}</pre>
-                  )}
+                  <div className="hidden sm:flex items-center gap-1.5 text-[10px] font-bold text-slate-400 mr-2">
+                    <input
+                      type="checkbox"
+                      id="custom-input-check"
+                      checked={useCustomInput}
+                      onChange={(e) => setUseCustomInput(e.target.checked)}
+                      className="cursor-pointer rounded accent-sky-500"
+                    />
+                    <label htmlFor="custom-input-check" className="cursor-pointer hover:text-slate-200">Custom Input</label>
+                  </div>
 
-                  {!execError && !consoleLogs && (
-                    <div className="text-slate-500 flex items-center justify-center h-full gap-2">
-                      <Info className="w-4 h-4 text-slate-600" />
-                      <span>Console outputs are empty. Click "Run Code" or "Submit Solution" to trigger.</span>
-                    </div>
-                  )}
+                  <button
+                    onClick={handleRunCode}
+                    disabled={isRunning || isSubmitting}
+                    className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-lg text-[10px] transition-all flex items-center gap-1 cursor-pointer disabled:opacity-40"
+                  >
+                    {isRunning ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5 text-emerald-400 fill-current" />}
+                    <span>Run Code</span>
+                  </button>
+
+                  <button
+                    onClick={handleSubmitSolution}
+                    disabled={isRunning || isSubmitting}
+                    className="px-3.5 py-1 bg-sky-600 hover:bg-sky-500 text-slate-950 font-extrabold rounded-lg text-[10px] transition-all flex items-center gap-1 cursor-pointer shadow-md disabled:opacity-40"
+                  >
+                    {isSubmitting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                    <span>Submit</span>
+                  </button>
                 </div>
               )}
             </div>
 
-            {/* Footer telemetries (Simulated compile logs) */}
-            <div className="h-8 border-t border-slate-800 bg-slate-950/20 flex items-center justify-between px-4 text-[9px] text-slate-500 font-bold select-none shrink-0">
-              <span className="text-slate-600">MOCK COMPILER (ONLINE)</span>
+            {/* TAB CONTENT 1: CONSOLE OUTPUT */}
+            {activeTerminalTab === 'console' && (
+              <div className="flex-1 flex overflow-hidden font-mono text-[10px] leading-relaxed text-slate-300 p-3 select-text">
+                {useCustomInput ? (
+                  <div className="w-full h-full flex flex-col gap-2">
+                    <span className="text-slate-500 font-bold text-[9px] uppercase tracking-wider">Provide Custom Input Argument:</span>
+                    <textarea
+                      value={customInput}
+                      onChange={(e) => setCustomInput(e.target.value)}
+                      placeholder={activeChallenge.sampleInput}
+                      className="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white outline-none"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex-1 overflow-y-auto space-y-2 h-full">
+                    {execError && (
+                      <div className="bg-rose-950/40 border border-rose-900/50 p-3 rounded-2xl text-rose-400 space-y-1">
+                        <span className="font-bold block uppercase text-[9px]">Execution Error:</span>
+                        <pre className="whitespace-pre-wrap">{execError}</pre>
+                      </div>
+                    )}
+
+                    {!execError && consoleLogs && (
+                      <pre className="whitespace-pre-wrap text-slate-300">{consoleLogs}</pre>
+                    )}
+
+                    {!execError && !consoleLogs && (
+                      <div className="text-slate-500 flex items-center justify-center h-full gap-2">
+                        <Info className="w-4 h-4 text-slate-600" />
+                        <span>Console outputs are empty. Click "Run Code" or "Submit Solution" to trigger.</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB CONTENT 2: LINUX BASH TERMINAL */}
+            {activeTerminalTab === 'linux' && (
+              <div className="flex-1 flex flex-col overflow-hidden bg-slate-950 p-3 font-mono text-xs select-text">
+                <div className="flex-1 overflow-y-auto space-y-2 text-slate-300 pr-1">
+                  <div className="text-slate-500 italic text-[11px]">Shaivika AI Cloud Linux Virtual Shell v6.1. Type 'help' for commands.</div>
+                  {linuxHistory.map((item, idx) => (
+                    <div key={idx} className="space-y-1">
+                      <div className="flex items-center gap-2 text-sky-400 font-bold">
+                        <span>student@kaizenq-linux:~$</span>
+                        <span className="text-white">{item.cmd}</span>
+                      </div>
+                      <pre className="text-slate-300 text-[11px] whitespace-pre-wrap pl-4 border-l border-slate-800 leading-relaxed">{item.output}</pre>
+                    </div>
+                  ))}
+                </div>
+                <form onSubmit={handleLinuxCommandSubmit} className="mt-2 flex items-center gap-2 pt-2 border-t border-slate-800 shrink-0">
+                  <span className="text-sky-400 font-bold text-xs shrink-0">student@kaizenq-linux:~$</span>
+                  <input
+                    type="text"
+                    value={linuxInput}
+                    onChange={(e) => setLinuxInput(e.target.value)}
+                    placeholder="type linux command (e.g. ls, pwd, cat package.json, systemctl)..."
+                    className="flex-1 bg-transparent border-none outline-none text-xs text-white font-mono"
+                  />
+                </form>
+              </div>
+            )}
+
+            {/* TAB CONTENT 3: GITHUB CLI TERMINAL */}
+            {activeTerminalTab === 'github' && (
+              <div className="flex-1 flex flex-col overflow-hidden bg-slate-950 p-3 font-mono text-xs select-text">
+                <div className="flex-1 overflow-y-auto space-y-2 text-slate-300 pr-1">
+                  <div className="text-slate-500 italic text-[11px]">GitHub CLI & Git Workspace Simulator. Type 'help' or 'git status'.</div>
+                  {githubHistory.map((item, idx) => (
+                    <div key={idx} className="space-y-1">
+                      <div className="flex items-center gap-2 text-purple-400 font-bold">
+                        <span>student@github-cli:~/repo (main)$</span>
+                        <span className="text-white">{item.cmd}</span>
+                      </div>
+                      <pre className="text-slate-300 text-[11px] whitespace-pre-wrap pl-4 border-l border-slate-800 leading-relaxed">{item.output}</pre>
+                    </div>
+                  ))}
+                </div>
+                <form onSubmit={handleGithubCommandSubmit} className="mt-2 flex items-center gap-2 pt-2 border-t border-slate-800 shrink-0">
+                  <span className="text-purple-400 font-bold text-xs shrink-0">student@github-cli:~/repo (main)$</span>
+                  <input
+                    type="text"
+                    value={githubInput}
+                    onChange={(e) => setGithubInput(e.target.value)}
+                    placeholder="type git command (e.g. git status, git add ., git commit -m 'feat')..."
+                    className="flex-1 bg-transparent border-none outline-none text-xs text-white font-mono"
+                  />
+                </form>
+              </div>
+            )}
+
+            {/* Footer telemetries */}
+            <div className="h-7 border-t border-slate-800 bg-slate-950/40 flex items-center justify-between px-4 text-[9px] text-slate-500 font-bold select-none shrink-0">
+              <span className="text-slate-500 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>PRACTICE IDE CLUSTER (ONLINE)</span>
+              </span>
               <div className="flex items-center gap-4">
                 {runTimeMs !== null && <span>Runtime: <span className="text-emerald-500">{runTimeMs}ms</span></span>}
                 {memoryUsageMb !== null && <span>Memory: <span className="text-emerald-500">{memoryUsageMb.toFixed(2)}MB</span></span>}
@@ -918,7 +1315,7 @@ export const PracticeLab: React.FC<PracticeLabProps> = ({
                 </div>
                 <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
                   <span className="text-[10px] text-slate-500 font-bold block uppercase">Focus Time</span>
-                  <span className="font-bold text-slate-300 mt-0.5 block flex items-center gap-1">
+                  <span className="font-bold text-slate-300 mt-0.5 flex items-center gap-1">
                     <Clock className="w-3.5 h-3.5 text-sky-400" />
                     {Math.floor((labProgress?.timeSpentSeconds || 0) / 60)}m {(labProgress?.timeSpentSeconds || 0) % 60}s
                   </span>

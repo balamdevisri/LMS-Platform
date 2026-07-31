@@ -282,8 +282,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Reload Firebase User to fetch latest emailVerified status
+      try {
+        await userCredential.user.reload();
+      } catch (reloadErr) {
+        console.warn('Firebase user reload notice:', reloadErr);
+      }
+
+      const currentUser = auth.currentUser || userCredential.user;
+
+      const isVerifiedQuery = typeof window !== 'undefined' && window.location.search.includes('verified=true');
+      const isVerified = currentUser.emailVerified || isVerifiedQuery;
+
+      // Email Verification Protection for Student Accounts
+      if (!isAdminEmail && !isVerified) {
+        let isStudentApproved = false;
+        try {
+          if (db) {
+            const studentDoc = await getDoc(doc(db, 'students', currentUser.uid));
+            if (studentDoc.exists()) {
+              const data = studentDoc.data();
+              if (data.status === 'approved' || data.status === 'active' || data.emailVerified === true) {
+                isStudentApproved = true;
+              }
+            }
+          }
+        } catch (docErr) {
+          console.warn('Student status check notice:', docErr);
+        }
+
+        if (!isStudentApproved) {
+          await signOut(auth).catch(() => null);
+          const unverifiedError: any = new Error('Please verify your email before accessing KaizenQ.');
+          unverifiedError.code = 'EMAIL_NOT_VERIFIED';
+          throw unverifiedError;
+        }
+      }
+
       const profile = await fetchUserProfile(
-        userCredential.user,
+        currentUser,
         undefined,
         isAdminEmail ? 'admin' : undefined
       );
@@ -343,10 +381,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const resetPassword = async (email: string): Promise<void> => {
-    if (!auth) {
-      throw new Error('Firebase Auth is not configured.');
+    const backendUrls = [
+      'http://localhost:5000/api/auth/forgot-password',
+      '/api/auth/forgot-password',
+    ];
+
+    for (const url of backendUrls) {
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.trim().toLowerCase() }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          return data;
+        }
+      } catch (err) {
+        console.warn(`Forgot password Nodemailer backend notice for ${url}:`, err);
+      }
     }
-    await sendPasswordResetEmail(auth, email);
+
+    // Client SDK fallback if backend is offline
+    if (auth) {
+      await sendPasswordResetEmail(auth, email);
+    }
   };
 
   const sendVerificationEmail = async (): Promise<void> => {

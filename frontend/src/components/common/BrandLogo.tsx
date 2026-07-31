@@ -14,7 +14,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
   size = 'md',
   layout = 'horizontal',
   theme = 'light',
-  showSubtitle = true,
+  showSubtitle = false,
   className = '',
 }) => {
   return (

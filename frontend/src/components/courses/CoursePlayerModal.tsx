@@ -1251,14 +1251,14 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
         : 'bg-slate-50 text-slate-900'
     }`}>
       {/* ----------------- 1. WHITE & SKY BLUE TOP NAVIGATION HEADER ----------------- */}
-      <header className={`h-16 shrink-0 border-b px-4 sm:px-8 flex items-center justify-between gap-4 z-10 shadow-xs transition-colors ${
+      <header className={`h-16 shrink-0 border-b px-3 sm:px-8 flex items-center justify-between gap-2 sm:gap-4 z-10 shadow-xs transition-colors ${
         isReadingMode ? 'bg-[#f4efe4] border-[#e2d9c8]' : 'bg-white border-sky-100'
       }`}>
-        <div className="flex items-center gap-3 sm:gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
           {/* Mobile Menu Toggle Button (Drawer) */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 rounded-xl bg-sky-50 border border-sky-200 md:hidden text-sky-700 cursor-pointer"
+            className="p-2 rounded-xl bg-sky-50 border border-sky-200 md:hidden text-sky-700 cursor-pointer shrink-0"
           >
             <MenuIcon className="w-4 h-4" />
           </button>
@@ -1266,7 +1266,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
           {/* Desktop/Tablet Collapse Sidebar Toggle Button */}
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="hidden md:flex p-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 transition-colors items-center gap-2 text-xs font-bold cursor-pointer"
+            className="hidden md:flex p-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 transition-colors items-center gap-2 text-xs font-bold cursor-pointer shrink-0"
           >
             <MenuIcon className="w-4 h-4" />
             <span className="hidden lg:inline">{sidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}</span>
@@ -1274,26 +1274,26 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 transition-colors flex items-center gap-2 text-xs font-bold cursor-pointer"
+            className="p-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 transition-colors flex items-center gap-1.5 text-xs font-bold cursor-pointer shrink-0"
           >
-            <ChevronLeft className="w-4 h-4" /> <span className="hidden sm:inline">Exit Classroom</span>
+            <ChevronLeft className="w-4 h-4" /> <span className="hidden sm:inline">Exit</span>
           </button>
 
-          <div className="h-6 w-px bg-sky-200 hidden sm:block" />
+          <div className="h-6 w-px bg-sky-200 hidden sm:block shrink-0" />
 
-          <div className="space-y-1">
-            <h1 className="font-heading font-extrabold text-xs sm:text-sm text-slate-900 truncate max-w-40 sm:max-w-xl leading-none">
+          <div className="space-y-0.5 min-w-0 flex-1">
+            <h1 className="font-heading font-extrabold text-xs sm:text-sm text-slate-900 truncate max-w-28 xs:max-w-40 sm:max-w-md lg:max-w-xl leading-tight">
               {course.title}
             </h1>
-            <span className="text-[9px] font-bold text-slate-500 block">
+            <span className="text-[9px] font-bold text-slate-500 block truncate">
               Category: {course.category}
             </span>
           </div>
 
-          <div className="h-6 w-px bg-sky-200 hidden sm:block" />
+          <div className="h-6 w-px bg-sky-200 hidden lg:block shrink-0" />
 
           {/* Upgraded Animated Progress Tracker */}
-          <div className="hidden md:flex flex-col gap-1 w-48 lg:w-60">
+          <div className="hidden lg:flex flex-col gap-1 w-44 lg:w-56 shrink-0">
             <div className="flex items-center justify-between text-[9px] font-extrabold text-slate-600 uppercase">
               <span className="text-sky-700">{progressPercent}% Completed</span>
               <span className="text-emerald-700">{completedLessonsCount}/{allLessons.length} Lessons</span>
@@ -1311,14 +1311,15 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           {/* Modules Menu Drawer Button */}
           <button
             onClick={() => setIsModulesMenuOpen(true)}
-            className="py-1.5 px-3.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-extrabold flex items-center gap-2 cursor-pointer transition-all shadow-md shadow-sky-600/20"
+            className="py-1.5 px-2.5 sm:px-3.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-extrabold flex items-center gap-1.5 cursor-pointer transition-all shadow-md shadow-sky-600/20 shrink-0"
           >
             <Layers className="w-4 h-4 text-white" />
-            <span>Modules Menu</span>
+            <span className="hidden sm:inline">Modules Menu</span>
+            <span className="sm:hidden text-[10px]">Modules</span>
           </button>
 
           {/* Reading Mode Toggle Button */}
@@ -1327,7 +1328,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
               setIsReadingMode(!isReadingMode);
               toast.info(isReadingMode ? 'Switched to Sky Blue Theme' : '📖 Sepia Reading Mode Activated!');
             }}
-            className={`py-1.5 px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
+            className={`py-1.5 px-2.5 sm:px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shrink-0 ${
               isReadingMode
                 ? 'bg-amber-100 border-amber-300 text-amber-900'
                 : 'bg-sky-50 border-sky-200 text-sky-800 hover:bg-sky-100'
@@ -1340,7 +1341,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
           {/* Resources Button */}
           <button
             onClick={() => setIsResourcesOpen(true)}
-            className="py-1.5 px-3 rounded-xl bg-sky-600 text-white hover:bg-sky-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-sm"
+            className="py-1.5 px-2.5 sm:px-3 rounded-xl bg-sky-600 text-white hover:bg-sky-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-sm shrink-0"
           >
             <FolderDown className="w-4 h-4" />
             <span className="hidden md:inline">Resources</span>
@@ -1349,7 +1350,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
           {/* Bookmark Toggle Icon Button */}
           <button
             onClick={handleToggleBookmark}
-            className={`p-2 rounded-xl border transition-all cursor-pointer ${
+            className={`p-2 rounded-xl border transition-all cursor-pointer shrink-0 ${
               isCurrentSubtopicBookmarked
                 ? 'bg-amber-50 border-amber-300 text-amber-600 shadow-2xs animate-in'
                 : 'bg-slate-50 border-slate-200 text-slate-400 hover:text-slate-600'
@@ -1365,14 +1366,14 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
               setIsNotesPanelOpen(!isNotesPanelOpen);
               setIsAiPanelOpen(false);
             }}
-            className={`py-1.5 px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
+            className={`py-1.5 px-2.5 sm:px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shrink-0 ${
               isNotesPanelOpen
                 ? 'bg-sky-100 border-sky-300 text-sky-800'
                 : 'bg-white border-sky-200 text-slate-700 hover:bg-sky-50'
             }`}
           >
             <BookOpen className="w-4 h-4 text-sky-600" />
-            <span className="hidden lg:inline">Notes & Bookmarks</span>
+            <span className="hidden lg:inline">Notes</span>
             {bookmarks.length > 0 && (
               <span className="px-1.5 py-0.5 rounded-full bg-amber-100 border border-amber-200 text-amber-800 text-[9px] font-extrabold leading-none">
                 {bookmarks.length}
@@ -1387,14 +1388,15 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
               setIsNotesPanelOpen(false);
               setIsQuizPortalOpen(false);
             }}
-            className={`py-1.5 px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
+            className={`py-1.5 px-2.5 sm:px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shrink-0 ${
               isAiPanelOpen
-                ? 'bg-emerald-100 border-emerald-300 text-emerald-800'
-                : 'bg-white border-sky-200 text-slate-700 hover:bg-sky-50'
+                ? 'bg-emerald-600 border-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                : 'bg-emerald-50 border-emerald-200/80 text-emerald-800 hover:bg-emerald-100'
             }`}
+            title="Toggle AI Tutor Companion"
           >
-            <Sparkles className="w-4 h-4 text-emerald-600 animate-pulse" />
-            <span className="hidden lg:inline">AI Tutor</span>
+            <Sparkles className={`w-4 h-4 ${isAiPanelOpen ? 'text-white' : 'text-emerald-600'} animate-pulse`} />
+            <span className="hidden sm:inline">AI Tutor</span>
           </button>
 
           {/* AI Quiz Generator Toggle Button */}
@@ -1404,25 +1406,26 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
               setIsAiPanelOpen(false);
               setIsNotesPanelOpen(false);
             }}
-            className={`py-1.5 px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
+            className={`py-1.5 px-2.5 sm:px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shrink-0 ${
               isQuizPortalOpen
-                ? 'bg-purple-100 border-purple-300 text-purple-800'
-                : 'bg-white border-sky-200 text-slate-700 hover:bg-sky-50'
+                ? 'bg-purple-600 border-purple-600 text-white shadow-md shadow-purple-600/20'
+                : 'bg-purple-50 border-purple-200/80 text-purple-800 hover:bg-purple-100'
             }`}
+            title="Toggle AI Quiz Generator"
           >
-            <Brain className="w-4 h-4 text-purple-600" />
-            <span className="hidden lg:inline">AI Quiz</span>
+            <Brain className={`w-4 h-4 ${isQuizPortalOpen ? 'text-white' : 'text-purple-600'}`} />
+            <span className="hidden sm:inline">AI Quiz</span>
           </button>
 
           {/* XP Reward Badge */}
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 font-bold text-xs">
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 font-bold text-xs shrink-0">
             <Zap className="w-3.5 h-3.5 text-amber-500 fill-current animate-bounce" />
             <span>{userXP} XP</span>
           </div>
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-slate-100 hover:bg-rose-100 hover:text-rose-700 text-slate-500 transition-colors cursor-pointer"
+            className="p-2 rounded-xl bg-slate-100 hover:bg-rose-100 hover:text-rose-700 text-slate-500 transition-colors cursor-pointer shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
@@ -1431,6 +1434,13 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
 
       {/* ----------------- 2. MAIN CLASSROOM BODY (WHITE & SKY BLUE THEME) ----------------- */}
       <div className="flex-1 flex overflow-hidden relative">
+        {/* Mobile Menu Backdrop */}
+        {mobileMenuOpen && (
+          <div
+            onClick={() => setMobileMenuOpen(false)}
+            className="fixed inset-0 z-30 bg-slate-950/60 backdrop-blur-xs md:hidden"
+          />
+        )}
         {/* LEFT SIDEBAR: Mobile Drawer / Desktop Sidebar */}
         <aside className={`shrink-0 border-r p-4 sm:p-5 flex flex-col justify-between overflow-y-auto space-y-4 transition-all duration-300 ${
           mobileMenuOpen
@@ -1697,7 +1707,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
               </div>
 
               {/* Lesson View Switcher Tabs */}
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-2">
+              <div className="flex items-center gap-2 sm:gap-3 pt-2 overflow-x-auto no-scrollbar pb-1 text-nowrap">
                 <button
                   onClick={() => setActiveTab('content')}
                   className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
@@ -1852,7 +1862,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                         : 'bg-white border-sky-100'
                     }`}
                   >
-                    <div className="flex items-center justify-between border-b border-sky-100 pb-4">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-sky-100 pb-4">
                       <div className="space-y-1">
                         <span className="px-3 py-1 rounded-lg bg-sky-100 border border-sky-200 text-sky-800 text-xs font-extrabold uppercase">
                           Subtopic {currentSubtopic.id} • Exam & Interview Target
@@ -1862,53 +1872,57 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                         </h3>
                       </div>
 
-                      <div className="flex items-center gap-3">
-                        {completedSubtopics.includes(currentSubtopic.id) ? (
-                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-[10px] font-extrabold uppercase shrink-0">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>✔ Completed</span>
-                          </div>
-                        ) : inProgressSubtopics.includes(currentSubtopic.id) ? (
-                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-[10px] font-extrabold uppercase shrink-0">
-                            <Clock className="w-3.5 h-3.5 text-amber-600" />
-                            <span>⏳ In Progress</span>
-                          </div>
-                        ) : getLessonType(currentSubtopic.id) === 'assignment' ? (
-                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-[10px] font-extrabold uppercase shrink-0">
-                            <Clock className="w-3.5 h-3.5 text-amber-500" />
-                            <span>⏳ Pending Submission</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-slate-600 text-[10px] font-extrabold uppercase shrink-0">
-                            <Circle className="w-3.5 h-3.5 text-slate-400" />
-                            <span>○ Not Started</span>
-                          </div>
-                        )}
-                      </div>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex items-center gap-3">
+                          {completedSubtopics.includes(currentSubtopic.id) ? (
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-[10px] font-extrabold uppercase shrink-0">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>✔ Completed</span>
+                            </div>
+                          ) : inProgressSubtopics.includes(currentSubtopic.id) ? (
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-[10px] font-extrabold uppercase shrink-0">
+                              <Clock className="w-3.5 h-3.5 text-amber-600" />
+                              <span>⏳ In Progress</span>
+                            </div>
+                          ) : getLessonType(currentSubtopic.id) === 'assignment' ? (
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-[10px] font-extrabold uppercase shrink-0">
+                              <Clock className="w-3.5 h-3.5 text-amber-500" />
+                              <span>⏳ Pending Submission</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-slate-600 text-[10px] font-extrabold uppercase shrink-0">
+                              <Circle className="w-3.5 h-3.5 text-slate-400" />
+                              <span>○ Not Started</span>
+                            </div>
+                          )}
+                        </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
-                        <button
-                          onClick={() => {
-                            setActiveTab('discussions');
-                            setForceOpenCreateQuestion(true);
-                            setTargetLessonId(String(currentSubtopic.id));
-                            setTargetLessonName(currentSubtopic.title);
-                            toast.info('Opening Q&A center for this lesson...');
-                          }}
-                          className="py-2 px-3.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-105 transition-all cursor-pointer text-xs font-extrabold flex items-center gap-1.5"
-                        >
-                          <HelpCircle className="w-4 h-4 text-indigo-600" />
-                          <span>Ask a Question</span>
-                        </button>
-
-                        {currentSubtopic.terminalCommand && (
+                        <div className="flex flex-wrap items-center gap-2">
                           <button
-                            onClick={() => setActiveTerminalCmd(currentSubtopic.terminalCommand!)}
-                            className="py-2 px-3.5 rounded-xl bg-black border border-slate-800 text-emerald-400 hover:bg-slate-900 transition-all cursor-pointer text-xs font-extrabold flex items-center gap-2 shadow-md"
+                            onClick={() => {
+                              setActiveTab('discussions');
+                              setForceOpenCreateQuestion(true);
+                              setTargetLessonId(String(currentSubtopic.id));
+                              setTargetLessonName(currentSubtopic.title);
+                              toast.info('Opening Q&A center for this lesson...');
+                            }}
+                            className="py-2 px-3.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 transition-all cursor-pointer text-xs font-extrabold flex items-center gap-1.5"
                           >
-                            <Terminal className="w-4 h-4 text-emerald-400" /> Launch Black Terminal Sandbox
+                            <HelpCircle className="w-4 h-4 text-indigo-600" />
+                            <span>Ask a Question</span>
                           </button>
-                        )}
+
+                          {currentSubtopic.terminalCommand && (
+                            <button
+                              onClick={() => setActiveTerminalCmd(currentSubtopic.terminalCommand!)}
+                              className="py-2 px-3.5 rounded-xl bg-black border border-slate-800 text-emerald-400 hover:bg-slate-900 transition-all cursor-pointer text-xs font-extrabold flex items-center gap-2 shadow-md"
+                            >
+                              <Terminal className="w-4 h-4 text-emerald-400" />
+                              <span className="hidden sm:inline">Launch Black Terminal Sandbox</span>
+                              <span className="sm:hidden">Terminal Sandbox</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -2322,7 +2336,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                             value={resourcesSearch}
                             onChange={(e) => setResourcesSearch(e.target.value)}
                             placeholder="Search Resources..."
-                            className="pl-9 pr-4 py-1.5 rounded-xl border border-sky-100 bg-slate-50/50 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all w-full sm:w-44"
+                            className="pl-9 pr-4 py-1.5 rounded-xl border border-sky-100 bg-slate-50/50 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 transition-all w-full sm:w-44"
                           />
                         </div>
 
@@ -2330,7 +2344,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                         <select
                           value={resourcesSort}
                           onChange={(e) => setResourcesSort(e.target.value)}
-                          className="px-3 py-1.5 rounded-xl border border-sky-100 bg-slate-50/50 text-xs text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 cursor-pointer transition-all"
+                          className="px-3 py-1.5 rounded-xl border border-sky-100 bg-slate-50/50 text-xs text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-sky-500/20 cursor-pointer transition-all"
                         >
                           <option value="newest">Sort: Newest</option>
                           <option value="oldest">Sort: Oldest</option>
@@ -2616,7 +2630,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
 
             {/* TAB: PRACTICE LAB */}
             {activeTab === 'practice-lab' && (
-              <div className="flex-1 min-h-[500px] md:h-[600px] border border-slate-800 rounded-3xl overflow-hidden shadow-2xl animate-in fade-in duration-200">
+              <div className="flex-1 min-h-125 md:h-150 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl animate-in fade-in duration-200">
                 <PracticeLab
                   lessonId={currentSubtopic?.id}
                   lessonTitle={currentSubtopic?.title}
@@ -2762,14 +2776,14 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                       value={noteInputTitle}
                       onChange={(e) => setNoteInputTitle(e.target.value)}
                       placeholder="Note title (optional)..."
-                      className="w-full p-2.5 rounded-xl border border-sky-100 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all"
+                      className="w-full p-2.5 rounded-xl border border-sky-100 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 transition-all"
                     />
                     <textarea
                       value={noteInputContent}
                       onChange={(e) => setNoteInputContent(e.target.value)}
                       placeholder="Write your study notes here..."
                       rows={3}
-                      className="w-full p-2.5 rounded-xl border border-sky-100 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all font-sans"
+                      className="w-full p-2.5 rounded-xl border border-sky-100 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 transition-all font-sans"
                     />
                   </div>
 
@@ -2985,23 +2999,27 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
           </aside>
         )}
 
-        {/* RIGHT PANEL: AI LEARNING ASSISTANT */}
+        {/* RIGHT PANEL: AI LEARNING ASSISTANT MODAL POP-UP */}
         {isAiPanelOpen && (
-          <AIAssistantPanel
-            courseId={String(course.id)}
-            courseTitle={course.title}
-            moduleId={String(activeModuleIdx + 1)}
-            moduleTitle={syllabus?.[activeModuleIdx]?.title || ''}
-            topicId={currentSubtopic?.id || ''}
-            topicTitle={currentSubtopic?.title || ''}
-            lessonId={currentSubtopic?.id || ''}
-            lessonTitle={currentSubtopic?.title || ''}
-            lessonType={getLessonType(currentSubtopic?.id || '')}
-            lessonContent={currentSubtopic?.content || ''}
-            isOpen={isAiPanelOpen}
-            onClose={() => setIsAiPanelOpen(false)}
-            isDocked={true}
-          />
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 font-['Sora'] animate-in fade-in duration-200">
+            <div className="relative w-full max-w-3xl h-[88vh] max-h-190 rounded-3xl overflow-hidden bg-white shadow-2xl border border-slate-200 flex flex-col animate-in zoom-in-95 duration-200">
+              <AIAssistantPanel
+                courseId={String(course.id)}
+                courseTitle={course.title}
+                moduleId={String(activeModuleIdx + 1)}
+                moduleTitle={syllabus?.[activeModuleIdx]?.title || ''}
+                topicId={currentSubtopic?.id || ''}
+                topicTitle={currentSubtopic?.title || ''}
+                lessonId={currentSubtopic?.id || ''}
+                lessonTitle={currentSubtopic?.title || ''}
+                lessonType={getLessonType(currentSubtopic?.id || '')}
+                lessonContent={currentSubtopic?.content || ''}
+                isOpen={isAiPanelOpen}
+                onClose={() => setIsAiPanelOpen(false)}
+                isModal={true}
+              />
+            </div>
+          </div>
         )}
       </div>
 
@@ -3257,7 +3275,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
 
       {/* ----------------- PHASE 23: RESOURCE INLINE PREVIEW MODAL ----------------- */}
       {previewingResource && (
-        <div className="fixed inset-0 z-[60] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in zoom-in-95 duration-200 font-['Sora']">
+        <div className="fixed inset-0 z-60 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in zoom-in-95 duration-200 font-['Sora']">
           <div className="bg-white border border-sky-300 rounded-3xl p-6 max-w-4xl w-full flex flex-col gap-4 shadow-2xl relative overflow-hidden text-slate-900 h-[85vh]">
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-sky-100 pb-3">

@@ -69,7 +69,7 @@ export const Footer: React.FC = () => {
 
         {/* Bottom Bar */}
         <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500 font-['Sora']">
-          <p>© {new Date().getFullYear()} Kaizen Q. Powered by Shaivika Groups. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Kaizen Q. All rights reserved.</p>
           <div className="flex items-center space-x-3">
             <a href="#" className="w-8 h-8 rounded-lg bg-white border border-sky-200 flex items-center justify-center text-slate-600 hover:text-sky-600 hover:border-sky-400 transition-all shadow-xs" aria-label="Website">
               <Globe className="w-4 h-4" />

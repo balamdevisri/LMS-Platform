@@ -5,10 +5,12 @@ import { DashboardLayout } from '@/layouts/DashboardLayout';
 import { LandingPage } from '@/pages/LandingPage';
 import { Login } from '@/pages/auth/Login';
 import { Register } from '@/pages/auth/Register';
+import { StudentSignup } from '@/pages/StudentSignup';
 import { ForgotPassword } from '@/pages/auth/ForgotPassword';
 import { VerifyEmail } from '@/pages/auth/VerifyEmail';
 import { Unauthorized } from '@/pages/auth/Unauthorized';
 import { Dashboard } from '@/pages/dashboard/Dashboard';
+import { PracticeLabPage } from '@/pages/dashboard/PracticeLabPage';
 import { Profile } from '@/pages/dashboard/Profile';
 import { CoursesList } from '@/pages/courses/CoursesList';
 import { CourseView } from '@/pages/courses/CourseView';
@@ -43,6 +45,8 @@ const router = createBrowserRouter([
     children: [
       { path: 'login', element: <Login /> },
       { path: 'register', element: <Register /> },
+      { path: 'signup', element: <StudentSignup /> },
+      { path: 'student-signup', element: <StudentSignup /> },
       { path: 'forgot-password', element: <ForgotPassword /> },
       { path: 'verify-email', element: <VerifyEmail /> },
     ],
@@ -57,6 +61,8 @@ const router = createBrowserRouter([
     ),
     children: [
       { path: 'dashboard', element: <Dashboard /> },
+      { path: 'dashboard/practice-lab', element: <PracticeLabPage /> },
+      { path: 'dashboard/sandbox', element: <PracticeLabPage /> },
       { path: 'dashboard/courses', element: <CoursesList /> },
       { path: 'dashboard/course/:slug', element: <CourseView /> },
       { path: 'dashboard/courses/:courseId', element: <CourseView /> },

@@ -25,11 +25,19 @@ try {
     db = getFirestore(app);
 
     if (typeof window !== 'undefined') {
-      isSupported().then((supported) => {
-        if (supported && app) {
-          analytics = getAnalytics(app);
-        }
-      });
+      isSupported()
+        .then((supported) => {
+          if (supported && app) {
+            try {
+              analytics = getAnalytics(app);
+            } catch (err) {
+              console.warn('Firebase Analytics initialization notice:', err);
+            }
+          }
+        })
+        .catch((err) => {
+          console.warn('Firebase Analytics isSupported check notice:', err);
+        });
     }
   }
 } catch (e) {

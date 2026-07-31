@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import authRoutes from '../modules/auth/auth.routes';
+import studentRoutes from '../modules/students/student.routes';
 import userRoutes from '../modules/users/user.routes';
 import courseRoutes from '../modules/courses/course.routes';
 import lessonRoutes from '../modules/lessons/lesson.routes';
@@ -18,6 +19,8 @@ router.get('/', (req, res) => {
 });
 
 router.use('/auth', authRoutes);
+router.use('/auth', studentRoutes);
+router.use('/students', studentRoutes);
 router.use('/users', userRoutes);
 router.use('/courses', courseRoutes);
 router.use('/lessons', lessonRoutes);

@@ -1,6 +1,7 @@
 import { db } from '@/firebase';
 import { doc, setDoc, updateDoc, deleteDoc, collection, getDocs } from 'firebase/firestore';
 import type { ICourse, CreateCourseDTO, UpdateCourseDTO, CourseFilterOptions, CoursePaginationResult, CourseLevel, CourseStatus } from '../../../shared/types/course';
+export type { ICourse };
 import { gitCourseModules } from '@/data/gitCourseFullData';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -58,10 +59,10 @@ const DEFAULT_COURSES: ICourse[] = [
       },
       {
         id: 'm3',
-        title: '🔵 Module 3: Process Management, Systemd Services & Cron Jobs',
-        description: 'Process Lifecycles (PID, htop), Termination Signals (SIGKILL), Systemctl Daemons, and Crontab Task Automation.',
+        title: '🔵 Module 3: Process Management, Log Analysis & Real-World Command Challenges',
+        description: 'Resource 7 (Linux Log Analysis Dataset: system.log, auth.log, apache.log, nginx.log, access.log, error.log) & Resource 8 (Real-World Command Challenges: largest file, failed logins, email extraction, error filtering & reports).',
         duration: '9 hrs 45 mins',
-        lessonsCount: 4,
+        lessonsCount: 5,
       },
       {
         id: 'm4',
@@ -228,17 +229,37 @@ function normalizeCourseToICourse(c: any): ICourse {
     ];
   }
 
+  const getSmartThumbnail = (title?: string, category?: string) => {
+    const t = (title || '').toLowerCase();
+    const cat = (category || '').toLowerCase();
+    if (t.includes('linux') || cat.includes('linux')) return '/assets/images/linux_course_thumbnail.png';
+    if (t.includes('git') || cat.includes('git') || t.includes('github')) return '/assets/images/github_course_banner.png';
+    if (t.includes('ai') || cat.includes('ai') || t.includes('machine learning') || t.includes('llm')) return 'https://images.unsplash.com/photo-1677442136019-21780efad99a?auto=format&fit=crop&w=800&q=80';
+    if (t.includes('devops') || cat.includes('devops') || t.includes('cloud') || t.includes('docker')) return 'https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?auto=format&fit=crop&w=800&q=80';
+    if (t.includes('react') || t.includes('web') || t.includes('javascript') || t.includes('frontend')) return 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&w=800&q=80';
+    if (t.includes('python') || t.includes('data')) return 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=800&q=80';
+    return 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=800&q=80';
+  };
+
+  const courseTitle = c.title || 'Untitled Technical Course';
+  const courseCategory = c.category || 'Linux & Systems';
+  const courseThumbnail = (c.thumbnail && typeof c.thumbnail === 'string' && c.thumbnail.trim() !== '' && !c.thumbnail.includes('placeholder'))
+    ? c.thumbnail
+    : (c.banner && typeof c.banner === 'string' && c.banner.trim() !== '' && !c.banner.includes('placeholder'))
+    ? c.banner
+    : getSmartThumbnail(courseTitle, courseCategory);
+
   const slug = c.slug || c.title?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || `course-${c.id}`;
 
   return {
     id: String(c.id),
-    title: c.title || 'Untitled Technical Course',
+    title: courseTitle,
     slug,
     shortDescription: c.shortDescription || c.description || 'Enterprise technical course.',
     description: c.description || 'Enterprise technical course with hands-on labs.',
-    thumbnail: c.thumbnail || '/assets/images/linux_course_thumbnail.png',
-    banner: c.banner || '',
-    category: c.category || 'Linux & Systems',
+    thumbnail: courseThumbnail,
+    banner: c.banner || courseThumbnail,
+    category: courseCategory,
     level: normalizedLevel,
     duration: c.duration || '20 hrs',
     language: c.language || 'English',
@@ -261,6 +282,37 @@ function normalizeCourseToICourse(c: any): ICourse {
   };
 }
 
+const isRemovedMockCourse = (c: any): boolean => {
+  if (!c) return true;
+  const id = String(c.id || '').toLowerCase();
+  const slug = String(c.slug || '').toLowerCase();
+  const title = String(c.title || c.name || '').toLowerCase();
+  const desc = String(c.description || c.shortDescription || '').toLowerCase();
+
+  const removedSlugs = [
+    'react-from-zero-to-hero',
+    'nodejs-backend-development',
+    'node-js-backend-development',
+    'ai-fundamentals',
+    'prompt-engineering',
+    'python-programming',
+    'docker-kubernetes',
+    'linux-essentials',
+    'course_ai_llm_202',
+    'course_devops_303'
+  ];
+
+  if (removedSlugs.includes(slug) || removedSlugs.includes(id)) return true;
+  if (title.includes('react') && title.includes('zero')) return true;
+  if (title.includes('node.js') || title.includes('nodejs') || title.includes('backend development')) return true;
+  if (title.includes('ai fundamentals') || desc.includes('gateway to the world of artificial intelligence')) return true;
+  if (title.includes('prompt engineering')) return true;
+  if (title.includes('python programming') && !id.includes('user')) return true;
+  if (title.includes('docker') && title.includes('kubernetes')) return true;
+
+  return false;
+};
+
 class CourseService {
   private localCacheKey = 'shaivika_courses_data';
   private enrollmentsKey = 'shaivika_user_enrollments';
@@ -273,11 +325,25 @@ class CourseService {
   }
 
   private getStoredCourses(): ICourse[] {
+    // Purge old mock courses from localStorage cache
+    ['shaivika_courses_data', 'shaivika_enterprise_courses'].forEach((key) => {
+      const stored = localStorage.getItem(key);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            const cleaned = parsed.filter((item: any) => !isRemovedMockCourse(item));
+            localStorage.setItem(key, JSON.stringify(cleaned));
+          }
+        } catch (e) {}
+      }
+    });
     const mergedList: ICourse[] = [];
     const idSet = new Set<string>();
 
     // 1. Add Default Mock Courses
     for (const c of DEFAULT_COURSES) {
+      if (isRemovedMockCourse(c)) continue;
       const normalized = this.normalizeCourseToICourse(c);
       mergedList.push(normalized);
       idSet.add(normalized.id);
@@ -290,6 +356,7 @@ class CourseService {
         const parsed = JSON.parse(adminData);
         if (Array.isArray(parsed)) {
           for (const c of parsed) {
+            if (isRemovedMockCourse(c)) continue;
             const normalized = this.normalizeCourseToICourse(c);
             const existingIdx = mergedList.findIndex(
               (item) => String(item.id) === String(normalized.id) || item.slug === normalized.slug
@@ -314,9 +381,7 @@ class CourseService {
         const parsed = JSON.parse(studentData);
         if (Array.isArray(parsed)) {
           for (const c of parsed) {
-            if (c.id === 'course_ai_llm_202' || c.id === 'course_devops_303') {
-              continue;
-            }
+            if (isRemovedMockCourse(c)) continue;
             const normalized = this.normalizeCourseToICourse(c);
             const existingIdx = mergedList.findIndex(
               (item) => String(item.id) === String(normalized.id) || item.slug === normalized.slug
@@ -339,7 +404,18 @@ class CourseService {
       }
     }
 
-    return mergedList;
+    const result = mergedList.filter((c) => !isRemovedMockCourse(c));
+
+    // Guarantee core courses (Linux Systems Mastery & Git Mastery) are ALWAYS present
+    if (!result.some((c) => String(c.id) === 'course_linux_101' || c.slug === 'linux-systems-administration-mastery' || c.title.toLowerCase().includes('linux'))) {
+      result.unshift(this.normalizeCourseToICourse(DEFAULT_COURSES[0]));
+    }
+    if (!result.some((c) => String(c.id) === 'git-github-mastery' || c.slug === 'git-github-mastery' || c.title.toLowerCase().includes('git'))) {
+      const gitCourse = DEFAULT_COURSES.find((c) => c.id === 'git-github-mastery') || DEFAULT_COURSES[1];
+      if (gitCourse) result.push(this.normalizeCourseToICourse(gitCourse));
+    }
+
+    return result;
   }
 
   private saveStoredCourses(courses: ICourse[]): void {
@@ -453,6 +529,7 @@ class CourseService {
       if (res.ok) {
         const json = await res.json();
         if (json.success && json.data) {
+          json.data.courses = (json.data.courses || []).filter((c: any) => !isRemovedMockCourse(c));
           return json.data;
         }
       }
@@ -464,7 +541,10 @@ class CourseService {
         const querySnapshot = await getDocs(collection(db, 'courses'));
         const loaded: ICourse[] = [];
         querySnapshot.forEach((docSnap) => {
-          loaded.push(this.normalizeCourseToICourse({ id: docSnap.id, ...docSnap.data() }));
+          const item = this.normalizeCourseToICourse({ id: docSnap.id, ...docSnap.data() });
+          if (!isRemovedMockCourse(item)) {
+            loaded.push(item);
+          }
         });
         if (loaded.length > 0) {
           localStorage.setItem('shaivika_courses_data', JSON.stringify(loaded));
@@ -474,7 +554,7 @@ class CourseService {
       }
     }
 
-    let list = this.getStoredCourses();
+    let list = this.getStoredCourses().filter((c) => !isRemovedMockCourse(c));
 
     if (options.status && options.status !== 'all') {
       list = list.filter((c) => c.status === options.status);

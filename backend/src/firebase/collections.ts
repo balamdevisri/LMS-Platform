@@ -1,24 +1,18 @@
-import { db } from './index';
+import { db, isFirebaseAdminInitialized } from './index';
 import * as admin from 'firebase-admin';
 
 /**
  * Safely retrieves a Firestore collection reference.
- * Throws a clear error if Firestore is not initialized.
  */
 export const getCollection = (collectionName: string): admin.firestore.CollectionReference => {
-  if (!db || typeof db.collection !== 'function') {
-    throw new Error(
-      `Firestore database has not been initialized. Please ensure your Firebase service account credentials (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY) are configured correctly in the .env file.`
-    );
-  }
   return db.collection(collectionName);
 };
 
 /**
- * Safely checks if the Firestore database is initialized.
+ * Safely checks if the real Firestore database is initialized.
  */
 export const isFirestoreInitialized = (): boolean => {
-  return Boolean(db && typeof db.collection === 'function');
+  return isFirebaseAdminInitialized();
 };
 
 /**

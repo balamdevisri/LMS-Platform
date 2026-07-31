@@ -194,10 +194,106 @@ class MockQuizEngine implements QuizGenerator, QuizEvaluator {
       }
     ],
 
+    // Git & GitHub Mastery pool
+    'git-mastery': [
+      {
+        id: 'git_e1',
+        type: 'mcq',
+        difficulty: 'Easy',
+        question: 'Which Git command initializes a new empty repository in the current directory?',
+        options: ['git init', 'git create', 'git start', 'git new'],
+        answer: 'git init',
+        explanation: '`git init` creates a hidden `.git` subdirectory containing repository metadata.',
+        learningTip: 'Use `git init` whenever creating a new local project repository.',
+        topic: 'Repository Initialization',
+        estTime: '20s'
+      },
+      {
+        id: 'git_e2',
+        type: 'tf',
+        difficulty: 'Easy',
+        question: 'True or False: The command `git add .` stages all modified and new untracked files for commit.',
+        answer: 'True',
+        explanation: '`git add .` recursively adds changes from the current working directory to the staging index.',
+        learningTip: 'Check `git status` before committing to inspect staged files.',
+        topic: 'Staging Area',
+        estTime: '20s'
+      },
+      {
+        id: 'git_e3',
+        type: 'blank',
+        difficulty: 'Easy',
+        question: 'To record staged changes into repository history with a message, run `git ________ -m "message"`.',
+        answer: 'commit',
+        explanation: '`git commit` creates a snapshot commit object with author details and commit message.',
+        learningTip: 'Write descriptive, imperative commit messages.',
+        topic: 'Commit Snapshots',
+        estTime: '20s'
+      },
+      {
+        id: 'git_m1',
+        type: 'mcq',
+        difficulty: 'Medium',
+        question: 'What is the main advantage of `git rebase` over `git merge` when updating a feature branch?',
+        options: ['It creates a clean linear commit history without merge commits', 'It runs faster without network connectivity', 'It automatically resolves all merge conflicts', 'It encrypts commit signatures'],
+        answer: 'It creates a clean linear commit history without merge commits',
+        explanation: 'Rebasing rewires feature commits onto the tip of the upstream branch, creating a clean linear timeline.',
+        learningTip: 'Never rebase public shared branches to prevent rewriting remote history.',
+        topic: 'Branching & Merging',
+        estTime: '45s'
+      },
+      {
+        id: 'git_m2',
+        type: 'ms',
+        difficulty: 'Medium',
+        question: 'Which commands safely store uncommitted local changes without losing work? (Select all that apply)',
+        options: ['git stash', 'git stash pop', 'git reset --hard HEAD', 'git checkout -b temp-branch'],
+        answer: ['git stash', 'git stash pop', 'git checkout -b temp-branch'],
+        explanation: '`git stash` shelves changes, while creating a temp branch preserves commits. `git reset --hard` destroys uncommitted work!',
+        learningTip: 'Use `git stash` to quickly switch branches without committing incomplete work.',
+        topic: 'Worktree Stash & Branches',
+        estTime: '45s'
+      },
+      {
+        id: 'git_m3',
+        type: 'code',
+        difficulty: 'Medium',
+        question: 'Write a Git command to fetch changes from all remotes and prune deleted remote-tracking branches.',
+        answer: 'git fetch --all --prune',
+        explanation: '`git fetch --all --prune` updates all remote refs and removes stale branch references.',
+        learningTip: 'Pruning cleans up local tracking references for merged/deleted remote branches.',
+        topic: 'Remote Repositories',
+        estTime: '45s'
+      },
+      {
+        id: 'git_h1',
+        type: 'mcq',
+        difficulty: 'Hard',
+        question: 'Which Git command applies the exact changes introduced by a specific commit from another branch onto your current branch?',
+        options: ['git cherry-pick <commit-hash>', 'git apply <commit-hash>', 'git merge-commit <commit-hash>', 'git rebase --onto <commit-hash>'],
+        answer: 'git cherry-pick <commit-hash>',
+        explanation: '`git cherry-pick` selects a single commit hash and applies its diff to your checked-out branch.',
+        learningTip: 'Cherry-picking is ideal for backporting bug fixes to release branches.',
+        topic: 'Cherry Pick & Patching',
+        estTime: '60s'
+      },
+      {
+        id: 'git_h2',
+        type: 'code',
+        difficulty: 'Hard',
+        question: 'Write a Git command to start an interactive rebase for the last 4 commits.',
+        answer: 'git rebase -i HEAD~4',
+        explanation: '`git rebase -i HEAD~4` opens interactive rebase editor to squash, edit, or reorder the last 4 commits.',
+        learningTip: 'Interactive rebase is essential for squashing WIP commits before submitting PRs.',
+        topic: 'Interactive Rebase',
+        estTime: '60s'
+      }
+    ],
+
     // Default Git configuration questions
     'git-config': [
       {
-        id: 'git_e1',
+        id: 'git_cfg_e1',
         type: 'mcq',
         difficulty: 'Easy',
         question: 'Which file holds user global configurations for Git?',
@@ -210,7 +306,7 @@ class MockQuizEngine implements QuizGenerator, QuizEvaluator {
         estTime: '20s'
       },
       {
-        id: 'git_m1',
+        id: 'git_cfg_m1',
         type: 'code',
         difficulty: 'Medium',
         question: 'Configure git to globally register the user email "student@shaivika.edu".',
@@ -222,7 +318,7 @@ class MockQuizEngine implements QuizGenerator, QuizEvaluator {
         estTime: '45s'
       },
       {
-        id: 'git_h1',
+        id: 'git_cfg_h1',
         type: 'mcq',
         difficulty: 'Hard',
         question: 'What is the precedence structure of Git configuration files?',
@@ -238,9 +334,9 @@ class MockQuizEngine implements QuizGenerator, QuizEvaluator {
   };
 
   async generateQuiz(
-    _courseId: string,
-    _courseTitle: string,
-    lessonId: string,
+    courseId: string,
+    courseTitle: string,
+    _lessonId: string,
     lessonTitle: string,
     _lessonContent: string,
     config: AIQuizConfig
@@ -248,11 +344,19 @@ class MockQuizEngine implements QuizGenerator, QuizEvaluator {
     // Simulate generation latency
     await new Promise((resolve) => setTimeout(resolve, 800));
 
-    // Choose pool
-    let pool = this.mockQuestionsPool[lessonId];
-    if (!pool) {
-      const poolKey = lessonTitle.toLowerCase().includes('concentric') || lessonId === '1.1.3' ? '1.1.3' : 'git-config';
-      pool = this.mockQuestionsPool[poolKey];
+    const cTitleLower = (courseTitle || '').toLowerCase();
+    const cIdLower = (courseId || '').toLowerCase();
+    const lTitleLower = (lessonTitle || '').toLowerCase();
+
+    let pool: AIQuizQuestion[] = [];
+
+    // Course-specific matching logic
+    if (cTitleLower.includes('git') || cIdLower.includes('git')) {
+      pool = [...this.mockQuestionsPool['git-mastery'], ...this.mockQuestionsPool['git-config']];
+    } else if (cTitleLower.includes('linux') || cIdLower.includes('linux') || lTitleLower.includes('concentric')) {
+      pool = [...this.mockQuestionsPool['1.1.3']];
+    } else {
+      pool = [...this.mockQuestionsPool['1.1.3'], ...this.mockQuestionsPool['git-mastery']];
     }
 
     // Filter by type & difficulty if specified (not Adaptive)

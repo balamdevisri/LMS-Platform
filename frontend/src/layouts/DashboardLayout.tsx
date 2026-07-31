@@ -3,6 +3,7 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   BookOpen,
+  Code2,
   FileText,
   Calendar,
   Award,
@@ -17,9 +18,16 @@ import {
   CheckCheck,
   Trash2,
   ExternalLink,
+  PlayCircle,
+  Brain,
+  Trophy,
+  BarChart3,
+  Activity,
+  MessageSquare,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { BrandLogo } from '@/components/common/BrandLogo';
+import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { useAuth } from '@/contexts/AuthContext';
 import { notificationService, type NotificationItem } from '@/services/notificationService';
 
@@ -81,87 +89,136 @@ export const DashboardLayout: React.FC = () => {
 
   const isAdminRoute = location.pathname.startsWith('/admin') || userProfile?.role === 'admin';
 
-  const navItems = isAdminRoute
-    ? [
-        { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
-        { name: 'Courses', href: '/admin/courses', icon: BookOpen },
-        { name: 'Students', href: '/admin/students', icon: UserCheck },
-        { name: 'Instructors', href: '/admin/instructors', icon: GraduationCap },
-        { name: 'Content Management', href: '/admin/content-management', icon: FileText },
-      ]
-    : [
-        { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  const adminNavItems = [
+    { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
+    { name: 'Courses', href: '/admin/courses', icon: BookOpen },
+    { name: 'Students', href: '/admin/students', icon: UserCheck },
+    { name: 'Instructors', href: '/admin/instructors', icon: GraduationCap },
+    { name: 'Content Management', href: '/admin/content-management', icon: FileText },
+  ];
+
+  const studentNavSections = [
+    {
+      title: 'LEARNING HUB',
+      items: [
+        { name: 'Overview Dashboard', href: '/dashboard', icon: LayoutDashboard },
         { name: 'Courses Catalog', href: '/dashboard/courses', icon: BookOpen },
-        { name: 'Assignments & Quizzes', href: '/dashboard?tab=assignments', icon: FileText },
-        { name: 'Schedule & Calendar', href: '/dashboard?tab=calendar', icon: Calendar },
-        { name: 'Certificates', href: '/dashboard?tab=certificates', icon: Award },
-      ];
+        { name: 'Continue Learning Hub', href: '/dashboard?tab=continue-learning', icon: PlayCircle },
+        { name: 'Practice Sandbox', href: '/dashboard/practice-lab', icon: Code2 },
+        { name: 'AI Assessment Center', href: '/dashboard?tab=ai-quizzes', icon: Brain },
+      ]
+    },
+    {
+      title: 'PROGRESS & GRADES',
+      items: [
+        { name: 'Quiz Scores', href: '/dashboard?tab=assignments', icon: FileText },
+        { name: 'Deadlines Calendar', href: '/dashboard?tab=calendar', icon: Calendar },
+        { name: 'Unlocked Credentials', href: '/dashboard?tab=certificates', icon: Award },
+        { name: 'Achievements & Badges', href: '/dashboard?tab=achievements', icon: Trophy },
+        { name: 'Cohort Leaderboard', href: '/dashboard?tab=leaderboard', icon: BarChart3 },
+        { name: 'Learning Analytics', href: '/dashboard?tab=analytics', icon: Activity },
+        { name: 'Discussion Center', href: '/dashboard?tab=discussions', icon: MessageSquare },
+      ]
+    }
+  ];
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-blue-600 selection:text-white">
+    <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white transition-colors duration-300">
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}
-          className="fixed inset-0 bg-slate-900/40 z-40 lg:hidden backdrop-blur-xs"
+          className="fixed inset-0 bg-slate-900/40 dark:bg-black/60 z-40 lg:hidden backdrop-blur-xs"
         />
       )}
 
-      {/* Sidebar - White Light Theme */}
+      {/* Sidebar Navigation */}
       <aside
-        className={`fixed top-0 left-0 bottom-0 w-64 bg-white text-slate-600 z-50 flex flex-col justify-between transition-transform duration-300 border-r border-slate-200 shadow-xs lg:translate-x-0 ${
+        className={`fixed top-0 left-0 bottom-0 w-64 bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-300 z-50 flex flex-col justify-between transition-all duration-300 border-r border-slate-200 dark:border-zinc-800 shadow-xs lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div>
+        <div className="flex flex-col h-full min-h-0">
           {/* Brand Header */}
-          <div className="h-16 px-5 flex items-center justify-between border-b border-slate-100">
-            <BrandLogo size="sm" showSubtitle={true} />
+          <div className="h-16 px-4 flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 shrink-0 bg-white dark:bg-zinc-900">
+            <BrandLogo size="sm" showSubtitle={true} className="shrink-0" />
             <button
               onClick={() => setSidebarOpen(false)}
-              className="lg:hidden text-slate-500 hover:text-slate-900 p-1"
+              className="lg:hidden text-slate-500 hover:text-slate-900 p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Dynamic Account Badge */}
-          <div className="px-4 py-3 border-b border-slate-100">
-            <div className="bg-sky-50/80 px-3 py-2 rounded-xl flex items-center justify-between text-xs border border-sky-200/80">
-              <span className="text-[11px] font-bold text-sky-800 uppercase tracking-wider flex items-center gap-1.5">
+          <div className="px-4 py-2.5 border-b border-slate-100 shrink-0">
+            <div className="bg-sky-50/80 px-3 py-1.5 rounded-xl flex items-center justify-between text-xs border border-sky-200/80">
+              <span className="text-[10px] font-extrabold text-sky-800 uppercase tracking-wider flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-sky-500 animate-pulse" />
                 <span>{(userProfile?.role || 'student').toUpperCase()} PORTAL</span>
               </span>
-              <span className="text-[10px] text-sky-600 font-semibold bg-white px-2 py-0.5 rounded-md border border-sky-200">
+              <span className="text-[9px] text-sky-600 font-extrabold bg-white px-2 py-0.5 rounded-md border border-sky-200">
                 Active
               </span>
             </div>
           </div>
 
           {/* Nav Items */}
-          <nav className="p-4 space-y-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive =
-                location.pathname === item.href ||
-                (item.href.includes('?') && location.search === item.href.substring(item.href.indexOf('?')));
+          <nav className="p-3 overflow-y-auto flex-1 space-y-4 scrollbar-thin scrollbar-thumb-slate-200">
+            {isAdminRoute ? (
+              <div className="space-y-1">
+                {adminNavItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = location.pathname === item.href;
+                  return (
+                    <Link
+                      key={item.name}
+                      to={item.href}
+                      onClick={() => setSidebarOpen(false)}
+                      className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-xs transition-all ${
+                        isActive
+                          ? 'bg-blue-600 text-white font-semibold shadow-md shadow-blue-500/20'
+                          : 'hover:bg-slate-100 text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                      <span>{item.name}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              studentNavSections.map((section, sIdx) => (
+                <div key={sIdx} className="space-y-1">
+                  <div className="px-3 py-1 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                    {section.title}
+                  </div>
+                  {section.items.map((item) => {
+                    const Icon = item.icon;
+                    const isActive =
+                      (item.href === '/dashboard' && (location.pathname === '/dashboard' && (location.search === '' || location.search === '?tab=overview'))) ||
+                      (item.href.includes('?') && location.search === item.href.substring(item.href.indexOf('?'))) ||
+                      (location.pathname === item.href && !item.href.includes('?'));
 
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-xs sm:text-sm transition-all ${
-                    isActive
-                      ? 'bg-blue-600 text-white font-semibold shadow-md shadow-blue-500/20'
-                      : 'hover:bg-slate-100 text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                  <span>{item.name}</span>
-                </Link>
-              );
-            })}
+                    return (
+                      <Link
+                        key={item.name}
+                        to={item.href}
+                        onClick={() => setSidebarOpen(false)}
+                        className={`flex items-center gap-2.5 px-3 py-2 rounded-xl font-semibold text-xs transition-all ${
+                          isActive
+                            ? 'bg-blue-600 text-white shadow-xs shadow-blue-500/20'
+                            : 'hover:bg-slate-100 text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                        <span className="truncate">{item.name}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ))
+            )}
           </nav>
         </div>
 
@@ -203,29 +260,35 @@ export const DashboardLayout: React.FC = () => {
       {/* Main Content Area */}
       <div className="lg:pl-64 flex-1 flex flex-col">
         {/* Top Header Bar */}
-        <header className="h-16 bg-white/80 backdrop-blur-xl border-b border-slate-200/80 px-4 sm:px-6 lg:px-8 flex items-center justify-between sticky top-0 z-30 shadow-xs">
+        <header className="h-16 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-b border-slate-200/80 dark:border-zinc-800 px-4 sm:px-6 lg:px-8 flex items-center justify-between sticky top-0 z-30 shadow-xs transition-colors duration-300">
           
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="lg:hidden text-slate-600 hover:text-slate-900 p-2 rounded-lg hover:bg-slate-100"
+              className="lg:hidden text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 cursor-pointer"
             >
               <Menu className="w-5 h-5" />
             </button>
 
+            {/* Mobile Top-Left Brand Logo */}
+            <div className="lg:hidden shrink-0 flex items-center">
+              <BrandLogo size="sm" showSubtitle={false} />
+            </div>
+
             {/* Global Search Bar */}
             <div className="relative w-48 sm:w-72 lg:w-96">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-zinc-500" />
               <input
                 type="text"
                 placeholder="Search AI modules, quizzes, assignments..."
-                className="w-full bg-slate-100 border border-slate-200 rounded-xl py-1.5 pl-9 pr-4 text-xs text-slate-900 focus:outline-hidden"
+                className="w-full bg-slate-100 dark:bg-zinc-800/80 border border-slate-200 dark:border-zinc-700 rounded-xl py-1.5 pl-9 pr-4 text-xs dark:text-zinc-100 focus:outline-hidden font-medium"
               />
             </div>
           </div>
 
           {/* Right Header Actions */}
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             
             {/* Real-Time Notifications Dropdown Popover */}
             <div className="relative">

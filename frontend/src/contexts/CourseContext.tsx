@@ -157,7 +157,7 @@ const initialDefaultCoursesRaw: CourseItem[] = [
   {
     id: 'course_linux_101',
     title: 'Linux Systems & Administration Mastery',
-    subtitle: '🐧 Linux Essentials',
+    subtitle: '🐧 Linux Systems Mastery',
     instructor: 'KaizenQ Team',
     role: 'Linux Systems Architect & AI Specialist',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
@@ -293,6 +293,116 @@ const initialDefaultCoursesRaw: CourseItem[] = [
             ]
           }
         ]
+      },
+      {
+        id: 'mod-3',
+        title: 'Module 3: Process Management, Log Analysis & Real-World Command Challenges',
+        description: 'Master background daemons, system log parsing with realistic datasets, and solve real-world administration challenges.',
+        duration: '8 hours',
+        topics: [
+          {
+            id: 'topic-3-1',
+            title: 'System Process Management & Daemons',
+            description: 'Monitor active processes, manage background jobs with ps, top, htop, and systemctl.',
+            estimatedDuration: '45 mins',
+            learningUnits: [
+              { id: 'unit-3-1-1', title: 'Managing Linux Services with Systemd', description: 'Video lesson on systemctl, journalctl, and daemon signals.', duration: '20 mins', type: 'Video' },
+              { id: 'unit-3-1-2', title: 'Process Control & Signals Lab', description: 'Practice killing rogue processes using kill, pkill, and killall.', duration: '25 mins', type: 'Assignment' }
+            ]
+          },
+          {
+            id: 'topic-3-2',
+            title: '📊 Resource 7: Linux Log Analysis Dataset',
+            description: 'A collection of realistic Linux system log files that students can use to practice searching, filtering, sorting, and extracting information using command-line tools.',
+            estimatedDuration: '60 mins',
+            learningUnits: [
+              {
+                id: 'unit-3-2-1',
+                title: 'Exploring Log Files (system.log, auth.log, apache.log, nginx.log)',
+                description: 'Hands-on reading walkthrough analyzing system.log, auth.log, apache.log, nginx.log, access.log, and error.log.',
+                duration: '30 mins',
+                type: 'Reading',
+                readingContent: `## 📊 Resource 7: Linux Log Analysis Dataset\n\n### Overview\nA collection of realistic Linux system log files that students can use to practice searching, filtering, sorting, and extracting information using command-line tools.\n\n### Files Included in Dataset:\n- 📄 **system.log**: General system event logs, kernel messages, and driver warnings.\n- 🔐 **auth.log**: Authentication logs, sshd login attempts, sudo executions, and PAM security events.\n- 🌐 **apache.log**: Apache HTTP Web server request logs and status codes.\n- 🚀 **nginx.log**: Nginx reverse proxy logs and upstream connection telemetry.\n- 📥 **access.log**: Client IP HTTP requests, user-agents, and bandwidth data.\n- ⚠️ **error.log**: Application crash tracebacks, 4xx/5xx HTTP errors, and daemon failures.\n\n---\n### 🛠️ Key Commands & Concepts:\n\n#### 1. Inspect Last 50 Lines of Auth Log\n\`\`\`bash\ntail -n 50 /var/log/auth.log\n\`\`\`\n\n#### 2. Live Monitoring of System Logs\n\`\`\`bash\ntail -f /var/log/system.log\n\`\`\`\n\n#### 3. Search HTTP 500 Errors in Web Logs\n\`\`\`bash\ngrep "HTTP/1.1 \\" 500" /var/log/nginx/access.log\n\`\`\`\n\n#### 4. Filter Critical Errors & Count Occurrences\n\`\`\`bash\ngrep -i "error" /var/log/error.log | wc -l\n\`\`\``
+              },
+              {
+                id: 'unit-3-2-2',
+                title: 'Log Extraction & Filtering Challenge',
+                description: 'Extract IP addresses, HTTP status codes, and failed authentications using grep, awk, cut, and sort.',
+                duration: '30 mins',
+                type: 'Assignment'
+              }
+            ]
+          },
+          {
+            id: 'topic-3-3',
+            title: '🎯 Resource 8: Real-World Command Challenges',
+            description: 'A series of practical challenges designed to simulate real Linux administration tasks commonly performed by system administrators and DevOps engineers.',
+            estimatedDuration: '90 mins',
+            learningUnits: [
+              {
+                id: 'unit-3-3-1',
+                title: 'Mastering Real-World Admin Commands & Workflows',
+                description: 'Step-by-step guide with highlighted concepts and production commands for real-world sysadmin tasks.',
+                duration: '40 mins',
+                type: 'Reading',
+                readingContent: `## 🎯 Resource 8: Real-World Command Challenges\n\n### Overview\nA series of practical challenges designed to simulate real Linux administration tasks commonly performed by system administrators and DevOps engineers.\n\n---\n\n### 🚀 Challenge 1: Find the Largest File\n**Goal**: Identify top 10 largest files occupying disk space in \`/var/log\` or \`/home\`.\n\n\`\`\`bash\ndf -h\ndu -ah /var/log | sort -rh | head -n 10\nfind / -type f -size +100M -exec ls -lh {} \\; 2>/dev/null\n\`\`\`\n\n---\n\n### 🔐 Challenge 2: Search Failed Login Attempts\n**Goal**: Identify brute-force SSH attacks by counting failed password attempts.\n\n\`\`\`bash\ngrep "Failed password" /var/log/auth.log | awk '{print $(NF-3)}' | sort | uniq -c | sort -nr\n\`\`\`\n\n---\n\n### 👥 Challenge 3: Count Unique Users & Logins\n**Goal**: List all active human users and unique login sessions.\n\n\`\`\`bash\ncut -d: -f1 /etc/passwd\nwho | awk '{print $1}' | sort -u | wc -l\n\`\`\`\n\n---\n\n### 📧 Challenge 4: Extract Email Addresses from Files\n**Goal**: Use RegEx with grep to extract all valid email patterns from log dumps.\n\n\`\`\`bash\ngrep -E -o "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}" /var/log/system.log | sort -u\n\`\`\`\n\n---\n\n### ⚠️ Challenge 5: Filter Error Logs & Generate Incident Reports\n**Goal**: Filter 4xx/5xx HTTP errors and generate a summary report.\n\n\`\`\`bash\nawk '$9 >= 400 {print $1, $7, $9}' /var/log/nginx/access.log | sort | uniq -c > incident_report.txt\ncat incident_report.txt\n\`\`\``
+              },
+              {
+                id: 'unit-3-3-2',
+                title: 'Real-World SysAdmin Hands-On Lab Challenge',
+                description: 'Solve the 6 real-world challenges inside the live interactive Linux terminal sandbox.',
+                duration: '50 mins',
+                type: 'Assignment'
+              }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'mod-4',
+        title: 'Module 4: User & Group Administration, Granular Permissions (ACLs) & Account Security',
+        description: 'Identity creation, usermod flags, visudo delegation rules, POSIX vs Access Control Lists (setfacl), and password aging policies (chage).',
+        duration: '8 hours',
+        topics: [
+          {
+            id: 'topic-4-1',
+            title: 'User & Group Management Architecture',
+            description: 'Explore /etc/passwd, /etc/shadow, /etc/group, and useradd/usermod lifecycle operations.',
+            estimatedDuration: '45 mins',
+            learningUnits: [
+              {
+                id: 'unit-4-1-1',
+                title: 'Module 4 Architecture & Account Security Guide',
+                description: 'Complete architecture guide covering identity creation, usermod flags, sudoers visudo, ACL setfacl, and chage password policies.',
+                duration: '35 mins',
+                type: 'Reading',
+                readingContent: `## 🛡️ Module 4 Architecture: User & Group Administration\n\n![Module 4 User Group ACL Architecture](/assets/images/linux_user_group_acl_architecture.png)\n\n### 📐 Module Architecture Overview\n\`\`\`text\nModule 4 Architecture\n├── Identity Creation (useradd, groupadd)\n├── Identity Modification (usermod, passwd)\n├── Elevated Access Control (sudo, /etc/sudoers)\n├── Granular Permissions (ACLs: setfacl, getfacl)\n└── Account Security (chage, account locking)\n\`\`\`\n\n---\n\n### 🛠️ Key Topics & Essential Commands\n\n#### 1. User & Group Management\nLinux tracks identities via core files in \`/etc/\`:\n- 📄 **\`\/etc\/passwd\`**: User account information (UID, GID, home dir, default shell).\n- 🔐 **\`\/etc\/shadow\`**: Encrypted user passwords, hash algorithms, and aging info.\n- 👥 **\`\/etc\/group\`**: Group definitions and membership arrays.\n\n| Task | Key Command | Example Command |\n| :--- | :--- | :--- |\n| **Create User** | \`useradd\` | \`sudo useradd -m -s /bin/bash devuser\` |\n| **Modify User** | \`usermod\` | \`sudo usermod -aG sysadmin devuser\` |\n| **Change Password** | \`passwd\` | \`sudo passwd devuser\` |\n| **Create Group** | \`groupadd\` | \`sudo groupadd sysadmin\` |\n| **Lock Account** | \`usermod / passwd\` | \`sudo usermod -L devuser\` or \`sudo passwd -l devuser\` |\n\n> 💡 **Pro Tip**: Always use **\`-aG\`** (append supplementary group) with \`usermod\`. Forgetting \`-a\` will replace all existing secondary groups for that user!\n\n---\n\n### 🔐 2. Privilege Delegation (\`sudo\`) & Visudo\nInstead of sharing the root password, \`sudo\` grants temporary elevated rights.\n\n![Linux Sudo Security Hardening](/assets/images/linux_sudo_security_hardening.png)\n\n> 🛡️ **Safe Editing**: Always edit the configuration file with **\`sudo visudo\`** or \`/etc/sudoers.d/\` files to prevent syntax errors that could lock you out of the server!\n\n**Syntax Rule**: \`user host=(runas_user:runas_group) commands\`\n\n\`\`\`bash\n# Example /etc/sudoers entry for a junior sysadmin\ndevuser ALL=(ALL:ALL) /usr/bin/systemctl restart nginx\n\`\`\`\n\n---\n\n### 🏷️ 3. Access Control Lists (ACLs)\nStandard POSIX permissions (\`rwx\` for Owner, Group, Other) fall short when a third entity needs distinct permissions. ACLs extend file system security.\n\n\`\`\`bash\n# View ACLs on a file\ngetfacl /var/www/html/index.html\n\n# Grant read/write to a specific user outside owner/group\nsetfacl -m u:devuser:rw- /var/www/html/index.html\n\n# Set default ACL on a directory (applies to future files created inside)\nsetfacl -d -m g:sysadmin:rwx /var/www/project\n\`\`\`\n\n---\n\n### ⏰ 4. Password & Account Aging Policies (\`chage\`)\nUse \`chage\` to enforce password rotation and expiration policies defined in \`/etc/shadow\`.\n\n\`\`\`bash\n# Force password change every 90 days, warn 7 days before\nsudo chage -M 90 -W 7 devuser\n\n# Force user to change password on next login\nsudo chage -d 0 devuser\n\n# Check current password status/aging rules\nsudo chage -l devuser\n\`\`\`\n\n---\n\n### 🧪 Real Server Example & Lab Scenario\n**Scenario**: Create an environment for a web developer named \`alex\` who needs to manage Nginx services without root access, plus shared write access to \`/var/www/app\`.\n\n#### 1️⃣ Create Group & User Account\n\`\`\`bash\nsudo groupadd webdevs\nsudo useradd -m -s /bin/bash -g webdevs alex\nsudo passwd alex\n\`\`\`\n\n#### 2️⃣ Configure Granular ACLs on Web Directory\n\`\`\`bash\nsudo setfacl -R -m u:alex:rwx /var/www/app\nsudo setfacl -R -d -m u:alex:rwx /var/www/app\n\`\`\`\n\n#### 3️⃣ Grant Passwordless Sudo for Specific System Commands\n\`\`\`bash\necho "alex ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart nginx, /usr/bin/systemctl reload nginx" | sudo tee /etc/sudoers.d/webdevs\nsudo chmod 0440 /etc/sudoers.d/webdevs\n\`\`\`\n\n#### 4️⃣ Enforce Password Rotation Policy\n\`\`\`bash\nsudo chage -M 60 -W 10 alex\n\`\`\``
+              },
+              {
+                id: 'unit-4-1-2',
+                title: 'User & Group Administration Hands-on Assignment',
+                description: 'Execute useradd, usermod -aG, setfacl, and chage policy configurations inside the interactive sandbox terminal.',
+                duration: '40 mins',
+                type: 'Assignment'
+              }
+            ]
+          },
+          {
+            id: 'topic-4-2',
+            title: 'Module 4 Knowledge Check & Final Exam',
+            description: 'Evaluate mastery of Linux identities, sudoers visudo syntax, ACL setfacl flags, and chage account security policies.',
+            estimatedDuration: '30 mins',
+            learningUnits: [
+              {
+                id: 'unit-4-2-1',
+                title: 'Module 4 Exam: User Administration, ACLs & Security',
+                description: 'Comprehensive test evaluating Module 4 command syntax, sudoers rules, and security policies.',
+                duration: '30 mins',
+                type: 'Quiz'
+              }
+            ]
+          }
+        ]
       }
     ]
   },
@@ -333,6 +443,13 @@ const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
   const map = new Map<string, CourseItem>();
   list.forEach((c) => {
     const title = (c.title || '').toLowerCase();
+    const slug = ((c as any).slug || '').toLowerCase();
+
+    // Completely remove/ignore 'Linux Essentials' sample course
+    if (title === 'linux essentials' || slug === 'linux-essentials' || String(c.id) === 'linux-essentials') {
+      return;
+    }
+
     if (
       title.includes('linux systems') ||
       title.includes('introduction to linux') ||
@@ -344,7 +461,7 @@ const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
         ...c,
         id: 'course_linux_101',
         title: 'Linux Systems & Administration Mastery',
-        subtitle: '🐧 Linux Essentials',
+        subtitle: '🐧 Linux Systems Mastery',
         thumbnail: c.thumbnail || '/assets/images/linux_course_thumbnail.png',
       };
       map.set(key, updatedItem);

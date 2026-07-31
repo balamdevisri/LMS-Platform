@@ -1,5 +1,5 @@
 export type UserRole = 'admin' | 'instructor' | 'student';
-export type UserStatus = 'Active' | 'Blocked' | 'Pending' | 'Suspended' | 'Inactive';
+export type UserStatus = 'Active' | 'Blocked' | 'Pending' | 'Suspended' | 'Inactive' | 'pending' | 'approved' | 'rejected' | 'email_verification_pending';
 export type UserProvider = 'password' | 'github.com' | string;
 
 export interface UserQuizScore {
@@ -56,7 +56,14 @@ export interface UserProfile {
   year?: string;
   college?: string;
   skills?: string[];
-  github?: string;
+  languages?: string[];
+  frameworks?: string[];
+  repoScore?: number;
+  activityScore?: number;
+  overallAIScore?: number;
+  githubUsername?: string;
+  githubUrl?: string;
+  github?: any;
   linkedin?: string;
   portfolio?: string;
   bio?: string;
@@ -65,7 +72,7 @@ export interface UserProfile {
   joinedAt?: string;
   updatedAt?: string;
   lastLogin?: string;
-  isVerified: boolean;
+  isVerified?: boolean;
   emailVerified?: boolean;
   isActive?: boolean;
   enrolledCoursesCount?: number;
@@ -80,7 +87,6 @@ export interface UserProfile {
   linuxLabProgress?: LinuxLabProgress;
   recentActivity?: UserActivityItem[];
   learningProgressPercent?: number;
-  githubUsername?: string;
 }
 
 export interface ExtendedStudentStats {
