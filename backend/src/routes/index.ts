@@ -11,6 +11,7 @@ import aiRoutes from '../modules/ai/ai.routes';
 import emailRoutes from './emailRoutes';
 import aiLmsRoutes from './aiLmsRoutes';
 import sandboxRoutes from './sandboxRoutes';
+import adminRoutes from './admin.routes';
 
 const router = Router();
 
@@ -31,5 +32,6 @@ router.use('/ai', aiRoutes);
 router.use('/email', emailRoutes);
 router.use('/ai-lms', aiLmsRoutes);
 router.use('/sandbox', sandboxRoutes);
+router.use('/admin', adminRoutes);
 
 export default router;

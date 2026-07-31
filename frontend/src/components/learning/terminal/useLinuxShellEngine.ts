@@ -56,6 +56,16 @@ function createDynamicTasks(cmds?: Array<{ command: string; description: string 
   });
 }
 
+// Helper for file timestamps in terminal
+function getDefaultFileDate(): string {
+  const d = new Date();
+  const month = d.toLocaleString('en-US', { month: 'short' });
+  const day = d.getDate();
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  return `${month} ${day} ${hours}:${minutes}`;
+}
+
 // Default initial Virtual Filesystem Root (`/`)
 const INITIAL_ROOT_VFS: VFSNode = {
   name: '',
@@ -80,7 +90,7 @@ const INITIAL_ROOT_VFS: VFSNode = {
               owner: 'student',
               group: 'student',
               size: 215,
-              updatedAt: 'Jul 25 22:00',
+              updatedAt: getDefaultFileDate(),
             },
             {
               name: 'scripts',
@@ -97,7 +107,7 @@ const INITIAL_ROOT_VFS: VFSNode = {
                   owner: 'student',
                   group: 'student',
                   size: 110,
-                  updatedAt: 'Jul 25 22:00',
+                  updatedAt: getDefaultFileDate(),
                 },
               ],
             },
@@ -335,7 +345,7 @@ export const useLinuxShellEngine = (
               owner: 'student',
               group: 'student',
               size: 0,
-              updatedAt: 'Jul 25 22:00',
+              updatedAt: getDefaultFileDate(),
             };
             parentDir.children.push(newFile);
             setVfsRoot({ ...vfsRoot });
@@ -380,7 +390,7 @@ export const useLinuxShellEngine = (
             const owner = c.owner || 'student';
             const group = c.group || 'student';
             const size = c.size || (c.type === 'dir' ? 4096 : 1024);
-            const date = c.updatedAt || 'Jul 25 22:00';
+            const date = c.updatedAt || getDefaultFileDate();
             const displayName = c.type === 'dir' ? `${c.name}/` : c.name;
             return `${perm} 1 ${owner} ${group} ${size.toString().padStart(6, ' ')} ${date} ${displayName}`;
           });
@@ -448,7 +458,7 @@ export const useLinuxShellEngine = (
               owner: 'student',
               group: 'student',
               size: text.length,
-              updatedAt: 'Jul 25 22:00',
+              updatedAt: getDefaultFileDate(),
             };
             parentDir.children.push(fileNode);
           }

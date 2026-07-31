@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { ICourse } from '../../../../shared/types/course';
 import { courseService } from '../../services/courseService';
+import { useAuth } from '@/contexts/AuthContext';
 import { Check, ShieldCheck, Bookmark, PlayCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -15,17 +16,18 @@ export const CourseSidebar: React.FC<CourseSidebarProps> = ({
   onEnrollSuccess,
   onStartCourse,
 }) => {
+  const { user, userProfile } = useAuth();
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
 
   useEffect(() => {
     const checkStatus = () => {
-      const enrolled = courseService.isCourseEnrolled(course.id);
+      const enrolled = courseService.isCourseEnrolled(course.id, user?.uid || 'default_student');
       setIsEnrolled(enrolled);
     };
     checkStatus();
-  }, [course.id]);
+  }, [course.id, user?.uid]);
 
   const handleAction = async () => {
     if (isEnrolled) {
@@ -35,10 +37,14 @@ export const CourseSidebar: React.FC<CourseSidebarProps> = ({
 
     setIsEnrolling(true);
     try {
-      const res = await courseService.enrollCourse(course.id, 'default_student');
+      const res = await courseService.enrollCourse(course.id, user?.uid || 'default_student', {
+        email: user?.email || undefined,
+        name: userProfile?.name || user?.displayName || undefined,
+        courseTitle: course.title,
+      });
       if (res.success) {
         setIsEnrolled(true);
-        toast.success(`Enrolled successfully in "${course.title}"! Click Start to begin.`);
+        toast.success(`Enrolled successfully in "${course.title}"! Confirmation email sent to your inbox.`);
         if (onEnrollSuccess) onEnrollSuccess();
         if (onStartCourse) onStartCourse();
       }

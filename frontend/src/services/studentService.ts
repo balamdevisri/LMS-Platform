@@ -399,8 +399,9 @@ class StudentService {
     }
 
     if (db && uid) {
+      const activeDb = db;
       try {
-        setDoc(doc(db, 'users', uid), {
+        const payload = {
           uid,
           fullName: newStudent.fullName,
           name: newStudent.name,
@@ -410,7 +411,8 @@ class StudentService {
           provider: newStudent.provider,
           githubUsername: newStudent.githubUsername,
           role: 'student',
-          status: 'Active',
+          status: newStudent.status || 'approved',
+          approved: true,
           branch: newStudent.branch,
           year: newStudent.year,
           college: newStudent.college,
@@ -428,7 +430,12 @@ class StudentService {
           createdAt: newStudent.createdAt,
           lastLogin: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-        }, { merge: true }).catch((err) => console.warn('Firestore setDoc notice:', err));
+        };
+
+        const uRef = doc(activeDb, 'users', uid);
+        const sRef = doc(activeDb, 'students', uid);
+        setDoc(uRef, payload, { merge: true }).catch((err) => console.warn('Firestore setDoc notice:', err));
+        setDoc(sRef, payload, { merge: true }).catch((err) => console.warn('Firestore setDoc notice:', err));
       } catch (err) {
         console.warn('Firestore sync notice:', err);
       }
@@ -455,14 +462,16 @@ class StudentService {
     this.saveLocalStudents(updated);
 
     if (db) {
+      const activeDb = db;
       try {
-        await setDoc(doc(db, 'users', newStudent.id), {
+        const payload = {
           uid: newStudent.id,
           fullName: newStudent.name,
           name: newStudent.name,
           email: newStudent.email,
           role: 'student',
           status: 'Active',
+          approved: true,
           provider,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -471,7 +480,12 @@ class StudentService {
           learningScore: 85,
           courseCount: 1,
           completedCourses: 0,
-        });
+        };
+
+        const uRef = doc(activeDb, 'users', newStudent.id);
+        const sRef = doc(activeDb, 'students', newStudent.id);
+        await setDoc(uRef, payload, { merge: true }).catch(() => null);
+        await setDoc(sRef, payload, { merge: true }).catch(() => null);
       } catch (err) {
         console.warn('Firestore add student notice:', err);
       }
@@ -486,13 +500,16 @@ class StudentService {
     this.saveLocalStudents(updated);
 
     if (db && student.id) {
+      const activeDb = db;
+      const id = student.id;
       try {
-        await updateDoc(doc(db, 'users', student.id), {
+        const payload = {
           fullName: student.name || student.fullName,
           name: student.name,
           email: student.email,
           status: student.status,
-          isActive: student.status === 'Active',
+          approved: student.status === 'approved' || student.status === 'Active' || student.approved === true,
+          isActive: student.status === 'Active' || student.status === 'approved',
           branch: student.branch,
           year: student.year,
           college: student.college,
@@ -501,7 +518,12 @@ class StudentService {
           skills: student.skills,
           provider: student.provider,
           updatedAt: new Date().toISOString(),
-        });
+        };
+
+        const uRef = doc(activeDb, 'users', id);
+        const sRef = doc(activeDb, 'students', id);
+        await updateDoc(uRef, payload).catch(() => setDoc(uRef, payload, { merge: true }));
+        await updateDoc(sRef, payload).catch(() => setDoc(sRef, payload, { merge: true }));
       } catch (err) {
         console.warn('Firestore update student notice:', err);
       }
@@ -513,10 +535,11 @@ class StudentService {
     const target = current.find((s) => s.id === id || s.uid === id);
     if (!target) return null;
 
-    const newStatus: UserStatus = target.status === 'Active' ? 'Suspended' : 'Active';
+    const newStatus: UserStatus = target.status === 'Active' || target.status === 'approved' ? 'Suspended' : 'Active';
     const updatedStudent: StudentUser = {
       ...target,
       status: newStatus,
+      approved: newStatus === 'Active',
       isActive: newStatus === 'Active',
       updatedAt: new Date().toISOString(),
     };
@@ -526,17 +549,40 @@ class StudentService {
   }
 
   async deleteStudent(id: string): Promise<void> {
+    // 1. Purge from real-time student cache
     const current = this.getLocalStudents();
-    const updated = current.filter((s) => s.id !== id && s.uid !== id);
+    const targetStudent = current.find((s) => s.id === id || s.uid === id);
+    const targetEmail = targetStudent?.email?.toLowerCase();
+    const updated = current.filter((s) => s.id !== id && s.uid !== id && (targetEmail ? s.email?.toLowerCase() !== targetEmail : true));
     this.saveLocalStudents(updated);
 
-    if (db && id) {
-      try {
-        await deleteDoc(doc(db, 'users', id));
-      } catch (err) {
-        console.warn('Firestore delete student notice:', err);
+    // 2. Purge from admin users cache
+    try {
+      const adminUsersRaw = localStorage.getItem('shaivika_admin_users_v3');
+      if (adminUsersRaw) {
+        const adminUsers = JSON.parse(adminUsersRaw);
+        if (Array.isArray(adminUsers)) {
+          const filteredAdmin = adminUsers.filter((u: any) => u.id !== id && u.uid !== id && (targetEmail ? u.email?.toLowerCase() !== targetEmail : true));
+          localStorage.setItem('shaivika_admin_users_v3', JSON.stringify(filteredAdmin));
+        }
       }
+    } catch (e) {
+      console.warn('Failed to purge student from admin users cache:', e);
     }
+
+    // 3. Parallel asynchronous backend & Firestore deletion (non-blocking)
+    const deleteTasks: Promise<any>[] = [
+      fetch(`/api/admin/student/${id}`, { method: 'DELETE' }).catch(() => null),
+    ];
+
+    if (db && id) {
+      const activeDb = db;
+      const studentId = id;
+      deleteTasks.push(deleteDoc(doc(activeDb, 'users', studentId)).catch(() => null));
+      deleteTasks.push(deleteDoc(doc(activeDb, 'students', studentId)).catch(() => null));
+    }
+
+    await Promise.allSettled(deleteTasks);
   }
 
   /**

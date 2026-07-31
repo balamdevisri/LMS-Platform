@@ -80,9 +80,13 @@ export const CourseView: React.FC = () => {
       return;
     }
     try {
-      const res = await courseService.enrollCourse(targetCourseId, userId);
+      const res = await courseService.enrollCourse(targetCourseId, userId, {
+        email: user.email || undefined,
+        name: studentName,
+        courseTitle: dynamicCourse?.title || 'Full Stack Track',
+      });
       if (res.success) {
-        toast.success(`🎉 Enrolled in course! Learning workspace unlocked.`);
+        toast.success(`🎉 Enrolled in course! Confirmation email sent to your inbox.`);
         setIsEnrolled(true);
         setIsLearningMode(true);
         setSearchParams({ mode: 'learn' });

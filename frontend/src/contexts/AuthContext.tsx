@@ -295,28 +295,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const isVerifiedQuery = typeof window !== 'undefined' && window.location.search.includes('verified=true');
       const isVerified = currentUser.emailVerified || isVerifiedQuery;
 
-      // Email Verification Protection for Student Accounts
-      if (!isAdminEmail && !isVerified) {
-        let isStudentApproved = false;
+      // Module 2 Gate: Email Verification AND Admin Approval for Student Accounts
+      if (!isAdminEmail) {
+        // 1. Email Verification Check
+        if (!isVerified) {
+          await signOut(auth).catch(() => null);
+          const unverifiedError: any = new Error('Please verify your email address before logging in.');
+          unverifiedError.code = 'EMAIL_NOT_VERIFIED';
+          throw unverifiedError;
+        }
+
+        // 2. Admin Approval Check
+        let approvalStatus = 'approved';
         try {
-          if (db) {
+          const localStudents = studentService.getLocalStudents();
+          const match = localStudents.find((s) => s.id === currentUser.uid || s.uid === currentUser.uid || s.email === currentUser.email);
+          if (match && match.status) {
+            approvalStatus = match.status;
+          } else if (db) {
             const studentDoc = await getDoc(doc(db, 'students', currentUser.uid));
             if (studentDoc.exists()) {
               const data = studentDoc.data();
-              if (data.status === 'approved' || data.status === 'active' || data.emailVerified === true) {
-                isStudentApproved = true;
-              }
+              approvalStatus = data.status || (data.approved ? 'approved' : 'pending');
             }
           }
         } catch (docErr) {
           console.warn('Student status check notice:', docErr);
         }
 
-        if (!isStudentApproved) {
+        if (approvalStatus === 'pending') {
           await signOut(auth).catch(() => null);
-          const unverifiedError: any = new Error('Please verify your email before accessing KaizenQ.');
-          unverifiedError.code = 'EMAIL_NOT_VERIFIED';
-          throw unverifiedError;
+          const pendingErr: any = new Error('Your registration application is pending administrator review and approval.');
+          pendingErr.code = 'ADMIN_APPROVAL_PENDING';
+          throw pendingErr;
+        } else if (approvalStatus === 'rejected') {
+          await signOut(auth).catch(() => null);
+          const rejectedErr: any = new Error('Your registration application was not approved by the administrator.');
+          rejectedErr.code = 'APPLICATION_REJECTED';
+          throw rejectedErr;
+        } else if (approvalStatus === 'suspended') {
+          await signOut(auth).catch(() => null);
+          const suspendedErr: any = new Error('Your student account is currently suspended by an administrator.');
+          suspendedErr.code = 'ACCOUNT_SUSPENDED';
+          throw suspendedErr;
         }
       }
 

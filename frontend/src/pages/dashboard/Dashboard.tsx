@@ -10,7 +10,6 @@ import {
   CheckCircle2,
   PlayCircle,
   ChevronRight,
-  Calendar,
   Sparkles,
   BarChart3,
   Search,
@@ -40,6 +39,8 @@ import { ShieldAlert } from 'lucide-react';
 import { courseService } from '@/services/courseService';
 import type { XPClaimRecord } from '@/services/courseService';
 import type { ICourse } from '../../../../shared/types/course';
+import { courseTimeService } from '@/services/courseTimeService';
+import { useCourseTimeTracker } from '@/hooks/useCourseTimeTracker';
 
 export const Dashboard: React.FC = () => {
   const { user, userProfile } = useAuth();
@@ -69,6 +70,18 @@ export const Dashboard: React.FC = () => {
 
   // Fetch courses and XP claims dynamically from courseService
   const activeUserId = user?.uid || 'default_student';
+
+  // Real-time Course & Platform Active Time Tracker
+  useCourseTimeTracker();
+  const [realtimeSec, setRealtimeSec] = useState<number>(() => courseTimeService.getTotalActiveSeconds(activeUserId));
+
+  useEffect(() => {
+    const handleTimeUpdate = () => {
+      setRealtimeSec(courseTimeService.getTotalActiveSeconds(activeUserId));
+    };
+    window.addEventListener('shaivika_time_updated', handleTimeUpdate);
+    return () => window.removeEventListener('shaivika_time_updated', handleTimeUpdate);
+  }, [activeUserId]);
 
   const loadDashboardData = useCallback(async () => {
     setLoadingCourses(true);
@@ -309,48 +322,34 @@ export const Dashboard: React.FC = () => {
   const totalCompletedUnitsCount = coursesProgress.reduce((acc, c) => acc + c.completedUnits, 0);
   const totalGlobalUnitsCount = coursesProgress.reduce((acc, c) => acc + c.totalUnits, 0);
 
-  // Dynamic study time calculation per day from real student course progress
+  const totalActiveLearningHours = Number(Math.max(realtimeSec / 3600, liveHoursCompleted).toFixed(1));
+
+  // Dynamic study time calculation per day from real student course active tracking
   const weeklyChartData = React.useMemo(() => {
-    let storedDailyLogs: Record<string, number> = {};
-    try {
-      const saved = localStorage.getItem(`shaivika_study_hours_${activeUserId}`);
-      if (saved) storedDailyLogs = JSON.parse(saved);
-    } catch {}
-
-    const totalHours = Math.max(14.8, liveHoursCompleted);
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-    // Dynamic distribution weights matching actual student completed units & duration
-    const weights = [0.12, 0.18, 0.14, 0.22, 0.16, 0.25, 0.20];
-    const baseDaily = totalHours / 1.27;
-
     if (chartTimeframe === '7d') {
-      const rawData = days.map((day, idx) => {
-        const logged = storedDailyLogs[day];
-        const hoursVal = logged !== undefined ? logged : Number((baseDaily * weights[idx]).toFixed(1));
-        return { day, hours: hoursVal };
-      });
-
-      const maxVal = Math.max(...rawData.map((d) => d.hours), 1);
-      return rawData.map((d) => ({
-        ...d,
-        heightPercent: Math.max(15, Math.round((d.hours / maxVal) * 100)),
+      const breakdown = courseTimeService.getWeeklyHoursBreakdown(activeUserId);
+      const maxVal = Math.max(...breakdown.map((d) => d.hours), 0.1);
+      return breakdown.map((d) => ({
+        day: d.day,
+        hours: d.hours,
+        heightPercent: d.hours > 0 ? Math.max(15, Math.round((d.hours / maxVal) * 100)) : 5,
       }));
     }
 
-    // 30-Day view breakdown dynamically calculated from course units & progress
+    // 30-Day view breakdown dynamically calculated from course units & active learning
+    const totalHours = totalActiveLearningHours;
     const weeks = [
       { day: 'Week 1', hours: Number((totalHours * 0.2).toFixed(1)) },
       { day: 'Week 2', hours: Number((totalHours * 0.25).toFixed(1)) },
       { day: 'Week 3', hours: Number((totalHours * 0.3).toFixed(1)) },
       { day: 'Week 4', hours: Number((totalHours * 0.35).toFixed(1)) },
     ];
-    const maxWeekVal = Math.max(...weeks.map((w) => w.hours), 1);
+    const maxWeekVal = Math.max(...weeks.map((w) => w.hours), 0.1);
     return weeks.map((w) => ({
       ...w,
-      heightPercent: Math.max(20, Math.round((w.hours / maxWeekVal) * 100)),
+      heightPercent: w.hours > 0 ? Math.max(20, Math.round((w.hours / maxWeekVal) * 100)) : 5,
     }));
-  }, [chartTimeframe, liveHoursCompleted, activeUserId]);
+  }, [chartTimeframe, realtimeSec, totalActiveLearningHours, activeUserId]);
   
 
 
@@ -435,7 +434,6 @@ export const Dashboard: React.FC = () => {
     overview: 'Overview Dashboard',
     'continue-learning': 'Continue Learning Hub',
     assignments: 'Quiz Scores & Gradebook',
-    calendar: 'Academic Deadlines Calendar',
     certificates: 'Unlocked Credentials',
     achievements: 'Achievements & Badges',
     leaderboard: 'Cohort Leaderboard',
@@ -566,7 +564,9 @@ export const Dashboard: React.FC = () => {
                 </div>
               </div>
               <div className="mt-3 flex items-baseline gap-2">
-                <span className="font-heading font-extrabold text-2xl text-slate-900 dark:text-white">{Math.max(14.8, liveHoursCompleted).toFixed(1)} hrs</span>
+                <span className="font-heading font-extrabold text-2xl text-slate-900 dark:text-white">
+                  {courseTimeService.formatSecondsToReadable(realtimeSec || Math.round(liveHoursCompleted * 3600))}
+                </span>
                 <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">
                   Active
                 </span>
@@ -1259,56 +1259,6 @@ export const Dashboard: React.FC = () => {
                 </table>
               </div>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* ------------------- 3. CALENDAR TAB ------------------- */}
-      {currentTab === 'calendar' && (
-        <div className="p-6 rounded-3xl border border-sky-100 bg-white space-y-6 animate-in fade-in duration-300 shadow-3xs">
-          <div className="flex items-center justify-between">
-            <h3 className="font-heading font-bold text-base text-slate-900 flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-indigo-500" />
-              <span>Academic Deadlines Scheduler</span>
-            </h3>
-            <span className="text-[10px] font-extrabold text-blue-600 bg-blue-50 border border-blue-200 px-3 py-1 rounded-full uppercase tracking-wider font-mono">
-              July 2026
-            </span>
-          </div>
-
-          <div className="grid grid-cols-7 gap-2 text-center text-xs font-bold text-slate-400 py-2 border-b border-slate-100">
-            <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
-          </div>
-
-          <div className="grid grid-cols-7 gap-2 pt-1.5">
-            {/* Blank offset days for July 2026 (starts on a Wednesday, so offset is 3 days: Sun, Mon, Tue) */}
-            {[...Array(3)].map((_, idx) => (
-              <div key={`offset-${idx}`} className="h-16 bg-slate-50/20 border border-transparent rounded-xl" />
-            ))}
-
-            {[...Array(31)].map((_, i) => {
-              const day = i + 1;
-              const isToday = day === 24; // Metadata date is July 24
-              const hasAssignment = day === 25 || day === 30; // highlights
-              
-              return (
-                <div
-                  key={day}
-                  className={`h-16 p-2 rounded-xl border flex flex-col justify-between text-xs transition-all shadow-3xs ${
-                    isToday 
-                      ? 'bg-blue-600 border-blue-600 text-white font-extrabold shadow-md shadow-blue-600/10' 
-                      : 'bg-slate-50 border-slate-250 hover:bg-slate-100'
-                  }`}
-                >
-                  <span className="font-mono">{day}</span>
-                  {hasAssignment && (
-                    <span className="text-[8px] font-bold bg-amber-500 text-white px-1.5 py-0.5 rounded truncate tracking-wide">
-                      Deadline
-                    </span>
-                  )}
-                </div>
-              );
-            })}
           </div>
         </div>
       )}

@@ -13,7 +13,7 @@ interface BrandLogoProps {
 export const BrandLogo: React.FC<BrandLogoProps> = ({
   size = 'md',
   layout = 'horizontal',
-  theme = 'light',
+  theme,
   showSubtitle = false,
   className = '',
 }) => {

@@ -7,7 +7,7 @@ export const ThemeToggle: React.FC<{ className?: string }> = ({ className = '' }
 
   return (
     <div
-      className={`inline-flex items-center p-1 rounded-full border border-slate-200/80 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-900/80 backdrop-blur-md transition-all ${className}`}
+      className={`inline-flex items-center p-1 rounded-full border border-slate-200 bg-slate-100 backdrop-blur-md transition-all dark:border-slate-800 dark:bg-slate-900 ${className}`}
     >
       <button
         type="button"
