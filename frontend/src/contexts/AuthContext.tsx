@@ -13,6 +13,7 @@ import {
   onAuthStateChanged,
   GithubAuthProvider,
   signInWithPopup,
+  linkWithPopup,
   getAdditionalUserInfo,
   fetchSignInMethodsForEmail,
   linkWithCredential,
@@ -33,6 +34,7 @@ interface AuthContextType {
   resetPassword: (email: string) => Promise<void>;
   sendVerificationEmail: () => Promise<void>;
   refreshUserProfile: () => Promise<UserProfile | null>;
+  clearAuthCaches: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -406,14 +408,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     provider.addScope('user:email');
     provider.addScope('read:user');
 
+    console.log('🔍 [AUTH AUDIT] Starting GitHub OAuth flow...', {
+      currentUser: auth.currentUser ? { uid: auth.currentUser.uid, email: auth.currentUser.email } : null,
+      projectId: auth.app.options.projectId,
+    });
+
+    // 1. If user is ALREADY signed in (e.g. Email/Password user connecting GitHub)
+    if (auth.currentUser) {
+      try {
+        console.log('🔗 [AUTH AUDIT] Attempting linkWithPopup for active user session:', auth.currentUser.email);
+        const linkResult = await linkWithPopup(auth.currentUser, provider);
+        const additionalInfo = getAdditionalUserInfo(linkResult);
+        const githubUsername = additionalInfo?.username || (linkResult.user as any).reloadUserInfo?.screenName;
+        console.log('✅ [AUTH AUDIT] linkWithPopup succeeded! GitHub handle:', githubUsername);
+
+        const profile = await fetchUserProfile(linkResult.user, githubUsername);
+        return profile;
+      } catch (linkErr: any) {
+        console.warn('⚠️ [AUTH AUDIT] linkWithPopup notice:', linkErr?.code, linkErr?.message);
+        if (linkErr.code === 'auth/credential-already-in-use') {
+          throw new Error('This GitHub account is already linked to another user profile.');
+        }
+      }
+    }
+
+    // 2. Standard OAuth Sign-in flow
     try {
       const result = await signInWithPopup(auth, provider);
       const additionalInfo = getAdditionalUserInfo(result);
       const githubUsername = additionalInfo?.username || (result.user as any).reloadUserInfo?.screenName;
 
+      console.log('✅ [AUTH AUDIT] GitHub OAuth sign-in succeeded:', {
+        uid: result.user.uid,
+        email: result.user.email,
+        githubUsername,
+      });
+
       const profile = await fetchUserProfile(result.user, githubUsername);
       return profile;
     } catch (error: any) {
+      console.error('🚨 [AUTH AUDIT] signInWithPopup error caught:', {
+        code: error.code,
+        message: error.message,
+        email: error.customData?.email || error.email,
+      });
+
       if (error.code === 'auth/account-exists-with-different-credential') {
         const pendingCred = GithubAuthProvider.credentialFromError(error);
         const email = error.customData?.email || error.email;
@@ -422,8 +461,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (email && auth) {
           try {
             existingMethods = await fetchSignInMethodsForEmail(auth, email);
+            console.log('📋 [AUTH AUDIT] Existing sign-in methods for email:', email, existingMethods);
           } catch (fetchErr) {
-            console.warn('fetchSignInMethodsForEmail notice:', fetchErr);
+            console.warn('⚠️ [AUTH AUDIT] fetchSignInMethodsForEmail notice:', fetchErr);
           }
         }
 
@@ -438,7 +478,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const customErr: any = new Error(
           existingMethods.includes('password')
-            ? 'This email already exists. Please login using your password first to link your GitHub account.'
+            ? `An account with email "${email}" already exists. Please login using your password first to link your GitHub account.`
             : `An account already exists with a different sign-in credential for ${email || 'this email'}. Please sign in with your primary credential.`
         );
         customErr.code = 'auth/account-exists-with-different-credential';
@@ -457,6 +497,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     setUser(null);
     setUserProfile(null);
+  };
+
+  const clearAuthCaches = async (): Promise<void> => {
+    try {
+      if (auth) {
+        await signOut(auth).catch(() => null);
+      }
+      if (typeof window !== 'undefined') {
+        sessionStorage.clear();
+        localStorage.removeItem('shaivika_user');
+        localStorage.removeItem('shaivika_realtime_students_v3');
+        localStorage.removeItem('shaivika_admin_users_v3');
+        if ('indexedDB' in window) {
+          indexedDB.deleteDatabase('firebaseLocalStorageDb');
+        }
+      }
+      setUser(null);
+      setUserProfile(null);
+      console.log('🧹 [AUTH AUDIT] All auth persistence, local storage, and session caches cleared cleanly.');
+    } catch (e) {
+      console.warn('Clear auth caches notice:', e);
+    }
   };
 
   const resetPassword = async (email: string): Promise<void> => {
@@ -514,6 +576,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         resetPassword,
         sendVerificationEmail,
         refreshUserProfile,
+        clearAuthCaches,
       }}
     >
       {children}
