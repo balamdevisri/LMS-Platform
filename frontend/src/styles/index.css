@@ -136,3 +136,43 @@ html.dark ::-webkit-scrollbar-thumb {
 ::-webkit-scrollbar-thumb:hover {
   background: #6366F1;
 }
+
+/* Global Dark Mode High-Contrast Rules */
+html.dark body {
+  color: #F8FAFC !important;
+}
+
+html.dark h1,
+html.dark h2,
+html.dark h3,
+html.dark h4,
+html.dark h5,
+html.dark h6 {
+  color: #FFFFFF !important;
+}
+
+html.dark .text-slate-900,
+html.dark .text-slate-800,
+html.dark .text-slate-700 {
+  color: #F8FAFC !important;
+}
+
+html.dark .text-slate-600,
+html.dark .text-slate-500 {
+  color: #CBD5E1 !important;
+}
+
+html.dark .bg-white {
+  background-color: #18181B !important;
+}
+
+html.dark .bg-slate-50 {
+  background-color: #09090B !important;
+}
+
+html.dark .border-slate-200,
+html.dark .border-slate-100,
+html.dark .border-sky-100 {
+  border-color: #27272A !important;
+}
+
