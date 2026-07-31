@@ -421,14 +421,14 @@ export const Dashboard: React.FC = () => {
               </>
             )}
           </div>
-          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-slate-900 flex items-center gap-3">
+          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-slate-900 dark:text-white flex items-center gap-3">
             {currentTab === 'overview' ? (
               <span>Welcome back, {userProfile?.name?.split(' ')[0] || user?.displayName?.split(' ')[0] || 'Scholar'} 👋</span>
             ) : (
               <span>{tabLabelMap[currentTab] || 'Dashboard View'}</span>
             )}
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 mt-1 font-medium">
             {currentTab === 'overview'
               ? 'Track learning time, complete pending assessments, and print verified digital credentials.'
               : `Viewing dedicated page for ${tabLabelMap[currentTab] || currentTab}.`}
@@ -440,16 +440,16 @@ export const Dashboard: React.FC = () => {
             <button
               type="button"
               onClick={() => setSearchParams({ tab: 'overview' })}
-              className="px-4 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-700 hover:text-blue-600 hover:bg-blue-50/50 hover:border-blue-300 font-bold text-xs shadow-3xs flex items-center gap-2 cursor-pointer transition-all"
+              className="px-4 py-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-slate-300 dark:border-zinc-700 text-slate-700 dark:text-zinc-200 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-slate-50 dark:hover:bg-zinc-800 font-bold text-xs shadow-3xs flex items-center gap-2 cursor-pointer transition-all"
             >
-              <ArrowLeft className="w-4 h-4 text-blue-600" />
+              <ArrowLeft className="w-4 h-4 text-purple-600 dark:text-purple-400" />
               <span>Back to Main Menu</span>
             </button>
           )}
 
           <Link
             to="/admin/courses"
-            className="btn-blue-primary text-xs py-2.5 px-4 shadow-md shadow-blue-500/10 flex items-center gap-1.5 font-bold cursor-pointer"
+            className="btn-blue-primary text-xs py-2.5 px-4 shadow-md shadow-purple-500/10 flex items-center gap-1.5 font-bold cursor-pointer"
           >
             <BookOpen className="w-4 h-4" />
             <span>Browse Syllabus Editor</span>
@@ -465,62 +465,62 @@ export const Dashboard: React.FC = () => {
           
           {/* Top 4 Stat Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="p-5 rounded-3xl border border-sky-100 bg-white/95 shadow-xs flex flex-col justify-between space-y-3">
-              <div className="flex items-center justify-between text-xs text-slate-400 font-bold uppercase tracking-wider">
+            <div className="p-5 rounded-3xl border border-sky-100 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 shadow-xs flex flex-col justify-between space-y-3">
+              <div className="flex items-center justify-between text-xs text-slate-400 dark:text-zinc-400 font-bold uppercase tracking-wider">
                 <span>Recent Enrolled</span>
-                <BookOpen className="w-4 h-4 text-blue-600" />
+                <BookOpen className="w-4 h-4 text-purple-600 dark:text-purple-400" />
               </div>
               <div className="mt-3 flex items-baseline gap-2">
-                <span className="font-heading font-extrabold text-2xl text-slate-900">{enrolledCourses.length}</span>
-                <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">
+                <span className="font-heading font-extrabold text-2xl text-slate-900 dark:text-white">{enrolledCourses.length}</span>
+                <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">
                   Active
                 </span>
               </div>
             </div>
 
             {/* Total Claimed XP Points Card */}
-            <div className="glass-card-light p-5 border-l-4 border-l-amber-500 bg-white">
+            <div className="glass-card-light p-5 border-l-4 border-l-amber-500 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Claimed XP</span>
-                <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Total Claimed XP</span>
+                <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-200 dark:border-amber-800">
                   <Zap className="w-4 h-4 text-amber-500 fill-current" />
                 </div>
               </div>
               <div className="mt-3 flex items-baseline gap-2">
-                <span className="font-heading font-extrabold text-2xl text-slate-900">{totalXP} XP</span>
-                <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md">
+                <span className="font-heading font-extrabold text-2xl text-slate-900 dark:text-white">{totalXP} XP</span>
+                <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-800">
                   Level {Math.floor(totalXP / 100) + 1} Specialist
                 </span>
               </div>
             </div>
 
-            <div className="glass-card-light p-5 border-l-4 border-l-purple-600 bg-white">
+            <div className="glass-card-light p-5 border-l-4 border-l-purple-600 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Certificates</span>
-                <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Certificates</span>
+                <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-300 flex items-center justify-center border border-purple-200 dark:border-purple-800">
                   <Award className="w-4 h-4" />
                 </div>
               </div>
               <div className="mt-3 flex items-baseline gap-2">
-                <span className="font-heading font-extrabold text-2xl text-slate-900">
+                <span className="font-heading font-extrabold text-2xl text-slate-900 dark:text-white">
                   {completedCoursesCount} Earned
                 </span>
-                <span className="text-[11px] font-semibold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md">
+                <span className="text-[11px] font-semibold text-purple-600 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 px-2 py-0.5 rounded-md border border-purple-200 dark:border-purple-800">
                   {completedCoursesCount > 0 ? 'Verified' : 'Locked'}
                 </span>
               </div>
             </div>
 
-            <div className="glass-card-light p-5 border-l-4 border-l-emerald-500 bg-white">
+            <div className="glass-card-light p-5 border-l-4 border-l-emerald-500 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Learning Time</span>
-                <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Learning Time</span>
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-300 flex items-center justify-center border border-emerald-200 dark:border-emerald-800">
                   <Clock className="w-4 h-4 text-emerald-500" />
                 </div>
               </div>
               <div className="mt-3 flex items-baseline gap-2">
-                <span className="font-heading font-extrabold text-2xl text-slate-900">{Math.max(14.8, liveHoursCompleted).toFixed(1)} hrs</span>
-                <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">
+                <span className="font-heading font-extrabold text-2xl text-slate-900 dark:text-white">{Math.max(14.8, liveHoursCompleted).toFixed(1)} hrs</span>
+                <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">
                   Active
                 </span>
               </div>
@@ -576,40 +576,40 @@ export const Dashboard: React.FC = () => {
                     return (
                       <div
                         key={course.id}
-                        className="glass-card-light p-6 flex flex-col justify-between space-y-4 bg-white rounded-2xl border border-slate-200 shadow-xs hover:border-blue-300 transition-all"
+                        className="glass-card-light p-6 flex flex-col justify-between space-y-4 bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-xs hover:border-purple-300 dark:hover:border-purple-600 transition-all"
                       >
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-bold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
+                            <span className="text-[11px] font-bold text-purple-600 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 px-2.5 py-0.5 rounded-full border border-purple-200 dark:border-purple-800">
                               {course.category}
                             </span>
-                            <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                            <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
                               Saved Checkpoint Active
                             </span>
                           </div>
 
-                          <h4 className="font-heading font-bold text-base text-slate-900 leading-snug">
+                          <h4 className="font-heading font-bold text-base text-slate-900 dark:text-white leading-snug">
                             {course.title}
                           </h4>
                           
                           {/* Saved Resume Position Indicator */}
-                          <div className="bg-sky-50 border border-sky-200/80 rounded-xl p-2.5 text-xs text-slate-700 flex items-center gap-2">
-                            <Clock className="w-4 h-4 text-sky-600 shrink-0" />
+                          <div className="bg-sky-50 dark:bg-zinc-800/80 border border-sky-200/80 dark:border-zinc-700 rounded-xl p-2.5 text-xs text-slate-700 dark:text-zinc-300 flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
                             <div>
-                              <span className="font-bold text-slate-900">Last Position: </span>
-                              <span className="text-sky-700 font-medium">Module {lastModule} ➔ {lastSubtopicTitle}</span>
+                              <span className="font-bold text-slate-900 dark:text-zinc-100">Last Position: </span>
+                              <span className="text-purple-700 dark:text-purple-300 font-medium">Module {lastModule} ➔ {lastSubtopicTitle}</span>
                             </div>
                           </div>
                         </div>
 
                         <div className="space-y-1">
-                          <div className="flex justify-between text-xs font-semibold text-slate-700">
+                          <div className="flex justify-between text-xs font-semibold text-slate-700 dark:text-zinc-300">
                             <span>Overall Track Completion</span>
-                            <span className="text-blue-600">{dynamicProgress}% Completed</span>
+                            <span className="text-purple-600 dark:text-purple-400">{dynamicProgress}% Completed</span>
                           </div>
-                          <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+                          <div className="w-full h-2.5 bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden border border-slate-200 dark:border-zinc-700">
                             <div
-                              className="h-full bg-linear-to-r from-blue-500 to-indigo-600 transition-all duration-500"
+                              className="h-full bg-linear-to-r from-purple-600 to-indigo-500 transition-all duration-500"
                               style={{ width: `${dynamicProgress}%` }}
                             />
                           </div>
@@ -633,23 +633,23 @@ export const Dashboard: React.FC = () => {
           {/* SVG Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Weekly Learning Activity SVG Chart */}
-            <div className="lg:col-span-12 p-6 rounded-3xl border border-sky-100 bg-white space-y-4 shadow-3xs">
+            <div className="lg:col-span-12 p-6 rounded-3xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 space-y-4 shadow-3xs">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-heading font-bold text-base text-slate-900">Study Hours & AI Engagement</h3>
-                  <p className="text-xs text-slate-500">Weekly activity curve across active modules</p>
+                  <h3 className="font-heading font-bold text-base text-slate-900 dark:text-white">Study Hours & AI Engagement</h3>
+                  <p className="text-xs text-slate-500 dark:text-zinc-400">Weekly activity curve across active modules</p>
                 </div>
-                <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg border border-blue-200">
+                <span className="text-[10px] font-bold bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-300 px-2.5 py-1 rounded-lg border border-purple-200 dark:border-purple-800">
                   Last 7 Days
                 </span>
               </div>
 
               {/* Chart Graphic */}
-              <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-200/60">
-                <svg className="w-full h-44 text-blue-600" viewBox="0 0 500 120" fill="none">
+              <div className="bg-slate-50/50 dark:bg-zinc-950/80 p-4 rounded-2xl border border-slate-200/60 dark:border-zinc-800">
+                <svg className="w-full h-44 text-purple-600 dark:text-purple-400" viewBox="0 0 500 120" fill="none">
                   <path
                     d="M 0 100 Q 60 20, 120 70 T 240 30 T 360 80 T 500 15"
-                    stroke="#3B82F6"
+                    stroke="#9333EA"
                     strokeWidth="3"
                     fill="none"
                   />
@@ -660,12 +660,12 @@ export const Dashboard: React.FC = () => {
                   />
                   <defs>
                     <linearGradient id="chartBlueAreaLight" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#3B82F6" />
-                      <stop offset="100%" stopColor="#F8FAFC" />
+                      <stop offset="0%" stopColor="#9333EA" />
+                      <stop offset="100%" stopColor="#09090B" />
                     </linearGradient>
                   </defs>
                 </svg>
-                <div className="flex justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-200">
+                <div className="flex justify-between text-[11px] text-slate-500 dark:text-zinc-400 pt-2 border-t border-slate-200 dark:border-zinc-800">
                   <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
                 </div>
               </div>
@@ -673,13 +673,13 @@ export const Dashboard: React.FC = () => {
           </div>
 
           {/* DYNAMIC: Claimed Experience (XP) breakdown & logs */}
-          <div className="bg-white/95 border border-amber-200/80 rounded-3xl p-6 space-y-4 shadow-xs">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-100 pb-3">
+          <div className="bg-white/95 dark:bg-zinc-900/95 border border-amber-200/80 dark:border-zinc-800 rounded-3xl p-6 space-y-4 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-100 dark:border-zinc-800 pb-3">
               <div>
-                <h3 className="font-heading font-bold text-base text-slate-900 flex items-center gap-1.5">
+                <h3 className="font-heading font-bold text-base text-slate-900 dark:text-white flex items-center gap-1.5">
                   <Zap className="w-5 h-5 text-amber-500 fill-current animate-pulse" /> Claimed Experience (XP) breakdown & logs
                 </h3>
-                <p className="text-xs text-slate-500 font-medium">Verify your live activity logs and claim history.</p>
+                <p className="text-xs text-slate-500 dark:text-zinc-400 font-medium">Verify your live activity logs and claim history.</p>
               </div>
               <div className="text-right shrink-0">
                 <span className="text-xs font-bold text-slate-400 uppercase">Current Level</span>
