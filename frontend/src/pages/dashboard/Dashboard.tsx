@@ -150,6 +150,30 @@ export const Dashboard: React.FC = () => {
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'in-progress' | 'completed' | 'recent'>('all');
   const [selectedSort, setSelectedSort] = useState<'recent-opened' | 'recent-updated' | 'alpha' | 'high-progress' | 'low-progress'>('recent-opened');
 
+  // Interactive Activity Chart State
+  const [chartTimeframe, setChartTimeframe] = useState<'7d' | '30d'>('7d');
+  const [hoveredDayIndex, setHoveredDayIndex] = useState<number | null>(3);
+
+  const weeklyChartData = React.useMemo(() => {
+    if (chartTimeframe === '7d') {
+      return [
+        { day: 'Mon', hours: 2.8, aiChats: 14, heightPercent: 45 },
+        { day: 'Tue', hours: 4.5, aiChats: 26, heightPercent: 72 },
+        { day: 'Wed', hours: 3.2, aiChats: 18, heightPercent: 50 },
+        { day: 'Thu', hours: 5.8, aiChats: 38, heightPercent: 92 },
+        { day: 'Fri', hours: 4.1, aiChats: 22, heightPercent: 65 },
+        { day: 'Sat', hours: 6.4, aiChats: 45, heightPercent: 100 },
+        { day: 'Sun', hours: 5.0, aiChats: 32, heightPercent: 80 },
+      ];
+    }
+    return [
+      { day: 'Week 1', hours: 18.5, aiChats: 110, heightPercent: 60 },
+      { day: 'Week 2', hours: 24.2, aiChats: 165, heightPercent: 82 },
+      { day: 'Week 3', hours: 28.0, aiChats: 190, heightPercent: 95 },
+      { day: 'Week 4', hours: 31.5, aiChats: 215, heightPercent: 100 },
+    ];
+  }, [chartTimeframe]);
+
   // Bookmarks & Activities
   const [savedLessons, setSavedLessons] = useState<any[]>([]);
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
@@ -630,43 +654,107 @@ export const Dashboard: React.FC = () => {
             )
           )}
 
-          {/* SVG Charts */}
+          {/* DYNAMIC INTERACTIVE CHARTS */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Weekly Learning Activity SVG Chart */}
             <div className="lg:col-span-12 p-6 rounded-3xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 space-y-4 shadow-3xs">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h3 className="font-heading font-bold text-base text-slate-900 dark:text-white">Study Hours & AI Engagement</h3>
-                  <p className="text-xs text-slate-500 dark:text-zinc-400">Weekly activity curve across active modules</p>
+                  <h3 className="font-heading font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                    <Activity className="w-4.5 h-4.5 text-purple-600 dark:text-purple-400" />
+                    <span>Study Hours & AI Engagement</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-zinc-400 font-medium">Hover over any bar to inspect daily study hours & AI mentor prompt count</p>
                 </div>
-                <span className="text-[10px] font-bold bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-300 px-2.5 py-1 rounded-lg border border-purple-200 dark:border-purple-800">
-                  Last 7 Days
-                </span>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setChartTimeframe('7d')}
+                    className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      chartTimeframe === '7d'
+                        ? 'bg-purple-600 text-white shadow-xs'
+                        : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700'
+                    }`}
+                  >
+                    Last 7 Days
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setChartTimeframe('30d')}
+                    className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      chartTimeframe === '30d'
+                        ? 'bg-purple-600 text-white shadow-xs'
+                        : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700'
+                    }`}
+                  >
+                    Last 30 Days
+                  </button>
+                </div>
               </div>
 
-              {/* Chart Graphic */}
-              <div className="bg-slate-50/50 dark:bg-zinc-950/80 p-4 rounded-2xl border border-slate-200/60 dark:border-zinc-800">
-                <svg className="w-full h-44 text-purple-600 dark:text-purple-400" viewBox="0 0 500 120" fill="none">
-                  <path
-                    d="M 0 100 Q 60 20, 120 70 T 240 30 T 360 80 T 500 15"
-                    stroke="#9333EA"
-                    strokeWidth="3"
-                    fill="none"
-                  />
-                  <path
-                    d="M 0 100 Q 60 20, 120 70 T 240 30 T 360 80 T 500 15 V 120 H 0 Z"
-                    fill="url(#chartBlueAreaLight)"
-                    opacity="0.15"
-                  />
-                  <defs>
-                    <linearGradient id="chartBlueAreaLight" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#9333EA" />
-                      <stop offset="100%" stopColor="#09090B" />
-                    </linearGradient>
-                  </defs>
-                </svg>
-                <div className="flex justify-between text-[11px] text-slate-500 dark:text-zinc-400 pt-2 border-t border-slate-200 dark:border-zinc-800">
-                  <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+              {/* Dynamic Interactive Chart Render */}
+              <div className="bg-slate-50/50 dark:bg-zinc-950/80 p-6 rounded-2xl border border-slate-200/60 dark:border-zinc-800 space-y-6">
+                
+                {/* Active Tooltip Details */}
+                {hoveredDayIndex !== null && weeklyChartData[hoveredDayIndex] && (
+                  <div className="p-3 bg-white dark:bg-zinc-900 border border-purple-200 dark:border-purple-800/80 rounded-2xl flex items-center justify-between shadow-md animate-in fade-in duration-150">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-purple-600 animate-pulse" />
+                      <span className="font-extrabold text-xs text-slate-900 dark:text-zinc-100">
+                        {weeklyChartData[hoveredDayIndex].day} Activity Metrics:
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-4 text-xs">
+                      <span className="font-bold text-slate-700 dark:text-zinc-300">
+                        ⏱️ <strong className="text-purple-600 dark:text-purple-400">{weeklyChartData[hoveredDayIndex].hours} hrs</strong> study time
+                      </span>
+                      <span className="font-bold text-slate-700 dark:text-zinc-300">
+                        🤖 <strong className="text-sky-600 dark:text-sky-400">{weeklyChartData[hoveredDayIndex].aiChats} AI prompts</strong>
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Bars Grid */}
+                <div className="h-44 flex items-end justify-between gap-3 pt-6 px-2">
+                  {weeklyChartData.map((item, idx) => {
+                    const isHovered = hoveredDayIndex === idx;
+                    return (
+                      <div
+                        key={item.day}
+                        onMouseEnter={() => setHoveredDayIndex(idx)}
+                        className="flex-1 flex flex-col items-center gap-2 h-full justify-end group cursor-pointer"
+                      >
+                        <span className={`text-[10px] font-extrabold transition-colors ${
+                          isHovered ? 'text-purple-600 dark:text-purple-400 scale-110' : 'text-slate-400 dark:text-zinc-500'
+                        }`}>
+                          {item.hours}h
+                        </span>
+
+                        <div className="w-full max-w-[48px] bg-slate-200/80 dark:bg-zinc-800/80 rounded-2xl h-full flex items-end p-1 transition-all overflow-hidden relative">
+                          <div
+                            className={`w-full rounded-xl transition-all duration-500 relative ${
+                              isHovered
+                                ? 'bg-linear-to-t from-purple-600 via-indigo-600 to-sky-500 shadow-lg shadow-purple-500/30'
+                                : 'bg-linear-to-t from-purple-600/80 to-indigo-500/70 group-hover:from-purple-600 group-hover:to-indigo-500'
+                            }`}
+                            style={{ height: `${item.heightPercent}%` }}
+                          >
+                            {isHovered && (
+                              <div className="absolute top-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-white rounded-full animate-ping" />
+                            )}
+                          </div>
+                        </div>
+
+                        <span className={`text-xs font-bold transition-colors ${
+                          isHovered ? 'text-purple-600 dark:text-purple-400' : 'text-slate-600 dark:text-zinc-400'
+                        }`}>
+                          {item.day}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
