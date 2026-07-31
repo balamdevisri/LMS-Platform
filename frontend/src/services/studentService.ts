@@ -86,16 +86,6 @@ class StudentService {
       console.warn('Failed to parse admin users cache:', e);
     }
 
-    // 3. Fallback Base Roster (DEFAULT_STUDENTS)
-    DEFAULT_STUDENTS.forEach((st) => {
-      if (!this.isMockUser(st)) {
-        const key = (st.email || st.id).toLowerCase();
-        if (!combinedMap.has(key)) {
-          combinedMap.set(key, st);
-        }
-      }
-    });
-
     const result = Array.from(combinedMap.values());
     return result.sort((a, b) => {
       const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
@@ -227,7 +217,7 @@ class StudentService {
       const querySnapshot = await getDocs(usersRef);
       const firestoreStudents: StudentUser[] = [];
 
-      querySnapshot.forEach((docSnap) => {
+      querySnapshot.forEach((docSnap: any) => {
         const data = docSnap.data();
         const role = (data.role || 'student').toLowerCase();
 
