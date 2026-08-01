@@ -701,20 +701,20 @@ export const LandingPage: React.FC = () => {
         </section>
 
 
-        {/* Core Features Divider (Stats -> Features = 70px) */}
-        <AnimatedDivider className="mt-[35px] mb-[35px]" />
+        {/* Core Features Divider */}
+        <AnimatedDivider className="mt-12 mb-12" />
 
 
         {/* ----------------- 3. FEATURES SECTION ----------------- */}
-        <section id="features" className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-0 space-y-16">
-          <div className="text-center max-w-2xl mx-auto space-y-4">
-            <span className="text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-zinc-900 px-3.5 py-1.5 rounded-full border border-blue-100 dark:border-zinc-850 hover:scale-105 transition-transform duration-200 cursor-pointer">
+        <section id="features" className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-16">
+          <div className="text-center max-w-2xl mx-auto flex flex-col items-center space-y-4 py-2">
+            <span className="inline-flex items-center justify-center text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-zinc-900 px-4 py-1.5 rounded-full border border-blue-100 dark:border-zinc-850 shadow-2xs hover:scale-105 transition-transform duration-200 cursor-pointer mb-2">
               Core LMS Features
             </span>
-            <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white tracking-tight">
+            <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white tracking-tight pt-1">
               Built for Modern High-Growth Education
             </h2>
-            <p className="text-sm text-slate-600 dark:text-zinc-400 leading-relaxed font-normal max-w-lg mx-auto">
+            <p className="text-sm sm:text-base text-slate-600 dark:text-zinc-400 leading-relaxed font-normal max-w-lg mx-auto pt-1">
               Combining world-class course management with real-time AI assistance for students and faculty.
             </p>
           </div>
