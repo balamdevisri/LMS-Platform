@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { KaizenQLogo } from '../brand/KaizenQLogo';
 
 interface KaizenQVideoPlayerProps {
@@ -6,20 +6,60 @@ interface KaizenQVideoPlayerProps {
   className?: string;
 }
 
-export const KaizenQVideoPlayer: React.FC<KaizenQVideoPlayerProps> = ({
+export const KaizenQVideoPlayer: React.FC<KaizenQVideoPlayerProps> = React.memo(({
   src = '/KaizenQ.mp4',
   className = '',
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Pause video when scrolled off-screen or tab is hidden
+  useEffect(() => {
+    const video = videoRef.current;
+    const container = containerRef.current;
+    if (!video || !container) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && document.visibilityState === 'visible') {
+            video.play().catch(() => {});
+          } else {
+            video.pause();
+          }
+        });
+      },
+      { threshold: 0.25 }
+    );
+
+    observer.observe(container);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        video.pause();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      observer.disconnect();
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, []);
+
   return (
-    <div className={`relative max-w-5xl mx-auto rounded-3xl overflow-hidden shadow-2xl border border-slate-800 bg-[#0B1220] select-none ${className}`}>
+    <div ref={containerRef} className={`relative max-w-5xl mx-auto rounded-3xl overflow-hidden shadow-2xl border border-slate-800 bg-[#0B1220] select-none ${className}`}>
       {/* Aspect Ratio Video Container with Scale Zoom & Solid Corner Mask to 100% Remove Gemini Watermark */}
       <div className="relative aspect-video w-full overflow-hidden bg-[#0B1220]">
         <video
+          ref={videoRef}
           className="w-full h-full object-cover object-center scale-[1.08] origin-center pointer-events-none"
           autoPlay
           muted
           loop
           playsInline
+          preload="metadata"
         >
           <source src={src} type="video/mp4" />
           <source src="/KaizenQ.mp4" type="video/mp4" />
@@ -45,4 +85,4 @@ export const KaizenQVideoPlayer: React.FC<KaizenQVideoPlayerProps> = ({
       </div>
     </div>
   );
-};
+});

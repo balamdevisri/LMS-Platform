@@ -12,7 +12,7 @@ interface FeatureCardProps {
   floatY: number;
 }
 
-const FloatingFeatureCard: React.FC<FeatureCardProps> = ({ icon: Icon, title, className, delay, floatY }) => {
+const FloatingFeatureCard: React.FC<FeatureCardProps> = React.memo(({ icon: Icon, title, className, delay, floatY }) => {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
@@ -45,31 +45,33 @@ const FloatingFeatureCard: React.FC<FeatureCardProps> = ({ icon: Icon, title, cl
       <span className="font-heading tracking-wide uppercase text-[10px]">{title}</span>
     </motion.div>
   );
-};
+});
 
-export const AiCoreOrb: React.FC = () => {
-  // Generate random data for 30 particles once using useMemo to avoid re-renders
+export const AiCoreOrb: React.FC = React.memo(() => {
+  // Adapt particle density for mobile devices to maintain 60 FPS
   const particles = useMemo(() => {
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    const count = isMobile ? 10 : 30;
     const arr = [];
     const colors = [
-      'rgba(96, 165, 250, 0.65)', // Blue
-      'rgba(168, 85, 247, 0.65)', // Purple
-      'rgba(255, 255, 255, 0.8)',   // White
+      'rgba(96, 165, 250, 0.65)',
+      'rgba(168, 85, 247, 0.65)',
+      'rgba(255, 255, 255, 0.8)',
     ];
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const dist = 140 + Math.random() * 120; // Distance from center
+      const dist = isMobile ? 90 + Math.random() * 60 : 140 + Math.random() * 120;
       const x = Math.cos(angle) * dist;
       const y = Math.sin(angle) * dist;
 
       arr.push({
         id: i,
-        x: [x, x + (Math.random() * 60 - 30), x - (Math.random() * 60 - 30), x],
-        y: [y, y + (Math.random() * 60 - 30), y - (Math.random() * 60 - 30), y],
-        size: Math.random() * 4 + 2,
+        x: [x, x + (Math.random() * 40 - 20), x - (Math.random() * 40 - 20), x],
+        y: [y, y + (Math.random() * 40 - 20), y - (Math.random() * 40 - 20), y],
+        size: Math.random() * 3 + 2,
         color: colors[i % colors.length],
         duration: 12 + Math.random() * 8,
-        delay: Math.random() * -10, // Negative delay to start immediately in-motion
+        delay: Math.random() * -10,
       });
     }
     return arr;
@@ -348,4 +350,4 @@ export const AiCoreOrb: React.FC = () => {
 
     </div>
   );
-};
+});
