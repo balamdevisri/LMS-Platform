@@ -131,7 +131,7 @@ export const CourseView: React.FC = () => {
     duration: dynamicCourse?.duration || '32 hrs',
     category: dynamicCourse?.category || 'Linux & Systems',
     level: dynamicCourse?.level || 'Beginner to Advanced',
-    thumbnail: dynamicCourse?.thumbnail || '/assets/images/linux_course_thumbnail.png',
+    thumbnail: dynamicCourse?.thumbnail || '/assets/images/linux_course_thumbnail.webp',
     introText: [
       `Welcome to Linux Systems Mastery! Linux is one of the world's most powerful and widely used operating systems, powering everything from web servers and cloud platforms to Android devices, supercomputers, and embedded systems.`,
       `This course is designed for beginners who want to build a strong foundation in Linux. You will learn how Linux works, how to navigate the terminal, manage files and directories, understand permissions, and perform essential system operations using real-world commands.`,
@@ -210,7 +210,7 @@ export const CourseView: React.FC = () => {
     duration: '20 Hours',
     category: 'Development Tools',
     level: 'Beginner to Advanced',
-    thumbnail: '/assets/images/github_course_banner.png',
+    thumbnail: '/assets/images/github_course_banner.webp',
     introText: [
       `Welcome to Git & GitHub Mastery! Version control is a foundational skill for all developers. This course will take you from Git basics to advanced pipelines.`,
       `You will learn local repository initialization, stage-commit lifecycles, remote repository synchronization, pull requests, code reviews, rebasing, and automated pipelines using GitHub Actions.`,

@@ -1,6 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { db } from '@/firebase';
-import { doc, setDoc, updateDoc } from 'firebase/firestore';
 import { gitCourseModules } from '@/data/gitCourseFullData';
 import { courseService } from '@/services/courseService';
 
@@ -170,7 +169,7 @@ const initialDefaultCoursesRaw: CourseItem[] = [
     badge: 'Featured Track',
     tracks: '4 Modules (32 Hours)',
     status: 'Published',
-    thumbnail: '/assets/images/linux_course_thumbnail.png',
+    thumbnail: '/assets/images/linux_course_thumbnail.webp',
     description: `Welcome to Linux Systems & Administration Mastery! Linux powers modern cloud infrastructure, supercomputers, and enterprise AI clusters. In this comprehensive production-ready track, you will explore Linux Kernel mechanics, master file system hierarchy standards (FHS), manage systemd background daemons, automate workflows via Bash scripts, and harden network security using SSH and host firewalls.`,
     syllabus: [
       'Module 1: Linux Architecture, Kernel & CLI Fundamentals',
@@ -376,7 +375,7 @@ const initialDefaultCoursesRaw: CourseItem[] = [
                 description: 'Complete architecture guide covering identity creation, usermod flags, sudoers visudo, ACL setfacl, and chage password policies.',
                 duration: '35 mins',
                 type: 'Reading',
-                readingContent: `## 🛡️ Module 4 Architecture: User & Group Administration\n\n![Module 4 User Group ACL Architecture](/assets/images/linux_user_group_acl_architecture.png)\n\n### 📐 Module Architecture Overview\n\`\`\`text\nModule 4 Architecture\n├── Identity Creation (useradd, groupadd)\n├── Identity Modification (usermod, passwd)\n├── Elevated Access Control (sudo, /etc/sudoers)\n├── Granular Permissions (ACLs: setfacl, getfacl)\n└── Account Security (chage, account locking)\n\`\`\`\n\n---\n\n### 🛠️ Key Topics & Essential Commands\n\n#### 1. User & Group Management\nLinux tracks identities via core files in \`/etc/\`:\n- 📄 **\`\/etc\/passwd\`**: User account information (UID, GID, home dir, default shell).\n- 🔐 **\`\/etc\/shadow\`**: Encrypted user passwords, hash algorithms, and aging info.\n- 👥 **\`\/etc\/group\`**: Group definitions and membership arrays.\n\n| Task | Key Command | Example Command |\n| :--- | :--- | :--- |\n| **Create User** | \`useradd\` | \`sudo useradd -m -s /bin/bash devuser\` |\n| **Modify User** | \`usermod\` | \`sudo usermod -aG sysadmin devuser\` |\n| **Change Password** | \`passwd\` | \`sudo passwd devuser\` |\n| **Create Group** | \`groupadd\` | \`sudo groupadd sysadmin\` |\n| **Lock Account** | \`usermod / passwd\` | \`sudo usermod -L devuser\` or \`sudo passwd -l devuser\` |\n\n> 💡 **Pro Tip**: Always use **\`-aG\`** (append supplementary group) with \`usermod\`. Forgetting \`-a\` will replace all existing secondary groups for that user!\n\n---\n\n### 🔐 2. Privilege Delegation (\`sudo\`) & Visudo\nInstead of sharing the root password, \`sudo\` grants temporary elevated rights.\n\n![Linux Sudo Security Hardening](/assets/images/linux_sudo_security_hardening.png)\n\n> 🛡️ **Safe Editing**: Always edit the configuration file with **\`sudo visudo\`** or \`/etc/sudoers.d/\` files to prevent syntax errors that could lock you out of the server!\n\n**Syntax Rule**: \`user host=(runas_user:runas_group) commands\`\n\n\`\`\`bash\n# Example /etc/sudoers entry for a junior sysadmin\ndevuser ALL=(ALL:ALL) /usr/bin/systemctl restart nginx\n\`\`\`\n\n---\n\n### 🏷️ 3. Access Control Lists (ACLs)\nStandard POSIX permissions (\`rwx\` for Owner, Group, Other) fall short when a third entity needs distinct permissions. ACLs extend file system security.\n\n\`\`\`bash\n# View ACLs on a file\ngetfacl /var/www/html/index.html\n\n# Grant read/write to a specific user outside owner/group\nsetfacl -m u:devuser:rw- /var/www/html/index.html\n\n# Set default ACL on a directory (applies to future files created inside)\nsetfacl -d -m g:sysadmin:rwx /var/www/project\n\`\`\`\n\n---\n\n### ⏰ 4. Password & Account Aging Policies (\`chage\`)\nUse \`chage\` to enforce password rotation and expiration policies defined in \`/etc/shadow\`.\n\n\`\`\`bash\n# Force password change every 90 days, warn 7 days before\nsudo chage -M 90 -W 7 devuser\n\n# Force user to change password on next login\nsudo chage -d 0 devuser\n\n# Check current password status/aging rules\nsudo chage -l devuser\n\`\`\`\n\n---\n\n### 🧪 Real Server Example & Lab Scenario\n**Scenario**: Create an environment for a web developer named \`alex\` who needs to manage Nginx services without root access, plus shared write access to \`/var/www/app\`.\n\n#### 1️⃣ Create Group & User Account\n\`\`\`bash\nsudo groupadd webdevs\nsudo useradd -m -s /bin/bash -g webdevs alex\nsudo passwd alex\n\`\`\`\n\n#### 2️⃣ Configure Granular ACLs on Web Directory\n\`\`\`bash\nsudo setfacl -R -m u:alex:rwx /var/www/app\nsudo setfacl -R -d -m u:alex:rwx /var/www/app\n\`\`\`\n\n#### 3️⃣ Grant Passwordless Sudo for Specific System Commands\n\`\`\`bash\necho "alex ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart nginx, /usr/bin/systemctl reload nginx" | sudo tee /etc/sudoers.d/webdevs\nsudo chmod 0440 /etc/sudoers.d/webdevs\n\`\`\`\n\n#### 4️⃣ Enforce Password Rotation Policy\n\`\`\`bash\nsudo chage -M 60 -W 10 alex\n\`\`\``
+                readingContent: `## 🛡️ Module 4 Architecture: User & Group Administration\n\n![Module 4 User Group ACL Architecture](/assets/images/linux_user_group_acl_architecture.webp)\n\n### 📐 Module Architecture Overview\n\`\`\`text\nModule 4 Architecture\n├── Identity Creation (useradd, groupadd)\n├── Identity Modification (usermod, passwd)\n├── Elevated Access Control (sudo, /etc/sudoers)\n├── Granular Permissions (ACLs: setfacl, getfacl)\n└── Account Security (chage, account locking)\n\`\`\`\n\n---\n\n### 🛠️ Key Topics & Essential Commands\n\n#### 1. User & Group Management\nLinux tracks identities via core files in \`/etc/\`:\n- 📄 **\`\/etc\/passwd\`**: User account information (UID, GID, home dir, default shell).\n- 🔐 **\`\/etc\/shadow\`**: Encrypted user passwords, hash algorithms, and aging info.\n- 👥 **\`\/etc\/group\`**: Group definitions and membership arrays.\n\n| Task | Key Command | Example Command |\n| :--- | :--- | :--- |\n| **Create User** | \`useradd\` | \`sudo useradd -m -s /bin/bash devuser\` |\n| **Modify User** | \`usermod\` | \`sudo usermod -aG sysadmin devuser\` |\n| **Change Password** | \`passwd\` | \`sudo passwd devuser\` |\n| **Create Group** | \`groupadd\` | \`sudo groupadd sysadmin\` |\n| **Lock Account** | \`usermod / passwd\` | \`sudo usermod -L devuser\` or \`sudo passwd -l devuser\` |\n\n> 💡 **Pro Tip**: Always use **\`-aG\`** (append supplementary group) with \`usermod\`. Forgetting \`-a\` will replace all existing secondary groups for that user!\n\n---\n\n### 🔐 2. Privilege Delegation (\`sudo\`) & Visudo\nInstead of sharing the root password, \`sudo\` grants temporary elevated rights.\n\n![Linux Sudo Security Hardening](/assets/images/linux_sudo_security_hardening.webp)\n\n> 🛡️ **Safe Editing**: Always edit the configuration file with **\`sudo visudo\`** or \`/etc/sudoers.d/\` files to prevent syntax errors that could lock you out of the server!\n\n**Syntax Rule**: \`user host=(runas_user:runas_group) commands\`\n\n\`\`\`bash\n# Example /etc/sudoers entry for a junior sysadmin\ndevuser ALL=(ALL:ALL) /usr/bin/systemctl restart nginx\n\`\`\`\n\n---\n\n### 🏷️ 3. Access Control Lists (ACLs)\nStandard POSIX permissions (\`rwx\` for Owner, Group, Other) fall short when a third entity needs distinct permissions. ACLs extend file system security.\n\n\`\`\`bash\n# View ACLs on a file\ngetfacl /var/www/html/index.html\n\n# Grant read/write to a specific user outside owner/group\nsetfacl -m u:devuser:rw- /var/www/html/index.html\n\n# Set default ACL on a directory (applies to future files created inside)\nsetfacl -d -m g:sysadmin:rwx /var/www/project\n\`\`\`\n\n---\n\n### ⏰ 4. Password & Account Aging Policies (\`chage\`)\nUse \`chage\` to enforce password rotation and expiration policies defined in \`/etc/shadow\`.\n\n\`\`\`bash\n# Force password change every 90 days, warn 7 days before\nsudo chage -M 90 -W 7 devuser\n\n# Force user to change password on next login\nsudo chage -d 0 devuser\n\n# Check current password status/aging rules\nsudo chage -l devuser\n\`\`\`\n\n---\n\n### 🧪 Real Server Example & Lab Scenario\n**Scenario**: Create an environment for a web developer named \`alex\` who needs to manage Nginx services without root access, plus shared write access to \`/var/www/app\`.\n\n#### 1️⃣ Create Group & User Account\n\`\`\`bash\nsudo groupadd webdevs\nsudo useradd -m -s /bin/bash -g webdevs alex\nsudo passwd alex\n\`\`\`\n\n#### 2️⃣ Configure Granular ACLs on Web Directory\n\`\`\`bash\nsudo setfacl -R -m u:alex:rwx /var/www/app\nsudo setfacl -R -d -m u:alex:rwx /var/www/app\n\`\`\`\n\n#### 3️⃣ Grant Passwordless Sudo for Specific System Commands\n\`\`\`bash\necho "alex ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart nginx, /usr/bin/systemctl reload nginx" | sudo tee /etc/sudoers.d/webdevs\nsudo chmod 0440 /etc/sudoers.d/webdevs\n\`\`\`\n\n#### 4️⃣ Enforce Password Rotation Policy\n\`\`\`bash\nsudo chage -M 60 -W 10 alex\n\`\`\``
               },
               {
                 id: 'unit-4-1-2',
@@ -422,7 +421,7 @@ const initialDefaultCoursesRaw: CourseItem[] = [
     badge: 'New Track',
     tracks: '8 Modules (15 Hours)',
     status: 'Published',
-    thumbnail: '/assets/images/github_course_banner.png',
+    thumbnail: '/assets/images/github_course_banner.webp',
     description: 'Transform your development velocity by mastering Git and GitHub. Learn version control, branching, PR review workflows, GitHub Actions, CI/CD, and enterprise release management patterns.',
     syllabus: [
       'Module 1: Introduction to Git',
@@ -435,6 +434,179 @@ const initialDefaultCoursesRaw: CourseItem[] = [
       'Module 8: Enterprise Git Workflow',
     ],
     modules: gitCourseModules
+  },
+  {
+    id: 'database-management-system',
+    title: 'Database Management System (DBMS): Beginner to Advanced',
+    subtitle: '🗄️ Database Management System',
+    instructor: 'Kaizen-Q Academy',
+    role: 'Database Systems Specialists',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    rating: 5.0,
+    reviews: 120,
+    students: '0',
+    duration: '25 Hours',
+    category: 'Database',
+    level: 'Beginner to Advanced',
+    badge: 'New Track',
+    tracks: '6 Modules (25 Hours)',
+    status: 'Published',
+    thumbnail: 'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?auto=format&fit=crop&w=1200&q=80',
+    description: 'Learn Database Management System from fundamentals to advanced concepts including SQL, normalization, transactions, database design, optimization, and real-world projects.',
+    syllabus: [
+      'Module 1: Database Fundamentals',
+      'Module 2: Relational Database Concepts',
+      'Module 3: SQL Fundamentals',
+      'Module 4: Advanced SQL',
+      'Module 5: Database Design',
+      'Module 6: Real World Database Project',
+    ],
+    modules: [
+      {
+        id: 'dbms-mod-1',
+        title: 'Module 1 - Database Fundamentals',
+        description: 'Fundamentals of databases, DBMS vs File System, advantages, and database types.',
+        duration: '4 Hours',
+        topics: [
+          {
+            id: 'dbms-topic-1-1',
+            title: 'Database Fundamentals',
+            description: 'Introduction to data, databases, and DBMS.',
+            estimatedDuration: '120 mins',
+            learningUnits: [
+              { id: 'dbms-unit-1-1-1', title: 'What is Data?', description: 'Concept of data, information, and metadata.', duration: '15 mins', type: 'Reading' },
+              { id: 'dbms-unit-1-1-2', title: 'What is Database?', description: 'Structure and purpose of a database.', duration: '20 mins', type: 'Video' },
+              { id: 'dbms-unit-1-1-3', title: 'DBMS Introduction', description: 'What is a Database Management System?', duration: '25 mins', type: 'Reading' },
+              { id: 'dbms-unit-1-1-4', title: 'Database vs File System', description: 'Comparing traditional file storage vs DBMS.', duration: '20 mins', type: 'Video' },
+              { id: 'dbms-unit-1-1-5', title: 'Advantages of DBMS', description: 'Data integrity, security, and redundancy management.', duration: '15 mins', type: 'Reading' },
+              { id: 'dbms-unit-1-1-6', title: 'Types of Databases', description: 'Relational, NoSQL, NewSQL, Graph, and Document DBs.', duration: '15 mins', type: 'Quiz' },
+              { id: 'dbms-unit-1-1-7', title: 'Practice Terminal (For Practice Only)', description: 'Simulated environment for basic DB connection exercises.', duration: '10 mins', type: 'Assignment' },
+              { id: 'dbms-unit-1-1-8', title: 'Module Notes', description: 'Comprehensive reading notes for Module 1.', duration: '20 mins', type: 'Reading' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'dbms-mod-2',
+        title: 'Module 2 - Relational Database Concepts',
+        description: 'Tables, keys, constraints, ER model and diagram.',
+        duration: '4 Hours',
+        topics: [
+          {
+            id: 'dbms-topic-2-1',
+            title: 'Relational Model & Design',
+            description: 'Keys, constraints, and entity-relationship modelling.',
+            estimatedDuration: '120 mins',
+            learningUnits: [
+              { id: 'dbms-unit-2-1-1', title: 'Tables, Rows & Columns', description: 'Introduction to relational schemas.', duration: '15 mins', type: 'Reading' },
+              { id: 'dbms-unit-2-1-2', title: 'Keys', description: 'Primary keys, candidate keys, foreign keys, super keys.', duration: '25 mins', type: 'Video' },
+              { id: 'dbms-unit-2-1-3', title: 'Constraints', description: 'Domain, entity integrity, and referential integrity constraints.', duration: '20 mins', type: 'Reading' },
+              { id: 'dbms-unit-2-1-4', title: 'ER Model', description: 'Entity, Attribute, Relationship sets.', duration: '20 mins', type: 'Video' },
+              { id: 'dbms-unit-2-1-5', title: 'ER Diagram', description: 'Drawing entity-relationship diagrams.', duration: '20 mins', type: 'Reading' },
+              { id: 'dbms-unit-2-1-6', title: 'Practice Terminal (For Practice Only)', description: 'Draw ER schema diagrams or model schemas.', duration: '15 mins', type: 'Assignment' },
+              { id: 'dbms-unit-2-1-7', title: 'Module Notes', description: 'Comprehensive reading notes for Module 2.', duration: '20 mins', type: 'Reading' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'dbms-mod-3',
+        title: 'Module 3 - SQL Fundamentals',
+        description: 'DDL, DML, and core query syntax.',
+        duration: '4 Hours',
+        topics: [
+          {
+            id: 'dbms-topic-3-1',
+            title: 'Structured Query Language (SQL)',
+            description: 'Fundamental SQL queries and modifications.',
+            estimatedDuration: '120 mins',
+            learningUnits: [
+              { id: 'dbms-unit-3-1-1', title: 'SQL Introduction', description: 'Introduction to SQL syntax.', duration: '15 mins', type: 'Reading' },
+              { id: 'dbms-unit-3-1-2', title: 'CREATE', description: 'Creating tables and databases.', duration: '20 mins', type: 'Video' },
+              { id: 'dbms-unit-3-1-3', title: 'INSERT', description: 'Adding records to tables.', duration: '15 mins', type: 'Video' },
+              { id: 'dbms-unit-3-1-4', title: 'SELECT', description: 'Retrieving data from tables.', duration: '25 mins', type: 'Video' },
+              { id: 'dbms-unit-3-1-5', title: 'UPDATE', description: 'Modifying existing records.', duration: '15 mins', type: 'Video' },
+              { id: 'dbms-unit-3-1-6', title: 'DELETE', description: 'Deleting records from tables.', duration: '15 mins', type: 'Video' },
+              { id: 'dbms-unit-3-1-7', title: 'WHERE', description: 'Filtering records using conditional statements.', duration: '15 mins', type: 'Video' },
+              { id: 'dbms-unit-3-1-8', title: 'ORDER BY', description: 'Sorting query results.', duration: '15 mins', type: 'Video' },
+              { id: 'dbms-unit-3-1-9', title: 'Practice Terminal (For Practice Only)', description: 'Simulated SQL execution terminal exercises.', duration: '20 mins', type: 'Assignment' },
+              { id: 'dbms-unit-3-1-10', title: 'Module Notes', description: 'Comprehensive reading notes for Module 3.', duration: '20 mins', type: 'Reading' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'dbms-mod-4',
+        title: 'Module 4 - Advanced SQL',
+        description: 'Joins, aggregations, subqueries, views, and indexes.',
+        duration: '4 Hours',
+        topics: [
+          {
+            id: 'dbms-topic-4-1',
+            title: 'Advanced SQL Querying',
+            description: 'Complex queries, joining tables, and database efficiency.',
+            estimatedDuration: '120 mins',
+            learningUnits: [
+              { id: 'dbms-unit-4-1-1', title: 'GROUP BY', description: 'Aggregating rows.', duration: '15 mins', type: 'Video' },
+              { id: 'dbms-unit-4-1-2', title: 'HAVING', description: 'Filtering aggregated rows.', duration: '15 mins', type: 'Video' },
+              { id: 'dbms-unit-4-1-3', title: 'JOINS', description: 'Inner join, outer joins, cross join.', duration: '30 mins', type: 'Video' },
+              { id: 'dbms-unit-4-1-4', title: 'UNION', description: 'Combining query result sets.', duration: '15 mins', type: 'Video' },
+              { id: 'dbms-unit-4-1-5', title: 'Subqueries', description: 'Nested and correlated subqueries.', duration: '20 mins', type: 'Video' },
+              { id: 'dbms-unit-4-1-6', title: 'Views', description: 'Creating virtual tables.', duration: '15 mins', type: 'Video' },
+              { id: 'dbms-unit-4-1-7', title: 'Indexes', description: 'Improving database search speed.', duration: '20 mins', type: 'Video' },
+              { id: 'dbms-unit-4-1-8', title: 'Practice Terminal (For Practice Only)', description: 'Execute complex multi-table joins.', duration: '20 mins', type: 'Assignment' },
+              { id: 'dbms-unit-4-1-9', title: 'Module Notes', description: 'Comprehensive reading notes for Module 4.', duration: '20 mins', type: 'Reading' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'dbms-mod-5',
+        title: 'Module 5 - Database Design',
+        description: 'Functional dependencies, normalization, transactions, concurrency, and security.',
+        duration: '5 Hours',
+        topics: [
+          {
+            id: 'dbms-topic-5-1',
+            title: 'Normalization & Transactions',
+            description: 'Designing anomalies out of databases and transactional safety.',
+            estimatedDuration: '150 mins',
+            learningUnits: [
+              { id: 'dbms-unit-5-1-1', title: 'Functional Dependency', description: 'A determines B dependency concepts.', duration: '20 mins', type: 'Reading' },
+              { id: 'dbms-unit-5-1-2', title: 'Normalization', description: '1NF, 2NF, 3NF, BCNF.', duration: '30 mins', type: 'Video' },
+              { id: 'dbms-unit-5-1-3', title: 'Transactions', description: 'Introduction to database transactions.', duration: '15 mins', type: 'Video' },
+              { id: 'dbms-unit-5-1-4', title: 'ACID Properties', description: 'Atomicity, Consistency, Isolation, Durability.', duration: '20 mins', type: 'Reading' },
+              { id: 'dbms-unit-5-1-5', title: 'Concurrency Control', description: 'Locks, serializability, and deadlocks.', duration: '25 mins', type: 'Reading' },
+              { id: 'dbms-unit-5-1-6', title: 'Database Security', description: 'Privileges, SQL injection protection, and backup policies.', duration: '20 mins', type: 'Reading' },
+              { id: 'dbms-unit-5-1-7', title: 'Practice Terminal (For Practice Only)', description: 'Transaction isolation level tests.', duration: '20 mins', type: 'Assignment' },
+              { id: 'dbms-unit-5-1-8', title: 'Module Notes', description: 'Comprehensive reading notes for Module 5.', duration: '20 mins', type: 'Reading' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'dbms-mod-6',
+        title: 'Module 6 - Real World Database Project',
+        description: 'Creating production databases for real-world scenarios and final assessment.',
+        duration: '4 Hours',
+        topics: [
+          {
+            id: 'dbms-topic-6-1',
+            title: 'Database Capstones',
+            description: 'Hands-on projects and final evaluations.',
+            estimatedDuration: '120 mins',
+            learningUnits: [
+              { id: 'dbms-unit-6-1-1', title: 'Student Management System', description: 'Designing student registration schema.', duration: '20 mins', type: 'Reading' },
+              { id: 'dbms-unit-6-1-2', title: 'Library Management System', description: 'Modeling book inventory and borrowing schemas.', duration: '20 mins', type: 'Reading' },
+              { id: 'dbms-unit-6-1-3', title: 'E-Commerce Database', description: 'Creating orders, products, and user schemas.', duration: '30 mins', type: 'Reading' },
+              { id: 'dbms-unit-6-1-4', title: 'SQL Mini Project', description: 'Implementation of the capstone schemas.', duration: '40 mins', type: 'Assignment' },
+              { id: 'dbms-unit-6-1-5', title: 'Final Assessment', description: 'DBMS course comprehensive examination.', duration: '30 mins', type: 'Quiz' },
+              { id: 'dbms-unit-6-1-6', title: 'Course Completion', description: 'Verify completion status and unlock certificate.', duration: '10 mins', type: 'Reading' }
+            ]
+          }
+        ]
+      }
+    ]
   }
 ];
 
@@ -462,7 +634,7 @@ const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
         id: 'course_linux_101',
         title: 'Linux Systems & Administration Mastery',
         subtitle: '🐧 Linux Systems Mastery',
-        thumbnail: c.thumbnail || '/assets/images/linux_course_thumbnail.png',
+        thumbnail: c.thumbnail || '/assets/images/linux_course_thumbnail.webp',
       };
       map.set(key, updatedItem);
     } else if (
@@ -480,8 +652,26 @@ const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
         id: 'git-github-mastery',
         title: 'Git & GitHub Mastery',
         subtitle: '⚡ Git & GitHub Mastery',
-        thumbnail: '/assets/images/github_course_banner.png',
+        thumbnail: '/assets/images/github_course_banner.webp',
         modules: hasModules ? c.modules : (defaultGitCourse.modules || gitCourseModules),
+      };
+      map.set(key, updatedItem);
+    } else if (
+      title.includes('database management system') ||
+      title.includes('dbms') ||
+      String(c.id) === 'database-management-system'
+    ) {
+      const key = 'database-management-system';
+      const defaultDbmsCourse = initialDefaultCourses.find(item => item.id === 'database-management-system') || c;
+      const hasModules = Array.isArray(c.modules) && c.modules.length > 0;
+      const updatedItem: CourseItem = {
+        ...defaultDbmsCourse,
+        ...c,
+        id: 'database-management-system',
+        title: 'Database Management System (DBMS): Beginner to Advanced',
+        subtitle: '🗄️ Database Management System',
+        thumbnail: 'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?auto=format&fit=crop&w=1200&q=80',
+        modules: hasModules ? c.modules : (defaultDbmsCourse.modules || []),
       };
       map.set(key, updatedItem);
     } else {
@@ -494,6 +684,9 @@ const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
   }
   if (!map.has('git-github-mastery')) {
     map.set('git-github-mastery', initialDefaultCourses[1]);
+  }
+  if (!map.has('database-management-system')) {
+    map.set('database-management-system', initialDefaultCourses[2]);
   }
 
   return Array.from(map.values());
@@ -545,7 +738,7 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return initialDefaultCourses;
   });
 
-  const refreshCourses = async () => {
+  const refreshCourses = useCallback(async () => {
     const localSaved = localStorage.getItem('shaivika_courses_data');
     let localList = initialDefaultCourses;
     if (localSaved) {
@@ -596,12 +789,12 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } catch (err) {
       console.warn('Firestore courses fetch notice in refreshCourses:', err);
     }
-  };
+  }, []);
 
   // Sync with Firestore if available
   useEffect(() => {
     refreshCourses();
-  }, []);
+  }, [refreshCourses]);
 
   // Update LocalStorage whenever courses state changes
   useEffect(() => {
@@ -627,7 +820,7 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       level: coursePayload.level || 'Beginner to Advanced',
       badge: 'New Track',
       status: coursePayload.status || 'Published',
-      thumbnail: coursePayload.thumbnail || '/assets/images/linux_course_thumbnail.png',
+      thumbnail: coursePayload.thumbnail || '/assets/images/linux_course_thumbnail.webp',
       description: coursePayload.description || 'Enterprise technical course with hands-on labs and automated AI evaluations.',
       syllabus: coursePayload.syllabus || [
         'Module 1: Fundamental Concepts & Environment Setup',
@@ -638,46 +831,39 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
 
     const enriched = enrichCourseMockContent(created);
-    const updated = [enriched, ...courses];
-    setCourses(updated);
+    setCourses((prev) => [enriched, ...prev]);
 
-    if (db) {
-      try {
-        await setDoc(doc(db, 'courses', String(newId)), enriched);
-      } catch (e) {
-        console.warn('Firestore setDoc notice:', e);
-      }
+    try {
+      await courseService.createCourse(enriched as any);
+    } catch (e) {
+      console.warn('Firestore sync failed in addCourse:', e);
     }
   };
 
   const toggleCourseStatus = async (id: number | string) => {
     const targetId = String(id) === 'course_linux_101' ? '1' : String(id);
-    const updated = courses.map((c) => {
-      if (String(c.id) === targetId) {
-        const nextStatus: 'Published' | 'Draft' = c.status === 'Published' ? 'Draft' : 'Published';
-        return { ...c, status: nextStatus };
-      }
-      return c;
-    });
+    const target = courses.find((c) => String(c.id) === targetId);
+    if (!target) return;
 
-    setCourses(updated);
+    const nextStatus: 'Published' | 'Draft' = target.status === 'Published' ? 'Draft' : 'Published';
+    setCourses((prev) => prev.map((c) => (String(c.id) === targetId ? { ...c, status: nextStatus } : c)));
 
-    if (db) {
-      try {
-        const target = updated.find((c) => String(c.id) === targetId);
-        if (target) {
-          await updateDoc(doc(db, 'courses', String(targetId)), { status: target.status });
-        }
-      } catch (e) {
-        console.warn('Firestore updateDoc notice:', e);
-      }
+    try {
+      await courseService.updateCourse(targetId, { status: nextStatus.toLowerCase() as any });
+    } catch (e) {
+      console.warn('Firestore sync failed in toggleCourseStatus:', e);
     }
   };
 
   const deleteCourse = async (id: number | string) => {
     const targetId = String(id) === 'course_linux_101' ? '1' : String(id);
-    const updated = courses.filter((c) => String(c.id) !== targetId);
-    setCourses(updated);
+    setCourses((prev) => prev.filter((c) => String(c.id) !== targetId));
+
+    try {
+      await courseService.deleteCourse(targetId);
+    } catch (e) {
+      console.warn('Firestore sync failed in deleteCourse:', e);
+    }
   };
 
   const getCourseById = (id: number | string): CourseItem | undefined => {
@@ -687,20 +873,12 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const updateCourse = async (id: number | string, updates: Partial<CourseItem>) => {
     const targetId = String(id) === 'course_linux_101' ? '1' : String(id);
-    const updated = courses.map((c) => {
-      if (String(c.id) === targetId) {
-        return { ...c, ...updates };
-      }
-      return c;
-    });
-    setCourses(updated);
+    setCourses((prev) => prev.map((c) => (String(c.id) === targetId ? { ...c, ...updates } : c)));
 
-    if (db) {
-      try {
-        await updateDoc(doc(db, 'courses', String(targetId)), updates);
-      } catch (e) {
-        console.warn('Firestore updateCourse notice:', e);
-      }
+    try {
+      await courseService.updateCourse(targetId, updates as any);
+    } catch (e) {
+      console.warn('Firestore sync failed in updateCourse:', e);
     }
   };
 

@@ -28,7 +28,12 @@ export class EmailService {
 
   constructor() {
     this.fromAddress = env.SMTP_FROM || env.EMAIL_FROM || 'KaizenQ AI LMS <kaizenq.lms@gmail.com>';
-    this.provider = (env.EMAIL_PROVIDER as 'nodemailer' | 'resend' | 'mock') || 'nodemailer';
+    
+    if (process.env.NODE_ENV === 'test' || env.NODE_ENV === 'test') {
+      this.provider = 'mock';
+    } else {
+      this.provider = (env.EMAIL_PROVIDER as 'nodemailer' | 'resend' | 'mock') || 'nodemailer';
+    }
 
     this.initializeTransports();
   }
@@ -37,6 +42,10 @@ export class EmailService {
    * Audit & Initialize Nodemailer SMTP or Resend API Transporters
    */
   private initializeTransports(): void {
+    if (this.provider === 'mock') {
+      logger.info('[SMTP AUDIT] ℹ️ Using simulated Mock Email Transport for local dev environment.');
+      return;
+    }
     logger.info('[SMTP AUDIT] 1. Loading SMTP configuration...');
 
     const smtpHost = env.SMTP_HOST || process.env.SMTP_HOST || 'smtp.gmail.com';

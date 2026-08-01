@@ -13,8 +13,8 @@ const DEFAULT_COURSES: ICourse[] = [
     slug: 'linux-systems-administration-mastery',
     shortDescription: 'Enterprise curriculum covering Linux Architecture, Kernel Mechanics, Permissions, Systemd, Bash Scripting, and SSH Security.',
     description: `Welcome to Linux Systems & Administration Mastery! Linux powers modern cloud infrastructure, supercomputers, and enterprise AI clusters. In this comprehensive production-ready track, you will explore Linux Kernel mechanics, master file system hierarchy standards (FHS), manage systemd background daemons, automate workflows via Bash scripts, and harden network security using SSH and host firewalls.`,
-    thumbnail: '/assets/images/linux_course_thumbnail.png',
-    banner: '/assets/images/linux_os_architecture.png',
+    thumbnail: '/assets/images/linux_course_thumbnail.webp',
+    banner: '/assets/images/linux_os_architecture.webp',
     category: 'Linux & Systems',
     level: 'all_levels',
     duration: '32 hrs',
@@ -81,8 +81,8 @@ const DEFAULT_COURSES: ICourse[] = [
     slug: 'git-github-mastery',
     shortDescription: 'Learn Git & GitHub from beginner to professional, including version control, branching, pull requests, and CI/CD.',
     description: 'Learn Git & GitHub from beginner to professional, including version control, branching, pull requests, GitHub Actions, CI/CD, Codespaces, and Copilot.',
-    thumbnail: '/assets/images/github_course_banner.png',
-    banner: '/assets/images/github_course_banner.png',
+    thumbnail: '/assets/images/github_course_banner.webp',
+    banner: '/assets/images/github_course_banner.webp',
     category: 'Development Tools',
     level: 'all_levels',
     duration: '20 Hours',
@@ -120,6 +120,197 @@ const DEFAULT_COURSES: ICourse[] = [
     modules: gitCourseModules,
     createdAt: new Date('2026-01-20').toISOString(),
     updatedAt: new Date('2026-02-15').toISOString(),
+  },
+  {
+    id: 'database-management-system',
+    title: 'Database Management System (DBMS): Beginner to Advanced',
+    slug: 'database-management-system',
+    shortDescription: 'Learn Database Management System from fundamentals to advanced concepts including SQL, normalization, transactions, database design, optimization, and real-world projects.',
+    description: 'Learn Database Management System from fundamentals to advanced concepts including SQL, normalization, transactions, database design, optimization, and real-world projects.',
+    thumbnail: 'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?auto=format&fit=crop&w=1200&q=80',
+    banner: 'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?auto=format&fit=crop&w=1200&q=80',
+    category: 'Database',
+    level: 'all_levels',
+    duration: '25 Hours',
+    language: 'English',
+    price: 0,
+    instructor: {
+      id: 'inst_kaizen',
+      name: 'Kaizen-Q Academy',
+      role: 'Database Systems Specialists',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    },
+    skills: ['Database Design', 'SQL Queries', 'Relational Model', 'Normalization (1NF-BCNF)', 'Transactions & ACID', 'Database Security'],
+    prerequisites: ['Basic computer literacy'],
+    learningOutcomes: [
+      'Understand relational database design and normalization rules',
+      'Write efficient SQL queries including joins, aggregations, and subqueries',
+      'Handle database transactions and ACID properties',
+      'Build real-world database projects from scratch'
+    ],
+    status: 'published',
+    visibility: 'public',
+    featured: true,
+    tags: ['database', 'dbms', 'sql', 'normalization', 'acid'],
+    enrollmentCount: 0,
+    rating: 5.0,
+    ratingCount: 120,
+    syllabus: [
+      { id: 'dbms-mod-1', title: 'Module 1 - Database Fundamentals', description: 'Fundamentals of databases, DBMS vs File System, advantages, and database types.', duration: '4 Hours', lessonsCount: 8 },
+      { id: 'dbms-mod-2', title: 'Module 2 - Relational Database Concepts', description: 'Tables, keys, constraints, ER model and diagram.', duration: '4 Hours', lessonsCount: 7 },
+      { id: 'dbms-mod-3', title: 'Module 3 - SQL Fundamentals', description: 'DDL, DML, and core query syntax.', duration: '4 Hours', lessonsCount: 10 },
+      { id: 'dbms-mod-4', title: 'Module 4 - Advanced SQL', description: 'Joins, aggregations, subqueries, views, and indexes.', duration: '4 Hours', lessonsCount: 9 },
+      { id: 'dbms-mod-5', title: 'Module 5 - Database Design', description: 'Functional dependencies, normalization, transactions, concurrency, and security.', duration: '5 Hours', lessonsCount: 8 },
+      { id: 'dbms-mod-6', title: 'Module 6 - Real World Database Project', description: 'Creating production databases for real-world scenarios and final assessment.', duration: '4 Hours', lessonsCount: 6 }
+    ],
+    modules: [
+      {
+        id: 'dbms-mod-1',
+        title: 'Module 1 - Database Fundamentals',
+        description: 'Fundamentals of databases, DBMS vs File System, advantages, and database types.',
+        duration: '4 Hours',
+        topics: [
+          {
+            id: 'dbms-topic-1-1',
+            title: 'Database Fundamentals',
+            description: 'Introduction to data, databases, and DBMS.',
+            estimatedDuration: '120 mins',
+            learningUnits: [
+              { id: 'dbms-unit-1-1-1', title: 'What is Data?', description: 'Concept of data, information, and metadata.', duration: '15 mins', type: 'Reading' },
+              { id: 'dbms-unit-1-1-2', title: 'What is Database?', description: 'Structure and purpose of a database.', duration: '20 mins', type: 'Video' },
+              { id: 'dbms-unit-1-1-3', title: 'DBMS Introduction', description: 'What is a Database Management System?', duration: '25 mins', type: 'Reading' },
+              { id: 'dbms-unit-1-1-4', title: 'Database vs File System', description: 'Comparing traditional file storage vs DBMS.', duration: '20 mins', type: 'Video' },
+              { id: 'dbms-unit-1-1-5', title: 'Advantages of DBMS', description: 'Data integrity, security, and redundancy management.', duration: '15 mins', type: 'Reading' },
+              { id: 'dbms-unit-1-1-6', title: 'Types of Databases', description: 'Relational, NoSQL, NewSQL, Graph, and Document DBs.', duration: '15 mins', type: 'Quiz' },
+              { id: 'dbms-unit-1-1-7', title: 'Practice Terminal (For Practice Only)', description: 'Simulated environment for basic DB connection exercises.', duration: '10 mins', type: 'Assignment' },
+              { id: 'dbms-unit-1-1-8', title: 'Module Notes', description: 'Comprehensive reading notes for Module 1.', duration: '20 mins', type: 'Reading' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'dbms-mod-2',
+        title: 'Module 2 - Relational Database Concepts',
+        description: 'Tables, keys, constraints, ER model and diagram.',
+        duration: '4 Hours',
+        topics: [
+          {
+            id: 'dbms-topic-2-1',
+            title: 'Relational Model & Design',
+            description: 'Keys, constraints, and entity-relationship modelling.',
+            estimatedDuration: '120 mins',
+            learningUnits: [
+              { id: 'dbms-unit-2-1-1', title: 'Tables, Rows & Columns', description: 'Introduction to relational schemas.', duration: '15 mins', type: 'Reading' },
+              { id: 'dbms-unit-2-1-2', title: 'Keys', description: 'Primary keys, candidate keys, foreign keys, super keys.', duration: '25 mins', type: 'Video' },
+              { id: 'dbms-unit-2-1-3', title: 'Constraints', description: 'Domain, entity integrity, and referential integrity constraints.', duration: '20 mins', type: 'Reading' },
+              { id: 'dbms-unit-2-1-4', title: 'ER Model', description: 'Entity, Attribute, Relationship sets.', duration: '20 mins', type: 'Video' },
+              { id: 'dbms-unit-2-1-5', title: 'ER Diagram', description: 'Drawing entity-relationship diagrams.', duration: '20 mins', type: 'Reading' },
+              { id: 'dbms-unit-2-1-6', title: 'Practice Terminal (For Practice Only)', description: 'Draw ER schema diagrams or model schemas.', duration: '15 mins', type: 'Assignment' },
+              { id: 'dbms-unit-2-1-7', title: 'Module Notes', description: 'Comprehensive reading notes for Module 2.', duration: '20 mins', type: 'Reading' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'dbms-mod-3',
+        title: 'Module 3 - SQL Fundamentals',
+        description: 'DDL, DML, and core query syntax.',
+        duration: '4 Hours',
+        topics: [
+          {
+            id: 'dbms-topic-3-1',
+            title: 'Structured Query Language (SQL)',
+            description: 'Fundamental SQL queries and modifications.',
+            estimatedDuration: '120 mins',
+            learningUnits: [
+              { id: 'dbms-unit-3-1-1', title: 'SQL Introduction', description: 'Introduction to SQL syntax.', duration: '15 mins', type: 'Reading' },
+              { id: 'dbms-unit-3-1-2', title: 'CREATE', description: 'Creating tables and databases.', duration: '20 mins', type: 'Video' },
+              { id: 'dbms-unit-3-1-3', title: 'INSERT', description: 'Adding records to tables.', duration: '15 mins', type: 'Video' },
+              { id: 'dbms-unit-3-1-4', title: 'SELECT', description: 'Retrieving data from tables.', duration: '25 mins', type: 'Video' },
+              { id: 'dbms-unit-3-1-5', title: 'UPDATE', description: 'Modifying existing records.', duration: '15 mins', type: 'Video' },
+              { id: 'dbms-unit-3-1-6', title: 'DELETE', description: 'Deleting records from tables.', duration: '15 mins', type: 'Video' },
+              { id: 'dbms-unit-3-1-7', title: 'WHERE', description: 'Filtering records using conditional statements.', duration: '15 mins', type: 'Video' },
+              { id: 'dbms-unit-3-1-8', title: 'ORDER BY', description: 'Sorting query results.', duration: '15 mins', type: 'Video' },
+              { id: 'dbms-unit-3-1-9', title: 'Practice Terminal (For Practice Only)', description: 'Simulated SQL execution terminal exercises.', duration: '20 mins', type: 'Assignment' },
+              { id: 'dbms-unit-3-1-10', title: 'Module Notes', description: 'Comprehensive reading notes for Module 3.', duration: '20 mins', type: 'Reading' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'dbms-mod-4',
+        title: 'Module 4 - Advanced SQL',
+        description: 'Joins, aggregations, subqueries, views, and indexes.',
+        duration: '4 Hours',
+        topics: [
+          {
+            id: 'dbms-topic-4-1',
+            title: 'Advanced SQL Querying',
+            description: 'Complex queries, joining tables, and database efficiency.',
+            estimatedDuration: '120 mins',
+            learningUnits: [
+              { id: 'dbms-unit-4-1-1', title: 'GROUP BY', description: 'Aggregating rows.', duration: '15 mins', type: 'Video' },
+              { id: 'dbms-unit-4-1-2', title: 'HAVING', description: 'Filtering aggregated rows.', duration: '15 mins', type: 'Video' },
+              { id: 'dbms-unit-4-1-3', title: 'JOINS', description: 'Inner join, outer joins, cross join.', duration: '30 mins', type: 'Video' },
+              { id: 'dbms-unit-4-1-4', title: 'UNION', description: 'Combining query result sets.', duration: '15 mins', type: 'Video' },
+              { id: 'dbms-unit-4-1-5', title: 'Subqueries', description: 'Nested and correlated subqueries.', duration: '20 mins', type: 'Video' },
+              { id: 'dbms-unit-4-1-6', title: 'Views', description: 'Creating virtual tables.', duration: '15 mins', type: 'Video' },
+              { id: 'dbms-unit-4-1-7', title: 'Indexes', description: 'Improving database search speed.', duration: '20 mins', type: 'Video' },
+              { id: 'dbms-unit-4-1-8', title: 'Practice Terminal (For Practice Only)', description: 'Execute complex multi-table joins.', duration: '20 mins', type: 'Assignment' },
+              { id: 'dbms-unit-4-1-9', title: 'Module Notes', description: 'Comprehensive reading notes for Module 4.', duration: '20 mins', type: 'Reading' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'dbms-mod-5',
+        title: 'Module 5 - Database Design',
+        description: 'Functional dependencies, normalization, transactions, concurrency, and security.',
+        duration: '5 Hours',
+        topics: [
+          {
+            id: 'dbms-topic-5-1',
+            title: 'Normalization & Transactions',
+            description: 'Designing anomalies out of databases and transactional safety.',
+            estimatedDuration: '150 mins',
+            learningUnits: [
+              { id: 'dbms-unit-5-1-1', title: 'Functional Dependency', description: 'A determines B dependency concepts.', duration: '20 mins', type: 'Reading' },
+              { id: 'dbms-unit-5-1-2', title: 'Normalization', description: '1NF, 2NF, 3NF, BCNF.', duration: '30 mins', type: 'Video' },
+              { id: 'dbms-unit-5-1-3', title: 'Transactions', description: 'Introduction to database transactions.', duration: '15 mins', type: 'Video' },
+              { id: 'dbms-unit-5-1-4', title: 'ACID Properties', description: 'Atomicity, Consistency, Isolation, Durability.', duration: '20 mins', type: 'Reading' },
+              { id: 'dbms-unit-5-1-5', title: 'Concurrency Control', description: 'Locks, serializability, and deadlocks.', duration: '25 mins', type: 'Reading' },
+              { id: 'dbms-unit-5-1-6', title: 'Database Security', description: 'Privileges, SQL injection protection, and backup policies.', duration: '20 mins', type: 'Reading' },
+              { id: 'dbms-unit-5-1-7', title: 'Practice Terminal (For Practice Only)', description: 'Transaction isolation level tests.', duration: '20 mins', type: 'Assignment' },
+              { id: 'dbms-unit-5-1-8', title: 'Module Notes', description: 'Comprehensive reading notes for Module 5.', duration: '20 mins', type: 'Reading' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'dbms-mod-6',
+        title: 'Module 6 - Real World Database Project',
+        description: 'Creating production databases for real-world scenarios and final assessment.',
+        duration: '4 Hours',
+        topics: [
+          {
+            id: 'dbms-topic-6-1',
+            title: 'Database Capstones',
+            description: 'Hands-on projects and final evaluations.',
+            estimatedDuration: '120 mins',
+            learningUnits: [
+              { id: 'dbms-unit-6-1-1', title: 'Student Management System', description: 'Designing student registration schema.', duration: '20 mins', type: 'Reading' },
+              { id: 'dbms-unit-6-1-2', title: 'Library Management System', description: 'Modeling book inventory and borrowing schemas.', duration: '20 mins', type: 'Reading' },
+              { id: 'dbms-unit-6-1-3', title: 'E-Commerce Database', description: 'Creating orders, products, and user schemas.', duration: '30 mins', type: 'Reading' },
+              { id: 'dbms-unit-6-1-4', title: 'SQL Mini Project', description: 'Implementation of the capstone schemas.', duration: '40 mins', type: 'Assignment' },
+              { id: 'dbms-unit-6-1-5', title: 'Final Assessment', description: 'DBMS course comprehensive examination.', duration: '30 mins', type: 'Quiz' },
+              { id: 'dbms-unit-6-1-6', title: 'Course Completion', description: 'Verify completion status and unlock certificate.', duration: '10 mins', type: 'Reading' }
+            ]
+          }
+        ]
+      }
+    ],
+    createdAt: new Date('2026-03-01').toISOString(),
+    updatedAt: new Date('2026-03-05').toISOString(),
   }
 ];
 
@@ -232,8 +423,8 @@ function normalizeCourseToICourse(c: any): ICourse {
   const getSmartThumbnail = (title?: string, category?: string) => {
     const t = (title || '').toLowerCase();
     const cat = (category || '').toLowerCase();
-    if (t.includes('linux') || cat.includes('linux')) return '/assets/images/linux_course_thumbnail.png';
-    if (t.includes('git') || cat.includes('git') || t.includes('github')) return '/assets/images/github_course_banner.png';
+    if (t.includes('linux') || cat.includes('linux')) return '/assets/images/linux_course_thumbnail.webp';
+    if (t.includes('git') || cat.includes('git') || t.includes('github')) return '/assets/images/github_course_banner.webp';
     if (t.includes('ai') || cat.includes('ai') || t.includes('machine learning') || t.includes('llm')) return 'https://images.unsplash.com/photo-1677442136019-21780efad99a?auto=format&fit=crop&w=800&q=80';
     if (t.includes('devops') || cat.includes('devops') || t.includes('cloud') || t.includes('docker')) return 'https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?auto=format&fit=crop&w=800&q=80';
     if (t.includes('react') || t.includes('web') || t.includes('javascript') || t.includes('frontend')) return 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&w=800&q=80';
@@ -319,6 +510,7 @@ class CourseService {
   private pointsKey = 'shaivika_user_xp_points';
   private xpClaimsKey = 'shaivika_user_xp_claims';
   private checkpointKey = 'shaivika_user_checkpoint';
+  private getCoursesCache: Map<string, { data: CoursePaginationResult; expiry: number }> = new Map();
 
   normalizeCourseToICourse(c: any): ICourse {
     return normalizeCourseToICourse(c);
@@ -515,87 +707,100 @@ class CourseService {
   }
 
   async getCourses(options: CourseFilterOptions = {}): Promise<CoursePaginationResult> {
-    // Try API first
-    try {
-      const params = new URLSearchParams();
-      if (options.search) params.append('search', options.search);
-      if (options.category) params.append('category', options.category);
-      if (options.level) params.append('level', options.level);
-      if (options.status) params.append('status', options.status);
-      if (options.page) params.append('page', String(options.page));
-      if (options.limit) params.append('limit', String(options.limit));
+    const cacheKey = JSON.stringify(options);
+    const cached = this.getCoursesCache.get(cacheKey);
+    const now = Date.now();
+    if (cached && cached.expiry > now) {
+      return cached.data;
+    }
 
-      const res = await fetch(`${API_BASE_URL}/courses?${params.toString()}`);
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success && json.data) {
-          json.data.courses = (json.data.courses || []).filter((c: any) => !isRemovedMockCourse(c));
-          return json.data;
-        }
-      }
-    } catch (err) {}
-
-    // Try Firestore directly if available
-    if (db) {
+    const fetchAndCache = async (): Promise<CoursePaginationResult> => {
+      // Try API first
       try {
-        const querySnapshot = await getDocs(collection(db, 'courses'));
-        const loaded: ICourse[] = [];
-        querySnapshot.forEach((docSnap) => {
-          const item = this.normalizeCourseToICourse({ id: docSnap.id, ...docSnap.data() });
-          if (!isRemovedMockCourse(item)) {
-            loaded.push(item);
+        const params = new URLSearchParams();
+        if (options.search) params.append('search', options.search);
+        if (options.category) params.append('category', options.category);
+        if (options.level) params.append('level', options.level);
+        if (options.status) params.append('status', options.status);
+        if (options.page) params.append('page', String(options.page));
+        if (options.limit) params.append('limit', String(options.limit));
+
+        const res = await fetch(`${API_BASE_URL}/courses?${params.toString()}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data) {
+            json.data.courses = (json.data.courses || []).filter((c: any) => !isRemovedMockCourse(c));
+            return json.data;
           }
-        });
-        if (loaded.length > 0) {
-          localStorage.setItem('shaivika_courses_data', JSON.stringify(loaded));
         }
-      } catch (err) {
-        console.warn('Firestore fetch in getCourses failed, falling back to localStorage:', err);
+      } catch (err) {}
+
+      // Try Firestore directly if available
+      if (db) {
+        try {
+          const querySnapshot = await getDocs(collection(db, 'courses'));
+          const loaded: ICourse[] = [];
+          querySnapshot.forEach((docSnap) => {
+            const item = this.normalizeCourseToICourse({ id: docSnap.id, ...docSnap.data() });
+            if (!isRemovedMockCourse(item)) {
+              loaded.push(item);
+            }
+          });
+          if (loaded.length > 0) {
+            localStorage.setItem('shaivika_courses_data', JSON.stringify(loaded));
+          }
+        } catch (err) {
+          console.warn('Firestore fetch in getCourses failed, falling back to localStorage:', err);
+        }
       }
-    }
 
-    let list = this.getStoredCourses().filter((c) => !isRemovedMockCourse(c));
+      let list = this.getStoredCourses().filter((c) => !isRemovedMockCourse(c));
 
-    if (options.status && options.status !== 'all') {
-      list = list.filter((c) => c.status === options.status);
-    }
-    if (options.category && options.category !== 'All') {
-      const selectedCat = options.category.toLowerCase();
-      list = list.filter((c) => {
-        const courseCat = c.category.toLowerCase();
-        return courseCat === selectedCat ||
-               (selectedCat.includes('development') && courseCat.includes('development')) ||
-               (selectedCat.includes('linux') && courseCat.includes('linux')) ||
-               (selectedCat.includes('sys') && courseCat.includes('sys'));
-      });
-    }
-    if (options.level && options.level !== 'all') {
-      list = list.filter((c) => c.level === options.level || c.level === 'all_levels');
-    }
-    if (options.search) {
-      const term = options.search.toLowerCase();
-      list = list.filter(
-        (c) =>
-          c.title.toLowerCase().includes(term) ||
-          c.shortDescription.toLowerCase().includes(term) ||
-          c.category.toLowerCase().includes(term) ||
-          c.skills.some((s) => s.toLowerCase().includes(term))
-      );
-    }
+      if (options.status && options.status !== 'all') {
+        list = list.filter((c) => c.status === options.status);
+      }
+      if (options.category && options.category !== 'All') {
+        const selectedCat = options.category.toLowerCase();
+        list = list.filter((c) => {
+          const courseCat = c.category.toLowerCase();
+          return courseCat === selectedCat ||
+                 (selectedCat.includes('development') && courseCat.includes('development')) ||
+                 (selectedCat.includes('linux') && courseCat.includes('linux')) ||
+                 (selectedCat.includes('sys') && courseCat.includes('sys'));
+        });
+      }
+      if (options.level && options.level !== 'all') {
+        list = list.filter((c) => c.level === options.level || c.level === 'all_levels');
+      }
+      if (options.search) {
+        const term = options.search.toLowerCase();
+        list = list.filter(
+          (c) =>
+            c.title.toLowerCase().includes(term) ||
+            c.shortDescription.toLowerCase().includes(term) ||
+            c.category.toLowerCase().includes(term) ||
+            c.skills.some((s) => s.toLowerCase().includes(term))
+        );
+      }
 
-    const page = options.page || 1;
-    const limit = options.limit || 10;
-    const total = list.length;
-    const totalPages = Math.ceil(total / limit);
-    const paginated = list.slice((page - 1) * limit, page * limit);
+      const page = options.page || 1;
+      const limit = options.limit || 10;
+      const total = list.length;
+      const totalPages = Math.ceil(total / limit);
+      const paginated = list.slice((page - 1) * limit, page * limit);
 
-    return {
-      courses: paginated,
-      total,
-      page,
-      limit,
-      totalPages,
+      return {
+        courses: paginated,
+        total,
+        page,
+        limit,
+        totalPages,
+      };
     };
+
+    const result = await fetchAndCache();
+    this.getCoursesCache.set(cacheKey, { data: result, expiry: Date.now() + 15000 }); // cache for 15 seconds
+    return result;
   }
 
   async getCourseBySlugOrId(idOrSlug: string): Promise<ICourse | null> {

@@ -335,7 +335,7 @@ export class RealtimeCodeRunner {
         if (trimmed.startsWith('print(') && trimmed.endsWith(')')) {
           const content = trimmed.substring(6, trimmed.length - 1);
           try {
-            const evaluated = eval(content.replace(/f(["'])/g, '$1'));
+            const evaluated = (0, eval)(content.replace(/f(["'])/g, '$1'));
             logs.push(String(evaluated));
           } catch {
             logs.push(content.replace(/["']/g, ''));

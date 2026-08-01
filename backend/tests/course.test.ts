@@ -1,4 +1,4 @@
-import { describe, it, expect } from '@jest/globals';
+import { describe, it, expect, afterAll } from '@jest/globals';
 import { CourseValidationSchema } from '../src/types/course';
 import { toDocument, toFirestoreDateTime } from '../src/utils/firestore';
 import * as admin from 'firebase-admin';
@@ -86,4 +86,8 @@ describe('Firestore Helper Utilities', () => {
     expect(doc.undefinedField).toBeUndefined();
     expect(doc.instructor.undefinedSubField).toBeUndefined();
   });
+});
+
+afterAll(async () => {
+  await Promise.all(admin.apps.map((app) => app?.delete()));
 });

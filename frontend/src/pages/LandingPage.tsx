@@ -224,8 +224,8 @@ export const LandingPage: React.FC = () => {
               featured: true,
               rating: 5.0,
               ratingCount: 145,
-              thumbnail: '/assets/images/linux_course_thumbnail.png',
-              banner: '/assets/images/linux_os_architecture.png',
+              thumbnail: '/assets/images/linux_course_thumbnail.webp',
+              banner: '/assets/images/linux_os_architecture.webp',
               instructor: { name: 'KaizenQ Systems Team', role: 'Linux Systems Architect & LMS Specialist' },
               skills: ['Linux CLI', 'Kernel Mechanics', 'Systemd Services', 'Bash Automation', 'SSH & Security']
             });
@@ -251,8 +251,8 @@ export const LandingPage: React.FC = () => {
               featured: true,
               rating: 5.0,
               ratingCount: 180,
-              thumbnail: '/assets/images/github_course_banner.png',
-              banner: '/assets/images/github_course_banner.png',
+              thumbnail: '/assets/images/github_course_banner.webp',
+              banner: '/assets/images/github_course_banner.webp',
               instructor: { name: 'Kaizen Q Team', role: 'Senior Technical Instructor' },
               skills: ['Git CLI', 'Version Control', 'GitHub Actions', 'Codespaces', 'Semantic Versioning']
             });
@@ -285,8 +285,8 @@ export const LandingPage: React.FC = () => {
     }
     const t = (course.title || '').toLowerCase();
     const cat = (course.category || '').toLowerCase();
-    if (t.includes('linux') || cat.includes('linux')) return '/assets/images/linux_course_thumbnail.png';
-    if (t.includes('git') || cat.includes('git') || t.includes('github')) return '/assets/images/github_course_banner.png';
+    if (t.includes('linux') || cat.includes('linux')) return '/assets/images/linux_course_thumbnail.webp';
+    if (t.includes('git') || cat.includes('git') || t.includes('github')) return '/assets/images/github_course_banner.webp';
     if (t.includes('ai') || cat.includes('ai') || t.includes('machine learning')) return 'https://images.unsplash.com/photo-1677442136019-21780efad99a?auto=format&fit=crop&w=800&q=80';
     if (t.includes('devops') || cat.includes('devops') || t.includes('cloud')) return 'https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?auto=format&fit=crop&w=800&q=80';
     if (t.includes('react') || t.includes('web') || t.includes('javascript')) return 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&w=800&q=80';
