@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { db } from '../firebase';
+import { getEmailTemplate } from '../services/emailTemplates';
 
 const router = Router();
 
