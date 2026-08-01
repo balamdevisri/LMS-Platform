@@ -757,14 +757,14 @@ export const LandingPage: React.FC = () => {
         {/* ----------------- 4. AI FEATURES SECTION ----------------- */}
         <section id="ai-features" className="py-0 relative overflow-hidden">
           <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 space-y-16 relative z-10">
-            <div className="text-center max-w-2xl mx-auto space-y-4">
-              <span className="text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-zinc-900 px-3.5 py-1.5 rounded-full border border-blue-100 dark:border-zinc-850 hover:scale-105 transition-transform duration-200 cursor-pointer">
+            <div className="text-center max-w-2xl mx-auto flex flex-col items-center space-y-4 py-2">
+              <span className="inline-flex items-center justify-center text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-zinc-900 px-4 py-1.5 rounded-full border border-blue-100 dark:border-zinc-850 shadow-2xs hover:scale-105 transition-transform duration-200 cursor-pointer mb-2">
                 AI Tools Suite
               </span>
-              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white tracking-tight">
+              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white tracking-tight pt-1">
                 6 Powered AI Utilities Included
               </h2>
-              <p className="text-sm text-slate-600 dark:text-zinc-400 leading-relaxed font-normal max-w-lg mx-auto">
+              <p className="text-sm sm:text-base text-slate-600 dark:text-zinc-400 leading-relaxed font-normal max-w-lg mx-auto pt-1">
                 Automate study planning, quiz creation, note summarizing, and interview practice with built-in AI agents.
               </p>
             </div>
@@ -808,14 +808,14 @@ export const LandingPage: React.FC = () => {
         {/* ----------------- 5. COURSES SECTION ----------------- */}
         <section id="courses" className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-0 space-y-16">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-            <div className="space-y-3">
-              <span className="text-[10px] font-bold text-purple-700 dark:text-purple-400 uppercase tracking-widest bg-purple-50 dark:bg-purple-950/20 px-3.5 py-1.5 rounded-full border border-purple-100 dark:border-purple-900/40">
+            <div className="flex flex-col items-start space-y-3">
+              <span className="inline-flex items-center justify-center text-[11px] font-bold text-purple-700 dark:text-purple-400 uppercase tracking-widest bg-purple-50 dark:bg-purple-950/20 px-4 py-1.5 rounded-full border border-purple-100 dark:border-purple-900/40 mb-2">
                 Explore Catalog
               </span>
-              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white tracking-tight">
+              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white tracking-tight pt-1">
                 Featured AI & Engineering Tracks
               </h2>
-              <p className="text-sm text-slate-600 dark:text-zinc-400 leading-relaxed font-normal">
+              <p className="text-sm text-slate-600 dark:text-zinc-400 leading-relaxed font-normal pt-1">
                 Master high-demand tech tracks guided by 24/7 AI mentors and verified digital credentials.
               </p>
             </div>
@@ -928,14 +928,14 @@ export const LandingPage: React.FC = () => {
         <section id="ai-overview" className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-0 space-y-16">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             
-            <div className="lg:col-span-6 space-y-6">
-              <span className="text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-zinc-900 px-3.5 py-1.5 rounded-full border border-blue-100 dark:border-zinc-850 hover:scale-105 transition-transform duration-200 cursor-pointer">
+            <div className="lg:col-span-6 flex flex-col items-start space-y-4">
+              <span className="inline-flex items-center justify-center text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-zinc-900 px-4 py-1.5 rounded-full border border-blue-100 dark:border-zinc-850 shadow-2xs hover:scale-105 transition-transform duration-200 cursor-pointer mb-2">
                 Live AI Platform Overview
               </span>
-              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white leading-tight">
+              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white leading-tight pt-1">
                 Next-Gen Autonomous AI Learning Experience
               </h2>
-              <p className="text-sm sm:text-base text-slate-600 dark:text-zinc-400 leading-relaxed font-normal">
+              <p className="text-sm sm:text-base text-slate-600 dark:text-zinc-400 leading-relaxed font-normal pt-1">
                 Watch Kaizen Q in action. Our AI platform combines real-time code evaluation, automated debugging, RAG knowledge pipelines, and interactive sandboxes designed to accelerate engineering mastery.
               </p>
 
@@ -1045,14 +1045,14 @@ export const LandingPage: React.FC = () => {
         {/* ----------------- 7. TESTIMONIALS SECTION ----------------- */}
         <section className="pt-[35px] pb-[40px] border-y border-[#E6EEF9] dark:border-zinc-850 bg-slate-50/40 dark:bg-[#0E1325]/20 backdrop-blur-xs">
           <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
-            <div className="text-center max-w-2xl mx-auto space-y-4">
-              <span className="text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-zinc-900 px-3.5 py-1.5 rounded-full border border-blue-100 dark:border-zinc-850 hover:scale-105 transition-transform duration-200 cursor-pointer">
+            <div className="text-center max-w-2xl mx-auto flex flex-col items-center space-y-4 py-2">
+              <span className="inline-flex items-center justify-center text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-zinc-900 px-4 py-1.5 rounded-full border border-blue-100 dark:border-zinc-850 shadow-2xs hover:scale-105 transition-transform duration-200 cursor-pointer mb-2">
                 Student Testimonials
               </span>
-              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white tracking-tight">
+              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white tracking-tight pt-1">
                 Loved by 50,000+ Active Learners
               </h2>
-              <p className="text-sm text-slate-650 dark:text-zinc-400 leading-relaxed font-normal max-w-md mx-auto">
+              <p className="text-sm sm:text-base text-slate-655 dark:text-zinc-400 leading-relaxed font-normal max-w-md mx-auto pt-1">
                 Hear directly from software engineers, developers, and students excelling with Kaizen Q.
               </p>
             </div>
@@ -1104,11 +1104,11 @@ export const LandingPage: React.FC = () => {
 
         {/* ----------------- 8. PRICING SECTION ----------------- */}
         <section id="pricing" className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-0 space-y-16">
-          <div className="text-center max-w-2xl mx-auto space-y-4">
-            <span className="text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-zinc-900 px-3.5 py-1.5 rounded-full border border-blue-100 dark:border-zinc-850 hover:scale-105 transition-transform duration-200 cursor-pointer">
+          <div className="text-center max-w-2xl mx-auto flex flex-col items-center space-y-4 py-2">
+            <span className="inline-flex items-center justify-center text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-zinc-900 px-4 py-1.5 rounded-full border border-blue-100 dark:border-zinc-850 shadow-2xs hover:scale-105 transition-transform duration-200 cursor-pointer mb-2">
               Transparent Pricing
             </span>
-            <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white tracking-tight">
+            <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white tracking-tight pt-1">
               Choose Your AI Learning Tier
             </h2>
           </div>
@@ -1170,11 +1170,11 @@ export const LandingPage: React.FC = () => {
 
         {/* ----------------- 9. FAQ ACCORDION SECTION ----------------- */}
         <section id="about" className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-0 space-y-12">
-          <div className="text-center space-y-4">
-            <span className="text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-zinc-900 px-3.5 py-1.5 rounded-full border border-blue-100 dark:border-zinc-850 hover:scale-105 transition-transform duration-200 cursor-pointer">
+          <div className="text-center max-w-2xl mx-auto flex flex-col items-center space-y-4 py-2">
+            <span className="inline-flex items-center justify-center text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-zinc-900 px-4 py-1.5 rounded-full border border-blue-100 dark:border-zinc-850 shadow-2xs hover:scale-105 transition-transform duration-200 cursor-pointer mb-2">
               Frequently Asked Questions
             </span>
-            <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white tracking-tight">
+            <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white tracking-tight pt-1">
               Everything You Need to Know
             </h2>
           </div>
