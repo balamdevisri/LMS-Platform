@@ -9,7 +9,6 @@ interface BlueSmokeThemeProps {
 export const BlueSmokeTheme: React.FC<BlueSmokeThemeProps> = ({ className = '', children }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const spotlightRef = useRef<HTMLDivElement>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
   const scrollYRef = useRef(0);
   const [isLowPerformance] = useState(() => {
@@ -220,7 +219,6 @@ export const BlueSmokeTheme: React.FC<BlueSmokeThemeProps> = ({ className = '', 
         </div>
       )}
 
-<<<<<<< ours
       {/* 6. Tiny Glowing Particles */}
       {!isLowPerformance && (
         <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
