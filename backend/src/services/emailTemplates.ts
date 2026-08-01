@@ -115,3 +115,5 @@ export function getEmailTemplate(data: EmailData): { subject: string; html: stri
 
   return { subject, html };
 }
+
+export * from './email/emailTemplates';

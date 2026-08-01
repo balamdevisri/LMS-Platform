@@ -801,6 +801,41 @@ export const buildEventEmailTemplate = (
     case EmailEventType.ADMIN_NOTIFICATION:
       return buildAdminNotificationTemplate(payload);
     default:
-      throw new Error(`Unsupported email event type: ${eventType}`);
+      return {
+        subject: `Notification from KaizenQ AI LMS`,
+        html: renderMasterLayout({
+          title: 'Notification',
+          contentHtml: `<p>Hello ${payload?.studentName || 'Student'},</p><p>You have a new update from KaizenQ AI LMS.</p>`
+        })
+      };
   }
 };
+
+export interface EmailData {
+  to?: string;
+  studentName?: string;
+  type: string;
+  reason?: string;
+}
+
+export function getEmailTemplate(data: EmailData): { subject: string; html: string } {
+  const typeUpper = (data.type || '').toUpperCase().replace(/\s+/g, '_');
+  let eventType = EmailEventType.REGISTRATION_PENDING;
+
+  if (typeUpper.includes('VERIFIED') || typeUpper.includes('VERIFICATION')) {
+    eventType = EmailEventType.EMAIL_VERIFICATION;
+  } else if (typeUpper.includes('APPROVED') || typeUpper.includes('WELCOME')) {
+    eventType = EmailEventType.REGISTRATION_APPROVED;
+  } else if (typeUpper.includes('REJECTED')) {
+    eventType = EmailEventType.REGISTRATION_REJECTED;
+  } else if (typeUpper.includes('SUSPENDED')) {
+    eventType = EmailEventType.REGISTRATION_REJECTED;
+  }
+
+  return buildEventEmailTemplate(eventType, {
+    studentName: data.studentName || 'Student Scholar',
+    email: data.to || '',
+    rejectionReason: data.reason || 'Policy criteria check',
+    approvalDate: new Date().toLocaleDateString(),
+  });
+}
