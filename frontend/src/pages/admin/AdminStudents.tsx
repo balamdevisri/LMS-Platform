@@ -29,6 +29,17 @@ import { SendEmailModal } from '@/components/admin/students/SendEmailModal';
 import { GitHubPortfolioDrawer } from '@/components/admin/students/GitHubPortfolioDrawer';
 import { adminNotificationService } from '@/services/adminNotificationService';
 
+const isPendingStudent = (s: any) => {
+  const st = (s.status || '').toLowerCase();
+  if (st === 'pending' || st === 'pending approval' || st === 'pending_approval' || st === 'email_verification_pending') {
+    return true;
+  }
+  if (st === 'approved' || st === 'active' || s.approved === true) {
+    return false;
+  }
+  return s.approved === false;
+};
+
 export const AdminStudents: React.FC = () => {
   const [students, setStudents] = useState<StudentUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -126,7 +137,7 @@ export const AdminStudents: React.FC = () => {
 
     // Status filter
     if (statusFilter === 'pending') {
-      result = result.filter((s) => s.status === 'pending' || s.status === 'Pending' || (!s.approved && s.status !== 'rejected' && s.status !== 'Suspended'));
+      result = result.filter(isPendingStudent);
     } else if (statusFilter === 'approved') {
       result = result.filter((s) => s.status === 'approved' || s.status === 'Active' || s.approved === true);
     } else if (statusFilter === 'rejected') {
@@ -397,7 +408,7 @@ export const AdminStudents: React.FC = () => {
             <AlertCircle className="w-4 h-4 text-amber-500 animate-pulse" />
           </div>
           <div className="text-2xl font-extrabold text-amber-600">
-            {students.filter((s) => s.status === 'pending' || s.status === 'Pending' || (!s.approved && s.status !== 'rejected' && s.status !== 'Suspended')).length}
+            {students.filter(isPendingStudent).length}
           </div>
           <div className="text-[10px] text-amber-600 font-medium">Needs Review</div>
         </div>

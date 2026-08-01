@@ -76,8 +76,19 @@ export const AdminDashboard: React.FC = () => {
 
   // Compute Live Metrics
   const totalStudents = studentsList.length;
+  const isPendingStudent = (s: any) => {
+    const st = (s.status || '').toLowerCase();
+    if (st === 'pending' || st === 'pending approval' || st === 'pending_approval' || st === 'email_verification_pending') {
+      return true;
+    }
+    if (st === 'approved' || st === 'active' || s.approved === true) {
+      return false;
+    }
+    return s.approved === false;
+  };
+
   const pendingApprovals = useMemo(
-    () => studentsList.filter((s) => s.status === 'pending' || s.status === 'Pending' || (!s.approved && s.status !== 'rejected' && s.status !== 'Suspended')).length,
+    () => studentsList.filter(isPendingStudent).length,
     [studentsList]
   );
   const approvedStudents = useMemo(
