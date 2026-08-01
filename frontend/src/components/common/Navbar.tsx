@@ -5,6 +5,7 @@ import { Menu, X, ArrowRight, User, LogOut, Settings, ChevronDown, Sparkles } fr
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { BrandLogo } from './BrandLogo';
+import { ThemeToggle } from './ThemeToggle';
 
 export const Navbar: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -171,6 +172,7 @@ export const Navbar: React.FC = () => {
 
         {/* Right Action / User Menu Area */}
         <div className="hidden lg:flex items-center space-x-3">
+          <ThemeToggle />
           {user ? (
             <div className="relative" ref={menuRef}>
               <button
@@ -325,6 +327,10 @@ export const Navbar: React.FC = () => {
             </div>
 
             <div className="pt-3 border-t border-slate-100 dark:border-zinc-800 flex flex-col space-y-2">
+              <div className="flex items-center justify-between px-1 py-1">
+                <span className="text-xs font-bold text-slate-600 dark:text-zinc-400">Theme</span>
+                <ThemeToggle />
+              </div>
               {!user ? (
                 <>
                   <Link

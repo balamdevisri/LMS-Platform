@@ -553,10 +553,10 @@ export const LandingPage: React.FC = () => {
         }
       `}</style>
 
-      <div className="pt-24 font-['Sora'] select-none">
+      <div className="pt-16 sm:pt-20 font-['Sora'] select-none">
         
         {/* ----------------- 1. HERO SECTION ----------------- */}
-        <section className="relative max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 lg:pt-16 pb-0 overflow-visible min-h-[600px] lg:min-h-[680px] flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-8">
+        <section className="relative max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 pt-2 lg:pt-6 pb-0 overflow-visible min-h-[560px] lg:min-h-[620px] flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-8">
           
           {/* Left Column: Hero Content Container */}
           <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-6 max-w-2xl lg:max-w-[48%] relative z-10 w-full">
