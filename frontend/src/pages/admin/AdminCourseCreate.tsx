@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { CreateCourseSchema } from '../../../../shared/validators/course.validator';
 import type { CreateCourseInput } from '../../../../shared/validators/course.validator';
 import { courseService } from '../../services/courseService';
+import { useCourses } from '@/contexts/CourseContext';
 import { CourseHeader } from '../../components/courses/CourseHeader';
 import { CourseThumbnail } from '../../components/courses/CourseThumbnail';
 import { CheckCircle2, ArrowLeft, Loader2, Plus, Trash2, Sparkles, BookOpen } from 'lucide-react';
@@ -13,6 +14,7 @@ import { toast } from 'sonner';
 
 export const AdminCourseCreate: React.FC = () => {
   const navigate = useNavigate();
+  const { refreshCourses } = useCourses();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [skillsInput, setSkillsInput] = useState<string[]>(['Linux CLI', 'System Administration']);
@@ -95,6 +97,8 @@ export const AdminCourseCreate: React.FC = () => {
         prerequisites: prereqInput,
         learningOutcomes: outcomesInput,
       });
+
+      await refreshCourses();
 
       toast.success(`Course "${created.title}" created successfully!`);
       navigate('/admin/courses');

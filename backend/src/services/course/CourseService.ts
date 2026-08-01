@@ -315,13 +315,49 @@ export class CourseService {
           featured: true,
           createdBy: 'seeder',
         },
+        {
+          title: 'Database Management System (DBMS): Beginner to Advanced',
+          slug: 'database-management-system',
+          description: 'Learn Database Management System from fundamentals to advanced concepts including SQL, normalization, transactions, database design, optimization, and real-world projects.',
+          shortDescription: 'Learn Database Management System from fundamentals to advanced concepts including SQL, normalization, transactions, database design, optimization, and real-world projects.',
+          category: 'Database',
+          subcategory: 'DBMS',
+          level: 'all_levels',
+          thumbnail: 'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?auto=format&fit=crop&w=1200&q=80',
+          bannerImage: 'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?auto=format&fit=crop&w=1200&q=80',
+          duration: '25 Hours',
+          price: 0,
+          currency: 'INR',
+          status: 'published',
+          language: 'English',
+          instructor: {
+            uid: 'instructor-kaizen-q',
+            name: 'Kaizen-Q Academy',
+          },
+          lessonsCount: 46,
+          modulesCount: 6,
+          studentsEnrolled: 0,
+          rating: 5.0,
+          totalRatings: 120,
+          tags: ['database', 'dbms', 'sql', 'normalization', 'acid'],
+          prerequisites: ['Basic computer knowledge'],
+          learningOutcomes: [
+            'Understand relational database design and normalization rules',
+            'Write efficient SQL queries including joins, aggregations, and subqueries',
+            'Handle database transactions and ACID properties',
+            'Build real-world database projects from scratch'
+          ],
+          certificate: true,
+          featured: true,
+          createdBy: 'seeder',
+        }
       ];
 
       console.log('Checking and seeding sample courses...');
       for (const courseData of sampleCourses) {
         const existing = await this.collection().where('slug', '==', courseData.slug).limit(1).get();
         if (existing.empty) {
-          const docRef = this.collection().doc(courseData.slug === 'git-github-mastery' ? 'git-github-mastery-course-id' : this.collection().doc().id);
+          const docRef = this.collection().doc(courseData.slug === 'git-github-mastery' ? 'git-github-mastery-course-id' : (courseData.slug === 'database-management-system' ? 'database-management-system' : this.collection().doc().id));
           const course: Course = {
             ...courseData,
             id: docRef.id,
@@ -333,19 +369,23 @@ export class CourseService {
           
           if (courseData.slug === 'git-github-mastery') {
             await this.seedGitCourseDetails(docRef.id);
+          } else if (courseData.slug === 'database-management-system') {
+            await this.seedDbmsCourseDetails(docRef.id);
           }
         } else {
           // If the course exists, update its details to ensure the requested instructor/desc etc. are correct.
+          const courseDoc = existing.docs[0];
+          await courseDoc.ref.update({
+            description: courseData.description,
+            level: courseData.level,
+            instructor: courseData.instructor,
+            studentsEnrolled: courseData.studentsEnrolled,
+            updatedAt: new Date(),
+          });
           if (courseData.slug === 'git-github-mastery') {
-            const courseDoc = existing.docs[0];
-            await courseDoc.ref.update({
-              description: courseData.description,
-              level: courseData.level,
-              instructor: courseData.instructor,
-              studentsEnrolled: courseData.studentsEnrolled,
-              updatedAt: new Date(),
-            });
             await this.seedGitCourseDetails(courseDoc.id);
+          } else if (courseData.slug === 'database-management-system') {
+            await this.seedDbmsCourseDetails(courseDoc.id);
           }
         }
       }
@@ -622,6 +662,132 @@ export class CourseService {
       console.log('Successfully seeded Git & GitHub Mastery course structure.');
     } catch (error) {
       console.error('Error seeding Git & GitHub Mastery course details:', error);
+    }
+  }
+
+  async seedDbmsCourseDetails(courseId: string): Promise<void> {
+    try {
+      const { modulesCollection, lessonsCollection, quizzesCollection, assignmentsCollection } = await import('../../firebase/collections');
+      
+      const existingModules = await modulesCollection().where('courseId', '==', courseId).limit(1).get();
+      if (!existingModules.empty) return;
+
+      console.log('Seeding Database Management System (DBMS) detailed syllabus collections...');
+
+      const modulesData = [
+        { id: 'dbms-mod-1', title: 'Module 1 - Database Fundamentals', order: 1, duration: '4 Hours' },
+        { id: 'dbms-mod-2', title: 'Module 2 - Relational Database Concepts', order: 2, duration: '4 Hours' },
+        { id: 'dbms-mod-3', title: 'Module 3 - SQL Fundamentals', order: 3, duration: '4 Hours' },
+        { id: 'dbms-mod-4', title: 'Module 4 - Advanced SQL', order: 4, duration: '4 Hours' },
+        { id: 'dbms-mod-5', title: 'Module 5 - Database Design', order: 5, duration: '5 Hours' },
+        { id: 'dbms-mod-6', title: 'Module 6 - Real World Database Project', order: 6, duration: '4 Hours' },
+      ];
+
+      for (const mod of modulesData) {
+        await modulesCollection().doc(mod.id).set(toDocument({
+          ...mod,
+          courseId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }));
+      }
+
+      const lessonsData: Record<string, any[]> = {
+        'dbms-mod-1': [
+          { id: 'dbms-les-101', title: '1.1 What is Data?', order: 1, duration: '15 mins', type: 'reading', content: '### What is Data?\nData is a collection of raw, unorganized facts, figures, symbols, or observations that can be processed to produce meaningful information. In computing, data is represented in binary format and structured in databases.' },
+          { id: 'dbms-les-102', title: '1.2 What is Database?', order: 2, duration: '20 mins', type: 'video', content: '### What is a Database?\nA database is an organized collection of structured data stored electronically in a computer system. Databases are controlled by a Database Management System (DBMS).' },
+          { id: 'dbms-les-103', title: '1.3 DBMS Introduction', order: 3, duration: '25 mins', type: 'reading', content: '### Introduction to DBMS\nA Database Management System (DBMS) is software that manages databases, allowing users to store, retrieve, update, and organize information efficiently while ensuring data integrity.' },
+          { id: 'dbms-les-104', title: '1.4 Database vs File System', order: 4, duration: '20 mins', type: 'video', content: '### Database vs File System\nUnlike traditional file systems, a DBMS handles data redundancy, concurrency control, security, data integrity, and complex queries seamlessly.' },
+          { id: 'dbms-les-105', title: '1.5 Advantages of DBMS', order: 5, duration: '15 mins', type: 'reading', content: '### Advantages of DBMS\nKey benefits include: minimized data redundancy, data sharing, data consistency, transactional safety, secure access, and backup & recovery services.' },
+          { id: 'dbms-les-106', title: '1.6 Types of Databases', order: 6, duration: '15 mins', type: 'reading', content: '### Types of Databases\nDatabases are categorized into Relational (RDBMS), NoSQL (Key-Value, Document, Graph), Distributed, Cloud, and Object-Oriented databases.' }
+        ],
+        'dbms-mod-2': [
+          { id: 'dbms-les-201', title: '2.1 Tables, Rows & Columns', order: 1, duration: '15 mins', type: 'reading', content: '### Tables, Rows & Columns\nIn a relational database, data is organized into tables (relations), where columns represent attributes and rows (tuples) represent individual data records.' },
+          { id: 'dbms-les-202', title: '2.2 Keys', order: 2, duration: '25 mins', type: 'video', content: '### Keys in Relational Databases\nKeys uniquely identify rows in a table. Types include Primary Keys, Foreign Keys, Super Keys, Candidate Keys, and Composite Keys.' },
+          { id: 'dbms-les-203', title: '2.3 Constraints', order: 3, duration: '20 mins', type: 'reading', content: '### Integrity Constraints\nConstraints enforce database rules. Examples include: NOT NULL, UNIQUE, PRIMARY KEY, FOREIGN KEY, CHECK, and DEFAULT.' },
+          { id: 'dbms-les-204', title: '2.4 ER Model', order: 4, duration: '20 mins', type: 'video', content: '### Entity-Relationship Model\nThe ER Model describes database structures using Entities, Attributes, and Relationships, serving as the blueprint for relational designs.' },
+          { id: 'dbms-les-205', title: '2.5 ER Diagram', order: 5, duration: '20 mins', type: 'reading', content: '### Entity-Relationship Diagrams\nER diagrams visually represent entity relationships, detailing attributes, primary keys, and cardinality (1:1, 1:N, N:M).' }
+        ],
+        'dbms-mod-3': [
+          { id: 'dbms-les-301', title: '3.1 SQL Introduction', order: 1, duration: '15 mins', type: 'reading', content: '### SQL Introduction\nStructured Query Language (SQL) is the standard language to manage and query relational databases, divided into DDL, DML, DCL, and TCL.' },
+          { id: 'dbms-les-302', title: '3.2 CREATE', order: 2, duration: '20 mins', type: 'video', content: '### CREATE Statement\nThe DDL CREATE statement builds databases, tables, indexes, or views: `CREATE TABLE users (id INT, name VARCHAR(100));`' },
+          { id: 'dbms-les-303', title: '3.3 INSERT', order: 3, duration: '15 mins', type: 'video', content: '### INSERT Statement\nInserts new records into a table: `INSERT INTO users (id, name) VALUES (1, "Alice");`' },
+          { id: 'dbms-les-304', title: '3.4 SELECT', order: 4, duration: '25 mins', type: 'video', content: '### SELECT Statement\nRetrieves columns from a table: `SELECT * FROM users;`' },
+          { id: 'dbms-les-305', title: '3.5 UPDATE', order: 5, duration: '15 mins', type: 'video', content: '### UPDATE Statement\nModifies existing records matching a condition: `UPDATE users SET name = "Bob" WHERE id = 1;`' },
+          { id: 'dbms-les-306', title: '3.6 DELETE', order: 6, duration: '15 mins', type: 'video', content: '### DELETE Statement\nRemoves records matching a condition: `DELETE FROM users WHERE id = 1;`' },
+          { id: 'dbms-les-307', title: '3.7 WHERE', order: 7, duration: '15 mins', type: 'video', content: '### WHERE Clause\nFilters records conditionally: `SELECT * FROM users WHERE id > 5;`' },
+          { id: 'dbms-les-308', title: '3.8 ORDER BY', order: 8, duration: '15 mins', type: 'video', content: '### ORDER BY Clause\nSorts results ascending or descending: `SELECT * FROM users ORDER BY name DESC;`' }
+        ],
+        'dbms-mod-4': [
+          { id: 'dbms-les-401', title: '4.1 GROUP BY', order: 1, duration: '15 mins', type: 'video', content: '### GROUP BY Clause\nGroups rows sharing identical values: `SELECT category, COUNT(*) FROM products GROUP BY category;`' },
+          { id: 'dbms-les-402', title: '4.2 HAVING', order: 2, duration: '15 mins', type: 'video', content: '### HAVING Clause\nFilters group results (unlike WHERE which filters rows): `SELECT category FROM products GROUP BY category HAVING COUNT(*) > 5;`' },
+          { id: 'dbms-les-403', title: '4.3 JOINS', order: 3, duration: '30 mins', type: 'video', content: '### SQL JOINS\nCombines columns from multiple tables. Types: INNER JOIN, LEFT JOIN, RIGHT JOIN, FULL OUTER JOIN.' },
+          { id: 'dbms-les-404', title: '4.4 UNION', order: 4, duration: '15 mins', type: 'video', content: '### UNION Operator\nCombines query results into one distinct list: `SELECT id FROM customers UNION SELECT id FROM employees;`' },
+          { id: 'dbms-les-405', title: '4.5 Subqueries', order: 5, duration: '20 mins', type: 'video', content: '### Subqueries\nQueries nested inside other queries: `SELECT * FROM products WHERE price > (SELECT AVG(price) FROM products);`' },
+          { id: 'dbms-les-406', title: '4.6 Views', order: 6, duration: '15 mins', type: 'video', content: '### Database Views\nA virtual table built from a SELECT statement: `CREATE VIEW active_users AS SELECT * FROM users WHERE active = true;`' },
+          { id: 'dbms-les-407', title: '4.7 Indexes', order: 7, duration: '20 mins', type: 'video', content: '### Indexes\nStructures that speed up query execution: `CREATE INDEX idx_name ON users(name);`' }
+        ],
+        'dbms-mod-5': [
+          { id: 'dbms-les-501', title: '5.1 Functional Dependency', order: 1, duration: '20 mins', type: 'reading', content: '### Functional Dependency\nOccurs when one attribute uniquely determines another attribute. Denoted as X -> Y, where X is determinant.' },
+          { id: 'dbms-les-502', title: '5.2 Normalization', order: 2, duration: '30 mins', type: 'video', content: '### Database Normalization\nProcess to structure database schemas to eliminate insertion, update, and deletion anomalies. Forms: 1NF, 2NF, 3NF, BCNF.' },
+          { id: 'dbms-les-503', title: '5.3 Transactions', order: 3, duration: '15 mins', type: 'video', content: '### Transactions\nExecutions of SQL statements treated as a single logical unit of work (all-or-nothing execution).' },
+          { id: 'dbms-les-504', title: '5.4 ACID Properties', order: 4, duration: '20 mins', type: 'reading', content: '### ACID Properties\nEnsures transactional safety:\n- **Atomicity:** Complete success or total rollback.\n- **Consistency:** Moves database from one valid state to another.\n- **Isolation:** Concurrent transactions do not interfere.\n- **Durability:** Committed changes persist even during power loss.' },
+          { id: 'dbms-les-505', title: '5.5 Concurrency Control', order: 5, duration: '25 mins', type: 'reading', content: '### Concurrency Control\nManages concurrent transaction conflicts using Locking protocols (shared/exclusive) and timestamp ordering.' },
+          { id: 'dbms-les-506', title: '5.6 Database Security', order: 6, duration: '20 mins', type: 'reading', content: '### Database Security\nProtects data using access control privileges (GRANT/REVOKE), database encryption, and SQL injection prevention.' }
+        ],
+        'dbms-mod-6': [
+          { id: 'dbms-les-601', title: '6.1 Student Management System', order: 1, duration: '20 mins', type: 'reading', content: '### Student Management Schema\nDesign a database schema to track student details, class enrollments, and academic grades.' },
+          { id: 'dbms-les-602', title: '6.2 Library Management System', order: 2, duration: '20 mins', type: 'reading', content: '### Library Management Schema\nDesign a database schema to track book catalog databases, author relationships, member details, and borrow transactions.' },
+          { id: 'dbms-les-603', title: '6.3 E-Commerce Database', order: 3, duration: '30 mins', type: 'reading', content: '### E-Commerce Schema\nDesign a comprehensive database model tracking users, product catalogs, customer shopping carts, checkout orders, and payments.' },
+          { id: 'dbms-les-604', title: '6.4 SQL Mini Project', order: 4, duration: '40 mins', type: 'reading', content: '### Capstone Mini SQL Project\nCreate the E-commerce schema locally, run sample tables, populate them with test records, and execute complex nested query reports.' }
+        ]
+      };
+
+      for (const [modId, lessons] of Object.entries(lessonsData)) {
+        for (const les of lessons) {
+          await lessonsCollection().doc(les.id).set(toDocument({
+            ...les,
+            moduleId: modId,
+            courseId,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }));
+        }
+      }
+
+      const quizzesData = [
+        { id: 'dbms-quiz-1', moduleId: 'dbms-mod-1', title: 'Types of Databases Quiz', questions: [] },
+        { id: 'dbms-quiz-2', moduleId: 'dbms-mod-6', title: 'Final Assessment Quiz', questions: [] },
+      ];
+      for (const quiz of quizzesData) {
+        await quizzesCollection().doc(quiz.id).set(toDocument({
+          ...quiz,
+          courseId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }));
+      }
+
+      const assignmentsData = [
+        { id: 'dbms-assign-1', moduleId: 'dbms-mod-1', title: 'Practice Terminal (For Practice Only)', description: 'Simulated environment exercises.' },
+        { id: 'dbms-assign-2', moduleId: 'dbms-mod-2', title: 'Practice Terminal (For Practice Only)', description: 'ER diagram database schemas.' },
+        { id: 'dbms-assign-3', moduleId: 'dbms-mod-3', title: 'Practice Terminal (For Practice Only)', description: 'Write SQL query scripts.' },
+        { id: 'dbms-assign-4', moduleId: 'dbms-mod-4', title: 'Practice Terminal (For Practice Only)', description: 'Join queries.' },
+        { id: 'dbms-assign-5', moduleId: 'dbms-mod-5', title: 'Practice Terminal (For Practice Only)', description: 'Transaction isolation queries.' },
+        { id: 'dbms-assign-6', moduleId: 'dbms-mod-6', title: 'SQL Mini Project', description: 'Implement capstone schemas.' },
+      ];
+      for (const assign of assignmentsData) {
+        await assignmentsCollection().doc(assign.id).set(toDocument({
+          ...assign,
+          courseId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }));
+      }
+
+      console.log('Successfully seeded DBMS course structure.');
+    } catch (error) {
+      console.error('Error seeding DBMS course details:', error);
     }
   }
 }

@@ -18,7 +18,7 @@ export const CourseThumbnail: React.FC<CourseThumbnailProps> = ({
   return (
     <div className={`relative overflow-hidden rounded-2xl group ${aspectRatio} ${className}`}>
       <img
-        src={src || '/assets/images/linux_course_thumbnail.png'}
+        src={src || '/assets/images/linux_course_thumbnail.webp'}
         alt={alt}
         className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
         onError={(e) => {

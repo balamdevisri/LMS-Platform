@@ -18,33 +18,41 @@ export const Navbar: React.FC = () => {
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    let scrollTimeout: any = null;
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
+      if (scrollTimeout) return;
+      scrollTimeout = setTimeout(() => {
+        setIsScrolled(window.scrollY > 20);
 
-      // Scroll spy logic to highlight section names dynamically
-      const sections = ['courses', 'features', 'pricing', 'about', 'contact'];
-      let currentSection = '';
-      
-      for (const section of sections) {
-        const el = document.getElementById(section);
-        if (el) {
-          const rect = el.getBoundingClientRect();
-          if (rect.top <= 180 && rect.bottom >= 180) {
-            currentSection = `#${section}`;
-            break;
+        // Scroll spy logic to highlight section names dynamically
+        const sections = ['courses', 'features', 'pricing', 'about', 'contact'];
+        let currentSection = '';
+        
+        for (const section of sections) {
+          const el = document.getElementById(section);
+          if (el) {
+            const rect = el.getBoundingClientRect();
+            if (rect.top <= 180 && rect.bottom >= 180) {
+              currentSection = `#${section}`;
+              break;
+            }
           }
         }
-      }
-      
-      if (currentSection) {
-        setActiveHash(currentSection);
-      } else if (window.scrollY < 200) {
-        setActiveHash('');
-      }
+        
+        if (currentSection) {
+          setActiveHash(currentSection);
+        } else if (window.scrollY < 200) {
+          setActiveHash('');
+        }
+        scrollTimeout = null;
+      }, 100);
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+    };
   }, []);
 
   // Sync hash change

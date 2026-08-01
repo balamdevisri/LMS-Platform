@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { UpdateCourseSchema } from '../../../../shared/validators/course.validator';
 import type { UpdateCourseInput } from '../../../../shared/validators/course.validator';
 import { courseService } from '../../services/courseService';
+import { useCourses } from '@/contexts/CourseContext';
 import { CourseHeader } from '../../components/courses/CourseHeader';
 import { CourseThumbnail } from '../../components/courses/CourseThumbnail';
 import { LoadingSkeleton } from '../../components/courses/LoadingSkeleton';
@@ -15,6 +16,7 @@ import { toast } from 'sonner';
 export const AdminCourseEdit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { refreshCourses } = useCourses();
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -96,6 +98,8 @@ export const AdminCourseEdit: React.FC = () => {
         skills: skillsInput,
         learningOutcomes: outcomesInput,
       });
+
+      await refreshCourses();
 
       toast.success('Course updated successfully!');
       navigate('/admin/courses');

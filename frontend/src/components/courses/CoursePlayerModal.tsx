@@ -98,7 +98,7 @@ const ARCHITECTURE_SLIDES = [
     id: 'slide_1',
     title: 'Module 1: Unix & Linux Concentric Layered Architecture',
     subtitle: 'Rings of Isolation: Hardware ➔ Kernel ➔ Shell ➔ User Applications',
-    image: '/assets/images/linux_os_architecture.png',
+    image: '/assets/images/linux_os_architecture.webp',
     badge: 'Module 1 • OS Architecture',
     description: `Linux organizes execution into isolated concentric rings. At the core is physical Hardware (CPU, Memory, Devices). Direct access to Hardware is restricted exclusively to the Kernel (Core Control Program). Applications (Web Browsers, Editors, Python scripts) run in User Space and communicate with the Shell via System Calls & System Requests.`,
     takeaways: [
@@ -111,7 +111,7 @@ const ARCHITECTURE_SLIDES = [
     id: 'slide_2',
     title: 'Module 2: File System Hierarchy Standard (FHS) & POSIX Permissions',
     subtitle: 'Root Directory Structure, Octal Notation (755, 644) and POSIX ACLs',
-    image: '/assets/images/linux_permissions_fhs.png',
+    image: '/assets/images/linux_permissions_fhs.webp',
     badge: 'Module 2 • FHS & Permissions',
     description: `Linux organizes all files under a single root tree (/). File permissions are governed by 3 security tiers: Owner (u), Group (g), and Others (o), using Read (4), Write (2), and Execute (1) octal bits. Advanced ACLs grant granular user-level access rules.`,
     takeaways: [
@@ -124,7 +124,7 @@ const ARCHITECTURE_SLIDES = [
     id: 'slide_3',
     title: 'Module 3: Process Management, Systemd Services & Cron Jobs',
     subtitle: 'CPU Scheduler, Process Lifecycles (PIDs), Systemctl Daemons and Crontab',
-    image: '/assets/images/linux_process_systemd.png',
+    image: '/assets/images/linux_process_systemd.webp',
     badge: 'Module 3 • Process & Systemd',
     description: `Inside the Linux Kernel chamber, Process Scheduler allocates CPU time slices across PIDs. Systemd acts as the PID 1 init daemon managing system services (systemctl start/stop/status) and cron schedules automated task execution.`,
     takeaways: [
@@ -137,7 +137,7 @@ const ARCHITECTURE_SLIDES = [
     id: 'slide_4',
     title: 'Module 4: Bash Scripting Automation & Host Security Hardening',
     subtitle: 'Bash Control Structures, SSH Cryptographic Keys & Host Firewall Security',
-    image: '/assets/images/linux_bash_security.png',
+    image: '/assets/images/linux_bash_security.webp',
     badge: 'Module 4 • Bash & Security',
     description: `Enterprise DevOps engineers combine Bash shell scripting with cryptographic SSH key authentication and UFW/iptables firewalls to automate infrastructure pipelines while maintaining zero-trust security postures.`,
     takeaways: [
@@ -293,8 +293,8 @@ const MOCK_RESOURCES_DATABASE: Record<string, LessonResource[]> = {
   '1.1.3': [
     {
       id: 'res_1.1.3_1',
-      name: 'OS Architecture Concept Map.png',
-      url: '/assets/images/linux_os_architecture.png',
+      name: 'OS Architecture Concept Map.webp',
+      url: '/assets/images/linux_os_architecture.webp',
       type: 'image',
       size: '1.2 MB',
       badge: 'Project Files',

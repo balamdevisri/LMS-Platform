@@ -215,7 +215,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       lessonIdStr.includes('1.1')
     ) {
       sectionTitle = '1. Linux Architecture & Operating System History';
-      moduleImageMarkdown = `\n![Linux OS History & Enterprise Distros](/assets/images/topic_linux_history_distros.png)\n`;
+      moduleImageMarkdown = `\n![Linux OS History & Enterprise Distros](/assets/images/topic_linux_history_distros.webp)\n`;
     } else if (
       lessonTitleLower.includes('kernel') ||
       lessonTitleLower.includes('lkm') ||
@@ -223,7 +223,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       lessonIdStr.includes('1.2')
     ) {
       sectionTitle = '1. Kernel Architecture & System Call Execution';
-      moduleImageMarkdown = `\n![Linux Kernel Architecture Mechanics](/assets/images/topic_kernel_architecture.png)\n`;
+      moduleImageMarkdown = `\n![Linux Kernel Architecture Mechanics](/assets/images/topic_kernel_architecture.webp)\n`;
     } else if (
       lessonTitleLower.includes('navigation') ||
       lessonTitleLower.includes('cli basics') ||
@@ -231,7 +231,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       lessonIdStr.includes('1.3')
     ) {
       sectionTitle = '1. Terminal CLI Navigation & Path Exploration';
-      moduleImageMarkdown = `\n![Terminal CLI Navigation & Paths](/assets/images/topic_terminal_cli_navigation.png)\n`;
+      moduleImageMarkdown = `\n![Terminal CLI Navigation & Paths](/assets/images/topic_terminal_cli_navigation.webp)\n`;
     } else if (
       lessonTitleLower.includes('redirection') ||
       lessonTitleLower.includes('pipe') ||
@@ -239,7 +239,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       lessonIdStr.includes('1.4')
     ) {
       sectionTitle = '1. I/O Redirection & Pipeline Processing';
-      moduleImageMarkdown = `\n![Linux I/O Redirection & Streams](/assets/images/topic_io_redirection_pipes.png)\n`;
+      moduleImageMarkdown = `\n![Linux I/O Redirection & Streams](/assets/images/topic_io_redirection_pipes.webp)\n`;
     } else if (
       lessonTitleLower.includes('editor') ||
       lessonTitleLower.includes('vim') ||
@@ -247,7 +247,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       lessonIdStr.includes('1.5')
     ) {
       sectionTitle = '1. Terminal Text Editors & Modal Editing Operations';
-      moduleImageMarkdown = `\n![Vim and Nano Terminal Text Editors](/assets/images/topic_text_editors.png)\n`;
+      moduleImageMarkdown = `\n![Vim and Nano Terminal Text Editors](/assets/images/topic_text_editors.webp)\n`;
     } else if (
       lessonTitleLower.includes('user') ||
       lessonTitleLower.includes('group') ||
@@ -255,7 +255,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       lessonIdStr.includes('2.2')
     ) {
       sectionTitle = '1. User & Group Security Administration';
-      moduleImageMarkdown = `\n![User & Group Security Administration](/assets/images/topic_user_groups.png)\n`;
+      moduleImageMarkdown = `\n![User & Group Security Administration](/assets/images/topic_user_groups.webp)\n`;
     } else if (
       lessonTitleLower.includes('permission') ||
       lessonTitleLower.includes('chmod') ||
@@ -263,7 +263,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       lessonIdStr.includes('2.3')
     ) {
       sectionTitle = '1. File Permissions & POSIX Access Control Lists';
-      moduleImageMarkdown = `\n![Linux File Permissions & ACL Matrix](/assets/images/linux_permissions_fhs.png)\n`;
+      moduleImageMarkdown = `\n![Linux File Permissions & ACL Matrix](/assets/images/linux_permissions_fhs.webp)\n`;
     } else if (
       lessonTitleLower.includes('storage') ||
       lessonTitleLower.includes('mount') ||
@@ -271,7 +271,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       lessonIdStr.includes('2.4')
     ) {
       sectionTitle = '1. Storage Drives, Partitioning & Mount Points';
-      moduleImageMarkdown = `\n![Storage Drives & Mounting Pipelines](/assets/images/topic_storage_mounting.png)\n`;
+      moduleImageMarkdown = `\n![Storage Drives & Mounting Pipelines](/assets/images/topic_storage_mounting.webp)\n`;
     } else if (
       lessonTitleLower.includes('process') ||
       lessonTitleLower.includes('top') ||
@@ -279,7 +279,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       lessonIdStr.includes('3.1')
     ) {
       sectionTitle = '1. Process Lifecycles & Task Monitoring';
-      moduleImageMarkdown = `\n![Linux Process Monitoring & Control](/assets/images/topic_process_control.png)\n`;
+      moduleImageMarkdown = `\n![Linux Process Monitoring & Control](/assets/images/topic_process_control.webp)\n`;
     } else if (
       lessonTitleLower.includes('systemd') ||
       lessonTitleLower.includes('service') ||
@@ -288,21 +288,21 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       lessonIdStr.includes('3.3')
     ) {
       sectionTitle = '1. Systemd Daemons & Crontab Automation';
-      moduleImageMarkdown = `\n![Systemd Daemons & Service Management](/assets/images/linux_process_systemd.png)\n`;
+      moduleImageMarkdown = `\n![Systemd Daemons & Service Management](/assets/images/linux_process_systemd.webp)\n`;
     } else if (
       lessonTitleLower.includes('bash') ||
       lessonTitleLower.includes('script') ||
       lessonIdStr.includes('4.1')
     ) {
       sectionTitle = '1. Bash Script Control Structures & Loops';
-      moduleImageMarkdown = `\n![Bash Scripting Control Structures](/assets/images/topic_bash_control_loops.png)\n`;
+      moduleImageMarkdown = `\n![Bash Scripting Control Structures](/assets/images/topic_bash_control_loops.webp)\n`;
     } else if (
       lessonTitleLower.includes('ssh') ||
       lessonTitleLower.includes('key') ||
       lessonIdStr.includes('4.3')
     ) {
       sectionTitle = '1. SSH Cryptographic Keys & Remote Access Security';
-      moduleImageMarkdown = `\n![SSH Keys & Remote Access Security](/assets/images/topic_ssh_keys.png)\n`;
+      moduleImageMarkdown = `\n![SSH Keys & Remote Access Security](/assets/images/topic_ssh_keys.webp)\n`;
     } else if (
       lessonTitleLower.includes('firewall') ||
       lessonTitleLower.includes('ufw') ||
@@ -311,14 +311,14 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       lessonIdStr.includes('4.4')
     ) {
       sectionTitle = '1. Network Diagnostics & Host Firewall Hardening';
-      moduleImageMarkdown = `\n![Network Diagnostics & Security Hardening](/assets/images/linux_bash_security.png)\n`;
+      moduleImageMarkdown = `\n![Network Diagnostics & Security Hardening](/assets/images/linux_bash_security.webp)\n`;
     } else if (
       lessonTitleLower.includes('action') ||
       lessonTitleLower.includes('ci') ||
       lessonTitleLower.includes('pipeline')
     ) {
       sectionTitle = '1. GitHub Actions & Automated CI/CD Pipelines';
-      moduleImageMarkdown = `\n![GitHub Actions CI/CD Pipeline](/assets/images/github_actions_ci_cd.png)\n`;
+      moduleImageMarkdown = `\n![GitHub Actions CI/CD Pipeline](/assets/images/github_actions_ci_cd.webp)\n`;
     } else if (
       lessonTitleLower.includes('branch') ||
       lessonTitleLower.includes('pull') ||
@@ -326,24 +326,24 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       lessonTitleLower.includes('review')
     ) {
       sectionTitle = '1. Branching Strategies & Pull Request Code Reviews';
-      moduleImageMarkdown = `\n![Git Branching & Pull Requests](/assets/images/git_branching_merging.png)\n`;
+      moduleImageMarkdown = `\n![Git Branching & Pull Requests](/assets/images/git_branching_merging.webp)\n`;
     } else if (
       lessonTitleLower.includes('git') ||
       lessonTitleLower.includes('commit') ||
       lessonTitleLower.includes('version')
     ) {
       sectionTitle = '1. Git CLI Version Control & Local Workspace Setup';
-      moduleImageMarkdown = `\n![Git CLI Version Control Terminal](/assets/images/git_basics_terminal.png)\n`;
+      moduleImageMarkdown = `\n![Git CLI Version Control Terminal](/assets/images/git_basics_terminal.webp)\n`;
     } else if (
       lessonTitleLower.includes('fhs') ||
       lessonTitleLower.includes('hierarchy') ||
       lessonIdStr.includes('2.1')
     ) {
       sectionTitle = '1. Filesystem Hierarchy Standard (FHS)';
-      moduleImageMarkdown = `\n![Filesystem Hierarchy Standard Diagram](/assets/images/linux_fhs_hierarchy.png)\n`;
+      moduleImageMarkdown = `\n![Filesystem Hierarchy Standard Diagram](/assets/images/linux_fhs_hierarchy.webp)\n`;
     } else {
       sectionTitle = '1. Core Operating Principles & Layered Architecture';
-      moduleImageMarkdown = `\n![Core OS Architecture Principles](/assets/images/topic_core_os_principles.png)\n`;
+      moduleImageMarkdown = `\n![Core OS Architecture Principles](/assets/images/topic_core_os_principles.webp)\n`;
     }
 
     let topicDescription = 'Linux is built around modular Unix design principles where everything is represented as a file or stream. Understanding system boundaries, process isolation, and security matrices is essential for system administration and DevOps pipelines.';
