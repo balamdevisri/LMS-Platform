@@ -280,9 +280,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.warn('Persistence config warning:', e);
     }
 
-    const isAdminEmail =
-      email.toLowerCase() === 'admin@gmail.com' ||
-      email.toLowerCase().includes('admin');
+    const cleanEmail = email.toLowerCase().trim();
+    const isAdminEmail = cleanEmail === 'admin@gmail.com' || cleanEmail.startsWith('admin@');
 
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -371,29 +370,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       );
       return profile;
     } catch (err: any) {
-      if (isAdminEmail) {
+      // Throw credentials error if password is wrong or user invalid
+      if (
+        err?.code === 'auth/wrong-password' ||
+        err?.code === 'auth/invalid-credential' ||
+        err?.code === 'auth/invalid-email' ||
+        err?.code === 'EMAIL_NOT_VERIFIED' ||
+        err?.code === 'ADMIN_APPROVAL_PENDING' ||
+        err?.code === 'APPLICATION_REJECTED' ||
+        err?.code === 'ACCOUNT_SUSPENDED'
+      ) {
+        throw err;
+      }
+
+      // Only attempt initial admin creation if admin user is not found in Firebase yet
+      if (isAdminEmail && (err?.code === 'auth/user-not-found' || err?.code === 'auth/user-disabled')) {
         try {
           const newCredential = await createUserWithEmailAndPassword(auth, email, password);
           await updateProfile(newCredential.user, { displayName: 'Administrator (Manoj)' });
           const profile = await fetchUserProfile(newCredential.user, undefined, 'admin');
           return profile;
         } catch (createErr) {
-          const fallbackProfile: UserProfile = {
-            uid: 'admin-fallback-id',
-            fullName: 'Administrator (Manoj)',
-            name: 'Administrator (Manoj)',
-            email: email,
-            photoURL: null,
-            role: 'admin',
-            provider: 'password',
-            providerId: 'password',
-            status: 'Active',
-            createdAt: new Date().toISOString(),
-            lastLogin: new Date().toISOString(),
-            isVerified: true,
-          };
-          setUserProfile(fallbackProfile);
-          return fallbackProfile;
+          throw err;
         }
       }
       throw err;

@@ -69,6 +69,13 @@ export const Login: React.FC = () => {
         navigate('/auth/verify-email', {
           state: { email: email.toLowerCase().trim() },
         });
+      } else if (
+        err?.code === 'auth/invalid-credential' ||
+        err?.code === 'auth/wrong-password' ||
+        err?.code === 'auth/user-not-found' ||
+        err?.code === 'auth/invalid-email'
+      ) {
+        toast.error('Invalid email or password. Please check your credentials and try again.');
       } else {
         toast.error(err?.message || 'Failed to sign in. Please check your credentials.');
       }
