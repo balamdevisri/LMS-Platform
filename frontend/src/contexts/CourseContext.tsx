@@ -472,12 +472,16 @@ const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
       String(c.id) === 'git-github-mastery-course-id'
     ) {
       const key = 'git-github-mastery';
+      const defaultGitCourse = initialDefaultCourses[1];
+      const hasModules = Array.isArray(c.modules) && c.modules.length > 0;
       const updatedItem: CourseItem = {
+        ...defaultGitCourse,
         ...c,
         id: 'git-github-mastery',
         title: 'Git & GitHub Mastery',
         subtitle: '⚡ Git & GitHub Mastery',
         thumbnail: '/assets/images/github_course_banner.png',
+        modules: hasModules ? c.modules : (defaultGitCourse.modules || gitCourseModules),
       };
       map.set(key, updatedItem);
     } else {

@@ -34,6 +34,7 @@ import {
   type LearningUnitType,
   type QuizQuestion
 } from '@/contexts/CourseContext';
+import { gitCourseModules } from '@/data/gitCourseFullData';
 
 export const AdminCourseDetails: React.FC = () => {
   const { courseId } = useParams<{ courseId: string }>();
@@ -157,10 +158,17 @@ export const AdminCourseDetails: React.FC = () => {
 
   // Sync state with Course Context
   useEffect(() => {
-    if (course?.modules) {
+    const isGit = course && (
+      String(course.id) === 'git-github-mastery' ||
+      String(course.id) === 'git-github-mastery-course-id' ||
+      (course.title || '').toLowerCase().includes('git')
+    );
+    if (course?.modules && course.modules.length > 0) {
       setModules(course.modules);
+    } else if (isGit) {
+      setModules(gitCourseModules);
     } else {
-      setModules([]);
+      setModules(course?.modules || []);
     }
   }, [course]);
 
