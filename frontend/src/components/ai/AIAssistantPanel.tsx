@@ -963,7 +963,7 @@ export const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 placeholder="Ask your tutor anything..."
-                className="flex-1 bg-slate-100 border border-slate-200 hover:bg-slate-50/50 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-medium focus:outline-hidden focus:border-purple-600 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100"
+                className="flex-1 bg-slate-100 border border-slate-200 hover:bg-slate-50 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-medium text-slate-900 focus:outline-none focus:border-purple-600 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100"
               />
               <button
                 type="submit"

@@ -529,13 +529,13 @@ export const AIQuizPortal: React.FC<AIQuizPortalProps> = ({
       </header>
 
       {/* -------------------- WORKSPACE PANELS -------------------- */}
-      <div className="flex-1 overflow-y-auto bg-slate-50/50 dark:bg-zinc-950/80 p-6 flex flex-col min-h-0 transition-colors duration-300">
+      <div className="flex-1 overflow-y-auto bg-slate-50 dark:bg-zinc-950/80 p-6 flex flex-col min-h-0 transition-colors duration-300">
         
         {/* ===================== MODE 1: CONFIGURATION ===================== */}
         {workspaceMode === 'config' && (
           <div className="space-y-6 max-w-3xl mx-auto w-full flex-1 flex flex-col justify-between">
             <div className="space-y-5">
-              <div className="p-4 border border-slate-200/80 dark:border-zinc-800 rounded-2xl bg-white dark:bg-zinc-900 space-y-1.5 py-4 text-center shadow-3xs">
+              <div className="p-4 border border-slate-200 dark:border-zinc-800 rounded-2xl bg-white dark:bg-zinc-900 space-y-1.5 py-4 text-center shadow-3xs">
                 <Sparkles className="w-7 h-7 text-purple-600 dark:text-purple-400 mx-auto animate-pulse" />
                 <h4 className="font-heading font-extrabold text-sm text-slate-900 dark:text-zinc-100">
                   AI Quiz Generator Wizard
@@ -546,7 +546,7 @@ export const AIQuizPortal: React.FC<AIQuizPortalProps> = ({
               </div>
 
               {/* ----------------- STEP 1: SELECT COURSE (OUR ADDED COURSES ONLY) ----------------- */}
-              <div className="p-4 bg-white dark:bg-zinc-900 border border-slate-200/90 dark:border-zinc-800 rounded-2xl space-y-3 shadow-3xs">
+              <div className="p-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl space-y-3 shadow-3xs">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="w-5 h-5 rounded-full bg-purple-600 text-white text-[10px] font-black flex items-center justify-center">1</span>
@@ -571,8 +571,8 @@ export const AIQuizPortal: React.FC<AIQuizPortalProps> = ({
                         }}
                         className={`p-3.5 rounded-xl border text-left cursor-pointer transition-all flex items-center gap-3 ${
                           isSelected
-                            ? 'border-purple-600 dark:border-purple-500 bg-purple-50/60 dark:bg-purple-950/40 ring-2 ring-purple-500/20 shadow-xs'
-                            : 'border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 hover:border-slate-300 dark:hover:border-zinc-700 hover:bg-slate-50/80 dark:hover:bg-zinc-800/80'
+                            ? 'border-purple-600 dark:border-purple-500 bg-purple-50 dark:bg-purple-950/40 ring-2 ring-purple-500/20 shadow-xs'
+                            : 'border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-slate-300 dark:hover:border-zinc-700 hover:bg-slate-50 dark:hover:bg-zinc-800/80'
                         }`}
                       >
                         <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
@@ -598,7 +598,7 @@ export const AIQuizPortal: React.FC<AIQuizPortalProps> = ({
               </div>
 
               {/* ----------------- STEP 2: SELECT QUIZ LEVEL & TARGET ----------------- */}
-              <div className="p-4 bg-white dark:bg-zinc-900 border border-slate-200/90 dark:border-zinc-800 rounded-2xl space-y-3 shadow-3xs">
+              <div className="p-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl space-y-3 shadow-3xs">
                 <div className="flex items-center gap-2">
                   <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-black flex items-center justify-center">2</span>
                   <label className="text-xs font-extrabold text-slate-900 dark:text-zinc-100 uppercase tracking-wider block">
@@ -621,7 +621,7 @@ export const AIQuizPortal: React.FC<AIQuizPortalProps> = ({
                         onClick={() => setDifficulty(lvl.id as any)}
                         className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between space-y-1.5 ${
                           isSelected
-                            ? 'border-emerald-600 dark:border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/40 ring-2 ring-emerald-500/20 shadow-xs'
+                            ? 'border-emerald-600 dark:border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 ring-2 ring-emerald-500/20 shadow-xs'
                             : 'border-slate-200 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-slate-50 dark:hover:bg-zinc-800'
                         }`}
                       >

@@ -5,6 +5,7 @@ import { Menu, X, ArrowRight, User, LogOut, Settings, ChevronDown, Sparkles } fr
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { BrandLogo } from './BrandLogo';
+import { ThemeToggle } from './ThemeToggle';
 
 export const Navbar: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -140,7 +141,7 @@ export const Navbar: React.FC = () => {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 w-full px-4 sm:px-6 lg:px-8 pt-4 pointer-events-none font-['Sora']">
       <div
-        className={`mx-auto max-w-7xl h-[72px] flex items-center justify-between px-6 rounded-[18px] backdrop-blur-xl transition-all duration-300 pointer-events-auto border ${
+        className={`mx-auto max-w-7xl h-[64px] sm:h-[72px] flex items-center justify-between px-3.5 sm:px-6 rounded-[18px] backdrop-blur-xl transition-all duration-300 pointer-events-auto border ${
           isScrolled
             ? 'bg-white/78 border-[#E6EEF9]/80 shadow-[0_8px_30px_rgba(59,130,246,0.06)] dark:bg-[#0E1325]/78 dark:border-slate-800/80 dark:shadow-[0_8px_30px_rgba(0,0,0,0.4)]'
             : 'bg-white/60 border-slate-100/60 shadow-xs dark:bg-[#0E1325]/60 dark:border-zinc-800/60'
@@ -179,6 +180,7 @@ export const Navbar: React.FC = () => {
 
         {/* Right Action / User Menu Area */}
         <div className="hidden lg:flex items-center space-x-3">
+          <ThemeToggle />
           {user ? (
             <div className="relative" ref={menuRef}>
               <button
@@ -333,6 +335,10 @@ export const Navbar: React.FC = () => {
             </div>
 
             <div className="pt-3 border-t border-slate-100 dark:border-zinc-800 flex flex-col space-y-2">
+              <div className="flex items-center justify-between px-1 py-1">
+                <span className="text-xs font-bold text-slate-600 dark:text-zinc-400">Theme</span>
+                <ThemeToggle />
+              </div>
               {!user ? (
                 <>
                   <Link

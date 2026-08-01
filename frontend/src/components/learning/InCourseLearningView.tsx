@@ -8,6 +8,7 @@ import type { ModuleData } from './ModuleAccordion';
 import { gitLessonsData } from '@/data/gitLessonsData';
 import { useAuth } from '@/contexts/AuthContext';
 import { courseService } from '@/services/courseService';
+import { useCourseTimeTracker } from '@/hooks/useCourseTimeTracker';
 import { FloatingBubbles } from './FloatingBubbles';
 import { EnterpriseGitLab } from '../labs/git/EnterpriseGitLab';
 import { AIQuizPortal } from '../courses/AIQuizPortal';
@@ -46,6 +47,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
   userName: propName,
 }) => {
   const { user, userProfile } = useAuth();
+  useCourseTimeTracker(String(courseId));
   const userAvatar = propAvatar || userProfile?.photoURL || user?.photoURL || undefined;
   const userName = propName && propName !== 'Student' ? propName : (userProfile?.name || user?.displayName || userProfile?.githubUsername || 'Student User');
   

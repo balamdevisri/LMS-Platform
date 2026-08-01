@@ -1,4 +1,5 @@
 import { toast } from 'sonner';
+import { studentService, type StudentUser } from './studentService';
 
 // ================= TYPES & INTERFACES =================
 
@@ -444,18 +445,18 @@ export class AchievementService {
         return JSON.parse(data);
       } catch (e) {}
     }
-    // Fallback defaults mapping to user workspace activities log
+    // Fresh initial stats mapping to actual user workspace activities
     return {
       coursesCompleted: 0,
-      lessonsCompleted: 4,
-      quizAttempts: 2,
-      assignmentsSubmitted: 1,
-      codingChallengesSolved: 1,
-      aiAssistantSessions: 3,
-      notesCreated: 2,
-      discussionsStarted: 1,
-      repliesPosted: 1,
-      practiceTimeSeconds: 120
+      lessonsCompleted: 0,
+      quizAttempts: 0,
+      assignmentsSubmitted: 0,
+      codingChallengesSolved: 0,
+      aiAssistantSessions: 0,
+      notesCreated: 0,
+      discussionsStarted: 0,
+      repliesPosted: 0,
+      practiceTimeSeconds: 0
     };
   }
 
@@ -541,32 +542,68 @@ export class AchievementService {
 
 // 5. LEADERBOARD SERVICE
 export class LeaderboardService {
-  getLeaderboard(filter: 'global' | 'course' | 'weekly' | 'monthly', userId = 'default_student'): LeaderboardEntry[] {
+  private calculateCohortFromStudents(
+    students: StudentUser[],
+    filter: 'global' | 'course' | 'weekly' | 'monthly',
+    userId = 'default_student'
+  ): LeaderboardEntry[] {
     const xpService = new XPService();
     const userXp = xpService.getXPPoints(userId);
     const badgeService = new BadgeService();
     const userBadges = badgeService.getEarnedBadges(userId).length;
 
-    // Hardcoded high cohort scores
-    const cohort: Omit<LeaderboardEntry, 'rank'>[] = [
-      { name: 'Arjun Mehta', xp: 3240, badgesCount: 9, coursesCompleted: 2 },
-      { name: 'Samantha Vance', xp: 2850, badgesCount: 8, coursesCompleted: 1 },
-      { name: 'Dr. Vikram Kumar', xp: 2600, badgesCount: 7, coursesCompleted: 1 },
-      { name: 'Emily Carter', xp: 2150, badgesCount: 6, coursesCompleted: 1 },
-      { name: 'Rajesh Patel', xp: 1980, badgesCount: 5, coursesCompleted: 0 },
-      { name: 'Carlos Gomez', xp: 1720, badgesCount: 4, coursesCompleted: 0 }
-    ];
+    let loggedInName = 'You (Scholar)';
+    try {
+      const userRaw = localStorage.getItem('shaivika_user');
+      if (userRaw) {
+        const u = JSON.parse(userRaw);
+        if (u.fullName || u.name || u.displayName) {
+          loggedInName = u.fullName || u.name || u.displayName;
+        }
+      }
+    } catch (e) {
+      // Ignore fallback
+    }
 
-    // Insert student dynamically
-    const currentStudent: Omit<LeaderboardEntry, 'rank'> = {
-      name: 'You (Scholar)',
-      xp: userXp,
-      badgesCount: userBadges,
-      coursesCompleted: userXp >= 2000 ? 1 : 0,
-      isCurrentUser: true
-    };
+    const cohort: Omit<LeaderboardEntry, 'rank'>[] = [];
+    let currentUserIncluded = false;
 
-    cohort.push(currentStudent);
+    // Map real registered students
+    students.forEach((s) => {
+      const isCurrent = (s.id === userId || s.uid === userId || s.email === userId);
+      const studentXp = isCurrent
+        ? Math.max(s.xp || 0, userXp)
+        : (s.xp || (s.learningScore ? s.learningScore * 25 : 350));
+
+      const badgesCount = isCurrent
+        ? Math.max(Array.isArray(s.badges) ? s.badges.length : 0, userBadges)
+        : (Array.isArray(s.badges) ? s.badges.length : (typeof s.badgesCount === 'number' ? s.badgesCount : Math.min(Math.floor(studentXp / 300), 8)));
+
+      const coursesCompleted = s.completedCourses || s.courses || (studentXp >= 1000 ? 1 : 0);
+
+      if (isCurrent) {
+        currentUserIncluded = true;
+      }
+
+      cohort.push({
+        name: isCurrent ? `${s.name || loggedInName}` : (s.name || s.fullName || s.email?.split('@')[0] || 'Student Scholar'),
+        xp: studentXp,
+        badgesCount,
+        coursesCompleted,
+        isCurrentUser: isCurrent
+      });
+    });
+
+    // Ensure active logged-in user is included if not in student roster
+    if (!currentUserIncluded) {
+      cohort.push({
+        name: loggedInName,
+        xp: userXp,
+        badgesCount: userBadges,
+        coursesCompleted: userXp >= 2000 ? 1 : 0,
+        isCurrentUser: true
+      });
+    }
 
     // Filter scaling logic
     if (filter === 'weekly') {
@@ -587,5 +624,15 @@ export class LeaderboardService {
       ...item,
       rank: idx + 1
     }));
+  }
+
+  getLeaderboard(filter: 'global' | 'course' | 'weekly' | 'monthly', userId = 'default_student'): LeaderboardEntry[] {
+    const students = studentService.getLocalStudents();
+    return this.calculateCohortFromStudents(students, filter, userId);
+  }
+
+  async getLeaderboardAsync(filter: 'global' | 'course' | 'weekly' | 'monthly', userId = 'default_student'): Promise<LeaderboardEntry[]> {
+    const students = await studentService.fetchFirestoreStudentsDirectly();
+    return this.calculateCohortFromStudents(students, filter, userId);
   }
 }

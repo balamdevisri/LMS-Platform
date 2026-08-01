@@ -5,7 +5,6 @@ import {
   BookOpen,
   Code2,
   FileText,
-  Calendar,
   Award,
   Bell,
   Search,
@@ -44,7 +43,7 @@ export const DashboardLayout: React.FC = () => {
   // Subscribe to Real-Time Notifications
   useEffect(() => {
     const unsubscribe = notificationService.subscribeToNotifications(user?.uid, (items) => {
-      setNotifications(items);
+      setNotifications([...items]);
     });
     return () => unsubscribe();
   }, [user?.uid]);
@@ -52,20 +51,28 @@ export const DashboardLayout: React.FC = () => {
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const handleMarkAllRead = async () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     await notificationService.markAllAsRead();
     toast.success('All notifications marked as read.');
   };
 
   const handleToggleRead = async (id: string) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: !n.read } : n))
+    );
     await notificationService.toggleRead(id);
   };
 
   const handleDeleteSingle = async (id: string) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
     await notificationService.deleteNotification(id);
     toast.info('Notification deleted.');
   };
 
   const handleMarkSingleRead = async (id: string, link?: string) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+    );
     await notificationService.markAsRead(id);
     if (link) {
       navigate(link);
@@ -74,6 +81,7 @@ export const DashboardLayout: React.FC = () => {
   };
 
   const handleClearAll = async () => {
+    setNotifications([]);
     await notificationService.clearAll();
     toast.info('All notifications cleared.');
   };
@@ -112,7 +120,6 @@ export const DashboardLayout: React.FC = () => {
       title: 'PROGRESS & GRADES',
       items: [
         { name: 'Quiz Scores', href: '/dashboard?tab=assignments', icon: FileText },
-        { name: 'Deadlines Calendar', href: '/dashboard?tab=calendar', icon: Calendar },
         { name: 'Unlocked Credentials', href: '/dashboard?tab=certificates', icon: Award },
         { name: 'Achievements & Badges', href: '/dashboard?tab=achievements', icon: Trophy },
         { name: 'Cohort Leaderboard', href: '/dashboard?tab=leaderboard', icon: BarChart3 },

@@ -35,7 +35,7 @@ export const Modal: React.FC<ModalProps> = ({
 
       {/* Dialog Window */}
       <div
-        className={`relative w-full ${maxWidthClasses[maxWidth]} glass-card bg-white/95 dark:bg-zinc-900/95 border border-slate-200/90 dark:border-zinc-800 rounded-3xl p-6 shadow-2xl z-10 space-y-4 animate-in fade-in zoom-in-95 duration-200`}
+        className={`relative w-full ${maxWidthClasses[maxWidth]} glass-card bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-6 shadow-2xl z-10 space-y-4 animate-in fade-in zoom-in-95 duration-200`}
       >
         {title && (
           <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-zinc-800">

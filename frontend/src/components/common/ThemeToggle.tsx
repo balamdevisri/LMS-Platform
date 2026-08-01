@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sun, Moon, Monitor } from 'lucide-react';
+import { Sun, Moon } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 
 export const ThemeToggle: React.FC<{ className?: string }> = ({ className = '' }) => {
@@ -7,7 +7,7 @@ export const ThemeToggle: React.FC<{ className?: string }> = ({ className = '' }
 
   return (
     <div
-      className={`inline-flex items-center p-1 rounded-full border border-slate-200/80 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-900/80 backdrop-blur-md transition-all ${className}`}
+      className={`inline-flex items-center p-1 rounded-full border border-slate-200 bg-slate-100 backdrop-blur-md transition-all dark:border-slate-800 dark:bg-slate-900 ${className}`}
     >
       <button
         type="button"
@@ -33,19 +33,6 @@ export const ThemeToggle: React.FC<{ className?: string }> = ({ className = '' }
         }`}
       >
         <Moon className="w-4 h-4" />
-      </button>
-
-      <button
-        type="button"
-        onClick={() => setTheme('system')}
-        title="System Preference"
-        className={`p-1.5 rounded-full transition-all cursor-pointer flex items-center justify-center ${
-          theme === 'system'
-            ? 'bg-purple-600 text-white shadow-xs'
-            : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'
-        }`}
-      >
-        <Monitor className="w-3.5 h-3.5" />
       </button>
     </div>
   );

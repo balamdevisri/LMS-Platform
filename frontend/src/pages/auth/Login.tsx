@@ -69,6 +69,13 @@ export const Login: React.FC = () => {
         navigate('/auth/verify-email', {
           state: { email: email.toLowerCase().trim() },
         });
+      } else if (
+        err?.code === 'auth/invalid-credential' ||
+        err?.code === 'auth/wrong-password' ||
+        err?.code === 'auth/user-not-found' ||
+        err?.code === 'auth/invalid-email'
+      ) {
+        toast.error('Invalid email or password. Please check your credentials and try again.');
       } else {
         toast.error(err?.message || 'Failed to sign in. Please check your credentials.');
       }
@@ -89,7 +96,12 @@ export const Login: React.FC = () => {
       }
     } catch (err: any) {
       console.error('GitHub authentication error:', err);
-      toast.error(err?.message || 'GitHub Authentication failed.');
+      if (err?.code === 'auth/account-exists-with-different-credential' || err?.message?.includes('login using your password')) {
+        if (err?.email) setEmail(err.email);
+        toast.error('This email already exists. Please login using your password first to link your GitHub account.');
+      } else {
+        toast.error(err?.message || 'GitHub Authentication failed.');
+      }
     } finally {
       setIsSubmitting(false);
     }

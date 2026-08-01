@@ -9,7 +9,15 @@ export const LeaderboardView: React.FC = () => {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
 
   useEffect(() => {
+    // Immediate sync load from real-time student cache
     setEntries(leaderboardService.getLeaderboard(filter));
+
+    // Async fetch from Firestore DB
+    leaderboardService.getLeaderboardAsync(filter).then((data) => {
+      if (data && data.length > 0) {
+        setEntries(data);
+      }
+    }).catch(() => null);
   }, [filter]);
 
   const getRankBadge = (rank: number) => {

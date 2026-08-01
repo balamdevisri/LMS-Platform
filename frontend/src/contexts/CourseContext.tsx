@@ -644,12 +644,16 @@ const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
       String(c.id) === 'git-github-mastery-course-id'
     ) {
       const key = 'git-github-mastery';
+      const defaultGitCourse = initialDefaultCourses[1];
+      const hasModules = Array.isArray(c.modules) && c.modules.length > 0;
       const updatedItem: CourseItem = {
+        ...defaultGitCourse,
         ...c,
         id: 'git-github-mastery',
         title: 'Git & GitHub Mastery',
         subtitle: '⚡ Git & GitHub Mastery',
         thumbnail: '/assets/images/github_course_banner.webp',
+        modules: hasModules ? c.modules : (defaultGitCourse.modules || gitCourseModules),
       };
       map.set(key, updatedItem);
     } else if (
@@ -658,12 +662,16 @@ const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
       String(c.id) === 'database-management-system'
     ) {
       const key = 'database-management-system';
+      const defaultDbmsCourse = initialDefaultCourses.find(item => item.id === 'database-management-system') || c;
+      const hasModules = Array.isArray(c.modules) && c.modules.length > 0;
       const updatedItem: CourseItem = {
+        ...defaultDbmsCourse,
         ...c,
         id: 'database-management-system',
         title: 'Database Management System (DBMS): Beginner to Advanced',
         subtitle: '🗄️ Database Management System',
         thumbnail: 'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?auto=format&fit=crop&w=1200&q=80',
+        modules: hasModules ? c.modules : (defaultDbmsCourse.modules || []),
       };
       map.set(key, updatedItem);
     } else {

@@ -7,6 +7,7 @@ interface BlueSmokeThemeProps {
 }
 
 export const BlueSmokeTheme: React.FC<BlueSmokeThemeProps> = ({ className = '', children }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const spotlightRef = useRef<HTMLDivElement>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -17,27 +18,35 @@ export const BlueSmokeTheme: React.FC<BlueSmokeThemeProps> = ({ className = '', 
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     return isMobile || prefersReducedMotion;
   });
+  const tickingRef = useRef(false);
 
-  // Track global scroll percentage for the scroll progress indicator
+  // Track global scroll percentage for the scroll progress indicator (throttled via RAF)
   useEffect(() => {
     const handleScroll = () => {
       scrollYRef.current = window.scrollY;
-      const totalScroll = document.documentElement.scrollHeight - window.innerHeight;
-      if (totalScroll > 0) {
-        setScrollProgress((window.scrollY / totalScroll) * 100);
+      if (!tickingRef.current) {
+        requestAnimationFrame(() => {
+          const totalScroll = document.documentElement.scrollHeight - window.innerHeight;
+          if (totalScroll > 0) {
+            setScrollProgress((window.scrollY / totalScroll) * 100);
+          }
+          tickingRef.current = false;
+        });
+        tickingRef.current = true;
       }
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Track mouse coordinates for the premium cursor-follow glow spotlight (directly on DOM ref, bypassing state re-renders)
+  // Track mouse coordinates using CSS custom properties (0 React re-renders)
   useEffect(() => {
     if (isLowPerformance) return;
     
     const handleMouseMove = (e: MouseEvent) => {
-      if (spotlightRef.current) {
-        spotlightRef.current.style.background = `radial-gradient(650px circle at ${e.clientX}px ${e.clientY}px, rgba(37, 99, 235, 0.06), transparent 70%)`;
+      if (containerRef.current) {
+        containerRef.current.style.setProperty('--mouse-x', `${e.clientX}px`);
+        containerRef.current.style.setProperty('--mouse-y', `${e.clientY}px`);
       }
     };
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
@@ -53,9 +62,10 @@ export const BlueSmokeTheme: React.FC<BlueSmokeThemeProps> = ({ className = '', 
     if (!ctx) return;
 
     let animationFrameId: number;
+    const isMobile = window.innerWidth < 768;
 
     const resize = () => {
-      const dpr = window.devicePixelRatio || 1;
+      const dpr = isMobile ? 1 : Math.min(window.devicePixelRatio || 1, 2);
       const rect = canvas.getBoundingClientRect();
       canvas.width = rect.width * dpr;
       canvas.height = rect.height * dpr;
@@ -63,39 +73,49 @@ export const BlueSmokeTheme: React.FC<BlueSmokeThemeProps> = ({ className = '', 
     };
 
     resize();
-    window.addEventListener('resize', resize);
+    window.addEventListener('resize', resize, { passive: true });
 
     const w = () => canvas.getBoundingClientRect().width;
     const h = () => canvas.getBoundingClientRect().height;
 
-    // Define control points representing floating mesh gradient hubs - Kaizen-Q Blue Theme
+    // Control points for gradient mesh
     const nodes = [
-      { xFactor: 0.25, yFactor: 0.2, vx: 0.0005, vy: 0.0003, r: 420, r1: 37, g1: 99, b1: 235, a: 0.12 },   // Primary Blue #2563EB
-      { xFactor: 0.75, yFactor: 0.35, vx: -0.0004, vy: 0.0006, r: 480, r1: 59, g1: 130, b1: 246, a: 0.10 }, // Secondary Blue #3B82F6
-      { xFactor: 0.5, yFactor: 0.15, vx: 0.0003, vy: -0.0004, r: 390, r1: 96, g1: 165, b1: 250, a: 0.08 },  // Accent Blue #60A5FA
-      { xFactor: 0.35, yFactor: 0.45, vx: -0.0006, vy: -0.0003, r: 520, r1: 147, g1: 197, b1: 253, a: 0.10 } // Soft Blue #93C5FD
+      { xFactor: 0.25, yFactor: 0.2, vx: 0.0005, vy: 0.0003, r: isMobile ? 260 : 420, r1: 37, g1: 99, b1: 235, a: 0.12 },
+      { xFactor: 0.75, yFactor: 0.35, vx: -0.0004, vy: 0.0006, r: isMobile ? 300 : 480, r1: 59, g1: 130, b1: 246, a: 0.10 },
+      { xFactor: 0.5, yFactor: 0.15, vx: 0.0003, vy: -0.0004, r: isMobile ? 240 : 390, r1: 96, g1: 165, b1: 250, a: 0.08 },
     ];
 
-    const animate = () => {
+    let lastTime = 0;
+    const animate = (timestamp: number) => {
+      // Limit to ~30fps on mobile to preserve battery & CPU
+      if (isMobile && timestamp - lastTime < 32) {
+        animationFrameId = requestAnimationFrame(animate);
+        return;
+      }
+      lastTime = timestamp;
+
+      // Pause loop completely if tab is hidden
+      if (document.visibilityState === 'hidden') {
+        animationFrameId = requestAnimationFrame(animate);
+        return;
+      }
+
+      const fadeRatio = Math.max(0, 1 - scrollYRef.current / 700);
       const width = w();
       const height = h();
 
       ctx.clearRect(0, 0, width, height);
 
-      // Fade out mesh gradient completely as scroll crosses 700px (Only keep behind Hero)
-      const fadeRatio = Math.max(0, 1 - scrollYRef.current / 700);
-
       if (fadeRatio > 0) {
         const time = Date.now();
         nodes.forEach((node) => {
-          // Slowly drift gradient coordinates using trigonometry
-          const x = (width * node.xFactor) + Math.sin(time * node.vx) * (width * 0.12);
-          const y = (height * node.yFactor) + Math.cos(time * node.vy) * (height * 0.08);
+          const x = (width * node.xFactor) + Math.sin(time * node.vx) * (width * 0.10);
+          const y = (height * node.yFactor) + Math.cos(time * node.vy) * (height * 0.06);
 
           ctx.save();
           const grad = ctx.createRadialGradient(x, y, 0, x, y, node.r);
           grad.addColorStop(0, `rgba(${node.r1}, ${node.g1}, ${node.b1}, ${node.a * fadeRatio})`);
-          grad.addColorStop(0.5, `rgba(${node.r1}, ${node.g1}, ${node.b1}, ${(node.a * 0.35) * fadeRatio})`);
+          grad.addColorStop(0.5, `rgba(${node.r1}, ${node.g1}, ${node.b1}, ${(node.a * 0.3) * fadeRatio})`);
           grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
 
           ctx.fillStyle = grad;
@@ -109,7 +129,7 @@ export const BlueSmokeTheme: React.FC<BlueSmokeThemeProps> = ({ className = '', 
       animationFrameId = requestAnimationFrame(animate);
     };
 
-    animate();
+    animationFrameId = requestAnimationFrame(animate);
 
     return () => {
       window.removeEventListener('resize', resize);
@@ -118,7 +138,7 @@ export const BlueSmokeTheme: React.FC<BlueSmokeThemeProps> = ({ className = '', 
   }, []);
 
   return (
-    <div className={`relative w-full min-h-screen bg-[var(--color-bg)] ${className}`}>
+    <div ref={containerRef} className={`relative w-full min-h-screen bg-[var(--color-bg)] ${className}`}>
       
       {/* 1. Scroll Progress Bar */}
       <div 
@@ -200,6 +220,7 @@ export const BlueSmokeTheme: React.FC<BlueSmokeThemeProps> = ({ className = '', 
         </div>
       )}
 
+<<<<<<< ours
       {/* 6. Tiny Glowing Particles */}
       {!isLowPerformance && (
         <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
@@ -228,12 +249,11 @@ export const BlueSmokeTheme: React.FC<BlueSmokeThemeProps> = ({ className = '', 
         </div>
       )}
 
-      {/* 7. Mouse-Follow Spot Radial Spotlight (Direct ref manipulation bypasses React render logic entirely) */}
+      {/* 7. Mouse-Follow Spot Radial Spotlight (CSS GPU Custom Properties) */}
       <div 
-        ref={spotlightRef}
-        className="pointer-events-none fixed inset-0 z-0 opacity-55 dark:opacity-60 transition-opacity duration-300"
+        className="pointer-events-none fixed inset-0 z-0 opacity-55 dark:opacity-60 transition-opacity duration-300 hidden sm:block"
         style={{
-          background: 'radial-gradient(650px circle at -1000px -1000px, rgba(37, 99, 235, 0.06), transparent 70%)'
+          background: `radial-gradient(650px circle at var(--mouse-x, 50vw) var(--mouse-y, 50vh), rgba(37, 99, 235, 0.06), transparent 70%)`
         }}
       />
       

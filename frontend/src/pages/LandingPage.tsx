@@ -553,10 +553,10 @@ export const LandingPage: React.FC = () => {
         }
       `}</style>
 
-      <div className="pt-24 font-['Sora'] select-none">
+      <div className="pt-24 sm:pt-28 font-['Sora'] select-none">
         
         {/* ----------------- 1. HERO SECTION ----------------- */}
-        <section className="relative max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 lg:pt-16 pb-0 overflow-visible min-h-[600px] lg:min-h-[680px] flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-8">
+        <section className="relative max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 lg:pt-8 pb-0 overflow-visible min-h-[560px] lg:min-h-[620px] flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-8">
           
           {/* Left Column: Hero Content Container */}
           <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-6 max-w-2xl lg:max-w-[48%] relative z-10 w-full">
@@ -571,7 +571,7 @@ export const LandingPage: React.FC = () => {
               variants={textContainerVariants}
               initial="hidden"
               animate="show"
-              className="font-heading font-extrabold text-4xl sm:text-5xl lg:text-6xl text-slate-900 dark:text-white tracking-tight leading-[1.1] flex flex-wrap justify-center lg:justify-start gap-x-3 gap-y-1.5"
+              className="font-heading font-extrabold text-3xl sm:text-5xl lg:text-6xl text-slate-900 dark:text-white tracking-tight leading-[1.15] sm:leading-[1.1] flex flex-wrap justify-center lg:justify-start gap-x-2 sm:gap-x-3 gap-y-1"
             >
               {headlineWords.map((word, i) => (
                 <motion.span 
@@ -585,15 +585,15 @@ export const LandingPage: React.FC = () => {
             </motion.h1>
 
             {/* Subtitle */}
-            <p className="text-sm sm:text-base lg:text-lg text-slate-650 dark:text-zinc-350 leading-relaxed font-normal">
+            <p className="text-xs sm:text-base lg:text-lg text-slate-650 dark:text-zinc-350 leading-relaxed font-normal">
               Master high-impact engineering & AI tracks with 24/7 intelligent tutoring, real-time sandbox code evaluation, adaptive skill trees, and ISO-verified digital credentials.
             </p>
 
             {/* CTA Buttons with click ripple */}
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 w-full sm:w-auto">
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 sm:gap-4 w-full sm:w-auto">
               <RippleButton
                 to="/dashboard"
-                className="w-full sm:w-auto px-8 py-4 btn-premium-primary text-white font-bold rounded-2xl flex items-center justify-center gap-2 text-sm shadow-md"
+                className="w-full sm:w-auto px-8 py-3.5 sm:py-4 btn-premium-primary text-white font-bold rounded-2xl flex items-center justify-center gap-2 text-xs sm:text-sm shadow-md"
               >
                 <span>Get Started Free</span>
                 <ArrowRight className="w-4 h-4" />
@@ -601,7 +601,7 @@ export const LandingPage: React.FC = () => {
 
               <RippleButton
                 href="#ai-overview"
-                className="w-full sm:w-auto px-8 py-4 btn-premium-secondary text-slate-800 dark:text-zinc-100 font-bold rounded-2xl flex items-center justify-center gap-2 text-sm shadow-xs border border-[#E6EEF9] dark:border-zinc-700"
+                className="w-full sm:w-auto px-8 py-3.5 sm:py-4 btn-premium-secondary text-slate-800 dark:text-zinc-100 font-bold rounded-2xl flex items-center justify-center gap-2 text-xs sm:text-sm shadow-xs border border-[#E6EEF9] dark:border-zinc-700"
               >
                 <Play className="w-4 h-4 text-blue-500 fill-current" />
                 <span>Explore AI Engine</span>
@@ -609,13 +609,13 @@ export const LandingPage: React.FC = () => {
             </div>
 
             {/* Sub-text */}
-            <p className="text-[11px] text-slate-500 dark:text-zinc-400 font-medium pt-1">
+            <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-zinc-400 font-medium pt-1">
               Free 14-Day Pro Trial • No credit card required • ISO 27001 & SOC2 Certified
             </p>
           </div>
 
           {/* Right Column: Interactive AI Core Orb */}
-          <div className="relative w-full lg:w-[48%] h-[500px] sm:h-[600px] flex items-center justify-center z-10 overflow-visible">
+          <div className="relative w-full lg:w-[48%] h-[340px] sm:h-[500px] lg:h-[600px] flex items-center justify-center z-10 overflow-visible">
             <AiCoreOrb />
           </div>
         </section>
@@ -701,20 +701,20 @@ export const LandingPage: React.FC = () => {
         </section>
 
 
-        {/* Core Features Divider (Stats -> Features = 70px) */}
-        <AnimatedDivider className="mt-[35px] mb-[35px]" />
+        {/* Core Features Divider */}
+        <AnimatedDivider className="mt-12 mb-12" />
 
 
         {/* ----------------- 3. FEATURES SECTION ----------------- */}
-        <section id="features" className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-0 space-y-16">
-          <div className="text-center max-w-2xl mx-auto space-y-4">
-            <span className="text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-zinc-900 px-3.5 py-1.5 rounded-full border border-blue-100 dark:border-zinc-850 hover:scale-105 transition-transform duration-200 cursor-pointer">
+        <section id="features" className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-16">
+          <div className="text-center max-w-2xl mx-auto flex flex-col items-center space-y-4 py-2">
+            <span className="inline-flex items-center justify-center text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-zinc-900 px-4 py-1.5 rounded-full border border-blue-100 dark:border-zinc-850 shadow-2xs hover:scale-105 transition-transform duration-200 cursor-pointer mb-2">
               Core LMS Features
             </span>
-            <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white tracking-tight">
+            <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white tracking-tight pt-1">
               Built for Modern High-Growth Education
             </h2>
-            <p className="text-sm text-slate-600 dark:text-zinc-400 leading-relaxed font-normal max-w-lg mx-auto">
+            <p className="text-sm sm:text-base text-slate-600 dark:text-zinc-400 leading-relaxed font-normal max-w-lg mx-auto pt-1">
               Combining world-class course management with real-time AI assistance for students and faculty.
             </p>
           </div>
@@ -757,14 +757,14 @@ export const LandingPage: React.FC = () => {
         {/* ----------------- 4. AI FEATURES SECTION ----------------- */}
         <section id="ai-features" className="py-0 relative overflow-hidden">
           <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 space-y-16 relative z-10">
-            <div className="text-center max-w-2xl mx-auto space-y-4">
-              <span className="text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-zinc-900 px-3.5 py-1.5 rounded-full border border-blue-100 dark:border-zinc-850 hover:scale-105 transition-transform duration-200 cursor-pointer">
+            <div className="text-center max-w-2xl mx-auto flex flex-col items-center space-y-4 py-2">
+              <span className="inline-flex items-center justify-center text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-zinc-900 px-4 py-1.5 rounded-full border border-blue-100 dark:border-zinc-850 shadow-2xs hover:scale-105 transition-transform duration-200 cursor-pointer mb-2">
                 AI Tools Suite
               </span>
-              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white tracking-tight">
+              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white tracking-tight pt-1">
                 6 Powered AI Utilities Included
               </h2>
-              <p className="text-sm text-slate-600 dark:text-zinc-400 leading-relaxed font-normal max-w-lg mx-auto">
+              <p className="text-sm sm:text-base text-slate-600 dark:text-zinc-400 leading-relaxed font-normal max-w-lg mx-auto pt-1">
                 Automate study planning, quiz creation, note summarizing, and interview practice with built-in AI agents.
               </p>
             </div>
@@ -808,14 +808,14 @@ export const LandingPage: React.FC = () => {
         {/* ----------------- 5. COURSES SECTION ----------------- */}
         <section id="courses" className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-0 space-y-16">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-            <div className="space-y-3">
-              <span className="text-[10px] font-bold text-purple-700 dark:text-purple-400 uppercase tracking-widest bg-purple-50 dark:bg-purple-950/20 px-3.5 py-1.5 rounded-full border border-purple-100 dark:border-purple-900/40">
+            <div className="flex flex-col items-start space-y-3">
+              <span className="inline-flex items-center justify-center text-[11px] font-bold text-purple-700 dark:text-purple-400 uppercase tracking-widest bg-purple-50 dark:bg-purple-950/20 px-4 py-1.5 rounded-full border border-purple-100 dark:border-purple-900/40 mb-2">
                 Explore Catalog
               </span>
-              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white tracking-tight">
+              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white tracking-tight pt-1">
                 Featured AI & Engineering Tracks
               </h2>
-              <p className="text-sm text-slate-600 dark:text-zinc-400 leading-relaxed font-normal">
+              <p className="text-sm text-slate-600 dark:text-zinc-400 leading-relaxed font-normal pt-1">
                 Master high-demand tech tracks guided by 24/7 AI mentors and verified digital credentials.
               </p>
             </div>
@@ -928,14 +928,14 @@ export const LandingPage: React.FC = () => {
         <section id="ai-overview" className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-0 space-y-16">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             
-            <div className="lg:col-span-6 space-y-6">
-              <span className="text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-zinc-900 px-3.5 py-1.5 rounded-full border border-blue-100 dark:border-zinc-850 hover:scale-105 transition-transform duration-200 cursor-pointer">
+            <div className="lg:col-span-6 flex flex-col items-start space-y-4">
+              <span className="inline-flex items-center justify-center text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-zinc-900 px-4 py-1.5 rounded-full border border-blue-100 dark:border-zinc-850 shadow-2xs hover:scale-105 transition-transform duration-200 cursor-pointer mb-2">
                 Live AI Platform Overview
               </span>
-              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white leading-tight">
+              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white leading-tight pt-1">
                 Next-Gen Autonomous AI Learning Experience
               </h2>
-              <p className="text-sm sm:text-base text-slate-600 dark:text-zinc-400 leading-relaxed font-normal">
+              <p className="text-sm sm:text-base text-slate-600 dark:text-zinc-400 leading-relaxed font-normal pt-1">
                 Watch Kaizen Q in action. Our AI platform combines real-time code evaluation, automated debugging, RAG knowledge pipelines, and interactive sandboxes designed to accelerate engineering mastery.
               </p>
 
@@ -1045,14 +1045,14 @@ export const LandingPage: React.FC = () => {
         {/* ----------------- 7. TESTIMONIALS SECTION ----------------- */}
         <section className="pt-[35px] pb-[40px] border-y border-[#E6EEF9] dark:border-zinc-850 bg-slate-50/40 dark:bg-[#0E1325]/20 backdrop-blur-xs">
           <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
-            <div className="text-center max-w-2xl mx-auto space-y-4">
-              <span className="text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-zinc-900 px-3.5 py-1.5 rounded-full border border-blue-100 dark:border-zinc-850 hover:scale-105 transition-transform duration-200 cursor-pointer">
+            <div className="text-center max-w-2xl mx-auto flex flex-col items-center space-y-4 py-2">
+              <span className="inline-flex items-center justify-center text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-zinc-900 px-4 py-1.5 rounded-full border border-blue-100 dark:border-zinc-850 shadow-2xs hover:scale-105 transition-transform duration-200 cursor-pointer mb-2">
                 Student Testimonials
               </span>
-              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white tracking-tight">
+              <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white tracking-tight pt-1">
                 Loved by 50,000+ Active Learners
               </h2>
-              <p className="text-sm text-slate-650 dark:text-zinc-400 leading-relaxed font-normal max-w-md mx-auto">
+              <p className="text-sm sm:text-base text-slate-655 dark:text-zinc-400 leading-relaxed font-normal max-w-md mx-auto pt-1">
                 Hear directly from software engineers, developers, and students excelling with Kaizen Q.
               </p>
             </div>
@@ -1104,11 +1104,11 @@ export const LandingPage: React.FC = () => {
 
         {/* ----------------- 8. PRICING SECTION ----------------- */}
         <section id="pricing" className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-0 space-y-16">
-          <div className="text-center max-w-2xl mx-auto space-y-4">
-            <span className="text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-zinc-900 px-3.5 py-1.5 rounded-full border border-blue-100 dark:border-zinc-850 hover:scale-105 transition-transform duration-200 cursor-pointer">
+          <div className="text-center max-w-2xl mx-auto flex flex-col items-center space-y-4 py-2">
+            <span className="inline-flex items-center justify-center text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-zinc-900 px-4 py-1.5 rounded-full border border-blue-100 dark:border-zinc-850 shadow-2xs hover:scale-105 transition-transform duration-200 cursor-pointer mb-2">
               Transparent Pricing
             </span>
-            <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white tracking-tight">
+            <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white tracking-tight pt-1">
               Choose Your AI Learning Tier
             </h2>
           </div>
@@ -1170,11 +1170,11 @@ export const LandingPage: React.FC = () => {
 
         {/* ----------------- 9. FAQ ACCORDION SECTION ----------------- */}
         <section id="about" className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-0 space-y-12">
-          <div className="text-center space-y-4">
-            <span className="text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-zinc-900 px-3.5 py-1.5 rounded-full border border-blue-100 dark:border-zinc-850 hover:scale-105 transition-transform duration-200 cursor-pointer">
+          <div className="text-center max-w-2xl mx-auto flex flex-col items-center space-y-4 py-2">
+            <span className="inline-flex items-center justify-center text-[11px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-zinc-900 px-4 py-1.5 rounded-full border border-blue-100 dark:border-zinc-850 shadow-2xs hover:scale-105 transition-transform duration-200 cursor-pointer mb-2">
               Frequently Asked Questions
             </span>
-            <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white tracking-tight">
+            <h2 className="font-heading font-bold text-3xl sm:text-4xl text-slate-900 dark:text-white tracking-tight pt-1">
               Everything You Need to Know
             </h2>
           </div>

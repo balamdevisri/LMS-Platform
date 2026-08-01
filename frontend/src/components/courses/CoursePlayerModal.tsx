@@ -47,6 +47,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCourseTimeTracker } from '@/hooks/useCourseTimeTracker';
 import { DiscussionCenter } from './DiscussionCenter';
 import { discussionService } from '@/services/discussionService';
 import { AssignmentPortal } from './AssignmentPortal';
@@ -433,6 +434,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
 
 
   const { userProfile, user } = useAuth();
+  useCourseTimeTracker(String(course.id));
   const currentUserId = userProfile?.uid || user?.uid || 'default_student';
 
   const [activeModuleIdx, setActiveModuleIdx] = useState(0);

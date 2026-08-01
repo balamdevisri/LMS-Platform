@@ -1,4 +1,4 @@
-import { db } from '@/firebase';
+import { auth, db } from '@/firebase';
 import { doc, setDoc, updateDoc, deleteDoc, collection, getDocs } from 'firebase/firestore';
 import type { ICourse, CreateCourseDTO, UpdateCourseDTO, CourseFilterOptions, CoursePaginationResult, CourseLevel, CourseStatus } from '../../../shared/types/course';
 export type { ICourse };
@@ -983,7 +983,11 @@ class CourseService {
     return userRecords.some((r) => r.courseId === courseId);
   }
 
-  async enrollCourse(courseId: string, userId = 'default_student'): Promise<{ success: boolean; message: string; isEnrolled: boolean }> {
+  async enrollCourse(
+    courseId: string,
+    userId = 'default_student',
+    userMeta?: { email?: string; name?: string; courseTitle?: string }
+  ): Promise<{ success: boolean; message: string; isEnrolled: boolean }> {
     const all = this.getStoredEnrollments();
     const userRecords = all[userId] || [];
 
@@ -1010,6 +1014,33 @@ class CourseService {
     if (target) {
       target.enrollmentCount = (target.enrollmentCount || 0) + 1;
       this.saveStoredCourses(courses);
+    }
+
+    // Trigger Email Notification for Course Enrollment
+    try {
+      const recipientEmail = userMeta?.email || auth?.currentUser?.email;
+      if (recipientEmail) {
+        const studentName = userMeta?.name || auth?.currentUser?.displayName || recipientEmail.split('@')[0];
+        const courseTitle = userMeta?.courseTitle || target?.title || 'Shaivika AI LMS Track';
+
+        await fetch('/api/email/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            eventType: 'COURSE_ENROLLMENT',
+            recipientEmail: recipientEmail.toLowerCase().trim(),
+            payload: {
+              studentName,
+              email: recipientEmail.toLowerCase().trim(),
+              courseTitle,
+              courseId,
+              courseUrl: `${window.location.origin}/courses/${courseId}`,
+            },
+          }),
+        });
+      }
+    } catch (emailErr) {
+      console.warn('[CourseService] Course enrollment email notification failed:', emailErr);
     }
 
     return {

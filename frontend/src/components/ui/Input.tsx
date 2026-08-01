@@ -24,7 +24,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           )}
           <input
             ref={ref}
-            className={`w-full bg-slate-100 dark:bg-zinc-800/80 border border-slate-200 dark:border-zinc-700 rounded-xl py-2.5 px-4 text-xs font-medium dark:text-zinc-100 focus:outline-hidden focus:border-purple-600 dark:focus:border-purple-500 focus:ring-1 focus:ring-purple-600 transition-all ${
+            className={`w-full bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl py-2.5 px-4 text-xs font-medium text-slate-900 dark:text-zinc-100 focus:outline-hidden focus:border-purple-600 focus:ring-1 focus:ring-purple-600 transition-all ${
               leftIcon ? 'pl-10' : ''
             } ${rightIcon ? 'pr-10' : ''} ${error ? 'border-rose-500' : ''} ${className}`}
             {...props}

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import type { User } from 'firebase/auth';
+import type { User, AuthCredential } from 'firebase/auth';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -13,7 +13,10 @@ import {
   onAuthStateChanged,
   GithubAuthProvider,
   signInWithPopup,
+  linkWithPopup,
   getAdditionalUserInfo,
+  fetchSignInMethodsForEmail,
+  linkWithCredential,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/firebase';
@@ -31,6 +34,7 @@ interface AuthContextType {
   resetPassword: (email: string) => Promise<void>;
   sendVerificationEmail: () => Promise<void>;
   refreshUserProfile: () => Promise<UserProfile | null>;
+  clearAuthCaches: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -276,9 +280,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.warn('Persistence config warning:', e);
     }
 
-    const isAdminEmail =
-      email.toLowerCase() === 'admin@gmail.com' ||
-      email.toLowerCase().includes('admin');
+    const cleanEmail = email.toLowerCase().trim();
+    const isAdminEmail = cleanEmail === 'admin@gmail.com' || cleanEmail.startsWith('admin@');
 
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -292,31 +295,71 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const currentUser = auth.currentUser || userCredential.user;
 
+      // Link pending GitHub credential if present
+      let pendingCredRaw = typeof window !== 'undefined' ? sessionStorage.getItem('pendingGithubCredential') : null;
+      if (pendingCredRaw && currentUser) {
+        try {
+          const parsedObj = JSON.parse(pendingCredRaw);
+          let cred: AuthCredential | null = null;
+          if (parsedObj.accessToken) {
+            cred = GithubAuthProvider.credential(parsedObj.accessToken);
+          }
+          if (cred) {
+            await linkWithCredential(currentUser, cred).catch((linkErr) => console.warn('Account linking notice:', linkErr));
+            sessionStorage.removeItem('pendingGithubCredential');
+            sessionStorage.removeItem('pendingGithubEmail');
+          }
+        } catch (linkCatch) {
+          console.warn('Post-login linking notice:', linkCatch);
+        }
+      }
+
       const isVerifiedQuery = typeof window !== 'undefined' && window.location.search.includes('verified=true');
       const isVerified = currentUser.emailVerified || isVerifiedQuery;
 
-      // Email Verification Protection for Student Accounts
-      if (!isAdminEmail && !isVerified) {
-        let isStudentApproved = false;
+      // Module 2 Gate: Email Verification AND Admin Approval for Student Accounts
+      if (!isAdminEmail) {
+        // 1. Email Verification Check
+        if (!isVerified) {
+          await signOut(auth).catch(() => null);
+          const unverifiedError: any = new Error('Please verify your email address before logging in.');
+          unverifiedError.code = 'EMAIL_NOT_VERIFIED';
+          throw unverifiedError;
+        }
+
+        // 2. Admin Approval Check
+        let approvalStatus = 'approved';
         try {
-          if (db) {
+          const localStudents = studentService.getLocalStudents();
+          const match = localStudents.find((s) => s.id === currentUser.uid || s.uid === currentUser.uid || s.email === currentUser.email);
+          if (match && match.status) {
+            approvalStatus = match.status;
+          } else if (db) {
             const studentDoc = await getDoc(doc(db, 'students', currentUser.uid));
             if (studentDoc.exists()) {
               const data = studentDoc.data();
-              if (data.status === 'approved' || data.status === 'active' || data.emailVerified === true) {
-                isStudentApproved = true;
-              }
+              approvalStatus = data.status || (data.approved ? 'approved' : 'pending');
             }
           }
         } catch (docErr) {
           console.warn('Student status check notice:', docErr);
         }
 
-        if (!isStudentApproved) {
+        if (approvalStatus === 'pending') {
           await signOut(auth).catch(() => null);
-          const unverifiedError: any = new Error('Please verify your email before accessing KaizenQ.');
-          unverifiedError.code = 'EMAIL_NOT_VERIFIED';
-          throw unverifiedError;
+          const pendingErr: any = new Error('Your registration application is pending administrator review and approval.');
+          pendingErr.code = 'ADMIN_APPROVAL_PENDING';
+          throw pendingErr;
+        } else if (approvalStatus === 'rejected') {
+          await signOut(auth).catch(() => null);
+          const rejectedErr: any = new Error('Your registration application was not approved by the administrator.');
+          rejectedErr.code = 'APPLICATION_REJECTED';
+          throw rejectedErr;
+        } else if (approvalStatus === 'suspended') {
+          await signOut(auth).catch(() => null);
+          const suspendedErr: any = new Error('Your student account is currently suspended by an administrator.');
+          suspendedErr.code = 'ACCOUNT_SUSPENDED';
+          throw suspendedErr;
         }
       }
 
@@ -327,29 +370,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       );
       return profile;
     } catch (err: any) {
-      if (isAdminEmail) {
+      // Throw credentials error if password is wrong or user invalid
+      if (
+        err?.code === 'auth/wrong-password' ||
+        err?.code === 'auth/invalid-credential' ||
+        err?.code === 'auth/invalid-email' ||
+        err?.code === 'EMAIL_NOT_VERIFIED' ||
+        err?.code === 'ADMIN_APPROVAL_PENDING' ||
+        err?.code === 'APPLICATION_REJECTED' ||
+        err?.code === 'ACCOUNT_SUSPENDED'
+      ) {
+        throw err;
+      }
+
+      // Only attempt initial admin creation if admin user is not found in Firebase yet
+      if (isAdminEmail && (err?.code === 'auth/user-not-found' || err?.code === 'auth/user-disabled')) {
         try {
           const newCredential = await createUserWithEmailAndPassword(auth, email, password);
           await updateProfile(newCredential.user, { displayName: 'Administrator (Manoj)' });
           const profile = await fetchUserProfile(newCredential.user, undefined, 'admin');
           return profile;
         } catch (createErr) {
-          const fallbackProfile: UserProfile = {
-            uid: 'admin-fallback-id',
-            fullName: 'Administrator (Manoj)',
-            name: 'Administrator (Manoj)',
-            email: email,
-            photoURL: null,
-            role: 'admin',
-            provider: 'password',
-            providerId: 'password',
-            status: 'Active',
-            createdAt: new Date().toISOString(),
-            lastLogin: new Date().toISOString(),
-            isVerified: true,
-          };
-          setUserProfile(fallbackProfile);
-          return fallbackProfile;
+          throw err;
         }
       }
       throw err;
@@ -364,12 +406,87 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     provider.addScope('user:email');
     provider.addScope('read:user');
 
-    const result = await signInWithPopup(auth, provider);
-    const additionalInfo = getAdditionalUserInfo(result);
-    const githubUsername = additionalInfo?.username || (result.user as any).reloadUserInfo?.screenName;
+    console.log('🔍 [AUTH AUDIT] Starting GitHub OAuth flow...', {
+      currentUser: auth.currentUser ? { uid: auth.currentUser.uid, email: auth.currentUser.email } : null,
+      projectId: auth.app.options.projectId,
+    });
 
-    const profile = await fetchUserProfile(result.user, githubUsername);
-    return profile;
+    // 1. If user is ALREADY signed in (e.g. Email/Password user connecting GitHub)
+    if (auth.currentUser) {
+      try {
+        console.log('🔗 [AUTH AUDIT] Attempting linkWithPopup for active user session:', auth.currentUser.email);
+        const linkResult = await linkWithPopup(auth.currentUser, provider);
+        const additionalInfo = getAdditionalUserInfo(linkResult);
+        const githubUsername = additionalInfo?.username || (linkResult.user as any).reloadUserInfo?.screenName;
+        console.log('✅ [AUTH AUDIT] linkWithPopup succeeded! GitHub handle:', githubUsername);
+
+        const profile = await fetchUserProfile(linkResult.user, githubUsername);
+        return profile;
+      } catch (linkErr: any) {
+        console.warn('⚠️ [AUTH AUDIT] linkWithPopup notice:', linkErr?.code, linkErr?.message);
+        if (linkErr.code === 'auth/credential-already-in-use') {
+          throw new Error('This GitHub account is already linked to another user profile.');
+        }
+      }
+    }
+
+    // 2. Standard OAuth Sign-in flow
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const additionalInfo = getAdditionalUserInfo(result);
+      const githubUsername = additionalInfo?.username || (result.user as any).reloadUserInfo?.screenName;
+
+      console.log('✅ [AUTH AUDIT] GitHub OAuth sign-in succeeded:', {
+        uid: result.user.uid,
+        email: result.user.email,
+        githubUsername,
+      });
+
+      const profile = await fetchUserProfile(result.user, githubUsername);
+      return profile;
+    } catch (error: any) {
+      console.error('🚨 [AUTH AUDIT] signInWithPopup error caught:', {
+        code: error.code,
+        message: error.message,
+        email: error.customData?.email || error.email,
+      });
+
+      if (error.code === 'auth/account-exists-with-different-credential') {
+        const pendingCred = GithubAuthProvider.credentialFromError(error);
+        const email = error.customData?.email || error.email;
+        let existingMethods: string[] = [];
+
+        if (email && auth) {
+          try {
+            existingMethods = await fetchSignInMethodsForEmail(auth, email);
+            console.log('📋 [AUTH AUDIT] Existing sign-in methods for email:', email, existingMethods);
+          } catch (fetchErr) {
+            console.warn('⚠️ [AUTH AUDIT] fetchSignInMethodsForEmail notice:', fetchErr);
+          }
+        }
+
+        if (pendingCred) {
+          try {
+            sessionStorage.setItem('pendingGithubCredential', JSON.stringify(pendingCred));
+            if (email) sessionStorage.setItem('pendingGithubEmail', email);
+          } catch (sErr) {
+            console.warn('sessionStorage notice:', sErr);
+          }
+        }
+
+        const customErr: any = new Error(
+          existingMethods.includes('password')
+            ? `An account with email "${email}" already exists. Please login using your password first to link your GitHub account.`
+            : `An account already exists with a different sign-in credential for ${email || 'this email'}. Please sign in with your primary credential.`
+        );
+        customErr.code = 'auth/account-exists-with-different-credential';
+        customErr.email = email;
+        customErr.existingMethods = existingMethods;
+        customErr.pendingCredential = pendingCred;
+        throw customErr;
+      }
+      throw error;
+    }
   };
 
   const logout = async (): Promise<void> => {
@@ -378,6 +495,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     setUser(null);
     setUserProfile(null);
+  };
+
+  const clearAuthCaches = async (): Promise<void> => {
+    try {
+      if (auth) {
+        await signOut(auth).catch(() => null);
+      }
+      if (typeof window !== 'undefined') {
+        sessionStorage.clear();
+        localStorage.removeItem('shaivika_user');
+        localStorage.removeItem('shaivika_realtime_students_v3');
+        localStorage.removeItem('shaivika_admin_users_v3');
+        if ('indexedDB' in window) {
+          indexedDB.deleteDatabase('firebaseLocalStorageDb');
+        }
+      }
+      setUser(null);
+      setUserProfile(null);
+      console.log('🧹 [AUTH AUDIT] All auth persistence, local storage, and session caches cleared cleanly.');
+    } catch (e) {
+      console.warn('Clear auth caches notice:', e);
+    }
   };
 
   const resetPassword = async (email: string): Promise<void> => {
@@ -435,6 +574,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         resetPassword,
         sendVerificationEmail,
         refreshUserProfile,
+        clearAuthCaches,
       }}
     >
       {children}

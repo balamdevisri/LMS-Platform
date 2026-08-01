@@ -18,11 +18,13 @@ import {
   ChevronDown,
   User,
   Inbox,
+  ShieldAlert,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { discussionService } from '@/services/discussionService';
 import type { DiscussionQuestion, DiscussionReply } from '@/services/discussionService';
+import { COMMUNICATION_POLICY } from '@/services/communicationPolicyService';
 
 interface DiscussionCenterProps {
   courseId: string;
@@ -455,6 +457,19 @@ export const DiscussionCenter: React.FC<DiscussionCenterProps> = ({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 bg-slate-50/50 dark:bg-slate-900/10 p-1 rounded-3xl border border-sky-100/40 relative min-h-[550px] font-['Sora'] text-slate-800">
       
+      {/* Educational Group Communication Policy Header Banner */}
+      <div className="lg:col-span-12 bg-blue-50/90 border border-blue-200 p-3.5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs font-semibold text-blue-900 shadow-2xs">
+        <div className="flex items-center gap-2.5">
+          <ShieldAlert className="w-5 h-5 text-blue-600 shrink-0" />
+          <span>
+            <strong>Educational Collaboration Policy:</strong> Public group discussions (Min 3 members). Personal messaging, DMs, 1-on-1 chats, and private calls are strictly disabled.
+          </span>
+        </div>
+        <span className="text-[10px] font-extrabold bg-blue-600 text-white px-2.5 py-1 rounded-lg shrink-0 uppercase tracking-wider">
+          Policy Active
+        </span>
+      </div>
+
       {/* LEFT PANEL: QUESTION LIST (Grid Span 5 on Desktop) */}
       <div
         className={`lg:col-span-5 flex flex-col space-y-4 min-w-0 ${
@@ -1160,21 +1175,28 @@ export const DiscussionCenter: React.FC<DiscussionCenterProps> = ({
             {/* Bottom Sticky Reply editor */}
             {selectedQuestion.status !== 'Closed' && (
               <div className="sticky bottom-0 bg-white border-t border-slate-100 p-4">
-                <form onSubmit={handleAddReply} className="flex gap-2">
-                  <input
-                    type="text"
-                    value={replyContent}
-                    onChange={(e) => setReplyContent(e.target.value)}
-                    placeholder="Write a helpful response... Type @Instructor to tag staff."
-                    className="flex-1 p-3 bg-slate-50 focus:bg-white text-xs rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 font-medium outline-none transition-all placeholder:text-slate-400"
-                  />
-                  <button
-                    type="submit"
-                    className="py-2.5 px-4.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-500/10 cursor-pointer shrink-0 transition-all"
-                  >
-                    Reply
-                  </button>
-                </form>
+                {(selectedQuestion.participantCount ?? (1 + (replies.length > 0 ? new Set([selectedQuestion.authorId, ...replies.map(r => r.authorId)]).size - 1 : 0))) < COMMUNICATION_POLICY.MIN_GROUP_MEMBERS && replies.length < 2 ? (
+                  <div className="p-3.5 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl text-xs font-bold flex items-center gap-2.5">
+                    <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>{COMMUNICATION_POLICY.WARNING_MESSAGE}</span>
+                  </div>
+                ) : (
+                  <form onSubmit={handleAddReply} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={replyContent}
+                      onChange={(e) => setReplyContent(e.target.value)}
+                      placeholder="Write a helpful response... Type @Instructor to tag staff."
+                      className="flex-1 p-3 bg-slate-50 focus:bg-white text-xs rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 font-medium outline-none transition-all placeholder:text-slate-400"
+                    />
+                    <button
+                      type="submit"
+                      className="py-2.5 px-4.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-500/10 cursor-pointer shrink-0 transition-all"
+                    >
+                      Reply
+                    </button>
+                  </form>
+                )}
               </div>
             )}
           </div>

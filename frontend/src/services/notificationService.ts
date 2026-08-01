@@ -23,6 +23,7 @@ export interface NotificationItem {
 }
 
 const LOCAL_STORAGE_KEY = 'shaivika_realtime_notifications_v1';
+const DELETED_NOTIFS_KEY = 'shaivika_deleted_notifications_v1';
 
 const DEFAULT_NOTIFICATIONS: NotificationItem[] = [
   {
@@ -59,12 +60,31 @@ const DEFAULT_NOTIFICATIONS: NotificationItem[] = [
 ];
 
 class NotificationService {
+  private listeners: Set<(items: NotificationItem[]) => void> = new Set();
+
+  private getDeletedIds(): Set<string> {
+    try {
+      const saved = localStorage.getItem(DELETED_NOTIFS_KEY);
+      if (saved) return new Set(JSON.parse(saved));
+    } catch {}
+    return new Set();
+  }
+
+  private addDeletedId(id: string): void {
+    const set = this.getDeletedIds();
+    set.add(id);
+    try {
+      localStorage.setItem(DELETED_NOTIFS_KEY, JSON.stringify(Array.from(set)));
+    } catch {}
+  }
+
   private getLocalNotifications(): NotificationItem[] {
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (saved) {
+      if (saved !== null) {
         const parsed: NotificationItem[] = JSON.parse(saved);
-        if (parsed.length > 0) return parsed;
+        const deletedIds = this.getDeletedIds();
+        return parsed.filter((item) => !deletedIds.has(item.id));
       }
     } catch (e) {
       console.warn('Failed to parse local notifications cache:', e);
@@ -75,70 +95,77 @@ class NotificationService {
   private saveLocalNotifications(items: NotificationItem[]): void {
     try {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(items));
+      this.notifyListeners(items);
     } catch (e) {
       console.warn('Failed to save local notifications cache:', e);
     }
   }
 
+  private notifyListeners(items: NotificationItem[]): void {
+    this.listeners.forEach((cb) => cb(items));
+  }
+
   /**
-   * Subscribe to real-time notification updates from Firestore database.
+   * Subscribe to real-time notification updates from Firestore database & local store.
    */
   subscribeToNotifications(
     userId: string | undefined,
     callback: (notifications: NotificationItem[]) => void
   ): () => void {
+    this.listeners.add(callback);
     const initialData = this.getLocalNotifications();
     callback(initialData);
 
-    if (!db) {
-      return () => {};
-    }
+    let unsubscribeFirestore = () => {};
 
-    try {
-      const notifRef = collection(db, 'notifications');
-      const unsubscribe = onSnapshot(
-        notifRef,
-        (snapshot) => {
-          const fetched: NotificationItem[] = [];
-          snapshot.forEach((docSnap) => {
-            const data = docSnap.data();
-            const recipient = data.recipientId;
-            const role = data.recipientRole || 'all';
+    if (db) {
+      try {
+        const notifRef = collection(db, 'notifications');
+        unsubscribeFirestore = onSnapshot(
+          notifRef,
+          (snapshot) => {
+            const fetched: NotificationItem[] = [];
+            const deletedIds = this.getDeletedIds();
 
-            if (role === 'all' || role === 'student' || (userId && recipient === userId)) {
-              fetched.push({
-                id: docSnap.id,
-                title: data.title || 'Platform Alert',
-                desc: data.desc || '',
-                time: data.createdAt
-                  ? this.formatTimeAgo(data.createdAt)
-                  : 'Recently',
-                read: Boolean(data.read),
-                type: data.type || 'info',
-                createdAt: data.createdAt || new Date().toISOString(),
-                link: data.link,
-                recipientId: data.recipientId,
-                recipientRole: data.recipientRole,
-              });
+            snapshot.forEach((docSnap) => {
+              const data = docSnap.data();
+              const recipient = data.recipientId;
+              const role = data.recipientRole || 'all';
+
+              if (!deletedIds.has(docSnap.id) && (role === 'all' || role === 'student' || (userId && recipient === userId))) {
+                fetched.push({
+                  id: docSnap.id,
+                  title: data.title || 'Platform Alert',
+                  desc: data.desc || '',
+                  time: data.createdAt ? this.formatTimeAgo(data.createdAt) : 'Recently',
+                  read: Boolean(data.read),
+                  type: data.type || 'info',
+                  createdAt: data.createdAt || new Date().toISOString(),
+                  link: data.link,
+                  recipientId: data.recipientId,
+                  recipientRole: data.recipientRole,
+                });
+              }
+            });
+
+            if (fetched.length > 0) {
+              fetched.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+              this.saveLocalNotifications(fetched);
             }
-          });
-
-          if (fetched.length > 0) {
-            fetched.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-            this.saveLocalNotifications(fetched);
-            callback(fetched);
+          },
+          (error) => {
+            console.warn('Firestore notification snapshot notice:', error);
           }
-        },
-        (error) => {
-          console.warn('Firestore notification snapshot notice:', error);
-        }
-      );
-
-      return unsubscribe;
-    } catch (e) {
-      console.warn('Notification subscription notice:', e);
-      return () => {};
+        );
+      } catch (e) {
+        console.warn('Notification subscription notice:', e);
+      }
     }
+
+    return () => {
+      this.listeners.delete(callback);
+      unsubscribeFirestore();
+    };
   }
 
   /**
@@ -190,6 +217,8 @@ class NotificationService {
    * Delete a single notification.
    */
   async deleteNotification(notificationId: string): Promise<void> {
+    this.addDeletedId(notificationId);
+
     const current = this.getLocalNotifications();
     const updated = current.filter((item) => item.id !== notificationId);
     this.saveLocalNotifications(updated);
@@ -219,7 +248,7 @@ class NotificationService {
       const snapshot = await getDocs(notifRef);
       snapshot.forEach(async (docSnap) => {
         if (db) {
-          await updateDoc(doc(db, 'notifications', docSnap.id), { read: true });
+          await updateDoc(doc(db, 'notifications', docSnap.id), { read: true }).catch(() => null);
         }
       });
     } catch (e) {
@@ -231,11 +260,28 @@ class NotificationService {
    * Clear all notifications.
    */
   async clearAll(): Promise<void> {
+    const current = this.getLocalNotifications();
+    current.forEach((item) => this.addDeletedId(item.id));
+
     this.saveLocalNotifications([]);
+
+    if (!db) return;
+
+    try {
+      const notifRef = collection(db, 'notifications');
+      const snapshot = await getDocs(notifRef);
+      snapshot.forEach(async (docSnap) => {
+        if (db) {
+          await deleteDoc(doc(db, 'notifications', docSnap.id)).catch(() => null);
+        }
+      });
+    } catch (e) {
+      console.warn('Firestore clear all notice:', e);
+    }
   }
 
   /**
-   * Send a new real-time notification doc to Firestore.
+   * Send a new real-time notification doc to Firestore & Local storage.
    */
   async sendNotification(payload: {
     title: string;

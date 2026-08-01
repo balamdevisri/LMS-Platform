@@ -87,6 +87,12 @@ export interface UserProfile {
   linuxLabProgress?: LinuxLabProgress;
   recentActivity?: UserActivityItem[];
   learningProgressPercent?: number;
+  approved?: boolean;
+  approvedBy?: string;
+  approvedAt?: string;
+  xp?: number;
+  badgesCount?: number;
+  badges?: any[];
 }
 
 export interface ExtendedStudentStats {
