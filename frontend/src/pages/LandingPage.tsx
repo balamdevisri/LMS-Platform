@@ -571,7 +571,7 @@ export const LandingPage: React.FC = () => {
               variants={textContainerVariants}
               initial="hidden"
               animate="show"
-              className="font-heading font-extrabold text-4xl sm:text-5xl lg:text-6xl text-slate-900 dark:text-white tracking-tight leading-[1.1] flex flex-wrap justify-center lg:justify-start gap-x-3 gap-y-1.5"
+              className="font-heading font-extrabold text-3xl sm:text-5xl lg:text-6xl text-slate-900 dark:text-white tracking-tight leading-[1.15] sm:leading-[1.1] flex flex-wrap justify-center lg:justify-start gap-x-2 sm:gap-x-3 gap-y-1"
             >
               {headlineWords.map((word, i) => (
                 <motion.span 
@@ -585,15 +585,15 @@ export const LandingPage: React.FC = () => {
             </motion.h1>
 
             {/* Subtitle */}
-            <p className="text-sm sm:text-base lg:text-lg text-slate-650 dark:text-zinc-350 leading-relaxed font-normal">
+            <p className="text-xs sm:text-base lg:text-lg text-slate-650 dark:text-zinc-350 leading-relaxed font-normal">
               Master high-impact engineering & AI tracks with 24/7 intelligent tutoring, real-time sandbox code evaluation, adaptive skill trees, and ISO-verified digital credentials.
             </p>
 
             {/* CTA Buttons with click ripple */}
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 w-full sm:w-auto">
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 sm:gap-4 w-full sm:w-auto">
               <RippleButton
                 to="/dashboard"
-                className="w-full sm:w-auto px-8 py-4 btn-premium-primary text-white font-bold rounded-2xl flex items-center justify-center gap-2 text-sm shadow-md"
+                className="w-full sm:w-auto px-8 py-3.5 sm:py-4 btn-premium-primary text-white font-bold rounded-2xl flex items-center justify-center gap-2 text-xs sm:text-sm shadow-md"
               >
                 <span>Get Started Free</span>
                 <ArrowRight className="w-4 h-4" />
@@ -601,7 +601,7 @@ export const LandingPage: React.FC = () => {
 
               <RippleButton
                 href="#ai-overview"
-                className="w-full sm:w-auto px-8 py-4 btn-premium-secondary text-slate-800 dark:text-zinc-100 font-bold rounded-2xl flex items-center justify-center gap-2 text-sm shadow-xs border border-[#E6EEF9] dark:border-zinc-700"
+                className="w-full sm:w-auto px-8 py-3.5 sm:py-4 btn-premium-secondary text-slate-800 dark:text-zinc-100 font-bold rounded-2xl flex items-center justify-center gap-2 text-xs sm:text-sm shadow-xs border border-[#E6EEF9] dark:border-zinc-700"
               >
                 <Play className="w-4 h-4 text-blue-500 fill-current" />
                 <span>Explore AI Engine</span>
@@ -609,13 +609,13 @@ export const LandingPage: React.FC = () => {
             </div>
 
             {/* Sub-text */}
-            <p className="text-[11px] text-slate-500 dark:text-zinc-400 font-medium pt-1">
+            <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-zinc-400 font-medium pt-1">
               Free 14-Day Pro Trial • No credit card required • ISO 27001 & SOC2 Certified
             </p>
           </div>
 
           {/* Right Column: Interactive AI Core Orb */}
-          <div className="relative w-full lg:w-[48%] h-[500px] sm:h-[600px] flex items-center justify-center z-10 overflow-visible">
+          <div className="relative w-full lg:w-[48%] h-[340px] sm:h-[500px] lg:h-[600px] flex items-center justify-center z-10 overflow-visible">
             <AiCoreOrb />
           </div>
         </section>
