@@ -204,8 +204,24 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       }
     }
 
-    const lessonTitleLower = currentLessonData.title.toLowerCase();
-    const lessonIdStr = String(currentLessonData.id).toLowerCase();
+    const currentAny = currentLessonData as any;
+    if (currentAny.readingContent || currentAny.content) {
+      const contentStr = currentAny.readingContent || currentAny.content || '';
+      const autoDuration = calculateEstimatedDuration(contentStr, currentAny.commands?.length || 0);
+      return {
+        id: currentLessonData.id,
+        title: currentLessonData.title,
+        duration: currentLessonData.duration || autoDuration,
+        type: currentLessonData.type || 'reading',
+        badge: currentAny.badge || `Lesson ${currentLessonData.id}`,
+        content: contentStr,
+        commands: currentAny.commands || [],
+        resources: currentAny.resources || [],
+      };
+    }
+
+    const lessonTitleLower = (currentLessonData.title || '').toLowerCase();
+    const lessonIdStr = String(currentLessonData.id || '').toLowerCase();
 
     let moduleImageMarkdown = '';
     let sectionTitle = '1. Core Operating Principles';

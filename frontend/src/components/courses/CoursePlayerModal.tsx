@@ -359,17 +359,31 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
     const courseAny = course as any;
     if (courseAny.modules && courseAny.modules[mIdx]) {
       const mod = courseAny.modules[mIdx];
-      return mod.topics.map((t: any) => ({
-        title: t.title,
-        badge: t.id || 'Topic',
-        subtopics: t.learningUnits.map((u: any) => ({
-          id: u.id,
-          title: u.title,
-          content: u.readingContent || u.description || '',
-          type: u.type,
-          learningUnit: u,
-        })),
-      }));
+      if (mod.topics && Array.isArray(mod.topics)) {
+        return mod.topics.map((t: any) => ({
+          title: t.title || 'Untitled Topic',
+          badge: t.id || 'Topic',
+          subtopics: (t.learningUnits || []).map((u: any) => ({
+            id: u.id || '',
+            title: u.title || 'Untitled Lesson',
+            content: u.readingContent || u.description || '',
+            type: u.type || 'reading',
+            learningUnit: u,
+          })),
+        }));
+      } else if (mod.lessons && Array.isArray(mod.lessons)) {
+        return [{
+          title: mod.title || 'Module Content',
+          badge: mod.id || 'Module',
+          subtopics: mod.lessons.map((l: any) => ({
+            id: l.id || '',
+            title: l.title || 'Untitled Lesson',
+            content: l.readingContent || l.description || '',
+            type: l.type || 'reading',
+            learningUnit: l,
+          })),
+        }];
+      }
     }
 
     let baseCurriculum: LessonDetail[] = [];
@@ -385,11 +399,11 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
     if (modNum !== 1 && modNum !== 2 && modNum !== 3) {
       return baseCurriculum.map((lesson: LessonDetail) => ({
         ...lesson,
-        title: lesson.title.replace(/Lesson 1\./g, `Lesson ${modNum}.`),
-        subtopics: lesson.subtopics.map((sub: SubtopicDetail) => ({
+        title: (lesson.title || '').replace(/Lesson 1\./g, `Lesson ${modNum}.`),
+        subtopics: (lesson.subtopics || []).map((sub: SubtopicDetail) => ({
           ...sub,
-          id: sub.id.replace(/^1\./, `${modNum}.`),
-          title: sub.title.replace(/^1\./, `${modNum}.`),
+          id: (sub.id || '').replace(/^1\./, `${modNum}.`),
+          title: (sub.title || '').replace(/^1\./, `${modNum}.`),
         })),
       }));
     }
@@ -1032,7 +1046,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `${course.title.replace(/\s+/g, '_')}_Study_Notes.md`);
+    link.setAttribute('download', `${(course.title || '').replace(/\s+/g, '_')}_Study_Notes.md`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -1564,7 +1578,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                               </div>
                             </div>
                             <span className="text-[11px] font-semibold block leading-tight text-slate-600 truncate">
-                              {mod.title.replace(/^(🟢|🟡|🔵|🔴)\s*Module \d+:\s*/, '')}
+                              {(mod.title || '').replace(/^(🟢|🟡|🔵|🔴)\s*Module \d+:\s*/, '')}
                             </span>
                             <div className="flex items-center gap-3 text-[10px] font-medium pt-0.5">
                               <span className="flex items-center gap-1 text-slate-500">
@@ -1669,12 +1683,12 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
               <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
               <span className="text-slate-400 hover:text-sky-600 transition-colors cursor-pointer">Module 0{activeModuleIdx + 1}</span>
               <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-              <span className="text-slate-400 truncate max-w-xs" title={currentLesson.title}>
-                {currentLesson.title.replace(/^(Lesson \d+\.\d+:\s*|Topic \d+:\s*)/, '')}
+              <span className="text-slate-400 truncate max-w-xs" title={currentLesson?.title || ''}>
+                {(currentLesson?.title || '').replace(/^(Lesson \d+\.\d+:\s*|Topic \d+:\s*)/, '')}
               </span>
               <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-              <span className="text-sky-600 font-bold truncate max-w-xs animate-in fade-in duration-200" title={currentSubtopic.title}>
-                {currentSubtopic.title.replace(/^(\d+\.\d+\.\d+\s*)/, '')}
+              <span className="text-sky-600 font-bold truncate max-w-xs animate-in fade-in duration-200" title={currentSubtopic?.title || ''}>
+                {(currentSubtopic?.title || '').replace(/^(\d+\.\d+\.\d+\s*)/, '')}
               </span>
             </div>
 
