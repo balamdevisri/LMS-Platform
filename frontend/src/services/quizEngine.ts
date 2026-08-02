@@ -333,60 +333,273 @@ class MockQuizEngine implements QuizGenerator, QuizEvaluator {
     ]
   };
 
+  getPoolForReference() {
+    return this.mockQuestionsPool;
+  }
+
   async generateQuiz(
-    courseId: string,
+    _courseId: string,
     courseTitle: string,
     _lessonId: string,
     lessonTitle: string,
-    _lessonContent: string,
+    lessonContent: string,
     config: AIQuizConfig
   ): Promise<AIQuizQuestion[]> {
     // Simulate generation latency
     await new Promise((resolve) => setTimeout(resolve, 800));
 
-    const cTitleLower = (courseTitle || '').toLowerCase();
-    const cIdLower = (courseId || '').toLowerCase();
-    const lTitleLower = (lessonTitle || '').toLowerCase();
+    const courseLower = (courseTitle || '').toLowerCase();
 
-    let pool: AIQuizQuestion[] = [];
-
-    // Course-specific matching logic
-    if (cTitleLower.includes('git') || cIdLower.includes('git')) {
-      pool = [...this.mockQuestionsPool['git-mastery'], ...this.mockQuestionsPool['git-config']];
-    } else if (cTitleLower.includes('linux') || cIdLower.includes('linux') || lTitleLower.includes('concentric')) {
-      pool = [...this.mockQuestionsPool['1.1.3']];
+    const isDatabase = courseLower.includes('database') || courseLower.includes('dbms') || courseLower.includes('sql');
+    const isPython = courseLower.includes('python');
+    const isJava = courseLower.includes('java');
+    const isReact = courseLower.includes('react');
+    const isGit = courseLower.includes('git') || courseLower.includes('github');
+    
+    const generated: AIQuizQuestion[] = [];
+    
+    if (isDatabase) {
+      // 1. MCQ
+      generated.push({
+        id: `db_q_mcq_${Date.now()}`,
+        type: 'mcq',
+        difficulty: 'Easy',
+        question: `In the context of the lesson "${lessonTitle}", which of the following is the primary purpose of this topic?`,
+        options: [
+          'Structuring and organizing relational schemas',
+          'Improving read queries using clustered indexes',
+          'Ensuring atomic transaction states',
+          'Managing system process pipelines'
+        ],
+        answer: 'Structuring and organizing relational schemas',
+        explanation: `The lesson "${lessonTitle}" centers around database schemas and SQL operations.`,
+        topic: 'Database Administration',
+        estTime: '30s'
+      });
+      
+      // 2. SQL Coding
+      generated.push({
+        id: `db_q_code_${Date.now()}`,
+        type: 'code',
+        difficulty: 'Medium',
+        question: `Write an SQL query to retrieve all active records from a table named 'users' where the column 'role' matches 'Student'.`,
+        answer: "SELECT * FROM users WHERE role = 'Student'",
+        explanation: 'The SELECT statement combined with WHERE clause filters matching tuples based on attribute criteria.',
+        topic: 'SQL Data Retrieval',
+        estTime: '60s'
+      });
+      
+      // 3. Fill in the blanks
+      generated.push({
+        id: `db_q_blank_${Date.now()}`,
+        type: 'blank',
+        difficulty: 'Medium',
+        question: `The SQL DDL statement used to remove a table schema structure permanently from a database is ________.`,
+        answer: 'DROP TABLE',
+        explanation: 'DROP TABLE completely removes the schema definition and all its data.',
+        topic: 'SQL Schema Definition',
+        estTime: '45s'
+      });
+      
+      // 4. True/False
+      generated.push({
+        id: `db_q_tf_${Date.now()}`,
+        type: 'tf',
+        difficulty: 'Easy',
+        question: `True or False: The UPDATE statement is a Data Definition Language (DDL) command in SQL.`,
+        answer: 'False',
+        explanation: 'UPDATE is a Data Manipulation Language (DML) statement, as it modifies data inside rows.',
+        topic: 'SQL Command Types',
+        estTime: '30s'
+      });
+      
+      // 5. Database Design
+      generated.push({
+        id: `db_q_design_${Date.now()}`,
+        type: 'mcq',
+        difficulty: 'Hard',
+        question: `When designing a relational database, which normalization form addresses transitively dependent attributes?`,
+        options: [
+          'First Normal Form (1NF)',
+          'Second Normal Form (2NF)',
+          'Third Normal Form (3NF)',
+          'Boyce-Codd Normal Form (BCNF)'
+        ],
+        answer: 'Third Normal Form (3NF)',
+        explanation: 'A relation is in 3NF if it is in 2NF and no non-prime attribute is transitively dependent on the primary key.',
+        topic: 'Database Normalization',
+        estTime: '60s'
+      });
+    } else if (isPython) {
+      generated.push({
+        id: `py_q_mcq_${Date.now()}`,
+        type: 'mcq',
+        difficulty: 'Easy',
+        question: `Which Python keyword is used to declare a functional block?`,
+        options: ['function', 'def', 'void', 'define'],
+        answer: 'def',
+        explanation: 'In Python, functions are defined using the `def` keyword.',
+        topic: 'Python Syntax',
+        estTime: '20s'
+      });
+      generated.push({
+        id: `py_q_code_${Date.now()}`,
+        type: 'code',
+        difficulty: 'Medium',
+        question: `Write a print statement that outputs the text "Hello, Python!" to stdout.`,
+        answer: 'print("Hello, Python!")',
+        explanation: 'The built-in print() function writes text streams to console stdout.',
+        topic: 'Python Output',
+        estTime: '30s'
+      });
+      generated.push({
+        id: `py_q_tf_${Date.now()}`,
+        type: 'tf',
+        difficulty: 'Easy',
+        question: `True or False: Python requires explicit curly braces {} to define block scopes.`,
+        answer: 'False',
+        explanation: 'Python uses indentation to signify blocks instead of curly braces.',
+        topic: 'Python Scope',
+        estTime: '20s'
+      });
+    } else if (isJava) {
+      generated.push({
+        id: `ja_q_mcq_${Date.now()}`,
+        type: 'mcq',
+        difficulty: 'Easy',
+        question: `Which command compiles a Java source file into JVM bytecode?`,
+        options: ['java', 'javac', 'javadoc', 'javap'],
+        answer: 'javac',
+        explanation: '`javac` is the compiler CLI command producing .class files.',
+        topic: 'Java Compilation',
+        estTime: '30s'
+      });
+      generated.push({
+        id: `ja_q_code_${Date.now()}`,
+        type: 'code',
+        difficulty: 'Medium',
+        question: `Write the statement to print "Hello" in Java.`,
+        answer: 'System.out.println("Hello");',
+        explanation: 'System.out.println prints a line to standard console output.',
+        topic: 'Java stdout',
+        estTime: '40s'
+      });
+    } else if (isReact) {
+      generated.push({
+        id: `re_q_mcq_${Date.now()}`,
+        type: 'mcq',
+        difficulty: 'Easy',
+        question: `Which React Hook is used to track and store local component state?`,
+        options: ['useEffect', 'useState', 'useContext', 'useRef'],
+        answer: 'useState',
+        explanation: 'useState declares a state variable and state setter.',
+        topic: 'React Hooks',
+        estTime: '30s'
+      });
+      generated.push({
+        id: `re_q_tf_${Date.now()}`,
+        type: 'tf',
+        difficulty: 'Easy',
+        question: `True or False: React components can only return a single root JSX element.`,
+        answer: 'True',
+        explanation: 'JSX requires a single wrapper element or Fragment to reconcile.',
+        topic: 'React JSX rules',
+        estTime: '20s'
+      });
+    } else if (isGit) {
+      generated.push({
+        id: `git_q_mcq_${Date.now()}`,
+        type: 'mcq',
+        difficulty: 'Easy',
+        question: `Which Git command is used to record staged snapshots into the local history logs?`,
+        options: ['git push', 'git commit', 'git add', 'git stash'],
+        answer: 'git commit',
+        explanation: 'git commit saves staged changes locally.',
+        topic: 'Git Commits',
+        estTime: '25s'
+      });
+      generated.push({
+        id: `git_q_code_${Date.now()}`,
+        type: 'code',
+        difficulty: 'Medium',
+        question: `Write the Git command to check the active state and staged status of local workspace files.`,
+        answer: 'git status',
+        explanation: 'git status prints work tree differences.',
+        topic: 'Git Status',
+        estTime: '30s'
+      });
     } else {
-      pool = [...this.mockQuestionsPool['1.1.3'], ...this.mockQuestionsPool['git-mastery']];
+      // Linux default
+      generated.push({
+        id: `lin_q_mcq_${Date.now()}`,
+        type: 'mcq',
+        difficulty: 'Easy',
+        question: `Which Linux command lists the contents of the current directory?`,
+        options: ['pwd', 'cd', 'ls', 'mkdir'],
+        answer: 'ls',
+        explanation: 'ls lists files in standard format.',
+        topic: 'Linux Navigation',
+        estTime: '20s'
+      });
+      generated.push({
+        id: `lin_q_code_${Date.now()}`,
+        type: 'code',
+        difficulty: 'Medium',
+        question: `Write the Linux CLI command to print the absolute path of the current active working directory.`,
+        answer: 'pwd',
+        explanation: 'pwd prints active path.',
+        topic: 'Linux Paths',
+        estTime: '30s'
+      });
     }
-
-    // Filter by type & difficulty if specified (not Adaptive)
-    let filtered = [...pool];
-
-    if (config.difficulty !== 'Adaptive') {
-      filtered = filtered.filter((q) => q.difficulty === config.difficulty);
+    
+    // Dynamic question parser from lesson content if it has sentences
+    const cleanContent = (lessonContent || '')
+      .replace(/```[\s\S]*?```/g, '')
+      .replace(/[#*`>-]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const sentences = cleanContent.split(/[.!?]/).map(s => s.trim()).filter(s => s.length > 25);
+    
+    if (sentences.length > 0) {
+      const sentence = sentences[0];
+      const words = sentence.split(' ');
+      if (words.length > 8) {
+        const blankWordIndex = Math.floor(words.length / 2);
+        const blankWord = words[blankWordIndex].replace(/[^a-zA-Z]+/g, '');
+        if (blankWord.length > 3) {
+          words[blankWordIndex] = '________';
+          const questionText = words.join(' ') + '.';
+          generated.push({
+            id: `dyn_q_blank_${Date.now()}`,
+            type: 'blank',
+            difficulty: 'Medium',
+            question: `Based on the lesson content: "${questionText}"`,
+            answer: blankWord,
+            explanation: `The sentence directly from the lesson text states: "${sentence}".`,
+            topic: 'Lesson Comprehension',
+            estTime: '45s'
+          });
+        }
+      }
     }
-
-    // Filter by question types if filtered is empty or configured
-    if (config.questionTypes.length > 0) {
-      const typesSet = new Set(config.questionTypes);
-      const matched = filtered.filter((q) => typesSet.has(q.type));
-      if (matched.length > 0) filtered = matched;
-    }
-
-    // Shuffle and pick requested number of questions
-    filtered = this.shuffleArray(filtered);
-
-    // If pool is smaller than requested, clone and customize IDs to prevent shortages
+    
+    // Fill up to the requested volume by copying or returning generated questions
     let results: AIQuizQuestion[] = [];
-    while (results.length < config.numQuestions) {
-      const remaining = config.numQuestions - results.length;
-      const slice = filtered.slice(0, remaining).map((q, idx) => ({
-        ...q,
-        id: `${q.id}_gen_${results.length}_${idx}`
-      }));
-      results = [...results, ...slice];
+    let attempts = 0;
+    const shuffledPool = this._shuffleArray(generated);
+    while (results.length < config.numQuestions && attempts < 10) {
+      shuffledPool.forEach((q, idx) => {
+        if (results.length < config.numQuestions) {
+          results.push({
+            ...q,
+            id: `${q.id}_gen_${results.length}_${idx}`
+          });
+        }
+      });
+      attempts++;
     }
-
+    
     return results;
   }
 
@@ -508,7 +721,7 @@ class MockQuizEngine implements QuizGenerator, QuizEvaluator {
   }
 
   // Shuffle questions helper
-  private shuffleArray<T>(array: T[]): T[] {
+  private _shuffleArray<T>(array: T[]): T[] {
     const arr = [...array];
     for (let i = arr.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));

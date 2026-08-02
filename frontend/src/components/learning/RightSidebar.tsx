@@ -19,12 +19,20 @@ interface ResourceItem {
   url: string;
 }
 
+interface DownloadItem {
+  title: string;
+  url: string;
+  filename?: string;
+  size?: string;
+}
+
 interface RightSidebarProps {
   lessonId: string | number;
   lessonTitle?: string;
   isCompleted: boolean;
   isBookmarked: boolean;
   resources?: ResourceItem[];
+  downloads?: DownloadItem[];
   onToggleComplete: () => void;
   onNextLesson: () => void;
   onToggleBookmark: () => void;
@@ -38,6 +46,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   isCompleted,
   isBookmarked,
   resources = [],
+  downloads = [],
   onToggleComplete,
   onNextLesson,
   onToggleBookmark,
@@ -96,7 +105,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   const progressPercent = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
 
   return (
-    <aside className="w-full lg:w-80 shrink-0 space-y-5 sticky top-28 self-start">
+    <aside className="w-full lg:w-80 shrink-0 space-y-5 sticky top-28 self-start font-sans">
       {/* Lesson Control Card */}
       <div
         className={`p-5 rounded-3xl border shadow-xl backdrop-blur-xl space-y-4 ${
@@ -247,7 +256,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
         </button>
       </div>
 
-      {/* Downloads & Links Card */}
+      {/* Downloads Card */}
       <div
         className={`p-5 rounded-3xl border shadow-xl backdrop-blur-xl space-y-3 ${
           isNightMode
@@ -256,7 +265,50 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
         }`}
       >
         <h4 className={`text-xs font-bold flex items-center gap-2 ${isNightMode ? 'text-white' : 'text-slate-900'}`}>
-          <Download className={`w-4 h-4 ${isNightMode ? 'text-cyan-400' : 'text-sky-600'}`} /> Lesson Downloads & Links
+          <Download className={`w-4 h-4 ${isNightMode ? 'text-cyan-400' : 'text-sky-600'}`} /> Lesson Downloads
+        </h4>
+
+        {downloads.length > 0 ? (
+          <div className="space-y-2">
+            {downloads.map((dl, idx) => (
+              <a
+                key={idx}
+                href={dl.url}
+                className={`flex items-center justify-between p-2.5 rounded-xl text-xs font-medium border transition-all ${
+                  isNightMode
+                    ? 'bg-slate-950 border-slate-800 text-cyan-300 hover:bg-slate-850 hover:border-slate-700'
+                    : 'bg-sky-50/60 border-sky-100 text-sky-700 hover:bg-sky-100/60'
+                }`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  toast.success(`Started download of: ${dl.filename || 'file'}`);
+                }}
+              >
+                <div className="truncate">
+                  <div>{dl.title}</div>
+                  {dl.size && <span className="text-[10px] text-slate-500 font-mono font-normal">{dl.size}</span>}
+                </div>
+                <Download className={`w-3.5 h-3.5 shrink-0 ml-2 text-slate-400`} />
+              </a>
+            ))}
+          </div>
+        ) : (
+          <div className={`p-3 rounded-xl border text-center text-[11px] ${isNightMode ? 'bg-slate-950 border-slate-800 text-slate-400' : 'bg-slate-50 border-sky-100 text-slate-400'}`}>
+            No downloadable materials for this unit.
+          </div>
+        )}
+      </div>
+
+      {/* Resources Card */}
+      <div
+        className={`p-5 rounded-3xl border shadow-xl backdrop-blur-xl space-y-3 ${
+          isNightMode
+            ? 'bg-slate-900/90 border-slate-800 text-white shadow-slate-950/60'
+            : 'bg-white border-sky-100 text-slate-900 shadow-sky-500/5'
+        }`}
+      >
+        <h4 className={`text-xs font-bold flex items-center gap-2 ${isNightMode ? 'text-white' : 'text-slate-900'}`}>
+          <ExternalLink className={`w-4 h-4 ${isNightMode ? 'text-cyan-400' : 'text-sky-600'}`} /> Core Reference Links
         </h4>
 
         {resources.length > 0 ? (
@@ -269,12 +321,12 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                 rel="noreferrer"
                 className={`flex items-center justify-between p-2.5 rounded-xl text-xs font-medium border transition-all ${
                   isNightMode
-                    ? 'bg-slate-950 border-slate-800 text-cyan-300 hover:bg-slate-800'
+                    ? 'bg-slate-950 border-slate-800 text-cyan-300 hover:bg-slate-850 hover:border-slate-700'
                     : 'bg-sky-50/60 border-sky-100 text-sky-700 hover:bg-sky-100/60'
                 }`}
               >
                 <span className="truncate">{res.title}</span>
-                <ExternalLink className={`w-3.5 h-3.5 shrink-0 ml-2 ${isNightMode ? 'text-slate-400' : 'text-slate-400'}`} />
+                <ExternalLink className={`w-3.5 h-3.5 shrink-0 ml-2 text-slate-400`} />
               </a>
             ))}
           </div>

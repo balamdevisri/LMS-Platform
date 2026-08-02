@@ -5,16 +5,15 @@ import { LessonViewer } from './LessonViewer';
 import type { LessonDetails } from './LessonViewer';
 import { RightSidebar } from './RightSidebar';
 import type { ModuleData } from './ModuleAccordion';
-import { gitLessonsData } from '@/data/gitLessonsData';
 import { useAuth } from '@/contexts/AuthContext';
 import { courseService } from '@/services/courseService';
 import { useCourseTimeTracker } from '@/hooks/useCourseTimeTracker';
 import { FloatingBubbles } from './FloatingBubbles';
-import { EnterpriseGitLab } from '../labs/git/EnterpriseGitLab';
 import { AIQuizPortal } from '../courses/AIQuizPortal';
 import { AITutorDrawer } from './AITutorDrawer';
 import { Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import { dbmsLessonsData } from '@/data/dbmsLessonsData';
 
 export function calculateEstimatedDuration(content: string, commandCount: number = 0): string {
   if (!content) return '5 mins';
@@ -27,6 +26,126 @@ export function calculateEstimatedDuration(content: string, commandCount: number
   const practiceMinutes = commandCount * 1;
   const totalMinutes = Math.max(3, readingMinutes + practiceMinutes);
   return `${totalMinutes} mins`;
+}
+
+export function extractPracticeCommands(courseTitle: string, _lessonTitle: string, content: string): Array<{ command: string; description: string }> {
+  const courseLower = courseTitle.toLowerCase();
+  const codeBlockRegex = /```(?:bash|sh|sql|python|java|javascript|tsx|jsx)?\n([\s\S]*?)\n```/g;
+  const found: Array<{ command: string; description: string }> = [];
+  let match;
+  while ((match = codeBlockRegex.exec(content)) !== null) {
+    const block = match[1].trim();
+    const lines = block.split('\n').map(l => l.trim()).filter(l => l.length > 0 && !l.startsWith('#') && !l.startsWith('//') && !l.startsWith('--'));
+    lines.forEach(line => {
+      if (found.length < 5 && !found.some(item => item.command === line)) {
+        found.push({ command: line, description: `Execute ${line}` });
+      }
+    });
+  }
+  
+  if (found.length > 0) return found;
+
+  if (courseLower.includes('git')) {
+    return [
+      { command: 'git status', description: 'Check status of files' },
+      { command: 'git log --oneline', description: 'View linear commit history' },
+      { command: 'git branch', description: 'List local branches' }
+    ];
+  } else if (courseLower.includes('database') || courseLower.includes('sql') || courseLower.includes('dbms')) {
+    return [
+      { command: 'SHOW TABLES;', description: 'List all active tables' },
+      { command: 'SELECT * FROM users;', description: 'Query user accounts' }
+    ];
+  } else if (courseLower.includes('python')) {
+    return [
+      { command: 'print("Hello Python")', description: 'Run stdout command' }
+    ];
+  } else if (courseLower.includes('java')) {
+    return [
+      { command: 'System.out.println("Hello Java");', description: 'Standard stdout print' }
+    ];
+  } else {
+    return [
+      { command: 'pwd', description: 'Print working directory' },
+      { command: 'whoami', description: 'Print active username' },
+      { command: 'ls -la', description: 'List all files in details' }
+    ];
+  }
+}
+
+export function generateDynamicResources(courseTitle: string, _lessonTitle: string, lessonResources?: any[]): Array<{ title: string; url: string }> {
+  if (lessonResources && lessonResources.length > 0) {
+    return lessonResources.map(r => ({
+      title: r.title || r.name || 'Resource Link',
+      url: r.url || r.fileUrl || '#'
+    }));
+  }
+  
+  const courseLower = courseTitle.toLowerCase();
+  if (courseLower.includes('git')) {
+    return [
+      { title: 'Official Git Documentation', url: 'https://git-scm.com/doc' },
+      { title: 'GitHub Cheatsheet (PDF)', url: 'https://github.github.com/training-kit/downloads/github-git-cheat-sheet.pdf' }
+    ];
+  } else if (courseLower.includes('database') || courseLower.includes('sql') || courseLower.includes('dbms')) {
+    return [
+      { title: 'W3Schools SQL Tutorial Reference', url: 'https://www.w3schools.com/sql/' },
+      { title: 'PostgreSQL Cheat Sheet', url: 'https://www.postgresqltutorial.com/postgresql-cheat-sheet/' }
+    ];
+  } else if (courseLower.includes('python')) {
+    return [
+      { title: 'Official Python Tutorial', url: 'https://docs.python.org/3/tutorial/index.html' },
+      { title: 'Python Cheat Sheet', url: 'https://perso.limsi.fr/pointal/_media/python:cours:memento_v2_refcard.pdf' }
+    ];
+  } else if (courseLower.includes('java')) {
+    return [
+      { title: 'Oracle Java Tutorials', url: 'https://docs.oracle.com/javase/tutorial/' },
+      { title: 'Java Cheatsheet (PDF)', url: 'https://www.cheat-sheets.org/saved-copy/java-cheat-sheet-v2.pdf' }
+    ];
+  } else if (courseLower.includes('react')) {
+    return [
+      { title: 'Official React Documentation', url: 'https://react.dev' },
+      { title: 'React Cheatsheet', url: 'https://devhints.io/react' }
+    ];
+  } else {
+    return [
+      { title: 'Official Linux Kernel Documentation', url: 'https://www.kernel.org/doc/html/latest/' },
+      { title: 'GNU Coreutils Reference Manual', url: 'https://www.gnu.org/software/coreutils/manual/' }
+    ];
+  }
+}
+
+export function generateDynamicDownloads(courseTitle: string, lessonTitle: string) {
+  const courseLower = courseTitle.toLowerCase();
+  const titleSlug = lessonTitle.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+  
+  if (courseLower.includes('git')) {
+    return [
+      { title: 'Download Git Cheat Sheet', url: '#', filename: 'git_cheat_sheet.pdf', size: '1.2 MB' },
+      { title: 'Download Starter Code (ZIP)', url: '#', filename: `${titleSlug}_starter.zip`, size: '4.8 MB' }
+    ];
+  } else if (courseLower.includes('database') || courseLower.includes('sql') || courseLower.includes('dbms')) {
+    return [
+      { title: 'Download SQL Practice Schema', url: '#', filename: 'dbms_practice_schema.sql', size: '240 KB' },
+      { title: 'Download Database Design Guide (PDF)', url: '#', filename: 'db_design_patterns.pdf', size: '2.5 MB' }
+    ];
+  } else if (courseLower.includes('python')) {
+    return [
+      { title: 'Download Python Reference Sheet', url: '#', filename: 'python_quick_reference.pdf', size: '920 KB' }
+    ];
+  } else if (courseLower.includes('java')) {
+    return [
+      { title: 'Download Java Reference Guide', url: '#', filename: 'java_reference_guide.pdf', size: '1.4 MB' }
+    ];
+  } else if (courseLower.includes('react')) {
+    return [
+      { title: 'Download React cheatsheet', url: '#', filename: 'react_cheatsheet.pdf', size: '850 KB' }
+    ];
+  } else {
+    return [
+      { title: 'Download Linux Command Reference', url: '#', filename: 'linux_commands_reference.pdf', size: '1.8 MB' }
+    ];
+  }
 }
 
 interface InCourseLearningViewProps {
@@ -51,12 +170,10 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
   const userAvatar = propAvatar || userProfile?.photoURL || user?.photoURL || undefined;
   const userName = propName && propName !== 'Student' ? propName : (userProfile?.name || user?.displayName || userProfile?.githubUsername || 'Student User');
   
+  const containerRef = React.useRef<HTMLDivElement>(null);
   const [isNightMode, setIsNightMode] = useState(false);
 
-  const isGitCourse =
-    String(courseId) === 'git-github-mastery-course-id' ||
-    String(courseId) === 'git-github-mastery' ||
-    courseTitle.toLowerCase().includes('git');
+  const isGitCourse = courseTitle.toLowerCase().includes('git');
 
   const allLessons = useMemo(() => {
     return modules.flatMap((mod) => mod.lessons);
@@ -84,7 +201,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       if (firstUncompleted) return firstUncompleted.id;
     } catch {}
 
-    return allLessons[0]?.id || (isGitCourse ? 'git-les-101' : 101);
+    return allLessons[0]?.id || 101;
   });
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -106,9 +223,13 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         localStorage.setItem(`shaivika_last_active_${courseId}`, String(selectedLessonId));
       } catch {}
     }
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    if (containerRef.current) {
+      containerRef.current.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }
     const timer = setTimeout(() => {
-      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      if (containerRef.current) {
+        containerRef.current.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      }
     }, 50);
     return () => clearTimeout(timer);
   }, [selectedLessonId, courseId]);
@@ -152,7 +273,9 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
   const handlePrevLesson = () => {
     if (hasPrevLesson) {
       setSelectedLessonId(allLessons[activeIndex - 1].id);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (containerRef.current) {
+        containerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     }
   };
 
@@ -180,7 +303,9 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         return;
       }
       setSelectedLessonId(nextLesson.id);
-      window.scrollTo({ top: 0, behavior: 'instant' });
+      if (containerRef.current) {
+        containerRef.current.scrollTo({ top: 0, behavior: 'instant' });
+      }
     }
   };
 
@@ -188,273 +313,56 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
     if (!currentLessonData) {
       return {
         id: 101,
-        title: '1.1 Introduction to Unix & Linux Operating System Architecture',
-        duration: '45 mins',
-        type: 'video',
+        title: 'Introduction',
+        duration: '15 mins',
+        type: 'reading',
         badge: 'Module 1 • Lesson 1',
         content: 'Loading lesson details...',
+        commands: [],
+        resources: []
       };
-    }
-
-    if (isGitCourse) {
-      const foundInGit = gitLessonsData[String(currentLessonData.id)];
-      if (foundInGit) {
-        const autoDuration = calculateEstimatedDuration(foundInGit.content, foundInGit.commands?.length || 0);
-        return { ...foundInGit, duration: autoDuration };
-      }
     }
 
     const currentAny = currentLessonData as any;
-    if (currentAny.readingContent || currentAny.content) {
-      const contentStr = currentAny.readingContent || currentAny.content || '';
-      const autoDuration = calculateEstimatedDuration(contentStr, currentAny.commands?.length || 0);
-      return {
-        id: currentLessonData.id,
-        title: currentLessonData.title,
-        duration: currentLessonData.duration || autoDuration,
-        type: currentLessonData.type || 'reading',
-        badge: currentAny.badge || `Lesson ${currentLessonData.id}`,
-        content: contentStr,
-        commands: currentAny.commands || [],
-        resources: currentAny.resources || [],
-      };
+    const isDbms = courseTitle.toLowerCase().includes('database') || courseTitle.toLowerCase().includes('dbms') || courseTitle.toLowerCase().includes('sql');
+
+    let contentStr = currentAny.content || currentAny.readingContent || currentAny.description || 'Welcome to this lesson.';
+    let initialCommands = currentAny.commands || [];
+    let initialResources = currentAny.resources || [];
+
+    if (isDbms) {
+      const foundInDbms = dbmsLessonsData[String(currentLessonData.id)];
+      if (foundInDbms) {
+        contentStr = foundInDbms.content;
+        if (foundInDbms.commands) initialCommands = foundInDbms.commands;
+        if (foundInDbms.resources) initialResources = foundInDbms.resources;
+      }
     }
 
-    const lessonTitleLower = (currentLessonData.title || '').toLowerCase();
-    const lessonIdStr = String(currentLessonData.id || '').toLowerCase();
+    const autoDuration = calculateEstimatedDuration(contentStr, initialCommands.length || 0);
 
-    let moduleImageMarkdown = '';
-    let sectionTitle = '1. Core Operating Principles';
+    const generatedCommands = initialCommands.length > 0
+      ? initialCommands
+      : extractPracticeCommands(courseTitle, currentLessonData.title, contentStr);
 
-    if (
-      lessonTitleLower.includes('history') ||
-      lessonTitleLower.includes('distro') ||
-      lessonTitleLower.includes('overview') ||
-      lessonIdStr.includes('1.1')
-    ) {
-      sectionTitle = '1. Linux Architecture & Operating System History';
-      moduleImageMarkdown = `\n![Linux OS History & Enterprise Distros](/assets/images/topic_linux_history_distros.webp)\n`;
-    } else if (
-      lessonTitleLower.includes('kernel') ||
-      lessonTitleLower.includes('lkm') ||
-      lessonTitleLower.includes('syscall') ||
-      lessonIdStr.includes('1.2')
-    ) {
-      sectionTitle = '1. Kernel Architecture & System Call Execution';
-      moduleImageMarkdown = `\n![Linux Kernel Architecture Mechanics](/assets/images/topic_kernel_architecture.webp)\n`;
-    } else if (
-      lessonTitleLower.includes('navigation') ||
-      lessonTitleLower.includes('cli basics') ||
-      lessonTitleLower.includes('prompt') ||
-      lessonIdStr.includes('1.3')
-    ) {
-      sectionTitle = '1. Terminal CLI Navigation & Path Exploration';
-      moduleImageMarkdown = `\n![Terminal CLI Navigation & Paths](/assets/images/topic_terminal_cli_navigation.webp)\n`;
-    } else if (
-      lessonTitleLower.includes('redirection') ||
-      lessonTitleLower.includes('pipe') ||
-      lessonTitleLower.includes('filter') ||
-      lessonIdStr.includes('1.4')
-    ) {
-      sectionTitle = '1. I/O Redirection & Pipeline Processing';
-      moduleImageMarkdown = `\n![Linux I/O Redirection & Streams](/assets/images/topic_io_redirection_pipes.webp)\n`;
-    } else if (
-      lessonTitleLower.includes('editor') ||
-      lessonTitleLower.includes('vim') ||
-      lessonTitleLower.includes('nano') ||
-      lessonIdStr.includes('1.5')
-    ) {
-      sectionTitle = '1. Terminal Text Editors & Modal Editing Operations';
-      moduleImageMarkdown = `\n![Vim and Nano Terminal Text Editors](/assets/images/topic_text_editors.webp)\n`;
-    } else if (
-      lessonTitleLower.includes('user') ||
-      lessonTitleLower.includes('group') ||
-      lessonTitleLower.includes('shadow') ||
-      lessonIdStr.includes('2.2')
-    ) {
-      sectionTitle = '1. User & Group Security Administration';
-      moduleImageMarkdown = `\n![User & Group Security Administration](/assets/images/topic_user_groups.webp)\n`;
-    } else if (
-      lessonTitleLower.includes('permission') ||
-      lessonTitleLower.includes('chmod') ||
-      lessonTitleLower.includes('acl') ||
-      lessonIdStr.includes('2.3')
-    ) {
-      sectionTitle = '1. File Permissions & POSIX Access Control Lists';
-      moduleImageMarkdown = `\n![Linux File Permissions & ACL Matrix](/assets/images/linux_permissions_fhs.webp)\n`;
-    } else if (
-      lessonTitleLower.includes('storage') ||
-      lessonTitleLower.includes('mount') ||
-      lessonTitleLower.includes('partition') ||
-      lessonIdStr.includes('2.4')
-    ) {
-      sectionTitle = '1. Storage Drives, Partitioning & Mount Points';
-      moduleImageMarkdown = `\n![Storage Drives & Mounting Pipelines](/assets/images/topic_storage_mounting.webp)\n`;
-    } else if (
-      lessonTitleLower.includes('process') ||
-      lessonTitleLower.includes('top') ||
-      lessonTitleLower.includes('htop') ||
-      lessonIdStr.includes('3.1')
-    ) {
-      sectionTitle = '1. Process Lifecycles & Task Monitoring';
-      moduleImageMarkdown = `\n![Linux Process Monitoring & Control](/assets/images/topic_process_control.webp)\n`;
-    } else if (
-      lessonTitleLower.includes('systemd') ||
-      lessonTitleLower.includes('service') ||
-      lessonTitleLower.includes('cron') ||
-      lessonIdStr.includes('3.2') ||
-      lessonIdStr.includes('3.3')
-    ) {
-      sectionTitle = '1. Systemd Daemons & Crontab Automation';
-      moduleImageMarkdown = `\n![Systemd Daemons & Service Management](/assets/images/linux_process_systemd.webp)\n`;
-    } else if (
-      lessonTitleLower.includes('bash') ||
-      lessonTitleLower.includes('script') ||
-      lessonIdStr.includes('4.1')
-    ) {
-      sectionTitle = '1. Bash Script Control Structures & Loops';
-      moduleImageMarkdown = `\n![Bash Scripting Control Structures](/assets/images/topic_bash_control_loops.webp)\n`;
-    } else if (
-      lessonTitleLower.includes('ssh') ||
-      lessonTitleLower.includes('key') ||
-      lessonIdStr.includes('4.3')
-    ) {
-      sectionTitle = '1. SSH Cryptographic Keys & Remote Access Security';
-      moduleImageMarkdown = `\n![SSH Keys & Remote Access Security](/assets/images/topic_ssh_keys.webp)\n`;
-    } else if (
-      lessonTitleLower.includes('firewall') ||
-      lessonTitleLower.includes('ufw') ||
-      lessonTitleLower.includes('network') ||
-      lessonIdStr.includes('4.2') ||
-      lessonIdStr.includes('4.4')
-    ) {
-      sectionTitle = '1. Network Diagnostics & Host Firewall Hardening';
-      moduleImageMarkdown = `\n![Network Diagnostics & Security Hardening](/assets/images/linux_bash_security.webp)\n`;
-    } else if (
-      lessonTitleLower.includes('action') ||
-      lessonTitleLower.includes('ci') ||
-      lessonTitleLower.includes('pipeline')
-    ) {
-      sectionTitle = '1. GitHub Actions & Automated CI/CD Pipelines';
-      moduleImageMarkdown = `\n![GitHub Actions CI/CD Pipeline](/assets/images/github_actions_ci_cd.webp)\n`;
-    } else if (
-      lessonTitleLower.includes('branch') ||
-      lessonTitleLower.includes('pull') ||
-      lessonTitleLower.includes('merge') ||
-      lessonTitleLower.includes('review')
-    ) {
-      sectionTitle = '1. Branching Strategies & Pull Request Code Reviews';
-      moduleImageMarkdown = `\n![Git Branching & Pull Requests](/assets/images/git_branching_merging.webp)\n`;
-    } else if (
-      lessonTitleLower.includes('git') ||
-      lessonTitleLower.includes('commit') ||
-      lessonTitleLower.includes('version')
-    ) {
-      sectionTitle = '1. Git CLI Version Control & Local Workspace Setup';
-      moduleImageMarkdown = `\n![Git CLI Version Control Terminal](/assets/images/git_basics_terminal.webp)\n`;
-    } else if (
-      lessonTitleLower.includes('fhs') ||
-      lessonTitleLower.includes('hierarchy') ||
-      lessonIdStr.includes('2.1')
-    ) {
-      sectionTitle = '1. Filesystem Hierarchy Standard (FHS)';
-      moduleImageMarkdown = `\n![Filesystem Hierarchy Standard Diagram](/assets/images/linux_fhs_hierarchy.webp)\n`;
-    } else {
-      sectionTitle = '1. Core Operating Principles & Layered Architecture';
-      moduleImageMarkdown = `\n![Core OS Architecture Principles](/assets/images/topic_core_os_principles.webp)\n`;
-    }
+    const generatedResources = initialResources.length > 0
+      ? initialResources
+      : generateDynamicResources(courseTitle, currentLessonData.title, initialResources);
 
-    let topicDescription = 'Linux is built around modular Unix design principles where everything is represented as a file or stream. Understanding system boundaries, process isolation, and security matrices is essential for system administration and DevOps pipelines.';
-    let highlightedTopics = [
-      '⚡ Monolithic Kernel Architecture (CPU Ring 0 Supervisor Mode)',
-      '🛠️ System Call Interface (syscalls) connecting User Space to Hardware',
-      '🔒 POSIX Filesystem Hierarchy Standard & Permission Matrix',
-      '🔄 Process Scheduling, Systemd Daemons & Terminal Pipelines'
-    ];
-
-    if (lessonTitleLower.includes('git') || isGitCourse) {
-      topicDescription = 'Version control is the cornerstone of modern software development. Git enables distributed code tracking, seamless branching, pull request reviews, and automated CI/CD deployment pipelines.';
-      highlightedTopics = [
-        '⚡ Distributed Repository Initialization & Commit History Tracking',
-        '🌿 Branch Creation, Parallel Workflows & Merge Conflict Resolution',
-        '🐱 Remote Synchronization with GitHub & Pull Request Reviews',
-        '🚀 Automated CI/CD Workflow Pipelines with GitHub Actions'
-      ];
-    } else if (lessonTitleLower.includes('kernel') || lessonTitleLower.includes('lkm')) {
-      topicDescription = 'The Monolithic Linux Kernel executes in CPU Ring 0 with full supervisor authority, managing CPU scheduling, RAM memory paging, system calls, and Loadable Kernel Modules (LKMs).';
-      highlightedTopics = [
-        '⚡ CPU Execution Rings (Ring 0 Supervisor vs Ring 3 User Space)',
-        '🛠️ Monolithic Kernel Subsystems & LKMs (lsmod, modprobe)',
-        '🔍 System Call Interface execution (strace, sysenter)',
-        '🔄 Process Context Switching & Interrupt Handling'
-      ];
-    } else if (lessonTitleLower.includes('permission') || lessonTitleLower.includes('chmod') || lessonTitleLower.includes('acl')) {
-      topicDescription = 'Linux security relies on POSIX User-Group-Other permission masks (rwx) and fine-grained Access Control Lists (ACLs) to enforce data privacy and access control.';
-      highlightedTopics = [
-        '🔒 Octal & Symbolic Permission Notation (chmod 755, chmod 644)',
-        '👤 User & Group Ownership Management (chown, chgrp)',
-        '📌 Special Permission Bits (SUID, SGID, Sticky Bit chmod 1777)',
-        '🛡️ POSIX Access Control Lists (getfacl, setfacl)'
-      ];
-    } else if (lessonTitleLower.includes('process') || lessonTitleLower.includes('systemd') || lessonTitleLower.includes('cron')) {
-      topicDescription = 'Process management and systemd daemon control allow system administrators to run background services, monitor resource usage, and automate scheduled tasks.';
-      highlightedTopics = [
-        '⚡ Process Lifecycle, PIDs, & Termination Signals (SIGKILL, SIGTERM)',
-        '📊 Real-time System Resource Monitoring (top, htop, ps aux)',
-        '🤖 Systemd Unit Files & Daemon Control (systemctl start/status)',
-        '⏰ Automated Task Scheduling with Crontab Syntax (crontab -e)'
-      ];
-    }
-
-    const content = `### ${currentLessonData.title}
-
-Welcome to **${currentLessonData.title}**! In this comprehensive lesson, you will master core concepts, production architecture patterns, and hands-on commands.
-
-Read through the concepts below, inspect the topic technical architecture diagram, and execute commands in the live terminal sandbox to unlock your **+50 XP** reward!
-
-#### ${sectionTitle}
-${topicDescription}
-
-${moduleImageMarkdown}
-
-#### 2. Key Learning Highlights & Core Concepts
-${highlightedTopics.map((item) => `- **${item}**`).join('\n')}
-
-**Pro Tip**: Practice running the commands in the interactive CLI terminal sandbox below to gain real hands-on terminal confidence!
-
-#### 3. Critical Practice Commands
-Use the interactive terminal below to practice these commands:
-- \`uname -a\` : Print system architecture & kernel version
-- \`whoami\` : Print current logged-in user username
-- \`pwd\` : Display active working directory path
-- \`ls -la\` : List directory contents with hidden files and permission flags
-- \`clear\` : Clear terminal screen output buffer
-`;
-
-    const commands = [
-      { command: 'uname -a', description: 'Print kernel version & arch' },
-      { command: 'whoami', description: 'Check active student user' },
-      { command: 'pwd', description: 'Display current directory path' },
-      { command: 'ls -la', description: 'List files with permissions' },
-      { command: 'clear', description: 'Clear terminal screen' },
-    ];
-
-    const autoDuration = calculateEstimatedDuration(content, commands.length);
+    const generatedDownloads = generateDynamicDownloads(courseTitle, currentLessonData.title);
 
     return {
       id: currentLessonData.id,
       title: currentLessonData.title,
-      duration: autoDuration,
-      type: currentLessonData.type || 'lab',
-      badge: `Lesson ${currentLessonData.id}`,
-      content,
-      commands,
-      resources: [
-        { title: 'Official Linux Kernel Documentation', url: 'https://www.kernel.org/doc/html/latest/' },
-        { title: 'GNU Coreutils Reference Manual', url: 'https://www.gnu.org/software/coreutils/manual/' },
-      ],
-    };
-  }, [currentLessonData, isGitCourse]);
+      duration: currentLessonData.duration || autoDuration,
+      type: currentLessonData.type || 'reading',
+      badge: currentAny.badge || `Lesson ${currentLessonData.id}`,
+      content: contentStr,
+      commands: generatedCommands,
+      resources: generatedResources,
+      downloads: generatedDownloads,
+    } as any;
+  }, [currentLessonData, courseTitle]);
 
   const handleToggleComplete = () => {
     if (!completedLessonIds.some((id) => String(id) === String(selectedLessonId))) {
@@ -527,6 +435,7 @@ Use the interactive terminal below to practice these commands:
 
   return (
     <div
+      ref={containerRef}
       className={`fixed inset-0 z-60 font-sans flex flex-col overflow-y-auto transition-colors duration-300 ${
         isNightMode
           ? 'bg-slate-950 text-slate-100 selection:bg-cyan-500 selection:text-slate-950'
@@ -573,7 +482,9 @@ Use the interactive terminal below to practice these commands:
             return;
           }
           setSelectedLessonId(id);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+          if (containerRef.current) {
+            containerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+          }
         }}
         progressPercent={progressPercent}
         activeCourseTab={activeCourseTab}
@@ -595,43 +506,9 @@ Use the interactive terminal below to practice these commands:
             onNextLesson={handleNextLesson}
             isCompleted={isCompleted}
             isNightMode={isNightMode}
+            courseTitle={courseTitle}
+            courseId={String(courseId)}
           />
-
-          {isGitCourse && (
-            <div className="pt-4">
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <h2 className="font-heading text-lg font-extrabold text-cyan-300 flex items-center gap-2">
-                    <span>⚡ KaizenQ Enterprise Git & GitHub Interactive Lab</span>
-                  </h2>
-                  <p className="text-xs text-slate-400">
-                    Codespaces/GitKraken-style real-time Docker terminal sandbox. Practice all 21 supported Git commands securely.
-                  </p>
-                </div>
-              </div>
-
-              <EnterpriseGitLab
-                studentId={user?.uid || 'student_101'}
-                studentName={user?.displayName || 'Student User'}
-                onClaimXP={(xp, title) => {
-                  const activeUserId = user?.uid || 'default_student';
-                  courseService.addXPPoints(xp, activeUserId);
-                  courseService.addXPClaim(
-                    {
-                      id: `claim_lab_${Date.now()}`,
-                      title: `🏆 Completed Git Lab: ${title}`,
-                      xp,
-                      category: 'AI Terminal Lab',
-                      timestamp: new Date().toISOString(),
-                      courseId: String(courseId),
-                      courseTitle: courseTitle,
-                    },
-                    activeUserId
-                  );
-                }}
-              />
-            </div>
-          )}
 
           {/* AI Quiz Generator & Assessment Portal Section */}
           <div className="pt-6 border-t border-slate-800/80 space-y-4">
@@ -663,6 +540,7 @@ Use the interactive terminal below to practice these commands:
           isCompleted={isCompleted}
           isBookmarked={isBookmarked}
           resources={activeLessonFull.resources}
+          downloads={(activeLessonFull as any).downloads}
           onToggleComplete={handleToggleComplete}
           onNextLesson={handleNextLesson}
           onToggleBookmark={handleToggleBookmark}
@@ -688,7 +566,9 @@ Use the interactive terminal below to practice these commands:
         onClose={() => setIsAITutorOpen(false)}
         lessonTitle={activeLessonFull.title}
         courseTitle={courseTitle}
+        lessonContent={activeLessonFull.content}
       />
     </div>
   );
 };
+
