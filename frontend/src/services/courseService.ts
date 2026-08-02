@@ -511,6 +511,7 @@ class CourseService {
   private xpClaimsKey = 'shaivika_user_xp_claims';
   private checkpointKey = 'shaivika_user_checkpoint';
   private getCoursesCache: Map<string, { data: CoursePaginationResult; expiry: number }> = new Map();
+  private courseDetailsCache: Map<string, { data: ICourse; expiry: number }> = new Map();
 
   private mergeCourseModules(defModules?: any[], cachedModules?: any[]): any[] {
     if (!defModules) return cachedModules || [];
@@ -852,16 +853,28 @@ class CourseService {
   }
 
   async getCourseBySlugOrId(idOrSlug: string): Promise<ICourse | null> {
+    const cached = this.courseDetailsCache.get(idOrSlug);
+    if (cached && cached.expiry > Date.now()) {
+      return cached.data;
+    }
+
     try {
       const res = await fetch(`${API_BASE_URL}/courses/${idOrSlug}`);
       if (res.ok) {
         const json = await res.json();
-        if (json.success && json.data) return json.data;
+        if (json.success && json.data) {
+          this.courseDetailsCache.set(idOrSlug, { data: json.data, expiry: Date.now() + 15000 }); // cache 15s
+          return json.data;
+        }
       }
     } catch (e) {}
 
     const list = this.getStoredCourses();
-    return list.find((c) => c.id === idOrSlug || c.slug === idOrSlug) || null;
+    const found = list.find((c) => c.id === idOrSlug || c.slug === idOrSlug) || null;
+    if (found) {
+      this.courseDetailsCache.set(idOrSlug, { data: found, expiry: Date.now() + 15000 });
+    }
+    return found;
   }
 
   async createCourse(dto: CreateCourseDTO): Promise<ICourse> {

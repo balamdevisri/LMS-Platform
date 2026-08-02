@@ -1,19 +1,37 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, lazy, Suspense, useCallback } from 'react';
 import { LearningHeader } from './LearningHeader';
 import { SidebarDrawer } from './SidebarDrawer';
 import { LessonViewer } from './LessonViewer';
 import type { LessonDetails } from './LessonViewer';
-import { RightSidebar } from './RightSidebar';
 import type { ModuleData } from './ModuleAccordion';
 import { useAuth } from '@/contexts/AuthContext';
 import { courseService } from '@/services/courseService';
 import { useCourseTimeTracker } from '@/hooks/useCourseTimeTracker';
 import { FloatingBubbles } from './FloatingBubbles';
-import { AIQuizPortal } from '../courses/AIQuizPortal';
-import { AITutorDrawer } from './AITutorDrawer';
 import { Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { dbmsLessonsData } from '@/data/dbmsLessonsData';
+import { LazyViewport } from './LazyViewport';
+
+const RightSidebar = lazy(() => import('./RightSidebar').then(m => ({ default: m.RightSidebar })));
+const AIQuizPortal = lazy(() => import('../courses/AIQuizPortal').then(m => ({ default: m.AIQuizPortal })));
+const AITutorDrawer = lazy(() => import('./AITutorDrawer').then(m => ({ default: m.AITutorDrawer })));
+
+const SidebarSkeleton = () => (
+  <aside className="w-full lg:w-80 shrink-0 space-y-6 animate-pulse">
+    <div className="h-40 bg-slate-900/60 rounded-3xl border border-slate-800" />
+    <div className="h-60 bg-slate-900/60 rounded-3xl border border-slate-800" />
+  </aside>
+);
+
+const QuizPortalSkeleton = () => (
+  <div className="w-full min-h-[300px] bg-slate-950/60 rounded-3xl p-6 border border-slate-800 animate-pulse space-y-4">
+    <div className="h-6 w-48 bg-slate-900 rounded-lg" />
+    <div className="h-4 w-full bg-slate-900 rounded-md" />
+    <div className="h-20 bg-slate-900 rounded-xl" />
+    <div className="h-10 w-32 bg-purple-900/40 rounded-xl" />
+  </div>
+);
 
 export function calculateEstimatedDuration(content: string, commandCount: number = 0): string {
   if (!content) return '5 mins';
@@ -258,7 +276,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
   const hasPrevLesson = activeIndex > 0;
   const hasNextLesson = activeIndex < allLessons.length - 1;
 
-  const isLessonUnlocked = (lessonId: string | number): boolean => {
+  const isLessonUnlocked = useCallback((lessonId: string | number): boolean => {
     const modIdx = modules.findIndex((m) =>
       m.lessons.some((l) => String(l.id) === String(lessonId))
     );
@@ -268,18 +286,18 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
     return prevMod ? prevMod.lessons.every((l) =>
       completedLessonIds.some((id) => String(id) === String(l.id))
     ) : true;
-  };
+  }, [modules, completedLessonIds]);
 
-  const handlePrevLesson = () => {
+  const handlePrevLesson = useCallback(() => {
     if (hasPrevLesson) {
       setSelectedLessonId(allLessons[activeIndex - 1].id);
       if (containerRef.current) {
         containerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
       }
     }
-  };
+  }, [hasPrevLesson, allLessons, activeIndex]);
 
-  const handleNextLesson = () => {
+  const handleNextLesson = useCallback(() => {
     if (hasNextLesson) {
       const isCurrentCompleted = completedLessonIds.some((id) => String(id) === String(selectedLessonId));
       if (!isCurrentCompleted) {
@@ -307,7 +325,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         containerRef.current.scrollTo({ top: 0, behavior: 'instant' });
       }
     }
-  };
+  }, [hasNextLesson, completedLessonIds, selectedLessonId, allLessons, activeIndex, modules, isLessonUnlocked]);
 
   const activeLessonFull = useMemo((): LessonDetails => {
     if (!currentLessonData) {
@@ -364,7 +382,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
     } as any;
   }, [currentLessonData, courseTitle]);
 
-  const handleToggleComplete = () => {
+  const handleToggleComplete = useCallback(() => {
     if (!completedLessonIds.some((id) => String(id) === String(selectedLessonId))) {
       const updated = [...completedLessonIds, selectedLessonId];
       setCompletedLessonIds(updated);
@@ -417,9 +435,9 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
 
       toast.success(`🎉 Lesson complete! +50 XP awarded.`);
     }
-  };
+  }, [completedLessonIds, selectedLessonId, user, activeLessonFull.title, courseId, courseTitle, modules]);
 
-  const handleToggleBookmark = () => {
+  const handleToggleBookmark = useCallback(() => {
     if (bookmarkedLessonIds.some((id) => String(id) === String(selectedLessonId))) {
       setBookmarkedLessonIds((prev) => prev.filter((id) => String(id) !== String(selectedLessonId)));
       toast.info('Bookmark removed.');
@@ -427,7 +445,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       setBookmarkedLessonIds((prev) => [...prev, selectedLessonId]);
       toast.success('Lesson bookmarked successfully!');
     }
-  };
+  }, [bookmarkedLessonIds, selectedLessonId]);
 
   const progressPercent = allLessons.length > 0 ? Math.round((completedLessonIds.length / allLessons.length) * 100) : 0;
   const isCompleted = completedLessonIds.some((id) => String(id) === String(selectedLessonId));
@@ -524,30 +542,36 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
               </div>
             </div>
 
-            <AIQuizPortal
-              courseId={String(courseId)}
-              courseTitle={courseTitle}
-              lessonId={String(selectedLessonId)}
-              lessonTitle={activeLessonFull.title}
-              lessonContent={activeLessonFull.content}
-            />
+            <LazyViewport placeholder={<QuizPortalSkeleton />}>
+              <Suspense fallback={<QuizPortalSkeleton />}>
+                <AIQuizPortal
+                  courseId={String(courseId)}
+                  courseTitle={courseTitle}
+                  lessonId={String(selectedLessonId)}
+                  lessonTitle={activeLessonFull.title}
+                  lessonContent={activeLessonFull.content}
+                />
+              </Suspense>
+            </LazyViewport>
           </div>
         </main>
 
-        <RightSidebar
-          lessonId={selectedLessonId}
-          lessonTitle={activeLessonFull.title}
-          isCompleted={isCompleted}
-          isBookmarked={isBookmarked}
-          resources={activeLessonFull.resources}
-          downloads={(activeLessonFull as any).downloads}
-          onToggleComplete={handleToggleComplete}
-          onNextLesson={handleNextLesson}
-          onToggleBookmark={handleToggleBookmark}
-          completedCount={completedLessonIds.length}
-          totalLessons={allLessons.length}
-          isNightMode={isNightMode}
-        />
+        <Suspense fallback={<SidebarSkeleton />}>
+          <RightSidebar
+            lessonId={selectedLessonId}
+            lessonTitle={activeLessonFull.title}
+            isCompleted={isCompleted}
+            isBookmarked={isBookmarked}
+            resources={activeLessonFull.resources}
+            downloads={(activeLessonFull as any).downloads}
+            onToggleComplete={handleToggleComplete}
+            onNextLesson={handleNextLesson}
+            onToggleBookmark={handleToggleBookmark}
+            completedCount={completedLessonIds.length}
+            totalLessons={allLessons.length}
+            isNightMode={isNightMode}
+          />
+        </Suspense>
       </div>
 
       {/* Floating AI Learning Assistant Trigger Button */}
@@ -561,13 +585,15 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       </button>
 
       {/* AI Learning Assistant Drawer */}
-      <AITutorDrawer
-        isOpen={isAITutorOpen}
-        onClose={() => setIsAITutorOpen(false)}
-        lessonTitle={activeLessonFull.title}
-        courseTitle={courseTitle}
-        lessonContent={activeLessonFull.content}
-      />
+      <Suspense fallback={null}>
+        <AITutorDrawer
+          isOpen={isAITutorOpen}
+          onClose={() => setIsAITutorOpen(false)}
+          lessonTitle={activeLessonFull.title}
+          courseTitle={courseTitle}
+          lessonContent={activeLessonFull.content}
+        />
+      </Suspense>
     </div>
   );
 };
