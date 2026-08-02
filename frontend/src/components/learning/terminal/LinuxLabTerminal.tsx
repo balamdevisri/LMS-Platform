@@ -270,7 +270,6 @@ export const LinuxLabTerminal: React.FC<LinuxLabTerminalProps> = ({
             value={inputVal}
             onChange={(e) => setInputVal(e.target.value)}
             onKeyDown={handleKeyDown}
-            autoFocus
             className="flex-1 bg-transparent border-none outline-none text-white font-mono shadow-none focus:ring-0 p-0 m-0 cursor-text"
             spellCheck={false}
             autoComplete="off"
