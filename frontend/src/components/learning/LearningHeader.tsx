@@ -85,7 +85,7 @@ export const LearningHeader: React.FC<LearningHeaderProps> = ({
               isNightMode ? 'text-white' : 'text-slate-900'
             }`}
           >
-            {lessonTitle.replace(/^git-unit-\d+-\d+\s*:?\s*/i, '')}
+            {(lessonTitle || '').replace(/^git-unit-\d+-\d+\s*:?\s*/i, '')}
           </h1>
         </div>
       </div>

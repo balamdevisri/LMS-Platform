@@ -323,8 +323,8 @@ export class CourseService {
           category: 'Database',
           subcategory: 'DBMS',
           level: 'all_levels',
-          thumbnail: 'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?auto=format&fit=crop&w=1200&q=80',
-          bannerImage: 'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?auto=format&fit=crop&w=1200&q=80',
+          thumbnail: '/assets/images/dbms_course_thumbnail.png',
+          bannerImage: '/assets/images/dbms_course_thumbnail.png',
           duration: '25 Hours',
           price: 0,
           currency: 'INR',
@@ -669,10 +669,7 @@ export class CourseService {
     try {
       const { modulesCollection, lessonsCollection, quizzesCollection, assignmentsCollection } = await import('../../firebase/collections');
       
-      const existingModules = await modulesCollection().where('courseId', '==', courseId).limit(1).get();
-      if (!existingModules.empty) return;
-
-      console.log('Seeding Database Management System (DBMS) detailed syllabus collections...');
+      console.log('Seeding/Updating Database Management System (DBMS) detailed syllabus collections...');
 
       const modulesData = [
         { id: 'dbms-mod-1', title: 'Module 1 - Database Fundamentals', order: 1, duration: '4 Hours' },

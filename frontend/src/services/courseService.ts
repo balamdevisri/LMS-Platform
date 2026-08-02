@@ -127,8 +127,8 @@ const DEFAULT_COURSES: ICourse[] = [
     slug: 'database-management-system',
     shortDescription: 'Learn Database Management System from fundamentals to advanced concepts including SQL, normalization, transactions, database design, optimization, and real-world projects.',
     description: 'Learn Database Management System from fundamentals to advanced concepts including SQL, normalization, transactions, database design, optimization, and real-world projects.',
-    thumbnail: 'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?auto=format&fit=crop&w=1200&q=80',
-    banner: 'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?auto=format&fit=crop&w=1200&q=80',
+    thumbnail: '/assets/images/dbms_course_thumbnail.png',
+    banner: '/assets/images/dbms_course_thumbnail.png',
     category: 'Database',
     level: 'all_levels',
     duration: '25 Hours',
@@ -512,6 +512,37 @@ class CourseService {
   private checkpointKey = 'shaivika_user_checkpoint';
   private getCoursesCache: Map<string, { data: CoursePaginationResult; expiry: number }> = new Map();
 
+  private mergeCourseModules(defModules?: any[], cachedModules?: any[]): any[] {
+    if (!defModules) return cachedModules || [];
+    if (!cachedModules || cachedModules.length === 0) return defModules;
+    return defModules.map(defMod => {
+      const cachedMod = cachedModules.find(m => m.id === defMod.id);
+      if (!cachedMod) return defMod;
+      const mergedTopics = defMod.topics.map((defTopic: any) => {
+        const cachedTopic = cachedMod.topics?.find((t: any) => t.id === defTopic.id);
+        if (!cachedTopic) return defTopic;
+        const mergedUnits = defTopic.learningUnits.map((defUnit: any) => {
+          const cachedUnit = cachedTopic.learningUnits?.find((u: any) => u.id === defUnit.id);
+          if (!cachedUnit) return defUnit;
+          return {
+            ...cachedUnit,
+            ...defUnit
+          };
+        });
+        return {
+          ...cachedTopic,
+          ...defTopic,
+          learningUnits: mergedUnits
+        };
+      });
+      return {
+        ...cachedMod,
+        ...defMod,
+        topics: mergedTopics
+      };
+    });
+  }
+
   normalizeCourseToICourse(c: any): ICourse {
     return normalizeCourseToICourse(c);
   }
@@ -598,7 +629,7 @@ class CourseService {
 
     const result = mergedList.filter((c) => !isRemovedMockCourse(c));
 
-    // Guarantee core courses (Linux Systems Mastery & Git Mastery) are ALWAYS present
+    // Guarantee core courses (Linux Systems Mastery, Git Mastery, & DBMS) are ALWAYS present
     if (!result.some((c) => String(c.id) === 'course_linux_101' || c.slug === 'linux-systems-administration-mastery' || c.title.toLowerCase().includes('linux'))) {
       result.unshift(this.normalizeCourseToICourse(DEFAULT_COURSES[0]));
     }
@@ -606,6 +637,23 @@ class CourseService {
       const gitCourse = DEFAULT_COURSES.find((c) => c.id === 'git-github-mastery') || DEFAULT_COURSES[1];
       if (gitCourse) result.push(this.normalizeCourseToICourse(gitCourse));
     }
+    if (!result.some((c) => String(c.id) === 'database-management-system' || c.slug === 'database-management-system' || c.title.toLowerCase().includes('database') || c.title.toLowerCase().includes('dbms'))) {
+      const dbmsCourse = DEFAULT_COURSES.find((c) => c.id === 'database-management-system') || DEFAULT_COURSES[2];
+      if (dbmsCourse) result.push(this.normalizeCourseToICourse(dbmsCourse));
+    }
+
+    // Apply smart merge for default courses in result
+    DEFAULT_COURSES.forEach((defCourse) => {
+      const existingIdx = result.findIndex((item) => String(item.id) === String(defCourse.id));
+      if (existingIdx !== -1) {
+        const cached = result[existingIdx];
+        result[existingIdx] = {
+          ...this.normalizeCourseToICourse(defCourse),
+          ...cached,
+          modules: this.mergeCourseModules(defCourse.modules, cached.modules)
+        };
+      }
+    });
 
     return result;
   }

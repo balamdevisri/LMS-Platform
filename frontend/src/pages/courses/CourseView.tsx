@@ -10,29 +10,50 @@ import { InCourseLearningView } from '@/components/learning/InCourseLearningView
 const mapCourseModulesToPlayerModules = (modules?: any[]): any[] => {
   if (!modules) return [];
   return modules.map((m) => {
+    let lessonsList: any[] = [];
     if (m.lessons && Array.isArray(m.lessons)) {
-      return m;
-    }
-    const lessons: any[] = [];
-    if (m.topics && Array.isArray(m.topics)) {
+      lessonsList = m.lessons;
+    } else if (m.topics && Array.isArray(m.topics)) {
       m.topics.forEach((t: any) => {
         if (t.learningUnits && Array.isArray(t.learningUnits)) {
           t.learningUnits.forEach((u: any) => {
-            lessons.push({
-              id: u.id,
-              title: u.title,
-              duration: u.duration || '15 mins',
-              type: u.type?.toLowerCase() || 'reading',
-            });
+            lessonsList.push(u);
           });
         }
       });
     }
+
+    const enrichedLessons = lessonsList.map((l: any) => {
+      const lId = l.id || `lesson-${Date.now()}-${Math.random()}`;
+      const lTitle = l.title || 'Untitled Lesson';
+      const lContent = l.readingContent || l.content || l.description || 'Welcome to this lesson.';
+      const lDuration = l.duration || '15 mins';
+      const lType = l.type?.toLowerCase() || 'reading';
+      const lResources = l.resources || [];
+      const lQuiz = l.quiz || (l.quizQuestions ? {
+        difficulty: l.quizDifficulty || 'Medium',
+        passingScore: l.quizPassingScore || 70,
+        timer: l.quizTimer || 10,
+        questions: l.quizQuestions
+      } : null);
+
+      return {
+        ...l,
+        id: lId,
+        title: lTitle,
+        content: typeof lContent === 'string' ? lContent : JSON.stringify(lContent),
+        duration: lDuration,
+        type: lType,
+        resources: lResources,
+        quiz: lQuiz,
+      };
+    });
+
     return {
       id: m.id,
       title: m.title,
       duration: m.duration || '4 hours',
-      lessons,
+      lessons: enrichedLessons,
     };
   });
 };
@@ -46,20 +67,23 @@ export const CourseView: React.FC = () => {
 
   const studentAvatar = userProfile?.photoURL || user?.photoURL || undefined;
   const studentName = userProfile?.name || user?.displayName || userProfile?.githubUsername || 'Student User';
-  const idOrSlug = courseId || slug || '1';
+  const idOrSlug = (courseId || slug || '').trim();
   const { getCourseById } = useCourses();
   const dynamicCourse = getCourseById(idOrSlug);
 
-  const isGitCourse =
-    idOrSlug === 'git-github-mastery-course-id' ||
-    idOrSlug === 'git-github-mastery' ||
-    dynamicCourse?.title?.toLowerCase().includes('git');
+  // Validation: Mismatched course IDs cannot occur, and fallback is removed
+  const isValidCourse = dynamicCourse && (
+    String(dynamicCourse.id).toLowerCase().trim() === idOrSlug.toLowerCase() ||
+    String((dynamicCourse as any).slug || '').toLowerCase().trim() === idOrSlug.toLowerCase() ||
+    (String(dynamicCourse.id) === 'course_linux_101' && idOrSlug === '1') ||
+    (String(dynamicCourse.id) === '1' && idOrSlug === 'course_linux_101')
+  );
 
-  const targetCourseId = String(dynamicCourse?.id || courseId || (isGitCourse ? 'git-github-mastery-course-id' : '1'));
+  const targetCourseId = String(dynamicCourse?.id || '');
   const userId = user?.uid || 'default_student';
 
   const [isEnrolled, setIsEnrolled] = useState<boolean>(() => {
-    return courseService.isCourseEnrolled(targetCourseId, userId);
+    return targetCourseId ? courseService.isCourseEnrolled(targetCourseId, userId) : false;
   });
 
   const [isLearningMode, setIsLearningMode] = useState(false);
@@ -69,8 +93,10 @@ export const CourseView: React.FC = () => {
   }, [location.pathname, isLearningMode]);
 
   useEffect(() => {
-    const enrolled = courseService.isCourseEnrolled(targetCourseId, userId);
-    setIsEnrolled(enrolled);
+    if (targetCourseId) {
+      const enrolled = courseService.isCourseEnrolled(targetCourseId, userId);
+      setIsEnrolled(enrolled);
+    }
   }, [targetCourseId, userId]);
 
   const handleEnroll = async () => {
@@ -79,11 +105,12 @@ export const CourseView: React.FC = () => {
       navigate('/auth/login', { state: { from: location } });
       return;
     }
+    if (!dynamicCourse) return;
     try {
       const res = await courseService.enrollCourse(targetCourseId, userId, {
         email: user.email || undefined,
         name: studentName,
-        courseTitle: dynamicCourse?.title || 'Full Stack Track',
+        courseTitle: dynamicCourse.title || 'Full Stack Track',
       });
       if (res.success) {
         toast.success(`🎉 Enrolled in course! Confirmation email sent to your inbox.`);
@@ -118,167 +145,110 @@ export const CourseView: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const linuxCourseData = {
-    id: dynamicCourse?.id || courseId || '1',
-    title: dynamicCourse?.title || 'Introduction to Linux & System Administration',
-    subtitle: dynamicCourse?.subtitle || '🐧 Linux Systems Mastery',
-    instructor: dynamicCourse?.instructor || 'Bhanu Prakash Achari',
-    role: dynamicCourse?.role || 'Linux Systems Architect & AI Specialist',
-    avatar: dynamicCourse?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    rating: dynamicCourse?.rating || 5.0,
-    reviews: dynamicCourse?.reviews || 145,
-    students: dynamicCourse?.students || '3',
-    duration: dynamicCourse?.duration || '32 hrs',
-    category: dynamicCourse?.category || 'Linux & Systems',
-    level: dynamicCourse?.level || 'Beginner to Advanced',
-    thumbnail: dynamicCourse?.thumbnail || '/assets/images/linux_course_thumbnail.webp',
-    introText: [
-      `Welcome to Linux Systems Mastery! Linux is one of the world's most powerful and widely used operating systems, powering everything from web servers and cloud platforms to Android devices, supercomputers, and embedded systems.`,
-      `This course is designed for beginners who want to build a strong foundation in Linux. You will learn how Linux works, how to navigate the terminal, manage files and directories, understand permissions, and perform essential system operations using real-world commands.`,
-      `By the end of this course, you'll have the confidence to work efficiently in any Linux environment and be prepared for advanced topics such as shell scripting, DevOps, cloud computing, and cybersecurity.`,
-    ],
-    outcomes: [
-      'Master essential Linux CLI terminal navigation commands (cd, ls, pwd, find)',
-      'Understand File System Hierarchy Standard (FHS) and directory structure',
-      'Manage user accounts, groups, file permissions (chmod, chown) & umask',
-      'Monitor processes, manage background jobs & configure Systemd services',
-      'Write automated Bash shell scripts with variables, conditionals & loops',
-      'Configure SSH hardening, Linux Firewall (UFW) and basic networking tools',
-    ],
-    modules: [
-      {
-        id: 1,
-        title: 'Module 1: Linux Architecture, Kernel & CLI Fundamentals',
-        duration: '8 Hours • 5 Lessons',
-        lessons: [
-          { id: 101, title: '1.1 Introduction to Unix & Linux Operating System Architecture', duration: '45 mins', type: 'video' },
-          { id: 102, title: '1.2 Understanding Shell Architecture & Command Anatomy', duration: '60 mins', type: 'lab' },
-          { id: 103, title: '1.3 Navigating Files & Directories (pwd, ls -la, cd, tree)', duration: '50 mins', type: 'lab' },
-          { id: 104, title: '1.4 Creating, Copying, Moving & Deleting Files (mkdir, cp, mv, rm)', duration: '60 mins', type: 'lab' },
-          { id: 105, title: '1.5 Quiz & Hands-on Terminal Practice: Module 1', duration: '30 mins', type: 'quiz' },
+  if (!isValidCourse || !dynamicCourse) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center bg-slate-50 font-['Sora']">
+        <h2 className="text-2xl font-black text-slate-800 mb-2">Course Not Found</h2>
+        <p className="text-slate-600 mb-6 font-medium">The requested course could not be located on our platform.</p>
+        <button onClick={() => navigate('/courses')} className="px-6 py-3 rounded-xl bg-sky-500 text-white font-bold hover:bg-sky-600 transition-colors shadow-lg shadow-sky-500/25">
+          Browse All Courses
+        </button>
+      </div>
+    );
+  }
+
+  // Get course-specific introText and outcomes based on course title or id
+  const getCourseMeta = (course: any) => {
+    const titleLower = (course.title || '').toLowerCase();
+    const idLower = String(course.id || '').toLowerCase();
+    
+    if (idLower === 'course_linux_101' || idLower === '1' || titleLower.includes('linux')) {
+      return {
+        introText: [
+          `Welcome to Linux Systems Mastery! Linux is one of the world's most powerful and widely used operating systems, powering everything from web servers and cloud platforms to Android devices, supercomputers, and embedded systems.`,
+          `This course is designed for beginners who want to build a strong foundation in Linux. You will learn how Linux works, how to navigate the terminal, manage files and directories, understand permissions, and perform essential system operations using real-world commands.`,
+          `By the end of this course, you'll have the confidence to work efficiently in any Linux environment and be prepared for advanced topics such as shell scripting, DevOps, cloud computing, and cybersecurity.`,
         ],
-      },
-      {
-        id: 2,
-        title: 'Module 2: File System Hierarchy, Permissions & Ownership',
-        duration: '8 Hours • 5 Lessons',
-        lessons: [
-          { id: 201, title: '2.1 Linux File System Hierarchy Standard (/root, /etc, /var, /usr)', duration: '55 mins', type: 'video' },
-          { id: 202, title: '2.2 File Permissions Demystified: Read, Write & Execute (chmod 755)', duration: '65 mins', type: 'lab' },
-          { id: 203, title: '2.3 User & Group Management (chown, chgrp, useradd, sudo)', duration: '60 mins', type: 'lab' },
-          { id: 204, title: '2.4 Text Search & Inspection Tools (cat, grep, head, tail, less)', duration: '70 mins', type: 'lab' },
-          { id: 205, title: '2.5 Module 2 Practice Quiz', duration: '30 mins', type: 'quiz' },
+        outcomes: [
+          'Master essential Linux CLI terminal navigation commands (cd, ls, pwd, find)',
+          'Understand File System Hierarchy Standard (FHS) and directory structure',
+          'Manage user accounts, groups, file permissions (chmod, chown) & umask',
+          'Monitor processes, manage background jobs & configure Systemd services',
+          'Write automated Bash shell scripts with variables, conditionals & loops',
+          'Configure SSH hardening, Linux Firewall (UFW) and basic networking tools',
+        ]
+      };
+    }
+    
+    if (idLower === 'git-github-mastery' || titleLower.includes('git') || titleLower.includes('github')) {
+      return {
+        introText: [
+          `Welcome to Git & GitHub Mastery! Version control is a foundational skill for all developers. This course will take you from Git basics to advanced pipelines.`,
+          `You will learn local repository initialization, stage-commit lifecycles, remote repository synchronization, pull requests, code reviews, rebasing, and automated pipelines using GitHub Actions.`,
+          `By the end of this course, you will have a production-ready CI/CD setup and will earn your certification.`,
         ],
-      },
-      {
-        id: 3,
-        title: 'Module 3: Process Management, Systemd Services & Cron Jobs',
-        duration: '8 Hours • 5 Lessons',
-        lessons: [
-          { id: 301, title: '3.1 Inspecting Active System Processes (top, htop, ps aux, kill)', duration: '60 mins', type: 'video' },
-          { id: 302, title: '3.2 Controlling Daemon Services with Systemd (systemctl status/start)', duration: '75 mins', type: 'lab' },
-          { id: 303, title: '3.3 Job Automation with Cron & Crontab Schedules', duration: '50 mins', type: 'lab' },
-          { id: 304, title: '3.4 Monitoring System Logs with Journalctl', duration: '45 mins', type: 'lab' },
-          { id: 305, title: '3.5 Module 3 Hands-on Assessment', duration: '40 mins', type: 'quiz' },
+        outcomes: [
+          'Configure Git globally and link local repositories to GitHub securely',
+          'Create and merge branches, perform Pull Requests, and do collaborative code reviews',
+          'Resolve complex merge conflicts and leverage stashing, rebasing, and cherry-picking',
+          'Write custom GitHub Actions pipelines for automated testing & Netlify/Vercel deployments',
+        ]
+      };
+    }
+    
+    if (idLower === 'database-management-system' || titleLower.includes('database') || titleLower.includes('dbms')) {
+      return {
+        introText: [
+          "Welcome to Database Management System (DBMS)! Databases are the core component of modern software systems, powering everything from small mobile apps to massive cloud services and enterprise systems.",
+          "This course is designed to take you from a complete beginner to an advanced database professional. You will learn relational database concepts, SQL fundamentals, database normalization, indexing, transaction management, and administrative best practices.",
+          "By the end of this course, you will have a solid understanding of database design, be able to write complex SQL queries, optimize database performance, and understand how to manage production databases safely."
         ],
-      },
-      {
-        id: 4,
-        title: 'Module 4: Bash Scripting, Networking & Security Hardening',
-        duration: '8 Hours • 5 Lessons',
-        lessons: [
-          { id: 401, title: '4.1 Writing Your First Bash Script: Shebang (#!/bin/bash) & Variables', duration: '80 mins', type: 'lab' },
-          { id: 402, title: '4.2 Control Flow in Shell Scripts: If/Else Statements & Loops', duration: '90 mins', type: 'lab' },
-          { id: 403, title: '4.3 Network Diagnostics (ping, netstat, ss, curl, ip addr)', duration: '60 mins', type: 'lab' },
-          { id: 404, title: '4.4 SSH Key Pair Authentication & UFW Firewall Rules', duration: '70 mins', type: 'lab' },
-          { id: 405, title: '4.5 Final Course Capstone Project & Certificate Exam', duration: '90 mins', type: 'quiz' },
-        ],
-      },
-    ],
+        outcomes: [
+          "Master relational database concepts, schemas, tables, and constraints",
+          "Write complex SQL queries including JOINs, subqueries, aggregations, and CTEs",
+          "Understand database normalization (1NF, 2NF, 3NF) and ER diagram design",
+          "Implement database indexing, transactions (ACID properties), and concurrency control",
+          "Learn database administration basics, backup/restore procedures, and security",
+          "Optimize slow queries and understand database design patterns"
+        ]
+      };
+    }
+    
+    // Generic fallback for custom admin courses
+    return {
+      introText: (course as any).introText || [course.description || (course as any).shortDescription || 'Welcome to this technical training course track.'],
+      outcomes: (course as any).outcomes || (course.learningOutcomes && course.learningOutcomes.length > 0 ? course.learningOutcomes : [
+        'Master core course concepts',
+        'Build hands-on technical skills',
+        'Apply concepts to real-world scenarios'
+      ])
+    };
   };
 
-  const gitCourseData = {
-    id: 'git-github-mastery',
-    title: 'Git & GitHub Mastery',
-    subtitle: '⚡ Git & GitHub Mastery',
-    instructor: 'Admin',
-    role: 'LMS Platform Systems Lead',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
-    rating: 5.0,
-    reviews: 180,
-    students: '1,540',
-    duration: '20 Hours',
-    category: 'Development Tools',
-    level: 'Beginner to Advanced',
-    thumbnail: '/assets/images/github_course_banner.webp',
-    introText: [
-      `Welcome to Git & GitHub Mastery! Version control is a foundational skill for all developers. This course will take you from Git basics to advanced pipelines.`,
-      `You will learn local repository initialization, stage-commit lifecycles, remote repository synchronization, pull requests, code reviews, rebasing, and automated pipelines using GitHub Actions.`,
-      `By the end of this course, you will have a production-ready CI/CD setup and will earn your certification.`,
-    ],
-    outcomes: [
-      'Configure Git globally and link local repositories to GitHub securely',
-      'Create and merge branches, perform Pull Requests, and do collaborative code reviews',
-      'Resolve complex merge conflicts and leverage stashing, rebasing, and cherry-picking',
-      'Write custom GitHub Actions pipelines for automated testing & Netlify/Vercel deployments',
-    ],
-    modules: [
-      {
-        id: 1,
-        title: 'Module 1: Version Control & Git Basics',
-        duration: '3 Hours • 15 Lessons',
-        lessons: [
-          { id: 'git-les-101', title: '1.1 Introduction to Version Control', duration: '15 mins', type: 'reading' },
-          { id: 'git-les-102', title: '1.2 Centralized vs Distributed Version Control', duration: '15 mins', type: 'reading' },
-          { id: 'git-les-103', title: '1.3 Why Git', duration: '10 mins', type: 'reading' },
-          { id: 'git-les-104', title: '1.4 Why GitHub', duration: '10 mins', type: 'reading' },
-          { id: 'git-les-105', title: '1.5 Installing Git', duration: '20 mins', type: 'lab' },
-          { id: 'git-les-106', title: '1.6 Git Configuration', duration: '15 mins', type: 'lab' },
-          { id: 'git-les-107', title: '1.7 SSH Keys', duration: '20 mins', type: 'lab' },
-          { id: 'git-les-108', title: '1.8 Personal Access Tokens', duration: '15 mins', type: 'reading' },
-          { id: 'git-les-109', title: '1.9 git init', duration: '10 mins', type: 'lab' },
-          { id: 'git-les-110', title: '1.10 Git Lifecycle', duration: '20 mins', type: 'reading' },
-          { id: 'git-les-111', title: '1.11 git status', duration: '10 mins', type: 'lab' },
-          { id: 'git-les-112', title: '1.12 git add', duration: '10 mins', type: 'lab' },
-          { id: 'git-les-113', title: '1.13 git commit', duration: '15 mins', type: 'lab' },
-          { id: 'git-les-114', title: '1.14 git log', duration: '10 mins', type: 'lab' },
-          { id: 'git-les-115', title: '1.15 git diff', duration: '15 mins', type: 'lab' },
-        ],
-      },
-      {
-        id: 2,
-        title: 'Module 2: GitHub Foundations',
-        duration: '3 Hours • 16 Lessons',
-        lessons: [
-          { id: 'git-les-201', title: '2.1 Create Repository', duration: '10 mins', type: 'reading' },
-          { id: 'git-les-202', title: '2.2 Remote Repository', duration: '10 mins', type: 'reading' },
-          { id: 'git-les-203', title: '2.3 git remote add origin', duration: '10 mins', type: 'lab' },
-          { id: 'git-les-204', title: '2.4 git push', duration: '15 mins', type: 'lab' },
-          { id: 'git-les-205', title: '2.5 git pull', duration: '15 mins', type: 'lab' },
-          { id: 'git-les-206', title: '2.6 git fetch', duration: '10 mins', type: 'lab' },
-          { id: 'git-les-207', title: '2.7 git clone', duration: '15 mins', type: 'lab' },
-          { id: 'git-les-208', title: '2.8 Git Branches', duration: '15 mins', type: 'reading' },
-          { id: 'git-les-209', title: '2.9 git switch', duration: '10 mins', type: 'lab' },
-          { id: 'git-les-210', title: '2.10 git checkout', duration: '10 mins', type: 'lab' },
-          { id: 'git-les-211', title: '2.11 git merge', duration: '15 mins', type: 'lab' },
-          { id: 'git-les-212', title: '2.12 Pull Requests', duration: '15 mins', type: 'reading' },
-          { id: 'git-les-213', title: '2.13 Code Reviews', duration: '15 mins', type: 'reading' },
-          { id: 'git-les-214', title: '2.14 Reviewers', duration: '10 mins', type: 'reading' },
-          { id: 'git-les-215', title: '2.15 Labels', duration: '10 mins', type: 'reading' },
-          { id: 'git-les-216', title: '2.16 Milestones', duration: '10 mins', type: 'reading' },
-        ],
-      },
-    ],
-  };
+  const meta = getCourseMeta(dynamicCourse);
+
+  const cAny = dynamicCourse as any;
 
   const activeCourseData = {
-    ...(isGitCourse ? gitCourseData : linuxCourseData),
     ...dynamicCourse,
-    modules: mapCourseModulesToPlayerModules(
-      (dynamicCourse?.modules && dynamicCourse.modules.length > 0)
-        ? dynamicCourse.modules
-        : (isGitCourse ? gitCourseData.modules : linuxCourseData.modules)
-    )
+    id: dynamicCourse.id,
+    title: dynamicCourse.title,
+    subtitle: dynamicCourse.subtitle || cAny.shortDescription || '',
+    instructor: typeof cAny.instructor === 'object' && cAny.instructor !== null
+      ? (cAny.instructor.name || 'KaizenQ Team')
+      : (cAny.instructor || 'KaizenQ Team'),
+    role: dynamicCourse.role || (typeof cAny.instructor === 'object' && cAny.instructor?.role) || 'Senior Technical Instructor',
+    avatar: dynamicCourse.avatar || (typeof cAny.instructor === 'object' && cAny.instructor?.avatar) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    rating: dynamicCourse.rating || 5.0,
+    reviews: dynamicCourse.reviews || cAny.ratingCount || 120,
+    students: dynamicCourse.students || String(cAny.enrollmentCount || 0),
+    duration: dynamicCourse.duration || '20 hrs',
+    category: dynamicCourse.category || 'Technical Training',
+    level: dynamicCourse.level || 'Beginner to Advanced',
+    thumbnail: dynamicCourse.thumbnail || '/assets/images/linux_course_thumbnail.webp',
+    introText: meta.introText,
+    outcomes: meta.outcomes,
+    modules: mapCourseModulesToPlayerModules(dynamicCourse.modules)
   };
 
   if (isLearningMode) {

@@ -90,6 +90,37 @@ interface CourseContextType {
   updateCourse: (id: number | string, updates: Partial<CourseItem>) => Promise<void>;
 }
 
+const mergeCourseModules = (defModules?: ModuleItem[], cachedModules?: any[]): ModuleItem[] => {
+  if (!defModules) return cachedModules || [];
+  if (!cachedModules || cachedModules.length === 0) return defModules;
+  return defModules.map(defMod => {
+    const cachedMod = cachedModules.find(m => m.id === defMod.id);
+    if (!cachedMod) return defMod;
+    const mergedTopics = defMod.topics.map(defTopic => {
+      const cachedTopic = cachedMod.topics?.find((t: any) => t.id === defTopic.id);
+      if (!cachedTopic) return defTopic;
+      const mergedUnits = defTopic.learningUnits.map(defUnit => {
+        const cachedUnit = cachedTopic.learningUnits?.find((u: any) => u.id === defUnit.id);
+        if (!cachedUnit) return defUnit;
+        return {
+          ...cachedUnit,
+          ...defUnit
+        };
+      });
+      return {
+        ...cachedTopic,
+        ...defTopic,
+        learningUnits: mergedUnits
+      };
+    });
+    return {
+      ...cachedMod,
+      ...defMod,
+      topics: mergedTopics
+    };
+  });
+};
+
 // Helper to enrich learning units with default content if missing
 const enrichCourseMockContent = (course: CourseItem): CourseItem => {
   if (!course.modules) return course;
@@ -451,7 +482,7 @@ const initialDefaultCoursesRaw: CourseItem[] = [
     badge: 'New Track',
     tracks: '6 Modules (25 Hours)',
     status: 'Published',
-    thumbnail: 'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?auto=format&fit=crop&w=1200&q=80',
+    thumbnail: '/assets/images/dbms_course_thumbnail.png',
     description: 'Learn Database Management System from fundamentals to advanced concepts including SQL, normalization, transactions, database design, optimization, and real-world projects.',
     syllabus: [
       'Module 1: Database Fundamentals',
@@ -645,7 +676,6 @@ const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
     ) {
       const key = 'git-github-mastery';
       const defaultGitCourse = initialDefaultCourses[1];
-      const hasModules = Array.isArray(c.modules) && c.modules.length > 0;
       const updatedItem: CourseItem = {
         ...defaultGitCourse,
         ...c,
@@ -653,7 +683,7 @@ const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
         title: 'Git & GitHub Mastery',
         subtitle: '⚡ Git & GitHub Mastery',
         thumbnail: '/assets/images/github_course_banner.webp',
-        modules: hasModules ? c.modules : (defaultGitCourse.modules || gitCourseModules),
+        modules: mergeCourseModules(defaultGitCourse.modules || gitCourseModules, c.modules),
       };
       map.set(key, updatedItem);
     } else if (
@@ -663,15 +693,14 @@ const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
     ) {
       const key = 'database-management-system';
       const defaultDbmsCourse = initialDefaultCourses.find(item => item.id === 'database-management-system') || c;
-      const hasModules = Array.isArray(c.modules) && c.modules.length > 0;
       const updatedItem: CourseItem = {
         ...defaultDbmsCourse,
         ...c,
         id: 'database-management-system',
         title: 'Database Management System (DBMS): Beginner to Advanced',
         subtitle: '🗄️ Database Management System',
-        thumbnail: 'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?auto=format&fit=crop&w=1200&q=80',
-        modules: hasModules ? c.modules : (defaultDbmsCourse.modules || []),
+        thumbnail: '/assets/images/dbms_course_thumbnail.png',
+        modules: mergeCourseModules(defaultDbmsCourse.modules, c.modules),
       };
       map.set(key, updatedItem);
     } else {
@@ -716,11 +745,9 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const merged = initialDefaultCourses.map((def) => {
           const match = normalizedParsed.find((p) => String(p.id) === String(def.id));
           if (!match) return def;
-          // Auto-heal modules if missing or significantly different count
-          if ((!match.modules || match.modules.length < def.modules!.length) && def.modules && def.modules.length > 0) {
-            return enrichCourseMockContent({ ...match, modules: def.modules });
-          }
-          return enrichCourseMockContent(match);
+          // Merge modules to inherit new lesson definitions and content
+          const mergedModules = mergeCourseModules(def.modules, match.modules);
+          return enrichCourseMockContent({ ...match, ...def, modules: mergedModules });
         });
 
         // Retain other custom admin courses
@@ -866,9 +893,17 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  const getCourseById = (id: number | string): CourseItem | undefined => {
-    const targetId = String(id) === 'course_linux_101' ? '1' : String(id);
-    return courses.find((c) => String(c.id) === targetId) || initialDefaultCourses[0];
+  const getCourseById = (idOrSlug: number | string): CourseItem | undefined => {
+    const target = String(idOrSlug).toLowerCase().trim();
+    if (!target) return undefined;
+    return courses.find((c) => {
+      const cId = String(c.id).toLowerCase().trim();
+      const cSlug = String((c as any).slug || '').toLowerCase().trim();
+      return cId === target || 
+             (cId === 'course_linux_101' && target === '1') || 
+             (cId === '1' && target === 'course_linux_101') ||
+             cSlug === target;
+    });
   };
 
   const updateCourse = async (id: number | string, updates: Partial<CourseItem>) => {
