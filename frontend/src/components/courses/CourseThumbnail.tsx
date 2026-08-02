@@ -8,6 +8,18 @@ interface CourseThumbnailProps {
   aspectRatio?: string;
 }
 
+function getOptimizedImageSrc(src: string): string {
+  if (!src) return '/assets/images/linux_course_thumbnail.webp';
+  if (src.includes('images.unsplash.com')) {
+    const width = typeof window !== 'undefined' && window.innerWidth < 768 ? 480 : 800;
+    if (src.includes('w=')) {
+      return src.replace(/w=\d+/, `w=${width}`);
+    }
+    return `${src}&w=${width}&auto=format&fit=crop&q=80`;
+  }
+  return src;
+}
+
 export const CourseThumbnail: React.FC<CourseThumbnailProps> = ({
   src,
   alt,
@@ -15,11 +27,14 @@ export const CourseThumbnail: React.FC<CourseThumbnailProps> = ({
   className = '',
   aspectRatio = 'aspect-video',
 }) => {
+  const optimizedSrc = React.useMemo(() => getOptimizedImageSrc(src), [src]);
+
   return (
     <div className={`relative overflow-hidden rounded-2xl group ${aspectRatio} ${className}`}>
       <img
-        src={src || '/assets/images/linux_course_thumbnail.webp'}
+        src={optimizedSrc}
         alt={alt}
+        loading="lazy"
         className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
         onError={(e) => {
           (e.target as HTMLImageElement).src =

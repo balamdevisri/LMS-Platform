@@ -1,10 +1,11 @@
-import React from 'react';
-import { LinuxLabWorkspace } from './terminal/LinuxLabWorkspace';
-import { WindowsPowerShellTerminal } from '../labs/git/WindowsPowerShellTerminal';
-import { SQLPracticeTerminal } from './terminal/SQLPracticeTerminal';
-import { PythonInterpreterTerminal } from './terminal/PythonInterpreterTerminal';
-import { JavaConsoleTerminal } from './terminal/JavaConsoleTerminal';
-import { ReactPlaygroundTerminal } from './terminal/ReactPlaygroundTerminal';
+import React, { lazy, Suspense } from 'react';
+
+const LinuxLabWorkspace = lazy(() => import('./terminal/LinuxLabWorkspace').then(m => ({ default: m.LinuxLabWorkspace })));
+const WindowsPowerShellTerminal = lazy(() => import('../labs/git/WindowsPowerShellTerminal').then(m => ({ default: m.WindowsPowerShellTerminal })));
+const SQLPracticeTerminal = lazy(() => import('./terminal/SQLPracticeTerminal').then(m => ({ default: m.SQLPracticeTerminal })));
+const PythonInterpreterTerminal = lazy(() => import('./terminal/PythonInterpreterTerminal').then(m => ({ default: m.PythonInterpreterTerminal })));
+const JavaConsoleTerminal = lazy(() => import('./terminal/JavaConsoleTerminal').then(m => ({ default: m.JavaConsoleTerminal })));
+const ReactPlaygroundTerminal = lazy(() => import('./terminal/ReactPlaygroundTerminal').then(m => ({ default: m.ReactPlaygroundTerminal })));
 
 interface TerminalProps {
   initialCommands?: Array<{ command: string; description: string }>;
@@ -13,6 +14,12 @@ interface TerminalProps {
   isNightMode?: boolean;
   courseTitle?: string;
 }
+
+const TerminalSkeleton = () => (
+  <div className="w-full h-80 bg-slate-950 rounded-2xl border border-slate-900 animate-pulse flex items-center justify-center">
+    <div className="text-slate-500 font-mono text-xs">Loading Interactive Practice Sandbox...</div>
+  </div>
+);
 
 export const Terminal: React.FC<TerminalProps> = ({
   initialCommands,
@@ -23,59 +30,65 @@ export const Terminal: React.FC<TerminalProps> = ({
 }) => {
   const titleLower = courseTitle.toLowerCase();
 
-  // Route to the course-specific terminal interactive panels
-  if (titleLower.includes('database') || titleLower.includes('dbms') || titleLower.includes('sql')) {
+  const renderTerminal = () => {
+    if (titleLower.includes('database') || titleLower.includes('dbms') || titleLower.includes('sql')) {
+      return (
+        <SQLPracticeTerminal 
+          onCommandRun={onExecuteCommand}
+          isNightMode={isNightMode}
+        />
+      );
+    }
+
+    if (titleLower.includes('git') || titleLower.includes('github') || isGitCourse) {
+      return (
+        <WindowsPowerShellTerminal 
+          onCommandRun={onExecuteCommand}
+          isNightMode={isNightMode}
+        />
+      );
+    }
+
+    if (titleLower.includes('python')) {
+      return (
+        <PythonInterpreterTerminal 
+          onCommandRun={onExecuteCommand}
+          isNightMode={isNightMode}
+        />
+      );
+    }
+
+    if (titleLower.includes('java') && !titleLower.includes('javascript')) {
+      return (
+        <JavaConsoleTerminal 
+          onCommandRun={onExecuteCommand}
+          isNightMode={isNightMode}
+        />
+      );
+    }
+
+    if (titleLower.includes('react')) {
+      return (
+        <ReactPlaygroundTerminal 
+          onCommandRun={onExecuteCommand}
+          isNightMode={isNightMode}
+        />
+      );
+    }
+
     return (
-      <SQLPracticeTerminal 
-        onCommandRun={onExecuteCommand}
+      <LinuxLabWorkspace
+        initialCommands={initialCommands}
+        isGitCourse={false}
+        onExecuteCommand={onExecuteCommand}
         isNightMode={isNightMode}
       />
     );
-  }
+  };
 
-  if (titleLower.includes('git') || titleLower.includes('github') || isGitCourse) {
-    return (
-      <WindowsPowerShellTerminal 
-        onCommandRun={onExecuteCommand}
-        isNightMode={isNightMode}
-      />
-    );
-  }
-
-  if (titleLower.includes('python')) {
-    return (
-      <PythonInterpreterTerminal 
-        onCommandRun={onExecuteCommand}
-        isNightMode={isNightMode}
-      />
-    );
-  }
-
-  if (titleLower.includes('java') && !titleLower.includes('javascript')) {
-    return (
-      <JavaConsoleTerminal 
-        onCommandRun={onExecuteCommand}
-        isNightMode={isNightMode}
-      />
-    );
-  }
-
-  if (titleLower.includes('react')) {
-    return (
-      <ReactPlaygroundTerminal 
-        onCommandRun={onExecuteCommand}
-        isNightMode={isNightMode}
-      />
-    );
-  }
-
-  // Default fallback is Ubuntu Linux Lab Bash Terminal
   return (
-    <LinuxLabWorkspace
-      initialCommands={initialCommands}
-      isGitCourse={false}
-      onExecuteCommand={onExecuteCommand}
-      isNightMode={isNightMode}
-    />
+    <Suspense fallback={<TerminalSkeleton />}>
+      {renderTerminal()}
+    </Suspense>
   );
 };

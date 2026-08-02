@@ -1,8 +1,16 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Suspense, lazy } from 'react';
 import { Clock, Terminal as TerminalIcon, Sparkles, CheckCircle2, ChevronRight, Zap, Loader2, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import { MarkdownRenderer } from './MarkdownRenderer';
-import { Terminal } from './Terminal';
+import { LazyViewport } from './LazyViewport';
+
+const Terminal = lazy(() => import('./Terminal').then(m => ({ default: m.Terminal })));
+
+const TerminalSkeleton = () => (
+  <div className="w-full h-80 bg-slate-950 rounded-2xl border border-slate-900 animate-pulse flex items-center justify-center">
+    <div className="text-slate-500 font-mono text-xs">Loading Interactive Practice Sandbox...</div>
+  </div>
+);
 
 export interface LessonDetails {
   id: string | number;
@@ -234,7 +242,7 @@ export function generateStructuredLessonContent(title: string, content: string):
   };
 }
 
-export const LessonViewer: React.FC<LessonViewerProps> = ({
+export const LessonViewer: React.FC<LessonViewerProps> = React.memo(({
   lesson,
   isGitCourse = false,
   onExecuteCommand,
@@ -386,13 +394,17 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({
           </h3>
           <span className={`text-xs font-mono ${isNightMode ? 'text-slate-400' : 'text-slate-500'}`}>Live Interactive Execution</span>
         </div>
-        <Terminal
-          initialCommands={lesson.commands || []}
-          isGitCourse={isGitCourse}
-          onExecuteCommand={onExecuteCommand}
-          courseTitle={courseTitle}
-          isNightMode={isNightMode}
-        />
+        <LazyViewport placeholder={<TerminalSkeleton />}>
+          <Suspense fallback={<TerminalSkeleton />}>
+            <Terminal
+              initialCommands={lesson.commands || []}
+              isGitCourse={isGitCourse}
+              onExecuteCommand={onExecuteCommand}
+              courseTitle={courseTitle}
+              isNightMode={isNightMode}
+            />
+          </Suspense>
+        </LazyViewport>
       </section>
 
       <footer
@@ -470,4 +482,4 @@ export const LessonViewer: React.FC<LessonViewerProps> = ({
       </footer>
     </article>
   );
-};
+});
