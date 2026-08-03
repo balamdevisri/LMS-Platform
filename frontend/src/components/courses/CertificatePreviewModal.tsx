@@ -20,7 +20,26 @@ export const CertificatePreviewModal: React.FC<CertificatePreviewModalProps> = (
   // Dynamic student info fallback from auth context
   const dynamicStudentName = certificate.studentName || userProfile?.name || user?.displayName || userProfile?.githubUsername || 'Student User';
   const dynamicStudentId = certificate.studentId || (userProfile as any)?.studentId || (user?.uid ? `STU-${user.uid.substring(0, 6).toUpperCase()}` : 'STU-992104');
-  const dynamicCourseTitle = certificate.courseTitle || 'Mastering Enterprise Technology & Systems Architecture';
+  
+  // Dynamic course title lookup map based on courseId
+  const courseTitleMap: Record<string, string> = {
+    'course_linux_101': 'Linux Systems & Administration Mastery',
+    'linux-101': 'Linux Systems & Administration Mastery',
+    'linux-systems-administration-mastery': 'Linux Systems & Administration Mastery',
+    'linux': 'Linux Systems & Administration Mastery',
+    'git-github-mastery': 'Git & GitHub Mastery',
+    'git': 'Git & GitHub Mastery',
+    'database-management-system': 'Database Management System (DBMS): Beginner to Advanced',
+    'dbms': 'Database Management System (DBMS): Beginner to Advanced',
+    'dbms-101': 'Database Management System (DBMS): Beginner to Advanced',
+    'sql': 'Database Management System (DBMS): Beginner to Advanced',
+  };
+
+  const dynamicCourseTitle = certificate.courseTitle || 
+    courseTitleMap[certificate.courseId] || 
+    courseTitleMap[certificate.courseId?.toLowerCase()] || 
+    'Mastering Enterprise Technology & Systems Architecture';
+
   const dynamicDuration = certificate.courseDuration || '24 Hours';
   const dynamicModules = certificate.modulesCount || 8;
   const dynamicDate = certificate.completionDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
