@@ -12,6 +12,8 @@ import {
   Activity,
   Bot,
   Zap,
+  FolderSearch,
+  RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -42,6 +44,12 @@ export const Dashboard: React.FC = () => {
   // XP & Claims State
   const [totalXP, setTotalXP] = useState(0);
   const [xpClaims, setXpClaims] = useState<XPClaimRecord[]>([]);
+
+  // AI Course Search & Weakness Analyzer States
+  const [aiSearchQuery, setAiSearchQuery] = useState('');
+  const [aiSearchResults, setAiSearchResults] = useState<ICourse[]>([]);
+  const [isAiSearching, setIsAiSearching] = useState(false);
+  const [weakTopics, setWeakTopics] = useState<any[]>([]);
 
   // Completed courses check (only 100% completed courses unlock certificates)
   const completedCourses = enrolledCourses.filter((course) => {
@@ -89,6 +97,38 @@ export const Dashboard: React.FC = () => {
   useEffect(() => {
     loadDashboardData();
   }, [loadDashboardData]);
+
+  const handleAiSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!aiSearchQuery.trim()) return;
+    setIsAiSearching(true);
+    setTimeout(() => {
+      const q = aiSearchQuery.toLowerCase();
+      const matches = enrolledCourses.filter(c => 
+        c.title.toLowerCase().includes(q) || 
+        c.category.toLowerCase().includes(q) ||
+        (c.skills && c.skills.some(s => s.toLowerCase().includes(q)))
+      );
+      setAiSearchResults(matches);
+      setIsAiSearching(false);
+      if (matches.length > 0) {
+        toast.success(`AI Search found ${matches.length} matching course tracks!`);
+      } else {
+        toast.info("AI Search couldn't find direct matches. Try looking for 'Linux', 'Git', or 'SQL'!");
+      }
+    }, 600);
+  };
+
+  useEffect(() => {
+    const loadWeakness = async () => {
+      try {
+        const { mockAIProvider } = await import('@/services/aiProvider');
+        const res = await mockAIProvider.getWeakTopicAnalysis(activeUserId);
+        setWeakTopics(res);
+      } catch (err) {}
+    };
+    if (activeUserId) loadWeakness();
+  }, [activeUserId]);
 
   // Active learning player state
   const [activePlayerCourse, setActivePlayerCourse] = useState<any | null>(null);
@@ -477,6 +517,87 @@ export const Dashboard: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* AI-Powered Semantic Search & Insights Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            {/* AI Insights & Weakness Widget */}
+            <div className="lg:col-span-8 bg-white dark:bg-zinc-900 border border-sky-100 dark:border-zinc-800 rounded-3xl p-6 shadow-xs space-y-4">
+              <h3 className="font-heading font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                <Bot className="w-5 h-5 text-purple-650 animate-pulse" />
+                <span>AI Tutor Insights & Revisions</span>
+              </h3>
+              
+              {weakTopics.length > 0 ? (
+                <div className="space-y-3">
+                  <div className="p-3 bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900 rounded-2xl text-xs text-rose-800 dark:text-rose-455 font-bold leading-normal">
+                    ⚠️ AI Analyzed logs: Revisit these areas to strengthen performance metrics.
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {weakTopics.slice(0, 2).map((wt, i) => (
+                      <div key={i} className="p-4 bg-slate-50 dark:bg-zinc-800/40 border border-slate-200 dark:border-zinc-800 rounded-2xl space-y-1.5 hover:border-purple-300 transition-all">
+                        <div className="flex justify-between items-center">
+                          <span className="font-bold text-xs text-slate-800 dark:text-zinc-200">{wt.topic}</span>
+                          <span className="text-[10px] font-bold text-rose-600 bg-rose-50 dark:bg-rose-950/30 px-2 py-0.5 rounded border border-rose-100 dark:border-rose-900 font-mono">
+                            Score: {wt.score}%
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 dark:text-zinc-400 leading-normal font-medium">{wt.struggleReason}</p>
+                        <div className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 pt-1.5 flex items-center gap-1">
+                          <Zap className="w-3.5 h-3.5 text-emerald-500" />
+                          <span>Action: {wt.remedyAction}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-slate-400 italic font-medium">Keep reading and taking quizzes to compile custom weak topic alerts.</p>
+              )}
+            </div>
+
+            {/* AI Semantic Search Box */}
+            <div className="lg:col-span-4 bg-white dark:bg-zinc-900 border border-sky-100 dark:border-zinc-800 rounded-3xl p-6 shadow-xs space-y-4">
+              <h3 className="font-heading font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                <FolderSearch className="w-5 h-5 text-indigo-500" />
+                <span>AI Semantic Course Search</span>
+              </h3>
+              <form onSubmit={handleAiSearch} className="flex gap-2">
+                <input
+                  type="text"
+                  value={aiSearchQuery}
+                  onChange={(e) => setAiSearchQuery(e.target.value)}
+                  placeholder="e.g. Learn how to manage users and access rights..."
+                  className="flex-1 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl p-2.5 text-xs text-slate-900 dark:text-zinc-100 focus:outline-hidden focus:border-purple-600"
+                />
+                <button type="submit" className="bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all cursor-pointer">
+                  Search
+                </button>
+              </form>
+
+              {isAiSearching && (
+                <div className="flex items-center gap-1.5 text-xs text-slate-400 animate-pulse font-medium">
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>AI reasoning matches...</span>
+                </div>
+              )}
+
+              {aiSearchResults.length > 0 && (
+                <div className="space-y-2">
+                  <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest block">AI Recommended Matches</span>
+                  {aiSearchResults.map(match => (
+                    <Link
+                      key={match.id}
+                      to={`/course/${match.slug || match.id}`}
+                      className="block p-2.5 bg-sky-50/50 dark:bg-zinc-800/80 border border-sky-100 dark:border-zinc-700 rounded-xl hover:border-sky-300 text-xs font-bold text-sky-800 dark:text-sky-400 transition-all truncate"
+                    >
+                      {match.title}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
 
           {/* DYNAMIC: Currently Enrolled Tracks (Only displayed when student is enrolled in courses) */}
           {loadingCourses ? (
