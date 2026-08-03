@@ -7,7 +7,6 @@ import type { ModuleData } from './ModuleAccordion';
 import { useAuth } from '@/contexts/AuthContext';
 import { courseService } from '@/services/courseService';
 import { useCourseTimeTracker } from '@/hooks/useCourseTimeTracker';
-import { FloatingBubbles } from './FloatingBubbles';
 import { Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { dbmsLessonsData } from '@/data/dbmsLessonsData';
@@ -460,8 +459,6 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
           : 'bg-slate-50 text-slate-900 selection:bg-sky-500 selection:text-white'
       }`}
     >
-      <FloatingBubbles isNightMode={isNightMode} />
-
       <LearningHeader
         courseTitle={courseTitle}
         lessonTitle={activeLessonFull.title}

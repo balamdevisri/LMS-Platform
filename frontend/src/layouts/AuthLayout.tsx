@@ -163,7 +163,7 @@ export const AuthLayout: React.FC = () => {
             >
               Learn Smarter with{' '}
               <span className="relative inline-block font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#2563EB] via-[#3B82F6] to-[#60A5FA] pb-1">
-                SHAIVIKA AI LMS
+                KAIZENQ AI LMS
                 <span className="absolute bottom-0 left-0 w-full h-[3px] bg-gradient-to-r from-[#2563EB] via-[#3B82F6] to-[#60A5FA] rounded-full overflow-hidden">
                   <motion.span
                     animate={{
@@ -251,7 +251,7 @@ export const AuthLayout: React.FC = () => {
 
           {/* Footer */}
           <div className="text-xs text-slate-500 dark:text-slate-400 font-medium z-10 relative">
-            © {new Date().getFullYear()} SHAIVIKA AI LMS. All rights reserved.
+            © {new Date().getFullYear()} KAIZENQ AI LMS. All rights reserved.
           </div>
         </div>
 

@@ -141,7 +141,7 @@ export const Navbar: React.FC = () => {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 w-full px-4 sm:px-6 lg:px-8 pt-4 pointer-events-none font-['Sora']">
       <div
-        className={`mx-auto max-w-7xl h-[64px] sm:h-[72px] flex items-center justify-between px-3.5 sm:px-6 rounded-[18px] backdrop-blur-xl transition-all duration-300 pointer-events-auto border ${
+        className={`mx-auto max-w-7xl h-16 sm:h-18 flex items-center justify-between px-3.5 sm:px-6 rounded-[18px] backdrop-blur-xl transition-all duration-300 pointer-events-auto border ${
           isScrolled
             ? 'bg-white/78 border-[#E6EEF9]/80 shadow-[0_8px_30px_rgba(59,130,246,0.06)] dark:bg-[#0E1325]/78 dark:border-slate-800/80 dark:shadow-[0_8px_30px_rgba(0,0,0,0.4)]'
             : 'bg-white/60 border-slate-100/60 shadow-xs dark:bg-[#0E1325]/60 dark:border-zinc-800/60'
@@ -195,7 +195,7 @@ export const Navbar: React.FC = () => {
                       className="w-8 h-8 rounded-full object-cover border-2 border-blue-400 shadow-xs shrink-0"
                     />
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 via-indigo-500 to-purple-600 text-white flex items-center justify-center font-extrabold text-xs border border-blue-300 shadow-xs shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-linear-to-tr from-blue-600 via-indigo-500 to-purple-600 text-white flex items-center justify-center font-extrabold text-xs border border-blue-300 shadow-xs shrink-0">
                       {userInitial}
                     </div>
                   )}
@@ -230,7 +230,7 @@ export const Navbar: React.FC = () => {
                           className="w-10 h-10 rounded-full object-cover border-2 border-blue-400 shadow-xs shrink-0"
                         />
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 text-white flex items-center justify-center font-extrabold text-sm border border-blue-300 shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-linear-to-tr from-blue-600 to-purple-600 text-white flex items-center justify-center font-extrabold text-sm border border-blue-300 shrink-0">
                           {userInitial}
                         </div>
                       )}
@@ -286,7 +286,7 @@ export const Navbar: React.FC = () => {
               </Link>
               <Link
                 to="/dashboard"
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all hover:scale-103 flex items-center gap-1.5"
+                className="px-5 py-2.5 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all hover:scale-103 flex items-center gap-1.5"
               >
                 <span>Get Started Free</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -351,7 +351,7 @@ export const Navbar: React.FC = () => {
                   <Link
                     to="/dashboard"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="w-full text-center py-2.5 text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-md flex items-center justify-center gap-2"
+                    className="w-full text-center py-2.5 text-xs font-bold text-white bg-linear-to-r from-blue-600 to-indigo-600 rounded-xl shadow-md flex items-center justify-center gap-2"
                   >
                     <span>Get Started Free</span>
                     <ArrowRight className="w-3.5 h-3.5" />

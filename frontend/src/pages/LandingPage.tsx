@@ -24,7 +24,6 @@ import {
   Clock,
   Terminal
 } from 'lucide-react';
-import { KaizenQVideoPlayer } from '@/components/common/KaizenQVideoPlayer';
 import { BlueSmokeTheme } from '@/components/common/BlueSmokeTheme';
 import { AiCoreOrb } from '@/components/common/AiCoreOrb';
 import { courseService } from '@/services/courseService';
@@ -1003,8 +1002,32 @@ export const LandingPage: React.FC = () => {
                 </div>
                 
                 {/* Interactive Player / Dashboard View */}
-                <div className="p-1">
-                  <KaizenQVideoPlayer src="/KaizenQ.mp4" />
+                <div className="p-1 relative overflow-hidden rounded-xl">
+                  <video
+                    src="/KaizenQ.mp4"
+                    autoPlay
+                    muted
+                    playsInline
+                    loop
+                    className="w-full rounded-xl object-cover shadow-inner pointer-events-none"
+                    ref={(el) => {
+                      if (el) {
+                        el.muted = true;
+                        el.volume = 0;
+                      }
+                    }}
+                  />
+
+                  {/* Watermark Cover Badge — Moved down to top-10 right-3 to directly cover the Gemini watermark */}
+                  <div className="absolute top-10 right-3 z-30 flex items-center gap-2.5 px-4 py-2 rounded-xl bg-slate-950/95 border border-slate-700/90 text-white shadow-2xl backdrop-blur-md font-['Sora'] pointer-events-none select-none">
+                    <div className="w-5 h-5 rounded-lg bg-gradient-to-tr from-indigo-500 via-blue-500 to-cyan-400 flex items-center justify-center text-white text-[10px] font-black shadow-xs shrink-0">
+                      Q
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-extrabold tracking-tight text-white leading-none">Kaizen<span className="text-cyan-400">Q</span> LMS</span>
+                      <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">AI Engine Active</span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Floating micro-cards overlay */}

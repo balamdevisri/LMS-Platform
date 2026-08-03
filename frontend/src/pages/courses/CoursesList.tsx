@@ -11,11 +11,28 @@ import { SearchBar } from '../../components/courses/SearchBar';
 import { Pagination } from '../../components/courses/Pagination';
 import { EmptyState } from '../../components/courses/EmptyState';
 import { LoadingSkeleton } from '../../components/courses/LoadingSkeleton';
-import { LayoutGrid, List as ListIcon } from 'lucide-react';
+import { LayoutGrid, List as ListIcon, Star, Flame, PlayCircle, CheckCircle2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '../../contexts/AuthContext';
+
+// ─── Quick Filter Tabs ───────────────────────────────────────────────────────
+type QuickFilter = 'all' | 'recommended' | 'trending' | 'continue' | 'completed' | 'new';
+
+const quickFilters: { id: QuickFilter; label: string; icon: React.ElementType }[] = [
+  { id: 'all',         label: 'All Courses',  icon: Sparkles     },
+  { id: 'recommended', label: 'Recommended',  icon: Star         },
+  { id: 'trending',    label: 'Trending',     icon: Flame        },
+  { id: 'continue',    label: 'Continue',     icon: PlayCircle   },
+  { id: 'completed',   label: 'Completed',    icon: CheckCircle2 },
+  { id: 'new',         label: 'New',          icon: Sparkles     },
+];
+// ────────────────────────────────────────────────────────────────────────────
 
 export const CoursesList: React.FC = () => {
   const { courses: contextCourses, refreshCourses } = useCourses();
+  const { user } = useAuth();
+  const activeUserId = user?.uid || 'default_student';
+
   const [courses, setCourses] = useState<ICourse[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -24,8 +41,40 @@ export const CoursesList: React.FC = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>('all');
 
   const categories = ['All', 'Linux & Systems', 'AI & Data', 'DevOps', 'Development', 'Cybersecurity'];
+
+  const applyQuickFilter = (list: ICourse[], filter: QuickFilter): ICourse[] => {
+    if (filter === 'all') return list;
+
+    if (filter === 'recommended') {
+      return list.filter((c) => c.rating >= 4.5);
+    }
+    if (filter === 'trending') {
+      return [...list].sort((a, b) => b.enrollmentCount - a.enrollmentCount);
+    }
+    if (filter === 'new') {
+      return [...list].sort((a, b) => {
+        const aDate = (a as any).createdAt ? new Date((a as any).createdAt).getTime() : 0;
+        const bDate = (b as any).createdAt ? new Date((b as any).createdAt).getTime() : 0;
+        return bDate - aDate;
+      });
+    }
+    if (filter === 'continue') {
+      return list.filter((c) => {
+        const cp = courseService.getCourseCheckpoint(c.id, activeUserId);
+        return cp && cp.progressPercent > 0 && cp.progressPercent < 100;
+      });
+    }
+    if (filter === 'completed') {
+      return list.filter((c) => {
+        const cp = courseService.getCourseCheckpoint(c.id, activeUserId);
+        return cp && cp.progressPercent >= 100;
+      });
+    }
+    return list;
+  };
 
   const fetchCourses = useCallback(() => {
     setLoading(true);
@@ -67,20 +116,23 @@ export const CoursesList: React.FC = () => {
         );
       }
 
-      // 6. Paginate
+      // 6. Apply quick filter (tab)
+      list = applyQuickFilter(list, quickFilter);
+
+      // 7. Paginate
       const limit = 6;
       const total = list.length;
-      const totalPages = Math.ceil(total / limit) || 1;
+      const totalPagesCalc = Math.ceil(total / limit) || 1;
       const paginated = list.slice((page - 1) * limit, page * limit);
 
       setCourses(paginated);
-      setTotalPages(totalPages);
+      setTotalPages(totalPagesCalc);
     } catch (err) {
-      toast.error('Failed to load course catalog.');
+      toast.error('Failed to load courses.');
     } finally {
       setLoading(false);
     }
-  }, [contextCourses, search, selectedCategory, selectedLevel, page]);
+  }, [contextCourses, search, selectedCategory, selectedLevel, page, quickFilter, activeUserId]);
 
   useEffect(() => {
     refreshCourses();
@@ -94,34 +146,68 @@ export const CoursesList: React.FC = () => {
     setSearch('');
     setSelectedCategory('All');
     setSelectedLevel('all');
+    setQuickFilter('all');
     setPage(1);
   };
 
+  // Total non-paginated count for header badge
+  const totalCourseCount = contextCourses.filter(
+    (c) => (c.status || '').toLowerCase() === 'published'
+  ).length;
+
   return (
-    <div className="space-y-8 font-['Sora'] text-slate-900 max-w-7xl mx-auto pb-16">
+    <div className="space-y-6 font-['Sora'] text-slate-900 dark:text-zinc-100 max-w-7xl mx-auto pb-16">
+
+      {/* ── Page Header ──────────────────────────────────────────────────────── */}
       <CourseHeader
-        title="Enterprise AI Technical Course Catalog"
-        description="Explore hands-on technical tracks powered by live interactive Linux terminals and automated AI feedback."
-        badgeText="Shaivika Course Tracks"
-        breadcrumbs={[{ label: 'Home', path: '/' }, { label: 'Course Catalog' }]}
+        title="My Courses"
+        description="Continue where you left off, explore new tracks, or browse the full catalog."
+        courseCount={totalCourseCount}
+        breadcrumbs={[
+          { label: 'Dashboard', path: '/dashboard' },
+          { label: 'My Courses' },
+        ]}
       />
 
-      <div className="space-y-4 rounded-3xl bg-white border border-sky-100 p-6 shadow-md shadow-sky-100/50">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="w-full sm:w-96">
+      {/* ── Quick Filter Tabs ─────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        {quickFilters.map((f) => {
+          const Icon = f.icon;
+          const isActive = quickFilter === f.id;
+          return (
+            <button
+              key={f.id}
+              onClick={() => { setQuickFilter(f.id); setPage(1); }}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer border ${
+                isActive
+                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-500/20'
+                  : 'bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-700 text-slate-600 dark:text-zinc-400 hover:border-indigo-300 hover:text-indigo-600 dark:hover:text-indigo-400 dark:hover:border-indigo-700'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {f.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── Search, Level, View Controls ─────────────────────────────────────── */}
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-700 p-4 shadow-sm space-y-3">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="w-full sm:w-80">
             <SearchBar value={search} onChange={(val) => { setSearch(val); setPage(1); }} />
           </div>
 
-          <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
             <LevelFilter selectedLevel={selectedLevel} onSelectLevel={(lvl) => { setSelectedLevel(lvl); setPage(1); }} />
 
-            <div className="flex items-center gap-1 p-1 rounded-xl bg-sky-50 border border-sky-200">
+            <div className="flex items-center gap-0.5 p-1 rounded-xl bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700">
               <button
                 onClick={() => setViewMode('grid')}
                 className={`p-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   viewMode === 'grid'
-                    ? 'bg-sky-600 text-white shadow-xs'
-                    : 'text-slate-500 hover:text-sky-700'
+                    ? 'bg-white dark:bg-zinc-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
+                    : 'text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300'
                 }`}
                 title="Grid View"
               >
@@ -131,8 +217,8 @@ export const CoursesList: React.FC = () => {
                 onClick={() => setViewMode('list')}
                 className={`p-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   viewMode === 'list'
-                    ? 'bg-sky-600 text-white shadow-xs'
-                    : 'text-slate-500 hover:text-sky-700'
+                    ? 'bg-white dark:bg-zinc-700 text-indigo-600 dark:text-indigo-300 shadow-sm'
+                    : 'text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300'
                 }`}
                 title="List View"
               >
@@ -149,6 +235,7 @@ export const CoursesList: React.FC = () => {
         />
       </div>
 
+      {/* ── Course Grid / List / Empty ────────────────────────────────────────── */}
       {loading ? (
         <LoadingSkeleton count={6} />
       ) : courses.length === 0 ? (

@@ -3,7 +3,6 @@ import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import {
   BookOpen,
   ArrowLeft,
-  Code2,
   Clock,
   Award,
   FileCheck,
@@ -17,25 +16,18 @@ import {
   Activity,
   Info,
   Bot,
-  Brain,
   Zap,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCourses } from '@/contexts/CourseContext';
 import { CoursePlayerModal } from '../../components/courses/CoursePlayerModal';
-import { DiscussionCenter } from '@/components/courses/DiscussionCenter';
-import { discussionService } from '@/services/discussionService';
 import { AssignmentPortal } from '@/components/courses/AssignmentPortal';
 import { AIAssistantPanel } from '@/components/ai/AIAssistantPanel';
-import { AIQuizPortal } from '../../components/courses/AIQuizPortal';
-import { PracticeLab } from '../../components/courses/PracticeLab';
 import { CertificateService } from '@/services/achievementService';
 import type { Certificate } from '@/services/achievementService';
 import { CertificatePreviewModal } from '../../components/courses/CertificatePreviewModal';
 import { AchievementsDashboard } from '../../components/courses/AchievementsDashboard';
-import { LeaderboardView } from '../../components/courses/LeaderboardView';
-import { ShieldAlert } from 'lucide-react';
 import { courseService } from '@/services/courseService';
 import type { XPClaimRecord } from '@/services/courseService';
 import type { ICourse } from '../../../../shared/types/course';
@@ -119,7 +111,7 @@ export const Dashboard: React.FC = () => {
   } | null>(null);
 
   const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
-  const [isQuizPortalOpen, setIsQuizPortalOpen] = useState(false);
+
   const [aiLessonContext, setAiLessonContext] = useState<{
     courseId: string;
     courseTitle: string;
@@ -170,16 +162,7 @@ export const Dashboard: React.FC = () => {
   // Bookmarks & Activities
   const [savedLessons, setSavedLessons] = useState<any[]>([]);
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
-  const [, setTotalUnreadDiscussions] = useState(0);
   const [selectedCourseId, setSelectedCourseId] = useState<string>('');
-
-  const updateUnreadCount = useCallback(() => {
-    let count = 0;
-    courses.forEach((c) => {
-      count += discussionService.getUnreadCount(String(c.id), userProfile?.uid || user?.uid || 'default_student');
-    });
-    setTotalUnreadDiscussions(count);
-  }, [courses, userProfile?.uid, user?.uid]);
 
   useEffect(() => {
     const allBookmarks: any[] = [];
@@ -210,8 +193,7 @@ export const Dashboard: React.FC = () => {
     if (courses.length > 0 && !selectedCourseId) {
       setSelectedCourseId(String(courses[0].id));
     }
-    updateUnreadCount();
-  }, [courses, activePlayerCourse, userProfile, user, updateUnreadCount]);
+  }, [courses, activePlayerCourse, userProfile, user]);
 
   const getCourseCheckpoint = (courseId: string) => {
     const data = localStorage.getItem(`shaivika_user_checkpoint_${courseId}_default_student`);
@@ -319,9 +301,6 @@ export const Dashboard: React.FC = () => {
 
   // Analytics Metrics
   const liveHoursCompleted = coursesProgress.reduce((acc, c) => acc + c.completedDurationHours, 0);
-  const totalCompletedUnitsCount = coursesProgress.reduce((acc, c) => acc + c.completedUnits, 0);
-  const totalGlobalUnitsCount = coursesProgress.reduce((acc, c) => acc + c.totalUnits, 0);
-
   const totalActiveLearningHours = Number(Math.max(realtimeSec / 3600, liveHoursCompleted).toFixed(1));
 
   // Dynamic study time calculation per day from real student course active tracking
@@ -433,18 +412,14 @@ export const Dashboard: React.FC = () => {
   const tabLabelMap: Record<string, string> = {
     overview: 'Overview Dashboard',
     'continue-learning': 'Continue Learning Hub',
-    assignments: 'Quiz Scores & Gradebook',
-    certificates: 'Unlocked Credentials',
+    assignments: 'Quiz Results & Gradebook',
+    certificates: 'Certificates',
     achievements: 'Achievements & Badges',
-    leaderboard: 'Cohort Leaderboard',
-    analytics: 'Learning Analytics',
-    discussions: 'Discussion Center',
-    'ai-quizzes': 'AI Assessment Center',
-    'practice-lab': 'Shaivika AI Practice Sandbox',
+    'ai-tutor': 'AI Tutor',
   };
 
   return (
-    <div className="space-y-8 text-slate-900 font-['Sora'] max-w-7xl mx-auto pb-12 animate-in fade-in duration-300">
+    <div className="space-y-8 text-slate-900 font-['Sora'] max-w-7xl mx-auto pt-2 sm:pt-4 pb-12 animate-in fade-in duration-300">
       
       {/* Top Header Banner & Dedicated Page Breadcrumb Navigation */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
@@ -485,20 +460,12 @@ export const Dashboard: React.FC = () => {
             <button
               type="button"
               onClick={() => setSearchParams({ tab: 'overview' })}
-              className="px-4 py-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-slate-300 dark:border-zinc-700 text-slate-700 dark:text-zinc-200 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-slate-50 dark:hover:bg-zinc-800 font-bold text-xs shadow-3xs flex items-center gap-2 cursor-pointer transition-all"
+              className="px-4 py-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-slate-300 dark:border-zinc-700 text-slate-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-50 dark:hover:bg-zinc-800 font-bold text-xs shadow-sm flex items-center gap-2 cursor-pointer transition-all"
             >
-              <ArrowLeft className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-              <span>Back to Main Menu</span>
+              <ArrowLeft className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              <span>Back to Dashboard</span>
             </button>
           )}
-
-          <Link
-            to="/admin/courses"
-            className="btn-blue-primary text-xs py-2.5 px-4 shadow-md shadow-purple-500/10 flex items-center gap-1.5 font-bold cursor-pointer"
-          >
-            <BookOpen className="w-4 h-4" />
-            <span>Browse Syllabus Editor</span>
-          </Link>
         </div>
       </div>
 
@@ -1361,7 +1328,7 @@ export const Dashboard: React.FC = () => {
                     Renewal & Expiration Ranks
                   </h4>
                   <div className="p-4 bg-slate-50 border border-slate-250 rounded-2xl flex items-start gap-2.5 text-[10px] leading-relaxed text-slate-500 font-semibold select-none">
-                    <ShieldAlert className="w-4.5 h-4.5 text-slate-400 shrink-0" />
+                    <Award className="w-4.5 h-4.5 text-slate-400 shrink-0" />
                     <div>
                       <span>No Expired Certifications</span>
                       <p className="mt-0.5 text-[9px] text-slate-400">All Kaizen Q credentials remain indefinitely valid. Future enterprise renewal status will display here.</p>
@@ -1376,156 +1343,14 @@ export const Dashboard: React.FC = () => {
           </div>
         );
       })()}
-      {/* ------------------- 5. ANALYTICS TAB ------------------- */}
-      {currentTab === 'analytics' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in duration-300">
-          <div className="p-6 rounded-3xl border border-sky-100 bg-white space-y-4 shadow-3xs">
-            <h3 className="font-heading font-bold text-base text-slate-900 flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-blue-600" />
-              <span>Skill Competency Radar</span>
-            </h3>
-            
-            <div className="space-y-4">
-              {coursesProgress.length === 0 ? (
-                <p className="text-xs text-slate-400 italic">No course analytics logged.</p>
-              ) : (
-                coursesProgress.map((item, idx) => (
-                  <div key={idx} className="space-y-1.5">
-                    <div className="flex justify-between text-xs font-bold text-slate-700">
-                      <span>{item.course.title}</span>
-                      <span className="text-blue-600 font-mono">{item.percentage}%</span>
-                    </div>
-                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200/50">
-                      <div
-                        className="h-full bg-blue-600 rounded-full transition-all duration-500"
-                        style={{ width: `${item.percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
 
-          <div className="p-6 rounded-3xl border border-sky-100 bg-white space-y-4 shadow-3xs flex flex-col justify-between">
-            <div className="space-y-2">
-              <h3 className="font-heading font-bold text-base text-slate-900 flex items-center gap-1.5">
-                <Sparkles className="w-5 h-5 text-amber-500 animate-pulse" />
-                <span>Verified Milestones</span>
-              </h3>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                Academic progress audits indicate that you have completed <strong className="text-slate-800 font-semibold">{totalCompletedUnitsCount} learning items</strong> out of the total <strong className="text-slate-800 font-semibold">{totalGlobalUnitsCount} syllabus units</strong>.
-              </p>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-indigo-50/20 border border-indigo-100 flex items-center gap-3">
-              <CheckCircle2 className="w-6 h-6 text-indigo-600 shrink-0" />
-              <div className="space-y-0.5">
-                <span className="text-xs font-extrabold text-indigo-900">Academic Standing Status</span>
-                <span className="text-[10px] text-indigo-700 font-bold block">Excellent (Top 10% of learner cohort)</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ------------------- 6. DISCUSSION CENTER TAB ------------------- */}
-      {currentTab === 'discussions' && (
-        <div className="space-y-6 animate-in fade-in duration-300">
-          <div className="bg-white border border-sky-200/60 p-5 rounded-3xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h3 className="font-heading font-extrabold text-base text-slate-900">Discussion Center & Doubt Resolution</h3>
-              <p className="text-xs text-slate-500 mt-0.5 font-medium">Browse discussion channels, clear your doubts, and collaborate with peers.</p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-600 whitespace-nowrap">Select Course:</span>
-              <select
-                value={selectedCourseId}
-                onChange={(e) => setSelectedCourseId(e.target.value)}
-                className="bg-slate-50 hover:bg-slate-100 py-2.5 px-4 rounded-xl text-xs font-bold border border-slate-200 focus:ring-2 focus:ring-sky-500/30 outline-none transition-all cursor-pointer"
-              >
-                {courses.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.title}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {selectedCourseId && (
-            <DiscussionCenter
-              courseId={selectedCourseId}
-              onUnreadCountChange={updateUnreadCount}
-            />
-          )}
-        </div>
-      )}
-
-      {/* ------------------- 7. AI QUIZZES CENTER TAB ------------------- */}
-      {currentTab === 'ai-quizzes' && (
-        <div className="space-y-6 animate-in fade-in duration-300">
-          <AIQuizPortal
-            courseId={aiLessonContext?.courseId || defaultAiContext.courseId}
-            courseTitle={aiLessonContext?.courseTitle || defaultAiContext.courseTitle}
-            lessonId={aiLessonContext?.id || defaultAiContext.id}
-            lessonTitle={aiLessonContext?.title || defaultAiContext.title}
-            lessonContent={aiLessonContext?.content || defaultAiContext.content}
-          />
-        </div>
-      )}
-
-      {/* ------------------- 8. PRACTICE LAB SANDBOX TAB ------------------- */}
-      {currentTab === 'practice-lab' && (
-        <div className="space-y-4 animate-in fade-in duration-300">
-          {/* Professional Header Banner */}
-          <div className="bg-linear-to-r from-slate-900 via-slate-850 to-indigo-950 rounded-3xl p-5 border border-slate-800 shadow-xl text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2.5">
-                <span className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
-                  <Code2 className="w-5 h-5" />
-                </span>
-                <h2 className="font-heading font-extrabold text-xl text-white">Shaivika AI Cloud Practice Sandbox</h2>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wider">
-                  Live Execution Engine
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 max-w-2xl">
-                Multi-language interactive coding environment with AI code reviewer, instant test runner, and built-in syntax checker.
-              </p>
-            </div>
-            <div className="flex items-center gap-3 shrink-0">
-              <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl px-3 py-2 text-center">
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Engine</div>
-                <div className="text-xs font-bold text-emerald-400 font-mono">JS / TS / Python</div>
-              </div>
-              <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl px-3 py-2 text-center">
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Status</div>
-                <div className="text-xs font-bold text-sky-400 font-mono">Ready • 0ms</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Full Viewport Practice Lab IDE Container */}
-          <div className="bg-slate-950 border border-slate-850 rounded-3xl overflow-hidden shadow-2xl h-[calc(100vh-220px)] min-h-180 p-2">
-            <PracticeLab
-              standalone={true}
-              courseId={selectedCourseId || '1'}
-            />
-          </div>
-        </div>
-      )}
 
       {/* ------------------- 9. ACHIEVEMENTS & BADGES TAB ------------------- */}
       {currentTab === 'achievements' && (
         <AchievementsDashboard />
       )}
 
-      {/* ------------------- 10. LEADERBOARD TAB ------------------- */}
-      {currentTab === 'leaderboard' && (
-        <LeaderboardView />
-      )}
+      {/* Leaderboard tab removed from student dashboard */}
 
       {/* ----------------- CERTIFICATE PREVIEW MODAL ----------------- */}
       {activePreviewCert && (
@@ -1566,56 +1391,25 @@ export const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {/* ----------------- UNIFIED FLOATING AI SUITE DOCK ----------------- */}
-      {currentTab !== 'ai-quizzes' && (!isAiPanelOpen || !isQuizPortalOpen) && (
-        <div className="fixed bottom-6 right-6 z-40 flex items-center gap-2 p-1.5 rounded-full bg-slate-950/90 border border-slate-800 shadow-2xl backdrop-blur-xl transition-all duration-300 font-['Sora'] select-none">
-          {/* AI Learning Assistant Button */}
-          {!isAiPanelOpen && (
-            <button
-              onClick={() => {
-                if (!aiLessonContext) {
-                  setAiLessonContext(defaultAiContext);
-                }
-                setIsAiPanelOpen(true);
-                toast.success('AI Tutor panel activated!');
-              }}
-              className="group flex items-center gap-2.5 px-3.5 py-2.5 rounded-full bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-500/30 hover:border-emerald-400 transition-all cursor-pointer shadow-xs hover:scale-105 active:scale-95"
-              title="Open AI Learning Assistant"
-            >
-              <div className="relative flex items-center justify-center">
-                <Bot className="w-5 h-5 text-emerald-400 group-hover:rotate-12 transition-transform" />
-                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-400 rounded-full animate-ping" />
-              </div>
-              <span className="text-xs font-extrabold tracking-wide">AI Tutor</span>
-            </button>
-          )}
-
-          {/* Vertical Separator Divider */}
-          {!isAiPanelOpen && !isQuizPortalOpen && (
-            <div className="w-px h-6 bg-slate-800 my-auto" />
-          )}
-
-          {/* AI Quiz Generator Button */}
-          {!isQuizPortalOpen && (
-            <button
-              onClick={() => {
-                if (!aiLessonContext) {
-                  setAiLessonContext(defaultAiContext);
-                }
-                setIsQuizPortalOpen(true);
-                toast.success('AI Quiz Generator panel activated!');
-              }}
-              className="group flex items-center gap-2.5 px-3.5 py-2.5 rounded-full bg-purple-950/40 hover:bg-purple-900/60 text-purple-300 border border-purple-500/30 hover:border-purple-400 transition-all cursor-pointer shadow-xs hover:scale-105 active:scale-95"
-              title="Open AI Quiz Generator"
-            >
-              <div className="relative flex items-center justify-center">
-                <Brain className="w-5 h-5 text-purple-400 group-hover:scale-110 transition-transform" />
-                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-purple-400 rounded-full animate-ping" />
-              </div>
-              <span className="text-xs font-extrabold tracking-wide">AI Quiz</span>
-            </button>
-          )}
-        </div>
+      {/* AI Tutor floating dock — single button, clean enterprise style */}
+      {!isAiPanelOpen && (
+        <button
+          onClick={() => {
+            if (!aiLessonContext) {
+              setAiLessonContext(defaultAiContext);
+            }
+            setIsAiPanelOpen(true);
+            toast.success('AI Tutor activated');
+          }}
+          className="fixed bottom-6 right-6 z-40 group flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-slate-900 dark:bg-zinc-800 hover:bg-indigo-600 dark:hover:bg-indigo-600 text-white border border-slate-700 dark:border-zinc-600 hover:border-indigo-500 transition-all duration-200 cursor-pointer shadow-xl hover:shadow-indigo-500/20 hover:scale-105 active:scale-95 select-none"
+          title="Open AI Tutor"
+        >
+          <div className="relative flex items-center justify-center">
+            <Bot className="w-4.5 h-4.5 text-indigo-300 group-hover:text-white transition-colors" />
+            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-indigo-400 rounded-full animate-ping" />
+          </div>
+          <span className="text-xs font-bold tracking-wide">AI Tutor</span>
+        </button>
       )}
 
       {isAiPanelOpen && (
@@ -1640,18 +1434,7 @@ export const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {isQuizPortalOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 font-['Sora']">
-          <AIQuizPortal
-            courseId={aiLessonContext?.courseId || defaultAiContext.courseId}
-            courseTitle={aiLessonContext?.courseTitle || defaultAiContext.courseTitle}
-            lessonId={aiLessonContext?.id || defaultAiContext.id}
-            lessonTitle={aiLessonContext?.title || defaultAiContext.title}
-            lessonContent={aiLessonContext?.content || defaultAiContext.content}
-            onClose={() => setIsQuizPortalOpen(false)}
-          />
-        </div>
-      )}
+
 
     </div>
   );
