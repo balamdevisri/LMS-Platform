@@ -193,6 +193,8 @@ export class CertificateDeliveryService {
     const verifyUrl = `https://verify.kaizenq.edu/credentials/${certificateId}?studentId=${payload.studentId}`;
     const emailSubject = `🎓 Congratulations ${payload.studentName}! Your Official Certificate for "${payload.courseTitle}" is Ready`;
 
+    const courseDescription = this.getCourseDescription(payload.courseId, payload.courseTitle);
+
     const pdfFileName = `${certificateId}.pdf`;
     const htmlEmailContent = this.buildCertificateEmailHtml({
       studentName: payload.studentName,
@@ -201,6 +203,7 @@ export class CertificateDeliveryService {
       completionDate,
       googleDriveLink: driveResult.driveUrl,
       verifyUrl,
+      courseDescription,
     });
 
     try {
@@ -284,6 +287,23 @@ export class CertificateDeliveryService {
   }
 
   /**
+   * Helper to resolve a professional, rich syllabus outcomes description based on courseId/title.
+   */
+  private getCourseDescription(courseId: string, courseTitle: string): string {
+    const id = courseId?.toLowerCase() || '';
+    if (id.includes('linux')) {
+      return `Through this intensive course, you have gained expert proficiency in Linux systems administration. You have mastered command-line interface utilities, user and permission management, process control, system logs auditing, bash shell scripting automation, and networking configuration. You are now prepared to manage and scale enterprise Linux servers in production environments.`;
+    }
+    if (id.includes('git') || id.includes('github')) {
+      return `Through this intensive course, you have mastered Git version control and collaborative GitHub workflows. You have learned advanced branching models, rebasing, merge conflict resolution, pull request creation, code reviews, semantic versioning, and configuring automated CI/CD workflows. You are now equipped to participate in high-performance team development environments.`;
+    }
+    if (id.includes('dbms') || id.includes('sql') || id.includes('database')) {
+      return `Through this intensive course, you have mastered Relational Database Management Systems (RDBMS) and SQL design. You have acquired hands-on skills in schema design, normalization, entity-relationship diagrams, complex SQL queries, indexing optimizations, transaction management, ACID properties compliance, and database connection pooling. You are fully capable of design and administration of high-throughput data platforms.`;
+    }
+    return `In this professional certification track, you have mastered advanced technical skills, industry best practices, and practical problem-solving. This includes building comprehensive project structures, implementing optimized code logic, and passing rigorous evaluations to prove your expertise.`;
+  }
+
+  /**
    * Professional HTML Email Template for Certificate Delivery
    */
   private buildCertificateEmailHtml(data: {
@@ -293,6 +313,7 @@ export class CertificateDeliveryService {
     completionDate: string;
     googleDriveLink: string;
     verifyUrl: string;
+    courseDescription: string;
   }): string {
     return `<!DOCTYPE html>
 <html lang="en">
@@ -323,7 +344,7 @@ export class CertificateDeliveryService {
               </p>
             </td>
           </tr>
-
+  
           <!-- Congratulatory Header -->
           <tr>
             <td style="padding: 40px 40px 20px 40px; text-align: center;">
@@ -332,7 +353,7 @@ export class CertificateDeliveryService {
                   🎓 100% Course Completion Verified
                 </span>
               </div>
-
+  
               <h2 style="margin: 0; font-size: 28px; font-weight: 900; color: #0b1a30; line-height: 1.2;">
                 Congratulations, ${data.studentName}!
               </h2>
@@ -346,6 +367,16 @@ export class CertificateDeliveryService {
                 <div style="font-size: 18px; font-weight: 900; color: #0b1a30; margin-top: 4px;">
                   ${data.courseTitle}
                 </div>
+              </div>
+  
+              <!-- Course Outcomes & Description Section -->
+              <div style="border-top: 1px dashed #cbd5e1; padding-top: 20px; margin-top: 20px; text-align: left;">
+                <h3 style="margin: 0 0 8px 0; font-size: 13px; font-weight: 800; color: #0b1a30; text-transform: uppercase; letter-spacing: 0.05em;">
+                  📚 What You Mastered in This Course:
+                </h3>
+                <p style="margin: 0; font-size: 13px; color: #475569; line-height: 1.6; font-weight: 500;">
+                  ${data.courseDescription}
+                </p>
               </div>
             </td>
           </tr>
