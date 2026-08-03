@@ -101,6 +101,8 @@ export class GoogleDriveService {
         } catch (folderErr: any) {
           logger.warn(`⚠️ [GOOGLE DRIVE] Root Folder ID "${this.rootFolderId}" invalid or unaccessible: ${folderErr?.message}`);
         }
+      } else {
+        logger.warn('⚠️ [GOOGLE DRIVE] GOOGLE_DRIVE_FOLDER_ID is not configured in .env! Service accounts have 0 bytes of default storage quota. To prevent upload errors, please create a folder in your Google Drive, share it with the service account email (name-kaizenq-drive-bot@shaivika-lms-ai.iam.gserviceaccount.com) as an Editor, and set GOOGLE_DRIVE_FOLDER_ID in backend/.env.');
       }
 
       return true;
