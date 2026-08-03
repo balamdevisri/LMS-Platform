@@ -663,11 +663,12 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       {/* Floating AI Learning Assistant Trigger Button */}
       <button
         onClick={() => setIsAITutorOpen(true)}
-        className="fixed bottom-6 right-6 z-50 p-4 rounded-full bg-linear-to-r from-amber-500 via-amber-400 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-extrabold shadow-2xl shadow-amber-500/40 flex items-center gap-2.5 transition-all duration-300 hover:scale-105 active:scale-95 border-2 border-amber-300/80 cursor-pointer"
+        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 p-3 sm:p-4 rounded-full bg-linear-to-r from-amber-500 via-amber-400 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-extrabold shadow-2xl shadow-amber-500/40 flex items-center gap-2 transition-all duration-300 hover:scale-105 active:scale-95 border-2 border-amber-300/80 cursor-pointer"
         title="Open AI Learning Assistant"
       >
-        <Sparkles className="w-5 h-5 fill-slate-950 animate-pulse" />
-        <span className="text-xs tracking-wide">AI Learning Assistant</span>
+        <Sparkles className="w-5 h-5 fill-slate-950 animate-pulse shrink-0" />
+        <span className="text-xs tracking-wide hidden sm:inline">AI Learning Assistant</span>
+        <span className="text-xs tracking-wide sm:hidden">AI Tutor</span>
       </button>
 
       {/* AI Learning Assistant Drawer */}

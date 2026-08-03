@@ -286,7 +286,15 @@ export const LessonViewer: React.FC<LessonViewerProps> = React.memo(({
   };
 
   const formattedBadge = useMemo(() => {
-    return lesson.badge || 'Core Lesson';
+    const raw = lesson.badge || 'Core Lesson';
+    if (/^unit-[\d-]+$/i.test(raw) || /^lesson\s+unit-[\d-]+$/i.test(raw)) {
+      const nums = raw.match(/\d+/g);
+      if (nums && nums.length > 0) {
+        const lastNum = nums[nums.length - 1];
+        return `Subtopic ${lastNum.padStart(2, '0')}`;
+      }
+    }
+    return raw.replace(/^lesson\s+unit-[\d-]+\s*:?\s*/i, 'Subtopic ').replace(/^unit-[\d-]+\s*:?\s*/i, 'Subtopic ');
   }, [lesson.badge]);
 
   const formattedTitle = useMemo(() => {
