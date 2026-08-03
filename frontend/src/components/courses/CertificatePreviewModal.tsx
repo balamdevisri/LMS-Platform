@@ -16,6 +16,33 @@ export const CertificatePreviewModal: React.FC<CertificatePreviewModalProps> = (
   const { user, userProfile } = useAuth();
   const [copied, setCopied] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [scale, setScale] = useState(1);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleResize = () => {
+      if (containerRef.current) {
+        const parent = containerRef.current.parentElement;
+        if (parent) {
+          const parentWidth = parent.clientWidth;
+          const parentHeight = parent.clientHeight;
+          const scaleW = (parentWidth - 16) / 950;
+          const scaleH = (parentHeight - 16) / 670;
+          const newScale = Math.max(Math.min(scaleW, scaleH, 1), 0.3);
+          setScale(newScale);
+        }
+      }
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    const timer = setTimeout(handleResize, 150);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(timer);
+    };
+  }, []);
 
   // Dynamic student info fallback from auth context
   const dynamicStudentName = certificate.studentName || userProfile?.name || user?.displayName || userProfile?.githubUsername || 'Student User';
@@ -537,8 +564,8 @@ export const CertificatePreviewModal: React.FC<CertificatePreviewModalProps> = (
                   </div>
 
                   <div class="sig-box">
-                    <div class="sig-title">Founder & CEO</div>
-                    <div class="sig-subtitle">Shaivika Groups</div>
+                    <div class="sig-title">Awarded By</div>
+                    <div class="sig-subtitle">KaizenQ Team</div>
                   </div>
                 </div>
 
@@ -586,8 +613,17 @@ export const CertificatePreviewModal: React.FC<CertificatePreviewModalProps> = (
         </div>
 
         {/* Certificate Preview Frame (Landscape Canvas matching exact image design) */}
-        <div className="flex-1 flex items-center justify-center overflow-x-auto p-2 sm:p-4 bg-slate-950 border border-slate-800/80 rounded-2xl shadow-inner">
-          <div className="w-[950px] h-[670px] bg-white relative text-slate-900 flex flex-col justify-between shrink-0 shadow-2xl rounded-sm overflow-hidden select-text p-10 font-['Sora']">
+        <div className="flex-1 flex items-center justify-center overflow-hidden p-2 sm:p-4 bg-slate-950 border border-slate-800/80 rounded-2xl shadow-inner min-h-[300px] relative">
+          <div
+            ref={containerRef}
+            className="bg-white relative text-slate-900 flex flex-col justify-between shrink-0 shadow-2xl rounded-sm overflow-hidden select-text p-10 font-['Sora'] transition-transform duration-200"
+            style={{
+              width: '950px',
+              height: '670px',
+              transform: `scale(${scale})`,
+              transformOrigin: 'center center',
+            }}
+          >
             
             {/* Top-Left & Bottom-Right Corner Sweeps */}
             <div className="absolute top-0 left-0 w-48 h-48 bg-linear-to-br from-[#d4af37] via-[#f9e076] to-[#b8860b] clip-path-polygon-[0_0,100%_0,0_100%] z-0" />
@@ -713,8 +749,8 @@ export const CertificatePreviewModal: React.FC<CertificatePreviewModalProps> = (
                 </div>
 
                 <div className="text-center w-40">
-                  <span className="text-xs font-black text-[#0b1a30] block uppercase tracking-wider">Founder & CEO</span>
-                  <span className="text-[9px] font-bold text-slate-500 border-t border-slate-300 pt-1 block uppercase">Shaivika Groups</span>
+                  <span className="text-xs font-black text-[#0b1a30] block uppercase tracking-wider">Awarded By</span>
+                  <span className="text-[9px] font-bold text-slate-500 border-t border-slate-300 pt-1 block uppercase">KaizenQ Team</span>
                 </div>
               </div>
 

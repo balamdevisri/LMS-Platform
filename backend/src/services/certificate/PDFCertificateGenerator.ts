@@ -318,7 +318,7 @@ export class PDFCertificateGenerator {
           .fillColor('#0b1a30')
           .fontSize(10)
           .font('Helvetica-Bold')
-          .text('Founder & CEO', width - 240, sigY, { width: 160, align: 'center' });
+          .text('Awarded By', width - 240, sigY, { width: 160, align: 'center' });
         doc
           .moveTo(width - 240, sigY + 16)
           .lineTo(width - 80, sigY + 16)
@@ -328,7 +328,7 @@ export class PDFCertificateGenerator {
           .fillColor('#64748b')
           .fontSize(8)
           .font('Helvetica-Bold')
-          .text('SHAIVIKA GROUPS', width - 240, sigY + 20, { width: 160, align: 'center' });
+          .text('KAIZENQ TEAM', width - 240, sigY + 20, { width: 160, align: 'center' });
 
         doc.end();
       } catch (err: any) {
