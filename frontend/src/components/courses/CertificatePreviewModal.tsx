@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Award, Copy, Printer, Share2, X, Check, ShieldCheck, Clock, BookOpen, Calendar } from 'lucide-react';
+import { Award, Copy, Printer, Share2, X, Check, ShieldCheck, Clock, BookOpen, Calendar, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Certificate } from '../../services/achievementService';
 import { useAuth } from '@/contexts/AuthContext';
@@ -739,6 +739,18 @@ export const CertificatePreviewModal: React.FC<CertificatePreviewModalProps> = (
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
+            {certificate.googleDriveLink && (
+              <a
+                href={certificate.googleDriveLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl flex items-center gap-2 transition-all cursor-pointer shadow-md shadow-emerald-500/10"
+              >
+                <Download className="w-4 h-4" />
+                <span>Download PDF (Google Drive)</span>
+              </a>
+            )}
+
             <button
               onClick={handleShare}
               disabled={sharing}

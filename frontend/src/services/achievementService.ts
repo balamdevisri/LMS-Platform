@@ -15,6 +15,7 @@ export interface Certificate {
   courseDuration?: string;
   modulesCount?: number;
   score?: number;
+  googleDriveLink?: string;
 }
 
 export interface Badge {
