@@ -564,8 +564,8 @@ export const CertificatePreviewModal: React.FC<CertificatePreviewModalProps> = (
                   </div>
 
                   <div class="sig-box">
-                    <div class="sig-title">Awarded By</div>
-                    <div class="sig-subtitle">KaizenQ Team</div>
+                    <div class="sig-title">Founder & CEO</div>
+                    <div class="sig-subtitle">Shaivika Groups</div>
                   </div>
                 </div>
 
@@ -749,8 +749,8 @@ export const CertificatePreviewModal: React.FC<CertificatePreviewModalProps> = (
                 </div>
 
                 <div className="text-center w-40">
-                  <span className="text-xs font-black text-[#0b1a30] block uppercase tracking-wider">Awarded By</span>
-                  <span className="text-[9px] font-bold text-slate-500 border-t border-slate-300 pt-1 block uppercase">KaizenQ Team</span>
+                  <span className="text-xs font-black text-[#0b1a30] block uppercase tracking-wider">Founder & CEO</span>
+                  <span className="text-[9px] font-bold text-slate-500 border-t border-slate-300 pt-1 block uppercase">Shaivika Groups</span>
                 </div>
               </div>
 
