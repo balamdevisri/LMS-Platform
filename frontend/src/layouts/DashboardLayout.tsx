@@ -16,7 +16,6 @@ import {
   CheckCheck,
   Trash2,
   ExternalLink,
-  PlayCircle,
   Brain,
   Trophy,
   BarChart3,
@@ -112,7 +111,6 @@ export const DashboardLayout: React.FC = () => {
       items: [
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
         { name: 'My Courses', href: '/dashboard/courses', icon: BookOpen },
-        { name: 'Continue Learning', href: '/dashboard?tab=continue-learning', icon: PlayCircle },
         { name: 'AI Tutor', href: '/dashboard?tab=ai-tutor', icon: Brain },
       ],
     },
