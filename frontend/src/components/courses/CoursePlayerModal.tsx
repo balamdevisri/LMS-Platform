@@ -1267,181 +1267,159 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
         : 'bg-slate-50 text-slate-900'
     }`}>
       {/* ----------------- 1. WHITE & SKY BLUE TOP NAVIGATION HEADER ----------------- */}
-      <header className={`h-16 shrink-0 border-b px-3 sm:px-8 flex items-center justify-between gap-2 sm:gap-4 z-10 shadow-xs transition-colors ${
+      <header className={`h-16 shrink-0 border-b px-3 sm:px-6 flex items-center justify-between gap-2 sm:gap-4 z-40 shadow-xs transition-colors ${
         isReadingMode ? 'bg-[#f4efe4] border-[#e2d9c8]' : 'bg-white border-sky-100'
       }`}>
-        <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
-          {/* Mobile Menu Toggle Button (Drawer) */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 rounded-xl bg-sky-50 border border-sky-200 md:hidden text-sky-700 cursor-pointer shrink-0"
-          >
-            <MenuIcon className="w-4 h-4" />
-          </button>
-
-          {/* Desktop/Tablet Collapse Sidebar Toggle Button */}
+        {/* Left Actions & Course Breadcrumb */}
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="hidden md:flex p-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 transition-colors items-center gap-2 text-xs font-bold cursor-pointer shrink-0"
+            className="p-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 transition-all flex items-center gap-1.5 text-xs font-extrabold cursor-pointer shrink-0 active:scale-95"
+            title={sidebarCollapsed ? 'Expand Navigation Sidebar' : 'Collapse Navigation Sidebar'}
           >
             <MenuIcon className="w-4 h-4" />
-            <span className="hidden lg:inline">{sidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}</span>
+            <span className="hidden xl:inline">{sidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}</span>
           </button>
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 transition-colors flex items-center gap-1.5 text-xs font-bold cursor-pointer shrink-0"
+            className="p-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 transition-all flex items-center gap-1.5 text-xs font-extrabold cursor-pointer shrink-0 active:scale-95"
+            title="Exit Course Player"
           >
-            <ChevronLeft className="w-4 h-4" /> <span className="hidden sm:inline">Exit</span>
+            <ChevronLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">Exit</span>
           </button>
 
-          <div className="h-6 w-px bg-sky-200 hidden sm:block shrink-0" />
+          <div className="h-5 w-px bg-sky-200 hidden sm:block shrink-0" />
 
-          <div className="space-y-0.5 min-w-0 flex-1">
-            <h1 className="font-heading font-extrabold text-xs sm:text-sm text-slate-900 truncate max-w-28 xs:max-w-40 sm:max-w-md lg:max-w-xl leading-tight">
+          <div className="min-w-0 flex flex-col justify-center">
+            <h1 className="font-heading font-extrabold text-xs sm:text-sm text-slate-900 truncate max-w-28 xs:max-w-44 sm:max-w-xs md:max-w-sm leading-tight">
               {course.title}
             </h1>
-            <span className="text-[9px] font-bold text-slate-500 block truncate">
-              Category: {course.category}
+            <span className="text-[10px] font-semibold text-slate-500 truncate hidden sm:block">
+              {course.category} • Module 0{activeModuleIdx + 1}
             </span>
-          </div>
-
-          <div className="h-6 w-px bg-sky-200 hidden lg:block shrink-0" />
-
-          {/* Upgraded Animated Progress Tracker */}
-          <div className="hidden lg:flex flex-col gap-1 w-44 lg:w-56 shrink-0">
-            <div className="flex items-center justify-between text-[9px] font-extrabold text-slate-600 uppercase">
-              <span className="text-sky-700">{progressPercent}% Completed</span>
-              <span className="text-emerald-700">{completedLessonsCount}/{allLessons.length} Lessons</span>
-            </div>
-            <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden border border-sky-100/50 relative">
-              <div
-                className="h-full bg-linear-to-r from-sky-500 via-indigo-500 to-emerald-500 rounded-full transition-all duration-700 ease-out"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
-            <div className="flex items-center justify-between text-[8px] font-bold text-slate-400 uppercase">
-              <span>Remaining: {allLessons.length - completedLessonsCount}</span>
-              <span>~{Math.max(0, (allLessons.length - completedLessonsCount) * 5)} mins left</span>
-            </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-          {/* Modules Menu Drawer Button */}
-          <button
-            onClick={() => setIsModulesMenuOpen(true)}
-            className="py-1.5 px-2.5 sm:px-3.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-extrabold flex items-center gap-1.5 cursor-pointer transition-all shadow-md shadow-sky-600/20 shrink-0"
-          >
-            <Layers className="w-4 h-4 text-white" />
-            <span className="hidden sm:inline">Modules Menu</span>
-            <span className="sm:hidden text-[10px]">Modules</span>
-          </button>
+        {/* Center Compact Progress Tracker */}
+        <div className="hidden lg:flex items-center gap-3 px-3 py-1.5 rounded-2xl bg-sky-50/80 border border-sky-100 shrink-0">
+          <div className="w-28 xl:w-36 h-2 bg-slate-200/80 rounded-full overflow-hidden relative">
+            <div
+              className="h-full bg-linear-to-r from-sky-500 via-indigo-500 to-emerald-500 rounded-full transition-all duration-500"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+          <span className="text-[11px] font-extrabold text-sky-900 font-mono">
+            {progressPercent}% <span className="text-slate-400 font-normal font-sans">({completedLessonsCount}/{allLessons.length})</span>
+          </span>
+        </div>
 
-          {/* Reading Mode Toggle Button */}
+        {/* Right Tools & Actions */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Reading Mode Toggle */}
           <button
             onClick={() => {
               setIsReadingMode(!isReadingMode);
               toast.info(isReadingMode ? 'Switched to Sky Blue Theme' : '📖 Sepia Reading Mode Activated!');
             }}
-            className={`py-1.5 px-2.5 sm:px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shrink-0 ${
+            className={`p-2 sm:px-3 sm:py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shrink-0 ${
               isReadingMode
                 ? 'bg-amber-100 border-amber-300 text-amber-900'
                 : 'bg-sky-50 border-sky-200 text-sky-800 hover:bg-sky-100'
             }`}
+            title="Toggle Sepia Reading Mode"
           >
             {isReadingMode ? <Sun className="w-4 h-4 text-amber-600" /> : <Moon className="w-4 h-4 text-sky-600" />}
-            <span className="hidden md:inline">{isReadingMode ? 'Sepia Mode' : 'Reading Mode'}</span>
+            <span className="hidden xl:inline">{isReadingMode ? 'Sepia Mode' : 'Reading Mode'}</span>
           </button>
 
-          {/* Resources Button */}
+          {/* Resources */}
           <button
             onClick={() => setIsResourcesOpen(true)}
-            className="py-1.5 px-2.5 sm:px-3 rounded-xl bg-sky-600 text-white hover:bg-sky-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-sm shrink-0"
+            className="p-2 sm:px-3 sm:py-2 rounded-xl bg-sky-600 text-white hover:bg-sky-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-xs shrink-0"
+            title="Resources"
           >
             <FolderDown className="w-4 h-4" />
             <span className="hidden md:inline">Resources</span>
           </button>
 
-          {/* Bookmark Toggle Icon Button */}
-          <button
-            onClick={handleToggleBookmark}
-            className={`p-2 rounded-xl border transition-all cursor-pointer shrink-0 ${
-              isCurrentSubtopicBookmarked
-                ? 'bg-amber-50 border-amber-300 text-amber-600 shadow-2xs animate-in'
-                : 'bg-slate-50 border-slate-200 text-slate-400 hover:text-slate-600'
-            }`}
-            title={isCurrentSubtopicBookmarked ? 'Remove Bookmark' : 'Bookmark this Lesson'}
-          >
-            <Bookmark className={`w-4 h-4 ${isCurrentSubtopicBookmarked ? 'fill-amber-500 text-amber-500' : ''}`} />
-          </button>
-
-          {/* Notes & Bookmarks Toggle Button */}
+          {/* Notes Button */}
           <button
             onClick={() => {
               setIsNotesPanelOpen(!isNotesPanelOpen);
               setIsAiPanelOpen(false);
             }}
-            className={`py-1.5 px-2.5 sm:px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shrink-0 ${
+            className={`p-2 sm:px-3 sm:py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shrink-0 ${
               isNotesPanelOpen
                 ? 'bg-sky-100 border-sky-300 text-sky-800'
                 : 'bg-white border-sky-200 text-slate-700 hover:bg-sky-50'
             }`}
+            title="Toggle Personal Notes"
           >
             <BookOpen className="w-4 h-4 text-sky-600" />
-            <span className="hidden lg:inline">Notes</span>
-            {bookmarks.length > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full bg-amber-100 border border-amber-200 text-amber-800 text-[9px] font-extrabold leading-none">
-                {bookmarks.length}
-              </span>
-            )}
+            <span className="hidden md:inline">Notes</span>
           </button>
 
-          {/* AI Learning Assistant Toggle Button */}
+          {/* AI Tutor */}
           <button
             onClick={() => {
               setIsAiPanelOpen(!isAiPanelOpen);
               setIsNotesPanelOpen(false);
               setIsQuizPortalOpen(false);
             }}
-            className={`py-1.5 px-2.5 sm:px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shrink-0 ${
+            className={`p-2 sm:px-3 sm:py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shrink-0 ${
               isAiPanelOpen
-                ? 'bg-emerald-600 border-emerald-600 text-white shadow-md shadow-emerald-600/20'
-                : 'bg-emerald-50 border-emerald-200/80 text-emerald-800 hover:bg-emerald-100'
+                ? 'bg-emerald-600 border-emerald-600 text-white shadow-md'
+                : 'bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100'
             }`}
-            title="Toggle AI Tutor Companion"
+            title="AI Study Assistant"
           >
-            <Sparkles className={`w-4 h-4 ${isAiPanelOpen ? 'text-white' : 'text-emerald-600'} animate-pulse`} />
-            <span className="hidden sm:inline">AI Tutor</span>
+            <Sparkles className="w-4 h-4" />
+            <span className="hidden md:inline">AI Tutor</span>
           </button>
 
-          {/* AI Quiz Generator Toggle Button */}
+          {/* Bookmark Button */}
+          <button
+            onClick={handleToggleBookmark}
+            className={`p-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shrink-0 ${
+              isCurrentSubtopicBookmarked
+                ? 'bg-amber-100 border-amber-300 text-amber-900'
+                : 'bg-white border-sky-200 text-slate-700 hover:bg-sky-50'
+            }`}
+            title={isCurrentSubtopicBookmarked ? 'Remove Bookmark' : 'Bookmark this Subtopic'}
+          >
+            <Bookmark className={`w-4 h-4 ${isCurrentSubtopicBookmarked ? 'fill-amber-500 text-amber-500' : 'text-sky-600'}`} />
+          </button>
+
+          {/* AI Quiz Toggle Button */}
           <button
             onClick={() => {
               setIsQuizPortalOpen(!isQuizPortalOpen);
               setIsAiPanelOpen(false);
               setIsNotesPanelOpen(false);
             }}
-            className={`py-1.5 px-2.5 sm:px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shrink-0 ${
+            className={`p-2 sm:px-3 sm:py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shrink-0 ${
               isQuizPortalOpen
-                ? 'bg-purple-600 border-purple-600 text-white shadow-md shadow-purple-600/20'
-                : 'bg-purple-50 border-purple-200/80 text-purple-800 hover:bg-purple-100'
+                ? 'bg-purple-600 border-purple-600 text-white shadow-md'
+                : 'bg-purple-50 border-purple-200 text-purple-800 hover:bg-purple-100'
             }`}
             title="Toggle AI Quiz Generator"
           >
-            <Brain className={`w-4 h-4 ${isQuizPortalOpen ? 'text-white' : 'text-purple-600'}`} />
-            <span className="hidden sm:inline">AI Quiz</span>
+            <Brain className="w-4 h-4" />
+            <span className="hidden xl:inline">AI Quiz</span>
           </button>
 
-          {/* XP Reward Badge */}
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 font-bold text-xs shrink-0">
-            <Zap className="w-3.5 h-3.5 text-amber-500 fill-current animate-bounce" />
+          {/* XP Badge */}
+          <div className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 font-extrabold text-xs shrink-0">
+            <Zap className="w-3.5 h-3.5 text-amber-500 fill-current" />
             <span>{userXP} XP</span>
           </div>
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-slate-100 hover:bg-rose-100 hover:text-rose-700 text-slate-500 transition-colors cursor-pointer shrink-0"
+            className="p-2 rounded-xl hover:bg-rose-100 hover:text-rose-700 text-slate-400 transition-colors cursor-pointer shrink-0"
+            title="Close Course Player"
           >
             <X className="w-5 h-5" />
           </button>
@@ -1859,7 +1837,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                             ) : !isDone ? (
                               <Lock className="w-3.5 h-3.5 text-slate-400" />
                             ) : null}
-                            <span>Subtopic {sub.id}</span>
+                            <span>Subtopic 0{sIdx + 1}</span>
                           </button>
                         );
                       })}
@@ -1879,12 +1857,12 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                     }`}
                   >
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-sky-100 pb-4">
-                      <div className="space-y-1">
-                        <span className="px-3 py-1 rounded-lg bg-sky-100 border border-sky-200 text-sky-800 text-xs font-extrabold uppercase">
-                          Subtopic {currentSubtopic.id} • Exam & Interview Target
+                      <div className="space-y-1.5 min-w-0 flex-1">
+                        <span className="inline-block px-3 py-1 rounded-lg bg-sky-100 border border-sky-200 text-sky-800 text-xs font-extrabold uppercase">
+                          Subtopic 0{currentSubtopicIdx + 1} • Key Learning Target
                         </span>
-                        <h3 className="font-heading font-extrabold text-lg sm:text-xl text-slate-900">
-                          {currentSubtopic.title}
+                        <h3 className="font-heading font-extrabold text-xl sm:text-2xl text-slate-900 leading-snug">
+                          {currentSubtopic.title.replace(/^(\d+\.\d+\.\d+\s*)/, '')}
                         </h3>
                       </div>
 
