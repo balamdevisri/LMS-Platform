@@ -63,7 +63,7 @@ export const CourseView: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { courseId, slug } = useParams();
-  const [, setSearchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const studentAvatar = userProfile?.photoURL || user?.photoURL || undefined;
   const studentName = userProfile?.name || user?.displayName || userProfile?.githubUsername || 'Student User';
@@ -86,7 +86,7 @@ export const CourseView: React.FC = () => {
     return targetCourseId ? courseService.isCourseEnrolled(targetCourseId, userId) : false;
   });
 
-  const [isLearningMode, setIsLearningMode] = useState(false);
+  const [isLearningMode, setIsLearningMode] = useState(() => searchParams.get('mode') === 'learn');
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });

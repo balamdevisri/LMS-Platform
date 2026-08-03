@@ -7,10 +7,11 @@ import type { ModuleData } from './ModuleAccordion';
 import { useAuth } from '@/contexts/AuthContext';
 import { courseService } from '@/services/courseService';
 import { useCourseTimeTracker } from '@/hooks/useCourseTimeTracker';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import { dbmsLessonsData } from '@/data/dbmsLessonsData';
 import { LazyViewport } from './LazyViewport';
+import { ModulesTab } from './ModulesTab';
 
 const RightSidebar = lazy(() => import('./RightSidebar').then(m => ({ default: m.RightSidebar })));
 const AIQuizPortal = lazy(() => import('../courses/AIQuizPortal').then(m => ({ default: m.AIQuizPortal })));
@@ -512,7 +513,46 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         isNightMode={isNightMode}
       />
 
-      <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col lg:flex-row gap-10 relative z-10">
+      <div className="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col xl:flex-row gap-8 relative z-10">
+        {/* Docked Left Sidebar for Desktop: Modules & Lessons */}
+        <aside className={`hidden xl:block w-80 shrink-0 rounded-3xl border p-4 sticky top-28 h-[calc(100vh-140px)] overflow-y-auto ${
+          isNightMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-sky-100 shadow-sm'
+        }`}>
+          <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-800/40">
+            <BookOpen className={`w-5 h-5 ${isNightMode ? 'text-cyan-400' : 'text-sky-600'}`} />
+            <h3 className={`font-heading font-extrabold text-sm ${isNightMode ? 'text-white' : 'text-slate-900'}`}>
+              Course Navigation
+            </h3>
+          </div>
+          <ModulesTab
+            courseTitle={courseTitle}
+            modules={modules}
+            selectedLessonId={selectedLessonId}
+            completedLessonIds={completedLessonIds}
+            onSelectLesson={(id) => {
+              if (!isLessonUnlocked(id)) {
+                const targetMod = modules.find((m) =>
+                  m.lessons.some((l) => String(l.id) === String(id))
+                );
+                const modIdx = modules.findIndex((m) =>
+                  m.lessons.some((l) => String(l.id) === String(id))
+                );
+                const prevMod = modIdx > 0 ? modules[modIdx - 1] : null;
+                toast.warning(
+                  `🔒 Module Locked! Complete all lessons in "${prevMod?.title || 'Previous Module'}" & claim XP rewards first to unlock "${targetMod?.title || 'Next Module'}"!`
+                );
+                return;
+              }
+              setSelectedLessonId(id);
+              if (containerRef.current) {
+                containerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+              }
+            }}
+            progressPercent={progressPercent}
+            isNightMode={isNightMode}
+          />
+        </aside>
+
         <main className="flex-1 min-w-0 space-y-8">
           <LessonViewer
             lesson={activeLessonFull}
