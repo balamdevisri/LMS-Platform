@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, Suspense, lazy } from 'react';
-import { Clock, Terminal as TerminalIcon, Sparkles, CheckCircle2, ChevronRight, Zap, Loader2, BookOpen } from 'lucide-react';
+import { Clock, Terminal as TerminalIcon, Sparkles, CheckCircle2, ChevronRight, Zap, Loader2, BookOpen, Award } from 'lucide-react';
 import { toast } from 'sonner';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { LazyViewport } from './LazyViewport';
@@ -34,6 +34,7 @@ interface LessonViewerProps {
   isNightMode?: boolean;
   courseTitle?: string;
   courseId?: string;
+  isCourseFullyCompleted?: boolean;
 }
 
 interface GeneratedContent {
@@ -253,6 +254,7 @@ export const LessonViewer: React.FC<LessonViewerProps> = React.memo(({
   isNightMode = false,
   courseTitle = '',
   courseId: _courseId = '',
+  isCourseFullyCompleted = false,
 }) => {
   const [timeLeft, setTimeLeft] = useState<number>(15);
 
@@ -479,15 +481,32 @@ export const LessonViewer: React.FC<LessonViewerProps> = React.memo(({
 
           {/* NEXT LESSON BUTTON */}
           <button
-            onClick={onNextLesson}
+            onClick={() => {
+              if (isCourseFullyCompleted) {
+                toast.success("🏆 Course Completed! Congrats! Access your certificate via the header.");
+                return;
+              }
+              onNextLesson();
+            }}
             className={`py-3 px-5 rounded-2xl text-xs font-extrabold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer w-full sm:w-auto ${
-              isNightMode
+              isCourseFullyCompleted
+                ? 'bg-linear-to-r from-amber-500 to-yellow-450 border-amber-300 text-slate-950 hover:brightness-105 shadow-md shadow-amber-500/10'
+                : isNightMode
                 ? 'bg-cyan-600 hover:bg-cyan-500 text-white border border-cyan-400/30 shadow-lg shadow-cyan-950'
                 : 'btn-blue-primary shadow-lg shadow-sky-500/20'
             }`}
           >
-            <span>Next Lesson</span>
-            <ChevronRight className="w-4 h-4" />
+            {isCourseFullyCompleted ? (
+              <>
+                <Award className="w-4 h-4 fill-slate-950 animate-pulse" />
+                <span>Completed 🎉 Congrats!</span>
+              </>
+            ) : (
+              <>
+                <span>Next Lesson</span>
+                <ChevronRight className="w-4 h-4" />
+              </>
+            )}
           </button>
         </div>
       </footer>

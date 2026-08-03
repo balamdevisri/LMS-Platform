@@ -699,6 +699,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
             isNightMode={isNightMode}
             courseTitle={courseTitle}
             courseId={String(courseId)}
+            isCourseFullyCompleted={isCourseFullyCompleted}
           />
 
           {/* AI Quiz Generator & Assessment Portal Section */}

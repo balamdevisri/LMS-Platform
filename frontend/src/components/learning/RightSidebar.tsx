@@ -165,6 +165,10 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
 
         <button
           onClick={() => {
+            if (completedCount >= totalLessons) {
+              toast.success("🏆 Course Completed! Congrats! Access your certificate via the header.");
+              return;
+            }
             if (!isCompleted) {
               toast.warning('🔒 XP Reward Pending! Please click "⚡ Claim +50 XP" to claim your XP before continuing to the next lesson!');
               return;
@@ -172,13 +176,24 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
             onNextLesson();
           }}
           className={`w-full py-3 px-4 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer border ${
-            isNightMode
+            completedCount >= totalLessons
+              ? 'bg-linear-to-r from-amber-500 to-yellow-455 border-amber-300 text-slate-950 hover:brightness-105 shadow-md shadow-amber-500/10'
+              : isNightMode
               ? 'bg-slate-800/80 hover:bg-slate-800 border-slate-700 text-slate-200'
               : 'bg-sky-50 hover:bg-sky-100/80 border-sky-100 text-sky-800'
           }`}
         >
-          <span>Continue to Next Lesson</span>
-          <ChevronRight className={`w-4 h-4 ${isNightMode ? 'text-cyan-400' : 'text-sky-600'}`} />
+          {completedCount >= totalLessons ? (
+            <>
+              <Award className="w-4 h-4 fill-slate-950 animate-pulse" />
+              <span>Completed 🎉 Congrats!</span>
+            </>
+          ) : (
+            <>
+              <span>Continue to Next Lesson</span>
+              <ChevronRight className={`w-4 h-4 ${isNightMode ? 'text-cyan-400' : 'text-sky-600'}`} />
+            </>
+          )}
         </button>
       </div>
 
