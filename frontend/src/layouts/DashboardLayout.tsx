@@ -98,7 +98,6 @@ export const DashboardLayout: React.FC = () => {
     { name: 'Courses', href: '/admin/courses', icon: BookOpen },
     { name: 'Students', href: '/admin/students', icon: UserCheck },
     { name: 'Instructors', href: '/admin/instructors', icon: GraduationCap },
-    { name: 'Content', href: '/admin/content-management', icon: FileText },
     { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
     { name: 'Settings', href: '/admin/settings', icon: Settings },
   ];
