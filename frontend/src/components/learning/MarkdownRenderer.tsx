@@ -184,12 +184,16 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
   );
 };
 
-// Helper for bold and inline code formatting with Night Mode contrast
+// Helper for bold, italic and inline code formatting with Night Mode contrast
 function renderInlineStyles(text: string, isNightMode: boolean = false): React.ReactNode {
-  const parts = text.split(/(`[^`]+`|\*\*[^*]+\*\*)/g);
+  if (!text) return null;
+  // Preserve escaped asterisks
+  const clean = text.replace(/\\[*]/g, '\u0000AST\u0000');
+  const parts = clean.split(/(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*)/g);
 
   return parts.map((part, i) => {
-    if (part.startsWith('`') && part.endsWith('`')) {
+    let unescaped = part.replace(/\u0000AST\u0000/g, '*');
+    if (unescaped.startsWith('`') && unescaped.endsWith('`') && unescaped.length >= 2) {
       return (
         <code
           key={i}
@@ -199,20 +203,31 @@ function renderInlineStyles(text: string, isNightMode: boolean = false): React.R
               : 'bg-sky-50 text-sky-700 border-sky-200'
           }`}
         >
-          {part.slice(1, -1)}
+          {unescaped.slice(1, -1)}
         </code>
       );
     }
-    if (part.startsWith('**') && part.endsWith('**')) {
+    if (unescaped.startsWith('**') && unescaped.endsWith('**') && unescaped.length >= 4) {
       return (
         <strong
           key={i}
           className={`font-bold ${isNightMode ? 'text-white' : 'text-slate-900'}`}
         >
-          {part.slice(2, -2)}
+          {unescaped.slice(2, -2)}
         </strong>
       );
     }
-    return part;
+    if (unescaped.startsWith('*') && unescaped.endsWith('*') && unescaped.length >= 2) {
+      return (
+        <em
+          key={i}
+          className={`italic ${isNightMode ? 'text-cyan-200' : 'text-slate-800'}`}
+        >
+          {unescaped.slice(1, -1)}
+        </em>
+      );
+    }
+    // Clean any remaining stray asterisks from plain text
+    return unescaped.replace(/\*/g, '');
   });
 }

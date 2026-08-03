@@ -81,105 +81,106 @@ export function generateStructuredLessonContent(title: string, content: string):
     .filter(s => s.length > 15 && !s.startsWith('#') && !s.startsWith('-') && !s.startsWith('*') && !s.startsWith('`'));
 
   // Define database templates dynamically to guarantee uniqueness for DBMS lessons
+  // Define database templates dynamically to guarantee uniqueness for DBMS lessons
   if (isDatabaseCourse) {
     if (titleLower.includes('what is data') || titleLower.includes('1.1')) {
       studyGuide = `This guide covers the entry point of information science:\n\n` +
-        `📖 **1. Definition of Data**: Data is raw, unprocessed facts, numbers, or observations without context.\n\n` +
-        `📖 **2. Concept of Information**: Information is data that has been structured and organized to have meaning.\n\n` +
-        `📖 **3. Definition of Metadata**: Metadata provides descriptor details about other data elements.\n\n` +
-        `📖 **4. Representation**: Computers represent data internally in binary format to handle calculations.`;
+        `📖 1. Definition of Data: Data is raw, unprocessed facts, numbers, or observations without context.\n\n` +
+        `📖 2. Concept of Information: Information is data that has been structured and organized to have meaning.\n\n` +
+        `📖 3. Definition of Metadata: Metadata provides descriptor details about other data elements.\n\n` +
+        `📖 4. Representation: Computers represent data internally in binary format to handle calculations.`;
       takeaways = [
         'Data represents raw, unorganized elements like numbers and words.',
         'Information is processed data that provides context and meaning.',
         'Metadata acts as data about data, clarifying details like formats and sizes.',
         'Structured databases turn raw data into actionable information.'
       ];
-      aiBreakdown = `**Data & Information Breakdown**:\n\n` +
-        `• **Data**: Raw values like "38" or "Red". Alone, they have no contextual meaning.\n` +
-        `• **Information**: When data is processed, e.g., "The user age is 38." It gives data purpose.\n` +
-        `• **Metadata**: Structural data describing files, database columns, or parameters.`;
+      aiBreakdown = `Data & Information Breakdown:\n\n` +
+        `• Data: Raw values like "38" or "Red". Alone, they have no contextual meaning.\n` +
+        `• Information: When data is processed, e.g., "The user age is 38." It gives data purpose.\n` +
+        `• Metadata: Structural data describing files, database columns, or parameters.`;
     } else if (titleLower.includes('what is database') || titleLower.includes('1.2')) {
       studyGuide = `This guide explores organized data storage systems:\n\n` +
-        `📖 **1. Database Definition**: An organized collection of structured data stored electronically.\n\n` +
-        `📖 **2. Structure**: Uses rows (tuples) and columns (attributes) inside grid tables.\n\n` +
-        `📖 **3. Querying**: Relies on specific languages like SQL to retrieve records quickly.\n\n` +
-        `📖 **4. Management**: Controlled by Database Management Systems (DBMS) for safety.`;
+        `📖 1. Database Definition: An organized collection of structured data stored electronically.\n\n` +
+        `📖 2. Structure: Uses rows (tuples) and columns (attributes) inside grid tables.\n\n` +
+        `📖 3. Querying: Relies on specific languages like SQL to retrieve records quickly.\n\n` +
+        `📖 4. Management: Controlled by Database Management Systems (DBMS) for safety.`;
       takeaways = [
         'A database is an electronically stored, organized collection of data.',
         'Data is structured in tables containing fields (columns) and records (rows).',
         'A Database Management System (DBMS) acts as the control interface for the database.',
         'Databases enable faster retrieval, search, and update actions compared to flat files.'
       ];
-      aiBreakdown = `**Database Essentials**:\n\n` +
-        `• **Database**: A digital container holding structured info.\n` +
-        `• **Table**: The base layout of columns (fields) and rows (records).\n` +
-        `• **Record**: A single horizontal entry representing an entity.\n` +
-        `• **Field**: A vertical attribute column detailing values.`;
+      aiBreakdown = `Database Essentials:\n\n` +
+        `• Database: A digital container holding structured info.\n` +
+        `• Table: The base layout of columns (fields) and rows (records).\n` +
+        `• Record: A single horizontal entry representing an entity.\n` +
+        `• Field: A vertical attribute column detailing values.`;
     } else if (titleLower.includes('file system') || titleLower.includes('database vs') || titleLower.includes('1.4')) {
       studyGuide = `This guide compares flat storage models with database managers:\n\n` +
-        `📖 **1. Data Redundancy**: File systems duplicate data files, leading to storage waste.\n\n` +
-        `📖 **2. Data Inconsistency**: Updating one file in a file system leaves duplicates outdated.\n\n` +
-        `📖 **3. Concurrent Access**: DBMS allows multiple users to read and write safely at the same time.\n\n` +
-        `📖 **4. Data Integrity**: DBMS enforces validation rules to prevent corrupt entries.`;
+        `📖 1. Data Redundancy: File systems duplicate data files, leading to storage waste.\n\n` +
+        `📖 2. Data Inconsistency: Updating one file in a file system leaves duplicates outdated.\n\n` +
+        `📖 3. Concurrent Access: DBMS allows multiple users to read and write safely at the same time.\n\n` +
+        `📖 4. Data Integrity: DBMS enforces validation rules to prevent corrupt entries.`;
       takeaways = [
         'File systems suffer from high data redundancy due to duplicated files.',
         'Data inconsistency is common in file systems when matching copies are not synchronized.',
         'A DBMS solves access conflicts using concurrency control mechanisms.',
         'Databases ensure data integrity by validating schemas and relationships.'
       ];
-      aiBreakdown = `**Database vs. File System comparison**:\n\n` +
-        `• **Data Redundancy**: Having multiple copies of the same data item in different files.\n` +
-        `• **Data Inconsistency**: Mismatched data values across separate files for the same entity.\n` +
-        `• **DBMS Control**: Centralizes metadata to enforce rules and allow secure sharing.`;
+      aiBreakdown = `Database vs. File System Comparison:\n\n` +
+        `• Data Redundancy: Having multiple copies of the same data item in different files.\n` +
+        `• Data Inconsistency: Mismatched data values across separate files for the same entity.\n` +
+        `• DBMS Control: Centralizes metadata to enforce rules and allow secure sharing.`;
     } else if (titleLower.includes('dbms introduction') || titleLower.includes('1.3')) {
       studyGuide = `This guide introduces Database Management Systems:\n\n` +
-        `📖 **1. Definition of DBMS**: Software acting as an interface between users and databases.\n\n` +
-        `📖 **2. Data Definition**: Creates and alters tables and schema structures.\n\n` +
-        `📖 **3. Data Update**: Manages insertion, deletion, and updating of rows.\n\n` +
-        `📖 **4. Concurrency**: Coordinates multi-user transactions without conflicts.`;
+        `📖 1. Definition of DBMS: Software acting as an interface between users and databases.\n\n` +
+        `📖 2. Data Definition: Creates and alters tables and schema structures.\n\n` +
+        `📖 3. Data Update: Manages insertion, deletion, and updating of rows.\n\n` +
+        `📖 4. Concurrency: Coordinates multi-user transactions without conflicts.`;
       takeaways = [
         'DBMS is the software controller that operates database schemas.',
         'It handles data definition (DDL) and data manipulation (DML) statements.',
         'Users query the DBMS to retrieve records securely.',
         'A DBMS ensures transactions commit completely or rollback on failure.'
       ];
-      aiBreakdown = `**DBMS Concept Breakdown**:\n\n` +
-        `• **DBMS**: Database Management System software.\n` +
-        `• **Data Definition**: Organizing table layouts and key indices.\n` +
-        `• **Security**: Enforcing user privileges to protect records.`;
+      aiBreakdown = `DBMS Concept Breakdown:\n\n` +
+        `• DBMS: Database Management System software.\n` +
+        `• Data Definition: Organizing table layouts and key indices.\n` +
+        `• Security: Enforcing user privileges to protect records.`;
     } else {
       const titleKeywords = mainKeywords.join(', ');
       studyGuide = `This study guide is focused on the database unit: "${title}":\n\n` +
-        `📖 **1. Topic Core**: Understanding the role of ${titleKeywords || 'database schemas'}.\n\n` +
-        `📖 **2. Structural Rule**: Organizing attributes and records to maintain design standards.\n\n` +
-        `📖 **3. Consistency**: Enforcing data validations to avoid anomalies.\n\n` +
-        `📖 **4. Performance**: Verifying correct queries to access the records.`;
+        `📖 1. Topic Core: Understanding the role of ${titleKeywords || 'database schemas'}.\n\n` +
+        `📖 2. Structural Rule: Organizing attributes and records to maintain design standards.\n\n` +
+        `📖 3. Consistency: Enforcing data validations to avoid anomalies.\n\n` +
+        `📖 4. Performance: Verifying correct queries to access the records.`;
       takeaways = [
         `Identify the main database properties associated with ${titleKeywords || 'schemas'}.`,
         `Apply strict rules to retrieve records without redundancy.`,
         `Verify table design columns and relational keys.`,
         `Optimize data organization inside the DBMS container.`
       ];
-      aiBreakdown = `**Database Concept: ${title}**:\n\n` +
-        `• **Core Subject**: Understanding the structural principles of ${titleKeywords || 'relational databases'}.\n` +
-        `• **Relational Link**: Mapping attributes to table grids.\n` +
-        `• **Access Control**: How the DBMS controls validation of values.`;
+      aiBreakdown = `Database Concept: ${title}:\n\n` +
+        `• Core Subject: Understanding the structural principles of ${titleKeywords || 'relational databases'}.\n` +
+        `• Relational Link: Mapping attributes to table grids.\n` +
+        `• Access Control: How the DBMS controls validation of values.`;
     }
   } else {
     // Non-database courses (Linux, Git, Python, Java, React)
     if (sentences.length >= 4) {
       studyGuide = `This guide covers the core concepts in the unit:\n\n` +
-        sentences.slice(0, 4).map((s, i) => `📖 **Key Point ${i+1}**: ${s}.`).join('\n\n');
+        sentences.slice(0, 4).map((s, i) => `📖 Key Point ${i+1}: ${s.replace(/\*/g, '')}.`).join('\n\n');
     } else {
       studyGuide = `This guide covers the core concepts in the unit:\n\n` +
-        `📖 **1. Topic Overview**: Studying ${title}.\n\n` +
-        `📖 **2. Conceptual Pillar**: Verifying workflows and structure.\n\n` +
-        `📖 **3. Execution Step**: Running commands in the terminal workspace.\n\n` +
-        `📖 **4. Best Practice**: Documenting configuration parameters.`;
+        `📖 1. Topic Overview: Studying ${title}.\n\n` +
+        `📖 2. Conceptual Pillar: Verifying workflows and structure.\n\n` +
+        `📖 3. Execution Step: Running commands in the terminal workspace.\n\n` +
+        `📖 4. Best Practice: Documenting configuration parameters.`;
     }
 
     if (sentences.length >= 4) {
-      takeaways = sentences.slice(0, 5).map(s => s.replace(/^[-*+]\s*/, '').trim());
+      takeaways = sentences.slice(0, 5).map(s => s.replace(/^[-*+]\s*/, '').replace(/\*/g, '').trim());
     } else {
       takeaways = [
         `Understand the main setup steps for ${title}.`,
@@ -190,26 +191,26 @@ export function generateStructuredLessonContent(title: string, content: string):
     }
 
     if (titleLower.includes('git') || titleLower.includes('github')) {
-      aiBreakdown = `**Git Version Control Breakdown**:\n\n` +
-        `• **Repository**: Project storage containing complete file histories.\n` +
-        `• **Commit**: Recorded state snapshots tracking local edits.\n` +
-        `• **Staging**: Buffer index where updates are validated before commits.`;
+      aiBreakdown = `Git Version Control Breakdown:\n\n` +
+        `• Repository: Project storage containing complete file histories.\n` +
+        `• Commit: Recorded state snapshots tracking local edits.\n` +
+        `• Staging: Buffer index where updates are validated before commits.`;
     } else if (titleLower.includes('python')) {
-      aiBreakdown = `**Python Scripting Breakdown**:\n\n` +
-        `• **Interpreter**: Translates python statements into bytecode instructions.\n` +
-        `• **Functions**: Modular blocks declared using the def keyword.\n` +
-        `• **Indentation**: Syntactical scoping to group code commands.`;
+      aiBreakdown = `Python Scripting Breakdown:\n\n` +
+        `• Interpreter: Translates python statements into bytecode instructions.\n` +
+        `• Functions: Modular blocks declared using the def keyword.\n` +
+        `• Indentation: Syntactical scoping to group code commands.`;
     } else {
-      aiBreakdown = `**System Concept: ${title}**:\n\n` +
-        `• **Core Execution**: How applications interact with supervisor runtimes.\n` +
-        `• **Environment**: Running command tests in sandbox workspaces.\n` +
-        `• **Security**: Restricting access configurations using authorization key files.`;
+      aiBreakdown = `System Concept: ${title}:\n\n` +
+        `• Core Execution: How applications interact with supervisor runtimes.\n` +
+        `• Environment: Running command tests in sandbox workspaces.\n` +
+        `• Security: Restricting access configurations using authorization key files.`;
     }
   }
 
-  studyGuide = filterForbiddenWords(studyGuide);
-  takeaways = takeaways.map(t => filterForbiddenWords(t));
-  aiBreakdown = filterForbiddenWords(aiBreakdown);
+  studyGuide = filterForbiddenWords(studyGuide).replace(/\*/g, '');
+  takeaways = takeaways.map(t => filterForbiddenWords(t).replace(/\*/g, '').trim());
+  aiBreakdown = filterForbiddenWords(aiBreakdown).replace(/\*/g, '');
 
   // Automated keyword validation
   const checkHasKeyword = (text: string) => {
@@ -225,13 +226,13 @@ export function generateStructuredLessonContent(title: string, content: string):
   if (!checkHasKeyword(studyGuide) || !checkHasKeywordInArray(takeaways) || !checkHasKeyword(aiBreakdown)) {
     const keyRef = mainKeywords[0] || 'relational concepts';
     if (!studyGuide.toLowerCase().includes(keyRef)) {
-      studyGuide += `\n\n📌 *Validation note: This study guide specifically covers terms relating to ${keyRef}.*`;
+      studyGuide += `\n\n📌 Validation note: This study guide specifically covers terms relating to ${keyRef}.`;
     }
     if (!takeaways.some(t => t.toLowerCase().includes(keyRef))) {
       takeaways.push(`Review the primary principles and structures of ${keyRef}.`);
     }
     if (!aiBreakdown.toLowerCase().includes(keyRef)) {
-      aiBreakdown += `\n\n🔍 *AI Context Reference: Centered around ${keyRef} topics.*`;
+      aiBreakdown += `\n\n🔍 AI Context Reference: Centered around ${keyRef} topics.`;
     }
   }
 
