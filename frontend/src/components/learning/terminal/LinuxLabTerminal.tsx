@@ -237,7 +237,7 @@ export const LinuxLabTerminal: React.FC<LinuxLabTerminalProps> = ({
       {/* Terminal Output Screen */}
       <div
         ref={terminalOutputRef}
-        className="flex-1 p-4 overflow-y-auto overscroll-contain space-y-3 scrollbar-thin scrollbar-thumb-slate-800"
+        className="flex-1 p-4 overflow-y-auto overscroll-y-auto touch-pan-y space-y-3 scrollbar-thin scrollbar-thumb-slate-800"
         style={{ fontSize: `${fontSize}px`, lineHeight: 1.6 }}
       >
         {activeTab.history.map((item) => (

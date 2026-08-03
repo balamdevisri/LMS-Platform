@@ -487,7 +487,7 @@ export const InteractiveTerminalModal: React.FC<InteractiveTerminalModalProps> =
         </div>
 
         {/* Pure Pitch Black Terminal Content */}
-        <div className="flex-1 p-5 text-xs text-slate-200 overflow-y-auto space-y-4 bg-black leading-relaxed">
+        <div className="flex-1 p-5 text-xs text-slate-200 overflow-y-auto overscroll-y-auto touch-pan-y space-y-4 bg-black leading-relaxed">
           {history.map((item, idx) => (
             <div key={idx} className="space-y-1">
               <div className="flex items-center gap-2 text-white font-bold">

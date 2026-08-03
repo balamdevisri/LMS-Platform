@@ -7,7 +7,7 @@ import type { ModuleData } from './ModuleAccordion';
 import { useAuth } from '@/contexts/AuthContext';
 import { courseService } from '@/services/courseService';
 import { useCourseTimeTracker } from '@/hooks/useCourseTimeTracker';
-import { Sparkles, BookOpen } from 'lucide-react';
+import { Sparkles, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { dbmsLessonsData } from '@/data/dbmsLessonsData';
 import { LazyViewport } from './LazyViewport';
@@ -190,6 +190,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
   
   const containerRef = React.useRef<HTMLDivElement>(null);
   const [isNightMode, setIsNightMode] = useState(false);
+  const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = useState(false);
 
   const isGitCourse = courseTitle.toLowerCase().includes('git');
 
@@ -515,43 +516,76 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
 
       <div className="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col xl:flex-row gap-8 relative z-10">
         {/* Docked Left Sidebar for Desktop: Modules & Lessons */}
-        <aside className={`hidden xl:block w-80 shrink-0 rounded-3xl border p-4 sticky top-28 h-[calc(100vh-140px)] overflow-y-auto ${
-          isNightMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-sky-100 shadow-sm'
-        }`}>
-          <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-800/40">
-            <BookOpen className={`w-5 h-5 ${isNightMode ? 'text-cyan-400' : 'text-sky-600'}`} />
-            <h3 className={`font-heading font-extrabold text-sm ${isNightMode ? 'text-white' : 'text-slate-900'}`}>
-              Course Navigation
-            </h3>
+        {!isDesktopSidebarCollapsed && (
+          <aside className={`hidden xl:block w-80 shrink-0 rounded-3xl border p-4 sticky top-28 h-[calc(100vh-140px)] overflow-y-auto transition-all ${
+            isNightMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-sky-100 shadow-sm'
+          }`}>
+            <div className="flex items-center justify-between gap-2 mb-4 pb-3 border-b border-slate-800/40">
+              <div className="flex items-center gap-2">
+                <BookOpen className={`w-5 h-5 ${isNightMode ? 'text-cyan-400' : 'text-sky-600'}`} />
+                <h3 className={`font-heading font-extrabold text-sm ${isNightMode ? 'text-white' : 'text-slate-900'}`}>
+                  Course Navigation
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsDesktopSidebarCollapsed(true)}
+                className={`p-1.5 rounded-xl border transition-all cursor-pointer shadow-xs active:scale-95 ${
+                  isNightMode
+                    ? 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900'
+                }`}
+                title="Hide Left Navigation Sidebar for Full-Screen Distraction-Free Reading"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            </div>
+            <ModulesTab
+              courseTitle={courseTitle}
+              modules={modules}
+              selectedLessonId={selectedLessonId}
+              completedLessonIds={completedLessonIds}
+              onSelectLesson={(id) => {
+                if (!isLessonUnlocked(id)) {
+                  const targetMod = modules.find((m) =>
+                    m.lessons.some((l) => String(l.id) === String(id))
+                  );
+                  const modIdx = modules.findIndex((m) =>
+                    m.lessons.some((l) => String(l.id) === String(id))
+                  );
+                  const prevMod = modIdx > 0 ? modules[modIdx - 1] : null;
+                  toast.warning(
+                    `🔒 Module Locked! Complete all lessons in "${prevMod?.title || 'Previous Module'}" & claim XP rewards first to unlock "${targetMod?.title || 'Next Module'}"!`
+                  );
+                  return;
+                }
+                setSelectedLessonId(id);
+                if (containerRef.current) {
+                  containerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+              }}
+              progressPercent={progressPercent}
+              isNightMode={isNightMode}
+            />
+          </aside>
+        )}
+
+        {/* Floating Expand Sidebar Button when Desktop Sidebar is Collapsed */}
+        {isDesktopSidebarCollapsed && (
+          <div className="hidden xl:block shrink-0">
+            <button
+              onClick={() => setIsDesktopSidebarCollapsed(false)}
+              className={`flex items-center gap-2 px-3.5 py-2.5 rounded-2xl border shadow-lg sticky top-28 z-30 cursor-pointer active:scale-95 transition-all ${
+                isNightMode
+                  ? 'bg-slate-900/95 border-slate-700 text-cyan-400 hover:bg-slate-800'
+                  : 'bg-white/95 border-sky-200 text-sky-700 hover:bg-sky-50'
+              }`}
+              title="Show / Expand Course Navigation Sidebar"
+            >
+              <ChevronRight className="w-5 h-5" />
+              <span className="text-xs font-extrabold tracking-wide">Show Navigation</span>
+            </button>
           </div>
-          <ModulesTab
-            courseTitle={courseTitle}
-            modules={modules}
-            selectedLessonId={selectedLessonId}
-            completedLessonIds={completedLessonIds}
-            onSelectLesson={(id) => {
-              if (!isLessonUnlocked(id)) {
-                const targetMod = modules.find((m) =>
-                  m.lessons.some((l) => String(l.id) === String(id))
-                );
-                const modIdx = modules.findIndex((m) =>
-                  m.lessons.some((l) => String(l.id) === String(id))
-                );
-                const prevMod = modIdx > 0 ? modules[modIdx - 1] : null;
-                toast.warning(
-                  `🔒 Module Locked! Complete all lessons in "${prevMod?.title || 'Previous Module'}" & claim XP rewards first to unlock "${targetMod?.title || 'Next Module'}"!`
-                );
-                return;
-              }
-              setSelectedLessonId(id);
-              if (containerRef.current) {
-                containerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-              }
-            }}
-            progressPercent={progressPercent}
-            isNightMode={isNightMode}
-          />
-        </aside>
+        )}
 
         <main className="flex-1 min-w-0 space-y-8">
           <LessonViewer

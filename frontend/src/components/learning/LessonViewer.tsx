@@ -394,17 +394,19 @@ export const LessonViewer: React.FC<LessonViewerProps> = React.memo(({
           </h3>
           <span className={`text-xs font-mono ${isNightMode ? 'text-slate-400' : 'text-slate-500'}`}>Live Interactive Execution</span>
         </div>
-        <LazyViewport placeholder={<TerminalSkeleton />}>
-          <Suspense fallback={<TerminalSkeleton />}>
-            <Terminal
-              initialCommands={lesson.commands || []}
-              isGitCourse={isGitCourse}
-              onExecuteCommand={onExecuteCommand}
-              courseTitle={courseTitle}
-              isNightMode={isNightMode}
-            />
-          </Suspense>
-        </LazyViewport>
+        <div className="touch-pan-y overscroll-y-auto w-full">
+          <LazyViewport placeholder={<TerminalSkeleton />}>
+            <Suspense fallback={<TerminalSkeleton />}>
+              <Terminal
+                initialCommands={lesson.commands || []}
+                isGitCourse={isGitCourse}
+                onExecuteCommand={onExecuteCommand}
+                courseTitle={courseTitle}
+                isNightMode={isNightMode}
+              />
+            </Suspense>
+          </LazyViewport>
+        </div>
       </section>
 
       <footer
