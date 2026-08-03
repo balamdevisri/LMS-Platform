@@ -27,6 +27,14 @@ const server = app.listen(PORT, async () => {
   } catch (error) {
     logger.error('⚠️ Database seeding check failed:', error);
   }
+
+  // Verify Google Drive API Connection at server startup
+  try {
+    const { googleDriveService } = await import('./services/googleDrive.service');
+    await googleDriveService.connectGoogleDrive();
+  } catch (driveErr) {
+    logger.error('❌ Google Drive Connection Failed:', driveErr);
+  }
 });
 
 // Graceful Shutdown Handler

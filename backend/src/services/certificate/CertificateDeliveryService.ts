@@ -1,6 +1,6 @@
 import logger from '../../config/logger';
 import { emailService } from '../email/EmailService';
-import { googleDriveService, DriveUploadResult } from './GoogleDriveService';
+import { googleDriveService } from '../googleDrive.service';
 import { pdfCertificateGenerator } from './PDFCertificateGenerator';
 import { qrCodeService } from './QRCodeService';
 
@@ -87,7 +87,6 @@ export class CertificateDeliveryService {
 
     let qrCodeBuffer: Buffer;
     let pdfBuffer: Buffer;
-    let driveResult: DriveUploadResult;
 
     // Step 2: Generate Dynamic QR Code Buffer
     try {
@@ -158,16 +157,21 @@ export class CertificateDeliveryService {
     }
 
     // Step 4: Upload PDF Directly to Google Drive (Exclusive Storage Location)
-    const pdfFileName = `Certificate-${payload.studentName.replace(/\s+/g, '_')}-${certificateId}.pdf`;
+    let driveResult: { driveFileId: string; driveUrl: string; webContentLink: string; fileName: string };
     try {
-      driveResult = await googleDriveService.uploadCertificatePDF(pdfBuffer, pdfFileName);
+      driveResult = await googleDriveService.uploadCertificate({
+        pdfFilePath: pdfBuffer,
+        courseName: payload.courseTitle,
+        certificateId,
+        studentName: payload.studentName,
+      });
       timeline.push({
         step: '4. UPLOAD_TO_GOOGLE_DRIVE',
         status: 'SUCCESS',
         timestamp: new Date().toISOString(),
-        details: `Uploaded to Google Drive. FileID: ${driveResult.fileId} | Link: ${driveResult.webViewLink}`,
+        details: `Uploaded to Google Drive. FileID: ${driveResult.driveFileId} | Link: ${driveResult.driveUrl}`,
       });
-      logger.info(`[AUTOMATED CERTIFICATE SYSTEM] Step 4: PDF uploaded directly to Google Drive -> ${driveResult.webViewLink}`);
+      logger.info(`[AUTOMATED CERTIFICATE SYSTEM] Step 4: PDF uploaded directly to Google Drive -> ${driveResult.driveUrl}`);
     } catch (err: any) {
       const msg = `Google Drive upload failed after retries: ${err?.message || err}`;
       timeline.push({ step: '4. UPLOAD_TO_GOOGLE_DRIVE', status: 'FAILED', timestamp: new Date().toISOString(), details: msg });
@@ -189,12 +193,13 @@ export class CertificateDeliveryService {
     const verifyUrl = `https://verify.kaizenq.edu/credentials/${certificateId}?studentId=${payload.studentId}`;
     const emailSubject = `🎓 Congratulations ${payload.studentName}! Your Official Certificate for "${payload.courseTitle}" is Ready`;
 
+    const pdfFileName = `${certificateId}.pdf`;
     const htmlEmailContent = this.buildCertificateEmailHtml({
       studentName: payload.studentName,
       courseTitle: payload.courseTitle,
       certificateId,
       completionDate,
-      googleDriveLink: driveResult.webViewLink,
+      googleDriveLink: driveResult.driveUrl,
       verifyUrl,
     });
 
@@ -233,8 +238,8 @@ export class CertificateDeliveryService {
           studentEmail: payload.studentEmail,
           courseTitle: payload.courseTitle,
           completionDate,
-          googleDriveLink: driveResult.webViewLink,
-          googleDriveFileId: driveResult.fileId,
+          googleDriveLink: driveResult.driveUrl,
+          googleDriveFileId: driveResult.driveFileId,
           emailMessageId: mailResult.messageId,
           timeline,
         };
@@ -251,8 +256,8 @@ export class CertificateDeliveryService {
           studentEmail: payload.studentEmail,
           courseTitle: payload.courseTitle,
           completionDate,
-          googleDriveLink: driveResult.webViewLink,
-          googleDriveFileId: driveResult.fileId,
+          googleDriveLink: driveResult.driveUrl,
+          googleDriveFileId: driveResult.driveFileId,
           error: msg,
           timeline,
         };
@@ -270,8 +275,8 @@ export class CertificateDeliveryService {
         studentEmail: payload.studentEmail,
         courseTitle: payload.courseTitle,
         completionDate,
-        googleDriveLink: driveResult.webViewLink,
-        googleDriveFileId: driveResult.fileId,
+        googleDriveLink: driveResult.driveUrl,
+        googleDriveFileId: driveResult.driveFileId,
         error: msg,
         timeline,
       };
