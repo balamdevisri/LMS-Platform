@@ -17,6 +17,7 @@ const RightSidebar = lazy(() => import('./RightSidebar').then(m => ({ default: m
 const AIQuizPortal = lazy(() => import('../courses/AIQuizPortal').then(m => ({ default: m.AIQuizPortal })));
 const AITutorDrawer = lazy(() => import('./AITutorDrawer').then(m => ({ default: m.AITutorDrawer })));
 import { CertificatePreviewModal } from '../courses/CertificatePreviewModal';
+import { CertificateService } from '@/services/achievementService';
 
 const SidebarSkeleton = () => (
   <aside className="w-full lg:w-80 shrink-0 space-y-6 animate-pulse">
@@ -485,6 +486,24 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
             setIsGeneratingCert(false);
             if (data.success) {
               setGeneratedCert(data);
+              try {
+                const certService = new CertificateService();
+                certService.saveExternalCertificate(user?.uid || userProfile?.uid || 'default_student', {
+                  id: data.id || `cert_${courseId}_${Date.now()}`,
+                  courseId: String(courseId),
+                  courseTitle: data.courseTitle || courseTitle,
+                  studentName: data.studentName || userName,
+                  studentId: data.studentId || studentId,
+                  instructorName: 'Shaivika Groups Board',
+                  completionDate: data.completionDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+                  verificationId: data.certificateId,
+                  courseDuration: '24 Hours',
+                  modulesCount: modules.length || 8,
+                  googleDriveLink: data.googleDriveLink,
+                });
+              } catch (saveErr) {
+                console.warn('Error saving server certificate to local storage:', saveErr);
+              }
               toast.success(`🎓 Official Certificate Generated & Delivered to ${studentEmail}! (Check Google Drive & Inbox)`);
             } else {
               toast.error('Failed to auto-deliver certificate via email.');
@@ -571,6 +590,24 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
                 setIsGeneratingCert(false);
                 if (data.success) {
                   setGeneratedCert(data);
+                  try {
+                    const certService = new CertificateService();
+                    certService.saveExternalCertificate(user?.uid || userProfile?.uid || 'default_student', {
+                      id: data.id || `cert_${courseId}_${Date.now()}`,
+                      courseId: String(courseId),
+                      courseTitle: data.courseTitle || courseTitle,
+                      studentName: data.studentName || userName,
+                      studentId: data.studentId || studentId,
+                      instructorName: 'Shaivika Groups Board',
+                      completionDate: data.completionDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+                      verificationId: data.certificateId,
+                      courseDuration: '24 Hours',
+                      modulesCount: modules.length || 8,
+                      googleDriveLink: data.googleDriveLink,
+                    });
+                  } catch (saveErr) {
+                    console.warn('Error saving server certificate to local storage:', saveErr);
+                  }
                 }
               })
               .catch(() => {

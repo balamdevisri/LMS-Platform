@@ -401,6 +401,16 @@ export class CertificateService {
 
     return newCert;
   }
+  saveExternalCertificate(userId: string, cert: Certificate): void {
+    const certs = this.getCertificates(userId);
+    const index = certs.findIndex(c => c.courseId === cert.courseId);
+    if (index >= 0) {
+      certs[index] = { ...certs[index], ...cert };
+    } else {
+      certs.push(cert);
+    }
+    localStorage.setItem(`${this.certKeyPrefix}${userId}`, JSON.stringify(certs));
+  }
 
   checkEligibilityAndGenerate(coursesProgress: any[], studentName: string, userId = 'default_student'): Certificate[] {
     const certs = this.getCertificates(userId);
