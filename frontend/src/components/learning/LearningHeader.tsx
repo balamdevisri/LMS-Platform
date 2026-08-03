@@ -1,5 +1,5 @@
 import React from 'react';
-import { Menu, ChevronLeft, ChevronRight, ArrowLeft, User, Sparkles, Moon, Sun } from 'lucide-react';
+import { Menu, ChevronLeft, ChevronRight, ArrowLeft, User, Sparkles, Moon, Sun, Award } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface LearningHeaderProps {
@@ -16,6 +16,8 @@ interface LearningHeaderProps {
   userName?: string;
   isNightMode?: boolean;
   onToggleNightMode?: () => void;
+  isCourseFullyCompleted?: boolean;
+  onViewCertificate?: () => void;
 }
 
 export const LearningHeader: React.FC<LearningHeaderProps> = ({
@@ -32,6 +34,8 @@ export const LearningHeader: React.FC<LearningHeaderProps> = ({
   userName = 'Student',
   isNightMode = false,
   onToggleNightMode,
+  isCourseFullyCompleted = false,
+  onViewCertificate,
 }) => {
   return (
     <header
@@ -94,6 +98,18 @@ export const LearningHeader: React.FC<LearningHeaderProps> = ({
 
       {/* Right Section: Theme Toggle + Progress + Prev/Next + User Avatar */}
       <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+        {/* Course Certificate Button (Only visible when 100% completed) */}
+        {isCourseFullyCompleted && onViewCertificate && (
+          <button
+            onClick={onViewCertificate}
+            className="flex items-center gap-1.5 px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl border border-amber-300 bg-linear-to-r from-amber-500 to-yellow-450 text-slate-950 shadow-md shadow-amber-500/10 hover:brightness-105 transition-all text-xs font-black cursor-pointer active:scale-95 shrink-0"
+            title="View Course Certificate"
+          >
+            <Award className="w-4 h-4 shrink-0 fill-slate-950 animate-pulse" />
+            <span className="hidden sm:inline">View Certificate</span>
+          </button>
+        )}
+
         {/* Theme Toggle Button */}
         {onToggleNightMode && (
           <button

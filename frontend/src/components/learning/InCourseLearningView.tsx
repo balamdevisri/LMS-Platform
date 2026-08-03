@@ -7,7 +7,7 @@ import type { ModuleData } from './ModuleAccordion';
 import { useAuth } from '@/contexts/AuthContext';
 import { courseService } from '@/services/courseService';
 import { useCourseTimeTracker } from '@/hooks/useCourseTimeTracker';
-import { Sparkles, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Sparkles, BookOpen, ChevronLeft, ChevronRight, Award, X, Printer, Download, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { dbmsLessonsData } from '@/data/dbmsLessonsData';
 import { LazyViewport } from './LazyViewport';
@@ -241,6 +241,9 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeCourseTab, setActiveCourseTab] = useState('modules');
   const [isAITutorOpen, setIsAITutorOpen] = useState(false);
+  const [showCongrats, setShowCongrats] = useState(false);
+  const [generatedCert, setGeneratedCert] = useState<any>(null);
+  const [isGeneratingCert, setIsGeneratingCert] = useState(false);
 
   const [bookmarkedLessonIds, setBookmarkedLessonIds] = useState<(string | number)[]>(() => {
     try {
@@ -455,6 +458,8 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       );
 
       if (allCourseLessonsDone) {
+        setShowCongrats(true);
+        setIsGeneratingCert(true);
         const studentEmail = user?.email || userProfile?.email || 'shaivikagroups@gmail.com';
         const studentId = (userProfile as any)?.studentId || (user?.uid ? `STU-${user.uid.substring(0, 6).toUpperCase()}` : 'STU-992104');
         const studentName = userName;
@@ -476,12 +481,18 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         })
           .then((res) => res.json())
           .then((data) => {
+            setIsGeneratingCert(false);
             if (data.success) {
+              setGeneratedCert(data);
               toast.success(`🎓 Official Certificate Generated & Delivered to ${studentEmail}! (Check Google Drive & Inbox)`);
+            } else {
+              toast.error('Failed to auto-deliver certificate via email.');
             }
           })
           .catch((err) => {
+            setIsGeneratingCert(false);
             console.error('Automated Certificate Delivery error:', err);
+            toast.error('Could not connect to certificate delivery service.');
           });
       }
 
@@ -502,6 +513,9 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
   const progressPercent = allLessons.length > 0 ? Math.round((completedLessonIds.length / allLessons.length) * 100) : 0;
   const isCompleted = completedLessonIds.some((id) => String(id) === String(selectedLessonId));
   const isBookmarked = bookmarkedLessonIds.some((id) => String(id) === String(selectedLessonId));
+  const isCourseFullyCompleted = allLessons.length > 0 && allLessons.every((l) =>
+    completedLessonIds.some((cId) => String(cId) === String(l.id))
+  );
 
   return (
     <div
@@ -526,6 +540,43 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         userName={userName}
         isNightMode={isNightMode}
         onToggleNightMode={() => setIsNightMode(!isNightMode)}
+        isCourseFullyCompleted={isCourseFullyCompleted}
+        onViewCertificate={() => {
+          // If certificate hasn't been generated yet, let's fetch it, otherwise open modal
+          setShowCongrats(true);
+          if (!generatedCert && !isGeneratingCert) {
+            setIsGeneratingCert(true);
+            const studentEmail = user?.email || userProfile?.email || 'shaivikagroups@gmail.com';
+            const studentId = (userProfile as any)?.studentId || (user?.uid ? `STU-${user.uid.substring(0, 6).toUpperCase()}` : 'STU-992104');
+            const studentName = userName;
+
+            fetch('http://localhost:5000/api/certificates/complete-and-deliver', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                studentId,
+                studentName,
+                studentEmail,
+                courseId: String(courseId),
+                courseTitle,
+                completionPercentage: 100,
+                instructorName: 'Shaivika Groups Board',
+                courseDuration: '24 Hours',
+                modulesCount: modules.length || 8,
+              }),
+            })
+              .then((res) => res.json())
+              .then((data) => {
+                setIsGeneratingCert(false);
+                if (data.success) {
+                  setGeneratedCert(data);
+                }
+              })
+              .catch(() => {
+                setIsGeneratingCert(false);
+              });
+          }
+        }}
       />
 
       <SidebarDrawer
@@ -717,6 +768,179 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
           lessonContent={activeLessonFull.content}
         />
       </Suspense>
+
+      {/* ------------------- CONGRATULATIONS & CERTIFICATE MODAL ------------------- */}
+      {showCongrats && (
+        <div className="fixed inset-0 z-70 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-zinc-900 border-2 border-amber-300 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 max-w-4xl w-full shadow-2xl space-y-6 relative animate-in zoom-in-95 duration-200">
+            {/* Close Button */}
+            <button
+              onClick={() => setShowCongrats(false)}
+              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-105 dark:hover:bg-zinc-850 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Header Congrats Message */}
+            <div className="text-center space-y-2">
+              <div className="w-16 h-16 bg-amber-100 dark:bg-amber-950/40 rounded-full flex items-center justify-center mx-auto border-2 border-amber-300 shadow-md">
+                <Award className="w-9 h-9 text-amber-500 animate-bounce fill-amber-500/25" />
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-heading tracking-tight">
+                Course Mastered! Congratulations, {userName}! 🎉
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 max-w-md mx-auto font-medium">
+                You have successfully completed 100% of the lessons in **{courseTitle}**. Your digital credential has been dynamically created.
+              </p>
+            </div>
+
+            {/* Certificate Template Card */}
+            {isGeneratingCert ? (
+              <div className="py-16 text-center space-y-3">
+                <RefreshCw className="w-10 h-10 text-amber-500 animate-spin mx-auto" />
+                <p className="text-sm text-slate-505 dark:text-zinc-450 italic font-semibold">
+                  Generating verified high-resolution certificate and uploading to Google Drive...
+                </p>
+              </div>
+            ) : (
+              <div className="border border-slate-250 dark:border-zinc-800 rounded-2xl p-4 sm:p-6 bg-slate-50 dark:bg-zinc-950/50 space-y-4">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 dark:border-zinc-800 pb-4">
+                  <div className="space-y-1">
+                    <span className="text-[9px] font-extrabold text-slate-450 uppercase tracking-widest block">Credential Verification Details</span>
+                    <h4 className="text-xs font-bold text-slate-800 dark:text-zinc-200">
+                      ID: <span className="font-mono text-amber-600 dark:text-amber-400">{generatedCert?.certificateId || 'KQ-CERT-MOCK-ID'}</span>
+                    </h4>
+                    <p className="text-[10px] text-slate-400 font-mono">
+                      Completion Date: {generatedCert?.completionDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                    </p>
+                  </div>
+                  
+                  {/* Dynamic QR Code */}
+                  <div className="bg-white p-2 rounded-xl border border-slate-200 shrink-0 flex flex-col items-center">
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${encodeURIComponent(
+                        `https://verify.kaizenq.edu/credentials/${generatedCert?.certificateId || 'KQ-CERT-MOCK-ID'}?studentId=${
+                          (userProfile as any)?.studentId || (user?.uid ? `STU-${user.uid.substring(0, 6).toUpperCase()}` : 'STU-992104')
+                        }`
+                      )}&color=0b1a30&bgcolor=ffffff`}
+                      alt="Verification QR"
+                      className="w-20 h-20"
+                    />
+                    <span className="text-[8px] text-slate-400 font-bold uppercase tracking-wider mt-1">Scan to Verify</span>
+                  </div>
+                </div>
+
+                {/* Email Delivery Notice */}
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-150 dark:border-emerald-900 rounded-xl text-xs text-emerald-850 dark:text-emerald-400 font-bold flex items-center gap-2">
+                  <span className="w-2 h-2 bg-emerald-500 rounded-full animate-ping shrink-0" />
+                  <p>
+                    📧 Dynamic PDF certificate emailed to <strong className="underline">{user?.email || userProfile?.email || 'shaivikagroups@gmail.com'}</strong> and synced to Google Drive folder!
+                  </p>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-col sm:flex-row gap-3 justify-end pt-2">
+                  {generatedCert?.googleDriveLink && (
+                    <a
+                      href={generatedCert.googleDriveLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Download PDF from Google Drive</span>
+                    </a>
+                  )}
+                  
+                  <button
+                    onClick={() => {
+                      const certId = generatedCert?.certificateId || 'KQ-CERT-MOCK-ID';
+                      const studentId = (userProfile as any)?.studentId || (user?.uid ? `STU-${user.uid.substring(0, 6).toUpperCase()}` : 'STU-992104');
+                      const verificationUrl = `https://verify.kaizenq.edu/credentials/${certId}?studentId=${studentId}`;
+                      
+                      const printWindow = window.open('', '_blank');
+                      if (printWindow) {
+                        printWindow.document.write(`
+                          <!DOCTYPE html>
+                          <html>
+                            <head>
+                              <title>Certificate - ${courseTitle} - ${userName}</title>
+                              <style>
+                                @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;800;900&family=Playfair+Display:ital,wght@0,600;0,800;1,600&family=Sora:wght@400;600;700;800&display=swap');
+                                @page { size: A4 landscape; margin: 0; }
+                                body { margin: 0; padding: 0; background-color: #f1f5f9; font-family: 'Sora', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+                                .cert-canvas { width: 1050px; height: 742px; background: #ffffff; position: relative; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; padding: 40px 50px; }
+                                .top-left-sweep { position: absolute; top: 0; left: 0; width: 240px; height: 240px; background: linear-gradient(135deg, #002277 0%, #0044cc 60%, #0b55ed 100%); clip-path: polygon(0 0, 100% 0, 0 100%); z-index: 1; }
+                                .top-left-gold-trim { position: absolute; top: 0; left: 0; width: 250px; height: 250px; background: linear-gradient(135deg, #d4af37 0%, #f9e076 50%, #b8860b 100%); clip-path: polygon(0 0, 100% 0, 0 100%); z-index: 0; }
+                                .bottom-right-sweep { position: absolute; bottom: 0; right: 0; width: 260px; height: 260px; background: linear-gradient(315deg, #002277 0%, #0044cc 60%, #0b55ed 100%); clip-path: polygon(100% 100%, 0 100%, 100% 0); z-index: 1; }
+                                .bottom-right-gold-trim { position: absolute; bottom: 0; right: 0; width: 270px; height: 270px; background: linear-gradient(315deg, #d4af37 0%, #f9e076 50%, #b8860b 100%); clip-path: polygon(100% 100%, 0 100%, 100% 0); z-index: 0; }
+                                .cert-body { text-align: center; margin-top: 60px; z-index: 2; }
+                                .cert-title { font-family: 'Cinzel', serif; font-size: 32px; font-weight: 900; color: #0f172a; letter-spacing: 4px; text-transform: uppercase; }
+                                .subtitle { font-family: 'Playfair Display', serif; font-style: italic; font-size: 16px; color: #64748b; margin-top: 15px; }
+                                .recipient { font-family: 'Sora', sans-serif; font-size: 28px; font-weight: 850; color: #002277; margin-top: 25px; border-bottom: 2px solid #e2e8f0; display: inline-block; padding-bottom: 8px; }
+                                .statement { font-size: 13px; color: #475569; max-w: 600px; margin: 25px auto 0; leading-relaxed: 1.8; font-weight: 500; }
+                                .course { font-family: 'Sora', sans-serif; font-size: 20px; font-weight: 800; color: #0f172a; margin-top: 15px; }
+                                .footer-section { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 40px; padding: 0 40px; z-index: 2; }
+                                .signature-box { text-align: center; width: 180px; }
+                                .signature-line { border-top: 1.5px solid #cbd5e1; margin-top: 8px; padding-top: 6px; font-size: 10px; font-weight: 700; color: #475569; text-transform: uppercase; }
+                                .qr-section { text-align: center; }
+                                .qr-label { font-size: 8px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-top: 4px; font-family: monospace; }
+                              </style>
+                            </head>
+                            <body>
+                              <div class="cert-canvas">
+                                <div class="top-left-gold-trim"></div>
+                                <div class="top-left-sweep"></div>
+                                <div class="bottom-right-gold-trim"></div>
+                                <div class="bottom-right-sweep"></div>
+                                
+                                <div class="cert-body">
+                                  <div class="cert-title">Certificate of Completion</div>
+                                  <div class="subtitle">This is officially certified to recognize that</div>
+                                  <div class="recipient">${userName}</div>
+                                  <div class="statement">has successfully finished all dynamic labs, quizzes, and modules for the professional developer training course</div>
+                                  <div class="course">${courseTitle}</div>
+                                </div>
+
+                                <div class="footer-section">
+                                  <div class="signature-box">
+                                    <div style="font-family: 'Playfair Display', serif; font-style: italic; font-size: 15px; color: #002277; font-weight: bold;">Shaivika Board</div>
+                                    <div class="signature-line">Authorized Signatory</div>
+                                  </div>
+
+                                  <div class="qr-section">
+                                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(verificationUrl)}&color=0b1a30&bgcolor=ffffff" style="width: 80px; height: 80px;" />
+                                    <div class="qr-label">ID: ${certId}</div>
+                                  </div>
+
+                                  <div class="signature-box">
+                                    <div style="font-size: 11px; font-weight: bold; color: #475569;">${new Date().toLocaleDateString()}</div>
+                                    <div class="signature-line">Date of Award</div>
+                                  </div>
+                                </div>
+                              </div>
+                              <script>
+                                window.onload = function() {
+                                  window.print();
+                                }
+                              </script>
+                            </body>
+                          </html>
+                        `);
+                        printWindow.document.close();
+                      }
+                    }}
+                    className="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-700 dark:text-zinc-200 font-bold text-xs flex items-center justify-center gap-2 hover:bg-slate-50 dark:hover:bg-zinc-750 transition-all cursor-pointer"
+                  >
+                    <Printer className="w-4 h-4" />
+                    <span>Print Certificate</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
