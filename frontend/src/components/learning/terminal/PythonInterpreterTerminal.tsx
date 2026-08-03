@@ -17,18 +17,18 @@ export const PythonInterpreterTerminal: React.FC<PythonInterpreterTerminalProps>
   ]);
 
   const [scriptOutput, setScriptOutput] = useState<string[]>([]);
-  const consoleEndRef = useRef<HTMLDivElement>(null);
-  const scriptEndRef = useRef<HTMLDivElement>(null);
+  const replConsoleContainerRef = useRef<HTMLDivElement>(null);
+  const scriptConsoleContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (consoleEndRef.current) {
-      consoleEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (replConsoleContainerRef.current) {
+      replConsoleContainerRef.current.scrollTop = replConsoleContainerRef.current.scrollHeight;
     }
   }, [consoleLogs]);
 
   useEffect(() => {
-    if (scriptEndRef.current) {
-      scriptEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (scriptConsoleContainerRef.current) {
+      scriptConsoleContainerRef.current.scrollTop = scriptConsoleContainerRef.current.scrollHeight;
     }
   }, [scriptOutput]);
 
@@ -168,7 +168,7 @@ export const PythonInterpreterTerminal: React.FC<PythonInterpreterTerminalProps>
         </div>
 
         {/* Script Output Console */}
-        <div className="flex-1 border border-slate-800 bg-[#0d1117] rounded-2xl p-4 font-mono text-xs overflow-auto h-[120px]">
+        <div ref={scriptConsoleContainerRef} className="flex-1 border border-slate-800 bg-[#0d1117] rounded-2xl p-4 font-mono text-xs overflow-auto h-[120px]">
           <div className="text-[10px] text-slate-500 font-bold uppercase mb-2">Script Output Console</div>
           <div className="space-y-1">
             {scriptOutput.map((out, idx) => (
@@ -176,7 +176,6 @@ export const PythonInterpreterTerminal: React.FC<PythonInterpreterTerminalProps>
                 {out}
               </div>
             ))}
-            <div ref={scriptEndRef} />
           </div>
         </div>
       </div>
@@ -197,13 +196,12 @@ export const PythonInterpreterTerminal: React.FC<PythonInterpreterTerminalProps>
           </button>
         </div>
 
-        <div className="flex-1 p-3 overflow-y-auto font-mono text-xs space-y-1">
+        <div ref={replConsoleContainerRef} className="flex-1 p-3 overflow-y-auto font-mono text-xs space-y-1">
           {consoleLogs.map((log, idx) => (
             <div key={idx} className={log.startsWith('>>>') ? 'text-cyan-400' : log.includes('NameError') ? 'text-red-400' : 'text-slate-300'}>
               {log}
             </div>
           ))}
-          <div ref={consoleEndRef} />
         </div>
 
         <form onSubmit={handleReplSubmit} className="p-2 bg-slate-950 border-t border-slate-800 flex gap-2">
