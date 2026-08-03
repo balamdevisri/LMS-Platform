@@ -477,7 +477,22 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
   // Modals & Drawers State
   const [activeTerminalCmd, setActiveTerminalCmd] = useState<string | null>(null);
   const [isResourcesOpen, setIsResourcesOpen] = useState(false);
-  const [isReadingMode, setIsReadingMode] = useState(false);
+  const [isReadingMode, setIsReadingMode] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('shaivika_reading_mode');
+      if (saved !== null) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {}
+    return true; // Default to Reading Mode on enter!
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('shaivika_reading_mode', JSON.stringify(isReadingMode));
+    } catch (e) {}
+  }, [isReadingMode]);
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isModulesMenuOpen, setIsModulesMenuOpen] = useState(false);
 

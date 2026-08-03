@@ -189,7 +189,22 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
   const userName = propName && propName !== 'Student' ? propName : (userProfile?.name || user?.displayName || userProfile?.githubUsername || 'Student User');
   
   const containerRef = React.useRef<HTMLDivElement>(null);
-  const [isNightMode, setIsNightMode] = useState(false);
+  const [isNightMode, setIsNightMode] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('shaivika_reading_mode');
+      if (saved !== null) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {}
+    return true; // Default to Reading Mode on enter!
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('shaivika_reading_mode', JSON.stringify(isNightMode));
+    } catch (e) {}
+  }, [isNightMode]);
+
   const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = useState(false);
 
   const isGitCourse = courseTitle.toLowerCase().includes('git');
