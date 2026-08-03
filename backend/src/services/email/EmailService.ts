@@ -27,7 +27,7 @@ export class EmailService {
   private lastVerificationError?: string;
 
   constructor() {
-    this.fromAddress = env.SMTP_FROM || env.EMAIL_FROM || 'KaizenQ AI LMS <kaizenq.lms@gmail.com>';
+    this.fromAddress = env.SMTP_FROM || 'KaizenQ AI LMS <kaizenq.lms@gmail.com>';
     
     if (process.env.NODE_ENV === 'test' || env.NODE_ENV === 'test') {
       this.provider = 'mock';
@@ -443,6 +443,84 @@ export class EmailService {
       logger.warn('⚠️ EmailService: Failed to fetch logs from Firestore:', err?.message || err);
       return [];
     }
+  }
+
+  /**
+   * Dispatches Email with Attachments (e.g. Certificate PDF) via Nodemailer SMTP with automatic retry
+   */
+  async sendEmailWithAttachments(
+    recipientEmail: string,
+    subject: string,
+    html: string,
+    attachments: Array<{ filename: string; content: Buffer; contentType?: string }>,
+    maxRetries: number = 3
+  ): Promise<{ success: boolean; messageId?: string; accepted?: any[]; rejected?: any[]; error?: string }> {
+    let attempt = 0;
+    let lastError: any = null;
+
+    while (attempt < maxRetries) {
+      attempt++;
+      logger.info(`[SMTP ATTACHMENT EMAIL] Attempt ${attempt}/${maxRetries} to ${recipientEmail} | Subject: "${subject}"`);
+
+      try {
+        if (this.provider === 'nodemailer' && this.nodemailerTransporter) {
+          const textContent = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+          const mailRes = await this.nodemailerTransporter.sendMail({
+            from: this.fromAddress,
+            to: recipientEmail,
+            subject,
+            text: textContent,
+            html,
+            attachments: attachments.map(att => ({
+              filename: att.filename,
+              content: att.content,
+              contentType: att.contentType || 'application/pdf',
+            })),
+          });
+
+          logger.info(`[SMTP ATTACHMENT EMAIL] ✅ Delivered! MsgId: ${mailRes.messageId} | Accepted: ${JSON.stringify(mailRes.accepted)}`);
+          return {
+            success: true,
+            messageId: mailRes.messageId,
+            accepted: mailRes.accepted,
+            rejected: mailRes.rejected,
+          };
+        } else if (this.provider === 'resend' && this.resendClient) {
+          const resendRes = await this.resendClient.emails.send({
+            from: this.fromAddress,
+            to: [recipientEmail],
+            subject,
+            html,
+            attachments: attachments.map(att => ({
+              filename: att.filename,
+              content: att.content,
+            })),
+          });
+          if (resendRes.error) throw new Error(resendRes.error.message);
+          return { success: true, messageId: resendRes.data?.id };
+        } else {
+          // Mock Mode
+          const mockId = `mock_cert_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+          logger.info(`[MOCK EMAIL SENT] Certificate email delivered to ${recipientEmail} (MsgId: ${mockId})`);
+          return { success: true, messageId: mockId };
+        }
+      } catch (err: any) {
+        lastError = err;
+        logger.error(`[SMTP ATTACHMENT EMAIL] ❌ Attempt ${attempt}/${maxRetries} Failed for ${recipientEmail}: ${err?.message || err}`);
+
+        if (attempt < maxRetries) {
+          const backoffMs = Math.pow(2, attempt) * 1000;
+          logger.info(`[SMTP ATTACHMENT EMAIL] Retrying in ${backoffMs}ms...`);
+          await new Promise((res) => setTimeout(res, backoffMs));
+        }
+      }
+    }
+
+    logger.error(`[SMTP ATTACHMENT EMAIL] ❌ ALL ${maxRetries} ATTEMPTS FAILED for ${recipientEmail}`);
+    return {
+      success: false,
+      error: lastError?.message || String(lastError),
+    };
   }
 }
 

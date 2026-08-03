@@ -27,7 +27,10 @@ const envSchema = z.object({
   SMTP_EMAIL: z.string().default('kaizenqlms@gmail.com'),
   SMTP_PASSWORD: z.string().default('nslv bymb dnnq swcw'),
   SMTP_FROM: z.string().default('KaizenQ AI LMS <kaizenq.lms@gmail.com>'),
-  EMAIL_FROM: z.string().default('KaizenQ AI LMS <kaizenq.lms@gmail.com>'),
+  // Google Drive Credentials
+  GOOGLE_DRIVE_CLIENT_EMAIL: z.string().optional(),
+  GOOGLE_DRIVE_PRIVATE_KEY: z.string().optional(),
+  GOOGLE_DRIVE_FOLDER_ID: z.string().optional(),
 });
 
 export const env = envSchema.parse(process.env);

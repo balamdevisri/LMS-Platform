@@ -449,9 +449,45 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         }
       }
 
+      // 3. Check if all lessons in the course are completed (100% Course Completion)
+      const allCourseLessonsDone = allLessons.every((l) =>
+        updated.some((cId) => String(cId) === String(l.id))
+      );
+
+      if (allCourseLessonsDone) {
+        const studentEmail = user?.email || userProfile?.email || 'shaivikagroups@gmail.com';
+        const studentId = (userProfile as any)?.studentId || (user?.uid ? `STU-${user.uid.substring(0, 6).toUpperCase()}` : 'STU-992104');
+        const studentName = userName;
+
+        fetch('http://localhost:5000/api/certificates/complete-and-deliver', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            studentId,
+            studentName,
+            studentEmail,
+            courseId: String(courseId),
+            courseTitle,
+            completionPercentage: 100,
+            instructorName: 'Shaivika Groups Board',
+            courseDuration: '24 Hours',
+            modulesCount: modules.length || 8,
+          }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.success) {
+              toast.success(`🎓 Official Certificate Generated & Delivered to ${studentEmail}! (Check Google Drive & Inbox)`);
+            }
+          })
+          .catch((err) => {
+            console.error('Automated Certificate Delivery error:', err);
+          });
+      }
+
       toast.success(`🎉 Lesson complete! +50 XP awarded.`);
     }
-  }, [completedLessonIds, selectedLessonId, user, activeLessonFull.title, courseId, courseTitle, modules]);
+  }, [completedLessonIds, selectedLessonId, user, userProfile, userName, activeLessonFull.title, courseId, courseTitle, modules, allLessons]);
 
   const handleToggleBookmark = useCallback(() => {
     if (bookmarkedLessonIds.some((id) => String(id) === String(selectedLessonId))) {
