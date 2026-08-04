@@ -139,6 +139,117 @@ export class GoogleSheetsService {
   }
 
   /**
+   * Check if a certificate already exists in the sheet registry for a specific student email and course ID
+   */
+  public async checkCertificateExists(studentEmail: string, courseId: string): Promise<CertificateRegistryData | null> {
+    try {
+      logger.info(`[GOOGLE SHEETS WEB APP] Checking if certificate exists for ${studentEmail} in course ${courseId}...`);
+
+      // 1. Try HTTP GET request first
+      const getUrl = `${this.scriptUrl}?action=check&studentEmail=${encodeURIComponent(studentEmail)}&courseId=${encodeURIComponent(courseId)}`;
+      try {
+        const response = await fetch(getUrl, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' },
+        });
+
+        if (response.ok) {
+          const resText = await response.text();
+          try {
+            const data = JSON.parse(resText);
+            if (data && data.success && data.data) {
+              logger.info(`[GOOGLE SHEETS WEB APP] ✅ Certificate exists for ${studentEmail} (via GET).`);
+              return this.parseRowToRegistryData(data.data);
+            }
+          } catch (e) {}
+        }
+      } catch (getErr: any) {
+        logger.warn(`[GOOGLE SHEETS WEB APP] GET check trial failed: ${getErr?.message || getErr}`);
+      }
+
+      // 2. Try HTTP POST request fallback
+      const response = await fetch(this.scriptUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'check',
+          studentEmail,
+          courseId,
+        }),
+      });
+
+      if (response.ok) {
+        const resText = await response.text();
+        const data = JSON.parse(resText);
+        if (data && data.success && data.data) {
+          logger.info(`[GOOGLE SHEETS WEB APP] ✅ Certificate exists for ${studentEmail} (via POST).`);
+          return this.parseRowToRegistryData(data.data);
+        }
+      }
+
+      return null;
+    } catch (err: any) {
+      logger.warn(`[GOOGLE SHEETS WEB APP] checkCertificateExists failed: ${err?.message || err}`);
+      return null;
+    }
+  }
+
+  /**
+   * Search for all certificates matching a student email using the Google Apps Script Web App
+   */
+  public async getCertificatesByEmail(studentEmail: string): Promise<CertificateRegistryData[]> {
+    try {
+      logger.info(`[GOOGLE SHEETS WEB APP] Searching Certificates for ${studentEmail} via HTTP GET/POST...`);
+
+      // 1. Try HTTP GET request first
+      const getUrl = `${this.scriptUrl}?action=list&studentEmail=${encodeURIComponent(studentEmail)}`;
+      try {
+        const response = await fetch(getUrl, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' },
+        });
+
+        if (response.ok) {
+          const resText = await response.text();
+          try {
+            const data = JSON.parse(resText);
+            if (data && data.success && Array.isArray(data.data)) {
+              logger.info(`[GOOGLE SHEETS WEB APP] ✅ Found ${data.data.length} certificates via GET.`);
+              return data.data.map((r: any) => this.parseRowToRegistryData(r));
+            }
+          } catch (e) {}
+        }
+      } catch (getErr: any) {
+        logger.warn(`[GOOGLE SHEETS WEB APP] GET list trial failed: ${getErr?.message || getErr}`);
+      }
+
+      // 2. Try HTTP POST request fallback
+      const response = await fetch(this.scriptUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'list',
+          studentEmail,
+        }),
+      });
+
+      if (response.ok) {
+        const resText = await response.text();
+        const data = JSON.parse(resText);
+        if (data && data.success && Array.isArray(data.data)) {
+          logger.info(`[GOOGLE SHEETS WEB APP] ✅ Found ${data.data.length} certificates via POST.`);
+          return data.data.map((r: any) => this.parseRowToRegistryData(r));
+        }
+      }
+
+      return [];
+    } catch (err: any) {
+      logger.warn(`[GOOGLE SHEETS WEB APP] getCertificatesByEmail failed: ${err?.message || err}`);
+      return [];
+    }
+  }
+
+  /**
    * Helper parser to format dynamic return structures into strict Registry Data
    */
   private parseRowToRegistryData(raw: any): CertificateRegistryData {

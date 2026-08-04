@@ -18,6 +18,7 @@ const AIQuizPortal = lazy(() => import('../courses/AIQuizPortal').then(m => ({ d
 const AITutorDrawer = lazy(() => import('./AITutorDrawer').then(m => ({ default: m.AITutorDrawer })));
 import { CertificatePreviewModal } from '../courses/CertificatePreviewModal';
 import { CertificateService } from '@/services/achievementService';
+import { assignmentService } from '@/services/assignmentService';
 
 const SidebarSkeleton = () => (
   <aside className="w-full lg:w-80 shrink-0 space-y-6 animate-pulse">
@@ -281,6 +282,120 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
     }
   }, [completedLessonIds, courseId]);
 
+  // Fully automated certificate generator trigger
+  useEffect(() => {
+    let active = true;
+
+    const checkAndTrigger = () => {
+      // 1. Course Progress = 100% and All lessons done
+      const allCourseLessonsDone = allLessons.length > 0 && allLessons.every((l) =>
+        completedLessonIds.some((cId) => String(cId) === String(l.id))
+      );
+      if (!allCourseLessonsDone) return;
+
+      // 2. All Quizzes Passed & All Assignments Submitted
+      const quizUnits: any[] = [];
+      const assignmentUnits: any[] = [];
+      modules.forEach((mod) => {
+        mod.lessons?.forEach((lesson) => {
+          const typeLower = (lesson.type || '').toLowerCase();
+          if (typeLower === 'quiz') quizUnits.push(lesson);
+          else if (typeLower === 'assignment') assignmentUnits.push(lesson);
+        });
+      });
+
+      const studentUid = user?.uid || userProfile?.uid || 'default_student';
+
+      const allQuizzesPassed = quizUnits.every((quiz) => {
+        const scoreDataRaw = localStorage.getItem(`lms_quiz_score_${quiz.id}`);
+        if (!scoreDataRaw) return false;
+        try {
+          const scoreData = JSON.parse(scoreDataRaw);
+          const passingScore = (quiz as any).quizPassingScore || 60;
+          return scoreData.percentage >= passingScore;
+        } catch {
+          return false;
+        }
+      });
+
+      const allAssignmentsSubmitted = assignmentUnits.every((assignment) => {
+        const submission = assignmentService.getStudentSubmission(assignment.id, studentUid);
+        return submission && ['Submitted', 'Under Review', 'Graded'].includes(submission.status);
+      });
+
+      const isEligible = allQuizzesPassed && allAssignmentsSubmitted;
+      if (!isEligible) return;
+
+      // 3. Check if certificate is already generated
+      const certService = new CertificateService();
+      const existingCerts = certService.getCertificates(studentUid);
+      const alreadyGenerated = existingCerts.some(c => String(c.courseId) === String(courseId));
+      if (alreadyGenerated) return;
+
+      if (!active) return;
+      
+      setIsGeneratingCert(true);
+      const studentEmail = user?.email || userProfile?.email || 'shaivikagroups@gmail.com';
+      const studentId = (userProfile as any)?.studentId || (user?.uid ? `STU-${user.uid.substring(0, 6).toUpperCase()}` : 'STU-992104');
+      const studentName = userName;
+
+      fetch('http://localhost:5000/api/certificates/complete-and-deliver', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentId,
+          studentName,
+          studentEmail,
+          courseId: String(courseId),
+          courseTitle,
+          completionPercentage: 100,
+          instructorName: 'Shaivika Groups Board',
+          courseDuration: '24 Hours',
+          modulesCount: modules.length || 8,
+        }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (!active) return;
+          setIsGeneratingCert(false);
+          if (data.success) {
+            setGeneratedCert(data);
+            try {
+              certService.saveExternalCertificate(studentUid, {
+                id: data.id || `cert_${courseId}_${Date.now()}`,
+                courseId: String(courseId),
+                courseTitle: data.courseTitle || courseTitle,
+                studentName: data.studentName || userName,
+                studentId: data.studentId || studentId,
+                instructorName: 'Shaivika Groups Board',
+                completionDate: data.completionDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+                verificationId: data.certificateId,
+                courseDuration: '24 Hours',
+                modulesCount: modules.length || 8,
+                googleDriveLink: data.googleDriveLink,
+              });
+            } catch (saveErr) {
+              console.warn('Error saving server certificate to local storage:', saveErr);
+            }
+            toast.success(`🎓 Official Certificate Generated & Delivered to ${studentEmail}! (Check Inbox)`);
+            setShowCongrats(true);
+          }
+        })
+        .catch((err) => {
+          if (active) setIsGeneratingCert(false);
+          console.error('Automated Certificate Delivery error:', err);
+        });
+    };
+
+    checkAndTrigger();
+    const interval = setInterval(checkAndTrigger, 3000);
+
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [completedLessonIds, user, userProfile, userName, courseId, courseTitle, modules, allLessons]);
+
   useEffect(() => {
     try {
       localStorage.setItem(`shaivika_bookmarks_${courseId}`, JSON.stringify(bookmarkedLessonIds));
@@ -537,6 +652,13 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
     completedLessonIds.some((cId) => String(cId) === String(l.id))
   );
 
+  const studentUid = user?.uid || userProfile?.uid || 'default_student';
+  const certService = useMemo(() => new CertificateService(), []);
+  const currentCert = useMemo(() => {
+    const certs = certService.getCertificates(studentUid);
+    return certs.find((c) => String(c.courseId) === String(courseId)) || null;
+  }, [certService, studentUid, courseId, generatedCert]);
+
   return (
     <div
       ref={containerRef}
@@ -548,6 +670,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
     >
       <LearningHeader
         courseTitle={courseTitle}
+        currentCert={currentCert}
         lessonTitle={activeLessonFull.title}
         progressPercent={progressPercent}
         onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}

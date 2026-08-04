@@ -1,6 +1,6 @@
-import React from 'react';
-import { Menu, ChevronLeft, ChevronRight, ArrowLeft, User, Sparkles, Moon, Sun, Award } from 'lucide-react';
-import { motion } from 'framer-motion';
+import React, { useState } from 'react';
+import { Menu, ChevronLeft, ChevronRight, ArrowLeft, User, Sparkles, Moon, Sun, Award, Eye, Download, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface LearningHeaderProps {
   courseTitle: string;
@@ -18,6 +18,7 @@ interface LearningHeaderProps {
   onToggleNightMode?: () => void;
   isCourseFullyCompleted?: boolean;
   onViewCertificate?: () => void;
+  currentCert?: any;
 }
 
 export const LearningHeader: React.FC<LearningHeaderProps> = ({
@@ -36,7 +37,9 @@ export const LearningHeader: React.FC<LearningHeaderProps> = ({
   onToggleNightMode,
   isCourseFullyCompleted = false,
   onViewCertificate,
+  currentCert,
 }) => {
+  const [showCertDropdown, setShowCertDropdown] = useState(false);
   return (
     <header
       className={`sticky top-0 z-40 w-full py-3 px-3 sm:py-4 sm:px-6 lg:px-8 backdrop-blur-xl border-b flex items-center justify-between transition-all shadow-sm ${
@@ -98,16 +101,96 @@ export const LearningHeader: React.FC<LearningHeaderProps> = ({
 
       {/* Right Section: Theme Toggle + Progress + Prev/Next + User Avatar */}
       <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-        {/* Course Certificate Button (Only visible when 100% completed) */}
-        {isCourseFullyCompleted && onViewCertificate && (
-          <button
-            onClick={onViewCertificate}
-            className="flex items-center gap-1.5 px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl border border-amber-300 bg-linear-to-r from-amber-500 to-yellow-450 text-slate-950 shadow-md shadow-amber-500/10 hover:brightness-105 transition-all text-xs font-black cursor-pointer active:scale-95 shrink-0"
-            title="View Course Certificate"
-          >
-            <Award className="w-4 h-4 shrink-0 fill-slate-950 animate-pulse" />
-            <span className="hidden sm:inline">View Certificate</span>
-          </button>
+        {/* Course Certificate Dropdown (Only visible when 100% completed) */}
+        {isCourseFullyCompleted && currentCert && (
+          <div className="relative shrink-0 select-none">
+            <button
+              onClick={() => setShowCertDropdown(!showCertDropdown)}
+              className="flex items-center gap-1.5 px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl border border-emerald-450 bg-linear-to-r from-emerald-500 via-emerald-650 to-teal-600 text-white shadow-md shadow-emerald-500/10 hover:brightness-105 transition-all text-xs font-black cursor-pointer active:scale-95 shrink-0"
+              title="Certificate Available"
+            >
+              <Award className="w-4 h-4 shrink-0 fill-white animate-pulse" />
+              <span className="hidden sm:inline">Certificate Available</span>
+              <span className="sm:hidden text-[10px]">Credential</span>
+              {showCertDropdown ? <ChevronUp className="w-3.5 h-3.5 shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 shrink-0" />}
+            </button>
+
+            <AnimatePresence>
+              {showCertDropdown && (
+                <>
+                  {/* Backdrop overlay for closing dropdown */}
+                  <div
+                    className="fixed inset-0 z-40 bg-transparent"
+                    onClick={() => setShowCertDropdown(false)}
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    className={`absolute right-0 mt-2.5 w-72 rounded-2xl border p-4 shadow-xl z-50 space-y-3.5 animate-in fade-in zoom-in-95 duration-100 ${
+                      isNightMode
+                        ? 'bg-slate-900 border-slate-800 text-slate-100'
+                        : 'bg-white border-sky-100 text-slate-800'
+                    }`}
+                  >
+                    <div className="space-y-1 pb-2 border-b border-slate-700/20">
+                      <span className="text-[10px] text-emerald-500 font-extrabold uppercase tracking-wide block">
+                        Official Graduate Credential
+                      </span>
+                      <h4 className="text-xs font-bold truncate">
+                        {currentCert.courseTitle || courseTitle}
+                      </h4>
+                    </div>
+
+                    <div className="space-y-2 text-[11px] font-medium">
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-400 font-semibold">Certificate ID:</span>
+                        <span className="font-mono text-xs font-black select-all bg-slate-800/10 px-1.5 py-0.5 rounded">
+                          {currentCert.verificationId || currentCert.id}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-400 font-semibold">Issue Date:</span>
+                        <span>{currentCert.completionDate}</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-2 pt-2">
+                      <button
+                        onClick={() => {
+                          setShowCertDropdown(false);
+                          if (onViewCertificate) onViewCertificate();
+                        }}
+                        className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+                      >
+                        <Eye className="w-4 h-4 text-cyan-400" />
+                        <span>View Certificate</span>
+                      </button>
+
+                      <a
+                        href={`http://localhost:5000/api/certificates/download?certificateId=${currentCert.verificationId || currentCert.id}&studentId=${currentCert.studentId}&studentName=${encodeURIComponent(currentCert.studentName)}&courseTitle=${encodeURIComponent(currentCert.courseTitle)}&completionDate=${encodeURIComponent(currentCert.completionDate)}`}
+                        className="w-full bg-slate-800 hover:bg-slate-750 border border-slate-700 text-white font-semibold text-xs py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+                      >
+                        <Download className="w-4 h-4 text-emerald-400" />
+                        <span>Download Certificate</span>
+                      </a>
+
+                      <a
+                        href={`https://verify.kaizenq.edu/credentials/${currentCert.verificationId || currentCert.id}?studentId=${currentCert.studentId}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs border border-slate-200"
+                      >
+                        <ExternalLink className="w-4 h-4 text-sky-600" />
+                        <span>Verify Authenticity</span>
+                      </a>
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
         )}
 
         {/* Theme Toggle Button */}

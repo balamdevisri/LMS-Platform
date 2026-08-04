@@ -14,6 +14,8 @@ import {
   Zap,
   FolderSearch,
   RefreshCw,
+  Download,
+  ExternalLink,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -957,24 +959,52 @@ export const Dashboard: React.FC = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     {earnedCerts.map((cert) => (
                       <div key={cert.id} className="p-5 bg-white border border-sky-100 rounded-2xl shadow-3xs flex flex-col justify-between space-y-4">
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                           <span className="text-[9px] text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded font-mono font-bold uppercase tracking-wider block w-fit">
                             Verified Graduate Pass
                           </span>
                           <h5 className="font-heading font-bold text-sm text-slate-900 truncate" title={cert.courseTitle}>
                             {cert.courseTitle}
                           </h5>
-                          <span className="text-[10px] text-slate-400 block font-medium">Instructor: {cert.instructorName}</span>
-                          <span className="text-[10px] text-slate-400 block font-medium">Issued: {cert.completionDate}</span>
+                          <div className="space-y-1 text-[11px] font-medium text-slate-500">
+                            <div className="flex items-center justify-between">
+                              <span>Certificate ID:</span>
+                              <span className="font-mono text-slate-900 font-bold bg-slate-100 px-1 rounded">{cert.verificationId}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span>Issue Date:</span>
+                              <span className="text-slate-900 font-semibold">{cert.completionDate}</span>
+                            </div>
+                          </div>
                         </div>
 
-                        <button
-                          onClick={() => setActivePreviewCert(cert)}
-                          className="w-full bg-slate-900 hover:bg-slate-850 text-white font-heading font-extrabold text-[11px] py-2.5 px-4 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
-                        >
-                          <Award className="w-4 h-4 text-cyan-400" />
-                          <span>View Verified Credential</span>
-                        </button>
+                        <div className="grid grid-cols-1 gap-2 pt-2">
+                          <button
+                            onClick={() => setActivePreviewCert(cert)}
+                            className="w-full bg-slate-900 hover:bg-slate-850 text-white font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
+                          >
+                            <Award className="w-4 h-4 text-cyan-400" />
+                            <span>View Certificate</span>
+                          </button>
+
+                          <a
+                            href={`http://localhost:5000/api/certificates/download?certificateId=${cert.verificationId}&studentId=${cert.studentId}&studentName=${encodeURIComponent(cert.studentName)}&courseTitle=${encodeURIComponent(cert.courseTitle)}&completionDate=${encodeURIComponent(cert.completionDate)}`}
+                            className="w-full bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                          >
+                            <Download className="w-4 h-4 text-emerald-500" />
+                            <span>Download PDF</span>
+                          </a>
+
+                          <a
+                            href={`https://verify.kaizenq.edu/credentials/${cert.verificationId}?studentId=${cert.studentId}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="w-full bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer text-center"
+                          >
+                            <ExternalLink className="w-4 h-4 text-sky-500" />
+                            <span>Verify Credential</span>
+                          </a>
+                        </div>
                       </div>
                     ))}
                   </div>

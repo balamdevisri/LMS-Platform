@@ -15,4 +15,7 @@ router.get('/download', (req, res) => certificateController.downloadCertificate(
 // Route to verify generated certificate ID against Google Sheets registry
 router.get('/verify/:certificateId', (req, res) => certificateController.verifyCertificate(req, res));
 
+// Route to get all certificates for a specific student email
+router.get('/student/:studentEmail', (req, res) => certificateController.getCertificatesByEmail(req, res));
+
 export default router;

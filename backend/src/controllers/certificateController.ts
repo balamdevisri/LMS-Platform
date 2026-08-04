@@ -177,6 +177,37 @@ export class CertificateController {
       });
     }
   }
+
+  /**
+   * GET /api/certificates/student/:studentEmail
+   * Fetches all registered certificates for a student email
+   */
+  public async getCertificatesByEmail(req: Request, res: Response): Promise<Response> {
+    try {
+      const { studentEmail } = req.params;
+
+      if (!studentEmail) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing studentEmail parameter.',
+        });
+      }
+
+      logger.info(`[CERTIFICATE LIST] Fetching certificates for email: ${studentEmail}`);
+      const certs = await googleSheetsService.getCertificatesByEmail(String(studentEmail));
+
+      return res.status(200).json({
+        success: true,
+        data: certs,
+      });
+    } catch (err: any) {
+      logger.error(`[CERTIFICATE LIST] ❌ Exception: ${err?.message || err}`);
+      return res.status(500).json({
+        success: false,
+        error: err?.message || String(err),
+      });
+    }
+  }
 }
 
 export const certificateController = new CertificateController();
