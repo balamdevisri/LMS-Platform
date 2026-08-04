@@ -3,6 +3,7 @@ import { emailService } from '../email/EmailService';
 import { googleDriveService } from '../googleDrive.service';
 import { pdfCertificateGenerator } from './PDFCertificateGenerator';
 import { qrCodeService } from './QRCodeService';
+import { googleSheetsService } from './GoogleSheetsService';
 
 export interface CompletionTriggerPayload {
   studentId: string;
@@ -73,9 +74,22 @@ export class CertificateDeliveryService {
       };
     }
 
-    // Step 1: Generate Unique Certificate ID
-    const certificateId = this.generateUniqueCertificateId(payload.courseId, payload.studentId);
+    // Step 1: Generate Unique Certificate ID (Preventing duplicates in sheet registry)
+    let certificateId = this.generateUniqueCertificateId(payload.courseId, payload.studentId);
     const completionDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    try {
+      let isDuplicate = await googleSheetsService.getCertificateById(certificateId);
+      let attempts = 0;
+      while (isDuplicate && attempts < 10) {
+        logger.warn(`[AUTOMATED CERTIFICATE SYSTEM] Certificate ID Collision detected for ${certificateId}. Regenerating...`);
+        certificateId = this.generateUniqueCertificateId(payload.courseId, payload.studentId);
+        isDuplicate = await googleSheetsService.getCertificateById(certificateId);
+        attempts++;
+      }
+    } catch (sheetErr: any) {
+      logger.warn(`[AUTOMATED CERTIFICATE SYSTEM] Sheet registry duplicate check skipped/failed: ${sheetErr?.message || sheetErr}`);
+    }
 
     timeline.push({
       step: '1. GENERATE_CERTIFICATE_ID',
@@ -205,6 +219,33 @@ export class CertificateDeliveryService {
           details: `Delivered via SMTP to ${payload.studentEmail} (MsgId: ${mailResult.messageId})`,
         });
         logger.info(`[AUTOMATED CERTIFICATE SYSTEM] Step 5: Nodemailer SMTP email delivered successfully to ${payload.studentEmail}`);
+
+        // Step 6: Log Certificate to Google Sheet Registry
+        try {
+          await googleSheetsService.appendCertificateRow({
+            certificateId,
+            studentName: payload.studentName,
+            studentEmail: payload.studentEmail,
+            courseName: payload.courseTitle,
+            courseId: payload.courseId,
+            completionDate,
+            issueDate: completionDate,
+            certificateStatus: 'Issued',
+            emailStatus: 'Sent',
+            downloadCount: 0,
+          });
+          timeline.push({
+            step: '6. UPDATE_GOOGLE_SHEETS_REGISTRY',
+            status: 'SUCCESS',
+            timestamp: new Date().toISOString(),
+            details: `Logged to Google Sheets Registry.`,
+          });
+          logger.info(`[AUTOMATED CERTIFICATE SYSTEM] Step 6: Certificate logged to Google Sheet Registry successfully.`);
+        } catch (sheetLogErr: any) {
+          const msg = `Failed to log certificate to Google Sheets: ${sheetLogErr?.message || sheetLogErr}`;
+          timeline.push({ step: '6. UPDATE_GOOGLE_SHEETS_REGISTRY', status: 'FAILED', timestamp: new Date().toISOString(), details: msg });
+          logger.error(`[AUTOMATED CERTIFICATE SYSTEM] ❌ ${msg}`);
+        }
 
         logger.info(`================================================================`);
         logger.info(`[AUTOMATED CERTIFICATE SYSTEM] 🎉 AUTOMATED DELIVERY COMPLETE!`);

@@ -31,6 +31,7 @@ const envSchema = z.object({
   GOOGLE_DRIVE_CLIENT_EMAIL: z.string().optional(),
   GOOGLE_DRIVE_PRIVATE_KEY: z.string().optional(),
   GOOGLE_DRIVE_FOLDER_ID: z.string().optional(),
+  GOOGLE_SHEET_ID: z.string().optional(),
 });
 
 export const env = envSchema.parse(process.env);

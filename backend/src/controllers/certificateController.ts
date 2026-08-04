@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { certificateDeliveryService } from '../services/certificate/CertificateDeliveryService';
 import { pdfCertificateGenerator } from '../services/certificate/PDFCertificateGenerator';
 import { qrCodeService } from '../services/certificate/QRCodeService';
+import { googleSheetsService } from '../services/certificate/GoogleSheetsService';
 import logger from '../config/logger';
 
 export class CertificateController {
@@ -134,6 +135,46 @@ export class CertificateController {
     } catch (err: any) {
       logger.error(`[DOWNLOAD CERTIFICATE] ❌ Exception: ${err?.message || err}`);
       res.status(500).send('Failed to generate download certificate.');
+    }
+  }
+
+  /**
+   * GET /api/certificates/verify/:certificateId
+   * Searches the Google Sheets Certificate Registry for a matching Certificate ID to verify its authenticity
+   */
+  public async verifyCertificate(req: Request, res: Response): Promise<Response> {
+    try {
+      const { certificateId } = req.params;
+
+      if (!certificateId) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing Certificate ID parameter.',
+        });
+      }
+
+      logger.info(`[CERTIFICATE VERIFICATION] Searching sheet registry for Certificate ID: ${certificateId}`);
+      const certData = await googleSheetsService.getCertificateById(String(certificateId));
+
+      if (!certData) {
+        logger.warn(`[CERTIFICATE VERIFICATION] ⚠️ Certificate ID ${certificateId} not found in Registry.`);
+        return res.status(404).json({
+          success: false,
+          error: `Certificate ID "${certificateId}" could not be verified. It does not exist in the registry.`,
+        });
+      }
+
+      logger.info(`[CERTIFICATE VERIFICATION] ✅ Certificate ID ${certificateId} verified successfully.`);
+      return res.status(200).json({
+        success: true,
+        data: certData,
+      });
+    } catch (err: any) {
+      logger.error(`[CERTIFICATE VERIFICATION] ❌ Exception: ${err?.message || err}`);
+      return res.status(500).json({
+        success: false,
+        error: err?.message || String(err),
+      });
     }
   }
 }

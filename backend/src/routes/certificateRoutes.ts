@@ -12,4 +12,7 @@ router.get('/test-delivery', (req, res) => certificateController.testDelivery(re
 // Route to download generated PDF certificate directly from server
 router.get('/download', (req, res) => certificateController.downloadCertificate(req, res));
 
+// Route to verify generated certificate ID against Google Sheets registry
+router.get('/verify/:certificateId', (req, res) => certificateController.verifyCertificate(req, res));
+
 export default router;
