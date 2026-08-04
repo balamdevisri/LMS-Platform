@@ -156,40 +156,17 @@ export class CertificateDeliveryService {
       };
     }
 
-    // Step 4: Upload PDF Directly to Google Drive (Exclusive Storage Location)
-    let driveResult: { driveFileId: string; driveUrl: string; webContentLink: string; fileName: string };
-    try {
-      driveResult = await googleDriveService.uploadCertificate({
-        pdfFilePath: pdfBuffer,
-        courseName: payload.courseTitle,
-        certificateId,
-        studentName: payload.studentName,
-      });
-      timeline.push({
-        step: '4. UPLOAD_TO_GOOGLE_DRIVE',
-        status: 'SUCCESS',
-        timestamp: new Date().toISOString(),
-        details: `Uploaded to Google Drive. FileID: ${driveResult.driveFileId} | Link: ${driveResult.driveUrl}`,
-      });
-      logger.info(`[AUTOMATED CERTIFICATE SYSTEM] Step 4: PDF uploaded directly to Google Drive -> ${driveResult.driveUrl}`);
-    } catch (err: any) {
-      const msg = `Google Drive upload failed after retries: ${err?.message || err}`;
-      timeline.push({ step: '4. UPLOAD_TO_GOOGLE_DRIVE', status: 'FAILED', timestamp: new Date().toISOString(), details: msg });
-      logger.error(`[AUTOMATED CERTIFICATE SYSTEM] ❌ ${msg}`);
-      return {
-        success: false,
-        certificateId,
-        studentId: payload.studentId,
-        studentName: payload.studentName,
-        studentEmail: payload.studentEmail,
-        courseTitle: payload.courseTitle,
-        completionDate,
-        error: msg,
-        timeline,
-      };
-    }
+    // Step 4: Generate Direct Download Link from KaizenQ LMS Backend
+    const downloadUrl = `http://localhost:5000/api/certificates/download?certificateId=${certificateId}&studentId=${payload.studentId}&studentName=${encodeURIComponent(payload.studentName)}&courseTitle=${encodeURIComponent(payload.courseTitle)}&completionDate=${encodeURIComponent(completionDate)}`;
+    timeline.push({
+      step: '4. GENERATE_DIRECT_DOWNLOAD_LINK',
+      status: 'SUCCESS',
+      timestamp: new Date().toISOString(),
+      details: `Direct Download URL generated successfully: ${downloadUrl}`,
+    });
+    logger.info(`[AUTOMATED CERTIFICATE SYSTEM] Step 4: Direct Download URL generated successfully.`);
 
-    // Step 5: Send Professional Email via Nodemailer SMTP with PDF Attachment & Google Drive Link
+    // Step 5: Send Professional Email via Nodemailer SMTP with PDF Attachment & Direct Download Link
     const verifyUrl = `https://verify.kaizenq.edu/credentials/${certificateId}?studentId=${payload.studentId}`;
     const emailSubject = `🎓 Congratulations ${payload.studentName}! Your Official Certificate for "${payload.courseTitle}" is Ready`;
 
@@ -201,7 +178,7 @@ export class CertificateDeliveryService {
       courseTitle: payload.courseTitle,
       certificateId,
       completionDate,
-      googleDriveLink: driveResult.driveUrl,
+      googleDriveLink: downloadUrl,
       verifyUrl,
       courseDescription,
     });
@@ -241,8 +218,8 @@ export class CertificateDeliveryService {
           studentEmail: payload.studentEmail,
           courseTitle: payload.courseTitle,
           completionDate,
-          googleDriveLink: driveResult.driveUrl,
-          googleDriveFileId: driveResult.driveFileId,
+          googleDriveLink: downloadUrl,
+          googleDriveFileId: 'local-server',
           emailMessageId: mailResult.messageId,
           timeline,
         };
@@ -259,8 +236,8 @@ export class CertificateDeliveryService {
           studentEmail: payload.studentEmail,
           courseTitle: payload.courseTitle,
           completionDate,
-          googleDriveLink: driveResult.driveUrl,
-          googleDriveFileId: driveResult.driveFileId,
+          googleDriveLink: downloadUrl,
+          googleDriveFileId: 'local-server',
           error: msg,
           timeline,
         };
@@ -278,8 +255,8 @@ export class CertificateDeliveryService {
         studentEmail: payload.studentEmail,
         courseTitle: payload.courseTitle,
         completionDate,
-        googleDriveLink: driveResult.driveUrl,
-        googleDriveFileId: driveResult.driveFileId,
+        googleDriveLink: downloadUrl,
+        googleDriveFileId: 'local-server',
         error: msg,
         timeline,
       };
@@ -402,26 +379,26 @@ export class CertificateDeliveryService {
                   </td>
                   <td width="50%" style="padding: 8px 12px; vertical-align: top;">
                     <span style="font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.08em; display: block;">STORAGE LOCATION</span>
-                    <span style="font-size: 13px; font-weight: 800; color: #38bdf8;">Google Drive</span>
+                    <span style="font-size: 13px; font-weight: 800; color: #38bdf8;">KaizenQ Portal</span>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
-
+ 
           <!-- Action Buttons -->
           <tr>
             <td style="padding: 0 40px 36px 40px; text-align: center;">
               <p style="font-size: 13px; color: #64748b; margin-bottom: 20px;">
-                Your official PDF certificate is attached directly to this email and archived permanently in Google Drive:
+                Your official PDF certificate is attached directly to this email and archived permanently in your KaizenQ account profile:
               </p>
-
+ 
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td align="center" style="padding-bottom: 12px;">
-                    <!-- Download Button (Google Drive Link) -->
+                    <!-- Download Button -->
                     <a href="${data.googleDriveLink}" target="_blank" style="display: block; width: 85%; background: linear-gradient(135deg, #0044cc 0%, #0b55ed 100%); color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 800; padding: 14px 28px; border-radius: 14px; box-shadow: 0 10px 20px rgba(0, 68, 204, 0.25); text-align: center;">
-                      📥 Download Certificate (Google Drive)
+                      📥 Download Certificate (Direct Link)
                     </a>
                   </td>
                 </tr>

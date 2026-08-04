@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import { certificateDeliveryService } from '../services/certificate/CertificateDeliveryService';
+import { pdfCertificateGenerator } from '../services/certificate/PDFCertificateGenerator';
+import { qrCodeService } from '../services/certificate/QRCodeService';
 import logger from '../config/logger';
 
 export class CertificateController {
@@ -85,6 +87,53 @@ export class CertificateController {
         success: false,
         error: err?.message || String(err),
       });
+    }
+  }
+
+  /**
+   * GET /api/certificates/download
+   * Serves direct download of high-quality certificate PDF without requiring external Google Drive storage
+   */
+  public async downloadCertificate(req: Request, res: Response): Promise<void> {
+    try {
+      const {
+        certificateId,
+        studentId,
+        studentName,
+        courseTitle,
+        completionDate,
+        courseDuration,
+        modulesCount
+      } = req.query;
+
+      if (!certificateId || !studentId || !studentName || !courseTitle) {
+        res.status(400).send('Missing required query parameters: certificateId, studentId, studentName, courseTitle.');
+        return;
+      }
+
+      const qrCodeBuffer = await qrCodeService.generateVerificationQRCodeBuffer(
+        String(certificateId),
+        String(studentId)
+      );
+
+      const pdfBuffer = await pdfCertificateGenerator.generateCertificateBuffer({
+        certificateId: String(certificateId),
+        studentId: String(studentId),
+        studentName: String(studentName),
+        courseTitle: String(courseTitle),
+        instructorName: 'Shaivika Groups Board',
+        completionDate: String(completionDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })),
+        courseDuration: String(courseDuration || '24 Hours'),
+        modulesCount: Number(modulesCount || 8),
+        qrCodeBuffer,
+      });
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${certificateId}.pdf"`);
+      res.send(pdfBuffer);
+    } catch (err: any) {
+      logger.error(`[DOWNLOAD CERTIFICATE] ❌ Exception: ${err?.message || err}`);
+      res.status(500).send('Failed to generate download certificate.');
     }
   }
 }
