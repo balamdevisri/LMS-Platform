@@ -6,6 +6,15 @@ import { googleDriveService } from '../googleDrive.service';
 import { pdfCertificateGenerator } from './PDFCertificateGenerator';
 import { qrCodeService } from './QRCodeService';
 import { googleSheetsService } from './GoogleSheetsService';
+import { db } from '../../firebase';
+import {
+  isFirestoreInitialized,
+  coursesCollection,
+  studentProgressCollection,
+  quizAttemptsCollection,
+  assignmentSubmissionsCollection,
+} from '../../firebase/collections';
+import { StudentProgressDoc } from '../../types/aiLmsTypes';
 
 export interface CompletionTriggerPayload {
   studentId: string;
@@ -38,10 +47,33 @@ export class CertificateDeliveryService {
   /**
    * Generates unique Certificate ID in KQ-CERT-XXXX-YYYY format
    */
-  private generateUniqueCertificateId(courseId: string, studentId: string): string {
-    const timePart = Date.now().toString(36).toUpperCase();
-    const randPart = Math.random().toString(36).substring(2, 6).toUpperCase();
-    return `KQ-CERT-${timePart}-${randPart}`;
+  private async generateGloballyUniqueId(courseId: string): Promise<string> {
+    const year = new Date().getFullYear();
+    const courseCode = courseId.toUpperCase().includes('LINUX') ? 'LINUX' : (courseId.toUpperCase().includes('GIT') ? 'GIT' : 'COURSE');
+    
+    let seq = 1;
+    const filePath = this.getLocalRegistryPath();
+    if (fs.existsSync(filePath)) {
+      try {
+        const records = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        seq = records.length + 1;
+      } catch {}
+    }
+
+    let certificateId = `KQ-${courseCode}-${year}-${String(seq).padStart(6, '0')}`;
+    
+    try {
+      let isDuplicate = await googleSheetsService.getCertificateById(certificateId);
+      let attempts = 0;
+      while (isDuplicate && attempts < 10) {
+        seq++;
+        certificateId = `KQ-${courseCode}-${year}-${String(seq).padStart(6, '0')}`;
+        isDuplicate = await googleSheetsService.getCertificateById(certificateId);
+        attempts++;
+      }
+    } catch {}
+
+    return certificateId;
   }
 
   private getLocalRegistryPath(): string {
@@ -78,11 +110,138 @@ export class CertificateDeliveryService {
   }
 
   /**
+   * Validate Student course completion eligibility securely on the backend database
+   */
+  public async validateStudentEligibility(studentId: string, courseId: string): Promise<{ eligible: boolean; error?: string }> {
+    logger.info(`[AUTOMATED CERTIFICATE VALIDATION] Starting validation pipeline for student ${studentId} in course ${courseId}...`);
+
+    if (!isFirestoreInitialized()) {
+      return { eligible: false, error: 'Database is not initialized.' };
+    }
+
+    // 1. Validate Student exists and is Active
+    const studentDoc = await db.collection('students').doc(studentId).get();
+    if (!studentDoc.exists) {
+      logger.warn(`[AUTOMATED CERTIFICATE VALIDATION] ❌ Student ${studentId} not found.`);
+      return { eligible: false, error: 'Student account not found.' };
+    }
+    const studentData = studentDoc.data();
+    if (studentData?.status !== 'approved' && studentData?.status !== 'active') {
+      logger.warn(`[AUTOMATED CERTIFICATE VALIDATION] ❌ Student ${studentId} is inactive (status: ${studentData?.status}).`);
+      return { eligible: false, error: 'Student account is not active.' };
+    }
+    logger.info(`[AUTOMATED CERTIFICATE VALIDATION] ✓ Student exists and is Active.`);
+
+    // 2. Validate Course exists, is Published, and is not Archived
+    const courseDoc = await coursesCollection().doc(courseId).get();
+    if (!courseDoc.exists) {
+      logger.warn(`[AUTOMATED CERTIFICATE VALIDATION] ❌ Course ${courseId} not found.`);
+      return { eligible: false, error: 'Course not found.' };
+    }
+    const courseData: any = courseDoc.data();
+    if (courseData?.status !== 'published') {
+      logger.warn(`[AUTOMATED CERTIFICATE VALIDATION] ❌ Course ${courseId} is not Published.`);
+      return { eligible: false, error: 'Course is not published.' };
+    }
+    if (courseData?.archived === true || courseData?.status === 'archived') {
+      logger.warn(`[AUTOMATED CERTIFICATE VALIDATION] ❌ Course ${courseId} is Archived.`);
+      return { eligible: false, error: 'Course is archived.' };
+    }
+    logger.info(`[AUTOMATED CERTIFICATE VALIDATION] ✓ Course exists, is Published, and is not Archived.`);
+
+    // 3. Load Student Progress and verify enrollment
+    const progressDoc = await studentProgressCollection().doc(`${studentId}_${courseId}`).get();
+    if (!progressDoc.exists) {
+      logger.warn(`[AUTOMATED CERTIFICATE VALIDATION] ❌ Progress record not found for student ${studentId} in course ${courseId}.`);
+      return { eligible: false, error: 'Student is not enrolled or progress record is missing.' };
+    }
+    const progressData = progressDoc.data() as StudentProgressDoc;
+    logger.info(`[AUTOMATED CERTIFICATE VALIDATION] ✓ Student is enrolled.`);
+
+    // 4. Validate Progress is 100%
+    let expectedLessons: any[] = [];
+    if (Array.isArray(courseData.modules)) {
+      courseData.modules.forEach((mod: any) => {
+        if (Array.isArray(mod.lessons)) {
+          expectedLessons.push(...mod.lessons);
+        }
+      });
+    }
+
+    const completedLessons = progressData.completedLessons || [];
+    const allLessonsDone = expectedLessons.length > 0 && expectedLessons.every(l => 
+      completedLessons.includes(String(l.id))
+    );
+    if (!allLessonsDone) {
+      logger.warn(`[AUTOMATED CERTIFICATE VALIDATION] ❌ Student has not completed all required lessons.`);
+      return { eligible: false, error: 'Not all required lessons are completed.' };
+    }
+    logger.info(`[AUTOMATED CERTIFICATE VALIDATION] ✓ Every required lesson is completed.`);
+
+    const completedModules = progressData.completedModules || [];
+    const expectedModules = courseData.modules || [];
+    const allModulesDone = expectedModules.every((m: any) => 
+      completedModules.includes(String(m.id))
+    );
+    if (!allModulesDone) {
+      logger.warn(`[AUTOMATED CERTIFICATE VALIDATION] ❌ Student has not completed all modules.`);
+      return { eligible: false, error: 'Not all modules are marked complete.' };
+    }
+    logger.info(`[AUTOMATED CERTIFICATE VALIDATION] ✓ Every required module is completed.`);
+
+    // 5. Validate Quizzes passed
+    const quizUnits: any[] = [];
+    const assignmentUnits: any[] = [];
+    expectedModules.forEach((mod: any) => {
+      mod.lessons?.forEach((lesson: any) => {
+        const typeLower = (lesson.type || '').toLowerCase();
+        if (typeLower === 'quiz') quizUnits.push(lesson);
+        else if (typeLower === 'assignment') assignmentUnits.push(lesson);
+      });
+    });
+
+    for (const quiz of quizUnits) {
+      const attemptsSnap = await quizAttemptsCollection()
+        .where('studentId', '==', studentId)
+        .where('courseId', '==', courseId)
+        .where('quizId', '==', quiz.id)
+        .get();
+      
+      const hasPassed = !attemptsSnap.empty && attemptsSnap.docs.some(doc => {
+        const data = doc.data();
+        const passingScore = quiz.quizPassingScore || 60;
+        return (data.percentage || 0) >= passingScore;
+      });
+
+      if (!hasPassed) {
+        logger.warn(`[AUTOMATED CERTIFICATE VALIDATION] ❌ Required quiz ${quiz.title} (${quiz.id}) not passed.`);
+        return { eligible: false, error: `Required quiz "${quiz.title}" has not been passed.` };
+      }
+    }
+    logger.info(`[AUTOMATED CERTIFICATE VALIDATION] ✓ Every required quiz is passed.`);
+
+    // 6. Validate Assignments submitted
+    for (const assignment of assignmentUnits) {
+      const subDoc = await assignmentSubmissionsCollection().doc(`${studentId}_${assignment.id}`).get();
+      const submission = subDoc.exists ? subDoc.data() : null;
+      const isSubmitted = submission && ['Submitted', 'Under Review', 'Graded'].includes(submission.status);
+
+      if (!isSubmitted) {
+        logger.warn(`[AUTOMATED CERTIFICATE VALIDATION] ❌ Required assignment ${assignment.title} (${assignment.id}) not submitted.`);
+        return { eligible: false, error: `Required assignment "${assignment.title}" has not been submitted.` };
+      }
+    }
+    logger.info(`[AUTOMATED CERTIFICATE VALIDATION] ✓ Every required assignment is submitted.`);
+
+    return { eligible: true };
+  }
+
+  /**
    * Fully Automated Certificate Delivery Pipeline
    * Triggered automatically when student reaches 100% completion
    */
   public async handleCourseCompletionAndDeliver(
-    payload: CompletionTriggerPayload
+    payload: CompletionTriggerPayload & { forceRegenerate?: boolean }
   ): Promise<AutomatedDeliveryResult> {
     const timeline: Array<{ step: string; status: 'SUCCESS' | 'FAILED'; timestamp: string; details?: string }> = [];
     const nowIso = new Date().toISOString();
@@ -92,88 +251,95 @@ export class CertificateDeliveryService {
     logger.info(`[AUTOMATED CERTIFICATE SYSTEM] Course: "${payload.courseTitle}" | Progress: ${payload.completionPercentage}%`);
     logger.info(`================================================================`);
 
-    // Verify 100% completion
-    if (payload.completionPercentage < 100) {
-      const err = `Course completion is ${payload.completionPercentage}%. Automated certificate delivery triggers ONLY at 100%.`;
-      logger.warn(`[AUTOMATED CERTIFICATE SYSTEM] ⚠️ ${err}`);
-      return {
-        success: false,
-        certificateId: '',
-        studentId: payload.studentId,
-        studentName: payload.studentName,
-        studentEmail: payload.studentEmail,
-        courseTitle: payload.courseTitle,
-        completionDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
-        error: err,
-        timeline,
-      };
-    }
+    // Validation Started
+    timeline.push({
+      step: '0. VALIDATION_STARTED',
+      status: 'SUCCESS',
+      timestamp: new Date().toISOString(),
+    });
 
-    // Precheck: Verify if a certificate has already been generated for this student and course
-    const localExisting = this.isAlreadyIssued(payload.studentEmail, payload.courseId);
-    if (localExisting) {
-      logger.info(`[AUTOMATED CERTIFICATE SYSTEM] ⚠️ Certificate already exists locally for ${payload.studentEmail} in course ${payload.courseId}. Skipping generation.`);
-      return {
-        success: true,
-        certificateId: localExisting.certificateId,
-        studentId: payload.studentId,
-        studentName: payload.studentName,
-        studentEmail: payload.studentEmail,
-        courseTitle: payload.courseTitle,
-        completionDate: localExisting.completionDate,
-        googleDriveLink: localExisting.googleDriveLink || 'local-server',
-        googleDriveFileId: 'local-server',
-        timeline,
-      };
-    }
-
-    try {
-      const sheetExisting = await googleSheetsService.checkCertificateExists(payload.studentEmail, payload.courseId);
-      if (sheetExisting) {
-        logger.info(`[AUTOMATED CERTIFICATE SYSTEM] ⚠️ Certificate already exists in Google Sheets Registry for ${payload.studentEmail} in course ${payload.courseId}. Skipping generation.`);
-        
-        // Log to local cache to avoid future API hits
-        this.logLocalRegistry({
-          certificateId: sheetExisting.certificateId,
-          studentEmail: payload.studentEmail,
-          courseId: payload.courseId,
-          completionDate: sheetExisting.completionDate,
-          googleDriveLink: 'local-server',
+    const isForce = payload.forceRegenerate === true;
+    if (!isForce) {
+      const valResult = await this.validateStudentEligibility(payload.studentId, payload.courseId);
+      if (!valResult.eligible) {
+        timeline.push({
+          step: '0. VALIDATION_FAILED',
+          status: 'FAILED',
+          timestamp: new Date().toISOString(),
+          details: valResult.error,
         });
-
         return {
-          success: true,
-          certificateId: sheetExisting.certificateId,
+          success: false,
+          certificateId: '',
           studentId: payload.studentId,
           studentName: payload.studentName,
           studentEmail: payload.studentEmail,
           courseTitle: payload.courseTitle,
-          completionDate: sheetExisting.completionDate,
-          googleDriveLink: 'local-server',
+          completionDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+          error: valResult.error,
+          timeline,
+        };
+      }
+      timeline.push({
+        step: '0. VALIDATION_PASSED',
+        status: 'SUCCESS',
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    if (!isForce) {
+      // Precheck: Verify if a certificate has already been generated for this student and course
+      const localExisting = this.isAlreadyIssued(payload.studentEmail, payload.courseId);
+      if (localExisting) {
+        logger.info(`[AUTOMATED CERTIFICATE SYSTEM] ⚠️ Certificate already exists locally for ${payload.studentEmail} in course ${payload.courseId}. Skipping generation.`);
+        return {
+          success: true,
+          certificateId: localExisting.certificateId,
+          studentId: payload.studentId,
+          studentName: payload.studentName,
+          studentEmail: payload.studentEmail,
+          courseTitle: payload.courseTitle,
+          completionDate: localExisting.completionDate,
+          googleDriveLink: localExisting.googleDriveLink || 'local-server',
           googleDriveFileId: 'local-server',
           timeline,
         };
       }
-    } catch (sheetCheckErr: any) {
-      logger.warn(`[AUTOMATED CERTIFICATE SYSTEM] Sheet precheck search failed/skipped: ${sheetCheckErr?.message || sheetCheckErr}`);
-    }
 
-    // Step 1: Generate Unique Certificate ID (Preventing duplicates in sheet registry)
-    let certificateId = this.generateUniqueCertificateId(payload.courseId, payload.studentId);
-    const completionDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      try {
+        const sheetExisting = await googleSheetsService.checkCertificateExists(payload.studentEmail, payload.courseId);
+        if (sheetExisting) {
+          logger.info(`[AUTOMATED CERTIFICATE SYSTEM] ⚠️ Certificate already exists in Google Sheets Registry for ${payload.studentEmail} in course ${payload.courseId}. Skipping generation.`);
+          
+          this.logLocalRegistry({
+            certificateId: sheetExisting.certificateId,
+            studentEmail: payload.studentEmail,
+            courseId: payload.courseId,
+            completionDate: sheetExisting.completionDate,
+            googleDriveLink: 'local-server',
+          });
 
-    try {
-      let isDuplicate = await googleSheetsService.getCertificateById(certificateId);
-      let attempts = 0;
-      while (isDuplicate && attempts < 10) {
-        logger.warn(`[AUTOMATED CERTIFICATE SYSTEM] Certificate ID Collision detected for ${certificateId}. Regenerating...`);
-        certificateId = this.generateUniqueCertificateId(payload.courseId, payload.studentId);
-        isDuplicate = await googleSheetsService.getCertificateById(certificateId);
-        attempts++;
+          return {
+            success: true,
+            certificateId: sheetExisting.certificateId,
+            studentId: payload.studentId,
+            studentName: payload.studentName,
+            studentEmail: payload.studentEmail,
+            courseTitle: payload.courseTitle,
+            completionDate: sheetExisting.completionDate,
+            googleDriveLink: 'local-server',
+            googleDriveFileId: 'local-server',
+            timeline,
+          };
+        }
+      } catch (sheetCheckErr: any) {
+        logger.warn(`[AUTOMATED CERTIFICATE SYSTEM] Sheet precheck search failed/skipped: ${sheetCheckErr?.message || sheetCheckErr}`);
       }
-    } catch (sheetErr: any) {
-      logger.warn(`[AUTOMATED CERTIFICATE SYSTEM] Sheet registry duplicate check skipped/failed: ${sheetErr?.message || sheetErr}`);
     }
+
+    // Step 1: Generate Deterministic Globally Unique Certificate ID (Preventing duplicates in sheet registry)
+    const certificateId = await this.generateGloballyUniqueId(payload.courseId);
+    const completionDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
     timeline.push({
       step: '1. GENERATE_CERTIFICATE_ID',
@@ -254,22 +420,57 @@ export class CertificateDeliveryService {
       };
     }
 
-    // Step 4: Generate Direct Download Link from KaizenQ LMS Backend
+    // Direct download and verification URL preparation
     const downloadUrl = `http://localhost:5000/api/certificates/download?certificateId=${certificateId}&studentId=${payload.studentId}&studentName=${encodeURIComponent(payload.studentName)}&courseTitle=${encodeURIComponent(payload.courseTitle)}&completionDate=${encodeURIComponent(completionDate)}`;
-    timeline.push({
-      step: '4. GENERATE_DIRECT_DOWNLOAD_LINK',
-      status: 'SUCCESS',
-      timestamp: new Date().toISOString(),
-      details: `Direct Download URL generated successfully: ${downloadUrl}`,
-    });
-    logger.info(`[AUTOMATED CERTIFICATE SYSTEM] Step 4: Direct Download URL generated successfully.`);
+    const verifyUrl = `https://verify.kaizenq.edu/credentials/${certificateId}?studentId=${payload.studentId}`;
+
+    // Step 4: Log Certificate to Google Sheet Registry FIRST
+    try {
+      const sheetLogged = await googleSheetsService.appendCertificateRow({
+        certificateId,
+        studentId: payload.studentId,
+        studentName: payload.studentName,
+        studentEmail: payload.studentEmail,
+        courseId: payload.courseId,
+        courseName: payload.courseTitle,
+        completionDate,
+        issueDate: completionDate,
+        certificateStatus: 'Issued',
+        emailStatus: 'Pending',
+        generatedTimestamp: new Date().toISOString(),
+      });
+
+      if (sheetLogged) {
+        timeline.push({
+          step: '4. UPDATE_GOOGLE_SHEETS_REGISTRY',
+          status: 'SUCCESS',
+          timestamp: new Date().toISOString(),
+          details: `Logged to Google Sheets Registry.`,
+        });
+        logger.info(`[AUTOMATED CERTIFICATE SYSTEM] Step 4: Certificate logged to Google Sheet Registry successfully.`);
+      } else {
+        throw new Error('Google Sheets Append returned false.');
+      }
+    } catch (sheetLogErr: any) {
+      const msg = `Failed to log certificate to Google Sheets: ${sheetLogErr?.message || sheetLogErr}`;
+      timeline.push({ step: '4. UPDATE_GOOGLE_SHEETS_REGISTRY', status: 'FAILED', timestamp: new Date().toISOString(), details: msg });
+      logger.error(`[AUTOMATED CERTIFICATE SYSTEM] ❌ ${msg}`);
+      return {
+        success: false,
+        certificateId,
+        studentId: payload.studentId,
+        studentName: payload.studentName,
+        studentEmail: payload.studentEmail,
+        courseTitle: payload.courseTitle,
+        completionDate,
+        error: msg,
+        timeline,
+      };
+    }
 
     // Step 5: Send Professional Email via Nodemailer SMTP with PDF Attachment & Direct Download Link
-    const verifyUrl = `https://verify.kaizenq.edu/credentials/${certificateId}?studentId=${payload.studentId}`;
     const emailSubject = `🎓 Congratulations ${payload.studentName}! Your Official Certificate for "${payload.courseTitle}" is Ready`;
-
     const courseDescription = this.getCourseDescription(payload.courseId, payload.courseTitle);
-
     const pdfFileName = `${certificateId}.pdf`;
     const htmlEmailContent = this.buildCertificateEmailHtml({
       studentName: payload.studentName,
@@ -281,107 +482,90 @@ export class CertificateDeliveryService {
       courseDescription,
     });
 
-    try {
-      const mailResult = await emailService.sendEmailWithAttachments(
-        payload.studentEmail,
-        emailSubject,
-        htmlEmailContent,
-        [
-          {
-            filename: pdfFileName,
-            content: pdfBuffer,
-            contentType: 'application/pdf',
-          },
-        ]
-      );
+    let mailResult = { success: false, messageId: '', error: '' };
+    let emailAttempts = 0;
+    const maxEmailAttempts = 3;
+    let delayMs = 1500;
 
-      if (mailResult.success) {
-        timeline.push({
-          step: '5. SEND_EMAIL_SMTP',
-          status: 'SUCCESS',
-          timestamp: new Date().toISOString(),
-          details: `Delivered via SMTP to ${payload.studentEmail} (MsgId: ${mailResult.messageId})`,
-        });
-        logger.info(`[AUTOMATED CERTIFICATE SYSTEM] Step 5: Nodemailer SMTP email delivered successfully to ${payload.studentEmail}`);
+    while (emailAttempts < maxEmailAttempts) {
+      try {
+        emailAttempts++;
+        logger.info(`[AUTOMATED CERTIFICATE SYSTEM] Attempting SMTP email dispatch (${emailAttempts}/${maxEmailAttempts})...`);
+        const result = await emailService.sendEmailWithAttachments(
+          payload.studentEmail,
+          emailSubject,
+          htmlEmailContent,
+          [
+            {
+              filename: pdfFileName,
+              content: pdfBuffer,
+              contentType: 'application/pdf',
+            },
+          ]
+        );
 
-        // Step 6: Log Certificate to Google Sheet Registry
-        try {
-          await googleSheetsService.appendCertificateRow({
-            certificateId,
-            studentName: payload.studentName,
-            studentEmail: payload.studentEmail,
-            courseName: payload.courseTitle,
-            courseId: payload.courseId,
-            completionDate,
-            issueDate: completionDate,
-            certificateStatus: 'Issued',
-            emailStatus: 'Sent',
-            downloadCount: 0,
-          });
-          timeline.push({
-            step: '6. UPDATE_GOOGLE_SHEETS_REGISTRY',
-            status: 'SUCCESS',
-            timestamp: new Date().toISOString(),
-            details: `Logged to Google Sheets Registry.`,
-          });
-          logger.info(`[AUTOMATED CERTIFICATE SYSTEM] Step 6: Certificate logged to Google Sheet Registry successfully.`);
-        } catch (sheetLogErr: any) {
-          const msg = `Failed to log certificate to Google Sheets: ${sheetLogErr?.message || sheetLogErr}`;
-          timeline.push({ step: '6. UPDATE_GOOGLE_SHEETS_REGISTRY', status: 'FAILED', timestamp: new Date().toISOString(), details: msg });
-          logger.error(`[AUTOMATED CERTIFICATE SYSTEM] ❌ ${msg}`);
+        if (result.success) {
+          mailResult = { success: true, messageId: result.messageId || '', error: '' };
+          break;
+        } else {
+          mailResult.error = result.error || 'Unknown send mail error';
         }
-
-        // Log to local cache registry
-        try {
-          this.logLocalRegistry({
-            certificateId,
-            studentEmail: payload.studentEmail,
-            courseId: payload.courseId,
-            completionDate,
-            googleDriveLink: downloadUrl,
-          });
-        } catch (localCacheErr: any) {
-          logger.warn(`[AUTOMATED CERTIFICATE SYSTEM] Failed to write to local cache: ${localCacheErr?.message || localCacheErr}`);
-        }
-
-        logger.info(`================================================================`);
-        logger.info(`[AUTOMATED CERTIFICATE SYSTEM] 🎉 AUTOMATED DELIVERY COMPLETE!`);
-        logger.info(`================================================================`);
-
-        return {
-          success: true,
-          certificateId,
-          studentId: payload.studentId,
-          studentName: payload.studentName,
-          studentEmail: payload.studentEmail,
-          courseTitle: payload.courseTitle,
-          completionDate,
-          googleDriveLink: downloadUrl,
-          googleDriveFileId: 'local-server',
-          emailMessageId: mailResult.messageId,
-          timeline,
-        };
-      } else {
-        const msg = `SMTP Email dispatch failed after retries: ${mailResult.error}`;
-        timeline.push({ step: '5. SEND_EMAIL_SMTP', status: 'FAILED', timestamp: new Date().toISOString(), details: msg });
-        logger.error(`[AUTOMATED CERTIFICATE SYSTEM] ❌ ${msg}`);
-
-        return {
-          success: false,
-          certificateId,
-          studentId: payload.studentId,
-          studentName: payload.studentName,
-          studentEmail: payload.studentEmail,
-          courseTitle: payload.courseTitle,
-          completionDate,
-          googleDriveLink: downloadUrl,
-          googleDriveFileId: 'local-server',
-          error: msg,
-          timeline,
-        };
+      } catch (err: any) {
+        mailResult.error = err?.message || String(err);
       }
-    } catch (emailErr: any) {
-      const msg = `SMTP Email error: ${emailErr?.message || emailErr}`;
+
+      if (emailAttempts < maxEmailAttempts) {
+        logger.warn(`[AUTOMATED CERTIFICATE SYSTEM] SMTP email attempt ${emailAttempts} failed. Retrying in ${delayMs}ms... Error: ${mailResult.error}`);
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        delayMs *= 2;
+      }
+    }
+
+    if (mailResult.success) {
+      timeline.push({
+        step: '5. SEND_EMAIL_SMTP',
+        status: 'SUCCESS',
+        timestamp: new Date().toISOString(),
+        details: `Delivered via SMTP to ${payload.studentEmail} (MsgId: ${mailResult.messageId})`,
+      });
+      logger.info(`[AUTOMATED CERTIFICATE SYSTEM] Step 5: Nodemailer SMTP email delivered successfully to ${payload.studentEmail}`);
+
+      // Log to local cache registry
+      try {
+        this.logLocalRegistry({
+          certificateId,
+          studentId: payload.studentId,
+          studentName: payload.studentName,
+          studentEmail: payload.studentEmail,
+          courseId: payload.courseId,
+          courseTitle: payload.courseTitle,
+          completionDate,
+          googleDriveLink: downloadUrl,
+          issuedAt: new Date().toISOString(),
+        });
+      } catch (localCacheErr: any) {
+        logger.warn(`[AUTOMATED CERTIFICATE SYSTEM] Failed to write to local cache: ${localCacheErr?.message || localCacheErr}`);
+      }
+
+      logger.info(`================================================================`);
+      logger.info(`[AUTOMATED CERTIFICATE SYSTEM] 🎉 AUTOMATED DELIVERY COMPLETE!`);
+      logger.info(`================================================================`);
+
+      return {
+        success: true,
+        certificateId,
+        studentId: payload.studentId,
+        studentName: payload.studentName,
+        studentEmail: payload.studentEmail,
+        courseTitle: payload.courseTitle,
+        completionDate,
+        googleDriveLink: downloadUrl,
+        googleDriveFileId: 'local-server',
+        emailMessageId: mailResult.messageId,
+        timeline,
+      };
+    } else {
+      const msg = `SMTP Email dispatch failed after retries: ${mailResult.error}`;
       timeline.push({ step: '5. SEND_EMAIL_SMTP', status: 'FAILED', timestamp: new Date().toISOString(), details: msg });
       logger.error(`[AUTOMATED CERTIFICATE SYSTEM] ❌ ${msg}`);
 

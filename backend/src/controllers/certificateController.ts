@@ -4,6 +4,11 @@ import { pdfCertificateGenerator } from '../services/certificate/PDFCertificateG
 import { qrCodeService } from '../services/certificate/QRCodeService';
 import { googleSheetsService } from '../services/certificate/GoogleSheetsService';
 import logger from '../config/logger';
+import {
+  studentProgressCollection,
+  quizAttemptsCollection,
+  assignmentSubmissionsCollection,
+} from '../firebase/collections';
 
 export class CertificateController {
   /**
@@ -202,6 +207,74 @@ export class CertificateController {
       });
     } catch (err: any) {
       logger.error(`[CERTIFICATE LIST] ❌ Exception: ${err?.message || err}`);
+      return res.status(500).json({
+        success: false,
+        error: err?.message || String(err),
+      });
+    }
+  }
+
+  /**
+   * POST /api/certificates/sync-state
+   * Syncs student's current learning progress, quiz scores, and assignment status to Firestore
+   */
+  public async syncState(req: Request, res: Response): Promise<Response> {
+    try {
+      const { studentId, courseId, completedLessons, completedModules, quizScores, assignmentSubmissions } = req.body;
+
+      if (!studentId || !courseId) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing studentId or courseId in payload.',
+        });
+      }
+
+      logger.info(`[CERTIFICATE SYNC] Syncing state for student: ${studentId} in course: ${courseId}`);
+
+      // 1. Sync student_progress
+      await studentProgressCollection().doc(`${studentId}_${courseId}`).set({
+        studentId,
+        courseId,
+        completedLessons: completedLessons || [],
+        completedModules: completedModules || [],
+        completionPercentage: 100,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+
+      // 2. Sync quiz attempts (passing quizzes)
+      if (Array.isArray(quizScores)) {
+        for (const quiz of quizScores) {
+          const attemptId = `${studentId}_${quiz.quizId}`;
+          await quizAttemptsCollection().doc(attemptId).set({
+            studentId,
+            courseId,
+            quizId: quiz.quizId,
+            percentage: Number(quiz.percentage || 0),
+            updatedAt: new Date().toISOString()
+          }, { merge: true });
+        }
+      }
+
+      // 3. Sync assignment submissions
+      if (Array.isArray(assignmentSubmissions)) {
+        for (const assign of assignmentSubmissions) {
+          await assignmentSubmissionsCollection().doc(`${studentId}_${assign.assignmentId}`).set({
+            studentId,
+            courseId,
+            assignmentId: assign.assignmentId,
+            status: assign.status,
+            updatedAt: new Date().toISOString()
+          }, { merge: true });
+        }
+      }
+
+      logger.info(`[CERTIFICATE SYNC] Sync completed successfully for ${studentId}.`);
+      return res.status(200).json({
+        success: true,
+        message: 'Student progress and submissions synced successfully to Firestore.',
+      });
+    } catch (err: any) {
+      logger.error(`[CERTIFICATE SYNC] ❌ Exception: ${err?.message || err}`);
       return res.status(500).json({
         success: false,
         error: err?.message || String(err),

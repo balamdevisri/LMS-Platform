@@ -3,15 +3,17 @@ import logger from '../../config/logger';
 
 export interface CertificateRegistryData {
   certificateId: string;
+  studentId: string;
   studentName: string;
   studentEmail: string;
-  courseName: string;
   courseId: string;
+  courseName: string;
   completionDate: string;
   issueDate: string;
   certificateStatus: string;
   emailStatus: string;
-  downloadCount: number;
+  generatedTimestamp: string;
+  downloadCount?: number;
 }
 
 export class GoogleSheetsService {
@@ -255,15 +257,17 @@ export class GoogleSheetsService {
   private parseRowToRegistryData(raw: any): CertificateRegistryData {
     return {
       certificateId: raw.certificateId || raw.CertificateID || raw[0] || '',
-      studentName: raw.studentName || raw.StudentName || raw[1] || '',
-      studentEmail: raw.studentEmail || raw.StudentEmail || raw[2] || '',
-      courseName: raw.courseName || raw.CourseName || raw[3] || '',
-      courseId: raw.courseId || raw.CourseId || raw[4] || '',
-      completionDate: raw.completionDate || raw.CompletionDate || raw[5] || '',
-      issueDate: raw.issueDate || raw.IssueDate || raw[6] || '',
-      certificateStatus: raw.certificateStatus || raw.CertificateStatus || raw[7] || 'Issued',
-      emailStatus: raw.emailStatus || raw.EmailStatus || raw[8] || 'Sent',
-      downloadCount: Number(raw.downloadCount || raw.DownloadCount || raw[9] || 0),
+      studentId: raw.studentId || raw.StudentID || raw[1] || '',
+      studentName: raw.studentName || raw.StudentName || raw[2] || '',
+      studentEmail: raw.studentEmail || raw.StudentEmail || raw[3] || '',
+      courseId: raw.courseId || raw.CourseID || raw[4] || '',
+      courseName: raw.courseName || raw.CourseName || raw[5] || '',
+      completionDate: raw.completionDate || raw.CompletionDate || raw[6] || '',
+      issueDate: raw.issueDate || raw.IssueDate || raw[7] || '',
+      certificateStatus: raw.certificateStatus || raw.CertificateStatus || raw[8] || 'Issued',
+      emailStatus: raw.emailStatus || raw.EmailStatus || raw[9] || 'Sent',
+      generatedTimestamp: raw.generatedTimestamp || raw.GeneratedTimestamp || raw[10] || '',
+      downloadCount: Number(raw.downloadCount || raw.DownloadCount || raw[11] || 0),
     };
   }
 }

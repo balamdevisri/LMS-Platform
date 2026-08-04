@@ -339,52 +339,92 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       const studentId = (userProfile as any)?.studentId || (user?.uid ? `STU-${user.uid.substring(0, 6).toUpperCase()}` : 'STU-992104');
       const studentName = userName;
 
-      fetch('http://localhost:5000/api/certificates/complete-and-deliver', {
+      // Extract synced completed modules list
+      const completedModules = modules.filter(mod => 
+        mod.lessons?.every(l => completedLessonIds.some(cId => String(cId) === String(l.id)))
+      ).map(mod => String(mod.id));
+
+      // Extract synced quiz scores
+      const quizScores = quizUnits.map(q => {
+        const scoreDataRaw = localStorage.getItem(`lms_quiz_score_${q.id}`);
+        if (!scoreDataRaw) return null;
+        try {
+          const scoreData = JSON.parse(scoreDataRaw);
+          return { quizId: String(q.id), percentage: Number(scoreData.percentage) };
+        } catch {
+          return null;
+        }
+      }).filter(Boolean);
+
+      // Extract synced assignment submissions
+      const assignmentSubmissions = assignmentUnits.map(a => {
+        const submission = assignmentService.getStudentSubmission(a.id, studentUid);
+        return submission ? { assignmentId: String(a.id), status: submission.status } : null;
+      }).filter(Boolean);
+
+      // Sync state to backend before generation trigger
+      fetch('http://localhost:5000/api/certificates/sync-state', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           studentId,
-          studentName,
-          studentEmail,
           courseId: String(courseId),
-          courseTitle,
-          completionPercentage: 100,
-          instructorName: 'Shaivika Groups Board',
-          courseDuration: '24 Hours',
-          modulesCount: modules.length || 8,
+          completedLessons: completedLessonIds.map(String),
+          completedModules,
+          quizScores,
+          assignmentSubmissions,
         }),
       })
-        .then((res) => res.json())
-        .then((data) => {
-          if (!active) return;
-          setIsGeneratingCert(false);
-          if (data.success) {
-            setGeneratedCert(data);
-            try {
-              certService.saveExternalCertificate(studentUid, {
-                id: data.id || `cert_${courseId}_${Date.now()}`,
-                courseId: String(courseId),
-                courseTitle: data.courseTitle || courseTitle,
-                studentName: data.studentName || userName,
-                studentId: data.studentId || studentId,
-                instructorName: 'Shaivika Groups Board',
-                completionDate: data.completionDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
-                verificationId: data.certificateId,
-                courseDuration: '24 Hours',
-                modulesCount: modules.length || 8,
-                googleDriveLink: data.googleDriveLink,
-              });
-            } catch (saveErr) {
-              console.warn('Error saving server certificate to local storage:', saveErr);
-            }
-            toast.success(`🎓 Official Certificate Generated & Delivered to ${studentEmail}! (Check Inbox)`);
-            setShowCongrats(true);
-          }
-        })
-        .catch((err) => {
-          if (active) setIsGeneratingCert(false);
-          console.error('Automated Certificate Delivery error:', err);
+      .then(() => {
+        return fetch('http://localhost:5000/api/certificates/complete-and-deliver', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            studentId,
+            studentName,
+            studentEmail,
+            courseId: String(courseId),
+            courseTitle,
+            completionPercentage: 100,
+            instructorName: 'Shaivika Groups Board',
+            courseDuration: '24 Hours',
+            modulesCount: modules.length || 8,
+          }),
         });
+      })
+      .then((res) => res.json())
+      .then((data) => {
+        if (!active) return;
+        setIsGeneratingCert(false);
+        if (data.success) {
+          setGeneratedCert(data);
+          try {
+            certService.saveExternalCertificate(studentUid, {
+              id: data.id || `cert_${courseId}_${Date.now()}`,
+              courseId: String(courseId),
+              courseTitle: data.courseTitle || courseTitle,
+              studentName: data.studentName || userName,
+              studentId: data.studentId || studentId,
+              instructorName: 'Shaivika Groups Board',
+              completionDate: data.completionDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+              verificationId: data.certificateId,
+              courseDuration: '24 Hours',
+              modulesCount: modules.length || 8,
+              googleDriveLink: data.googleDriveLink,
+            });
+          } catch (saveErr) {
+            console.warn('Error saving server certificate to local storage:', saveErr);
+          }
+          toast.success(`🎓 Official Certificate Generated & Delivered to ${studentEmail}! (Check Inbox)`);
+          setShowCongrats(true);
+        } else {
+          toast.error(data.error || 'Failed to generate certificate.');
+        }
+      })
+      .catch((err) => {
+        if (active) setIsGeneratingCert(false);
+        console.error('Automated Certificate Delivery error:', err);
+      });
     };
 
     checkAndTrigger();

@@ -18,4 +18,7 @@ router.get('/verify/:certificateId', (req, res) => certificateController.verifyC
 // Route to get all certificates for a specific student email
 router.get('/student/:studentEmail', (req, res) => certificateController.getCertificatesByEmail(req, res));
 
+// Route to sync student learning state to Firestore for backend validation
+router.post('/sync-state', (req, res) => certificateController.syncState(req, res));
+
 export default router;
