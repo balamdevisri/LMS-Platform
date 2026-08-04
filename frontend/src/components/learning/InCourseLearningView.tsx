@@ -685,7 +685,8 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
     }
   }, [bookmarkedLessonIds, selectedLessonId]);
 
-  const progressPercent = allLessons.length > 0 ? Math.round((completedLessonIds.length / allLessons.length) * 100) : 0;
+  const validCompletedCount = completedLessonIds.filter(id => allLessons.some(l => String(l.id) === String(id))).length;
+  const progressPercent = allLessons.length > 0 ? Math.min(100, Math.round((validCompletedCount / allLessons.length) * 100)) : 0;
   const isCompleted = completedLessonIds.some((id) => String(id) === String(selectedLessonId));
   const isBookmarked = bookmarkedLessonIds.some((id) => String(id) === String(selectedLessonId));
   const isCourseFullyCompleted = allLessons.length > 0 && allLessons.every((l) =>
@@ -942,7 +943,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
             onToggleComplete={handleToggleComplete}
             onNextLesson={handleNextLesson}
             onToggleBookmark={handleToggleBookmark}
-            completedCount={completedLessonIds.length}
+            completedCount={validCompletedCount}
             totalLessons={allLessons.length}
             isNightMode={isNightMode}
           />

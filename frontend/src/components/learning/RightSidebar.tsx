@@ -102,7 +102,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
     toast.success('🎉 +50 XP Claimed!');
   };
 
-  const progressPercent = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
+  const progressPercent = totalLessons > 0 ? Math.min(100, Math.round((completedCount / totalLessons) * 100)) : 0;
 
   return (
     <aside className="w-full lg:w-80 shrink-0 space-y-5 sticky top-28 self-start font-sans">
