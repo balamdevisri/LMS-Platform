@@ -32,6 +32,7 @@ const envSchema = z.object({
   GOOGLE_DRIVE_PRIVATE_KEY: z.string().optional(),
   GOOGLE_DRIVE_FOLDER_ID: z.string().optional(),
   GOOGLE_SHEET_ID: z.string().optional(),
+  GOOGLE_SHEETS_SCRIPT_URL: z.string().default('https://script.google.com/macros/s/AKfycbyVymRV2dGQU2TEpGTtU4g8JCttmrEze15Qi0kjFoqQxV2lFWFrnZkqhC1Uw7bQid2U8A/exec'),
 });
 
 export const env = envSchema.parse(process.env);
