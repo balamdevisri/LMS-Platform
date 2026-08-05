@@ -58,23 +58,31 @@ async function syncAuthUsersToFirestore() {
         approved: status === 'Active',
       };
 
-      if (!studentDoc.exists && role === 'student') {
-        const studentPayload = {
-          ...baseData,
-          branch: 'AI & Computer Science',
-          github: {
-            username: email.split('@')[0],
-            profileUrl: `https://github.com/${email.split('@')[0]}`,
-            avatar: userRecord.photoURL || '',
-          },
-          linkedin: '',
-          portfolio: '',
-          phone: '',
-          courses: 1,
-        };
-        batch.set(studentDocRef, studentPayload, { merge: true });
-        hasUpdates = true;
-        count++;
+      if (role === 'student') {
+        if (!studentDoc.exists) {
+          const studentPayload = {
+            ...baseData,
+            branch: 'AI & Computer Science',
+            github: {
+              username: email.split('@')[0],
+              profileUrl: `https://github.com/${email.split('@')[0]}`,
+              avatar: userRecord.photoURL || '',
+            },
+            linkedin: '',
+            portfolio: '',
+            phone: '',
+            courses: 1,
+          };
+          batch.set(studentDocRef, studentPayload, { merge: true });
+          hasUpdates = true;
+          count++;
+        }
+      } else {
+        if (studentDoc.exists) {
+          batch.delete(studentDocRef);
+          hasUpdates = true;
+          count++;
+        }
       }
 
       if (!userDoc.exists) {
