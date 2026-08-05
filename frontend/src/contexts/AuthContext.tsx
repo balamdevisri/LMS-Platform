@@ -148,7 +148,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role: targetRole,
           provider: isGithub ? 'github.com' : 'password',
           providerId: isGithub ? 'github.com' : 'password',
-          status: targetRole === 'instructor' ? 'Pending' : 'Active',
+          status: targetRole === 'instructor' ? 'pending' : 'Active',
+          approvedBy: undefined,
+          approvedAt: undefined,
+          rejectedAt: undefined,
           branch: 'AI & Computer Science',
           year: '1st Year',
           college: 'Shaivika AI Foundation',
@@ -177,6 +180,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await setDoc(userRef, newProfile).catch((err) => console.warn('Firestore setDoc notice:', err));
 
         if (targetRole === 'instructor') {
+          console.log(`[Instructor Signup] New instructor registered: ${calculatedName} (${firebaseUser.email})`);
+          console.log(`[Pending Request Created] Stored pending request in users collection for UID: ${firebaseUser.uid}`);
           try {
             const adminNotifRef = doc(collection(db, 'notifications'));
             await setDoc(adminNotifRef, {
@@ -234,7 +239,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           setUser(currentUser);
           if (currentUser) {
-            await fetchUserProfile(currentUser);
+            const profile = await fetchUserProfile(currentUser);
+            if (profile) {
+              // Enforce account status check on initialization
+              const isPending = (profile.role === 'instructor' && (profile.status === 'pending' || profile.status === 'Pending')) || 
+                                (profile.role === 'student' && profile.status === 'pending');
+              const isRejected = profile.status === 'rejected';
+              const isSuspended = profile.status === 'Suspended';
+              
+              const cleanEmail = (currentUser.email || '').toLowerCase().trim();
+              const isAdminEmail = cleanEmail === 'admin@gmail.com' || cleanEmail.startsWith('admin@');
+
+              if (!isAdminEmail && (isPending || isRejected || isSuspended)) {
+                console.warn(`[Dashboard Access Blocked] Persistence session blocked for ${currentUser.email} due to status: ${profile.status}. Logging out.`);
+                if (auth) {
+                  await signOut(auth).catch(() => null);
+                }
+                setUser(null);
+                setUserProfile(null);
+              } else {
+                console.log(`[Dashboard Access Granted] Persistence session approved for ${currentUser.email} (Role: ${profile.role}).`);
+              }
+            }
           } else {
             setUserProfile(null);
           }
@@ -411,24 +437,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
 
-        const isPending = (userRole === 'instructor' && approvalStatus === 'Pending') || 
+        const isPending = (userRole === 'instructor' && (approvalStatus === 'pending' || approvalStatus === 'Pending')) || 
                           (userRole === 'student' && (approvalStatus === 'pending' || approvalStatus === 'Pending Approval'));
 
         if (isPending) {
-          await signOut(auth).catch(() => null);
-          const pendingErr: any = new Error('Your registration application is pending administrator review and approval.');
+          if (auth) {
+            await signOut(auth).catch(() => null);
+          }
+          console.warn(`[Dashboard Access Blocked] User ${currentUser.email} blocked because status is ${approvalStatus}.`);
+          const pendingErr: any = new Error(userRole === 'instructor'
+            ? 'Your instructor account is currently under review. You will receive an email once it has been approved.'
+            : 'Your registration application is pending administrator review and approval.'
+          );
           pendingErr.code = 'ADMIN_APPROVAL_PENDING';
           throw pendingErr;
-        } else if (approvalStatus === 'rejected') {
-          await signOut(auth).catch(() => null);
-          const rejectedErr: any = new Error('Your registration application was not approved by the administrator.');
+        } else if (approvalStatus === 'rejected' || approvalStatus === 'Rejected') {
+          if (auth) {
+            await signOut(auth).catch(() => null);
+          }
+          console.warn(`[Dashboard Access Blocked] User ${currentUser.email} blocked because status is ${approvalStatus}.`);
+          const rejectedErr: any = new Error(userRole === 'instructor'
+            ? 'Your instructor application was not approved. Please contact the administrator.'
+            : 'Your registration application was not approved by the administrator.'
+          );
           rejectedErr.code = 'APPLICATION_REJECTED';
           throw rejectedErr;
-        } else if (approvalStatus === 'suspended') {
-          await signOut(auth).catch(() => null);
+        } else if (approvalStatus === 'suspended' || approvalStatus === 'Suspended') {
+          if (auth) {
+            await signOut(auth).catch(() => null);
+          }
+          console.warn(`[Dashboard Access Blocked] User ${currentUser.email} blocked because status is ${approvalStatus}.`);
           const suspendedErr: any = new Error('Your account is currently suspended by an administrator.');
           suspendedErr.code = 'ACCOUNT_SUSPENDED';
           throw suspendedErr;
+        } else {
+          console.log(`[Dashboard Access Granted] User ${currentUser.email} approved for role: ${userRole}.`);
         }
       }
 

@@ -503,42 +503,51 @@ export const buildCertificateGeneratedTemplate = (
   };
 };
 
-/**
- * 9. Instructor Approval Template
- */
 export const buildInstructorApprovalTemplate = (
   payload: InstructorApprovalPayload
 ): { subject: string; html: string } => {
   const isApproved = payload.status === 'approved';
-  const subject = `Instructor Portal Status: ${isApproved ? 'Approved ✅' : 'Application Update'}`;
+  const subject = isApproved 
+    ? 'Your Instructor Account Has Been Approved | Kaizen Q LMS' 
+    : 'Instructor Application Update | Kaizen Q LMS';
   const ctaUrl = payload.portalUrl || 'https://shaivika.com/instructor';
 
   const contentHtml = `
-    <h1 class="h1-title">Instructor Account Status</h1>
-    <p class="p-text">Hello <strong>${payload.instructorName}</strong>,</p>
-    <p class="p-text">${
+    <h1 class="h1-title" style="font-size: 24px; font-weight: 800; color: #0F172A; margin-bottom: 12px;">Instructor Account Status</h1>
+    <p class="p-text" style="font-size: 15px; color: #334155; line-height: 1.6;">Hello <strong>${payload.instructorName}</strong>,</p>
+    <p class="p-text" style="font-size: 15px; color: #334155; line-height: 1.6;">${
       isApproved
-        ? 'Congratulations! Your instructor application for KaizenQ LMS has been approved. You can now publish courses and host interactive Linux labs.'
-        : 'There is an update regarding your instructor application status.'
+        ? 'Congratulations! Your instructor application for KaizenQ LMS has been approved. You are now appointed as an instructor. You can now publish courses, host interactive Linux labs, and view class analytics.'
+        : 'Thank you for your interest in becoming an instructor with KaizenQ LMS. After reviewing your application details, we are unable to approve your instructor account at this time.'
     }</p>
 
-    <div class="metric-box" style="border-left-color: ${isApproved ? '#10B981' : '#EF4444'};">
-      <div class="metric-label">Status</div>
-      <div class="metric-value" style="color: ${isApproved ? '#059669' : '#DC2626'};">
+    <div class="metric-box" style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-left: 4px solid ${isApproved ? '#10B981' : '#EF4444'}; border-radius: 16px; padding: 20px; margin: 24px 0;">
+      <div class="metric-label" style="font-size: 11px; font-weight: 800; color: #64748B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Application Status</div>
+      <div class="metric-value" style="font-size: 20px; font-weight: 800; color: ${isApproved ? '#059669' : '#DC2626'};">
         ${payload.status.toUpperCase()}
       </div>
-      ${payload.comments ? `<p style="font-size: 13px; color: #475569; margin-top: 6px;">Admin Notes: ${payload.comments}</p>` : ''}
+      ${payload.comments ? `<p style="font-size: 13.5px; color: #475569; margin-top: 8px; font-weight: 500; line-height: 1.5;"><strong>Admin Notes:</strong> ${payload.comments}</p>` : ''}
     </div>
+
+    ${isApproved ? `
+    <div style="background-color: #F0F9FF; border: 1px solid #BAE6FD; border-radius: 14px; padding: 18px; margin-bottom: 24px;">
+      <p style="margin: 0; font-size: 14px; color: #0369A1; line-height: 1.6;">
+        💡 <strong>Getting Started:</strong> Click the button below to sign in using your registered credentials. Once logged in, you will be redirected to the Instructor Dashboard where you can schedule live classes, enable student quizzes, and configure Linux environments.
+      </p>
+    </div>
+    ` : ''}
   `;
 
   return {
     subject,
     html: renderMasterLayout({
       title: subject,
-      preheader: `Instructor portal application status: ${payload.status}`,
+      preheader: isApproved 
+        ? `Congratulations ${payload.instructorName}, your instructor application has been approved!` 
+        : `Update regarding your instructor application status.`,
       contentHtml,
-      ctaText: isApproved ? 'Go to Instructor Portal' : 'Review Application',
-      ctaUrl,
+      ctaText: isApproved ? 'Sign In to Portal 🚀' : 'Contact Support',
+      ctaUrl: isApproved ? ctaUrl : 'mailto:kaizenq.lms@gmail.com',
     }),
   };
 };

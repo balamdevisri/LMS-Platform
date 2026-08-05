@@ -90,6 +90,8 @@ export interface UserProfile {
   approved?: boolean;
   approvedBy?: string;
   approvedAt?: string;
+  rejectedAt?: string;
+  rejectionReason?: string;
   xp?: number;
   badgesCount?: number;
   badges?: any[];

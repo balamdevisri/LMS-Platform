@@ -1,7 +1,8 @@
-import { db } from '@/firebase';
+import { auth, db } from '@/firebase';
 import {
   collection,
   doc,
+  getDoc,
   setDoc,
   updateDoc,
   deleteDoc,
@@ -17,8 +18,16 @@ export interface InstructorUser {
   assignedCourses: number;
   studentsCount: string;
   rating: number;
-  status: 'Verified' | 'Pending';
+  status: 'pending' | 'approved' | 'rejected' | 'Verified' | 'Pending';
   avatar?: string;
+  skills?: string[];
+  experience?: string;
+  appliedDate?: string;
+  phone?: string;
+  approvedBy?: string | null;
+  approvedAt?: string | null;
+  rejectedAt?: string | null;
+  rejectionReason?: string;
 }
 
 const LOCAL_STORAGE_KEY = 'shaivika_realtime_instructors_v2';
@@ -74,7 +83,7 @@ class InstructorService {
             if (!MOCK_INSTRUCTOR_EMAILS.includes(email) && data.role === 'instructor') {
               firestoreInstructors.push({
                 id: docSnap.id,
-                name: data.name || data.displayName || 'Faculty Member',
+                name: data.name || data.fullName || data.displayName || 'Faculty Member',
                 email: data.email || '',
                 specialty: data.specialty || 'Linux & Systems Architecture',
                 joined: data.createdAt
@@ -83,8 +92,16 @@ class InstructorService {
                 assignedCourses: data.assignedCourses || 1,
                 studentsCount: data.studentsCount || '0',
                 rating: data.rating || 5.0,
-                status: data.status === 'Pending' ? 'Pending' : 'Verified',
+                status: data.status || 'pending',
                 avatar: data.photoURL || '',
+                skills: data.skills || ['Linux', 'Git', 'Python'],
+                experience: data.experience || 'Not Specified',
+                appliedDate: data.createdAt || new Date().toISOString(),
+                phone: data.phone || '',
+                approvedBy: data.approvedBy || null,
+                approvedAt: data.approvedAt || null,
+                rejectedAt: data.rejectedAt || null,
+                rejectionReason: data.rejectionReason || '',
               });
             }
           });
@@ -112,6 +129,7 @@ class InstructorService {
   }
 
   async addInstructor(name: string, email: string, specialty: string): Promise<InstructorUser> {
+    const adminUid = auth?.currentUser?.uid || 'admin_onboard';
     const newInstructor: InstructorUser = {
       id: `inst_${Date.now()}`,
       name,
@@ -121,7 +139,9 @@ class InstructorService {
       assignedCourses: 1,
       studentsCount: '0',
       rating: 5.0,
-      status: 'Verified',
+      status: 'approved',
+      approvedBy: adminUid,
+      approvedAt: new Date().toISOString(),
     };
 
     const current = this.getLocalInstructors();
@@ -136,7 +156,9 @@ class InstructorService {
           email: newInstructor.email,
           specialty: newInstructor.specialty,
           role: 'instructor',
-          status: 'Verified',
+          status: 'approved',
+          approvedBy: adminUid,
+          approvedAt: new Date().toISOString(),
           createdAt: new Date().toISOString(),
           assignedCourses: 1,
           rating: 5.0,
@@ -164,11 +186,126 @@ class InstructorService {
           },
         }),
       });
+      console.log(`[SMTP Email Sent] Manually onboarded instructor approval email sent to ${newInstructor.email}`);
     } catch (smtpErr) {
       console.warn('Backend Nodemailer SMTP instructor approval dispatch notice:', smtpErr);
     }
 
     return newInstructor;
+  }
+
+  async approveInstructor(id: string, adminUid: string): Promise<void> {
+    if (db) {
+      try {
+        const userRef = doc(db, 'users', id);
+        const timestamp = new Date().toISOString();
+        
+        await updateDoc(userRef, {
+          status: 'approved',
+          approvedBy: adminUid,
+          approvedAt: timestamp,
+          rejectedAt: null,
+          rejectionReason: null,
+        });
+
+        console.log(`[Admin Approval] Approved instructor UID: ${id} by Admin: ${adminUid}`);
+
+        // Fetch instructor details to send SMTP mail
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          const data = userSnap.data();
+          const name = data.name || data.fullName || 'Instructor';
+          const email = data.email || '';
+          
+          // Send SMTP email
+          try {
+            const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+            const response = await fetch(`${apiBaseUrl}/email/send`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                eventType: 'INSTRUCTOR_APPROVAL',
+                recipientEmail: email.toLowerCase().trim(),
+                payload: {
+                  instructorName: name,
+                  email: email.toLowerCase().trim(),
+                  status: 'approved',
+                  portalUrl: `${window.location.origin}/auth/login`,
+                  comments: 'Your application has been approved by the administrator.',
+                },
+              }),
+            });
+            if (response.ok) {
+              console.log(`[SMTP Email Sent] Dispatched approval email to ${email}`);
+            } else {
+              console.warn('[SMTP Email Sent] Email API returned error status.');
+            }
+          } catch (smtpErr) {
+            console.warn('Failed to send SMTP email:', smtpErr);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to approve instructor:', err);
+        throw err;
+      }
+    }
+  }
+
+  async rejectInstructor(id: string, adminUid: string, reason: string): Promise<void> {
+    if (db) {
+      try {
+        const userRef = doc(db, 'users', id);
+        const timestamp = new Date().toISOString();
+
+        await updateDoc(userRef, {
+          status: 'rejected',
+          rejectedAt: timestamp,
+          rejectionReason: reason,
+          approvedBy: null,
+          approvedAt: null,
+        });
+
+        console.log(`[Admin Rejection] Rejected instructor UID: ${id} by Admin: ${adminUid}. Reason: ${reason}`);
+
+        // Fetch instructor details to send SMTP mail
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          const data = userSnap.data();
+          const name = data.name || data.fullName || 'Instructor';
+          const email = data.email || '';
+
+          // Send SMTP email
+          try {
+            const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+            const response = await fetch(`${apiBaseUrl}/email/send`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                eventType: 'INSTRUCTOR_APPROVAL',
+                recipientEmail: email.toLowerCase().trim(),
+                payload: {
+                  instructorName: name,
+                  email: email.toLowerCase().trim(),
+                  status: 'rejected',
+                  portalUrl: `${window.location.origin}/auth/login`,
+                  comments: `Rejection Reason: ${reason}`,
+                },
+              }),
+            });
+            if (response.ok) {
+              console.log(`[SMTP Email Sent] Dispatched rejection email to ${email}`);
+            } else {
+              console.warn('[SMTP Email Sent] Rejection email API returned error status.');
+            }
+          } catch (smtpErr) {
+            console.warn('Failed to send SMTP email:', smtpErr);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to reject instructor:', err);
+        throw err;
+      }
+    }
   }
 
   async updateInstructor(instructor: InstructorUser): Promise<void> {
@@ -206,12 +343,13 @@ class InstructorService {
             payload: {
               instructorName: instructor.name,
               email: instructor.email.toLowerCase().trim(),
-              status: instructor.status === 'Verified' ? 'approved' : 'pending_docs',
+              status: instructor.status === 'approved' ? 'approved' : 'rejected',
               portalUrl: `${window.location.origin}/auth/login`,
               comments: `Instructor status updated by Administrator to ${instructor.status}.`,
             },
           }),
         });
+        console.log(`[SMTP Email Sent] Status update email sent to ${instructor.email}`);
       } catch (smtpErr) {
         console.warn('Backend Nodemailer SMTP instructor update status email notice:', smtpErr);
       }
