@@ -10,6 +10,7 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   JWT_SECRET: z.string().default('kaizenq_default_jwt_secret_key_2026'),
   FRONTEND_URL: z.string().default('http://localhost:5173'),
+  BACKEND_URL: z.string().default('http://localhost:5000'),
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
   FIREBASE_PROJECT_ID: z.string().optional(),
   FIREBASE_CLIENT_EMAIL: z.string().optional(),
@@ -33,6 +34,8 @@ const envSchema = z.object({
   GOOGLE_DRIVE_FOLDER_ID: z.string().optional(),
   GOOGLE_SHEET_ID: z.string().optional(),
   GOOGLE_SHEETS_SCRIPT_URL: z.string().default('https://script.google.com/macros/s/AKfycbyVymRV2dGQU2TEpGTtU4g8JCttmrEze15Qi0kjFoqQxV2lFWFrnZkqhC1Uw7bQid2U8A/exec'),
+  MONGODB_URI: z.string().default('mongodb://localhost:27017/shaivika_live_classroom'),
+  REDIS_URL: z.string().default('redis://localhost:6379'),
 });
 
 export const env = envSchema.parse(process.env);

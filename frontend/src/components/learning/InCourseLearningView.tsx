@@ -257,12 +257,15 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
     }
   });
 
+  const [scrollProgress, setScrollProgress] = useState(0);
+
   useEffect(() => {
     if (selectedLessonId) {
       try {
         localStorage.setItem(`shaivika_last_active_${courseId}`, String(selectedLessonId));
       } catch {}
     }
+    setScrollProgress(0);
     if (containerRef.current) {
       containerRef.current.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     }
@@ -273,6 +276,30 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
     }, 50);
     return () => clearTimeout(timer);
   }, [selectedLessonId, courseId]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const container = containerRef.current;
+      if (!container) return;
+      const totalHeight = container.scrollHeight - container.clientHeight;
+      if (totalHeight <= 0) {
+        setScrollProgress(0);
+        return;
+      }
+      const scrolled = (container.scrollTop / totalHeight) * 100;
+      setScrollProgress(scrolled);
+    };
+
+    const container = containerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll, { passive: true });
+    }
+    return () => {
+      if (container) {
+        container.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, [selectedLessonId]);
 
   useEffect(() => {
     try {
@@ -363,7 +390,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       }).filter(Boolean);
 
       // Sync state to backend before generation trigger
-      fetch('http://localhost:5000/api/certificates/sync-state', {
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/sync-state`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -376,7 +403,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         }),
       })
       .then(() => {
-        return fetch('http://localhost:5000/api/certificates/complete-and-deliver', {
+        return fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/complete-and-deliver`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -389,6 +416,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
             instructorName: 'Shaivika Groups Board',
             courseDuration: '24 Hours',
             modulesCount: modules.length || 8,
+            forceRegenerate: true
           }),
         });
       })
@@ -621,7 +649,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         const studentId = (userProfile as any)?.studentId || (user?.uid ? `STU-${user.uid.substring(0, 6).toUpperCase()}` : 'STU-992104');
         const studentName = userName;
 
-        fetch('http://localhost:5000/api/certificates/complete-and-deliver', {
+        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/complete-and-deliver`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -634,6 +662,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
             instructorName: 'Shaivika Groups Board',
             courseDuration: '24 Hours',
             modulesCount: modules.length || 8,
+            forceRegenerate: true
           }),
         })
           .then((res) => res.json())
@@ -734,7 +763,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
             const studentId = (userProfile as any)?.studentId || (user?.uid ? `STU-${user.uid.substring(0, 6).toUpperCase()}` : 'STU-992104');
             const studentName = userName;
 
-            fetch('http://localhost:5000/api/certificates/complete-and-deliver', {
+            fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/complete-and-deliver`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -747,6 +776,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
                 instructorName: 'Shaivika Groups Board',
                 courseDuration: '24 Hours',
                 modulesCount: modules.length || 8,
+                forceRegenerate: true
               }),
             })
               .then((res) => res.json())
@@ -780,6 +810,15 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
           }
         }}
       />
+      {/* Scroll Progress Bar */}
+      <div className="sticky top-0 z-50 w-full h-[3px] bg-slate-800/10">
+        <div
+          className={`h-full transition-all duration-75 ${
+            isNightMode ? 'bg-linear-to-r from-cyan-400 to-blue-500' : 'bg-linear-to-r from-sky-500 to-indigo-600'
+          }`}
+          style={{ width: `${scrollProgress}%` }}
+        />
+      </div>
 
       <SidebarDrawer
         isOpen={isSidebarOpen}

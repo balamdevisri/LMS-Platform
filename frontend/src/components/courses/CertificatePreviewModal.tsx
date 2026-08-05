@@ -71,7 +71,7 @@ export const CertificatePreviewModal: React.FC<CertificatePreviewModalProps> = (
   const dynamicModules = certificate.modulesCount || 8;
   const dynamicDate = certificate.completionDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
-  const verificationUrl = `https://verify.kaizenq.edu/credentials/${certificate.verificationId}?studentId=${dynamicStudentId}`;
+  const verificationUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/verify/${certificate.verificationId}?studentId=${dynamicStudentId}`;
   
   // Live QR Code Generator URL encoding verification URL & student ID
   const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(verificationUrl)}&color=0b1a30&bgcolor=ffffff`;

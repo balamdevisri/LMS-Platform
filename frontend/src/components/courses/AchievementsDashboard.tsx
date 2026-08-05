@@ -34,6 +34,7 @@ import type {
   StreakState,
   AchievementStats
 } from '../../services/achievementService';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Dynamic Icon Map helper
 const getBadgeIcon = (iconName: string, className = "w-6 h-6") => {
@@ -66,6 +67,9 @@ const getRarityStyle = (rarity: string) => {
 };
 
 export const AchievementsDashboard: React.FC = () => {
+  const { user } = useAuth();
+  const activeUserId = user?.uid || 'default_student';
+
   const xpService = new XPService();
   const badgeService = new BadgeService();
   const statService = new AchievementService();
@@ -82,14 +86,14 @@ export const AchievementsDashboard: React.FC = () => {
 
   useEffect(() => {
     // Check and trigger streak updates on mount
-    statService.checkAndUpdateStreak();
-    badgeService.checkAndAwardBadges();
+    statService.checkAndUpdateStreak(activeUserId);
+    badgeService.checkAndAwardBadges(activeUserId);
 
-    setXp(xpService.getXPPoints());
-    setEarnedBadges(badgeService.getEarnedBadges());
-    setStreaks(statService.getStreaks());
-    setStats(statService.getStats());
-  }, []);
+    setXp(xpService.getXPPoints(activeUserId));
+    setEarnedBadges(badgeService.getEarnedBadges(activeUserId));
+    setStreaks(statService.getStreaks(activeUserId));
+    setStats(statService.getStats(activeUserId));
+  }, [activeUserId]);
 
   const level = getLevelForXP(xp);
   const levelTitle = getLevelTitle(level);

@@ -33,6 +33,13 @@ import type { ICourse } from '../../../../shared/types/course';
 import { courseTimeService } from '@/services/courseTimeService';
 import { useCourseTimeTracker } from '@/hooks/useCourseTimeTracker';
 
+import { AnalyticsDashboard } from '../../components/courses/AnalyticsDashboard';
+import { LeaderboardView } from '../../components/courses/LeaderboardView';
+import { ResumeBuilder } from '../../components/courses/ResumeBuilder';
+import { CareerRoadmap } from '../../components/courses/CareerRoadmap';
+import { PracticeHub } from '../../components/courses/PracticeHub';
+import { InterviewPrep } from '../../components/courses/InterviewPrep';
+
 export const Dashboard: React.FC = () => {
   const { user, userProfile } = useAuth();
   const { courses } = useCourses();
@@ -55,7 +62,7 @@ export const Dashboard: React.FC = () => {
 
   // Completed courses check (only 100% completed courses unlock certificates)
   const completedCourses = enrolledCourses.filter((course) => {
-    const checkpoint = courseService.getCourseCheckpoint(course.id, 'default_student');
+    const checkpoint = courseService.getCourseCheckpoint(course.id, user?.uid || 'default_student');
     return checkpoint && checkpoint.progressPercent >= 100;
   });
   const completedCoursesCount = completedCourses.length;
@@ -226,41 +233,104 @@ export const Dashboard: React.FC = () => {
     let totalAssignments = 0;
     let completedAssignments = 0;
 
-    // Load completed units for this course from localStorage
+    // Load completed units from legacy localStorage
     let completedIds: Record<string, boolean> = {};
     try {
       const stored = localStorage.getItem(`lms_completed_units_${course.id}`);
       if (stored) completedIds = JSON.parse(stored);
     } catch {}
 
+    // Load completed lesson IDs from InCourseLearningView
+    let completedLessons: (string | number)[] = [];
+    try {
+      const savedCompletedStr = localStorage.getItem(`shaivika_completed_${course.id}`);
+      if (savedCompletedStr) completedLessons = JSON.parse(savedCompletedStr);
+    } catch {}
+
+    // Load checkpoint completed subtopics from CoursePlayerModal
+    const checkpoint = courseService.getCourseCheckpoint(String(course.id), activeUserId);
+    const completedSubtopics = checkpoint?.completedSubtopics || [];
+
     if (course.modules) {
-      course.modules.forEach((m) => {
-        m.topics.forEach((t) => {
-          t.learningUnits.forEach((u) => {
+      course.modules.forEach((m: any) => {
+        // Support m.lessons structure (InCourseLearningView)
+        if (m.lessons) {
+          m.lessons.forEach((l: any) => {
             totalUnits++;
-            const hours = parseDurationToHours(u.duration);
+            const hours = parseDurationToHours(l.duration || '30 mins');
             totalDurationHours += hours;
 
-            if (u.type === 'Video') totalVideos++;
-            else if (u.type === 'Reading') totalReadings++;
-            else if (u.type === 'Quiz') totalQuizzes++;
-            else if (u.type === 'Assignment') totalAssignments++;
+            const type = l.type || 'Video';
+            if (type === 'Video') totalVideos++;
+            else if (type === 'Reading') totalReadings++;
+            else if (type === 'Quiz') totalQuizzes++;
+            else if (type === 'Assignment') totalAssignments++;
 
-            if (completedIds[u.id]) {
+            const isDone =
+              completedIds[String(l.id)] ||
+              completedLessons.some((cId) => String(cId) === String(l.id)) ||
+              completedSubtopics.some((sId) => String(sId) === String(l.id)) ||
+              (checkpoint && checkpoint.progressPercent >= 100);
+
+            if (isDone) {
               completedUnits++;
               completedDurationHours += hours;
-              if (u.type === 'Video') completedVideos++;
-              else if (u.type === 'Reading') completedReadings++;
-              else if (u.type === 'Quiz') completedQuizzes++;
-              else if (u.type === 'Assignment') completedAssignments++;
+              if (type === 'Video') completedVideos++;
+              else if (type === 'Reading') completedReadings++;
+              else if (type === 'Quiz') completedQuizzes++;
+              else if (type === 'Assignment') completedAssignments++;
             }
           });
-        });
+        }
+
+        // Support topics/learningUnits structure (Legacy / alternate)
+        if (m.topics) {
+          m.topics.forEach((t: any) => {
+            if (t.learningUnits) {
+              t.learningUnits.forEach((u: any) => {
+                totalUnits++;
+                const hours = parseDurationToHours(u.duration);
+                totalDurationHours += hours;
+
+                if (u.type === 'Video') totalVideos++;
+                else if (u.type === 'Reading') totalReadings++;
+                else if (u.type === 'Quiz') totalQuizzes++;
+                else if (u.type === 'Assignment') totalAssignments++;
+
+                const isDone =
+                  completedIds[String(u.id)] ||
+                  completedLessons.some((cId) => String(cId) === String(u.id)) ||
+                  completedSubtopics.some((sId) => String(sId) === String(u.id)) ||
+                  (checkpoint && checkpoint.progressPercent >= 100);
+
+                if (isDone) {
+                  completedUnits++;
+                  completedDurationHours += hours;
+                  if (u.type === 'Video') completedVideos++;
+                  else if (u.type === 'Reading') completedReadings++;
+                  else if (u.type === 'Quiz') completedQuizzes++;
+                  else if (u.type === 'Assignment') completedAssignments++;
+                }
+              });
+            }
+          });
+        }
       });
     }
 
-    const percentage = totalUnits > 0 ? Math.round((completedUnits / totalUnits) * 100) : 0;
-    
+    let percentage = totalUnits > 0 ? Math.round((completedUnits / totalUnits) * 100) : 0;
+    if (checkpoint && checkpoint.progressPercent >= 100) {
+      percentage = 100;
+    }
+    if (percentage === 100) {
+      completedUnits = totalUnits;
+      completedDurationHours = totalDurationHours;
+      completedVideos = totalVideos;
+      completedReadings = totalReadings;
+      completedQuizzes = totalQuizzes;
+      completedAssignments = totalAssignments;
+    }
+
     return {
       course,
       totalUnits,
@@ -322,6 +392,65 @@ export const Dashboard: React.FC = () => {
       userProfile?.uid || user?.uid || 'default_student'
     );
   }, [coursesProgress, studentName, userProfile, user]);
+
+  // Synchronize all saved certificates from local storage to Google Sheets backend registry
+  React.useEffect(() => {
+    const uid = userProfile?.uid || user?.uid || 'default_student';
+    
+    // Collect certificates from both active user and default student keys
+    const certsToSync: Certificate[] = [];
+    
+    const activeCerts = certificateService.getCertificates(uid);
+    if (Array.isArray(activeCerts)) certsToSync.push(...activeCerts);
+    
+    if (uid !== 'default_student') {
+      const defaultCerts = certificateService.getCertificates('default_student');
+      if (Array.isArray(defaultCerts)) {
+        defaultCerts.forEach((dc) => {
+          if (!certsToSync.some((c) => c.verificationId === dc.verificationId)) {
+            certsToSync.push(dc);
+          }
+        });
+      }
+    }
+
+    if (certsToSync.length === 0) return;
+
+    const studentEmail = user?.email || userProfile?.email || 'shaivikagroups@gmail.com';
+    const studentId = uid;
+
+    certsToSync.forEach((cert) => {
+      const syncKey = `shaivika_cert_synced_${cert.verificationId}`;
+      if (localStorage.getItem(syncKey) === 'true') return;
+
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/complete-and-deliver`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentId,
+          studentName,
+          studentEmail,
+          courseId: cert.courseId,
+          courseTitle: cert.courseTitle,
+          completionPercentage: 100,
+          instructorName: cert.instructorName || 'Shaivika Groups Board',
+          courseDuration: cert.courseDuration || '24 Hours',
+          modulesCount: cert.modulesCount || 8,
+          verificationId: cert.verificationId,
+          forceRegenerate: true
+        }),
+      })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.success) {
+          localStorage.setItem(syncKey, 'true');
+        }
+      })
+      .catch((err) => {
+        console.warn('Certificate registry sync error:', err);
+      });
+    });
+  }, [earnedCerts, user, userProfile, studentName, certificateService]);
 
   // Active courses (progress > 0 and < 100)
   let activeLearningCourses = coursesProgress.filter((c) => c.percentage > 0 && c.percentage < 100);
@@ -395,6 +524,12 @@ export const Dashboard: React.FC = () => {
     certificates: 'Certificates',
     achievements: 'Achievements & Badges',
     'ai-tutor': 'AI Tutor',
+    analytics: 'Learning Analytics',
+    leaderboard: 'Cohort Leaderboard',
+    'resume-builder': 'Resume Builder',
+    'career-roadmap': 'Career Roadmap',
+    'practice-hub': 'Practice Hub',
+    'interview-prep': 'Interview Prep',
   };
 
   return (
@@ -632,9 +767,17 @@ export const Dashboard: React.FC = () => {
                       const savedCompletedStr = localStorage.getItem(`shaivika_completed_${course.id}`);
                       if (savedCompletedStr) {
                         const completedIds: any[] = JSON.parse(savedCompletedStr);
-                        const isGit = String(course.id).includes('git') || String(course.slug).includes('git');
-                        const totalLessons = isGit ? 31 : 20;
-                        if (completedIds && completedIds.length > 0) {
+                        let totalLessons = 0;
+                        if (course.modules) {
+                          course.modules.forEach((m: any) => {
+                            if (m.lessons) totalLessons += m.lessons.length;
+                          });
+                        }
+                        if (totalLessons === 0) {
+                          const isGit = String(course.id).includes('git') || String(course.slug).includes('git');
+                          totalLessons = isGit ? 31 : 20;
+                        }
+                        if (completedIds && completedIds.length > 0 && totalLessons > 0) {
                           dynamicProgress = Math.min(100, Math.round((completedIds.length / totalLessons) * 100));
                         }
                       }
@@ -988,7 +1131,7 @@ export const Dashboard: React.FC = () => {
                           </button>
 
                           <a
-                            href={`http://localhost:5000/api/certificates/download?certificateId=${cert.verificationId}&studentId=${cert.studentId}&studentName=${encodeURIComponent(cert.studentName)}&courseTitle=${encodeURIComponent(cert.courseTitle)}&completionDate=${encodeURIComponent(cert.completionDate)}`}
+                            href={`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/download?certificateId=${cert.verificationId}&studentId=${cert.studentId}&studentName=${encodeURIComponent(cert.studentName)}&courseTitle=${encodeURIComponent(cert.courseTitle)}&completionDate=${encodeURIComponent(cert.completionDate)}`}
                             className="w-full bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
                           >
                             <Download className="w-4 h-4 text-emerald-500" />
@@ -996,7 +1139,7 @@ export const Dashboard: React.FC = () => {
                           </a>
 
                           <a
-                            href={`https://verify.kaizenq.edu/credentials/${cert.verificationId}?studentId=${cert.studentId}`}
+                            href={`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/verify/${cert.verificationId}?studentId=${cert.studentId}`}
                             target="_blank"
                             rel="noreferrer"
                             className="w-full bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer text-center"
@@ -1067,7 +1210,35 @@ export const Dashboard: React.FC = () => {
         <AchievementsDashboard />
       )}
 
-      {/* Leaderboard tab removed from student dashboard */}
+      {/* ------------------- 10. LEADERBOARD TAB ------------------- */}
+      {currentTab === 'leaderboard' && (
+        <LeaderboardView />
+      )}
+
+      {/* ------------------- 11. ANALYTICS TAB ------------------- */}
+      {currentTab === 'analytics' && (
+        <AnalyticsDashboard />
+      )}
+
+      {/* ------------------- 12. RESUME BUILDER TAB ------------------- */}
+      {currentTab === 'resume-builder' && (
+        <ResumeBuilder />
+      )}
+
+      {/* ------------------- 13. CAREER ROADMAP TAB ------------------- */}
+      {currentTab === 'career-roadmap' && (
+        <CareerRoadmap />
+      )}
+
+      {/* ------------------- 14. PRACTICE HUB TAB ------------------- */}
+      {currentTab === 'practice-hub' && (
+        <PracticeHub />
+      )}
+
+      {/* ------------------- 15. INTERVIEW PREP TAB ------------------- */}
+      {currentTab === 'interview-prep' && (
+        <InterviewPrep />
+      )}
 
       {/* ----------------- CERTIFICATE PREVIEW MODAL ----------------- */}
       {activePreviewCert && (

@@ -12,6 +12,7 @@ import emailRoutes from './emailRoutes';
 import aiLmsRoutes from './aiLmsRoutes';
 import sandboxRoutes from './sandboxRoutes';
 import adminRoutes from './admin.routes';
+import liveClassroomRoutes from '../modules/liveClassroom/liveClassroom.routes';
 import certificateRoutes from './certificateRoutes';
 
 const router = Router();
@@ -35,5 +36,6 @@ router.use('/ai-lms', aiLmsRoutes);
 router.use('/sandbox', sandboxRoutes);
 router.use('/admin', adminRoutes);
 router.use('/certificates', certificateRoutes);
+router.use('/live-classroom', liveClassroomRoutes);
 
 export default router;

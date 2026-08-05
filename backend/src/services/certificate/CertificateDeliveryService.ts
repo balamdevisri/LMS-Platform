@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import logger from '../../config/logger';
+import { env } from '../../config/env';
 import { emailService } from '../email/EmailService';
 import { googleDriveService } from '../googleDrive.service';
 import { pdfCertificateGenerator } from './PDFCertificateGenerator';
@@ -26,6 +27,7 @@ export interface CompletionTriggerPayload {
   instructorName?: string;
   courseDuration?: string;
   modulesCount?: number;
+  verificationId?: string;
 }
 
 export interface AutomatedDeliveryResult {
@@ -120,12 +122,30 @@ export class CertificateDeliveryService {
     }
 
     // 1. Validate Student exists and is Active
-    const studentDoc = await db.collection('students').doc(studentId).get();
+    let studentDoc = await db.collection('students').doc(studentId).get();
+    let studentData = studentDoc.exists ? studentDoc.data() : null;
+
+    logger.info(`[AUTOMATED CERTIFICATE VALIDATION] Student Lookup Details:
+      - Received UID: ${studentId}
+      - Firestore Collection: students
+      - Document ID: ${studentId}
+      - Lookup Result: ${studentDoc.exists ? 'Student Found by Doc ID' : 'Student Not Found by Doc ID'}`);
+
     if (!studentDoc.exists) {
-      logger.warn(`[AUTOMATED CERTIFICATE VALIDATION] ❌ Student ${studentId} not found.`);
-      return { eligible: false, error: 'Student account not found.' };
+      logger.info(`[AUTOMATED CERTIFICATE VALIDATION] Attempting fallback query: where("uid", "==", "${studentId}")...`);
+      const fallbackSnap = await db.collection('students').where('uid', '==', studentId).get();
+      
+      logger.info(`[AUTOMATED CERTIFICATE VALIDATION] Fallback Lookup Result: ${fallbackSnap.empty ? 'Student Not Found' : 'Student Found (' + fallbackSnap.size + ' doc matches)'}`);
+      
+      if (!fallbackSnap.empty) {
+        studentDoc = fallbackSnap.docs[0] as any;
+        studentData = studentDoc.data();
+      } else {
+        logger.warn(`[AUTOMATED CERTIFICATE VALIDATION] ❌ Student ${studentId} not found (both doc ID and fallback query failed).`);
+        return { eligible: false, error: 'Student account not found.' };
+      }
     }
-    const studentData = studentDoc.data();
+
     if (studentData?.status !== 'approved' && studentData?.status !== 'active') {
       logger.warn(`[AUTOMATED CERTIFICATE VALIDATION] ❌ Student ${studentId} is inactive (status: ${studentData?.status}).`);
       return { eligible: false, error: 'Student account is not active.' };
@@ -338,7 +358,7 @@ export class CertificateDeliveryService {
     }
 
     // Step 1: Generate Deterministic Globally Unique Certificate ID (Preventing duplicates in sheet registry)
-    const certificateId = await this.generateGloballyUniqueId(payload.courseId);
+    const certificateId = payload.verificationId || await this.generateGloballyUniqueId(payload.courseId);
     const completionDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
     timeline.push({
@@ -421,8 +441,8 @@ export class CertificateDeliveryService {
     }
 
     // Direct download and verification URL preparation
-    const downloadUrl = `http://localhost:5000/api/certificates/download?certificateId=${certificateId}&studentId=${payload.studentId}&studentName=${encodeURIComponent(payload.studentName)}&courseTitle=${encodeURIComponent(payload.courseTitle)}&completionDate=${encodeURIComponent(completionDate)}`;
-    const verifyUrl = `https://verify.kaizenq.edu/credentials/${certificateId}?studentId=${payload.studentId}`;
+    const downloadUrl = `${env.BACKEND_URL || 'http://localhost:5000'}/api/certificates/download?certificateId=${certificateId}&studentId=${payload.studentId}&studentName=${encodeURIComponent(payload.studentName)}&courseTitle=${encodeURIComponent(payload.courseTitle)}&completionDate=${encodeURIComponent(completionDate)}`;
+    const verifyUrl = `${env.BACKEND_URL || 'http://localhost:5000'}/api/certificates/verify/${certificateId}?studentId=${payload.studentId}`;
 
     // Step 4: Log Certificate to Google Sheet Registry FIRST
     try {

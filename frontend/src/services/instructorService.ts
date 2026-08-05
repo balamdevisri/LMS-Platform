@@ -146,11 +146,36 @@ class InstructorService {
       }
     }
 
+    // Dispatch approval email via Express Nodemailer SMTP Server
+    try {
+      const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      await fetch(`${apiBaseUrl}/email/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventType: 'INSTRUCTOR_APPROVAL',
+          recipientEmail: newInstructor.email.toLowerCase().trim(),
+          payload: {
+            instructorName: newInstructor.name,
+            email: newInstructor.email.toLowerCase().trim(),
+            status: 'approved',
+            portalUrl: `${window.location.origin}/auth/login`,
+            comments: `Instructor account manually onboarded by Administrator. Specialty: ${newInstructor.specialty}.`,
+          },
+        }),
+      });
+    } catch (smtpErr) {
+      console.warn('Backend Nodemailer SMTP instructor approval dispatch notice:', smtpErr);
+    }
+
     return newInstructor;
   }
 
   async updateInstructor(instructor: InstructorUser): Promise<void> {
     const current = this.getLocalInstructors();
+    const existing = current.find((i) => i.id === instructor.id);
+    const statusChanged = existing && existing.status !== instructor.status;
+
     const updated = current.map((i) => (i.id === instructor.id ? instructor : i));
     this.saveLocalInstructors(updated);
 
@@ -165,6 +190,30 @@ class InstructorService {
         });
       } catch (err) {
         console.warn('Firestore update instructor notice:', err);
+      }
+    }
+
+    if (statusChanged) {
+      // Dispatch status update email via Express Nodemailer SMTP Server
+      try {
+        const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        await fetch(`${apiBaseUrl}/email/send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            eventType: 'INSTRUCTOR_APPROVAL',
+            recipientEmail: instructor.email.toLowerCase().trim(),
+            payload: {
+              instructorName: instructor.name,
+              email: instructor.email.toLowerCase().trim(),
+              status: instructor.status === 'Verified' ? 'approved' : 'pending_docs',
+              portalUrl: `${window.location.origin}/auth/login`,
+              comments: `Instructor status updated by Administrator to ${instructor.status}.`,
+            },
+          }),
+        });
+      } catch (smtpErr) {
+        console.warn('Backend Nodemailer SMTP instructor update status email notice:', smtpErr);
       }
     }
   }

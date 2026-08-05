@@ -18,7 +18,7 @@ import {
   fetchSignInMethodsForEmail,
   linkWithCredential,
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '@/firebase';
 import type { UserProfile, UserRole } from '@/types/user';
 import { studentService } from '@/services/studentService';
@@ -148,7 +148,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role: targetRole,
           provider: isGithub ? 'github.com' : 'password',
           providerId: isGithub ? 'github.com' : 'password',
-          status: 'Active',
+          status: targetRole === 'instructor' ? 'Pending' : 'Active',
           branch: 'AI & Computer Science',
           year: '1st Year',
           college: 'Shaivika AI Foundation',
@@ -190,7 +190,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role: targetRole,
         provider: isGithub ? 'github.com' : 'password',
         providerId: isGithub ? 'github.com' : 'password',
-        status: 'Active',
+        status: targetRole === 'instructor' ? 'Pending' : 'Active',
         createdAt: new Date().toISOString(),
         lastLogin: new Date().toISOString(),
         isVerified: firebaseUser.emailVerified || isGithub || isAdmin || false,
@@ -253,6 +253,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const firebaseUser = userCredential.user;
 
     await updateProfile(firebaseUser, { displayName: name });
+
+    // Trigger custom backend verification email via Nodemailer SMTP
+    try {
+      const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const verificationUrl = `${window.location.origin}/auth/login?verified=true&email=${encodeURIComponent(email.toLowerCase().trim())}`;
+      
+      await fetch(`${apiBaseUrl}/email/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventType: 'EMAIL_VERIFICATION',
+          recipientEmail: email.toLowerCase().trim(),
+          payload: {
+            userName: name,
+            email: email.toLowerCase().trim(),
+            verificationUrl,
+            expiresInMinutes: 30,
+          },
+        }),
+      });
+    } catch (e) {
+      console.warn('Backend custom email verification failed:', e);
+    }
 
     try {
       await sendEmailVerification(firebaseUser);
@@ -317,7 +340,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const isVerifiedQuery = typeof window !== 'undefined' && window.location.search.includes('verified=true');
       const isVerified = currentUser.emailVerified || isVerifiedQuery;
 
-      // Module 2 Gate: Email Verification AND Admin Approval for Student Accounts
+      // Module 2 Gate: Email Verification AND Admin Approval for Student/Instructor Accounts
       if (!isAdminEmail) {
         // 1. Email Verification Check
         if (!isVerified) {
@@ -329,23 +352,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // 2. Admin Approval Check
         let approvalStatus = 'approved';
-        try {
-          const localStudents = studentService.getLocalStudents();
-          const match = localStudents.find((s) => s.id === currentUser.uid || s.uid === currentUser.uid || s.email === currentUser.email);
-          if (match && match.status) {
-            approvalStatus = match.status;
-          } else if (db) {
-            const studentDoc = await getDoc(doc(db, 'students', currentUser.uid));
-            if (studentDoc.exists()) {
-              const data = studentDoc.data();
-              approvalStatus = data.status || (data.approved ? 'approved' : 'pending');
+        let userRole: UserRole = 'student';
+        if (db) {
+          try {
+            const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+            if (userDoc.exists()) {
+              const data = userDoc.data();
+              userRole = data.role || 'student';
+              approvalStatus = data.status || 'Active';
             }
+          } catch (err) {
+            console.warn('User status check failed:', err);
           }
-        } catch (docErr) {
-          console.warn('Student status check notice:', docErr);
         }
 
-        if (approvalStatus === 'pending') {
+        // For student, check student collection if user doc did not specify status
+        if (userRole === 'student' && approvalStatus === 'Active') {
+          try {
+            const localStudents = studentService.getLocalStudents();
+            const match = localStudents.find((s) => s.id === currentUser.uid || s.uid === currentUser.uid || s.email === currentUser.email);
+            if (match && match.status) {
+              approvalStatus = match.status;
+            } else if (db) {
+              let studentDoc = await getDoc(doc(db, 'students', currentUser.uid));
+              let data = studentDoc.exists() ? studentDoc.data() : null;
+
+              if (!studentDoc.exists()) {
+                const q = query(collection(db, 'students'), where('uid', '==', currentUser.uid));
+                const qSnap = await getDocs(q);
+                if (!qSnap.empty) {
+                  data = qSnap.docs[0].data();
+                }
+              }
+
+              if (data) {
+                approvalStatus = data.status || (data.approved ? 'approved' : 'pending');
+              }
+            }
+          } catch (docErr) {
+            console.warn('Student status check notice:', docErr);
+          }
+        }
+
+        const isPending = (userRole === 'instructor' && approvalStatus === 'Pending') || 
+                          (userRole === 'student' && (approvalStatus === 'pending' || approvalStatus === 'Pending Approval'));
+
+        if (isPending) {
           await signOut(auth).catch(() => null);
           const pendingErr: any = new Error('Your registration application is pending administrator review and approval.');
           pendingErr.code = 'ADMIN_APPROVAL_PENDING';
@@ -357,7 +409,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           throw rejectedErr;
         } else if (approvalStatus === 'suspended') {
           await signOut(auth).catch(() => null);
-          const suspendedErr: any = new Error('Your student account is currently suspended by an administrator.');
+          const suspendedErr: any = new Error('Your account is currently suspended by an administrator.');
           suspendedErr.code = 'ACCOUNT_SUSPENDED';
           throw suspendedErr;
         }

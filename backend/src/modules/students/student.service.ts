@@ -208,12 +208,20 @@ export class StudentService {
     let studentData: any = null;
 
     if (db && typeof db.collection === 'function') {
-      const docRef = db.collection('students').doc(studentId);
-      const userRef = db.collection('users').doc(studentId);
+      let docRef = db.collection('students').doc(studentId);
+      let userRef = db.collection('users').doc(studentId);
 
-      const docSnap = await docRef.get();
+      let docSnap = await docRef.get();
       if (!docSnap.exists) {
-        throw new Error('Student record not found');
+        const fallbackSnap = await db.collection('students').where('uid', '==', studentId).get();
+        if (!fallbackSnap.empty) {
+          const matchDoc = fallbackSnap.docs[0];
+          docRef = db.collection('students').doc(matchDoc.id);
+          userRef = db.collection('users').doc(matchDoc.id);
+          docSnap = await docRef.get();
+        } else {
+          throw new Error('Student record not found');
+        }
       }
 
       studentData = docSnap.data();
@@ -263,12 +271,20 @@ export class StudentService {
     let studentData: any = null;
 
     if (db && typeof db.collection === 'function') {
-      const docRef = db.collection('students').doc(studentId);
-      const userRef = db.collection('users').doc(studentId);
+      let docRef = db.collection('students').doc(studentId);
+      let userRef = db.collection('users').doc(studentId);
 
-      const docSnap = await docRef.get();
+      let docSnap = await docRef.get();
       if (!docSnap.exists) {
-        throw new Error('Student record not found');
+        const fallbackSnap = await db.collection('students').where('uid', '==', studentId).get();
+        if (!fallbackSnap.empty) {
+          const matchDoc = fallbackSnap.docs[0];
+          docRef = db.collection('students').doc(matchDoc.id);
+          userRef = db.collection('users').doc(matchDoc.id);
+          docSnap = await docRef.get();
+        } else {
+          throw new Error('Student record not found');
+        }
       }
 
       studentData = docSnap.data();

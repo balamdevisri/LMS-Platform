@@ -153,49 +153,107 @@ const ARCHITECTURE_SLIDES = [
 const MODULE_COMMAND_TABLES: Record<number, { command: string; category: string; description: string; usage: string }[]> = {
   0: [
     { command: 'pwd', category: 'Navigation', description: 'Displays the current working directory path', usage: 'pwd' },
-    { command: 'ls', category: 'File Management', description: 'Lists directory contents. Flags: -l (long format), -a (hidden), -h (human)', usage: 'ls -lah' },
+    { command: 'ls', category: 'File & Directory Management', description: 'Lists directory contents. Flags: -l (long format), -a (hidden), -h (human)', usage: 'ls -lah' },
+    { command: 'ls -l', category: 'File & Directory Management', description: 'Lists directory contents in long format showing permissions, sizes, and owners', usage: 'ls -l' },
+    { command: 'ls -a', category: 'File & Directory Management', description: 'Lists all files, including hidden files starting with a dot (.)', usage: 'ls -a' },
     { command: 'cd', category: 'Navigation', description: 'Changes the current working directory', usage: 'cd /var/log' },
-    { command: 'mkdir', category: 'File Management', description: 'Creates a new directory. Flag -p builds nested parent directories', usage: 'mkdir -p project/src' },
-    { command: 'touch', category: 'File Management', description: 'Creates an empty file or updates the timestamp of an existing file', usage: 'touch index.html' },
-    { command: 'cp', category: 'File Management', description: 'Copies files/directories. Flag -r copies recursively', usage: 'cp -r src/ backup/' },
-    { command: 'mv', category: 'File Management', description: 'Moves or renames files and directories', usage: 'mv old.txt new.txt' },
-    { command: 'rm', category: 'File Management', description: 'Deletes files/directories. Flag -rf forces recursive deletion', usage: 'rm -rf temp_dir/' },
-    { command: 'cat', category: 'Text Processing', description: 'Displays the complete contents of a file in the terminal', usage: 'cat /etc/os-release' },
-    { command: 'head / tail', category: 'Log Analysis', description: 'Displays top (head) or bottom (tail) lines. Flag -f streams live updates', usage: 'tail -f -n 50 /var/log/syslog' },
-    { command: 'grep', category: 'Search Utility', description: 'Filters text matching a specific pattern. Flags: -i (case-insensitive), -r (recursive)', usage: 'grep -ir "error" /var/log/' },
-    { command: '> / >>', category: 'Redirection', description: 'Redirects output to a file. > overwrites, >> appends', usage: 'echo "log data" >> app.log' },
-    { command: '|', category: 'Pipeline', description: 'Passes the output of one command as the input to another', usage: 'cat /etc/passwd | grep "bash"' },
+    { command: 'mkdir', category: 'File & Directory Management', description: 'Creates a new directory. Flag -p builds nested parent directories', usage: 'mkdir -p project/src' },
+    { command: 'rmdir', category: 'File & Directory Management', description: 'Removes empty directories', usage: 'rmdir empty_dir/' },
+    { command: 'rm', category: 'File & Directory Management', description: 'Deletes files', usage: 'rm notes.txt' },
+    { command: 'rm -r', category: 'File & Directory Management', description: 'Deletes directories and their contents recursively', usage: 'rm -r backup_dir/' },
+    { command: 'cp', category: 'File & Directory Management', description: 'Copies files/directories. Flag -r copies recursively', usage: 'cp -r src/ backup/' },
+    { command: 'mv', category: 'File & Directory Management', description: 'Moves or renames files and directories', usage: 'mv old.txt new.txt' },
+    { command: 'touch', category: 'File & Directory Management', description: 'Creates an empty file or updates the timestamp of an existing file', usage: 'touch index.html' },
+    { command: 'file', category: 'File & Directory Management', description: 'Checks the file type and encoding format of a file', usage: 'file script.sh' },
+    { command: 'ln -s', category: 'File & Directory Management', description: 'Creates a soft/symbolic link to a file or directory', usage: 'ln -s /var/log/nginx/access.log nginx_access.log' },
+    { command: 'cat', category: 'View & Search Files', description: 'Displays the complete contents of a file in the terminal', usage: 'cat /etc/os-release' },
+    { command: 'less', category: 'View & Search Files', description: 'Views file content with page-by-page backward/forward navigation', usage: 'less /var/log/syslog' },
+    { command: 'more', category: 'View & Search Files', description: 'Views file content page-by-page (basic primitive pager)', usage: 'more /var/log/syslog' },
+    { command: 'head', category: 'View & Search Files', description: 'Displays the first 10 lines of a file (change count with -n)', usage: 'head -n 15 /etc/passwd' },
+    { command: 'tail', category: 'View & Search Files', description: 'Displays the last 10 lines of a file (change count with -n)', usage: 'tail -n 15 /var/log/syslog' },
+    { command: 'tail -f', category: 'View & Search Files', description: 'Streams and follows file updates live as they are written', usage: 'tail -f /var/log/nginx/error.log' },
+    { command: 'grep', category: 'View & Search Files', description: 'Filters text matching a specific pattern. Flags: -i (case-insensitive), -r (recursive)', usage: 'grep -ir "error" /var/log/' },
+    { command: 'grep -r', category: 'View & Search Files', description: 'Searches for text patterns recursively through directories', usage: 'grep -r "TODO" src/' },
+    { command: 'find', category: 'View & Search Files', description: 'Finds files by name, type, size, or modification date within a path', usage: 'find /var/log -name "*.log"' },
+    { command: 'locate', category: 'View & Search Files', description: 'Finds files quickly using a pre-built system index database', usage: 'locate nginx.conf' },
+    { command: 'which', category: 'View & Search Files', description: 'Shows the path of the executable command that runs in the shell', usage: 'which node' },
+    { command: 'whereis', category: 'View & Search Files', description: 'Locates the binary, source, and manual files for a command', usage: 'whereis bash' },
+    { command: 'wc -l', category: 'View & Search Files', description: 'Counts the number of lines in a file', usage: 'wc -l /etc/passwd' },
+    { command: 'sort', category: 'View & Search Files', description: 'Sorts lines of a text file alphabetically or numerically', usage: 'sort list.txt' },
   ],
   1: [
-    { command: 'useradd', category: 'User Management', description: 'Creates a new user account. Flag -m creates a home directory', usage: 'sudo useradd -m -s /bin/bash dev_user' },
-    { command: 'usermod', category: 'User Management', description: 'Modifies existing user properties', usage: 'sudo usermod -aG docker dev_user' },
+    { command: 'chmod', category: 'Permissions & Ownership', description: 'Changes file/directory access permissions using Octal notation (Read=4, Write=2, Execute=1)', usage: 'chmod 755 script.sh' },
+    { command: 'chmod 755', category: 'Permissions & Ownership', description: 'Grants rwxr-xr-x (read, write, execute to owner; read, execute to group/others)', usage: 'chmod 755 deploy.sh' },
+    { command: 'chown', category: 'Permissions & Ownership', description: 'Changes file or directory ownership (User and Group)', usage: 'sudo chown -R dev_user:developers /var/www' },
+    { command: 'chgrp', category: 'Permissions & Ownership', description: 'Changes group ownership of files or directories', usage: 'sudo chgrp developers index.html' },
+    { command: 'id', category: 'Permissions & Ownership', description: 'Displays the user and group IDs (UID/GID) of the current user', usage: 'id' },
+    { command: 'groups', category: 'Permissions & Ownership', description: 'Lists all groups the current user is a member of', usage: 'groups' },
+    { command: 'whoami', category: 'Permissions & Ownership', description: 'Displays the active username of the current terminal session', usage: 'whoami' },
+    { command: 'adduser', category: 'User Management', description: 'Creates a new user account. Flag -m creates a home directory', usage: 'sudo adduser dev_user' },
+    { command: 'deluser', category: 'User Management', description: 'Deletes a user account from the system', usage: 'sudo deluser dev_user' },
+    { command: 'usermod -aG', category: 'User Management', description: 'Appends a user to specific groups (e.g. docker, sudo) without removing current groups', usage: 'sudo usermod -aG sudo dev_user' },
     { command: 'passwd', category: 'User Management', description: 'Sets or changes a user account password', usage: 'sudo passwd dev_user' },
-    { command: 'groupadd', category: 'Group Management', description: 'Creates a new user group', usage: 'sudo groupadd developers' },
-    { command: 'chmod', category: 'Permissions', description: 'Changes file access permissions using Octal notation (Read=4, Write=2, Execute=1)', usage: 'chmod 755 script.sh' },
-    { command: 'chown', category: 'Ownership', description: 'Changes file or directory ownership (User and Group)', usage: 'sudo chown -R dev_user:developers /var/www' },
+    { command: 'su -', category: 'User Management', description: 'Switches shell context to another user account with full environment login', usage: 'sudo su - root' },
     { command: 'getfacl', category: 'Advanced Security', description: 'Displays file Access Control Lists (ACLs)', usage: 'getfacl /shared/file.txt' },
     { command: 'setfacl', category: 'Advanced Security', description: 'Configures custom ACL permissions for specific users/groups', usage: 'setfacl -m u:alice:rw /shared/file.txt' },
   ],
   2: [
-    { command: 'ps', category: 'Process Control', description: 'Displays a snapshot of current running processes', usage: 'ps aux | grep python' },
-    { command: 'htop', category: 'Process Control', description: 'Interactive real-time process manager and system monitor', usage: 'htop' },
-    { command: 'kill', category: 'Process Control', description: 'Sends a termination signal to a process using its PID', usage: 'kill -9 1234' },
-    { command: 'pkill', category: 'Process Control', description: 'Terminates processes based on their execution name', usage: 'pkill -f node' },
-    { command: 'nice / renice', category: 'Process Control', description: 'Launches a process with adjusted priority or alters an active process priority', usage: 'renice -n -5 -p 1234' },
-    { command: 'systemctl', category: 'Service Control', description: 'Manages system services (start, stop, restart, status, enable, disable)', usage: 'sudo systemctl status nginx' },
-    { command: 'journalctl', category: 'Log Parsing', description: 'Inspects systemd logs. Flag -u filters by service unit', usage: 'sudo journalctl -u nginx -n 100 --no-pager' },
-    { command: 'crontab', category: 'Task Automation', description: 'Schedules recurring background tasks. Options: -e (edit), -l (list)', usage: 'crontab -e' },
+    { command: 'ps aux', category: 'Process Management', description: 'Displays detailed snapshot of all running processes on the system', usage: 'ps aux' },
+    { command: 'ps -ef', category: 'Process Management', description: 'Lists processes in full format showing parent-child process mappings', usage: 'ps -ef' },
+    { command: 'top', category: 'System Information', description: 'Real-time dynamic process manager showing CPU and Memory statistics', usage: 'top' },
+    { command: 'htop', category: 'System Information', description: 'Interactive real-time process manager and system monitor', usage: 'htop' },
+    { command: 'kill', category: 'Process Management', description: 'Sends a termination signal to a process using its PID', usage: 'kill 1234' },
+    { command: 'kill -9', category: 'Process Management', description: 'Forces immediate SIGKILL termination to a process by PID', usage: 'kill -9 1234' },
+    { command: 'pkill', category: 'Process Management', description: 'Terminates processes based on their execution name', usage: 'pkill -f node' },
+    { command: 'killall', category: 'Process Management', description: 'Kills all instances of processes running under a specific executable name', usage: 'killall nginx' },
+    { command: 'nice', category: 'Process Management', description: 'Launches a process with a custom priority adjustment (nice value)', usage: 'nice -n 10 python3 script.py' },
+    { command: 'renice', category: 'Process Management', description: 'Alters the scheduling priority of an active running process', usage: 'renice -n -5 -p 1234' },
+    { command: 'systemctl', category: 'Process Management', description: 'Manages system services (start, stop, restart, status, enable, disable)', usage: 'sudo systemctl status nginx' },
+    { command: 'journalctl', category: 'Process Management', description: 'Inspects systemd logs. Flag -u filters by service unit', usage: 'sudo journalctl -u nginx -n 100 --no-pager' },
+    { command: 'crontab', category: 'Process Management', description: 'Schedules recurring background cron tasks. Options: -e (edit), -l (list)', usage: 'crontab -l' },
+    { command: 'df -h', category: 'System Information', description: 'Displays disk space usage for all mounted file systems in human-readable sizes', usage: 'df -h' },
+    { command: 'du -sh', category: 'System Information', description: 'Calculates the total disk usage size of a directory', usage: 'du -sh /var/log/' },
+    { command: 'free -h', category: 'System Information', description: 'Displays total, used, and free RAM and swap space memory', usage: 'free -h' },
+    { command: 'uptime', category: 'System Information', description: 'Displays system load averages and elapsed time since last reboot', usage: 'uptime' },
+    { command: 'uname -a', category: 'System Information', description: 'Prints comprehensive system and Linux kernel version architecture details', usage: 'uname -a' },
+    { command: 'hostname', category: 'System Information', description: 'Shows or sets the host network server node name', usage: 'hostname' },
+    { command: 'tar -cvf', category: 'Archives & Compression', description: 'Creates a new tape archive (.tar) bundle of a folder', usage: 'tar -cvf backup.tar ./src' },
+    { command: 'tar -xvf', category: 'Archives & Compression', description: 'Extracts the contents of a tape archive (.tar) file', usage: 'tar -xvf backup.tar' },
+    { command: 'tar -czvf', category: 'Archives & Compression', description: 'Creates a compressed Gzipped tape archive (.tar.gz) of a directory', usage: 'tar -czvf backup.tar.gz ./src' },
+    { command: 'tar -xzvf', category: 'Archives & Compression', description: 'Extracts a compressed Gzipped tape archive (.tar.gz) file', usage: 'tar -xzvf backup.tar.gz' },
+    { command: 'zip -r', category: 'Archives & Compression', description: 'Creates a compressed Zip archive folder recursively', usage: 'zip -r backup.zip ./src' },
+    { command: 'unzip', category: 'Archives & Compression', description: 'Extracts files from a Zip compressed archive', usage: 'unzip backup.zip' },
+    { command: 'gzip', category: 'Archives & Compression', description: 'Compresses a file into .gz format, deleting the original file', usage: 'gzip data.txt' },
+    { command: 'gunzip', category: 'Archives & Compression', description: 'Decompress files compressed in .gz format back to raw formats', usage: 'gunzip data.txt.gz' },
   ],
   3: [
-    { command: 'ip', category: 'Networking', description: 'Replaces legacy ifconfig. Inspects IP addresses, interfaces, and routes', usage: 'ip addr show' },
-    { command: 'ping', category: 'Networking', description: 'Tests network layer connectivity to a remote host', usage: 'ping -c 4 8.8.8.8' },
-    { command: 'ss', category: 'Networking', description: 'Replaces netstat. Audits active network sockets and open ports', usage: 'ss -tulnp' },
+    { command: '>', category: 'Redirection & Pipes', description: 'Redirects command output to a file, overwriting existing file content', usage: 'echo "hello" > index.html' },
+    { command: '>>', category: 'Redirection & Pipes', description: 'Redirects command output to a file, appending content to the end', usage: 'echo "log line" >> app.log' },
+    { command: '<', category: 'Redirection & Pipes', description: 'Redirects file contents to be used as input for a command', usage: 'mysql database < schema.sql' },
+    { command: '|', category: 'Redirection & Pipes', description: 'Pipes stdout output of one command as the stdin input to another command', usage: 'cat /etc/passwd | grep "bash"' },
+    { command: '2>', category: 'Redirection & Pipes', description: 'Redirects stderr error output to a log file', usage: 'run_app 2> errors.log' },
+    { command: '&', category: 'Redirection & Pipes', description: 'Runs the preceding command in the background, freeing the shell', usage: 'node server.js &' },
+    { command: '&&', category: 'Redirection & Pipes', description: 'Conditional execution: runs the next command only if the first succeeds (exit 0)', usage: 'npm run build && npm run start' },
+    { command: '||', category: 'Redirection & Pipes', description: 'Conditional execution: runs the next command only if the first fails (exit non-zero)', usage: 'ping -c 1 host || echo "Host is offline"' },
+    { command: 'ip addr', category: 'Networking', description: 'Inspects IP addresses, network interfaces, and operational states', usage: 'ip addr show' },
+    { command: 'ifconfig', category: 'Networking', description: 'Legacy network configuration tool to view active interfaces and IPs', usage: 'ifconfig' },
+    { command: 'ping', category: 'Networking', description: 'Tests network layer connectivity to a remote host/IP', usage: 'ping -c 4 8.8.8.8' },
+    { command: 'traceroute', category: 'Networking', description: 'Traces the hops and routers traversed to reach a remote server address', usage: 'traceroute google.com' },
+    { command: 'ss -tulnp', category: 'Networking', description: 'Audits open TCP/UDP listening ports and active socket connections', usage: 'ss -tulnp' },
+    { command: 'netstat -tulnp', category: 'Networking', description: 'Legacy tool to view open ports, socket connections, and process IDs', usage: 'netstat -tulnp' },
     { command: 'curl', category: 'Networking', description: 'Downloads data or interacts with web endpoints/REST APIs', usage: 'curl -I https://api.github.com' },
     { command: 'wget', category: 'Networking', description: 'Downloads files directly from web URLs to the server', usage: 'wget https://example.com/package.tar.gz' },
     { command: 'ssh', category: 'Security', description: 'Connects securely to a remote Linux server via encrypted SSH protocol', usage: 'ssh -i key.pem user@10.0.0.1' },
     { command: 'ssh-keygen', category: 'Security', description: 'Generates a secure SSH public/private key pair', usage: 'ssh-keygen -t ed25519' },
     { command: 'ufw', category: 'Security', description: 'Simplifies firewall management to allow or block port traffic', usage: 'sudo ufw allow 22/tcp && sudo ufw enable' },
     { command: 'visudo', category: 'Security', description: 'Safely edits the /etc/sudoers file to prevent syntax corruption', usage: 'sudo visudo' },
+    { command: 'history', category: 'Miscellaneous', description: 'Displays lists of previously executed terminal commands', usage: 'history | grep "ssh"' },
+    { command: 'clear', category: 'Miscellaneous', description: 'Clears the screen scrollback buffers of the terminal emulator', usage: 'clear' },
+    { command: 'man', category: 'Miscellaneous', description: 'Opens the formal documentation manual pages for a command', usage: 'man ls' },
+    { command: 'alias', category: 'Miscellaneous', description: 'Creates temporary short-alias shortcuts for long commands', usage: 'alias ll="ls -lah"' },
+    { command: 'exit', category: 'Miscellaneous', description: 'Closes the current terminal shell or switches user back', usage: 'exit' },
+    { command: 'reboot', category: 'Miscellaneous', description: 'Restarts the host server operating system immediately', usage: 'sudo reboot' },
+    { command: 'shutdown -h now', category: 'Miscellaneous', description: 'Powers down the computer host server cleanly immediately', usage: 'sudo shutdown -h now' },
   ],
 };
 
@@ -585,7 +643,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
         setCurrentLessonIdx(path.lessonIdx);
         setCurrentSubtopicIdx(path.subtopicIdx);
         
-        const saved = courseService.getCourseCheckpoint(course.id);
+        const saved = courseService.getCourseCheckpoint(course.id, user?.uid || 'default_student');
         if (saved) {
           if (saved.completedSubtopics?.length) setCompletedSubtopics(saved.completedSubtopics);
           if (saved.completedModules?.length) setCompletedModules(saved.completedModules);
@@ -599,7 +657,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
     }
 
     // 2. Normal checkpoint restoration
-    const saved = courseService.getCourseCheckpoint(course.id);
+    const saved = courseService.getCourseCheckpoint(course.id, user?.uid || 'default_student');
     if (saved) {
       if (typeof saved.lastModuleIdx === 'number') setActiveModuleIdx(saved.lastModuleIdx);
       if (typeof saved.lastLessonIdx === 'number') setCurrentLessonIdx(saved.lastLessonIdx);
@@ -1125,7 +1183,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
         completedModules,
         inProgressSubtopics,
         lastUpdated: new Date().toISOString(),
-      });
+      }, user?.uid || 'default_student');
       if (onProgressUpdate) {
         onProgressUpdate(Math.min(100, Math.max(5, progressPercent)));
       }

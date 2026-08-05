@@ -1,0 +1,59 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        (request.auth.token.email.matches('.*admin.*') || 
+         request.auth.token.email == 'admin@gmail.com' ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
+    }
+
+    function isInstructor() {
+      return isAuthenticated() && 
+        (request.auth.token.email.matches('.*instructor.*') || 
+         request.auth.token.email.matches('.*mentor.*') ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'instructor'));
+    }
+
+    // Users Collection Access Rules
+    match /users/{userId} {
+      allow read: if isAuthenticated(); // Allow reading profiles (e.g. for leaderboard/profiles)
+      allow write: if isAdmin() || (isAuthenticated() && request.auth.uid == userId);
+    }
+
+    // Students Collection Access Rules
+    match /students/{studentId} {
+      allow read: if isAuthenticated(); // Allow reading student statistics for leaderboards
+      allow write: if isAdmin() || (isAuthenticated() && request.auth.uid == studentId);
+    }
+
+    // Courses Collection Access Rules
+    match /courses/{courseId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Notifications Collection Access Rules
+    match /notifications/{notifId} {
+      allow read: if isAdmin() || 
+                    (isAuthenticated() && 
+                     (resource.data.recipientId == request.auth.uid || 
+                      resource.data.recipientRole == 'all' || 
+                      resource.data.recipientRole == 'student'));
+      allow create: if isAdmin() || isInstructor();
+      allow update: if isAdmin() || 
+                    (isAuthenticated() && 
+                     resource.data.recipientId == request.auth.uid && 
+                     request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']));
+      allow delete: if isAdmin() || (isAuthenticated() && resource.data.recipientId == request.auth.uid);
+    }
+  }
+}

@@ -1,12 +1,97 @@
 import { Router, Request, Response } from 'express';
-import { db } from '../firebase';
+import { db, adminAuth } from '../firebase';
 import { getEmailTemplate } from '../services/emailTemplates';
 
 const router = Router();
 
+async function syncAuthUsersToFirestore() {
+  if (!db || !adminAuth || typeof adminAuth.listUsers !== 'function') {
+    console.log('[KaizenQ Auth Sync] Skipped: Firebase Admin SDK is not fully initialized.');
+    return;
+  }
+  try {
+    const listUsersResult = await adminAuth.listUsers();
+    console.log(`[KaizenQ Auth Sync] Found ${listUsersResult.users.length} users in Firebase Authentication.`);
+
+    const batch = db.batch();
+    let hasUpdates = false;
+    let count = 0;
+
+    for (const userRecord of listUsersResult.users) {
+      const uid = userRecord.uid;
+      const email = (userRecord.email || '').toLowerCase().trim();
+      if (!email) continue;
+
+      const studentDocRef = db.collection('students').doc(uid);
+      const studentDoc = await studentDocRef.get();
+
+      const userDocRef = db.collection('users').doc(uid);
+      const userDoc = await userDocRef.get();
+
+      const name = userRecord.displayName || email.split('@')[0] || 'User';
+      const isInstructor = email.includes('instructor') || email.includes('mentor');
+      const isAdmin = email.includes('admin') || email === 'admin@gmail.com';
+      const role = isAdmin ? 'admin' : (isInstructor ? 'instructor' : 'student');
+      const status = role === 'instructor' ? 'Pending' : 'Active';
+
+      const baseData = {
+        uid,
+        name,
+        fullName: name,
+        email,
+        role,
+        photoURL: userRecord.photoURL || '',
+        profilePhoto: userRecord.photoURL || '',
+        status,
+        isActive: status === 'Active',
+        createdAt: userRecord.metadata.creationTime || new Date().toISOString(),
+        joinedAt: userRecord.metadata.creationTime || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        approved: status === 'Active',
+      };
+
+      if (!studentDoc.exists && role === 'student') {
+        const studentPayload = {
+          ...baseData,
+          branch: 'AI & Computer Science',
+          github: {
+            username: email.split('@')[0],
+            profileUrl: `https://github.com/${email.split('@')[0]}`,
+            avatar: userRecord.photoURL || '',
+          },
+          linkedin: '',
+          portfolio: '',
+          phone: '',
+          courses: 1,
+        };
+        batch.set(studentDocRef, studentPayload, { merge: true });
+        hasUpdates = true;
+        count++;
+      }
+
+      if (!userDoc.exists) {
+        batch.set(userDocRef, baseData, { merge: true });
+        hasUpdates = true;
+        count++;
+      }
+    }
+
+    if (hasUpdates) {
+      await batch.commit();
+      console.log(`[KaizenQ Auth Sync] Successfully synchronized ${count} users to Firestore.`);
+    } else {
+      console.log('[KaizenQ Auth Sync] All users are already synchronized.');
+    }
+  } catch (err: any) {
+    console.error('[KaizenQ Auth Sync] Error during Auth user sync:', err?.message || err);
+  }
+}
+
 // GET /api/admin/dashboard - Executive stats & analytics
 router.get('/dashboard', async (req: Request, res: Response) => {
   try {
+    await syncAuthUsersToFirestore().catch(() => null);
+
     let studentsCount = 0;
     let pendingCount = 0;
     let approvedCount = 0;
@@ -66,6 +151,8 @@ router.get('/dashboard', async (req: Request, res: Response) => {
 // GET /api/admin/students - List/search students
 router.get('/students', async (req: Request, res: Response) => {
   try {
+    await syncAuthUsersToFirestore().catch(() => null);
+
     const students: any[] = [];
     if (db) {
       const snapshot = await db.collection('students').get();
@@ -79,12 +166,28 @@ router.get('/students', async (req: Request, res: Response) => {
   }
 });
 
+// Helper to resolve actual Firestore document ID by document ID or fallback to uid field query
+async function resolveStudentDocId(studentId: string): Promise<string> {
+  if (!db) return studentId;
+  try {
+    const docSnap = await db.collection('students').doc(studentId).get();
+    if (docSnap.exists) return studentId;
+    
+    const fallbackSnap = await db.collection('students').where('uid', '==', studentId).get();
+    if (!fallbackSnap.empty) {
+      return fallbackSnap.docs[0].id;
+    }
+  } catch {}
+  return studentId;
+}
+
 // GET /api/admin/student/:id - Fetch single student details
 router.get('/student/:id', async (req: Request, res: Response) => {
   try {
     const studentId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     if (db) {
-      const docSnap = await db.collection('students').doc(studentId).get();
+      const resolvedId = await resolveStudentDocId(studentId);
+      const docSnap = await db.collection('students').doc(resolvedId).get();
       if (docSnap.exists) {
         return res.json({ success: true, data: { id: docSnap.id, ...docSnap.data() } });
       }
@@ -99,6 +202,7 @@ router.get('/student/:id', async (req: Request, res: Response) => {
 router.patch('/student/:id/approve', async (req: Request, res: Response) => {
   try {
     const studentId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const resolvedId = await resolveStudentDocId(studentId);
     const { adminId = 'admin_system' } = req.body;
     const updateData = {
       status: 'approved',
@@ -109,11 +213,11 @@ router.patch('/student/:id/approve', async (req: Request, res: Response) => {
     };
 
     if (db) {
-      await db.collection('students').doc(studentId).set(updateData, { merge: true }).catch(() => null);
-      await db.collection('users').doc(studentId).set(updateData, { merge: true }).catch(() => null);
+      await db.collection('students').doc(resolvedId).set(updateData, { merge: true }).catch(() => null);
+      await db.collection('users').doc(resolvedId).set(updateData, { merge: true }).catch(() => null);
     }
 
-    res.json({ success: true, message: `Student ${studentId} approved successfully`, data: updateData });
+    res.json({ success: true, message: `Student ${resolvedId} approved successfully`, data: updateData });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -123,6 +227,7 @@ router.patch('/student/:id/approve', async (req: Request, res: Response) => {
 router.patch('/student/:id/reject', async (req: Request, res: Response) => {
   try {
     const studentId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const resolvedId = await resolveStudentDocId(studentId);
     const { reason = 'Application requirements not met' } = req.body;
     const updateData = {
       status: 'rejected',
@@ -133,11 +238,11 @@ router.patch('/student/:id/reject', async (req: Request, res: Response) => {
     };
 
     if (db) {
-      await db.collection('students').doc(studentId).set(updateData, { merge: true }).catch(() => null);
-      await db.collection('users').doc(studentId).set(updateData, { merge: true }).catch(() => null);
+      await db.collection('students').doc(resolvedId).set(updateData, { merge: true }).catch(() => null);
+      await db.collection('users').doc(resolvedId).set(updateData, { merge: true }).catch(() => null);
     }
 
-    res.json({ success: true, message: `Student ${studentId} application rejected`, data: updateData });
+    res.json({ success: true, message: `Student ${resolvedId} application rejected`, data: updateData });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -147,6 +252,7 @@ router.patch('/student/:id/reject', async (req: Request, res: Response) => {
 router.patch('/student/:id/suspend', async (req: Request, res: Response) => {
   try {
     const studentId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const resolvedId = await resolveStudentDocId(studentId);
     const { reason = 'Policy violation' } = req.body;
     const updateData = {
       status: 'suspended',
@@ -157,11 +263,11 @@ router.patch('/student/:id/suspend', async (req: Request, res: Response) => {
     };
 
     if (db) {
-      await db.collection('students').doc(studentId).set(updateData, { merge: true }).catch(() => null);
-      await db.collection('users').doc(studentId).set(updateData, { merge: true }).catch(() => null);
+      await db.collection('students').doc(resolvedId).set(updateData, { merge: true }).catch(() => null);
+      await db.collection('users').doc(resolvedId).set(updateData, { merge: true }).catch(() => null);
     }
 
-    res.json({ success: true, message: `Student ${studentId} account suspended`, data: updateData });
+    res.json({ success: true, message: `Student ${resolvedId} account suspended`, data: updateData });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -171,6 +277,7 @@ router.patch('/student/:id/suspend', async (req: Request, res: Response) => {
 router.patch('/student/:id/activate', async (req: Request, res: Response) => {
   try {
     const studentId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const resolvedId = await resolveStudentDocId(studentId);
     const updateData = {
       status: 'approved',
       approved: true,
@@ -178,11 +285,11 @@ router.patch('/student/:id/activate', async (req: Request, res: Response) => {
     };
 
     if (db) {
-      await db.collection('students').doc(studentId).set(updateData, { merge: true }).catch(() => null);
-      await db.collection('users').doc(studentId).set(updateData, { merge: true }).catch(() => null);
+      await db.collection('students').doc(resolvedId).set(updateData, { merge: true }).catch(() => null);
+      await db.collection('users').doc(resolvedId).set(updateData, { merge: true }).catch(() => null);
     }
 
-    res.json({ success: true, message: `Student ${studentId} account reactivated`, data: updateData });
+    res.json({ success: true, message: `Student ${resolvedId} account reactivated`, data: updateData });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -192,11 +299,12 @@ router.patch('/student/:id/activate', async (req: Request, res: Response) => {
 router.delete('/student/:id', async (req: Request, res: Response) => {
   try {
     const studentId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const resolvedId = await resolveStudentDocId(studentId);
     if (db) {
-      await db.collection('students').doc(studentId).delete().catch(() => null);
-      await db.collection('users').doc(studentId).delete().catch(() => null);
+      await db.collection('students').doc(resolvedId).delete().catch(() => null);
+      await db.collection('users').doc(resolvedId).delete().catch(() => null);
     }
-    res.json({ success: true, message: `Student ${studentId} deleted successfully from Firestore` });
+    res.json({ success: true, message: `Student ${resolvedId} deleted successfully from Firestore` });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -219,6 +327,16 @@ router.post('/send-email', async (req: Request, res: Response) => {
         to
       }
     });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/admin/sync-auth-users
+router.post('/sync-auth-users', async (req: Request, res: Response) => {
+  try {
+    await syncAuthUsersToFirestore();
+    res.json({ success: true, message: 'Firebase Auth users synchronized with Firestore successfully.' });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }

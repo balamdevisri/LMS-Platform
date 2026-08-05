@@ -58,6 +58,18 @@ export const AdminDashboard: React.FC = () => {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
 
   useEffect(() => {
+    // 1. Sync Firebase Auth users with Firestore on dashboard mount
+    const triggerSync = async () => {
+      try {
+        const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        await fetch(`${apiBaseUrl}/admin/sync-auth-users`, { method: 'POST' });
+      } catch (err) {
+        console.warn('[Admin Dashboard] Auth users sync notice:', err);
+      }
+    };
+    triggerSync();
+
+    // 2. Subscribe to real-time collections
     const unsubStudents = studentService.subscribeToStudents((data) => {
       setStudentsList(data);
     });

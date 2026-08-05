@@ -1084,7 +1084,7 @@ class CourseService {
         const studentName = userMeta?.name || auth?.currentUser?.displayName || recipientEmail.split('@')[0];
         const courseTitle = userMeta?.courseTitle || target?.title || 'Shaivika AI LMS Track';
 
-        await fetch('/api/email/send', {
+        await fetch(`${API_BASE_URL}/email/send`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

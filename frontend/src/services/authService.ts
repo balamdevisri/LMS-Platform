@@ -3,7 +3,10 @@ import {
   signOut,
   type User,
 } from 'firebase/auth';
-import { auth } from './firebase';
+import { auth, db } from './firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 export const getFriendlyAuthErrorMessage = (error: any): string => {
   const code = error?.code || '';
@@ -39,7 +42,7 @@ export class AuthService {
 
       // 2. Dispatch custom email via Express Nodemailer SMTP Server (Firebase Auth sendEmailVerification disabled)
       try {
-        await fetch('/api/email/send', {
+        await fetch(`${API_BASE_URL}/email/send`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -77,19 +80,47 @@ export class AuthService {
       return;
     }
 
+    let isInstructor = false;
+    if (db) {
+      try {
+        const q = query(collection(db, 'users'), where('email', '==', targetEmail.toLowerCase().trim()));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          const userData = querySnapshot.docs[0].data();
+          if (userData.role === 'instructor') {
+            isInstructor = true;
+          }
+        }
+      } catch (err) {
+        console.warn('Error fetching user role for email resend:', err);
+      }
+    }
+
     try {
-      const response = await fetch('/api/email/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          eventType: 'REGISTRATION_PENDING',
-          recipientEmail: targetEmail.toLowerCase().trim(),
-          payload: {
+      const eventType = isInstructor ? 'EMAIL_VERIFICATION' : 'REGISTRATION_PENDING';
+      const verificationUrl = `${window.location.origin}/auth/login?verified=true&email=${encodeURIComponent(targetEmail.toLowerCase().trim())}`;
+      
+      const payload = isInstructor
+        ? {
+            userName: fullName || targetEmail.split('@')[0],
+            email: targetEmail.toLowerCase().trim(),
+            verificationUrl,
+            expiresInMinutes: 30,
+          }
+        : {
             studentName: fullName || targetEmail.split('@')[0],
             email: targetEmail.toLowerCase().trim(),
             githubUrl: `https://github.com/${targetEmail.split('@')[0]}`,
             status: 'Pending Approval',
-          },
+          };
+
+      const response = await fetch(`${API_BASE_URL}/email/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventType,
+          recipientEmail: targetEmail.toLowerCase().trim(),
+          payload,
         }),
       });
 

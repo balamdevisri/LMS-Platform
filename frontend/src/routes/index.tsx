@@ -5,6 +5,7 @@ import { AuthLayout } from '@/layouts/AuthLayout';
 import { DashboardLayout } from '@/layouts/DashboardLayout';
 import { StudentRoute } from '@/components/auth/StudentRoute';
 import { AdminRoute } from '@/components/auth/AdminRoute';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
 // Helper to lazy load named exports and wrap them in a Suspense boundary
 const lazyLoad = (importFn: () => Promise<any>, name: string) => {
@@ -45,6 +46,9 @@ const AdminUsers = lazyLoad(() => import('@/pages/admin/AdminUsers'), 'AdminUser
 const AdminUserProfile = lazyLoad(() => import('@/pages/admin/AdminUserProfile'), 'AdminUserProfile');
 const AdminCourseDetails = lazyLoad(() => import('@/pages/admin/AdminCourseDetails'), 'AdminCourseDetails');
 const AdminContentManagement = lazyLoad(() => import('@/pages/admin/AdminContentManagement'), 'AdminContentManagement');
+const LiveClassroomDashboard = lazyLoad(() => import('@/pages/liveClassroom/LiveClassroomDashboard'), 'LiveClassroomDashboard');
+const LiveClassroomScreen = lazyLoad(() => import('@/pages/liveClassroom/LiveClassroomScreen'), 'LiveClassroomScreen');
+const MentorAnalytics = lazyLoad(() => import('@/pages/liveClassroom/MentorAnalytics'), 'MentorAnalytics');
 
 // ─── Simple placeholder pages for coming-soon admin sections ─────────────────
 const PlaceholderPage = ({ title, subtitle }: { title: string; subtitle: string }) => (
@@ -98,6 +102,7 @@ const router = createBrowserRouter([
       { path: 'dashboard/courses', element: <CoursesList /> },
       { path: 'dashboard/course/:slug', element: <CourseView /> },
       { path: 'profile', element: <Profile /> },
+      { path: 'dashboard/live-classroom', element: <LiveClassroomDashboard /> },
     ],
   },
   // Admin Protected Routes
@@ -121,6 +126,8 @@ const router = createBrowserRouter([
       { path: 'instructors', element: <AdminInstructors /> },
       { path: 'content', element: <AdminContentManagement /> },
       { path: 'content-management', element: <AdminContentManagement /> },
+      { path: 'live-classroom', element: <LiveClassroomDashboard /> },
+      { path: 'live-classroom/mentor-analytics', element: <MentorAnalytics /> },
       {
         path: 'analytics',
         element: <PlaceholderPage title="Analytics" subtitle="Platform analytics, student progress reports, and engagement metrics are coming soon." />,
@@ -130,6 +137,15 @@ const router = createBrowserRouter([
         element: <PlaceholderPage title="Settings" subtitle="Administrative configuration, platform settings, and preferences are coming soon." />,
       },
     ],
+  },
+  // Full-screen Protected Live Classroom screen
+  {
+    path: '/live-classroom/:classId',
+    element: (
+      <ProtectedRoute>
+        <LiveClassroomScreen />
+      </ProtectedRoute>
+    ),
   },
   // Fallback 404
   {

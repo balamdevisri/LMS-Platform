@@ -20,6 +20,10 @@ import {
   Trophy,
   BarChart3,
   Settings,
+  Map,
+  Terminal,
+  HelpCircle,
+  Video,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { BrandLogo } from '@/components/common/BrandLogo';
@@ -98,6 +102,7 @@ export const DashboardLayout: React.FC = () => {
     { name: 'Courses', href: '/admin/courses', icon: BookOpen },
     { name: 'Students', href: '/admin/students', icon: UserCheck },
     { name: 'Instructors', href: '/admin/instructors', icon: GraduationCap },
+    { name: 'Live Classroom', href: '/admin/live-classroom', icon: Video },
     { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
     { name: 'Settings', href: '/admin/settings', icon: Settings },
   ];
@@ -111,14 +116,28 @@ export const DashboardLayout: React.FC = () => {
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
         { name: 'My Courses', href: '/dashboard/courses', icon: BookOpen },
         { name: 'AI Tutor', href: '/dashboard?tab=ai-tutor', icon: Brain },
+        { name: 'Live Class', href: '/dashboard/live-classroom', icon: Video },
       ],
     },
     {
-      title: 'PROGRESS',
-      accent: 'text-emerald-600 dark:text-emerald-400',
+      title: 'INTELLIGENCE & PRACTICE',
+      accent: 'text-sky-500 dark:text-sky-450',
+      divider: 'bg-sky-100 dark:bg-sky-900/40',
+      items: [
+        { name: 'Learning Analytics', href: '/dashboard?tab=analytics', icon: BarChart3 },
+        { name: 'Leaderboard', href: '/dashboard?tab=leaderboard', icon: Trophy },
+        { name: 'Practice Hub', href: '/dashboard?tab=practice-hub', icon: Terminal },
+        { name: 'Interview Prep', href: '/dashboard?tab=interview-prep', icon: HelpCircle },
+      ],
+    },
+    {
+      title: 'CAREER DEVELOPMENT',
+      accent: 'text-emerald-600 dark:text-emerald-450',
       divider: 'bg-emerald-100 dark:bg-emerald-900/40',
       items: [
-        { name: 'Quiz Results', href: '/dashboard?tab=assignments', icon: FileText },
+        { name: 'My Portfolio', href: '/profile', icon: UserCheck },
+        { name: 'Resume Builder', href: '/dashboard?tab=resume-builder', icon: FileText },
+        { name: 'Career Roadmap', href: '/dashboard?tab=career-roadmap', icon: Map },
         { name: 'Certificates', href: '/dashboard?tab=certificates', icon: Award },
         { name: 'Achievements', href: '/dashboard?tab=achievements', icon: Trophy },
       ],
@@ -128,7 +147,6 @@ export const DashboardLayout: React.FC = () => {
       accent: 'text-slate-400 dark:text-zinc-500',
       divider: 'bg-slate-100 dark:bg-zinc-800',
       items: [
-        { name: 'Profile', href: '/profile', icon: UserCheck },
         { name: 'Settings', href: '/dashboard?tab=settings', icon: Settings },
       ],
     },

@@ -5,6 +5,7 @@ import { CourseThumbnail } from './CourseThumbnail';
 import { CourseStatusBadge } from './CourseStatusBadge';
 import { Star, Clock, Users, ArrowRight, Bookmark, Award, PlayCircle, CheckCircle2, Zap } from 'lucide-react';
 import { courseService } from '../../services/courseService';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface CourseCardProps {
   course: ICourse;
@@ -32,7 +33,9 @@ export const CourseCard: React.FC<CourseCardProps> = ({
   onBookmark,
 }) => {
   // ── Progress from courseService (preserves all existing logic) ──────────────
-  const checkpoint = courseService.getCourseCheckpoint(course.id, 'default_student');
+  const { user } = useAuth();
+  const activeUserId = user?.uid || 'default_student';
+  const checkpoint = courseService.getCourseCheckpoint(course.id, activeUserId);
   const progressPercent = checkpoint?.progressPercent ?? 0;
   const isCompleted = progressPercent >= 100;
   const isInProgress = progressPercent > 0 && !isCompleted;
