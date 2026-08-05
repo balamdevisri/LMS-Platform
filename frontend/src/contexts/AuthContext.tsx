@@ -64,7 +64,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       firebaseUser.email?.toLowerCase() === 'admin@gmail.com' ||
       initialRole === 'admin';
 
-    const targetRole: UserRole = isAdmin ? 'admin' : (initialRole || 'student');
+    const storedRole = typeof window !== 'undefined' ? sessionStorage.getItem('kaizenq_signup_role') as UserRole : undefined;
+    const targetRole: UserRole = isAdmin ? 'admin' : (initialRole || storedRole || 'student');
 
     const calculatedName = firebaseUser.displayName || (isAdmin ? 'Administrator' : 'Student User');
     const baseProfileData: Partial<UserProfile> = {
@@ -223,8 +224,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (targetRole === 'student') {
           syncStudent(newProfile);
         } else if (targetRole === 'instructor') {
-          console.log(`[Instructor Signup] New instructor registered: ${calculatedName} (${firebaseUser.email})`);
-          console.log(`[Pending Request Created] Stored pending request in users collection for UID: ${firebaseUser.uid}`);
+          console.log("Firebase Auth Success");
+          console.log("Creating Instructor Document...");
           
           const instructorPayload = {
             uid: firebaseUser.uid,
@@ -239,11 +240,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             specialty: 'Linux & System Architecture',
             skills: ['Linux', 'Git', 'Python'],
             experience: 'Not Specified',
+            phone: '',
             joined: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           };
-          await setDoc(doc(db, 'instructors', firebaseUser.uid), instructorPayload).catch((err) => console.warn('Firestore setDoc instructors notice:', err));
+
+          try {
+            await setDoc(doc(db, 'instructors', firebaseUser.uid), instructorPayload);
+            console.log("Instructor Document Created Successfully");
+          } catch (err) {
+            console.error("Firestore Error", err);
+          }
+
+          if (typeof window !== 'undefined') {
+            sessionStorage.removeItem('kaizenq_signup_role');
+          }
 
           try {
             const adminNotifRef = doc(collection(db, 'notifications'));

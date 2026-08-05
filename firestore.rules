@@ -31,20 +31,26 @@ service cloud.firestore {
 
     // Students Collection Access Rules
     match /students/{studentId} {
-      allow read: if isAuthenticated(); // Allow reading student statistics for leaderboards
-      allow write: if isAdmin() || (isAuthenticated() && request.auth.uid == studentId);
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.auth.uid == studentId;
+      allow update: if isAdmin() || (isAuthenticated() && request.auth.uid == studentId);
+      allow delete: if isAdmin();
     }
 
     // Instructors Collection Access Rules
     match /instructors/{instructorId} {
       allow read: if isAuthenticated();
-      allow write: if isAdmin() || (isAuthenticated() && request.auth.uid == instructorId);
+      allow create: if isAuthenticated() && request.auth.uid == instructorId;
+      allow update: if isAdmin() || (isAuthenticated() && request.auth.uid == instructorId);
+      allow delete: if isAdmin();
     }
 
     // Admins Collection Access Rules
     match /admins/{adminId} {
       allow read: if isAuthenticated();
-      allow write: if isAdmin() || (isAuthenticated() && request.auth.uid == adminId);
+      allow create: if isAuthenticated() && request.auth.uid == adminId;
+      allow update: if isAdmin() || (isAuthenticated() && request.auth.uid == adminId);
+      allow delete: if isAdmin();
     }
 
     // Courses Collection Access Rules

@@ -83,6 +83,7 @@ export const Register: React.FC = () => {
         toast.success('Registration submitted! Verification welcome email sent.');
         setRegistrationSubmitted(true);
       } else {
+        sessionStorage.setItem('kaizenq_signup_role', role);
         await signup(fullName, email, password, role);
         toast.success(`Account created as ${role === 'instructor' ? 'Instructor' : 'Student'}! Verification email sent.`);
         navigate('/auth/verify-email');
@@ -98,6 +99,7 @@ export const Register: React.FC = () => {
   const handleGithubAuth = async () => {
     setIsSubmitting(true);
     try {
+      sessionStorage.setItem('kaizenq_signup_role', role);
       const profile = await signInWithGithub(role);
       toast.success('Signed in with GitHub successfully!');
       if (profile?.role === 'admin') {
