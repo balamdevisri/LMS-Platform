@@ -29,7 +29,7 @@ interface AuthContextType {
   loading: boolean;
   signup: (name: string, email: string, password: string, role?: UserRole) => Promise<void>;
   login: (email: string, password: string, rememberMe?: boolean) => Promise<UserProfile | null>;
-  signInWithGithub: () => Promise<UserProfile | null>;
+  signInWithGithub: (role?: UserRole) => Promise<UserProfile | null>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   sendVerificationEmail: () => Promise<void>;
@@ -467,7 +467,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signInWithGithub = async (): Promise<UserProfile | null> => {
+  const signInWithGithub = async (targetRole?: UserRole): Promise<UserProfile | null> => {
     if (!auth) {
       throw new Error('Firebase Auth is not configured.');
     }
@@ -489,7 +489,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const githubUsername = additionalInfo?.username || (linkResult.user as any).reloadUserInfo?.screenName;
         console.log('✅ [AUTH AUDIT] linkWithPopup succeeded! GitHub handle:', githubUsername);
 
-        const profile = await fetchUserProfile(linkResult.user, githubUsername);
+        const profile = await fetchUserProfile(linkResult.user, githubUsername, targetRole);
         return profile;
       } catch (linkErr: any) {
         console.warn('⚠️ [AUTH AUDIT] linkWithPopup notice:', linkErr?.code, linkErr?.message);
@@ -511,7 +511,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         githubUsername,
       });
 
-      const profile = await fetchUserProfile(result.user, githubUsername);
+      const profile = await fetchUserProfile(result.user, githubUsername, targetRole);
       return profile;
     } catch (error: any) {
       console.error('🚨 [AUTH AUDIT] signInWithPopup error caught:', {

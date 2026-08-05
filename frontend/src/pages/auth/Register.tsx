@@ -98,7 +98,7 @@ export const Register: React.FC = () => {
   const handleGithubAuth = async () => {
     setIsSubmitting(true);
     try {
-      const profile = await signInWithGithub();
+      const profile = await signInWithGithub(role);
       toast.success('Signed in with GitHub successfully!');
       if (profile?.role === 'admin') {
         navigate('/admin/dashboard', { replace: true });
