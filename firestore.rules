@@ -35,6 +35,18 @@ service cloud.firestore {
       allow write: if isAdmin() || (isAuthenticated() && request.auth.uid == studentId);
     }
 
+    // Instructors Collection Access Rules
+    match /instructors/{instructorId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || (isAuthenticated() && request.auth.uid == instructorId);
+    }
+
+    // Admins Collection Access Rules
+    match /admins/{adminId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || (isAuthenticated() && request.auth.uid == adminId);
+    }
+
     // Courses Collection Access Rules
     match /courses/{courseId} {
       allow read: if isAuthenticated();

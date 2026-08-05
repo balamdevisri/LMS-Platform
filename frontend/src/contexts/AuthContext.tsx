@@ -121,8 +121,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (userSnap.exists()) {
         const data = userSnap.data() as UserProfile;
         const finalRole: UserRole = isAdmin ? 'admin' : (data.role || targetRole);
+        
+        let mergedData = { ...data };
+
+        // Load details from role-based collection
+        try {
+          if (finalRole === 'student') {
+            const studentSnap = await getDoc(doc(db, 'students', firebaseUser.uid));
+            if (studentSnap.exists()) {
+              mergedData = { ...mergedData, ...studentSnap.data() };
+            }
+          } else if (finalRole === 'instructor') {
+            const instructorSnap = await getDoc(doc(db, 'instructors', firebaseUser.uid));
+            if (instructorSnap.exists()) {
+              mergedData = { ...mergedData, ...instructorSnap.data() };
+            }
+          } else if (finalRole === 'admin') {
+            const adminSnap = await getDoc(doc(db, 'admins', firebaseUser.uid));
+            if (adminSnap.exists()) {
+              mergedData = { ...mergedData, ...adminSnap.data() };
+            }
+          }
+        } catch (roleFetchErr) {
+          console.warn('Failed to fetch role-based extra profile details:', roleFetchErr);
+        }
+
         const updatedPayload: UserProfile = {
-          ...data,
+          ...mergedData,
           ...baseProfileData,
           role: finalRole,
           lastLogin: new Date().toISOString(),
@@ -132,7 +157,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ...baseProfileData,
           role: finalRole,
           lastLogin: new Date().toISOString(),
-        }).catch((err) => console.warn('Firestore updateDoc notice:', err));
+        }).catch((err) => console.warn('Firestore updateDoc users notice:', err));
+
+        try {
+          if (finalRole === 'student') {
+            await updateDoc(doc(db, 'students', firebaseUser.uid), {
+              lastLogin: new Date().toISOString(),
+            });
+          } else if (finalRole === 'instructor') {
+            await updateDoc(doc(db, 'instructors', firebaseUser.uid), {
+              lastLogin: new Date().toISOString(),
+            });
+          } else if (finalRole === 'admin') {
+            await updateDoc(doc(db, 'admins', firebaseUser.uid), {
+              lastLogin: new Date().toISOString(),
+            });
+          }
+        } catch (updateRoleErr) {
+          console.warn('Failed to update role-based lastLogin:', updateRoleErr);
+        }
 
         syncStudent(updatedPayload);
         setUserProfile(updatedPayload);
@@ -175,13 +218,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           githubUsername: calculatedUsername,
         };
 
-        syncStudent(newProfile);
+        await setDoc(userRef, newProfile).catch((err) => console.warn('Firestore setDoc users notice:', err));
 
-        await setDoc(userRef, newProfile).catch((err) => console.warn('Firestore setDoc notice:', err));
-
-        if (targetRole === 'instructor') {
+        if (targetRole === 'student') {
+          syncStudent(newProfile);
+        } else if (targetRole === 'instructor') {
           console.log(`[Instructor Signup] New instructor registered: ${calculatedName} (${firebaseUser.email})`);
           console.log(`[Pending Request Created] Stored pending request in users collection for UID: ${firebaseUser.uid}`);
+          
+          const instructorPayload = {
+            uid: firebaseUser.uid,
+            id: firebaseUser.uid,
+            name: calculatedName,
+            fullName: calculatedName,
+            email: firebaseUser.email || '',
+            role: 'instructor',
+            status: 'pending',
+            approvedBy: null,
+            approvedAt: null,
+            specialty: 'Linux & System Architecture',
+            skills: ['Linux', 'Git', 'Python'],
+            experience: 'Not Specified',
+            joined: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          await setDoc(doc(db, 'instructors', firebaseUser.uid), instructorPayload).catch((err) => console.warn('Firestore setDoc instructors notice:', err));
+
           try {
             const adminNotifRef = doc(collection(db, 'notifications'));
             await setDoc(adminNotifRef, {
@@ -196,6 +259,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           } catch (notifErr) {
             console.warn('Failed to write admin notification for instructor:', notifErr);
           }
+        } else if (targetRole === 'admin') {
+          const adminPayload = {
+            uid: firebaseUser.uid,
+            id: firebaseUser.uid,
+            name: calculatedName,
+            fullName: calculatedName,
+            email: firebaseUser.email || '',
+            role: 'admin',
+            status: 'Active',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          await setDoc(doc(db, 'admins', firebaseUser.uid), adminPayload).catch((err) => console.warn('Firestore setDoc admins notice:', err));
         }
 
         setUserProfile(newProfile);

@@ -22,11 +22,17 @@ async function syncAuthUsersToFirestore() {
       const email = (userRecord.email || '').toLowerCase().trim();
       if (!email) continue;
 
+      const userDocRef = db.collection('users').doc(uid);
+      const userDoc = await userDocRef.get();
+
       const studentDocRef = db.collection('students').doc(uid);
       const studentDoc = await studentDocRef.get();
 
-      const userDocRef = db.collection('users').doc(uid);
-      const userDoc = await userDocRef.get();
+      const instructorDocRef = db.collection('instructors').doc(uid);
+      const instructorDoc = await instructorDocRef.get();
+
+      const adminDocRef = db.collection('admins').doc(uid);
+      const adminDoc = await adminDocRef.get();
 
       const name = userRecord.displayName || email.split('@')[0] || 'User';
       let role = 'student';
@@ -39,7 +45,7 @@ async function syncAuthUsersToFirestore() {
         const isInstructor = email.includes('instructor') || email.includes('mentor');
         const isAdmin = email.includes('admin') || email === 'admin@gmail.com';
         role = isAdmin ? 'admin' : (isInstructor ? 'instructor' : 'student');
-        status = role === 'instructor' ? 'Pending' : 'Active';
+        status = role === 'instructor' ? 'pending' : 'Active';
       }
 
       const baseData = {
@@ -51,13 +57,14 @@ async function syncAuthUsersToFirestore() {
         photoURL: userRecord.photoURL || '',
         profilePhoto: userRecord.photoURL || '',
         status,
-        isActive: status === 'Active',
+        isActive: status === 'Active' || status === 'approved',
         createdAt: userRecord.metadata.creationTime || new Date().toISOString(),
         joinedAt: userRecord.metadata.creationTime || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        approved: status === 'Active',
+        approved: status === 'Active' || status === 'approved',
       };
 
+      // 1. Student Collection Synchronization
       if (role === 'student') {
         if (!studentDoc.exists) {
           const studentPayload = {
@@ -77,14 +84,91 @@ async function syncAuthUsersToFirestore() {
           hasUpdates = true;
           count++;
         }
-      } else {
-        if (studentDoc.exists) {
-          batch.delete(studentDocRef);
+        
+        // Stale document cleanups
+        if (instructorDoc.exists) {
+          batch.delete(instructorDocRef);
+          hasUpdates = true;
+          count++;
+        }
+        if (adminDoc.exists) {
+          batch.delete(adminDocRef);
           hasUpdates = true;
           count++;
         }
       }
 
+      // 2. Instructor Collection Synchronization
+      if (role === 'instructor') {
+        if (!instructorDoc.exists) {
+          const instructorPayload = {
+            uid,
+            id: uid,
+            name,
+            fullName: name,
+            email,
+            role: 'instructor',
+            status: status || 'pending',
+            approvedBy: null,
+            approvedAt: null,
+            specialty: 'Linux & System Architecture',
+            skills: ['Linux', 'Git', 'Python'],
+            experience: 'Not Specified',
+            joined: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            createdAt: userRecord.metadata.creationTime || new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          batch.set(instructorDocRef, instructorPayload, { merge: true });
+          hasUpdates = true;
+          count++;
+        }
+
+        // Stale document cleanups
+        if (studentDoc.exists) {
+          batch.delete(studentDocRef);
+          hasUpdates = true;
+          count++;
+        }
+        if (adminDoc.exists) {
+          batch.delete(adminDocRef);
+          hasUpdates = true;
+          count++;
+        }
+      }
+
+      // 3. Admin Collection Synchronization
+      if (role === 'admin') {
+        if (!adminDoc.exists) {
+          const adminPayload = {
+            uid,
+            id: uid,
+            name,
+            fullName: name,
+            email,
+            role: 'admin',
+            status: 'Active',
+            createdAt: userRecord.metadata.creationTime || new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          batch.set(adminDocRef, adminPayload, { merge: true });
+          hasUpdates = true;
+          count++;
+        }
+
+        // Stale document cleanups
+        if (studentDoc.exists) {
+          batch.delete(studentDocRef);
+          hasUpdates = true;
+          count++;
+        }
+        if (instructorDoc.exists) {
+          batch.delete(instructorDocRef);
+          hasUpdates = true;
+          count++;
+        }
+      }
+
+      // 4. Base Users Collection Synchronization
       if (!userDoc.exists) {
         batch.set(userDocRef, baseData, { merge: true });
         hasUpdates = true;

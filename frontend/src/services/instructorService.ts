@@ -69,9 +69,9 @@ class InstructorService {
     }
 
     try {
-      const usersRef = collection(db, 'users');
+      const instructorsRef = collection(db, 'instructors');
       const unsubscribe = onSnapshot(
-        usersRef,
+        instructorsRef,
         (snapshot) => {
           const firestoreInstructors: InstructorUser[] = [];
           
@@ -79,8 +79,8 @@ class InstructorService {
             const data = docSnap.data();
             const email = (data.email || '').toLowerCase();
 
-            // Include real registered users with role 'instructor' or admin creators
-            if (!MOCK_INSTRUCTOR_EMAILS.includes(email) && data.role === 'instructor') {
+            // Include real registered users with role 'instructor' from the instructors collection
+            if (!MOCK_INSTRUCTOR_EMAILS.includes(email)) {
               firestoreInstructors.push({
                 id: docSnap.id,
                 name: data.name || data.fullName || data.displayName || 'Faculty Member',
@@ -150,9 +150,11 @@ class InstructorService {
 
     if (db) {
       try {
-        await setDoc(doc(db, 'users', newInstructor.id), {
+        const payload = {
           uid: newInstructor.id,
+          id: newInstructor.id,
           name: newInstructor.name,
+          fullName: newInstructor.name,
           email: newInstructor.email,
           specialty: newInstructor.specialty,
           role: 'instructor',
@@ -160,9 +162,13 @@ class InstructorService {
           approvedBy: adminUid,
           approvedAt: new Date().toISOString(),
           createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
           assignedCourses: 1,
           rating: 5.0,
-        });
+        };
+
+        await setDoc(doc(db, 'users', newInstructor.id), payload);
+        await setDoc(doc(db, 'instructors', newInstructor.id), payload);
       } catch (err) {
         console.warn('Firestore add instructor notice:', err);
       }
@@ -198,20 +204,25 @@ class InstructorService {
     if (db) {
       try {
         const userRef = doc(db, 'users', id);
+        const instructorRef = doc(db, 'instructors', id);
         const timestamp = new Date().toISOString();
         
-        await updateDoc(userRef, {
+        const updateData = {
           status: 'approved',
           approvedBy: adminUid,
           approvedAt: timestamp,
           rejectedAt: null,
           rejectionReason: null,
-        });
+          updatedAt: timestamp,
+        };
+
+        await updateDoc(userRef, updateData);
+        await updateDoc(instructorRef, updateData);
 
         console.log(`[Admin Approval] Approved instructor UID: ${id} by Admin: ${adminUid}`);
 
         // Fetch instructor details to send SMTP mail
-        const userSnap = await getDoc(userRef);
+        const userSnap = await getDoc(instructorRef);
         if (userSnap.exists()) {
           const data = userSnap.data();
           const name = data.name || data.fullName || 'Instructor';
@@ -255,20 +266,25 @@ class InstructorService {
     if (db) {
       try {
         const userRef = doc(db, 'users', id);
+        const instructorRef = doc(db, 'instructors', id);
         const timestamp = new Date().toISOString();
 
-        await updateDoc(userRef, {
+        const updateData = {
           status: 'rejected',
           rejectedAt: timestamp,
           rejectionReason: reason,
           approvedBy: null,
           approvedAt: null,
-        });
+          updatedAt: timestamp,
+        };
+
+        await updateDoc(userRef, updateData);
+        await updateDoc(instructorRef, updateData);
 
         console.log(`[Admin Rejection] Rejected instructor UID: ${id} by Admin: ${adminUid}. Reason: ${reason}`);
 
         // Fetch instructor details to send SMTP mail
-        const userSnap = await getDoc(userRef);
+        const userSnap = await getDoc(instructorRef);
         if (userSnap.exists()) {
           const data = userSnap.data();
           const name = data.name || data.fullName || 'Instructor';
@@ -318,13 +334,17 @@ class InstructorService {
 
     if (db && instructor.id) {
       try {
-        await updateDoc(doc(db, 'users', instructor.id), {
+        const updateData = {
           name: instructor.name,
           email: instructor.email,
           specialty: instructor.specialty,
           status: instructor.status,
           assignedCourses: instructor.assignedCourses,
-        });
+          updatedAt: new Date().toISOString(),
+        };
+
+        await updateDoc(doc(db, 'users', instructor.id), updateData);
+        await updateDoc(doc(db, 'instructors', instructor.id), updateData);
       } catch (err) {
         console.warn('Firestore update instructor notice:', err);
       }
@@ -364,6 +384,7 @@ class InstructorService {
     if (db && id) {
       try {
         await deleteDoc(doc(db, 'users', id));
+        await deleteDoc(doc(db, 'instructors', id));
       } catch (err) {
         console.warn('Firestore delete instructor notice:', err);
       }
