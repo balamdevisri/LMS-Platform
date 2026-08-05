@@ -4,6 +4,8 @@ import { Course, CourseValidationSchema } from '../../types/course';
 import { ApiError } from '../../utils/ApiError';
 import { fromDocument, handleFirestoreError, toDocument } from '../../utils/firestore';
 import * as admin from 'firebase-admin';
+import { db } from '../../firebase';
+import { LiveClass } from '../../models/mongo/liveClassroom.model';
 
 /**
  * Formats Zod validation errors into a human-readable comma-separated string.
@@ -130,7 +132,52 @@ export class CourseService {
       if (!docSnap.exists) {
         throw new ApiError(404, `Course with ID '${id}' not found.`);
       }
-      await docRef.delete();
+
+      if (db) {
+        const batch = db.batch();
+
+        // 1. Modules
+        const modulesSnap = await db.collection('course_modules').where('courseId', '==', id).get();
+        modulesSnap.forEach((doc) => batch.delete(doc.ref));
+
+        // 2. Lessons
+        const lessonsSnap = await db.collection('course_lessons').where('courseId', '==', id).get();
+        lessonsSnap.forEach((doc) => batch.delete(doc.ref));
+
+        // 3. Assignments
+        const assignmentsSnap = await db.collection('assignments').where('courseId', '==', id).get();
+        assignmentsSnap.forEach((doc) => batch.delete(doc.ref));
+
+        // 4. Progress records
+        const progressSnap = await db.collection('student_progress').where('courseId', '==', id).get();
+        progressSnap.forEach((doc) => batch.delete(doc.ref));
+
+        // 5. Quiz attempts & Quizzes
+        const quizAttemptsSnap = await db.collection('quiz_attempts').where('courseId', '==', id).get();
+        quizAttemptsSnap.forEach((doc) => batch.delete(doc.ref));
+        
+        const quizzesSnap = await db.collection('quizzes').where('courseId', '==', id).get();
+        quizzesSnap.forEach((doc) => batch.delete(doc.ref));
+
+        // 6. Course notifications
+        const notificationsSnap = await db.collection('notifications').where('courseId', '==', id).get();
+        notificationsSnap.forEach((doc) => batch.delete(doc.ref));
+
+        // 7. Delete course doc itself
+        batch.delete(docRef);
+
+        await batch.commit();
+      } else {
+        await docRef.delete();
+      }
+
+      // 8. Mongo Live Class Schedules
+      try {
+        await LiveClass.deleteMany({ courseId: id }).catch(() => null);
+      } catch (mongoErr) {
+        console.warn('Failed to clean Mongo live classes for course:', mongoErr);
+      }
+
       return true;
     } catch (error) {
       return handleFirestoreError(error, 'deleteCourse');

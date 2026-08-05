@@ -327,6 +327,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           setUser(currentUser);
           if (currentUser) {
+            const token = await currentUser.getIdToken(true);
+            localStorage.setItem('shaivika_auth_token', token);
+            localStorage.setItem('token', token);
+
             const profile = await fetchUserProfile(currentUser);
             if (profile) {
               // Enforce account status check on initialization
@@ -345,12 +349,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 }
                 setUser(null);
                 setUserProfile(null);
+                localStorage.removeItem('shaivika_auth_token');
+                localStorage.removeItem('token');
               } else {
                 console.log(`[Dashboard Access Granted] Persistence session approved for ${currentUser.email} (Role: ${profile.role}).`);
               }
             }
           } else {
             setUserProfile(null);
+            localStorage.removeItem('shaivika_auth_token');
+            localStorage.removeItem('token');
           }
         } catch (err) {
           console.warn('Auth state sync notice:', err);

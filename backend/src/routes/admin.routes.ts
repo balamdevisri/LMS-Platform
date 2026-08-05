@@ -1,8 +1,13 @@
 import { Router, Request, Response } from 'express';
 import { db, adminAuth } from '../firebase';
 import { getEmailTemplate } from '../services/emailTemplates';
+import { verifyFirebaseToken, requireRole } from '../middleware/auth.middleware';
+import { LiveClass } from '../models/mongo/liveClassroom.model';
 
 const router = Router();
+
+// Secure all admin endpoints with token validation and admin role verification
+router.use(verifyFirebaseToken as any, requireRole('admin') as any);
 
 async function syncAuthUsersToFirestore() {
   if (!db || !adminAuth || typeof adminAuth.listUsers !== 'function') {
@@ -187,6 +192,43 @@ async function syncAuthUsersToFirestore() {
   }
 }
 
+// Helper: Write Audit Log to Firestore
+async function createAuditLog(req: Request, action: string, targetType: string, targetUid: string, status: string = 'success') {
+  if (!db) return;
+  try {
+    const adminUser = (req as any).user;
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    
+    const auditPayload = {
+      adminUid: adminUser?.uid || 'system',
+      adminEmail: adminUser?.email || 'system@shaivika.ai',
+      action,
+      targetType,
+      targetUid,
+      timestamp: new Date().toISOString(),
+      ipAddress: ip,
+      status,
+    };
+    
+    await db.collection('auditLogs').add(auditPayload);
+    console.log(`[Audit Log] ${action} on ${targetType} (UID: ${targetUid}) - Status: ${status}`);
+  } catch (err) {
+    console.warn('[Audit Log] Failed to write audit log:', err);
+  }
+}
+
+// Helper: Query and delete matching batch recursively
+async function deleteQueryBatch(query: FirebaseFirestore.Query, batchSize: number = 100) {
+  const snapshot = await query.limit(batchSize).get();
+  if (snapshot.empty) return;
+  const batch = db!.batch();
+  snapshot.docs.forEach((doc) => {
+    batch.delete(doc.ref);
+  });
+  await batch.commit();
+  await deleteQueryBatch(query, batchSize);
+}
+
 // GET /api/admin/dashboard - Executive stats & analytics
 router.get('/dashboard', async (req: Request, res: Response) => {
   try {
@@ -208,6 +250,8 @@ router.get('/dashboard', async (req: Request, res: Response) => {
         else if (status === 'rejected') rejectedCount++;
       });
     }
+
+    await createAuditLog(req, 'VIEW_DASHBOARD', 'dashboard', 'all', 'success');
 
     res.json({
       success: true,
@@ -244,6 +288,7 @@ router.get('/dashboard', async (req: Request, res: Response) => {
       }
     });
   } catch (error: any) {
+    await createAuditLog(req, 'VIEW_DASHBOARD', 'dashboard', 'all', 'failed');
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -260,8 +305,10 @@ router.get('/students', async (req: Request, res: Response) => {
         students.push({ id: doc.id, ...doc.data() });
       });
     }
+    await createAuditLog(req, 'LIST_STUDENTS', 'student', 'all', 'success');
     res.json({ success: true, count: students.length, data: students });
   } catch (error: any) {
+    await createAuditLog(req, 'LIST_STUDENTS', 'student', 'all', 'failed');
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -289,9 +336,11 @@ router.get('/student/:id', async (req: Request, res: Response) => {
       const resolvedId = await resolveStudentDocId(studentId);
       const docSnap = await db.collection('students').doc(resolvedId).get();
       if (docSnap.exists) {
+        await createAuditLog(req, 'VIEW_STUDENT', 'student', resolvedId, 'success');
         return res.json({ success: true, data: { id: docSnap.id, ...docSnap.data() } });
       }
     }
+    await createAuditLog(req, 'VIEW_STUDENT', 'student', studentId, 'failed');
     res.status(404).json({ success: false, message: 'Student not found' });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
@@ -301,13 +350,14 @@ router.get('/student/:id', async (req: Request, res: Response) => {
 // PATCH /api/admin/student/:id/approve
 router.patch('/student/:id/approve', async (req: Request, res: Response) => {
   try {
-    const studentId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const studentId = String(req.params.id);
     const resolvedId = await resolveStudentDocId(studentId);
-    const { adminId = 'admin_system' } = req.body;
+    const adminUser = (req as any).user;
     const updateData = {
       status: 'approved',
       approved: true,
-      approvedBy: adminId,
+      isActive: true,
+      approvedBy: adminUser?.uid || 'admin_system',
       approvedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -317,8 +367,10 @@ router.patch('/student/:id/approve', async (req: Request, res: Response) => {
       await db.collection('users').doc(resolvedId).set(updateData, { merge: true }).catch(() => null);
     }
 
+    await createAuditLog(req, 'APPROVE_STUDENT', 'student', resolvedId, 'success');
     res.json({ success: true, message: `Student ${resolvedId} approved successfully`, data: updateData });
   } catch (error: any) {
+    await createAuditLog(req, 'APPROVE_STUDENT', 'student', String(req.params.id), 'failed');
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -326,12 +378,13 @@ router.patch('/student/:id/approve', async (req: Request, res: Response) => {
 // PATCH /api/admin/student/:id/reject
 router.patch('/student/:id/reject', async (req: Request, res: Response) => {
   try {
-    const studentId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const studentId = String(req.params.id);
     const resolvedId = await resolveStudentDocId(studentId);
     const { reason = 'Application requirements not met' } = req.body;
     const updateData = {
       status: 'rejected',
       approved: false,
+      isActive: false,
       rejectionReason: reason,
       rejectedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -342,8 +395,10 @@ router.patch('/student/:id/reject', async (req: Request, res: Response) => {
       await db.collection('users').doc(resolvedId).set(updateData, { merge: true }).catch(() => null);
     }
 
+    await createAuditLog(req, 'REJECT_STUDENT', 'student', resolvedId, 'success');
     res.json({ success: true, message: `Student ${resolvedId} application rejected`, data: updateData });
   } catch (error: any) {
+    await createAuditLog(req, 'REJECT_STUDENT', 'student', String(req.params.id), 'failed');
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -351,12 +406,13 @@ router.patch('/student/:id/reject', async (req: Request, res: Response) => {
 // PATCH /api/admin/student/:id/suspend
 router.patch('/student/:id/suspend', async (req: Request, res: Response) => {
   try {
-    const studentId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const studentId = String(req.params.id);
     const resolvedId = await resolveStudentDocId(studentId);
     const { reason = 'Policy violation' } = req.body;
     const updateData = {
       status: 'suspended',
       approved: false,
+      isActive: false,
       suspensionReason: reason,
       suspendedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -367,8 +423,10 @@ router.patch('/student/:id/suspend', async (req: Request, res: Response) => {
       await db.collection('users').doc(resolvedId).set(updateData, { merge: true }).catch(() => null);
     }
 
+    await createAuditLog(req, 'SUSPEND_STUDENT', 'student', resolvedId, 'success');
     res.json({ success: true, message: `Student ${resolvedId} account suspended`, data: updateData });
   } catch (error: any) {
+    await createAuditLog(req, 'SUSPEND_STUDENT', 'student', String(req.params.id), 'failed');
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -376,11 +434,12 @@ router.patch('/student/:id/suspend', async (req: Request, res: Response) => {
 // PATCH /api/admin/student/:id/activate
 router.patch('/student/:id/activate', async (req: Request, res: Response) => {
   try {
-    const studentId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const studentId = String(req.params.id);
     const resolvedId = await resolveStudentDocId(studentId);
     const updateData = {
       status: 'approved',
       approved: true,
+      isActive: true,
       updatedAt: new Date().toISOString()
     };
 
@@ -389,8 +448,69 @@ router.patch('/student/:id/activate', async (req: Request, res: Response) => {
       await db.collection('users').doc(resolvedId).set(updateData, { merge: true }).catch(() => null);
     }
 
+    await createAuditLog(req, 'ACTIVATE_STUDENT', 'student', resolvedId, 'success');
     res.json({ success: true, message: `Student ${resolvedId} account reactivated`, data: updateData });
   } catch (error: any) {
+    await createAuditLog(req, 'ACTIVATE_STUDENT', 'student', String(req.params.id), 'failed');
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// PATCH /api/admin/student/:id/edit
+router.patch('/student/:id/edit', async (req: Request, res: Response) => {
+  try {
+    const studentId = String(req.params.id);
+    const resolvedId = await resolveStudentDocId(studentId);
+    const editFields = req.body;
+
+    const cleanFields = {
+      ...editFields,
+      updatedAt: new Date().toISOString()
+    };
+
+    if (db) {
+      await db.collection('students').doc(resolvedId).set(cleanFields, { merge: true });
+      await db.collection('users').doc(resolvedId).set(cleanFields, { merge: true });
+    }
+
+    if (adminAuth && (editFields.email || editFields.fullName)) {
+      try {
+        await adminAuth.updateUser(resolvedId, {
+          ...(editFields.email ? { email: editFields.email } : {}),
+          ...(editFields.fullName ? { displayName: editFields.fullName } : {}),
+        });
+      } catch (authErr) {
+        console.warn('Firebase Auth update failed during editStudent:', authErr);
+      }
+    }
+
+    await createAuditLog(req, 'EDIT_STUDENT', 'student', resolvedId, 'success');
+    res.json({ success: true, message: `Student ${resolvedId} details updated successfully` });
+  } catch (error: any) {
+    await createAuditLog(req, 'EDIT_STUDENT', 'student', String(req.params.id), 'failed');
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/admin/student/:id/reset-password
+router.post('/student/:id/reset-password', async (req: Request, res: Response) => {
+  try {
+    const studentId = String(req.params.id);
+    const resolvedId = await resolveStudentDocId(studentId);
+    const { newPassword } = req.body;
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters.' });
+    }
+
+    if (adminAuth) {
+      await adminAuth.updateUser(resolvedId, { password: newPassword });
+      await createAuditLog(req, 'RESET_PASSWORD_STUDENT', 'student', resolvedId, 'success');
+      return res.json({ success: true, message: 'Student password reset successfully' });
+    }
+    
+    throw new Error('Admin Authentication service is unavailable.');
+  } catch (error: any) {
+    await createAuditLog(req, 'RESET_PASSWORD_STUDENT', 'student', String(req.params.id), 'failed');
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -398,14 +518,266 @@ router.patch('/student/:id/activate', async (req: Request, res: Response) => {
 // DELETE /api/admin/student/:id
 router.delete('/student/:id', async (req: Request, res: Response) => {
   try {
-    const studentId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const studentId = String(req.params.id);
     const resolvedId = await resolveStudentDocId(studentId);
+    
     if (db) {
-      await db.collection('students').doc(resolvedId).delete().catch(() => null);
-      await db.collection('users').doc(resolvedId).delete().catch(() => null);
+      const batch = db.batch();
+      batch.delete(db.collection('students').doc(resolvedId));
+      batch.delete(db.collection('users').doc(resolvedId));
+      batch.delete(db.collection('student_analysis').doc(resolvedId));
+      await batch.commit();
+
+      // Cascade collections cleanup
+      await deleteQueryBatch(db.collection('student_progress').where('uid', '==', resolvedId));
+      await deleteQueryBatch(db.collection('progress').where('uid', '==', resolvedId));
+      await deleteQueryBatch(db.collection('quiz_attempts').where('studentId', '==', resolvedId));
+      await deleteQueryBatch(db.collection('assignment_submissions').where('studentId', '==', resolvedId));
+      await deleteQueryBatch(db.collection('certificates').where('studentId', '==', resolvedId));
+      await deleteQueryBatch(db.collection('notifications').where('recipientId', '==', resolvedId));
     }
-    res.json({ success: true, message: `Student ${resolvedId} deleted successfully from Firestore` });
+
+    if (adminAuth) {
+      try {
+        await adminAuth.deleteUser(resolvedId);
+      } catch (authErr: any) {
+        if (authErr.code !== 'auth/user-not-found') {
+          console.warn('Failed to delete student auth record:', authErr);
+        }
+      }
+    }
+
+    await createAuditLog(req, 'DELETE_STUDENT', 'student', resolvedId, 'success');
+    res.json({ success: true, message: `Student ${resolvedId} and all associated records deleted successfully.` });
   } catch (error: any) {
+    await createAuditLog(req, 'DELETE_STUDENT', 'student', String(req.params.id), 'failed');
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Helper to resolve actual Firestore document ID by document ID or fallback to uid field query
+async function resolveInstructorDocId(instructorId: string): Promise<string> {
+  if (!db) return instructorId;
+  try {
+    const docSnap = await db.collection('instructors').doc(instructorId).get();
+    if (docSnap.exists) return instructorId;
+    
+    const fallbackSnap = await db.collection('instructors').where('uid', '==', instructorId).get();
+    if (!fallbackSnap.empty) {
+      return fallbackSnap.docs[0].id;
+    }
+  } catch {}
+  return instructorId;
+}
+
+// GET /api/admin/instructors - Get instructors
+router.get('/instructors', async (req: Request, res: Response) => {
+  try {
+    const instructors: any[] = [];
+    if (db) {
+      const snapshot = await db.collection('instructors').get();
+      snapshot.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
+        instructors.push({ id: doc.id, ...doc.data() });
+      });
+    }
+    await createAuditLog(req, 'LIST_INSTRUCTORS', 'instructor', 'all', 'success');
+    res.json({ success: true, count: instructors.length, data: instructors });
+  } catch (error: any) {
+    await createAuditLog(req, 'LIST_INSTRUCTORS', 'instructor', 'all', 'failed');
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// PATCH /api/admin/instructor/:id/approve
+router.patch('/instructor/:id/approve', async (req: Request, res: Response) => {
+  try {
+    const instructorId = String(req.params.id);
+    const resolvedId = await resolveInstructorDocId(instructorId);
+    const adminUser = (req as any).user;
+    
+    const updateData = {
+      status: 'approved',
+      isActive: true,
+      approvedBy: adminUser?.uid || 'admin_system',
+      approvedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    if (db) {
+      await db.collection('instructors').doc(resolvedId).set(updateData, { merge: true });
+      await db.collection('users').doc(resolvedId).set(updateData, { merge: true });
+    }
+
+    await createAuditLog(req, 'APPROVE_INSTRUCTOR', 'instructor', resolvedId, 'success');
+    res.json({ success: true, message: `Instructor ${resolvedId} approved successfully`, data: updateData });
+  } catch (error: any) {
+    await createAuditLog(req, 'APPROVE_INSTRUCTOR', 'instructor', String(req.params.id), 'failed');
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// PATCH /api/admin/instructor/:id/reject
+router.patch('/instructor/:id/reject', async (req: Request, res: Response) => {
+  try {
+    const instructorId = String(req.params.id);
+    const resolvedId = await resolveInstructorDocId(instructorId);
+    const { reason = 'Application requirements not met' } = req.body;
+    
+    const updateData = {
+      status: 'rejected',
+      isActive: false,
+      rejectionReason: reason,
+      rejectedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    if (db) {
+      await db.collection('instructors').doc(resolvedId).set(updateData, { merge: true });
+      await db.collection('users').doc(resolvedId).set(updateData, { merge: true });
+    }
+
+    await createAuditLog(req, 'REJECT_INSTRUCTOR', 'instructor', resolvedId, 'success');
+    res.json({ success: true, message: `Instructor ${resolvedId} rejected successfully`, data: updateData });
+  } catch (error: any) {
+    await createAuditLog(req, 'REJECT_INSTRUCTOR', 'instructor', String(req.params.id), 'failed');
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// PATCH /api/admin/instructor/:id/suspend
+router.patch('/instructor/:id/suspend', async (req: Request, res: Response) => {
+  try {
+    const instructorId = String(req.params.id);
+    const resolvedId = await resolveInstructorDocId(instructorId);
+    const { reason = 'Policy violation' } = req.body;
+    
+    const updateData = {
+      status: 'suspended',
+      isActive: false,
+      suspensionReason: reason,
+      suspendedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    if (db) {
+      await db.collection('instructors').doc(resolvedId).set(updateData, { merge: true });
+      await db.collection('users').doc(resolvedId).set(updateData, { merge: true });
+    }
+
+    await createAuditLog(req, 'SUSPEND_INSTRUCTOR', 'instructor', resolvedId, 'success');
+    res.json({ success: true, message: `Instructor ${resolvedId} account suspended`, data: updateData });
+  } catch (error: any) {
+    await createAuditLog(req, 'SUSPEND_INSTRUCTOR', 'instructor', String(req.params.id), 'failed');
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// PATCH /api/admin/instructor/:id/activate
+router.patch('/instructor/:id/activate', async (req: Request, res: Response) => {
+  try {
+    const instructorId = String(req.params.id);
+    const resolvedId = await resolveInstructorDocId(instructorId);
+    
+    const updateData = {
+      status: 'approved',
+      isActive: true,
+      updatedAt: new Date().toISOString()
+    };
+
+    if (db) {
+      await db.collection('instructors').doc(resolvedId).set(updateData, { merge: true });
+      await db.collection('users').doc(resolvedId).set(updateData, { merge: true });
+    }
+
+    await createAuditLog(req, 'ACTIVATE_INSTRUCTOR', 'instructor', resolvedId, 'success');
+    res.json({ success: true, message: `Instructor ${resolvedId} account reactivated`, data: updateData });
+  } catch (error: any) {
+    await createAuditLog(req, 'ACTIVATE_INSTRUCTOR', 'instructor', String(req.params.id), 'failed');
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// PATCH /api/admin/instructor/:id/edit
+router.patch('/instructor/:id/edit', async (req: Request, res: Response) => {
+  try {
+    const instructorId = String(req.params.id);
+    const resolvedId = await resolveInstructorDocId(instructorId);
+    const editFields = req.body;
+
+    const cleanFields = {
+      ...editFields,
+      updatedAt: new Date().toISOString()
+    };
+
+    if (db) {
+      await db.collection('instructors').doc(resolvedId).set(cleanFields, { merge: true });
+      await db.collection('users').doc(resolvedId).set(cleanFields, { merge: true });
+    }
+
+    if (adminAuth && (editFields.email || editFields.fullName)) {
+      try {
+        await adminAuth.updateUser(resolvedId, {
+          ...(editFields.email ? { email: editFields.email } : {}),
+          ...(editFields.fullName ? { displayName: editFields.fullName } : {}),
+        });
+      } catch (authErr) {
+        console.warn('Firebase Auth update failed during editInstructor:', authErr);
+      }
+    }
+
+    await createAuditLog(req, 'EDIT_INSTRUCTOR', 'instructor', resolvedId, 'success');
+    res.json({ success: true, message: `Instructor ${resolvedId} details updated successfully` });
+  } catch (error: any) {
+    await createAuditLog(req, 'EDIT_INSTRUCTOR', 'instructor', String(req.params.id), 'failed');
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// DELETE /api/admin/instructor/:id
+router.delete('/instructor/:id', async (req: Request, res: Response) => {
+  try {
+    const instructorId = String(req.params.id);
+    const resolvedId = await resolveInstructorDocId(instructorId);
+
+    if (db) {
+      const batch = db.batch();
+      batch.delete(db.collection('instructors').doc(resolvedId));
+      batch.delete(db.collection('users').doc(resolvedId));
+      await batch.commit();
+
+      await deleteQueryBatch(db.collection('notifications').where('recipientId', '==', resolvedId));
+      await deleteQueryBatch(db.collection('notifications').where('senderId', '==', resolvedId));
+      
+      // Reassign course ownership references
+      const coursesSnap = await db.collection('courses').where('instructorId', '==', resolvedId).get();
+      const courseBatch = db.batch();
+      coursesSnap.forEach((doc) => {
+        courseBatch.update(doc.ref, { instructorId: null, status: 'archived' });
+      });
+      await courseBatch.commit();
+    }
+
+    // Mongo schedules deletion
+    try {
+      await LiveClass.deleteMany({ instructorId: resolvedId }).catch(() => null);
+    } catch (mongoErr) {
+      console.warn('Failed to delete Mongo live classes for instructor:', mongoErr);
+    }
+
+    if (adminAuth) {
+      try {
+        await adminAuth.deleteUser(resolvedId);
+      } catch (authErr: any) {
+        if (authErr.code !== 'auth/user-not-found') {
+          console.warn('Failed to delete instructor auth record:', authErr);
+        }
+      }
+    }
+
+    await createAuditLog(req, 'DELETE_INSTRUCTOR', 'instructor', resolvedId, 'success');
+    res.json({ success: true, message: `Instructor ${resolvedId} and associated records deleted successfully.` });
+  } catch (error: any) {
+    await createAuditLog(req, 'DELETE_INSTRUCTOR', 'instructor', String(req.params.id), 'failed');
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -416,8 +788,9 @@ router.post('/send-email', async (req: Request, res: Response) => {
     const { to, studentName, type, reason } = req.body;
     const template = getEmailTemplate({ to, studentName, type, reason });
 
-    // Logging/preview output (Nodemailer setup integrated when SMTP credentials configured)
     console.log(`[KaizenQ Email Engine] Sending ${type} to ${to}:`, template.subject);
+
+    await createAuditLog(req, 'SEND_EMAIL', 'system', to, 'success');
 
     res.json({
       success: true,
@@ -428,6 +801,7 @@ router.post('/send-email', async (req: Request, res: Response) => {
       }
     });
   } catch (error: any) {
+    await createAuditLog(req, 'SEND_EMAIL', 'system', req.body.to || 'unknown', 'failed');
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -436,8 +810,10 @@ router.post('/send-email', async (req: Request, res: Response) => {
 router.post('/sync-auth-users', async (req: Request, res: Response) => {
   try {
     await syncAuthUsersToFirestore();
+    await createAuditLog(req, 'SYNC_AUTH_USERS', 'system', 'all', 'success');
     res.json({ success: true, message: 'Firebase Auth users synchronized with Firestore successfully.' });
   } catch (error: any) {
+    await createAuditLog(req, 'SYNC_AUTH_USERS', 'system', 'all', 'failed');
     res.status(500).json({ success: false, error: error.message });
   }
 });
