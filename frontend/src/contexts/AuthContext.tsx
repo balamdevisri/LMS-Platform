@@ -534,7 +534,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           console.warn(`[Dashboard Access Blocked] User ${currentUser.email} blocked because status is ${approvalStatus}.`);
           const pendingErr: any = new Error(userRole === 'instructor'
-            ? 'Your instructor account is currently under review. You will receive an email once it has been approved.'
+            ? 'Your instructor account is under review. You will receive an approval email once the administrator approves your application.'
             : 'Your registration application is pending administrator review and approval.'
           );
           pendingErr.code = 'ADMIN_APPROVAL_PENDING';
@@ -545,7 +545,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           console.warn(`[Dashboard Access Blocked] User ${currentUser.email} blocked because status is ${approvalStatus}.`);
           const rejectedErr: any = new Error(userRole === 'instructor'
-            ? 'Your instructor application was not approved. Please contact the administrator.'
+            ? 'Your instructor application has not been approved.'
             : 'Your registration application was not approved by the administrator.'
           );
           rejectedErr.code = 'APPLICATION_REJECTED';
@@ -643,6 +643,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       const profile = await fetchUserProfile(result.user, githubUsername, targetRole);
+      if (profile) {
+        const cleanEmail = (result.user.email || '').toLowerCase().trim();
+        const isAdminEmail = cleanEmail === 'admin@gmail.com' || cleanEmail.startsWith('admin@');
+        if (!isAdminEmail) {
+          const isPending = (profile.role === 'instructor' && (profile.status === 'pending' || profile.status === 'Pending'));
+          const isRejected = profile.status === 'rejected';
+
+          if (isPending) {
+            if (auth) {
+              await signOut(auth).catch(() => null);
+            }
+            const pendingErr: any = new Error('Your instructor account is under review. You will receive an approval email once the administrator approves your application.');
+            pendingErr.code = 'ADMIN_APPROVAL_PENDING';
+            throw pendingErr;
+          } else if (isRejected) {
+            if (auth) {
+              await signOut(auth).catch(() => null);
+            }
+            const rejectedErr: any = new Error('Your instructor application has not been approved.');
+            rejectedErr.code = 'APPLICATION_REJECTED';
+            throw rejectedErr;
+          }
+        }
+      }
       return profile;
     } catch (error: any) {
       console.error('🚨 [AUTH AUDIT] signInWithPopup error caught:', {
