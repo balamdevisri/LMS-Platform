@@ -253,10 +253,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.error("Firestore Error", err);
           }
 
-          if (typeof window !== 'undefined') {
-            sessionStorage.removeItem('kaizenq_signup_role');
-          }
-
           try {
             const adminNotifRef = doc(collection(db, 'notifications'));
             await setDoc(adminNotifRef, {
@@ -342,7 +338,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               const cleanEmail = (currentUser.email || '').toLowerCase().trim();
               const isAdminEmail = cleanEmail === 'admin@gmail.com' || cleanEmail.startsWith('admin@');
 
-              if (!isAdminEmail && (isPending || isRejected || isSuspended)) {
+              const isRegistering = typeof window !== 'undefined' && sessionStorage.getItem('kaizenq_signup_role');
+
+              if (!isAdminEmail && !isRegistering && (isPending || isRejected || isSuspended)) {
                 console.warn(`[Dashboard Access Blocked] Persistence session blocked for ${currentUser.email} due to status: ${profile.status}. Logging out.`);
                 if (auth) {
                   await signOut(auth).catch(() => null);
@@ -423,6 +421,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     await fetchUserProfile(firebaseUser, undefined, role);
+
+    if (role === 'instructor') {
+      if (auth) {
+        await signOut(auth).catch(() => null);
+      }
+    }
+
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('kaizenq_signup_role');
+    }
   };
 
   const login = async (
@@ -619,105 +627,111 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       projectId: auth.app.options.projectId,
     });
 
-    // 1. If user is ALREADY signed in (e.g. Email/Password user connecting GitHub)
-    if (auth.currentUser) {
-      try {
-        console.log('🔗 [AUTH AUDIT] Attempting linkWithPopup for active user session:', auth.currentUser.email);
-        const linkResult = await linkWithPopup(auth.currentUser, provider);
-        const additionalInfo = getAdditionalUserInfo(linkResult);
-        const githubUsername = additionalInfo?.username || (linkResult.user as any).reloadUserInfo?.screenName;
-        console.log('✅ [AUTH AUDIT] linkWithPopup succeeded! GitHub handle:', githubUsername);
-
-        const profile = await fetchUserProfile(linkResult.user, githubUsername, targetRole);
-        return profile;
-      } catch (linkErr: any) {
-        console.warn('⚠️ [AUTH AUDIT] linkWithPopup notice:', linkErr?.code, linkErr?.message);
-        if (linkErr.code === 'auth/credential-already-in-use') {
-          throw new Error('This GitHub account is already linked to another user profile.');
-        }
-      }
-    }
-
-    // 2. Standard OAuth Sign-in flow
     try {
-      const result = await signInWithPopup(auth, provider);
-      const additionalInfo = getAdditionalUserInfo(result);
-      const githubUsername = additionalInfo?.username || (result.user as any).reloadUserInfo?.screenName;
+      // 1. If user is ALREADY signed in (e.g. Email/Password user connecting GitHub)
+      if (auth.currentUser) {
+        try {
+          console.log('🔗 [AUTH AUDIT] Attempting linkWithPopup for active user session:', auth.currentUser.email);
+          const linkResult = await linkWithPopup(auth.currentUser, provider);
+          const additionalInfo = getAdditionalUserInfo(linkResult);
+          const githubUsername = additionalInfo?.username || (linkResult.user as any).reloadUserInfo?.screenName;
+          console.log('✅ [AUTH AUDIT] linkWithPopup succeeded! GitHub handle:', githubUsername);
 
-      console.log('✅ [AUTH AUDIT] GitHub OAuth sign-in succeeded:', {
-        uid: result.user.uid,
-        email: result.user.email,
-        githubUsername,
-      });
-
-      const profile = await fetchUserProfile(result.user, githubUsername, targetRole);
-      if (profile) {
-        const cleanEmail = (result.user.email || '').toLowerCase().trim();
-        const isAdminEmail = cleanEmail === 'admin@gmail.com' || cleanEmail.startsWith('admin@');
-        if (!isAdminEmail) {
-          const isPending = (profile.role === 'instructor' && (profile.status === 'pending' || profile.status === 'Pending'));
-          const isRejected = profile.status === 'rejected';
-
-          if (isPending) {
-            if (auth) {
-              await signOut(auth).catch(() => null);
-            }
-            const pendingErr: any = new Error('Your instructor account is under review. You will receive an approval email once the administrator approves your application.');
-            pendingErr.code = 'ADMIN_APPROVAL_PENDING';
-            throw pendingErr;
-          } else if (isRejected) {
-            if (auth) {
-              await signOut(auth).catch(() => null);
-            }
-            const rejectedErr: any = new Error('Your instructor application has not been approved.');
-            rejectedErr.code = 'APPLICATION_REJECTED';
-            throw rejectedErr;
+          const profile = await fetchUserProfile(linkResult.user, githubUsername, targetRole);
+          return profile;
+        } catch (linkErr: any) {
+          console.warn('⚠️ [AUTH AUDIT] linkWithPopup notice:', linkErr?.code, linkErr?.message);
+          if (linkErr.code === 'auth/credential-already-in-use') {
+            throw new Error('This GitHub account is already linked to another user profile.');
           }
         }
       }
-      return profile;
-    } catch (error: any) {
-      console.error('🚨 [AUTH AUDIT] signInWithPopup error caught:', {
-        code: error.code,
-        message: error.message,
-        email: error.customData?.email || error.email,
-      });
 
-      if (error.code === 'auth/account-exists-with-different-credential') {
-        const pendingCred = GithubAuthProvider.credentialFromError(error);
-        const email = error.customData?.email || error.email;
-        let existingMethods: string[] = [];
+      // 2. Standard OAuth Sign-in flow
+      try {
+        const result = await signInWithPopup(auth, provider);
+        const additionalInfo = getAdditionalUserInfo(result);
+        const githubUsername = additionalInfo?.username || (result.user as any).reloadUserInfo?.screenName;
 
-        if (email && auth) {
-          try {
-            existingMethods = await fetchSignInMethodsForEmail(auth, email);
-            console.log('📋 [AUTH AUDIT] Existing sign-in methods for email:', email, existingMethods);
-          } catch (fetchErr) {
-            console.warn('⚠️ [AUTH AUDIT] fetchSignInMethodsForEmail notice:', fetchErr);
+        console.log('✅ [AUTH AUDIT] GitHub OAuth sign-in succeeded:', {
+          uid: result.user.uid,
+          email: result.user.email,
+          githubUsername,
+        });
+
+        const profile = await fetchUserProfile(result.user, githubUsername, targetRole);
+        if (profile) {
+          const cleanEmail = (result.user.email || '').toLowerCase().trim();
+          const isAdminEmail = cleanEmail === 'admin@gmail.com' || cleanEmail.startsWith('admin@');
+          if (!isAdminEmail) {
+            const isPending = (profile.role === 'instructor' && (profile.status === 'pending' || profile.status === 'Pending'));
+            const isRejected = profile.status === 'rejected';
+
+            if (isPending) {
+              if (auth) {
+                await signOut(auth).catch(() => null);
+              }
+              const pendingErr: any = new Error('Your instructor account is under review. You will receive an approval email once the administrator approves your application.');
+              pendingErr.code = 'ADMIN_APPROVAL_PENDING';
+              throw pendingErr;
+            } else if (isRejected) {
+              if (auth) {
+                await signOut(auth).catch(() => null);
+              }
+              const rejectedErr: any = new Error('Your instructor application has not been approved.');
+              rejectedErr.code = 'APPLICATION_REJECTED';
+              throw rejectedErr;
+            }
           }
         }
+        return profile;
+      } catch (error: any) {
+        console.error('🚨 [AUTH AUDIT] signInWithPopup error caught:', {
+          code: error.code,
+          message: error.message,
+          email: error.customData?.email || error.email,
+        });
 
-        if (pendingCred) {
-          try {
-            sessionStorage.setItem('pendingGithubCredential', JSON.stringify(pendingCred));
-            if (email) sessionStorage.setItem('pendingGithubEmail', email);
-          } catch (sErr) {
-            console.warn('sessionStorage notice:', sErr);
+        if (error.code === 'auth/account-exists-with-different-credential') {
+          const pendingCred = GithubAuthProvider.credentialFromError(error);
+          const email = error.customData?.email || error.email;
+          let existingMethods: string[] = [];
+
+          if (email && auth) {
+            try {
+              existingMethods = await fetchSignInMethodsForEmail(auth, email);
+              console.log('📋 [AUTH AUDIT] Existing sign-in methods for email:', email, existingMethods);
+            } catch (fetchErr) {
+              console.warn('⚠️ [AUTH AUDIT] fetchSignInMethodsForEmail notice:', fetchErr);
+            }
           }
-        }
 
-        const customErr: any = new Error(
-          existingMethods.includes('password')
-            ? `An account with email "${email}" already exists. Please login using your password first to link your GitHub account.`
-            : `An account already exists with a different sign-in credential for ${email || 'this email'}. Please sign in with your primary credential.`
-        );
-        customErr.code = 'auth/account-exists-with-different-credential';
-        customErr.email = email;
-        customErr.existingMethods = existingMethods;
-        customErr.pendingCredential = pendingCred;
-        throw customErr;
+          if (pendingCred) {
+            try {
+              sessionStorage.setItem('pendingGithubCredential', JSON.stringify(pendingCred));
+              if (email) sessionStorage.setItem('pendingGithubEmail', email);
+            } catch (sErr) {
+              console.warn('sessionStorage notice:', sErr);
+            }
+          }
+
+          const customErr: any = new Error(
+            existingMethods.includes('password')
+              ? `An account with email "${email}" already exists. Please login using your password first to link your GitHub account.`
+              : `An account already exists with a different sign-in credential for ${email || 'this email'}. Please sign in with your primary credential.`
+          );
+          customErr.code = 'auth/account-exists-with-different-credential';
+          customErr.email = email;
+          customErr.existingMethods = existingMethods;
+          customErr.pendingCredential = pendingCred;
+          throw customErr;
+        }
+        throw error;
       }
-      throw error;
+    } finally {
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('kaizenq_signup_role');
+      }
     }
   };
 
