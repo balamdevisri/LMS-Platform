@@ -176,6 +176,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         await setDoc(userRef, newProfile).catch((err) => console.warn('Firestore setDoc notice:', err));
 
+        if (targetRole === 'instructor') {
+          try {
+            const adminNotifRef = doc(collection(db, 'notifications'));
+            await setDoc(adminNotifRef, {
+              title: 'New Instructor Registration',
+              desc: `${calculatedName} (${firebaseUser.email}) registered as an Instructor and is pending approval.`,
+              createdAt: new Date().toISOString(),
+              read: false,
+              type: 'info',
+              recipientRole: 'admin',
+            });
+            console.log('[Firestore Audit] Dispatched Admin notification for Instructor registration.');
+          } catch (notifErr) {
+            console.warn('Failed to write admin notification for instructor:', notifErr);
+          }
+        }
+
         setUserProfile(newProfile);
         return newProfile;
       }

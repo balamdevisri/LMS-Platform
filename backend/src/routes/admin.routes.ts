@@ -29,10 +29,18 @@ async function syncAuthUsersToFirestore() {
       const userDoc = await userDocRef.get();
 
       const name = userRecord.displayName || email.split('@')[0] || 'User';
-      const isInstructor = email.includes('instructor') || email.includes('mentor');
-      const isAdmin = email.includes('admin') || email === 'admin@gmail.com';
-      const role = isAdmin ? 'admin' : (isInstructor ? 'instructor' : 'student');
-      const status = role === 'instructor' ? 'Pending' : 'Active';
+      let role = 'student';
+      let status = 'Active';
+      if (userDoc.exists) {
+        const existingData = userDoc.data();
+        role = existingData?.role || 'student';
+        status = existingData?.status || 'Active';
+      } else {
+        const isInstructor = email.includes('instructor') || email.includes('mentor');
+        const isAdmin = email.includes('admin') || email === 'admin@gmail.com';
+        role = isAdmin ? 'admin' : (isInstructor ? 'instructor' : 'student');
+        status = role === 'instructor' ? 'Pending' : 'Active';
+      }
 
       const baseData = {
         uid,

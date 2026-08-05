@@ -1,3 +1,6 @@
+import { db } from '@/firebase';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
+
 export interface AdminNotification {
   id: string;
   type: 'NEW_STUDENT' | 'APPROVAL' | 'REJECTION' | 'COURSE_CREATED' | 'ASSIGNMENT_SUBMITTED' | 'QUIZ_COMPLETED';
@@ -48,7 +51,65 @@ const INITIAL_NOTIFICATIONS: AdminNotification[] = [
 class AdminNotificationService {
   private listeners: Array<(notifs: AdminNotification[]) => void> = [];
 
-  getNotifications(): AdminNotification[] {
+  constructor() {
+    this.initFirestoreListener();
+  }
+
+  private initFirestoreListener() {
+    if (!db) return;
+    try {
+      const notifRef = collection(db, 'notifications');
+      const q = query(notifRef, where('recipientRole', '==', 'admin'));
+      
+      onSnapshot(q, (snapshot) => {
+        const firestoreNotifs: AdminNotification[] = [];
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          firestoreNotifs.push({
+            id: docSnap.id,
+            type: data.type === 'info' ? 'NEW_STUDENT' : (data.type || 'NEW_STUDENT'),
+            title: data.title || 'Notification',
+            message: data.desc || '',
+            timestamp: data.createdAt ? this.formatTimeAgo(data.createdAt) : 'Recently',
+            read: Boolean(data.read),
+          });
+        });
+
+        // Merge with local storage notifications
+        const local = this.getLocalNotifications();
+        const mergedMap = new Map<string, AdminNotification>();
+        
+        // Load initial mock notifications so the dashboard doesn't look empty
+        INITIAL_NOTIFICATIONS.forEach(n => mergedMap.set(n.id, n));
+        local.forEach(n => mergedMap.set(n.id, n));
+        firestoreNotifs.forEach(n => mergedMap.set(n.id, n));
+
+        const merged = Array.from(mergedMap.values()).sort((a, b) => {
+          return b.id.localeCompare(a.id);
+        });
+
+        this.saveNotifications(merged);
+      });
+    } catch (err) {
+      console.warn('Admin Firestore notification listener error:', err);
+    }
+  }
+
+  private formatTimeAgo(dateStr: string): string {
+    try {
+      const seconds = Math.floor((new Date().getTime() - new Date(dateStr).getTime()) / 1000);
+      if (seconds < 60) return 'Just now';
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `${minutes}m ago`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours}h ago`;
+      return new Date(dateStr).toLocaleDateString();
+    } catch {
+      return 'Recently';
+    }
+  }
+
+  private getLocalNotifications(): AdminNotification[] {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
@@ -57,6 +118,12 @@ class AdminNotificationService {
     } catch (e) {
       console.warn('Failed to parse notifications from localStorage:', e);
     }
+    return [];
+  }
+
+  getNotifications(): AdminNotification[] {
+    const local = this.getLocalNotifications();
+    if (local.length > 0) return local;
     return INITIAL_NOTIFICATIONS;
   }
 
