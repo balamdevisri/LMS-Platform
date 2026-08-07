@@ -1,4 +1,4 @@
-import { db } from '@/firebase';
+import { db, auth } from '@/firebase';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 
 export interface AdminNotification {
@@ -50,49 +50,79 @@ const INITIAL_NOTIFICATIONS: AdminNotification[] = [
 
 class AdminNotificationService {
   private listeners: Array<(notifs: AdminNotification[]) => void> = [];
+  private unsubscribeListener: (() => void) | null = null;
+  private listenerCleanup: (() => void) | null = null;
 
   constructor() {
-    this.initFirestoreListener();
+    // Lazily initialized when someone subscribes
   }
 
   private initFirestoreListener() {
-    if (!db) return;
-    try {
-      const notifRef = collection(db, 'notifications');
-      const q = query(notifRef, where('recipientRole', '==', 'admin'));
-      
-      onSnapshot(q, (snapshot) => {
-        const firestoreNotifs: AdminNotification[] = [];
-        snapshot.forEach((docSnap) => {
-          const data = docSnap.data();
-          firestoreNotifs.push({
-            id: docSnap.id,
-            type: data.type === 'info' ? 'NEW_STUDENT' : (data.type || 'NEW_STUDENT'),
-            title: data.title || 'Notification',
-            message: data.desc || '',
-            timestamp: data.createdAt ? this.formatTimeAgo(data.createdAt) : 'Recently',
-            read: Boolean(data.read),
-          });
-        });
+    const firestore = db;
+    if (!firestore) return;
 
-        // Merge with local storage notifications
-        const local = this.getLocalNotifications();
-        const mergedMap = new Map<string, AdminNotification>();
-        
-        // Load initial mock notifications so the dashboard doesn't look empty
-        INITIAL_NOTIFICATIONS.forEach(n => mergedMap.set(n.id, n));
-        local.forEach(n => mergedMap.set(n.id, n));
-        firestoreNotifs.forEach(n => mergedMap.set(n.id, n));
+    // Listen to Auth state changes to ensure we only subscribe to Firestore when authenticated
+    const authUnsubscribe = auth?.onAuthStateChanged((user) => {
+      if (user) {
+        if (this.unsubscribeListener) return;
 
-        const merged = Array.from(mergedMap.values()).sort((a, b) => {
-          return b.id.localeCompare(a.id);
-        });
+        try {
+          const notifRef = collection(firestore, 'notifications');
+          const q = query(notifRef, where('recipientRole', '==', 'admin'));
+          
+          this.unsubscribeListener = onSnapshot(
+            q,
+            (snapshot) => {
+              const firestoreNotifs: AdminNotification[] = [];
+              snapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                firestoreNotifs.push({
+                  id: docSnap.id,
+                  type: data.type === 'info' ? 'NEW_STUDENT' : (data.type || 'NEW_STUDENT'),
+                  title: data.title || 'Notification',
+                  message: data.desc || '',
+                  timestamp: data.createdAt ? this.formatTimeAgo(data.createdAt) : 'Recently',
+                  read: Boolean(data.read),
+                });
+              });
 
-        this.saveNotifications(merged);
-      });
-    } catch (err) {
-      console.warn('Admin Firestore notification listener error:', err);
-    }
+              // Merge with local storage notifications
+              const local = this.getLocalNotifications();
+              const mergedMap = new Map<string, AdminNotification>();
+              
+              // Load initial mock notifications so the dashboard doesn't look empty
+              INITIAL_NOTIFICATIONS.forEach(n => mergedMap.set(n.id, n));
+              local.forEach(n => mergedMap.set(n.id, n));
+              firestoreNotifs.forEach(n => mergedMap.set(n.id, n));
+
+              const merged = Array.from(mergedMap.values()).sort((a, b) => {
+                return b.id.localeCompare(a.id);
+              });
+
+              this.saveNotifications(merged);
+            },
+            (error) => {
+              console.error(`[Firestore Admin Notification Listener] Error: ${error.message}`);
+            }
+          );
+        } catch (e: any) {
+          console.error(`[Firestore Audit] Subscription error on admin notifications: ${e.message || e}`);
+        }
+      } else {
+        if (this.unsubscribeListener) {
+          this.unsubscribeListener();
+          this.unsubscribeListener = null;
+        }
+      }
+    });
+
+    return () => {
+      if (authUnsubscribe) authUnsubscribe();
+      if (this.unsubscribeListener) {
+        this.unsubscribeListener();
+        this.unsubscribeListener = null;
+      }
+    };
   }
 
   private formatTimeAgo(dateStr: string): string {
@@ -156,8 +186,17 @@ class AdminNotificationService {
   subscribe(callback: (notifs: AdminNotification[]) => void): () => void {
     this.listeners.push(callback);
     callback(this.getNotifications());
+
+    if (this.listeners.length === 1) {
+      this.listenerCleanup = this.initFirestoreListener() || null;
+    }
+
     return () => {
       this.listeners = this.listeners.filter(l => l !== callback);
+      if (this.listeners.length === 0 && this.listenerCleanup) {
+        this.listenerCleanup();
+        this.listenerCleanup = null;
+      }
     };
   }
 

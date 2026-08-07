@@ -95,7 +95,9 @@ export const DashboardLayout: React.FC = () => {
     }
   };
 
-  const isAdminRoute = location.pathname.startsWith('/admin') || userProfile?.role === 'admin';
+  const role = userProfile?.role || 'student';
+  const isAdmin = role === 'admin';
+  const isInstructor = role === 'instructor';
 
   const adminNavItems = [
     { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
@@ -105,6 +107,39 @@ export const DashboardLayout: React.FC = () => {
     { name: 'Live Classroom', href: '/admin/live-classroom', icon: Video },
     { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
     { name: 'Settings', href: '/admin/settings', icon: Settings },
+  ];
+
+  const instructorNavSections = [
+    {
+      title: 'TEACHING & MANAGEMENT',
+      accent: 'text-blue-500 dark:text-blue-400',
+      divider: 'bg-blue-100 dark:bg-blue-900/40',
+      items: [
+        { name: 'Overview Dashboard', href: '/dashboard', icon: LayoutDashboard },
+        { name: 'Course Management', href: '/admin/courses', icon: BookOpen },
+        { name: 'Live Classroom', href: '/admin/live-classroom', icon: Video },
+        { name: 'Mentor Analytics', href: '/admin/live-classroom/mentor-analytics', icon: BarChart3 },
+        { name: 'Student Roster', href: '/admin/students', icon: UserCheck },
+      ],
+    },
+    {
+      title: 'PRACTICE & TOOLS',
+      accent: 'text-sky-500 dark:text-sky-400',
+      divider: 'bg-sky-100 dark:bg-sky-900/40',
+      items: [
+        { name: 'AI Assistant', href: '/dashboard?tab=ai-tutor', icon: Brain },
+        { name: 'Practice Hub', href: '/dashboard?tab=practice-hub', icon: Terminal },
+      ],
+    },
+    {
+      title: 'ACCOUNT',
+      accent: 'text-slate-400 dark:text-zinc-500',
+      divider: 'bg-slate-100 dark:bg-zinc-800',
+      items: [
+        { name: 'My Profile', href: '/profile', icon: UserCheck },
+        { name: 'Settings', href: '/dashboard?tab=settings', icon: Settings },
+      ],
+    },
   ];
 
   const studentNavSections = [
@@ -165,6 +200,8 @@ export const DashboardLayout: React.FC = () => {
     return location.pathname === href;
   };
 
+  const activeNavSections = isInstructor ? instructorNavSections : studentNavSections;
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 flex flex-col font-sans selection:bg-indigo-600 selection:text-white transition-colors duration-300">
       {sidebarOpen && (
@@ -194,7 +231,7 @@ export const DashboardLayout: React.FC = () => {
             <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-800/50">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
               <span className="text-[10px] font-extrabold text-indigo-700 dark:text-indigo-300 uppercase tracking-widest truncate">
-                {(userProfile?.role || 'student').toUpperCase()} PORTAL
+                {role.toUpperCase()} PORTAL
               </span>
               <span className="ml-auto text-[9px] font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800/50 shrink-0">
                 Active
@@ -203,7 +240,7 @@ export const DashboardLayout: React.FC = () => {
           </div>
 
           <nav className="px-2.5 py-3 overflow-y-auto flex-1 space-y-4 scrollbar-thin scrollbar-thumb-slate-100 dark:scrollbar-thumb-zinc-800">
-            {isAdminRoute ? (
+            {isAdmin ? (
               <div className="space-y-0.5">
                 {adminNavItems.map((item) => {
                   const Icon = item.icon;
@@ -219,14 +256,14 @@ export const DashboardLayout: React.FC = () => {
                           : 'hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100'
                       }`}
                     >
-                      <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400 dark:text-zinc-500'}`} />
+                      {Icon ? <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400 dark:text-zinc-500'}`} /> : null}
                       <span>{item.name}</span>
                     </Link>
                   );
                 })}
               </div>
             ) : (
-              studentNavSections.map((section, sIdx) => (
+              activeNavSections.map((section, sIdx) => (
                 <div key={sIdx}>
                   <div className="flex items-center gap-2 px-1 mb-1">
                     <span className={`text-[9px] font-extrabold uppercase tracking-widest leading-none ${section.accent}`}>
@@ -250,13 +287,7 @@ export const DashboardLayout: React.FC = () => {
                               : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800/70 hover:text-slate-900 dark:hover:text-zinc-100'
                           }`}
                         >
-                          <Icon
-                            className={`w-4 h-4 shrink-0 transition-colors ${
-                              isActive
-                                ? 'text-indigo-200'
-                                : 'text-slate-400 dark:text-zinc-500 group-hover:text-slate-600 dark:group-hover:text-zinc-300'
-                            }`}
-                          />
+                          {Icon ? <Icon className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-indigo-200' : 'text-slate-400 dark:text-zinc-500 group-hover:text-slate-600 dark:group-hover:text-zinc-300'}`} /> : null}
                           <span className="truncate flex-1">{item.name}</span>
                           {isActive && (
                             <span className="w-1.5 h-1.5 rounded-full bg-white/60 shrink-0" />

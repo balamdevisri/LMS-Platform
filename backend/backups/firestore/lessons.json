@@ -1,0 +1,2121 @@
+[
+  {
+    "id": "dbms-les-101",
+    "title": "1.1 What is Data?",
+    "order": 1,
+    "duration": "15 mins",
+    "type": "reading",
+    "content": "### What is Data?\nData is a collection of raw, unorganized facts, figures, symbols, or observations that can be processed to produce meaningful information. In computing, data is represented in binary format and structured in databases.",
+    "moduleId": "dbms-mod-1",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026960,
+      "_nanoseconds": 879000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026960,
+      "_nanoseconds": 879000000
+    }
+  },
+  {
+    "id": "dbms-les-102",
+    "title": "1.2 What is Database?",
+    "order": 2,
+    "duration": "20 mins",
+    "type": "video",
+    "content": "### What is a Database?\nA database is an organized collection of structured data stored electronically in a computer system. Databases are controlled by a Database Management System (DBMS).",
+    "moduleId": "dbms-mod-1",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026961,
+      "_nanoseconds": 401000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026961,
+      "_nanoseconds": 401000000
+    }
+  },
+  {
+    "id": "dbms-les-103",
+    "title": "1.3 DBMS Introduction",
+    "order": 3,
+    "duration": "25 mins",
+    "type": "reading",
+    "content": "### Introduction to DBMS\nA Database Management System (DBMS) is software that manages databases, allowing users to store, retrieve, update, and organize information efficiently while ensuring data integrity.",
+    "moduleId": "dbms-mod-1",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026962,
+      "_nanoseconds": 409000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026962,
+      "_nanoseconds": 409000000
+    }
+  },
+  {
+    "id": "dbms-les-104",
+    "title": "1.4 Database vs File System",
+    "order": 4,
+    "duration": "20 mins",
+    "type": "video",
+    "content": "### Database vs File System\nUnlike traditional file systems, a DBMS handles data redundancy, concurrency control, security, data integrity, and complex queries seamlessly.",
+    "moduleId": "dbms-mod-1",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026962,
+      "_nanoseconds": 939000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026962,
+      "_nanoseconds": 939000000
+    }
+  },
+  {
+    "id": "dbms-les-105",
+    "title": "1.5 Advantages of DBMS",
+    "order": 5,
+    "duration": "15 mins",
+    "type": "reading",
+    "content": "### Advantages of DBMS\nKey benefits include: minimized data redundancy, data sharing, data consistency, transactional safety, secure access, and backup & recovery services.",
+    "moduleId": "dbms-mod-1",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026963,
+      "_nanoseconds": 531000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026963,
+      "_nanoseconds": 531000000
+    }
+  },
+  {
+    "id": "dbms-les-106",
+    "title": "1.6 Types of Databases",
+    "order": 6,
+    "duration": "15 mins",
+    "type": "reading",
+    "content": "### Types of Databases\nDatabases are categorized into Relational (RDBMS), NoSQL (Key-Value, Document, Graph), Distributed, Cloud, and Object-Oriented databases.",
+    "moduleId": "dbms-mod-1",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026963,
+      "_nanoseconds": 945000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026963,
+      "_nanoseconds": 945000000
+    }
+  },
+  {
+    "id": "dbms-les-201",
+    "title": "2.1 Tables, Rows & Columns",
+    "order": 1,
+    "duration": "15 mins",
+    "type": "reading",
+    "content": "### Tables, Rows & Columns\nIn a relational database, data is organized into tables (relations), where columns represent attributes and rows (tuples) represent individual data records.",
+    "moduleId": "dbms-mod-2",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026964,
+      "_nanoseconds": 291000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026964,
+      "_nanoseconds": 291000000
+    }
+  },
+  {
+    "id": "dbms-les-202",
+    "title": "2.2 Keys",
+    "order": 2,
+    "duration": "25 mins",
+    "type": "video",
+    "content": "### Keys in Relational Databases\nKeys uniquely identify rows in a table. Types include Primary Keys, Foreign Keys, Super Keys, Candidate Keys, and Composite Keys.",
+    "moduleId": "dbms-mod-2",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026964,
+      "_nanoseconds": 647000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026964,
+      "_nanoseconds": 647000000
+    }
+  },
+  {
+    "id": "dbms-les-203",
+    "title": "2.3 Constraints",
+    "order": 3,
+    "duration": "20 mins",
+    "type": "reading",
+    "content": "### Integrity Constraints\nConstraints enforce database rules. Examples include: NOT NULL, UNIQUE, PRIMARY KEY, FOREIGN KEY, CHECK, and DEFAULT.",
+    "moduleId": "dbms-mod-2",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026964,
+      "_nanoseconds": 999000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026964,
+      "_nanoseconds": 999000000
+    }
+  },
+  {
+    "id": "dbms-les-204",
+    "title": "2.4 ER Model",
+    "order": 4,
+    "duration": "20 mins",
+    "type": "video",
+    "content": "### Entity-Relationship Model\nThe ER Model describes database structures using Entities, Attributes, and Relationships, serving as the blueprint for relational designs.",
+    "moduleId": "dbms-mod-2",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026965,
+      "_nanoseconds": 357000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026965,
+      "_nanoseconds": 357000000
+    }
+  },
+  {
+    "id": "dbms-les-205",
+    "title": "2.5 ER Diagram",
+    "order": 5,
+    "duration": "20 mins",
+    "type": "reading",
+    "content": "### Entity-Relationship Diagrams\nER diagrams visually represent entity relationships, detailing attributes, primary keys, and cardinality (1:1, 1:N, N:M).",
+    "moduleId": "dbms-mod-2",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026965,
+      "_nanoseconds": 705000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026965,
+      "_nanoseconds": 705000000
+    }
+  },
+  {
+    "id": "dbms-les-301",
+    "title": "3.1 SQL Introduction",
+    "order": 1,
+    "duration": "15 mins",
+    "type": "reading",
+    "content": "### SQL Introduction\nStructured Query Language (SQL) is the standard language to manage and query relational databases, divided into DDL, DML, DCL, and TCL.",
+    "moduleId": "dbms-mod-3",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026966,
+      "_nanoseconds": 53000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026966,
+      "_nanoseconds": 53000000
+    }
+  },
+  {
+    "id": "dbms-les-302",
+    "title": "3.2 CREATE",
+    "order": 2,
+    "duration": "20 mins",
+    "type": "video",
+    "content": "### CREATE Statement\nThe DDL CREATE statement builds databases, tables, indexes, or views: `CREATE TABLE users (id INT, name VARCHAR(100));`",
+    "moduleId": "dbms-mod-3",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026966,
+      "_nanoseconds": 411000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026966,
+      "_nanoseconds": 411000000
+    }
+  },
+  {
+    "id": "dbms-les-303",
+    "title": "3.3 INSERT",
+    "order": 3,
+    "duration": "15 mins",
+    "type": "video",
+    "content": "### INSERT Statement\nInserts new records into a table: `INSERT INTO users (id, name) VALUES (1, \"Alice\");`",
+    "moduleId": "dbms-mod-3",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026966,
+      "_nanoseconds": 773000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026966,
+      "_nanoseconds": 773000000
+    }
+  },
+  {
+    "id": "dbms-les-304",
+    "title": "3.4 SELECT",
+    "order": 4,
+    "duration": "25 mins",
+    "type": "video",
+    "content": "### SELECT Statement\nRetrieves columns from a table: `SELECT * FROM users;`",
+    "moduleId": "dbms-mod-3",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026967,
+      "_nanoseconds": 145000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026967,
+      "_nanoseconds": 145000000
+    }
+  },
+  {
+    "id": "dbms-les-305",
+    "title": "3.5 UPDATE",
+    "order": 5,
+    "duration": "15 mins",
+    "type": "video",
+    "content": "### UPDATE Statement\nModifies existing records matching a condition: `UPDATE users SET name = \"Bob\" WHERE id = 1;`",
+    "moduleId": "dbms-mod-3",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026967,
+      "_nanoseconds": 489000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026967,
+      "_nanoseconds": 489000000
+    }
+  },
+  {
+    "id": "dbms-les-306",
+    "title": "3.6 DELETE",
+    "order": 6,
+    "duration": "15 mins",
+    "type": "video",
+    "content": "### DELETE Statement\nRemoves records matching a condition: `DELETE FROM users WHERE id = 1;`",
+    "moduleId": "dbms-mod-3",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026967,
+      "_nanoseconds": 840000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026967,
+      "_nanoseconds": 840000000
+    }
+  },
+  {
+    "id": "dbms-les-307",
+    "title": "3.7 WHERE",
+    "order": 7,
+    "duration": "15 mins",
+    "type": "video",
+    "content": "### WHERE Clause\nFilters records conditionally: `SELECT * FROM users WHERE id > 5;`",
+    "moduleId": "dbms-mod-3",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026968,
+      "_nanoseconds": 187000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026968,
+      "_nanoseconds": 187000000
+    }
+  },
+  {
+    "id": "dbms-les-308",
+    "title": "3.8 ORDER BY",
+    "order": 8,
+    "duration": "15 mins",
+    "type": "video",
+    "content": "### ORDER BY Clause\nSorts results ascending or descending: `SELECT * FROM users ORDER BY name DESC;`",
+    "moduleId": "dbms-mod-3",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026968,
+      "_nanoseconds": 540000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026968,
+      "_nanoseconds": 540000000
+    }
+  },
+  {
+    "id": "dbms-les-401",
+    "title": "4.1 GROUP BY",
+    "order": 1,
+    "duration": "15 mins",
+    "type": "video",
+    "content": "### GROUP BY Clause\nGroups rows sharing identical values: `SELECT category, COUNT(*) FROM products GROUP BY category;`",
+    "moduleId": "dbms-mod-4",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026969,
+      "_nanoseconds": 12000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026969,
+      "_nanoseconds": 12000000
+    }
+  },
+  {
+    "id": "dbms-les-402",
+    "title": "4.2 HAVING",
+    "order": 2,
+    "duration": "15 mins",
+    "type": "video",
+    "content": "### HAVING Clause\nFilters group results (unlike WHERE which filters rows): `SELECT category FROM products GROUP BY category HAVING COUNT(*) > 5;`",
+    "moduleId": "dbms-mod-4",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026969,
+      "_nanoseconds": 373000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026969,
+      "_nanoseconds": 373000000
+    }
+  },
+  {
+    "id": "dbms-les-403",
+    "title": "4.3 JOINS",
+    "order": 3,
+    "duration": "30 mins",
+    "type": "video",
+    "content": "### SQL JOINS\nCombines columns from multiple tables. Types: INNER JOIN, LEFT JOIN, RIGHT JOIN, FULL OUTER JOIN.",
+    "moduleId": "dbms-mod-4",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026969,
+      "_nanoseconds": 816000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026969,
+      "_nanoseconds": 816000000
+    }
+  },
+  {
+    "id": "dbms-les-404",
+    "title": "4.4 UNION",
+    "order": 4,
+    "duration": "15 mins",
+    "type": "video",
+    "content": "### UNION Operator\nCombines query results into one distinct list: `SELECT id FROM customers UNION SELECT id FROM employees;`",
+    "moduleId": "dbms-mod-4",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026970,
+      "_nanoseconds": 161000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026970,
+      "_nanoseconds": 161000000
+    }
+  },
+  {
+    "id": "dbms-les-405",
+    "title": "4.5 Subqueries",
+    "order": 5,
+    "duration": "20 mins",
+    "type": "video",
+    "content": "### Subqueries\nQueries nested inside other queries: `SELECT * FROM products WHERE price > (SELECT AVG(price) FROM products);`",
+    "moduleId": "dbms-mod-4",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026970,
+      "_nanoseconds": 513000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026970,
+      "_nanoseconds": 513000000
+    }
+  },
+  {
+    "id": "dbms-les-406",
+    "title": "4.6 Views",
+    "order": 6,
+    "duration": "15 mins",
+    "type": "video",
+    "content": "### Database Views\nA virtual table built from a SELECT statement: `CREATE VIEW active_users AS SELECT * FROM users WHERE active = true;`",
+    "moduleId": "dbms-mod-4",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026970,
+      "_nanoseconds": 859000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026970,
+      "_nanoseconds": 859000000
+    }
+  },
+  {
+    "id": "dbms-les-407",
+    "title": "4.7 Indexes",
+    "order": 7,
+    "duration": "20 mins",
+    "type": "video",
+    "content": "### Indexes\nStructures that speed up query execution: `CREATE INDEX idx_name ON users(name);`",
+    "moduleId": "dbms-mod-4",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026971,
+      "_nanoseconds": 213000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026971,
+      "_nanoseconds": 213000000
+    }
+  },
+  {
+    "id": "dbms-les-501",
+    "title": "5.1 Functional Dependency",
+    "order": 1,
+    "duration": "20 mins",
+    "type": "reading",
+    "content": "### Functional Dependency\nOccurs when one attribute uniquely determines another attribute. Denoted as X -> Y, where X is determinant.",
+    "moduleId": "dbms-mod-5",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026971,
+      "_nanoseconds": 571000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026971,
+      "_nanoseconds": 571000000
+    }
+  },
+  {
+    "id": "dbms-les-502",
+    "title": "5.2 Normalization",
+    "order": 2,
+    "duration": "30 mins",
+    "type": "video",
+    "content": "### Database Normalization\nProcess to structure database schemas to eliminate insertion, update, and deletion anomalies. Forms: 1NF, 2NF, 3NF, BCNF.",
+    "moduleId": "dbms-mod-5",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026972,
+      "_nanoseconds": 148000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026972,
+      "_nanoseconds": 148000000
+    }
+  },
+  {
+    "id": "dbms-les-503",
+    "title": "5.3 Transactions",
+    "order": 3,
+    "duration": "15 mins",
+    "type": "video",
+    "content": "### Transactions\nExecutions of SQL statements treated as a single logical unit of work (all-or-nothing execution).",
+    "moduleId": "dbms-mod-5",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026972,
+      "_nanoseconds": 503000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026972,
+      "_nanoseconds": 503000000
+    }
+  },
+  {
+    "id": "dbms-les-504",
+    "title": "5.4 ACID Properties",
+    "order": 4,
+    "duration": "20 mins",
+    "type": "reading",
+    "content": "### ACID Properties\nEnsures transactional safety:\n- **Atomicity:** Complete success or total rollback.\n- **Consistency:** Moves database from one valid state to another.\n- **Isolation:** Concurrent transactions do not interfere.\n- **Durability:** Committed changes persist even during power loss.",
+    "moduleId": "dbms-mod-5",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026972,
+      "_nanoseconds": 901000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026972,
+      "_nanoseconds": 901000000
+    }
+  },
+  {
+    "id": "dbms-les-505",
+    "title": "5.5 Concurrency Control",
+    "order": 5,
+    "duration": "25 mins",
+    "type": "reading",
+    "content": "### Concurrency Control\nManages concurrent transaction conflicts using Locking protocols (shared/exclusive) and timestamp ordering.",
+    "moduleId": "dbms-mod-5",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026973,
+      "_nanoseconds": 267000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026973,
+      "_nanoseconds": 267000000
+    }
+  },
+  {
+    "id": "dbms-les-506",
+    "title": "5.6 Database Security",
+    "order": 6,
+    "duration": "20 mins",
+    "type": "reading",
+    "content": "### Database Security\nProtects data using access control privileges (GRANT/REVOKE), database encryption, and SQL injection prevention.",
+    "moduleId": "dbms-mod-5",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026973,
+      "_nanoseconds": 678000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026973,
+      "_nanoseconds": 678000000
+    }
+  },
+  {
+    "id": "dbms-les-601",
+    "title": "6.1 Student Management System",
+    "order": 1,
+    "duration": "20 mins",
+    "type": "reading",
+    "content": "### Student Management Schema\nDesign a database schema to track student details, class enrollments, and academic grades.",
+    "moduleId": "dbms-mod-6",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026974,
+      "_nanoseconds": 39000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026974,
+      "_nanoseconds": 39000000
+    }
+  },
+  {
+    "id": "dbms-les-602",
+    "title": "6.2 Library Management System",
+    "order": 2,
+    "duration": "20 mins",
+    "type": "reading",
+    "content": "### Library Management Schema\nDesign a database schema to track book catalog databases, author relationships, member details, and borrow transactions.",
+    "moduleId": "dbms-mod-6",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026974,
+      "_nanoseconds": 394000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026974,
+      "_nanoseconds": 394000000
+    }
+  },
+  {
+    "id": "dbms-les-603",
+    "title": "6.3 E-Commerce Database",
+    "order": 3,
+    "duration": "30 mins",
+    "type": "reading",
+    "content": "### E-Commerce Schema\nDesign a comprehensive database model tracking users, product catalogs, customer shopping carts, checkout orders, and payments.",
+    "moduleId": "dbms-mod-6",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026974,
+      "_nanoseconds": 747000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026974,
+      "_nanoseconds": 747000000
+    }
+  },
+  {
+    "id": "dbms-les-604",
+    "title": "6.4 SQL Mini Project",
+    "order": 4,
+    "duration": "40 mins",
+    "type": "reading",
+    "content": "### Capstone Mini SQL Project\nCreate the E-commerce schema locally, run sample tables, populate them with test records, and execute complex nested query reports.",
+    "moduleId": "dbms-mod-6",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026975,
+      "_nanoseconds": 100000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026975,
+      "_nanoseconds": 100000000
+    }
+  },
+  {
+    "id": "git-les-101",
+    "title": "1.1 Introduction to Version Control",
+    "order": 1,
+    "duration": "15 mins",
+    "type": "reading",
+    "readingTime": "15 mins",
+    "content": "### Introduction to Version Control\nVersion Control System (VCS) is software that helps software developers track changes to code over time. It keeps a history of modifications, allowing developers to revert files to a previous state, compare changes, and collaborate seamlessly.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-1",
+    "createdAt": {
+      "_seconds": 1786026893,
+      "_nanoseconds": 776000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026893,
+      "_nanoseconds": 776000000
+    }
+  },
+  {
+    "id": "git-les-102",
+    "title": "1.2 Centralized vs Distributed Version Control",
+    "order": 2,
+    "duration": "15 mins",
+    "type": "reading",
+    "readingTime": "15 mins",
+    "content": "### Centralized vs Distributed VCS\n- **Centralized VCS (CVCS):** Uses a single central server that stores all versioned files. E.g., SVN, Perforce.\n- **Distributed VCS (DVCS):** Every developer has a full clone of the repository, including its history, on their local machine. E.g., Git, Mercurial.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-1",
+    "createdAt": {
+      "_seconds": 1786026894,
+      "_nanoseconds": 212000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026894,
+      "_nanoseconds": 212000000
+    }
+  },
+  {
+    "id": "git-les-103",
+    "title": "1.3 Why Git",
+    "order": 3,
+    "duration": "10 mins",
+    "type": "reading",
+    "readingTime": "10 mins",
+    "content": "### Why Git?\nGit is the most popular distributed version control system. It is fast, handles branches efficiently, operates offline, and ensures data integrity through SHA-1 cryptographic hashing of commits.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-1",
+    "createdAt": {
+      "_seconds": 1786026895,
+      "_nanoseconds": 336000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026895,
+      "_nanoseconds": 336000000
+    }
+  },
+  {
+    "id": "git-les-104",
+    "title": "1.4 Why GitHub",
+    "order": 4,
+    "duration": "10 mins",
+    "type": "reading",
+    "readingTime": "10 mins",
+    "content": "### Why GitHub?\nGitHub is a cloud-based hosting service for Git repositories. It adds collaboration features like Pull Requests, Code Reviews, Issues, Projects, Actions (CI/CD), and team management.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-1",
+    "createdAt": {
+      "_seconds": 1786026895,
+      "_nanoseconds": 862000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026895,
+      "_nanoseconds": 862000000
+    }
+  },
+  {
+    "id": "git-les-105",
+    "title": "1.5 Installing Git",
+    "order": 5,
+    "duration": "20 mins",
+    "type": "lab",
+    "readingTime": "10 mins",
+    "content": "### Installing Git\nInstall Git on your system:\n- Linux: `sudo apt install git`\n- macOS: `brew install git`\n- Windows: Download from git-scm.com\n\nRun command to verify installation:",
+    "commands": {
+      "0": {
+        "command": "git --version",
+        "description": "Check Git installation version"
+      }
+    },
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-1",
+    "createdAt": {
+      "_seconds": 1786026896,
+      "_nanoseconds": 949000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026896,
+      "_nanoseconds": 949000000
+    }
+  },
+  {
+    "id": "git-les-106",
+    "title": "1.6 Git Configuration",
+    "order": 6,
+    "duration": "15 mins",
+    "type": "lab",
+    "readingTime": "10 mins",
+    "content": "### Git Configuration\nSet your global username and email which will be associated with all commits:",
+    "commands": {
+      "0": {
+        "command": "git config --global user.name \"Your Name\"",
+        "description": "Set global Git name"
+      },
+      "1": {
+        "command": "git config --global user.email \"your.email@example.com\"",
+        "description": "Set global Git email"
+      },
+      "2": {
+        "command": "git config --list",
+        "description": "List current Git configuration settings"
+      }
+    },
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-1",
+    "createdAt": {
+      "_seconds": 1786026897,
+      "_nanoseconds": 415000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026897,
+      "_nanoseconds": 415000000
+    }
+  },
+  {
+    "id": "git-les-107",
+    "title": "1.7 SSH Keys",
+    "order": 7,
+    "duration": "20 mins",
+    "type": "lab",
+    "readingTime": "15 mins",
+    "content": "### Configuring SSH Keys\nSSH keys allow secure connection to GitHub without entering credentials for every push. Generate an SSH key:",
+    "commands": {
+      "0": {
+        "command": "ssh-keygen -t ed25519 -C \"your.email@example.com\"",
+        "description": "Generate SSH key"
+      },
+      "1": {
+        "command": "eval \"$(ssh-agent -s)\"",
+        "description": "Start the SSH agent in the background"
+      }
+    },
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-1",
+    "createdAt": {
+      "_seconds": 1786026898,
+      "_nanoseconds": 480000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026898,
+      "_nanoseconds": 480000000
+    }
+  },
+  {
+    "id": "git-les-108",
+    "title": "1.8 Personal Access Tokens",
+    "order": 8,
+    "duration": "15 mins",
+    "type": "reading",
+    "readingTime": "10 mins",
+    "content": "### Personal Access Tokens (PAT)\nPATs are fine-grained tokens that act as passwords for HTTPS-based authentication. Learn to create PATs in Developer Settings on GitHub with specific scopes.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-1",
+    "createdAt": {
+      "_seconds": 1786026898,
+      "_nanoseconds": 951000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026898,
+      "_nanoseconds": 951000000
+    }
+  },
+  {
+    "id": "git-les-109",
+    "title": "1.9 git init",
+    "order": 9,
+    "duration": "10 mins",
+    "type": "lab",
+    "readingTime": "5 mins",
+    "content": "### git init\nInitialize a new local Git repository in the current folder. This creates a hidden `.git` directory containing configuration databases.",
+    "commands": {
+      "0": {
+        "command": "git init",
+        "description": "Initialize a new Git repository"
+      }
+    },
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-1",
+    "createdAt": {
+      "_seconds": 1786026900,
+      "_nanoseconds": 12000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026900,
+      "_nanoseconds": 12000000
+    }
+  },
+  {
+    "id": "git-les-110",
+    "title": "1.10 Git Lifecycle",
+    "order": 10,
+    "duration": "20 mins",
+    "type": "reading",
+    "readingTime": "15 mins",
+    "content": "### The Git Lifecycle\nFiles in a Git repository move between states:\n1. **Untracked:** New files not added to index.\n2. **Unmodified:** Tracked files with no changes.\n3. **Modified:** Tracked files with changes not staged.\n4. **Staged:** Changes marked to be committed.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-1",
+    "createdAt": {
+      "_seconds": 1786026900,
+      "_nanoseconds": 477000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026900,
+      "_nanoseconds": 477000000
+    }
+  },
+  {
+    "id": "git-les-111",
+    "title": "1.11 git status",
+    "order": 11,
+    "duration": "10 mins",
+    "type": "lab",
+    "readingTime": "5 mins",
+    "content": "### git status\nShows the status of files in the current working directory, including untracked, modified, and staged files.",
+    "commands": {
+      "0": {
+        "command": "git status",
+        "description": "Show workspace status"
+      }
+    },
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-1",
+    "createdAt": {
+      "_seconds": 1786026901,
+      "_nanoseconds": 675000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026901,
+      "_nanoseconds": 675000000
+    }
+  },
+  {
+    "id": "git-les-112",
+    "title": "1.12 git add",
+    "order": 12,
+    "duration": "10 mins",
+    "type": "lab",
+    "readingTime": "5 mins",
+    "content": "### git add\nStages modified or untracked files, moving them into the staging area (index) ready to be committed.",
+    "commands": {
+      "0": {
+        "command": "git add index.html",
+        "description": "Stage a specific file"
+      },
+      "1": {
+        "command": "git add .",
+        "description": "Stage all files recursively"
+      }
+    },
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-1",
+    "createdAt": {
+      "_seconds": 1786026902,
+      "_nanoseconds": 61000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026902,
+      "_nanoseconds": 61000000
+    }
+  },
+  {
+    "id": "git-les-113",
+    "title": "1.13 git commit",
+    "order": 13,
+    "duration": "15 mins",
+    "type": "lab",
+    "readingTime": "10 mins",
+    "content": "### git commit\nSaves staged changes permanently to local history with a descriptive commit message.",
+    "commands": {
+      "0": {
+        "command": "git commit -m \"feat: initial commit\"",
+        "description": "Commit staged changes with message"
+      }
+    },
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-1",
+    "createdAt": {
+      "_seconds": 1786026903,
+      "_nanoseconds": 315000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026903,
+      "_nanoseconds": 315000000
+    }
+  },
+  {
+    "id": "git-les-114",
+    "title": "1.14 git log",
+    "order": 14,
+    "duration": "10 mins",
+    "type": "lab",
+    "readingTime": "5 mins",
+    "content": "### git log\nDisplays the history of commits in the repository, including hash, author, date, and commit message.",
+    "commands": {
+      "0": {
+        "command": "git log",
+        "description": "Show commit history"
+      },
+      "1": {
+        "command": "git log --oneline",
+        "description": "Show compact single-line commit history"
+      }
+    },
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-1",
+    "createdAt": {
+      "_seconds": 1786026903,
+      "_nanoseconds": 678000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026903,
+      "_nanoseconds": 678000000
+    }
+  },
+  {
+    "id": "git-les-115",
+    "title": "1.15 git diff",
+    "order": 15,
+    "duration": "15 mins",
+    "type": "lab",
+    "readingTime": "10 mins",
+    "content": "### git diff\nCompares differences between unstaged modifications and the last committed files.",
+    "commands": {
+      "0": {
+        "command": "git diff",
+        "description": "Compare working directory changes"
+      },
+      "1": {
+        "command": "git diff --staged",
+        "description": "Compare staged changes against repository"
+      }
+    },
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-1",
+    "createdAt": {
+      "_seconds": 1786026904,
+      "_nanoseconds": 852000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026904,
+      "_nanoseconds": 852000000
+    }
+  },
+  {
+    "id": "git-les-201",
+    "title": "2.1 Create Repository",
+    "order": 1,
+    "duration": "10 mins",
+    "type": "reading",
+    "readingTime": "10 mins",
+    "content": "### Creating a GitHub Repository\nNavigate to GitHub, click the \"+\" icon, select \"New repository\", define name, visibility (public/private), and initialize with README/gitignore.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-2",
+    "createdAt": {
+      "_seconds": 1786026905,
+      "_nanoseconds": 227000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026905,
+      "_nanoseconds": 227000000
+    }
+  },
+  {
+    "id": "git-les-202",
+    "title": "2.2 Remote Repository",
+    "order": 2,
+    "duration": "10 mins",
+    "type": "reading",
+    "readingTime": "10 mins",
+    "content": "### Remote Repository\nRemote repositories are hosted online (e.g. GitHub). They allow team members to synchronize local work using push, pull, and fetch operations.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-2",
+    "createdAt": {
+      "_seconds": 1786026906,
+      "_nanoseconds": 410000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026906,
+      "_nanoseconds": 410000000
+    }
+  },
+  {
+    "id": "git-les-203",
+    "title": "2.3 git remote add origin",
+    "order": 3,
+    "duration": "10 mins",
+    "type": "lab",
+    "readingTime": "5 mins",
+    "content": "### git remote add origin\nLinks your local repository to a remote server on GitHub. The default alias name is `origin`.",
+    "commands": {
+      "0": {
+        "command": "git remote add origin https://github.com/user/repo.git",
+        "description": "Link local repo to GitHub"
+      },
+      "1": {
+        "command": "git remote -v",
+        "description": "Verify remote URLs"
+      }
+    },
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-2",
+    "createdAt": {
+      "_seconds": 1786026906,
+      "_nanoseconds": 749000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026906,
+      "_nanoseconds": 749000000
+    }
+  },
+  {
+    "id": "git-les-204",
+    "title": "2.4 git push",
+    "order": 4,
+    "duration": "15 mins",
+    "type": "lab",
+    "readingTime": "8 mins",
+    "content": "### git push\nUploads local commits to a remote repository branch.",
+    "commands": {
+      "0": {
+        "command": "git push -u origin main",
+        "description": "Push local main to origin and set upstream"
+      }
+    },
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-2",
+    "createdAt": {
+      "_seconds": 1786026907,
+      "_nanoseconds": 943000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026907,
+      "_nanoseconds": 943000000
+    }
+  },
+  {
+    "id": "git-les-205",
+    "title": "2.5 git pull",
+    "order": 5,
+    "duration": "15 mins",
+    "type": "lab",
+    "readingTime": "8 mins",
+    "content": "### git pull\nFetches remote changes and merges them directly into your current local branch.",
+    "commands": {
+      "0": {
+        "command": "git pull origin main",
+        "description": "Fetch and merge origin main changes"
+      }
+    },
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-2",
+    "createdAt": {
+      "_seconds": 1786026908,
+      "_nanoseconds": 347000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026908,
+      "_nanoseconds": 347000000
+    }
+  },
+  {
+    "id": "git-les-206",
+    "title": "2.6 git fetch",
+    "order": 6,
+    "duration": "10 mins",
+    "type": "lab",
+    "readingTime": "5 mins",
+    "content": "### git fetch\nDownloads remote history updates to local reference database without modifying your current code workspace files.",
+    "commands": {
+      "0": {
+        "command": "git fetch origin",
+        "description": "Download origin changes"
+      }
+    },
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-2",
+    "createdAt": {
+      "_seconds": 1786026909,
+      "_nanoseconds": 485000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026909,
+      "_nanoseconds": 485000000
+    }
+  },
+  {
+    "id": "git-les-207",
+    "title": "2.7 git clone",
+    "order": 7,
+    "duration": "15 mins",
+    "type": "lab",
+    "readingTime": "8 mins",
+    "content": "### git clone\nDownloads an existing repository from GitHub to your local machine, initializing and checking out the main branch.",
+    "commands": {
+      "0": {
+        "command": "git clone https://github.com/user/repo.git",
+        "description": "Clone a remote repository"
+      }
+    },
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-2",
+    "createdAt": {
+      "_seconds": 1786026909,
+      "_nanoseconds": 893000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026909,
+      "_nanoseconds": 893000000
+    }
+  },
+  {
+    "id": "git-les-208",
+    "title": "2.8 Git Branches",
+    "order": 8,
+    "duration": "15 mins",
+    "type": "reading",
+    "readingTime": "10 mins",
+    "content": "### Git Branching\nBranches allow you to isolate development work (like implementing feature/bugfix) without disrupting the production-ready `main` code branch.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-2",
+    "createdAt": {
+      "_seconds": 1786026911,
+      "_nanoseconds": 0
+    },
+    "updatedAt": {
+      "_seconds": 1786026911,
+      "_nanoseconds": 0
+    }
+  },
+  {
+    "id": "git-les-209",
+    "title": "2.9 git switch",
+    "order": 9,
+    "duration": "10 mins",
+    "type": "lab",
+    "readingTime": "5 mins",
+    "content": "### git switch\nEasily switch branches or create new feature branches.",
+    "commands": {
+      "0": {
+        "command": "git switch main",
+        "description": "Switch to main branch"
+      },
+      "1": {
+        "command": "git switch -c feature/auth",
+        "description": "Create and switch to a new branch"
+      }
+    },
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-2",
+    "createdAt": {
+      "_seconds": 1786026911,
+      "_nanoseconds": 485000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026911,
+      "_nanoseconds": 485000000
+    }
+  },
+  {
+    "id": "git-les-210",
+    "title": "2.10 git checkout",
+    "order": 10,
+    "duration": "10 mins",
+    "type": "lab",
+    "readingTime": "5 mins",
+    "content": "### git checkout\nTraditional branch switching and file restoration command.",
+    "commands": {
+      "0": {
+        "command": "git checkout main",
+        "description": "Switch to main"
+      },
+      "1": {
+        "command": "git checkout -b feature/auth",
+        "description": "Create and checkout branch"
+      }
+    },
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-2",
+    "createdAt": {
+      "_seconds": 1786026912,
+      "_nanoseconds": 547000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026912,
+      "_nanoseconds": 547000000
+    }
+  },
+  {
+    "id": "git-les-211",
+    "title": "2.11 git merge",
+    "order": 11,
+    "duration": "15 mins",
+    "type": "lab",
+    "readingTime": "8 mins",
+    "content": "### git merge\nCombines the commit history of a source branch directly into the current branch.",
+    "commands": {
+      "0": {
+        "command": "git merge feature/auth",
+        "description": "Merge feature/auth into active branch"
+      }
+    },
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-2",
+    "createdAt": {
+      "_seconds": 1786026913,
+      "_nanoseconds": 23000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026913,
+      "_nanoseconds": 23000000
+    }
+  },
+  {
+    "id": "git-les-212",
+    "title": "2.12 Pull Requests",
+    "order": 12,
+    "duration": "15 mins",
+    "type": "reading",
+    "readingTime": "10 mins",
+    "content": "### Pull Requests (PR)\nPRs are GitHub features that propose changes from a feature branch to `main`. They provide a workspace for discussion and reviews before merging.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-2",
+    "createdAt": {
+      "_seconds": 1786026914,
+      "_nanoseconds": 83000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026914,
+      "_nanoseconds": 83000000
+    }
+  },
+  {
+    "id": "git-les-213",
+    "title": "2.13 Code Reviews",
+    "order": 13,
+    "duration": "15 mins",
+    "type": "reading",
+    "readingTime": "10 mins",
+    "content": "### Code Reviews\nReviewing code ensures code quality. Developers leave inline comments, request revisions, or approve the changes.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-2",
+    "createdAt": {
+      "_seconds": 1786026914,
+      "_nanoseconds": 559000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026914,
+      "_nanoseconds": 559000000
+    }
+  },
+  {
+    "id": "git-les-214",
+    "title": "2.14 Reviewers",
+    "order": 14,
+    "duration": "10 mins",
+    "type": "reading",
+    "readingTime": "5 mins",
+    "content": "### Reviewers\nAssign other developers to review your Pull Request. Codeowners can be configured to automatically request reviews from designated experts.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-2",
+    "createdAt": {
+      "_seconds": 1786026915,
+      "_nanoseconds": 627000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026915,
+      "_nanoseconds": 627000000
+    }
+  },
+  {
+    "id": "git-les-215",
+    "title": "2.15 Labels",
+    "order": 15,
+    "duration": "10 mins",
+    "type": "reading",
+    "readingTime": "5 mins",
+    "content": "### Labels\nCategorize Pull Requests and Issues (e.g. `bug`, `enhancement`, `wip`, `documentation`) for easy filtering.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-2",
+    "createdAt": {
+      "_seconds": 1786026916,
+      "_nanoseconds": 89000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026916,
+      "_nanoseconds": 89000000
+    }
+  },
+  {
+    "id": "git-les-216",
+    "title": "2.16 Milestones",
+    "order": 16,
+    "duration": "10 mins",
+    "type": "reading",
+    "readingTime": "5 mins",
+    "content": "### Milestones\nGroup Issues and Pull Requests toward a specific target release date or project phase.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-2",
+    "createdAt": {
+      "_seconds": 1786026917,
+      "_nanoseconds": 169000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026917,
+      "_nanoseconds": 169000000
+    }
+  },
+  {
+    "id": "git-les-301",
+    "title": "3.1 Merge Conflicts",
+    "order": 1,
+    "duration": "20 mins",
+    "type": "reading",
+    "readingTime": "15 mins",
+    "content": "### Merge Conflicts\nA merge conflict occurs when Git cannot automatically reconcile overlapping modifications made to the same lines in a file across merging branches.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-3",
+    "createdAt": {
+      "_seconds": 1786026917,
+      "_nanoseconds": 614000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026917,
+      "_nanoseconds": 614000000
+    }
+  },
+  {
+    "id": "git-les-302",
+    "title": "3.2 Conflict Resolution",
+    "order": 2,
+    "duration": "20 mins",
+    "type": "lab",
+    "readingTime": "12 mins",
+    "content": "### Resolving Conflicts\nLocate conflict markers (`<<<<<<<`, `=======`, `>>>>>>>`), edit the file to preserve the correct lines, save, and stage the file.",
+    "commands": {
+      "0": {
+        "command": "git add conflict-file.txt",
+        "description": "Stage resolved file"
+      },
+      "1": {
+        "command": "git commit -m \"chore: resolve merge conflicts\"",
+        "description": "Commit the merge resolve"
+      }
+    },
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-3",
+    "createdAt": {
+      "_seconds": 1786026918,
+      "_nanoseconds": 673000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026918,
+      "_nanoseconds": 673000000
+    }
+  },
+  {
+    "id": "git-les-303",
+    "title": "3.3 git restore",
+    "order": 3,
+    "duration": "10 mins",
+    "type": "lab",
+    "readingTime": "5 mins",
+    "content": "### git restore\nDiscards unstaged modifications in your working files, reverting them back to the last committed index.",
+    "commands": {
+      "0": {
+        "command": "git restore file.txt",
+        "description": "Discard modifications in file"
+      }
+    },
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-3",
+    "createdAt": {
+      "_seconds": 1786026919,
+      "_nanoseconds": 157000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026919,
+      "_nanoseconds": 157000000
+    }
+  },
+  {
+    "id": "git-les-304",
+    "title": "3.4 git reset",
+    "order": 4,
+    "duration": "15 mins",
+    "type": "lab",
+    "readingTime": "8 mins",
+    "content": "### git reset\nResets repository state back to a past commit. Soft leaves changes staged; mixed (default) leaves changes unstaged; hard deletes all changes.",
+    "commands": {
+      "0": {
+        "command": "git reset --mixed HEAD~1",
+        "description": "Undo last commit, leave changes unstaged"
+      },
+      "1": {
+        "command": "git reset --hard HEAD~1",
+        "description": "Undo last commit and delete changes"
+      }
+    },
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-3",
+    "createdAt": {
+      "_seconds": 1786026920,
+      "_nanoseconds": 256000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026920,
+      "_nanoseconds": 256000000
+    }
+  },
+  {
+    "id": "git-les-305",
+    "title": "3.5 git revert",
+    "order": 5,
+    "duration": "15 mins",
+    "type": "lab",
+    "readingTime": "8 mins",
+    "content": "### git revert\nCreates a brand-new commit that applies the exact opposite changes of a specified commit, preserving repository commit history securely.",
+    "commands": {
+      "0": {
+        "command": "git revert HEAD",
+        "description": "Revert last commit"
+      }
+    },
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-3",
+    "createdAt": {
+      "_seconds": 1786026920,
+      "_nanoseconds": 717000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026920,
+      "_nanoseconds": 717000000
+    }
+  },
+  {
+    "id": "git-les-306",
+    "title": "3.6 git stash",
+    "order": 6,
+    "duration": "15 mins",
+    "type": "lab",
+    "readingTime": "8 mins",
+    "content": "### git stash\nTemporarily shelves (stashes) your unstaged modifications so you can work on a clean directory, and restore them later.",
+    "commands": {
+      "0": {
+        "command": "git stash",
+        "description": "Stash changes"
+      },
+      "1": {
+        "command": "git stash pop",
+        "description": "Restore and remove stashed changes"
+      }
+    },
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-3",
+    "createdAt": {
+      "_seconds": 1786026921,
+      "_nanoseconds": 792000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026921,
+      "_nanoseconds": 792000000
+    }
+  },
+  {
+    "id": "git-les-307",
+    "title": "3.7 Git Rebase",
+    "order": 7,
+    "duration": "15 mins",
+    "type": "lab",
+    "readingTime": "8 mins",
+    "content": "### Git Rebase\nApplies commits from a branch on top of another branch base. It creates a linear history by updating the base of your branch.",
+    "commands": {
+      "0": {
+        "command": "git rebase main",
+        "description": "Rebase active branch on main"
+      }
+    },
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-3",
+    "createdAt": {
+      "_seconds": 1786026922,
+      "_nanoseconds": 235000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026922,
+      "_nanoseconds": 235000000
+    }
+  },
+  {
+    "id": "git-les-308",
+    "title": "3.8 Interactive Rebase",
+    "order": 8,
+    "duration": "20 mins",
+    "type": "lab",
+    "readingTime": "10 mins",
+    "content": "### Interactive Rebase\nAllows reordering, editing, squashing, or dropping commits in a command interface.",
+    "commands": {
+      "0": {
+        "command": "git rebase -i HEAD~3",
+        "description": "Interactively rebase last 3 commits"
+      }
+    },
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-3",
+    "createdAt": {
+      "_seconds": 1786026923,
+      "_nanoseconds": 310000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026923,
+      "_nanoseconds": 310000000
+    }
+  },
+  {
+    "id": "git-les-309",
+    "title": "3.9 Squashing Commits",
+    "order": 9,
+    "duration": "15 mins",
+    "type": "reading",
+    "readingTime": "10 mins",
+    "content": "### Squashing Commits\nCombines multiple small commits into a single descriptive commit (often via interactive rebase or merge squashing) to maintain a clean git history.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-3",
+    "createdAt": {
+      "_seconds": 1786026923,
+      "_nanoseconds": 747000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026923,
+      "_nanoseconds": 747000000
+    }
+  },
+  {
+    "id": "git-les-310",
+    "title": "3.10 Cherry Pick",
+    "order": 10,
+    "duration": "15 mins",
+    "type": "lab",
+    "readingTime": "8 mins",
+    "content": "### git cherry-pick\nSelects a single specific commit from another branch and applies its changes directly onto your current branch.",
+    "commands": {
+      "0": {
+        "command": "git cherry-pick <commit-hash>",
+        "description": "Apply specific commit"
+      }
+    },
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-3",
+    "createdAt": {
+      "_seconds": 1786026924,
+      "_nanoseconds": 821000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026924,
+      "_nanoseconds": 821000000
+    }
+  },
+  {
+    "id": "git-les-401",
+    "title": "4.1 README.md",
+    "order": 1,
+    "duration": "10 mins",
+    "type": "reading",
+    "readingTime": "10 mins",
+    "content": "### README.md\nThe landing page of a repository. It provides documentation on how to build, run, and configure the project.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-4",
+    "createdAt": {
+      "_seconds": 1786026925,
+      "_nanoseconds": 289000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026925,
+      "_nanoseconds": 289000000
+    }
+  },
+  {
+    "id": "git-les-402",
+    "title": "4.2 Markdown",
+    "order": 2,
+    "duration": "15 mins",
+    "type": "reading",
+    "readingTime": "10 mins",
+    "content": "### Markdown syntax\nMarkdown is a lightweight markup language. E.g. `# Header`, `**bold**`, `*italic*`, `[Link](url)`, `` `code` ``.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-4",
+    "createdAt": {
+      "_seconds": 1786026926,
+      "_nanoseconds": 337000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026926,
+      "_nanoseconds": 337000000
+    }
+  },
+  {
+    "id": "git-les-403",
+    "title": "4.3 LICENSE",
+    "order": 3,
+    "duration": "10 mins",
+    "type": "reading",
+    "readingTime": "8 mins",
+    "content": "### Project Licenses\nSpecifies what permissions and restrictions apply to code redistribution and usage (e.g. MIT, Apache 2.0, GPL).",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-4",
+    "createdAt": {
+      "_seconds": 1786026926,
+      "_nanoseconds": 797000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026926,
+      "_nanoseconds": 797000000
+    }
+  },
+  {
+    "id": "git-les-404",
+    "title": "4.4 .gitignore",
+    "order": 4,
+    "duration": "10 mins",
+    "type": "reading",
+    "readingTime": "5 mins",
+    "content": "### .gitignore configuration\nA text file listing patterns of files and directories (like `node_modules/`, `.env`, build/ outputs) that Git should completely ignore.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-4",
+    "createdAt": {
+      "_seconds": 1786026927,
+      "_nanoseconds": 869000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026927,
+      "_nanoseconds": 869000000
+    }
+  },
+  {
+    "id": "git-les-405",
+    "title": "4.5 GitHub Issues",
+    "order": 5,
+    "duration": "15 mins",
+    "type": "reading",
+    "readingTime": "10 mins",
+    "content": "### GitHub Issues\nTrack bug reports, feature requests, and tasks. Integrates labels, assignees, and milestones.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-4",
+    "createdAt": {
+      "_seconds": 1786026928,
+      "_nanoseconds": 369000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026928,
+      "_nanoseconds": 369000000
+    }
+  },
+  {
+    "id": "git-les-406",
+    "title": "4.6 Project Boards",
+    "order": 6,
+    "duration": "15 mins",
+    "type": "reading",
+    "readingTime": "10 mins",
+    "content": "### Kanban Boards\nKanban-style boards to manage task workflows. Drag tasks between columns: \"To do\", \"In progress\", \"Done\".",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-4",
+    "createdAt": {
+      "_seconds": 1786026929,
+      "_nanoseconds": 373000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026929,
+      "_nanoseconds": 373000000
+    }
+  },
+  {
+    "id": "git-les-407",
+    "title": "4.7 GitHub Pages",
+    "order": 7,
+    "duration": "20 mins",
+    "type": "reading",
+    "readingTime": "15 mins",
+    "content": "### GitHub Pages hosting\nFree hosting for static websites directly from a GitHub repository (e.g. docs, portfolio).",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-4",
+    "createdAt": {
+      "_seconds": 1786026929,
+      "_nanoseconds": 891000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026929,
+      "_nanoseconds": 891000000
+    }
+  },
+  {
+    "id": "git-les-501",
+    "title": "5.1 CI/CD",
+    "order": 1,
+    "duration": "15 mins",
+    "type": "reading",
+    "readingTime": "10 mins",
+    "content": "### CI/CD Foundations\n- **Continuous Integration (CI):** Automates building and testing code changes.\n- **Continuous Delivery/Deployment (CD):** Automates releasing code to production servers.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-5",
+    "createdAt": {
+      "_seconds": 1786026930,
+      "_nanoseconds": 877000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026930,
+      "_nanoseconds": 877000000
+    }
+  },
+  {
+    "id": "git-les-502",
+    "title": "5.2 GitHub Actions",
+    "order": 2,
+    "duration": "15 mins",
+    "type": "reading",
+    "readingTime": "10 mins",
+    "content": "### GitHub Actions\nA built-in automation engine in GitHub to run workflows triggered by events (e.g. push, pull_request).",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-5",
+    "createdAt": {
+      "_seconds": 1786026931,
+      "_nanoseconds": 415000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026931,
+      "_nanoseconds": 415000000
+    }
+  },
+  {
+    "id": "git-les-503",
+    "title": "5.3 Workflow Files",
+    "order": 3,
+    "duration": "15 mins",
+    "type": "reading",
+    "readingTime": "10 mins",
+    "content": "### Workflow files\nWorkflows are stored inside the `.github/workflows/` directory as `.yml` files.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-5",
+    "createdAt": {
+      "_seconds": 1786026932,
+      "_nanoseconds": 389000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026932,
+      "_nanoseconds": 389000000
+    }
+  },
+  {
+    "id": "git-les-504",
+    "title": "5.4 YAML",
+    "order": 4,
+    "duration": "15 mins",
+    "type": "reading",
+    "readingTime": "10 mins",
+    "content": "### YAML Syntax\nYAML (YAML Ain't Markup Language) is key-value based, indentation-sensitive, human-readable structure.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-5",
+    "createdAt": {
+      "_seconds": 1786026932,
+      "_nanoseconds": 917000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026932,
+      "_nanoseconds": 917000000
+    }
+  },
+  {
+    "id": "git-les-505",
+    "title": "5.5 Jobs",
+    "order": 5,
+    "duration": "10 mins",
+    "type": "reading",
+    "readingTime": "5 mins",
+    "content": "### Jobs\nWorkflows consist of one or more jobs that run in parallel by default (can be set to run sequentially).",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-5",
+    "createdAt": {
+      "_seconds": 1786026933,
+      "_nanoseconds": 944000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026933,
+      "_nanoseconds": 944000000
+    }
+  },
+  {
+    "id": "git-les-506",
+    "title": "5.6 Steps",
+    "order": 6,
+    "duration": "10 mins",
+    "type": "reading",
+    "readingTime": "5 mins",
+    "content": "### Steps\nJobs contain a sequence of steps. Each step executes a shell command or runs a predefined action.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-5",
+    "createdAt": {
+      "_seconds": 1786026934,
+      "_nanoseconds": 436000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026934,
+      "_nanoseconds": 436000000
+    }
+  },
+  {
+    "id": "git-les-507",
+    "title": "5.7 Runners",
+    "order": 7,
+    "duration": "10 mins",
+    "type": "reading",
+    "readingTime": "5 mins",
+    "content": "### GitHub Runners\nVirtual machines (Ubuntu, Windows, macOS) hosted by GitHub that execute the workflow jobs.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-5",
+    "createdAt": {
+      "_seconds": 1786026935,
+      "_nanoseconds": 451000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026935,
+      "_nanoseconds": 452000000
+    }
+  },
+  {
+    "id": "git-les-508",
+    "title": "5.8 Automated Testing",
+    "order": 8,
+    "duration": "15 mins",
+    "type": "reading",
+    "readingTime": "10 mins",
+    "content": "### CI Automated Testing\nConfigure actions to run `npm test`, `pytest`, or compilation verification steps automatically on PR submit.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-5",
+    "createdAt": {
+      "_seconds": 1786026935,
+      "_nanoseconds": 953000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026935,
+      "_nanoseconds": 953000000
+    }
+  },
+  {
+    "id": "git-les-509",
+    "title": "5.9 GitHub Secrets",
+    "order": 9,
+    "duration": "15 mins",
+    "type": "reading",
+    "readingTime": "10 mins",
+    "content": "### Encrypted Secrets\nStore API keys and deploy tokens securely in repository settings, accessing them via `${{ secrets.MY_TOKEN }}`.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-5",
+    "createdAt": {
+      "_seconds": 1786026936,
+      "_nanoseconds": 981000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026936,
+      "_nanoseconds": 981000000
+    }
+  },
+  {
+    "id": "git-les-510",
+    "title": "5.10 Deploy to Vercel",
+    "order": 10,
+    "duration": "20 mins",
+    "type": "reading",
+    "readingTime": "15 mins",
+    "content": "### Vercel Deployment\nAutomate deployments to Vercel with GitHub Actions using the Vercel Deploy action and secrets.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-5",
+    "createdAt": {
+      "_seconds": 1786026937,
+      "_nanoseconds": 465000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026937,
+      "_nanoseconds": 465000000
+    }
+  },
+  {
+    "id": "git-les-511",
+    "title": "5.11 Deploy to Netlify",
+    "order": 11,
+    "duration": "20 mins",
+    "type": "reading",
+    "readingTime": "15 mins",
+    "content": "### Netlify Deployment\nConfigure Netlify deploy hooks or workflow actions to deploy static assets.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-5",
+    "createdAt": {
+      "_seconds": 1786026938,
+      "_nanoseconds": 507000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026938,
+      "_nanoseconds": 507000000
+    }
+  },
+  {
+    "id": "git-les-512",
+    "title": "5.12 Deploy to AWS",
+    "order": 12,
+    "duration": "20 mins",
+    "type": "reading",
+    "readingTime": "15 mins",
+    "content": "### AWS Deployment\nUsing AWS credentials, configure actions to build and deploy to S3, ECS, or Lambda.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-5",
+    "createdAt": {
+      "_seconds": 1786026939,
+      "_nanoseconds": 5000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026939,
+      "_nanoseconds": 5000000
+    }
+  },
+  {
+    "id": "git-les-601",
+    "title": "6.1 GitHub Codespaces",
+    "order": 1,
+    "duration": "15 mins",
+    "type": "reading",
+    "readingTime": "10 mins",
+    "content": "### GitHub Codespaces\nA cloud-hosted VS Code environment built directly into GitHub. Accessible inside any browser.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-6",
+    "createdAt": {
+      "_seconds": 1786026940,
+      "_nanoseconds": 27000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026940,
+      "_nanoseconds": 27000000
+    }
+  },
+  {
+    "id": "git-les-602",
+    "title": "6.2 Dev Containers",
+    "order": 2,
+    "duration": "15 mins",
+    "type": "reading",
+    "readingTime": "10 mins",
+    "content": "### Dev Containers\nDefine development environment parameters (dependencies, OS, extensions) inside a `.devcontainer/devcontainer.json` file.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-6",
+    "createdAt": {
+      "_seconds": 1786026940,
+      "_nanoseconds": 853000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026940,
+      "_nanoseconds": 853000000
+    }
+  },
+  {
+    "id": "git-les-603",
+    "title": "6.3 GitHub Copilot",
+    "order": 3,
+    "duration": "15 mins",
+    "type": "reading",
+    "readingTime": "10 mins",
+    "content": "### GitHub Copilot\nAn AI-powered pair programmer assistant. Suggests code lines and blocks directly inside the editor.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-6",
+    "createdAt": {
+      "_seconds": 1786026941,
+      "_nanoseconds": 545000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026941,
+      "_nanoseconds": 545000000
+    }
+  },
+  {
+    "id": "git-les-604",
+    "title": "6.4 Prompt Engineering",
+    "order": 4,
+    "duration": "15 mins",
+    "type": "reading",
+    "readingTime": "10 mins",
+    "content": "### Copilot Prompting\nLearn how to comment and prompt to guide GitHub Copilot to write correct functions and scripts.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-6",
+    "createdAt": {
+      "_seconds": 1786026942,
+      "_nanoseconds": 389000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026942,
+      "_nanoseconds": 389000000
+    }
+  },
+  {
+    "id": "git-les-605",
+    "title": "6.5 Dependabot",
+    "order": 5,
+    "duration": "15 mins",
+    "type": "reading",
+    "readingTime": "10 mins",
+    "content": "### Dependabot configuration\nAutomated updates for vulnerable dependencies. Scans package configuration and opens Pull Requests.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-6",
+    "createdAt": {
+      "_seconds": 1786026943,
+      "_nanoseconds": 50000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026943,
+      "_nanoseconds": 50000000
+    }
+  },
+  {
+    "id": "git-les-606",
+    "title": "6.6 Secret Scanning",
+    "order": 6,
+    "duration": "15 mins",
+    "type": "reading",
+    "readingTime": "10 mins",
+    "content": "### Secret scanning\nScans code commits for exposed credentials and alerts developers before credentials are leaked publicly.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-6",
+    "createdAt": {
+      "_seconds": 1786026943,
+      "_nanoseconds": 894000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026943,
+      "_nanoseconds": 894000000
+    }
+  },
+  {
+    "id": "git-les-607",
+    "title": "6.7 Branch Protection Rules",
+    "order": 7,
+    "duration": "20 mins",
+    "type": "reading",
+    "readingTime": "15 mins",
+    "content": "### Branch Protection Rules\nSecures branches (like `main`) by enforcing PR review approvals, status checks, and preventing force pushes.",
+    "courseId": "git-github-mastery-course-id",
+    "moduleId": "git-mod-6",
+    "createdAt": {
+      "_seconds": 1786026944,
+      "_nanoseconds": 571000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026944,
+      "_nanoseconds": 571000000
+    }
+  }
+]

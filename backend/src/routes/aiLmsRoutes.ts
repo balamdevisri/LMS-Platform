@@ -8,6 +8,8 @@ import { knowledgeAnalyzerService } from '../services/ai/KnowledgeAnalyzerServic
 import { questionBankService } from '../services/ai/QuestionBankService';
 import { quizGeneratorService } from '../services/ai/QuizGeneratorService';
 import { studentAnalysisService } from '../services/ai/StudentAnalysisService';
+import { verifyFirebaseToken, requireRole } from '../middleware/auth.middleware';
+import { aiRateLimiter } from '../middleware/rateLimiter.middleware';
 import { z } from 'zod';
 
 const router = Router();
@@ -52,7 +54,7 @@ const submitQuizSchema = z.object({
  * POST /api/ai-lms/course/analyze
  * Analyzes lesson content and extracts structured knowledge (topics, Linux commands, definitions)
  */
-router.post('/course/analyze', async (req: Request, res: Response) => {
+router.post('/course/analyze', verifyFirebaseToken as any, requireRole('admin') as any, aiRateLimiter as any, async (req: Request, res: Response) => {
   try {
     const parse = analyzeCourseSchema.safeParse(req.body);
     if (!parse.success) {
@@ -82,7 +84,7 @@ router.post('/course/analyze', async (req: Request, res: Response) => {
  * POST /api/ai-lms/course/generate-question-bank
  * Generates question bank across 8 question formats and 3 difficulty levels
  */
-router.post('/course/generate-question-bank', async (req: Request, res: Response) => {
+router.post('/course/generate-question-bank', verifyFirebaseToken as any, requireRole('admin') as any, aiRateLimiter as any, async (req: Request, res: Response) => {
   try {
     const parse = generateQuestionBankSchema.safeParse(req.body);
     if (!parse.success) {
@@ -115,7 +117,7 @@ router.post('/course/generate-question-bank', async (req: Request, res: Response
  * GET /api/ai-lms/course/knowledge
  * Gets extracted knowledge documents for a course
  */
-router.get('/course/knowledge', async (req: Request, res: Response) => {
+router.get('/course/knowledge', verifyFirebaseToken as any, aiRateLimiter as any, async (req: Request, res: Response) => {
   try {
     const courseId = req.query.courseId as string;
     if (!courseId) {
@@ -133,7 +135,7 @@ router.get('/course/knowledge', async (req: Request, res: Response) => {
  * GET /api/ai-lms/admin/question-stats
  * Admin dashboard question bank breakdown statistics
  */
-router.get('/admin/question-stats', async (req: Request, res: Response) => {
+router.get('/admin/question-stats', verifyFirebaseToken as any, requireRole('admin') as any, async (req: Request, res: Response) => {
   try {
     const courseId = req.query.courseId as string | undefined;
     const stats = await questionBankService.getQuestionBankStats(courseId);
@@ -147,7 +149,7 @@ router.get('/admin/question-stats', async (req: Request, res: Response) => {
  * POST /api/ai-lms/student/generate-quiz
  * Generates personalized unique adaptive quiz for a student
  */
-router.post('/student/generate-quiz', async (req: Request, res: Response) => {
+router.post('/student/generate-quiz', verifyFirebaseToken as any, aiRateLimiter as any, async (req: Request, res: Response) => {
   try {
     const parse = generateQuizSchema.safeParse(req.body);
     if (!parse.success) {
@@ -176,7 +178,7 @@ router.post('/student/generate-quiz', async (req: Request, res: Response) => {
  * POST /api/ai-lms/student/submit-quiz
  * Submits and auto-grades adaptive student quiz
  */
-router.post('/student/submit-quiz', async (req: Request, res: Response) => {
+router.post('/student/submit-quiz', verifyFirebaseToken as any, aiRateLimiter as any, async (req: Request, res: Response) => {
   try {
     const parse = submitQuizSchema.safeParse(req.body);
     if (!parse.success) {
@@ -205,7 +207,7 @@ router.post('/student/submit-quiz', async (req: Request, res: Response) => {
  * GET /api/ai-lms/student/analysis
  * Returns student performance analysis, weak topics, learning score, and speed
  */
-router.get('/student/analysis', async (req: Request, res: Response) => {
+router.get('/student/analysis', verifyFirebaseToken as any, aiRateLimiter as any, async (req: Request, res: Response) => {
   try {
     const studentId = (req.query.studentId as string) || 'student_demo';
     const courseId = (req.query.courseId as string) || 'course_default';

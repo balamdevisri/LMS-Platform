@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Search, GraduationCap, Mail, Plus, CheckCircle2, X, Loader2, Edit, Trash2, ShieldAlert, Radio, FileText, Calendar, UserCheck, AlertTriangle, Eye, Phone } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Search, GraduationCap, Mail, Plus, CheckCircle2, X, Loader2, Edit, Trash2, ShieldAlert, Radio, FileText, Calendar, UserCheck, AlertTriangle, Eye, Phone, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { instructorService, type InstructorUser } from '@/services/instructorService';
@@ -10,6 +10,7 @@ export const AdminInstructors: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'pending' | 'approved' | 'rejected'>('pending');
   const [loading, setLoading] = useState(true);
+  const [showAll, setShowAll] = useState(false);
   
   // Modals & Action States
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -35,31 +36,98 @@ export const AdminInstructors: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  const filteredInstructors = instructors.filter((inst) => {
-    const matchesSearch =
-      inst.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      inst.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      inst.specialty.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    // Normalize status match
-    const normalizedStatus = (inst.status || 'pending').toLowerCase();
-    const targetStatus = filterStatus;
-    
-    // Backwards compatibility check
-    let matchesStatus = false;
-    if (targetStatus === 'approved') {
-      matchesStatus = normalizedStatus === 'approved' || normalizedStatus === 'verified';
-    } else if (targetStatus === 'pending') {
-      matchesStatus = normalizedStatus === 'pending';
-    } else {
-      matchesStatus = normalizedStatus === 'rejected';
+  // Manual refresh — forces fresh getDocs + REST API call
+  const handleRefresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      // Try one-shot getDocs first (uses live Firebase SDK auth)
+      const firestoreData = await instructorService.fetchFromFirestoreDirectly();
+      if (firestoreData.length > 0) {
+        setInstructors(firestoreData);
+        setLoading(false);
+        return;
+      }
+      // Fallback to backend REST
+      const restData = await instructorService.fetchFirestoreInstructorsDirectly();
+      setInstructors(restData);
+    } catch (e) {
+      console.warn('Refresh error:', e);
+    } finally {
+      setLoading(false);
     }
+  }, []);
 
-    return matchesSearch && matchesStatus;
-  });
+  // Debug: Log instructor data whenever it changes
+  useEffect(() => {
+    if (instructors.length > 0) {
+      const pendingItems = instructors.filter(i => {
+        const st = (i.status || '').toLowerCase();
+        return !i.approved && st !== 'approved' && st !== 'active' && st !== 'rejected';
+      });
+      console.log(`[ADMIN DASHBOARD AUDIT] Total instructors received: ${instructors.length}`);
+      console.log(`[ADMIN DASHBOARD AUDIT] Pending instructors: ${pendingItems.length}`);
+      console.log(`[ADMIN DASHBOARD AUDIT] Instructor statuses:`, instructors.map(i => ({
+        id: i.id,
+        name: i.name,
+        status: i.status,
+        approved: i.approved,
+      })));
+    } else {
+      console.log('[ADMIN DASHBOARD AUDIT] instructors array is empty — check Firestore query and auth token.');
+    }
+  }, [instructors]);
 
-  const pendingCount = instructors.filter(i => (i.status || 'pending').toLowerCase() === 'pending').length;
-  const approvedCount = instructors.filter(i => ['approved', 'verified'].includes((i.status || '').toLowerCase())).length;
+
+  const filteredInstructors = showAll
+    ? instructors.filter((inst) => {
+        const name = (inst.name || '').toLowerCase();
+        const email = (inst.email || '').toLowerCase();
+        const specialty = (inst.specialty || '').toLowerCase();
+        const query = (searchQuery || '').toLowerCase();
+
+        const matchesSearch =
+          name.includes(query) ||
+          email.includes(query) ||
+          specialty.includes(query);
+        return matchesSearch;
+      })
+    : instructors.filter((inst) => {
+        const name = (inst.name || '').toLowerCase();
+        const email = (inst.email || '').toLowerCase();
+        const specialty = (inst.specialty || '').toLowerCase();
+        const query = (searchQuery || '').toLowerCase();
+
+        const matchesSearch =
+          name.includes(query) ||
+          email.includes(query) ||
+          specialty.includes(query);
+        
+        // Normalize status match
+        const normalizedStatus = (inst.status || 'pending').toLowerCase();
+        const isApproved = inst.approved === true || normalizedStatus === 'approved' || normalizedStatus === 'verified' || normalizedStatus === 'active';
+        const isRejected = normalizedStatus === 'rejected';
+        const targetStatus = filterStatus;
+        
+        let matchesStatus = false;
+        if (targetStatus === 'approved') {
+          matchesStatus = isApproved;
+        } else if (targetStatus === 'pending') {
+          matchesStatus = !isApproved && !isRejected;
+        } else {
+          matchesStatus = isRejected;
+        }
+
+        return matchesSearch && matchesStatus;
+      });
+
+  const pendingCount = instructors.filter(i => {
+    const st = (i.status || '').toLowerCase();
+    return !i.approved && st !== 'approved' && st !== 'verified' && st !== 'active' && st !== 'rejected';
+  }).length;
+  const approvedCount = instructors.filter(i => {
+    const st = (i.status || '').toLowerCase();
+    return i.approved === true || ['approved', 'verified', 'active'].includes(st);
+  }).length;
   const rejectedCount = instructors.filter(i => (i.status || '').toLowerCase() === 'rejected').length;
 
   const handleAddInstructor = async (e: React.FormEvent) => {
@@ -163,13 +231,25 @@ export const AdminInstructors: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => setAddModalOpen(true)}
-          className="btn-blue-primary text-xs py-3 px-5 shadow-lg shadow-sky-500/20 flex items-center justify-center gap-2 font-bold cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Onboard Approved Instructor</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={handleRefresh}
+            disabled={loading}
+            className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl border border-sky-200 bg-white text-sky-700 text-xs font-bold hover:bg-sky-50 transition-all cursor-pointer disabled:opacity-50"
+            title="Force refresh from Firestore"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <span>Sync</span>
+          </button>
+
+          <button
+            onClick={() => setAddModalOpen(true)}
+            className="btn-blue-primary text-xs py-3 px-5 shadow-lg shadow-sky-500/20 flex items-center justify-center gap-2 font-bold cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Onboard Approved Instructor</span>
+          </button>
+        </div>
       </div>
 
       {/* Search & Filter Bar */}
@@ -189,39 +269,51 @@ export const AdminInstructors: React.FC = () => {
           {/* Workflow Tabs */}
           <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
             <button
-              onClick={() => setFilterStatus('pending')}
+              onClick={() => { setFilterStatus('pending'); setShowAll(false); }}
               className={`py-2 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-                filterStatus === 'pending'
+                !showAll && filterStatus === 'pending'
                   ? 'bg-amber-500 text-white shadow-xs'
                   : 'bg-slate-50 text-slate-600 hover:text-slate-900 border border-sky-100'
               }`}
             >
               <span>Pending Requests</span>
-              <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${filterStatus === 'pending' ? 'bg-white text-amber-600' : 'bg-slate-200 text-slate-700'}`}>{pendingCount}</span>
+              <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${!showAll && filterStatus === 'pending' ? 'bg-white text-amber-600' : 'bg-slate-200 text-slate-700'}`}>{pendingCount}</span>
             </button>
 
             <button
-              onClick={() => setFilterStatus('approved')}
+              onClick={() => { setFilterStatus('approved'); setShowAll(false); }}
               className={`py-2 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-                filterStatus === 'approved'
+                !showAll && filterStatus === 'approved'
                   ? 'bg-emerald-600 text-white shadow-xs'
                   : 'bg-slate-50 text-slate-600 hover:text-slate-900 border border-sky-100'
               }`}
             >
               <span>Approved Instructors</span>
-              <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${filterStatus === 'approved' ? 'bg-white text-emerald-600' : 'bg-slate-200 text-slate-700'}`}>{approvedCount}</span>
+              <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${!showAll && filterStatus === 'approved' ? 'bg-white text-emerald-600' : 'bg-slate-200 text-slate-700'}`}>{approvedCount}</span>
             </button>
 
             <button
-              onClick={() => setFilterStatus('rejected')}
+              onClick={() => { setFilterStatus('rejected'); setShowAll(false); }}
               className={`py-2 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-                filterStatus === 'rejected'
+                !showAll && filterStatus === 'rejected'
                   ? 'bg-rose-600 text-white shadow-xs'
                   : 'bg-slate-50 text-slate-600 hover:text-slate-900 border border-sky-100'
               }`}
             >
               <span>Rejected Instructors</span>
-              <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${filterStatus === 'rejected' ? 'bg-white text-rose-600' : 'bg-slate-200 text-slate-700'}`}>{rejectedCount}</span>
+              <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${!showAll && filterStatus === 'rejected' ? 'bg-white text-rose-600' : 'bg-slate-200 text-slate-700'}`}>{rejectedCount}</span>
+            </button>
+
+            <button
+              onClick={() => setShowAll(!showAll)}
+              className={`py-2 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                showAll
+                  ? 'bg-slate-800 text-white shadow-xs'
+                  : 'bg-slate-50 text-slate-600 hover:text-slate-900 border border-sky-100'
+              }`}
+            >
+              <span>Show All</span>
+              <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${showAll ? 'bg-white text-slate-700' : 'bg-slate-200 text-slate-700'}`}>{instructors.length}</span>
             </button>
           </div>
         </div>
@@ -235,8 +327,26 @@ export const AdminInstructors: React.FC = () => {
         ) : filteredInstructors.length === 0 ? (
           <div className="py-16 text-center text-slate-500 text-xs font-medium space-y-3 border border-dashed border-sky-200 rounded-2xl bg-slate-50/20">
             <GraduationCap className="w-12 h-12 text-sky-200 mx-auto" />
-            <p className="text-slate-800 font-bold text-sm">No instructors found in this category.</p>
-            <p className="text-slate-400 text-xs">Applications matching status &quot;{filterStatus}&quot; will appear here.</p>
+            <p className="text-slate-800 font-bold text-sm">
+              {instructors.length === 0
+                ? 'No instructors found in Firestore.'
+                : `No instructors in "${showAll ? 'all' : filterStatus}" view.`
+              }
+            </p>
+            <p className="text-slate-400 text-xs max-w-xs mx-auto">
+              {instructors.length === 0
+                ? 'Instructors who register with role="instructor" will appear here in real time.'
+                : `Total ${instructors.length} instructor(s) found — try switching tabs or click "Show All" to see them.`
+              }
+            </p>
+            {instructors.length > 0 && !showAll && (
+              <button
+                onClick={() => setShowAll(true)}
+                className="mt-2 inline-flex items-center gap-2 bg-slate-900 text-white text-xs font-bold py-2 px-4 rounded-xl cursor-pointer hover:bg-slate-800 transition-all"
+              >
+                <span>Show All {instructors.length} Instructors</span>
+              </button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">

@@ -12,6 +12,7 @@ import {
   RegistrationPendingPayload,
   RegistrationApprovedPayload,
   RegistrationRejectedPayload,
+  InstructorRegistrationPendingPayload,
   EmailVerificationPayload,
   PasswordResetPayload,
   CourseEnrollmentPayload,
@@ -508,34 +509,99 @@ export const buildInstructorApprovalTemplate = (
 ): { subject: string; html: string } => {
   const isApproved = payload.status === 'approved';
   const subject = isApproved 
-    ? 'Your Instructor Account Has Been Approved | Kaizen Q LMS' 
-    : 'Instructor Application Update | Kaizen Q LMS';
-  const ctaUrl = payload.portalUrl || 'https://shaivika.com/instructor';
+    ? '🎉 Welcome to KaizenQ LMS Platform — You are Approved!' 
+    : 'Instructor Application Status Update | KaizenQ LMS';
+  const ctaUrl = payload.portalUrl || 'https://shaivika-lms.vercel.app/auth/login';
 
   const contentHtml = `
-    <h1 class="h1-title" style="font-size: 24px; font-weight: 800; color: #0F172A; margin-bottom: 12px;">Instructor Account Status</h1>
-    <p class="p-text" style="font-size: 15px; color: #334155; line-height: 1.6;">Hello <strong>${payload.instructorName}</strong>,</p>
-    <p class="p-text" style="font-size: 15px; color: #334155; line-height: 1.6;">${
-      isApproved
-        ? 'Congratulations! Your instructor application for KaizenQ LMS has been approved. You are now appointed as an instructor. You can now publish courses, host interactive Linux labs, and view class analytics.'
-        : 'Thank you for your interest in becoming an instructor with KaizenQ LMS. After reviewing your application details, we are unable to approve your instructor account at this time.'
-    }</p>
-
-    <div class="metric-box" style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-left: 4px solid ${isApproved ? '#10B981' : '#EF4444'}; border-radius: 16px; padding: 20px; margin: 24px 0;">
-      <div class="metric-label" style="font-size: 11px; font-weight: 800; color: #64748B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Application Status</div>
-      <div class="metric-value" style="font-size: 20px; font-weight: 800; color: ${isApproved ? '#059669' : '#DC2626'};">
-        ${payload.status.toUpperCase()}
+    <!-- Dark Theme Container -->
+    <div style="background-color: #0F172A; border-radius: 16px; border: 1px solid #1E293B; padding: 28px 32px; color: #F8FAFC; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;">
+      
+      <!-- Gradient Logo Banner -->
+      <div style="background: linear-gradient(135deg, ${isApproved ? '#1E40AF 0%, #4F46E5 50%, #7C3AED 100%' : '#DC2626 0%, #EF4444 100%'}); padding: 22px 28px; border-radius: 14px; margin-bottom: 28px; text-align: center;">
+        <div style="font-size: 11px; color: #A5B4FC; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px;">Powered by Shaivika Groups</div>
+        <div style="font-size: 26px; font-weight: 900; color: #FFFFFF; letter-spacing: 1px;">KaizenQ LMS</div>
+        <div style="font-size: 11px; color: #C7D2FE; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 4px;">Faculty Instructor Portal</div>
       </div>
-      ${payload.comments ? `<p style="font-size: 13.5px; color: #475569; margin-top: 8px; font-weight: 500; line-height: 1.5;"><strong>Admin Notes:</strong> ${payload.comments}</p>` : ''}
-    </div>
 
-    ${isApproved ? `
-    <div style="background-color: #F0F9FF; border: 1px solid #BAE6FD; border-radius: 14px; padding: 18px; margin-bottom: 24px;">
-      <p style="margin: 0; font-size: 14px; color: #0369A1; line-height: 1.6;">
-        💡 <strong>Getting Started:</strong> Click the button below to sign in using your registered credentials. Once logged in, you will be redirected to the Instructor Dashboard where you can schedule live classes, enable student quizzes, and configure Linux environments.
+      <!-- Greeting -->
+      <h2 style="font-size: 20px; font-weight: 700; color: #F8FAFC; margin: 0 0 16px 0;">
+        Hello ${payload.instructorName},
+      </h2>
+
+      ${
+        isApproved
+          ? `
+      <!-- Welcome Headline -->
+      <p style="font-size: 22px; font-weight: 900; color: #34D399; margin: 0 0 8px 0;">🎉 Welcome to KaizenQ LMS Platform!</p>
+      <p style="font-size: 14px; color: #A5B4FC; font-weight: 600; margin: 0 0 20px 0; text-transform: uppercase; letter-spacing: 1px;">Powered by Shaivika Groups</p>
+
+      <p style="font-size: 15px; color: #CBD5E1; line-height: 1.7; margin: 0 0 14px 0;">
+        We are thrilled to inform you that your Instructor application has been <strong style="color: #34D399;">officially approved</strong> by the KaizenQ administration team.
       </p>
+
+      <p style="font-size: 15px; color: #CBD5E1; line-height: 1.7; margin: 0 0 20px 0;">
+        You now have full access to the <strong style="color: #FFFFFF;">KaizenQ Instructor Dashboard</strong> where you can manage courses, monitor student progress, and deliver world-class education.
+      </p>
+
+      <!-- Welcome Feature Highlights -->
+      <div style="background-color: #1E293B; border-radius: 14px; padding: 22px 24px; margin: 20px 0;">
+        <p style="font-size: 13px; color: #64748B; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 16px 0;">Your Instructor Access Includes</p>
+        <div style="display: flex; align-items: flex-start; margin-bottom: 12px;">
+          <span style="font-size: 18px; margin-right: 12px; min-width: 24px;">📚</span>
+          <p style="font-size: 14px; color: #CBD5E1; margin: 0; line-height: 1.5;">Full Instructor Dashboard &amp; Course Management</p>
+        </div>
+        <div style="display: flex; align-items: flex-start; margin-bottom: 12px;">
+          <span style="font-size: 18px; margin-right: 12px; min-width: 24px;">📊</span>
+          <p style="font-size: 14px; color: #CBD5E1; margin: 0; line-height: 1.5;">Student Progress Tracking &amp; Analytics</p>
+        </div>
+        <div style="display: flex; align-items: flex-start; margin-bottom: 12px;">
+          <span style="font-size: 18px; margin-right: 12px; min-width: 24px;">🎓</span>
+          <p style="font-size: 14px; color: #CBD5E1; margin: 0; line-height: 1.5;">Certificate Issuance &amp; Live Classroom Tools</p>
+        </div>
+        <div style="display: flex; align-items: flex-start;">
+          <span style="font-size: 18px; margin-right: 12px; min-width: 24px;">🤝</span>
+          <p style="font-size: 14px; color: #CBD5E1; margin: 0; line-height: 1.5;">Dedicated Instructor Support from Shaivika Groups</p>
+        </div>
+      </div>
+
+      <!-- CTA Button -->
+      <div style="text-align: center; margin: 32px 0 24px 0;">
+        <a href="${ctaUrl}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #2563EB 0%, #7C3AED 100%); color: #FFFFFF; font-size: 16px; font-weight: 800; text-decoration: none; padding: 16px 40px; border-radius: 14px; box-shadow: 0 8px 32px rgba(99, 102, 241, 0.4); letter-spacing: 0.5px;">
+          Access KaizenQ Dashboard 🚀
+        </a>
+      </div>
+
+      <!-- Branding Tag -->
+      <div style="text-align: center; background: linear-gradient(135deg, rgba(99,102,241,0.15) 0%, rgba(124,58,237,0.1) 100%); border: 1px solid rgba(99,102,241,0.3); border-radius: 10px; padding: 14px 20px; margin: 16px 0;">
+        <p style="font-size: 13px; color: #A5B4FC; font-weight: 700; margin: 0;">KaizenQ LMS Platform &bull; Powered by Shaivika Groups</p>
+        <p style="font-size: 12px; color: #64748B; margin: 4px 0 0 0;">Empowering Education Through Technology</p>
+      </div>
+      `
+          : `
+      <p style="font-size: 15px; color: #CBD5E1; line-height: 1.7; margin: 0 0 14px 0;">
+        Thank you for your interest in joining <strong style="color: #FFFFFF;">KaizenQ LMS</strong> as a Faculty Instructor.
+      </p>
+      <p style="font-size: 15px; color: #CBD5E1; line-height: 1.7; margin: 0 0 20px 0;">
+        After careful administrative review, we are currently unable to approve your instructor account at this time. ${payload.comments ? `<br><strong style="color: #F87171;">Reason:</strong> ${payload.comments}` : ''}
+      </p>
+      <p style="font-size: 14px; color: #94A3B8; line-height: 1.6; margin: 0 0 16px 0;">
+        You may re-apply in the future or contact us for further clarification.
+      </p>
+      `
+      }
+
+      <!-- Footer & Support Section -->
+      <div style="border-top: 1px solid #1E293B; margin-top: 28px; padding-top: 20px; font-size: 13px; color: #94A3B8;">
+        <p style="margin: 0 0 12px 0;">Questions? Reach us at <a href="mailto:kaizenq.lms@gmail.com" style="color: #38BDF8; text-decoration: underline;">kaizenq.lms@gmail.com</a></p>
+        <p style="margin: 0; font-size: 14px; color: #E2E8F0; font-weight: 700;">
+          Warm regards,<br>
+          <span style="color: #818CF8;">KaizenQ LMS Team</span><br>
+          <span style="font-size: 12px; color: #64748B; font-weight: 400;">Powered by Shaivika Groups</span>
+        </p>
+      </div>
+
     </div>
-    ` : ''}
   `;
 
   return {
@@ -543,11 +609,9 @@ export const buildInstructorApprovalTemplate = (
     html: renderMasterLayout({
       title: subject,
       preheader: isApproved 
-        ? `Congratulations ${payload.instructorName}, your instructor application has been approved!` 
-        : `Update regarding your instructor application status.`,
+        ? `Welcome ${payload.instructorName}! You are approved on KaizenQ LMS Platform powered by Shaivika Groups.` 
+        : `Update regarding your KaizenQ LMS instructor application.`,
       contentHtml,
-      ctaText: isApproved ? 'Sign In to Portal 🚀' : 'Contact Support',
-      ctaUrl: isApproved ? ctaUrl : 'mailto:kaizenq.lms@gmail.com',
     }),
   };
 };
@@ -597,130 +661,222 @@ export const buildAdminNotificationTemplate = (
  * Registration Pending Welcome Email Template (Student Signup Confirmation)
  */
 export const buildRegistrationPendingTemplate = (payload: RegistrationPendingPayload) => {
-  const subject = `🚀 Welcome to KaizenQ LMS, ${payload.studentName}!`;
+  const subject = `Welcome to SHAIVIKA LMS – Registration Received`;
 
   const contentHtml = `
-    <!-- Hero Greeting Header -->
-    <div style="text-align: left; margin-bottom: 24px;">
-      <span style="display: inline-block; background-color: #FEF3C7; color: #D97706; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; padding: 6px 14px; border-radius: 9999px; border: 1px solid #FDE68A;">
-        ⏳ Step 1 Complete • Pending Admin Approval
-      </span>
-      <h1 style="font-size: 24px; font-weight: 800; color: #0F172A; margin: 16px 0 8px 0; letter-spacing: -0.5px;">
-        Welcome to KaizenQ AI LMS!
-      </h1>
-      <p style="font-size: 15px; color: #475569; margin: 0; line-height: 1.6;">
-        Hello <strong>${payload.studentName}</strong>, your student registration form has been successfully submitted and logged in our system.
-      </p>
-    </div>
-
-    <!-- Details Box -->
-    <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-left: 4px solid #0284C7; border-radius: 16px; padding: 22px; margin: 24px 0;">
-      <div style="font-size: 11px; font-weight: 800; color: #64748B; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">
-        REGISTRATION PROFILE SUMMARY
-      </div>
+    <!-- Dark Theme Card Container -->
+    <div style="background-color: #0F172A; border-radius: 16px; border: 1px solid #1E293B; padding: 28px 32px; color: #F8FAFC; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;">
       
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size: 14px; color: #334155;">
-        <tr>
-          <td style="padding: 6px 0; font-weight: 600; width: 140px; color: #64748B;">Student Name:</td>
-          <td style="padding: 6px 0; font-weight: 700; color: #0F172A;">${payload.studentName}</td>
-        </tr>
-        <tr>
-          <td style="padding: 6px 0; font-weight: 600; color: #64748B;">College Email:</td>
-          <td style="padding: 6px 0; font-weight: 700; color: #0284C7; font-family: monospace;">${payload.email}</td>
-        </tr>
-        <tr>
-          <td style="padding: 6px 0; font-weight: 600; color: #64748B;">GitHub URL:</td>
-          <td style="padding: 6px 0;">
-            <a href="${payload.githubUrl}" target="_blank" style="color: #2563EB; font-weight: 700; text-decoration: underline;">
-              ${payload.githubUrl}
-            </a>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding: 6px 0; font-weight: 600; color: #64748B;">Account Status:</td>
-          <td style="padding: 6px 0;">
-            <span style="background-color: #FEF3C7; color: #B45309; font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 6px; display: inline-block;">
-              ${payload.status || 'Pending Approval'}
-            </span>
-          </td>
-        </tr>
-      </table>
-    </div>
+      <!-- Gradient Logo Header -->
+      <div style="background: linear-gradient(135deg, #2563EB 0%, #7C3AED 100%); padding: 20px 24px; border-radius: 12px; margin-bottom: 24px;">
+        <div style="font-size: 22px; font-weight: 900; color: #FFFFFF; letter-spacing: 0.5px;">SHAIVIKA LMS</div>
+        <div style="font-size: 11px; color: #E0E7FF; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;">Learning Management System</div>
+      </div>
 
-    <!-- Informational Note -->
-    <div style="background-color: #F0F9FF; border: 1px solid #BAE6FD; border-radius: 14px; padding: 18px; margin-bottom: 24px;">
-      <p style="margin: 0; font-size: 14px; color: #0369A1; line-height: 1.6;">
-        💡 <strong>What Happens Next?</strong> Our administration team will review your GitHub portfolio and college details. Once approved, you will receive an instant activation email to access Linux sandboxes, AI code tutors, and certification tracks.
+      <!-- Greeting -->
+      <h2 style="font-size: 20px; font-weight: 700; color: #F8FAFC; margin: 0 0 16px 0;">
+        Hello ${payload.studentName},
+      </h2>
+
+      <!-- Message Content -->
+      <p style="font-size: 15px; color: #CBD5E1; line-height: 1.7; margin: 0 0 14px 0;">
+        Thank you for registering with <strong>SHAIVIKA Learning Management System</strong>.
       </p>
+
+      <p style="font-size: 15px; color: #CBD5E1; line-height: 1.7; margin: 0 0 14px 0;">
+        Your registration has been received successfully.
+      </p>
+
+      <p style="font-size: 15px; color: #CBD5E1; line-height: 1.7; margin: 0 0 14px 0;">
+        Your account is currently under administrator review.
+      </p>
+
+      <p style="font-size: 15px; color: #CBD5E1; line-height: 1.7; margin: 0 0 14px 0;">
+        Once approved, you will receive another email confirming your account activation.
+      </p>
+
+      <!-- Status Highlight Box -->
+      <div style="background-color: #1E293B; border-left: 4px solid #38BDF8; border-radius: 10px; padding: 18px; margin: 20px 0;">
+        <p style="font-size: 13.5px; color: #38BDF8; font-weight: 700; margin: 0 0 4px 0; text-transform: uppercase; letter-spacing: 0.5px;">
+          ⏳ Status: Pending Administrator Approval
+        </p>
+        <p style="font-size: 14px; color: #94A3B8; margin: 0; line-height: 1.5;">
+          Registered Email: <span style="color: #F8FAFC; font-family: monospace; font-weight: 600;">${payload.email}</span>
+        </p>
+      </div>
+
+      <!-- Warning Note -->
+      <p style="font-size: 14px; color: #F8FAFC; font-weight: 600; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); padding: 14px 18px; border-radius: 10px; margin: 20px 0 24px 0; line-height: 1.5;">
+        ⚠️ Please do not create another account while waiting.
+      </p>
+
+      <!-- Footer & Support Section -->
+      <div style="border-top: 1px solid #1E293B; margin-top: 28px; padding-top: 20px; font-size: 13px; color: #94A3B8;">
+        <p style="margin: 0 0 12px 0;">Need assistance? Contact support at <a href="mailto:kaizenq.lms@gmail.com" style="color: #38BDF8; text-decoration: underline;">kaizenq.lms@gmail.com</a></p>
+        <p style="margin: 0; font-size: 14px; color: #E2E8F0; font-weight: 700;">
+          Regards,<br>
+          <span style="color: #38BDF8;">SHAIVIKA LMS Team</span>
+        </p>
+      </div>
+
     </div>
-
-    <p style="font-size: 14px; color: #64748B; margin-top: 24px;">
-      Best regards,<br>
-      <strong style="color: #0F172A;">KaizenQ Engineering Team</strong>
-    </p>
   `;
-
-  const targetCtaUrl = payload.verificationLink || `https://shaivika-lms.vercel.app/auth/login?verified=true&email=${encodeURIComponent(payload.email)}`;
 
   return {
     subject,
     html: renderMasterLayout({
       title: subject,
-      preheader: `Welcome to KaizenQ LMS, ${payload.studentName}! Please verify your email to access your account.`,
+      preheader: `Hello ${payload.studentName}, your registration with SHAIVIKA LMS has been received and is under review.`,
       contentHtml,
-      ctaText: '✨ Verify Email & Sign In to KaizenQ',
-      ctaUrl: targetCtaUrl,
     }),
   };
 };
 
 /**
- * Registration Approved Email Template
+ * Instructor Registration Pending Email Template
  */
-export const buildRegistrationApprovedTemplate = (payload: RegistrationApprovedPayload) => {
-  const subject = `🎉 Congratulations ${payload.studentName}! Your KaizenQ Account is Approved!`;
-  const ctaUrl = payload.dashboardUrl || 'https://shaivika-lms.vercel.app/auth/login';
+export const buildInstructorRegistrationPendingTemplate = (payload: InstructorRegistrationPendingPayload) => {
+  const subject = `Application Received — Awaiting Admin Approval | KaizenQ LMS`;
 
   const contentHtml = `
-    <!-- Hero Celebration Header -->
-    <div style="text-align: left; margin-bottom: 24px;">
-      <span style="display: inline-block; background-color: #D1FAE5; color: #047857; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; padding: 6px 14px; border-radius: 9999px; border: 1px solid #A7F3D0;">
-        ✅ Account Verified & Approved
-      </span>
-      <h1 style="font-size: 24px; font-weight: 800; color: #0F172A; margin: 16px 0 8px 0; letter-spacing: -0.5px;">
-        Welcome to the KaizenQ LMS Platform!
-      </h1>
-      <p style="font-size: 15px; color: #475569; margin: 0; line-height: 1.6;">
-        Hello <strong>${payload.studentName}</strong>, great news! Your student account has been officially <strong>Approved</strong> by the KaizenQ administration team.
-      </p>
-    </div>
-
-    <!-- Feature Highlights Box -->
-    <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-left: 4px solid #10B981; border-radius: 16px; padding: 22px; margin: 24px 0;">
-      <div style="font-size: 11px; font-weight: 800; color: #059669; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">
-        WHAT YOU CAN DO NOW
+    <!-- Dark Theme Card Container -->
+    <div style="background-color: #0F172A; border-radius: 16px; border: 1px solid #1E293B; padding: 28px 32px; color: #F8FAFC; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;">
+      
+      <!-- Gradient Logo Header -->
+      <div style="background: linear-gradient(135deg, #1E40AF 0%, #4F46E5 50%, #7C3AED 100%); padding: 22px 28px; border-radius: 14px; margin-bottom: 28px; text-align: center;">
+        <div style="font-size: 11px; color: #A5B4FC; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px;">Powered by Shaivika Groups</div>
+        <div style="font-size: 26px; font-weight: 900; color: #FFFFFF; letter-spacing: 1px;">KaizenQ LMS</div>
+        <div style="font-size: 11px; color: #C7D2FE; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 4px;">Faculty Instructor Portal</div>
       </div>
-      <ul style="margin: 0; padding-left: 18px; color: #334155; font-size: 14px; line-height: 1.8;">
-        <li>💻 <strong>Real-time Linux Sandboxes:</strong> Run interactive bash commands in browser environment.</li>
-        <li>🤖 <strong>24/7 AI Code Mentor:</strong> Instant pair programming & bug resolution support.</li>
-        <li>🏆 <strong>ISO Cryptographic Credentials:</strong> Earn shareable certificates for your resume.</li>
-      </ul>
-    </div>
 
-    <!-- CTA Prompt -->
-    <p style="font-size: 15px; color: #334155; text-align: center; margin: 28px 0 12px 0; font-weight: 600;">
-      Ready to start your learning journey? Click below to log in:
-    </p>
+      <!-- Greeting -->
+      <h2 style="font-size: 20px; font-weight: 700; color: #F8FAFC; margin: 0 0 16px 0;">
+        Hello ${payload.instructorName},
+      </h2>
+
+      <!-- Message Content -->
+      <p style="font-size: 15px; color: #CBD5E1; line-height: 1.7; margin: 0 0 14px 0;">
+        Thank you for registering as a Faculty Instructor on <strong style="color: #FFFFFF;">KaizenQ LMS</strong>, powered by <strong style="color: #A5B4FC;">Shaivika Groups</strong>.
+      </p>
+
+      <p style="font-size: 15px; color: #CBD5E1; line-height: 1.7; margin: 0 0 14px 0;">
+        Your application has been <strong style="color: #34D399;">successfully received</strong> and is currently under review by our administration team.
+      </p>
+
+      <!-- Wait for Approval Box (prominent) -->
+      <div style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(251, 191, 36, 0.08) 100%); border: 1.5px solid #F59E0B; border-radius: 14px; padding: 22px 24px; margin: 24px 0;">
+        <div style="display: flex; align-items: center; margin-bottom: 10px;">
+          <span style="font-size: 24px; margin-right: 10px;">⏳</span>
+          <p style="font-size: 15px; color: #FCD34D; font-weight: 800; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">Waiting for Admin Approval</p>
+        </div>
+        <p style="font-size: 14px; color: #94A3B8; margin: 0 0 10px 0; line-height: 1.6;">
+          Your account is <strong style="color: #FCD34D;">not yet active</strong>. Please do not try to log in until you receive your approval confirmation email.
+        </p>
+        <p style="font-size: 13px; color: #64748B; margin: 0; font-family: monospace;">
+          Registered Email: <span style="color: #F8FAFC; font-weight: 600;">${payload.email}</span>
+        </p>
+      </div>
+
+      <!-- What Happens Next -->
+      <div style="background-color: #1E293B; border-radius: 12px; padding: 20px 24px; margin: 20px 0;">
+        <p style="font-size: 13px; color: #64748B; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 14px 0;">What Happens Next?</p>
+        <div style="display: flex; align-items: flex-start; margin-bottom: 12px;">
+          <span style="font-size: 18px; margin-right: 12px; min-width: 24px;">1️⃣</span>
+          <p style="font-size: 14px; color: #CBD5E1; margin: 0; line-height: 1.5;">Our admin team reviews your instructor application</p>
+        </div>
+        <div style="display: flex; align-items: flex-start; margin-bottom: 12px;">
+          <span style="font-size: 18px; margin-right: 12px; min-width: 24px;">2️⃣</span>
+          <p style="font-size: 14px; color: #CBD5E1; margin: 0; line-height: 1.5;">Upon approval, you'll receive a <strong style="color: #34D399;">Welcome Email</strong> with your login credentials</p>
+        </div>
+        <div style="display: flex; align-items: flex-start;">
+          <span style="font-size: 18px; margin-right: 12px; min-width: 24px;">3️⃣</span>
+          <p style="font-size: 14px; color: #CBD5E1; margin: 0; line-height: 1.5;">You'll gain full access to the KaizenQ Instructor Dashboard</p>
+        </div>
+      </div>
+
+      <!-- Footer & Support Section -->
+      <div style="border-top: 1px solid #1E293B; margin-top: 28px; padding-top: 20px; font-size: 13px; color: #94A3B8;">
+        <p style="margin: 0 0 12px 0;">Questions? Contact us at <a href="mailto:kaizenq.lms@gmail.com" style="color: #38BDF8; text-decoration: underline;">kaizenq.lms@gmail.com</a></p>
+        <p style="margin: 0; font-size: 14px; color: #E2E8F0; font-weight: 700;">
+          Warm regards,<br>
+          <span style="color: #818CF8;">KaizenQ LMS Team</span><br>
+          <span style="font-size: 12px; color: #64748B; font-weight: 400;">Powered by Shaivika Groups</span>
+        </p>
+      </div>
+
+    </div>
   `;
 
   return {
     subject,
     html: renderMasterLayout({
       title: subject,
-      preheader: `Congratulations ${payload.studentName}! Your KaizenQ student account is approved!`,
+      preheader: `Hello ${payload.instructorName} — your KaizenQ LMS instructor application has been received. Please wait for admin approval.`,
       contentHtml,
-      ctaText: 'Access Student Dashboard 🚀',
-      ctaUrl,
+    }),
+  };
+};
+
+/**
+ * Registration Approved Email Template (Student)
+ */
+export const buildRegistrationApprovedTemplate = (payload: RegistrationApprovedPayload) => {
+  const subject = `Congratulations! Your SHAIVIKA LMS Account is Approved`;
+  const ctaUrl = payload.dashboardUrl || 'https://shaivika-lms.vercel.app/auth/login';
+
+  const contentHtml = `
+    <!-- Dark Theme Container -->
+    <div style="background-color: #0F172A; border-radius: 16px; border: 1px solid #1E293B; padding: 28px 32px; color: #F8FAFC; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;">
+      
+      <!-- Gradient Logo Banner -->
+      <div style="background: linear-gradient(135deg, #059669 0%, #10B981 100%); padding: 20px 24px; border-radius: 12px; margin-bottom: 24px;">
+        <div style="font-size: 22px; font-weight: 900; color: #FFFFFF; letter-spacing: 0.5px;">SHAIVIKA LMS</div>
+        <div style="font-size: 11px; color: #D1FAE5; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;">Account Activation &bull; Student Portal</div>
+      </div>
+
+      <!-- Greeting -->
+      <h2 style="font-size: 20px; font-weight: 700; color: #F8FAFC; margin: 0 0 16px 0;">
+        Hello ${payload.studentName},
+      </h2>
+
+      <!-- Message -->
+      <p style="font-size: 16px; font-weight: 700; color: #10B981; margin: 0 0 12px 0;">
+        🎉 Congratulations!
+      </p>
+
+      <p style="font-size: 15px; color: #CBD5E1; line-height: 1.7; margin: 0 0 14px 0;">
+        Your account has been approved.
+      </p>
+
+      <p style="font-size: 15px; color: #CBD5E1; line-height: 1.7; margin: 0 0 20px 0;">
+        You can now login to <strong>SHAIVIKA LMS</strong> and start learning.
+      </p>
+
+      <!-- Dashboard Button -->
+      <div style="text-align: center; margin: 28px 0;">
+        <a href="${ctaUrl}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #059669 0%, #10B981 100%); color: #FFFFFF; font-size: 15px; font-weight: 800; text-decoration: none; padding: 14px 36px; border-radius: 12px; box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);">
+          Access Student Dashboard 🚀
+        </a>
+      </div>
+
+      <!-- Footer & Support -->
+      <div style="border-top: 1px solid #1E293B; margin-top: 28px; padding-top: 20px; font-size: 13px; color: #94A3B8;">
+        <p style="margin: 0 0 12px 0;">Need support? Contact us at <a href="mailto:kaizenq.lms@gmail.com" style="color: #38BDF8; text-decoration: underline;">kaizenq.lms@gmail.com</a></p>
+        <p style="margin: 0; font-size: 14px; color: #E2E8F0; font-weight: 700;">
+          Regards,<br>
+          <span style="color: #10B981;">SHAIVIKA LMS Team</span>
+        </p>
+      </div>
+
+    </div>
+  `;
+
+  return {
+    subject,
+    html: renderMasterLayout({
+      title: subject,
+      preheader: `Congratulations ${payload.studentName}! Your SHAIVIKA LMS account is approved!`,
+      contentHtml,
     }),
   };
 };
@@ -787,6 +943,8 @@ export const buildEventEmailTemplate = (
       return buildStudentRegistrationTemplate(payload);
     case EmailEventType.REGISTRATION_PENDING:
       return buildRegistrationPendingTemplate(payload);
+    case EmailEventType.INSTRUCTOR_REGISTRATION_PENDING:
+      return buildInstructorRegistrationPendingTemplate(payload);
     case EmailEventType.REGISTRATION_APPROVED:
       return buildRegistrationApprovedTemplate(payload);
     case EmailEventType.REGISTRATION_REJECTED:

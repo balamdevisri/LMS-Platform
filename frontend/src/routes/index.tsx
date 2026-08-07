@@ -49,6 +49,7 @@ const AdminContentManagement = lazyLoad(() => import('@/pages/admin/AdminContent
 const LiveClassroomDashboard = lazyLoad(() => import('@/pages/liveClassroom/LiveClassroomDashboard'), 'LiveClassroomDashboard');
 const LiveClassroomScreen = lazyLoad(() => import('@/pages/liveClassroom/LiveClassroomScreen'), 'LiveClassroomScreen');
 const MentorAnalytics = lazyLoad(() => import('@/pages/liveClassroom/MentorAnalytics'), 'MentorAnalytics');
+const VerifyCertificate = lazyLoad(() => import('@/pages/certificates/VerifyCertificate'), 'VerifyCertificate');
 
 // ─── Simple placeholder pages for coming-soon admin sections ─────────────────
 const PlaceholderPage = ({ title, subtitle }: { title: string; subtitle: string }) => (
@@ -73,6 +74,8 @@ const router = createBrowserRouter([
       { index: true, element: <LandingPage /> },
       { path: 'courses', element: <CoursesList /> },
       { path: 'course/:slug', element: <CourseView /> },
+      { path: 'verify-certificate', element: <VerifyCertificate /> },
+      { path: 'verify-certificate/:verificationId', element: <VerifyCertificate /> },
       { path: 'unauthorized', element: <Unauthorized /> },
     ],
   },
@@ -88,6 +91,18 @@ const router = createBrowserRouter([
       { path: 'verify-email', element: <VerifyEmail /> },
     ],
   },
+  // Shared Authenticated Routes (Profile, etc.)
+  {
+    path: '/',
+    element: (
+      <ProtectedRoute>
+        <DashboardLayout />
+      </ProtectedRoute>
+    ),
+    children: [
+      { path: 'profile', element: <Profile /> },
+    ],
+  },
   // Student Protected Routes
   {
     path: '/',
@@ -101,11 +116,31 @@ const router = createBrowserRouter([
       { path: 'dashboard/practice-lab', element: <PracticeLabPage /> },
       { path: 'dashboard/courses', element: <CoursesList /> },
       { path: 'dashboard/course/:slug', element: <CourseView /> },
-      { path: 'profile', element: <Profile /> },
       { path: 'dashboard/live-classroom', element: <LiveClassroomDashboard /> },
     ],
   },
-  // Admin Protected Routes
+  // Instructor & Admin Shared Management Routes
+  {
+    path: '/admin',
+    element: (
+      <AdminRoute allowInstructor={true}>
+        <DashboardLayout />
+      </AdminRoute>
+    ),
+    children: [
+      { path: 'courses', element: <Courses /> },
+      { path: 'courses/create', element: <AdminCourseCreate /> },
+      { path: 'courses/:id/edit', element: <AdminCourseEdit /> },
+      { path: 'courses/edit/:id', element: <AdminCourseEdit /> },
+      { path: 'courses/:courseId', element: <AdminCourseDetails /> },
+      { path: 'students', element: <AdminStudents /> },
+      { path: 'content', element: <AdminContentManagement /> },
+      { path: 'content-management', element: <AdminContentManagement /> },
+      { path: 'live-classroom', element: <LiveClassroomDashboard /> },
+      { path: 'live-classroom/mentor-analytics', element: <MentorAnalytics /> },
+    ],
+  },
+  // Strict Admin Only Protected Routes
   {
     path: '/admin',
     element: (
@@ -115,19 +150,9 @@ const router = createBrowserRouter([
     ),
     children: [
       { path: 'dashboard', element: <AdminDashboard /> },
-      { path: 'courses', element: <Courses /> },
-      { path: 'courses/create', element: <AdminCourseCreate /> },
-      { path: 'courses/:id/edit', element: <AdminCourseEdit /> },
-      { path: 'courses/edit/:id', element: <AdminCourseEdit /> },
-      { path: 'courses/:courseId', element: <AdminCourseDetails /> },
       { path: 'users', element: <AdminUsers /> },
       { path: 'users/:id', element: <AdminUserProfile /> },
-      { path: 'students', element: <AdminStudents /> },
       { path: 'instructors', element: <AdminInstructors /> },
-      { path: 'content', element: <AdminContentManagement /> },
-      { path: 'content-management', element: <AdminContentManagement /> },
-      { path: 'live-classroom', element: <LiveClassroomDashboard /> },
-      { path: 'live-classroom/mentor-analytics', element: <MentorAnalytics /> },
       {
         path: 'analytics',
         element: <PlaceholderPage title="Analytics" subtitle="Platform analytics, student progress reports, and engagement metrics are coming soon." />,

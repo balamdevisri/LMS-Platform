@@ -53,10 +53,15 @@ export const Courses: React.FC = () => {
 
   // Filter & Sort Logic
   const filteredCourses = courses.filter((course) => {
+    const title = (course.title || '').toLowerCase();
+    const instructor = (course.instructor || '').toLowerCase();
+    const category = (course.category || '').toLowerCase();
+    const query = (searchQuery || '').toLowerCase();
+
     const matchesSearch =
-      course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      course.instructor.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (course.category || '').toLowerCase().includes(searchQuery.toLowerCase());
+      title.includes(query) ||
+      instructor.includes(query) ||
+      category.includes(query);
 
     const matchesCategory = selectedCategory === 'All' || course.category === selectedCategory;
     const matchesLevel = selectedLevel === 'All' || course.level === selectedLevel;
@@ -67,7 +72,7 @@ export const Courses: React.FC = () => {
 
   const sortedCourses = [...filteredCourses].sort((a, b) => {
     if (selectedSort === 'Title A-Z') {
-      return a.title.localeCompare(b.title);
+      return (a.title || '').localeCompare(b.title || '');
     }
     if (selectedSort === 'Most Students') {
       const countA = parseInt(String(a.students).replace(/,/g, '')) || 0;

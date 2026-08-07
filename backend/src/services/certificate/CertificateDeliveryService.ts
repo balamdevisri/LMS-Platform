@@ -46,6 +46,8 @@ export interface AutomatedDeliveryResult {
 }
 
 export class CertificateDeliveryService {
+  private static activeLocks: Set<string> = new Set();
+
   /**
    * Generates unique Certificate ID in KQ-CERT-XXXX-YYYY format
    */
@@ -112,60 +114,78 @@ export class CertificateDeliveryService {
   }
 
   /**
-   * Validate Student course completion eligibility securely on the backend database
+   * Validate Student course completion eligibility using `users` collection as ONLY source of truth.
    */
-  public async validateStudentEligibility(studentId: string, courseId: string): Promise<{ eligible: boolean; error?: string }> {
+  public async validateStudentEligibility(studentId: string, courseId: string): Promise<{ eligible: boolean; error?: string; details?: any; lookupResult?: string }> {
     logger.info(`[AUTOMATED CERTIFICATE VALIDATION] Starting validation pipeline for student ${studentId} in course ${courseId}...`);
 
     if (!isFirestoreInitialized()) {
       return { eligible: false, error: 'Database is not initialized.' };
     }
 
-    // 1. Validate Student exists and is Active
-    let studentDoc = await db.collection('students').doc(studentId).get();
+    // 1. Validate Student exists in central `users` collection ONLY
+    let lookupResult = 'Not Found';
+    let studentDoc = await db.collection('users').doc(studentId).get();
     let studentData = studentDoc.exists ? studentDoc.data() : null;
 
-    logger.info(`[AUTOMATED CERTIFICATE VALIDATION] Student Lookup Details:
-      - Received UID: ${studentId}
-      - Firestore Collection: students
-      - Document ID: ${studentId}
-      - Lookup Result: ${studentDoc.exists ? 'Student Found by Doc ID' : 'Student Not Found by Doc ID'}`);
-
-    if (!studentDoc.exists) {
-      logger.info(`[AUTOMATED CERTIFICATE VALIDATION] Attempting fallback query: where("uid", "==", "${studentId}")...`);
-      const fallbackSnap = await db.collection('students').where('uid', '==', studentId).get();
-      
-      logger.info(`[AUTOMATED CERTIFICATE VALIDATION] Fallback Lookup Result: ${fallbackSnap.empty ? 'Student Not Found' : 'Student Found (' + fallbackSnap.size + ' doc matches)'}`);
-      
+    if (studentDoc.exists) {
+      lookupResult = 'User Found by Doc ID';
+    } else {
+      logger.info(`[AUTOMATED CERTIFICATE VALIDATION] Falling back to query: doc(users) where("uid", "==", "${studentId}")...`);
+      const fallbackSnap = await db.collection('users').where('uid', '==', studentId).get();
       if (!fallbackSnap.empty) {
-        studentDoc = fallbackSnap.docs[0] as any;
+        studentDoc = fallbackSnap.docs[0];
         studentData = studentDoc.data();
-      } else {
-        logger.warn(`[AUTOMATED CERTIFICATE VALIDATION] ❌ Student ${studentId} not found (both doc ID and fallback query failed).`);
-        return { eligible: false, error: 'Student account not found.' };
+        lookupResult = 'User Found by UID Fallback Query';
       }
     }
 
-    if (studentData?.status !== 'approved' && studentData?.status !== 'active') {
-      logger.warn(`[AUTOMATED CERTIFICATE VALIDATION] ❌ Student ${studentId} is inactive (status: ${studentData?.status}).`);
-      return { eligible: false, error: 'Student account is not active.' };
+    if (!studentData) {
+      logger.warn(`[AUTOMATED CERTIFICATE VALIDATION] ❌ Student ${studentId} not found in users collection.`);
+      return {
+        eligible: false,
+        error: 'Student account not found.',
+        lookupResult: 'User Not Found in users Collection',
+        details: {
+          studentUid: studentId,
+          collectionSearched: 'users',
+          queryExecuted: `doc(users/${studentId}) & where("uid", "==", "${studentId}")`,
+          reason: 'No document matched the provided student ID in the users collection.',
+          possibleFix: 'Ensure the user account exists and is registered in the users collection.',
+        },
+      };
     }
-    logger.info(`[AUTOMATED CERTIFICATE VALIDATION] ✓ Student exists and is Active.`);
+
+    // Role check
+    const role = (studentData.role || 'student').toLowerCase();
+    if (role !== 'student' && role !== 'instructor' && role !== 'admin') {
+      logger.warn(`[AUTOMATED CERTIFICATE VALIDATION] ❌ Invalid role "${role}" for student ${studentId}.`);
+      return { eligible: false, error: `Invalid account role: "${role}".`, lookupResult };
+    }
+
+    // Account Status check
+    const statusLower = String(studentData.status || '').toLowerCase();
+    const isBlocked = studentData.isActive === false || statusLower === 'rejected';
+    if (isBlocked) {
+      logger.warn(`[AUTOMATED CERTIFICATE VALIDATION] ❌ Student ${studentId} is inactive/blocked (status: ${studentData?.status}).`);
+      return { eligible: false, error: 'Student account is inactive or not approved.', lookupResult };
+    }
+    logger.info(`[AUTOMATED CERTIFICATE VALIDATION] ✓ Student exists in users collection and is Active (${lookupResult}).`);
 
     // 2. Validate Course exists, is Published, and is not Archived
     const courseDoc = await coursesCollection().doc(courseId).get();
     if (!courseDoc.exists) {
       logger.warn(`[AUTOMATED CERTIFICATE VALIDATION] ❌ Course ${courseId} not found.`);
-      return { eligible: false, error: 'Course not found.' };
+      return { eligible: false, error: 'Course not found.', lookupResult };
     }
     const courseData: any = courseDoc.data();
     if (courseData?.status !== 'published') {
       logger.warn(`[AUTOMATED CERTIFICATE VALIDATION] ❌ Course ${courseId} is not Published.`);
-      return { eligible: false, error: 'Course is not published.' };
+      return { eligible: false, error: 'Course is not published.', lookupResult };
     }
     if (courseData?.archived === true || courseData?.status === 'archived') {
       logger.warn(`[AUTOMATED CERTIFICATE VALIDATION] ❌ Course ${courseId} is Archived.`);
-      return { eligible: false, error: 'Course is archived.' };
+      return { eligible: false, error: 'Course is archived.', lookupResult };
     }
     logger.info(`[AUTOMATED CERTIFICATE VALIDATION] ✓ Course exists, is Published, and is not Archived.`);
 
@@ -173,7 +193,7 @@ export class CertificateDeliveryService {
     const progressDoc = await studentProgressCollection().doc(`${studentId}_${courseId}`).get();
     if (!progressDoc.exists) {
       logger.warn(`[AUTOMATED CERTIFICATE VALIDATION] ❌ Progress record not found for student ${studentId} in course ${courseId}.`);
-      return { eligible: false, error: 'Student is not enrolled or progress record is missing.' };
+      return { eligible: false, error: 'Student is not enrolled or progress record is missing.', lookupResult };
     }
     const progressData = progressDoc.data() as StudentProgressDoc;
     logger.info(`[AUTOMATED CERTIFICATE VALIDATION] ✓ Student is enrolled.`);
@@ -194,7 +214,7 @@ export class CertificateDeliveryService {
     );
     if (!allLessonsDone) {
       logger.warn(`[AUTOMATED CERTIFICATE VALIDATION] ❌ Student has not completed all required lessons.`);
-      return { eligible: false, error: 'Not all required lessons are completed.' };
+      return { eligible: false, error: 'Not all required lessons are completed.', lookupResult };
     }
     logger.info(`[AUTOMATED CERTIFICATE VALIDATION] ✓ Every required lesson is completed.`);
 
@@ -205,7 +225,7 @@ export class CertificateDeliveryService {
     );
     if (!allModulesDone) {
       logger.warn(`[AUTOMATED CERTIFICATE VALIDATION] ❌ Student has not completed all modules.`);
-      return { eligible: false, error: 'Not all modules are marked complete.' };
+      return { eligible: false, error: 'Not all modules are marked complete.', lookupResult };
     }
     logger.info(`[AUTOMATED CERTIFICATE VALIDATION] ✓ Every required module is completed.`);
 
@@ -235,7 +255,7 @@ export class CertificateDeliveryService {
 
       if (!hasPassed) {
         logger.warn(`[AUTOMATED CERTIFICATE VALIDATION] ❌ Required quiz ${quiz.title} (${quiz.id}) not passed.`);
-        return { eligible: false, error: `Required quiz "${quiz.title}" has not been passed.` };
+        return { eligible: false, error: `Required quiz "${quiz.title}" has not been passed.`, lookupResult };
       }
     }
     logger.info(`[AUTOMATED CERTIFICATE VALIDATION] ✓ Every required quiz is passed.`);
@@ -248,12 +268,12 @@ export class CertificateDeliveryService {
 
       if (!isSubmitted) {
         logger.warn(`[AUTOMATED CERTIFICATE VALIDATION] ❌ Required assignment ${assignment.title} (${assignment.id}) not submitted.`);
-        return { eligible: false, error: `Required assignment "${assignment.title}" has not been submitted.` };
+        return { eligible: false, error: `Required assignment "${assignment.title}" has not been submitted.`, lookupResult };
       }
     }
     logger.info(`[AUTOMATED CERTIFICATE VALIDATION] ✓ Every required assignment is submitted.`);
 
-    return { eligible: true };
+    return { eligible: true, lookupResult };
   }
 
   /**
@@ -263,67 +283,123 @@ export class CertificateDeliveryService {
   public async handleCourseCompletionAndDeliver(
     payload: CompletionTriggerPayload & { forceRegenerate?: boolean }
   ): Promise<AutomatedDeliveryResult> {
+    const startTime = Date.now();
     const timeline: Array<{ step: string; status: 'SUCCESS' | 'FAILED'; timestamp: string; details?: string }> = [];
-    const nowIso = new Date().toISOString();
-
-    logger.info(`================================================================`);
-    logger.info(`[AUTOMATED CERTIFICATE SYSTEM] 🎓 Triggered for Student: ${payload.studentName} (${payload.studentEmail})`);
-    logger.info(`[AUTOMATED CERTIFICATE SYSTEM] Course: "${payload.courseTitle}" | Progress: ${payload.completionPercentage}%`);
-    logger.info(`================================================================`);
-
-    // Validation Started
-    timeline.push({
-      step: '0. VALIDATION_STARTED',
-      status: 'SUCCESS',
-      timestamp: new Date().toISOString(),
-    });
-
     const isForce = payload.forceRegenerate === true;
-    if (!isForce) {
-      const valResult = await this.validateStudentEligibility(payload.studentId, payload.courseId);
-      if (!valResult.eligible) {
-        timeline.push({
-          step: '0. VALIDATION_FAILED',
-          status: 'FAILED',
-          timestamp: new Date().toISOString(),
-          details: valResult.error,
-        });
-        return {
-          success: false,
-          certificateId: '',
-          studentId: payload.studentId,
-          studentName: payload.studentName,
-          studentEmail: payload.studentEmail,
-          courseTitle: payload.courseTitle,
-          completionDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
-          error: valResult.error,
-          timeline,
-        };
-      }
+    const lockKey = `${payload.studentId}_${payload.courseId}`;
+
+    // Deduplication Request Lock (Issue 3)
+    if (!isForce && CertificateDeliveryService.activeLocks.has(lockKey)) {
+      logger.warn(`[AUTOMATED CERTIFICATE SYSTEM] ⚠️ Request lock active for ${lockKey}. Preventing duplicate concurrent execution.`);
+      return {
+        success: true,
+        certificateId: payload.verificationId || 'IN_PROGRESS',
+        studentId: payload.studentId,
+        studentName: payload.studentName,
+        studentEmail: payload.studentEmail,
+        courseTitle: payload.courseTitle,
+        completionDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+        error: 'Certificate generation already in progress for this student and course.',
+        timeline,
+      };
+    }
+
+    CertificateDeliveryService.activeLocks.add(lockKey);
+
+    let lookupResult = 'users Collection';
+    let certExistsInFirestore = false;
+    let emailSent = false;
+    let firestoreUpdated = false;
+
+    try {
+      logger.info(`================================================================`);
+      logger.info(`[AUTOMATED CERTIFICATE SYSTEM] 🎓 Triggered for Student: ${payload.studentName} (${payload.studentEmail})`);
+      logger.info(`[AUTOMATED CERTIFICATE SYSTEM] Course: "${payload.courseTitle}" | Progress: ${payload.completionPercentage}%`);
+      logger.info(`================================================================`);
+
       timeline.push({
-        step: '0. VALIDATION_PASSED',
+        step: '0. VALIDATION_STARTED',
         status: 'SUCCESS',
         timestamp: new Date().toISOString(),
       });
-    }
 
-    if (!isForce) {
-      // Precheck: Verify if a certificate has already been generated for this student and course
-      const localExisting = this.isAlreadyIssued(payload.studentEmail, payload.courseId);
-      if (localExisting) {
-        logger.info(`[AUTOMATED CERTIFICATE SYSTEM] ⚠️ Certificate already exists locally for ${payload.studentEmail} in course ${payload.courseId}. Skipping generation.`);
-        return {
-          success: true,
-          certificateId: localExisting.certificateId,
-          studentId: payload.studentId,
-          studentName: payload.studentName,
-          studentEmail: payload.studentEmail,
-          courseTitle: payload.courseTitle,
-          completionDate: localExisting.completionDate,
-          googleDriveLink: localExisting.googleDriveLink || 'local-server',
-          googleDriveFileId: 'local-server',
-          timeline,
-        };
+      if (!isForce) {
+        const valResult = await this.validateStudentEligibility(payload.studentId, payload.courseId);
+        lookupResult = valResult.lookupResult || 'users Collection';
+        if (!valResult.eligible) {
+          timeline.push({
+            step: '0. VALIDATION_FAILED',
+            status: 'FAILED',
+            timestamp: new Date().toISOString(),
+            details: valResult.error,
+          });
+          return {
+            success: false,
+            certificateId: '',
+            studentId: payload.studentId,
+            studentName: payload.studentName,
+            studentEmail: payload.studentEmail,
+            courseTitle: payload.courseTitle,
+            completionDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+            error: valResult.error,
+            timeline,
+          };
+        }
+        timeline.push({
+          step: '0. VALIDATION_PASSED',
+          status: 'SUCCESS',
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      // Precheck 1: Check Firestore certificates collection (Issue 4)
+      if (!isForce && db) {
+        try {
+          const certQuery = await db.collection('certificates')
+            .where('studentId', '==', payload.studentId)
+            .where('courseId', '==', payload.courseId)
+            .get();
+          
+          if (!certQuery.empty) {
+            const existingCert = certQuery.docs[0].data();
+            certExistsInFirestore = true;
+            logger.info(`[AUTOMATED CERTIFICATE SYSTEM] ⚠️ Certificate Already Exists in Firestore certificates collection for ${payload.studentEmail} in course ${payload.courseId}. Skipping generation.`);
+            return {
+              success: true,
+              certificateId: existingCert.certificateId,
+              studentId: payload.studentId,
+              studentName: payload.studentName,
+              studentEmail: payload.studentEmail,
+              courseTitle: payload.courseTitle,
+              completionDate: existingCert.completionDate || existingCert.issueDate,
+              googleDriveLink: existingCert.pdfUrl || 'local-server',
+              googleDriveFileId: 'local-server',
+              timeline,
+            };
+          }
+        } catch (certCheckErr: any) {
+          logger.warn(`[AUTOMATED CERTIFICATE SYSTEM] Firestore cert precheck notice: ${certCheckErr?.message}`);
+        }
+      }
+
+      // Precheck 2: Check Local Registry
+      if (!isForce) {
+        const localExisting = this.isAlreadyIssued(payload.studentEmail, payload.courseId);
+        if (localExisting) {
+          logger.info(`[AUTOMATED CERTIFICATE SYSTEM] ⚠️ Certificate already exists locally for ${payload.studentEmail} in course ${payload.courseId}. Skipping generation.`);
+          return {
+            success: true,
+            certificateId: localExisting.certificateId,
+            studentId: payload.studentId,
+            studentName: payload.studentName,
+            studentEmail: payload.studentEmail,
+            courseTitle: payload.courseTitle,
+            completionDate: localExisting.completionDate,
+            googleDriveLink: localExisting.googleDriveLink || 'local-server',
+            googleDriveFileId: 'local-server',
+            timeline,
+          };
+        }
       }
 
       try {
@@ -355,7 +431,6 @@ export class CertificateDeliveryService {
       } catch (sheetCheckErr: any) {
         logger.warn(`[AUTOMATED CERTIFICATE SYSTEM] Sheet precheck search failed/skipped: ${sheetCheckErr?.message || sheetCheckErr}`);
       }
-    }
 
     // Step 1: Generate Deterministic Globally Unique Certificate ID (Preventing duplicates in sheet registry)
     const certificateId = payload.verificationId || await this.generateGloballyUniqueId(payload.courseId);
@@ -471,6 +546,34 @@ export class CertificateDeliveryService {
       } else {
         throw new Error('Google Sheets Append returned false.');
       }
+
+      // Store certificate in Firestore certificates collection
+      if (db) {
+        try {
+          const certRecord = {
+            certificateId,
+            verificationId: certificateId,
+            studentId: payload.studentId,
+            studentName: payload.studentName,
+            studentEmail: payload.studentEmail,
+            courseId: payload.courseId,
+            courseName: payload.courseTitle,
+            instructorId: 'instructor_system',
+            instructorName: payload.instructorName || 'SHAIVIKA LMS Team',
+            issueDate: completionDate,
+            completionDate: completionDate,
+            pdfUrl: downloadUrl,
+            status: 'Issued',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          await db.collection('certificates').doc(certificateId).set(certRecord, { merge: true });
+          firestoreUpdated = true;
+          logger.info(`[AUTOMATED CERTIFICATE SYSTEM] Firestore certificates document created: certificates/${certificateId}`);
+        } catch (certDocErr: any) {
+          logger.warn(`[AUTOMATED CERTIFICATE SYSTEM] Firestore cert write notice: ${certDocErr?.message || certDocErr}`);
+        }
+      }
     } catch (sheetLogErr: any) {
       const msg = `Failed to log certificate to Google Sheets: ${sheetLogErr?.message || sheetLogErr}`;
       timeline.push({ step: '4. UPDATE_GOOGLE_SHEETS_REGISTRY', status: 'FAILED', timestamp: new Date().toISOString(), details: msg });
@@ -489,7 +592,7 @@ export class CertificateDeliveryService {
     }
 
     // Step 5: Send Professional Email via Nodemailer SMTP with PDF Attachment & Direct Download Link
-    const emailSubject = `🎓 Congratulations ${payload.studentName}! Your Official Certificate for "${payload.courseTitle}" is Ready`;
+    const emailSubject = `Congratulations! Your Course Certificate is Ready`;
     const courseDescription = this.getCourseDescription(payload.courseId, payload.courseTitle);
     const pdfFileName = `${certificateId}.pdf`;
     const htmlEmailContent = this.buildCertificateEmailHtml({
@@ -526,6 +629,7 @@ export class CertificateDeliveryService {
 
         if (result.success) {
           mailResult = { success: true, messageId: result.messageId || '', error: '' };
+          emailSent = true;
           break;
         } else {
           mailResult.error = result.error || 'Unknown send mail error';
@@ -603,7 +707,24 @@ export class CertificateDeliveryService {
         timeline,
       };
     }
+  } finally {
+    CertificateDeliveryService.activeLocks.delete(lockKey);
+    const executionTimeMs = Date.now() - startTime;
+    logger.info(`================================================================`);
+    logger.info(`[CERTIFICATE AUDIT LOG]
+      - UID: ${payload.studentId}
+      - Student Name: ${payload.studentName}
+      - Email: ${payload.studentEmail}
+      - Course: ${payload.courseTitle}
+      - Lookup Collection: users
+      - Lookup Result: ${lookupResult}
+      - Certificate Exists: ${certExistsInFirestore}
+      - Email Sent: ${emailSent}
+      - Firestore Updated: ${firestoreUpdated}
+      - Execution Time: ${executionTimeMs}ms`);
+    logger.info(`================================================================`);
   }
+}
 
   /**
    * Helper to resolve a professional, rich syllabus outcomes description based on courseId/title.

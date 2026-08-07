@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { db } from '../firebase';
 import { certificateDeliveryService } from '../services/certificate/CertificateDeliveryService';
 import { pdfCertificateGenerator } from '../services/certificate/PDFCertificateGenerator';
 import { qrCodeService } from '../services/certificate/QRCodeService';
@@ -158,8 +159,30 @@ export class CertificateController {
         });
       }
 
-      logger.info(`[CERTIFICATE VERIFICATION] Searching sheet registry for Certificate ID: ${certificateId}`);
-      const certData = await googleSheetsService.getCertificateById(String(certificateId));
+      logger.info(`[CERTIFICATE VERIFICATION] Searching certificates collection & registry for ID: ${certificateId}`);
+
+      // 1. Check Firestore certificates collection
+      let certData: any = null;
+      if (db) {
+        try {
+          const docSnap = await db.collection('certificates').doc(String(certificateId)).get();
+          if (docSnap.exists) {
+            certData = docSnap.data();
+          } else {
+            const querySnap = await db.collection('certificates').where('verificationId', '==', String(certificateId)).get();
+            if (!querySnap.empty) {
+              certData = querySnap.docs[0].data();
+            }
+          }
+        } catch (fErr: any) {
+          logger.warn(`[CERTIFICATE VERIFICATION] Firestore lookup notice: ${fErr?.message || fErr}`);
+        }
+      }
+
+      // 2. Fallback to Google Sheets registry
+      if (!certData) {
+        certData = await googleSheetsService.getCertificateById(String(certificateId));
+      }
 
       if (!certData) {
         logger.warn(`[CERTIFICATE VERIFICATION] ⚠️ Certificate ID ${certificateId} not found in Registry.`);

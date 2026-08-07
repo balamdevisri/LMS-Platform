@@ -1,108 +1,74 @@
 /**
- * SHAIVIKA LMS AI Platform - Core Email Service Engine
+ * SHAIVIKA LMS AI Platform - Modular Email Dispatcher Service
  * KaizenQ - Powered by SHAIVIKA GROUPS
- *
- * Supports Nodemailer (SMTP), Resend API, and Mock transport fallback.
- * Includes complete SMTP audit, transporter verification, and diagnostic logging.
  */
 
-import nodemailer from 'nodemailer';
-import { Resend } from 'resend';
-import { env, maskSensitiveString } from '../../config/env';
+import { env } from '../../config/env';
 import logger from '../../config/logger';
-import { emailLogsCollection, isFirestoreInitialized } from '../../firebase/collections';
-import {
-  EmailEventType,
-  EmailLogRecord,
-  EmailStatus,
-} from '../../types/emailTypes';
-import { buildEventEmailTemplate } from './emailTemplates';
+import { EmailEventType, EmailStatus, EmailLogRecord } from '../../types/emailTypes';
+import { isFirestoreInitialized } from '../../firebase/collections';
+import { IEmailProvider } from './IEmailProvider';
+import { NodemailerProvider } from './providers/NodemailerProvider';
+import { ResendProvider } from './providers/ResendProvider';
+import { MockProvider } from './providers/MockProvider';
+import { EmailAuditLogger } from './audit/EmailAuditLogger';
+import { EmailRetryManager } from './queue/EmailRetryManager';
+import { EmailTemplateEngine } from './templates/EmailTemplateEngine';
 
 export class EmailService {
-  private nodemailerTransporter?: nodemailer.Transporter;
-  private resendClient?: Resend;
-  private provider: 'nodemailer' | 'resend' | 'mock';
-  private fromAddress: string;
-  private isTransporterVerified: boolean = false;
-  private lastVerificationError?: string;
+  private emailProvider: IEmailProvider;
+  private auditLogger: EmailAuditLogger;
+  private templateEngine: EmailTemplateEngine;
+  private retryManager: EmailRetryManager;
+
+  public provider: 'nodemailer' | 'resend' | 'mock';
+  public fromAddress: string;
+  public isTransporterVerified: boolean = false;
+  public lastVerificationError: string | null = null;
 
   constructor() {
+    this.provider = (env.EMAIL_PROVIDER as 'nodemailer' | 'resend' | 'mock') || 'nodemailer';
     this.fromAddress = env.SMTP_FROM || 'KaizenQ AI LMS <kaizenq.lms@gmail.com>';
-    
-    if (process.env.NODE_ENV === 'test' || env.NODE_ENV === 'test') {
-      this.provider = 'mock';
+
+    // Instantiate appropriate provider
+    if (this.provider === 'resend' && env.RESEND_API_KEY) {
+      this.emailProvider = new ResendProvider();
+    } else if (this.provider === 'nodemailer') {
+      this.emailProvider = new NodemailerProvider();
     } else {
-      this.provider = (env.EMAIL_PROVIDER as 'nodemailer' | 'resend' | 'mock') || 'nodemailer';
+      this.emailProvider = new MockProvider();
     }
 
-    this.initializeTransports();
+    this.auditLogger = new EmailAuditLogger();
+    this.templateEngine = new EmailTemplateEngine();
+    this.retryManager = new EmailRetryManager(this.emailProvider, this.templateEngine);
+
+    // Run verification asynchronously
+    this.verifyTransporterAsync().catch((err) => {
+      this.lastVerificationError = err?.message || String(err);
+      this.isTransporterVerified = false;
+    });
   }
 
   /**
-   * Audit & Initialize Nodemailer SMTP or Resend API Transporters
-   */
-  private initializeTransports(): void {
-    if (this.provider === 'mock') {
-      logger.info('[SMTP AUDIT] ℹ️ Using simulated Mock Email Transport for local dev environment.');
-      return;
-    }
-    logger.info('[SMTP AUDIT] 1. Loading SMTP configuration...');
-
-    const smtpHost = env.SMTP_HOST || process.env.SMTP_HOST || 'smtp.gmail.com';
-    const smtpPort = Number(env.SMTP_PORT || process.env.SMTP_PORT || 587);
-    const isSecure = (env.SMTP_SECURE || process.env.SMTP_SECURE) === 'true';
-    const smtpUser = env.SMTP_EMAIL || process.env.SMTP_EMAIL || env.SMTP_USER || 'kaizenqlms@gmail.com';
-    const smtpPass = env.SMTP_PASSWORD || process.env.SMTP_PASSWORD || env.SMTP_PASS || 'nslv bymb dnnq swcw';
-
-    const maskedPass = maskSensitiveString(smtpPass);
-
-    logger.info(`[SMTP AUDIT] 2. Config Loaded -> Host: ${smtpHost} | Port: ${smtpPort} | Secure: ${isSecure} | User: ${smtpUser} | Pass: ${maskedPass}`);
-
-    if (this.provider === 'nodemailer' || (smtpHost && smtpUser && smtpPass)) {
-      this.provider = 'nodemailer';
-      logger.info('[SMTP AUDIT] 3. Creating Nodemailer Transporter...');
-
-      this.nodemailerTransporter = nodemailer.createTransport({
-        host: smtpHost,
-        port: smtpPort,
-        secure: isSecure,
-        auth: {
-          user: smtpUser,
-          pass: smtpPass,
-        },
-        connectionTimeout: 10000, // 10 seconds timeout
-        greetingTimeout: 5000,
-      });
-
-      logger.info('[SMTP AUDIT] 4. Running transporter.verify()...');
-
-      this.verifyTransporterAsync();
-    } else if (this.provider === 'resend' && env.RESEND_API_KEY) {
-      this.resendClient = new Resend(env.RESEND_API_KEY);
-      logger.info('[SMTP AUDIT] ✅ Initialized Resend API Client.');
-    } else {
-      this.provider = 'mock';
-      logger.info('[SMTP AUDIT] ℹ️ Using simulated Mock Email Transport for local dev environment.');
-    }
-  }
-
-  /**
-   * Async Transporter Verification
+   * Asynchronously verify connection to the mail transport server
    */
   public async verifyTransporterAsync(): Promise<boolean> {
-    if (!this.nodemailerTransporter) return false;
     try {
-      await this.nodemailerTransporter.verify();
-      this.isTransporterVerified = true;
-      this.lastVerificationError = undefined;
-      console.log("✅ SMTP Connected");
-      logger.info("[SMTP AUDIT] ✅ SMTP Connected");
-      return true;
+      logger.info(`[SMTP AUDIT] ⚡ Verifying connection to ${this.provider} service...`);
+      const success = await this.emailProvider.verify();
+      if (success) {
+        this.isTransporterVerified = true;
+        this.lastVerificationError = null;
+        logger.info(`[SMTP AUDIT] ✅ Connection to ${this.provider} verified successfully.`);
+        return true;
+      } else {
+        throw new Error(`Verification failed for provider ${this.provider}`);
+      }
     } catch (err: any) {
-      this.isTransporterVerified = false;
       this.lastVerificationError = err?.message || String(err);
-      console.error("❌ SMTP Error:", err);
-      logger.error("❌ SMTP Error:", err);
+      this.isTransporterVerified = false;
+      logger.error(`[SMTP AUDIT] ❌ Connection verification failed: ` + this.lastVerificationError);
       return false;
     }
   }
@@ -115,113 +81,49 @@ export class EmailService {
     recipientEmail: string,
     payload: T
   ): Promise<{ success: boolean; messageId?: string; logId?: string; error?: string }> {
-    const { subject, html } = buildEventEmailTemplate(eventType, payload);
-    const nowIso = new Date().toISOString();
+    const { subject, html } = this.templateEngine.build(eventType, payload);
 
-    logger.info(`[EMAIL SERVICE] Sending email... Event: ${eventType} | To: ${recipientEmail}`);
+    logger.info(`[EMAIL SERVICE] Sending event email: ${eventType} | To: ${recipientEmail}`);
 
-    const logRecord: EmailLogRecord = {
+    const logRecord = {
       eventType,
       recipientEmail,
       subject,
-      status: 'pending',
-      attempts: 1,
-      maxRetries: 3,
       provider: this.provider,
       payload,
-      createdAt: nowIso,
-      updatedAt: nowIso,
-      lastAttemptAt: nowIso,
     };
 
-    let logDocId: string | undefined;
+    // 1. Create Pending Log Record in Firestore
+    const logDocId = await this.auditLogger.logPending(logRecord);
 
-    // 1. Create Initial Pending Log Record in Firestore
-    if (isFirestoreInitialized()) {
-      try {
-        const docRef = await emailLogsCollection().add(logRecord);
-        logDocId = docRef.id;
-      } catch (err: any) {
-        logger.warn('⚠️ EmailService: Failed to create pending record in Firestore:', err?.message || err);
-      }
-    }
-
-    // 2. Dispatch Email through transport
+    // 2. Dispatch Email through transport provider
     try {
-      let messageId: string | undefined;
+      const result = await this.emailProvider.send({
+        to: recipientEmail,
+        subject,
+        html,
+      });
 
-      if (this.provider === 'resend' && this.resendClient) {
-        const resendRes = await this.resendClient.emails.send({
-          from: this.fromAddress,
-          to: [recipientEmail],
-          subject,
-          html,
-        });
-
-        if (resendRes.error) {
-          throw new Error(resendRes.error.message);
-        }
-        messageId = resendRes.data?.id;
-      } else if (this.provider === 'nodemailer' && this.nodemailerTransporter) {
-        logger.info(`[SMTP STEP 3] Preparing Email (From: ${this.fromAddress} | To: ${recipientEmail} | Subject: "${subject}")`);
-        logger.info(`[SMTP STEP 4] Sending email via Nodemailer...`);
-
-        // Log exact student email & recipient before sending
-        console.log("Student Email:", recipientEmail);
-        console.log("Recipient:", recipientEmail);
-
-        // Generate plain-text fallback from HTML
-        const textFallback = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-
-        const mailOptions = {
-          from: this.fromAddress,
-          to: recipientEmail,
-          subject,
-          text: textFallback,
-          html,
-        };
-
-        const mailRes = await this.nodemailerTransporter.sendMail(mailOptions);
-
-        messageId = mailRes.messageId;
-
-        console.log("accepted:", mailRes.accepted);
-        console.log("rejected:", mailRes.rejected);
-        console.log("response:", mailRes.response);
-        console.log("messageId:", mailRes.messageId);
-
-        logger.info(`[SMTP STEP 5] SMTP Response received from Gmail: "${mailRes.response || 'OK'}"`);
-        logger.info(`[SMTP STEP 6] Delivery Summary -> Accepted: ${JSON.stringify(mailRes.accepted || [])} | Rejected: ${JSON.stringify(mailRes.rejected || [])} | MessageId: ${messageId}`);
-
-        if (Array.isArray(mailRes.rejected) && mailRes.rejected.length > 0) {
-          logger.error(`[SMTP DIAGNOSTIC] ⚠️ Recipients Rejected: ${JSON.stringify(mailRes.rejected)}`);
-        }
-
-        if (!Array.isArray(mailRes.accepted) || mailRes.accepted.length === 0) {
-          logger.warn(`[SMTP DIAGNOSTIC] ⚠️ Accepted list is empty! Email may have been bounced or blocked by server filters.`);
-        }
-      } else {
-        // Mock Transport Fallback
-        messageId = `mock_msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-        logger.info(`[MOCK EMAIL SENT] Event: ${eventType} | To: ${recipientEmail} | Subject: "${subject}" | MsgId: ${messageId}`);
+      if (!result.success) {
+        throw new Error(result.error || 'Provider failed to dispatch email');
       }
 
-      logger.info(`[EMAIL SERVICE] ✅ Email sent successfully. MsgID: ${messageId}`);
+      logger.info(`[EMAIL SERVICE] ✅ Email sent successfully. MsgID: ${result.messageId}`);
 
       // 3. Update Log status to 'sent'
-      await this.updateLogStatus(logDocId, 'sent', messageId);
+      await this.auditLogger.updateStatus(logDocId, 'sent', result.messageId);
 
       return {
         success: true,
-        messageId,
+        messageId: result.messageId,
         logId: logDocId,
       };
     } catch (sendError: any) {
       const errorMessage = sendError?.message || String(sendError);
-      logger.error(`[EMAIL SERVICE] ❌ Failed to send ${eventType} to ${recipientEmail}:`, errorMessage);
+      logger.error(`[EMAIL SERVICE] ❌ Failed to send ${eventType} to ${recipientEmail}: ` + errorMessage);
 
       // 4. Update Log status to 'failed'
-      await this.updateLogStatus(logDocId, 'failed', undefined, errorMessage);
+      await this.auditLogger.updateStatus(logDocId, 'failed', undefined, errorMessage);
 
       return {
         success: false,
@@ -240,61 +142,35 @@ export class EmailService {
     html: string,
     plainText?: string
   ): Promise<{ success: boolean; messageId?: string; accepted?: any[]; rejected?: any[]; response?: string; error?: string }> {
-    logger.info(`[SMTP TEST STEP 3] Preparing Email (From: ${this.fromAddress} | To: ${recipientEmail} | Subject: "${subject}")`);
-
     try {
-      let messageId: string | undefined;
-      let accepted: any[] = [];
-      let rejected: any[] = [];
-      let response: string = '';
+      logger.info(`[EMAIL SERVICE] Sending direct email to ${recipientEmail}`);
 
-      if (this.provider === 'nodemailer' && this.nodemailerTransporter) {
-        logger.info(`[SMTP TEST STEP 4] Sending test email via Nodemailer...`);
-        const textContent = plainText || html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      const result = await this.emailProvider.send({
+        to: recipientEmail,
+        subject,
+        html,
+        text: plainText,
+      });
 
-        const mailRes = await this.nodemailerTransporter.sendMail({
-          from: this.fromAddress,
-          to: recipientEmail,
-          subject,
-          text: textContent,
-          html,
-        });
-
-        messageId = mailRes.messageId;
-        accepted = mailRes.accepted || [];
-        rejected = mailRes.rejected || [];
-        response = mailRes.response || '';
-
-        logger.info(`[SMTP TEST STEP 5] SMTP Response from Gmail: "${response}"`);
-        logger.info(`[SMTP TEST STEP 6] Delivery Summary -> Accepted: ${JSON.stringify(accepted)} | Rejected: ${JSON.stringify(rejected)} | MessageId: ${messageId}`);
-
-        if (rejected.length > 0) {
-          logger.error(`[SMTP DIAGNOSTIC] ⚠️ Recipients Rejected: ${JSON.stringify(rejected)}`);
-        }
-      } else if (this.provider === 'resend' && this.resendClient) {
-        const resendRes = await this.resendClient.emails.send({
-          from: this.fromAddress,
-          to: [recipientEmail],
-          subject,
-          html,
-        });
-        if (resendRes.error) throw new Error(resendRes.error.message);
-        messageId = resendRes.data?.id;
-        accepted = [recipientEmail];
-        response = 'Resend API 200 OK';
-      } else {
-        messageId = `mock_test_${Date.now()}`;
-        accepted = [recipientEmail];
-        response = '250 Mock Sent';
-        logger.info(`[MOCK TEST EMAIL SENT] To: ${recipientEmail} | MsgId: ${messageId}`);
+      if (!result.success) {
+        throw new Error(result.error || 'Provider failed sending direct email');
       }
 
-      logger.info(`[SMTP TEST STEP 7] ✅ Email sent successfully. MsgID: ${messageId}`);
-      return { success: true, messageId, accepted, rejected, response };
+      return {
+        success: true,
+        messageId: result.messageId,
+        accepted: [recipientEmail],
+        rejected: [],
+        response: '200 OK',
+      };
     } catch (err: any) {
-      const errorMsg = err?.message || String(err);
-      logger.error(`[SMTP TEST STEP 7] ❌ Failed sending test email:`, errorMsg);
-      return { success: false, error: errorMsg };
+      logger.error(`[EMAIL SERVICE] Direct email send failed to ${recipientEmail}: ` + (err?.message || err));
+      return {
+        success: false,
+        error: err?.message || String(err),
+        accepted: [],
+        rejected: [recipientEmail],
+      };
     }
   }
 
@@ -304,9 +180,9 @@ export class EmailService {
   public getTransporterStatus() {
     return {
       provider: this.provider,
-      host: env.SMTP_HOST || process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: Number(env.SMTP_PORT || process.env.SMTP_PORT || 587),
-      user: env.SMTP_EMAIL || process.env.SMTP_EMAIL || env.SMTP_USER || 'kaizenqlms@gmail.com',
+      host: env.SMTP_HOST || 'smtp.gmail.com',
+      port: Number(env.SMTP_PORT || 587),
+      user: env.SMTP_EMAIL || env.SMTP_USER || 'kaizenqlms@gmail.com',
       from: this.fromAddress,
       verified: this.isTransporterVerified,
       lastError: this.lastVerificationError || null,
@@ -314,139 +190,21 @@ export class EmailService {
   }
 
   /**
-   * Updates an existing Firestore email_logs doc status
-   */
-  private async updateLogStatus(
-    logDocId?: string,
-    status?: EmailStatus,
-    messageId?: string,
-    errorMsg?: string
-  ): Promise<void> {
-    if (!logDocId || !isFirestoreInitialized()) return;
-
-    try {
-      const updateData: Partial<EmailLogRecord> = {
-        updatedAt: new Date().toISOString(),
-      };
-
-      if (status) updateData.status = status;
-      if (messageId) updateData.messageId = messageId;
-      if (errorMsg) updateData.error = errorMsg;
-
-      await emailLogsCollection().doc(logDocId).update(updateData);
-    } catch (err: any) {
-      logger.warn(`⚠️ EmailService: Failed updating status for log ${logDocId}:`, err?.message || err);
-    }
-  }
-
-  /**
    * Automated Retry Worker: Retries failed emails from Firestore email_logs
    */
   async retryFailedEmails(maxRetries: number = 3): Promise<{ retriedCount: number; succeededCount: number; failedCount: number }> {
-    if (!isFirestoreInitialized()) {
-      return { retriedCount: 0, succeededCount: 0, failedCount: 0 };
-    }
-
-    try {
-      const snapshot = await emailLogsCollection()
-        .where('status', '==', 'failed')
-        .where('attempts', '<', maxRetries)
-        .limit(25)
-        .get();
-
-      if (snapshot.empty) {
-        return { retriedCount: 0, succeededCount: 0, failedCount: 0 };
-      }
-
-      let succeededCount = 0;
-      let failedCount = 0;
-
-      for (const docSnap of snapshot.docs) {
-        const log = docSnap.data() as EmailLogRecord;
-        const attempts = (log.attempts || 1) + 1;
-        const nowIso = new Date().toISOString();
-
-        try {
-          const { subject, html } = buildEventEmailTemplate(log.eventType, log.payload);
-          let messageId: string | undefined;
-
-          if (this.provider === 'resend' && this.resendClient) {
-            const res = await this.resendClient.emails.send({
-              from: this.fromAddress,
-              to: [log.recipientEmail],
-              subject,
-              html,
-            });
-            if (res.error) throw new Error(res.error.message);
-            messageId = res.data?.id;
-          } else if (this.provider === 'nodemailer' && this.nodemailerTransporter) {
-            const res = await this.nodemailerTransporter.sendMail({
-              from: this.fromAddress,
-              to: log.recipientEmail,
-              subject,
-              html,
-            });
-            messageId = res.messageId;
-          } else {
-            messageId = `mock_retry_msg_${Date.now()}`;
-          }
-
-          await docSnap.ref.update({
-            status: 'sent',
-            attempts,
-            messageId,
-            error: null,
-            updatedAt: nowIso,
-            lastAttemptAt: nowIso,
-          });
-
-          succeededCount++;
-        } catch (retryError: any) {
-          failedCount++;
-          await docSnap.ref.update({
-            attempts,
-            error: retryError?.message || String(retryError),
-            updatedAt: nowIso,
-            lastAttemptAt: nowIso,
-          });
-        }
-      }
-
-      return {
-        retriedCount: snapshot.docs.length,
-        succeededCount,
-        failedCount,
-      };
-    } catch (err: any) {
-      logger.error('❌ EmailService: Error executing retry worker:', err?.message || err);
-      return { retriedCount: 0, succeededCount: 0, failedCount: 0 };
-    }
+    return this.retryManager.retryFailedEmails(maxRetries);
   }
 
   /**
    * Fetches recent email delivery logs from Firestore
    */
   async getEmailLogs(limitCount: number = 50): Promise<EmailLogRecord[]> {
-    if (!isFirestoreInitialized()) return [];
-
-    try {
-      const snapshot = await emailLogsCollection()
-        .orderBy('createdAt', 'desc')
-        .limit(limitCount)
-        .get();
-
-      return snapshot.docs.map((docSnap) => ({
-        id: docSnap.id,
-        ...(docSnap.data() as EmailLogRecord),
-      }));
-    } catch (err: any) {
-      logger.warn('⚠️ EmailService: Failed to fetch logs from Firestore:', err?.message || err);
-      return [];
-    }
+    return this.auditLogger.fetchRecent(limitCount);
   }
 
   /**
-   * Dispatches Email with Attachments (e.g. Certificate PDF) via Nodemailer SMTP with automatic retry
+   * Dispatches Email with Attachments (e.g. Certificate PDF) with automatic retry
    */
   async sendEmailWithAttachments(
     recipientEmail: string,
@@ -458,55 +216,46 @@ export class EmailService {
     let attempt = 0;
     let lastError: any = null;
 
+    const logDocId = await this.auditLogger.logPending({
+      eventType: EmailEventType.CERTIFICATE_GENERATED,
+      recipientEmail,
+      subject,
+      provider: this.provider,
+      payload: { attachmentCount: attachments.length },
+    });
+
     while (attempt < maxRetries) {
       attempt++;
       logger.info(`[SMTP ATTACHMENT EMAIL] Attempt ${attempt}/${maxRetries} to ${recipientEmail} | Subject: "${subject}"`);
 
       try {
-        if (this.provider === 'nodemailer' && this.nodemailerTransporter) {
-          const textContent = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-          const mailRes = await this.nodemailerTransporter.sendMail({
-            from: this.fromAddress,
-            to: recipientEmail,
-            subject,
-            text: textContent,
-            html,
-            attachments: attachments.map(att => ({
-              filename: att.filename,
-              content: att.content,
-              contentType: att.contentType || 'application/pdf',
-            })),
-          });
+        const result = await this.emailProvider.send({
+          to: recipientEmail,
+          subject,
+          html,
+          attachments: attachments.map(att => ({
+            filename: att.filename,
+            content: att.content,
+            contentType: att.contentType,
+          })),
+        });
 
-          logger.info(`[SMTP ATTACHMENT EMAIL] ✅ Delivered! MsgId: ${mailRes.messageId} | Accepted: ${JSON.stringify(mailRes.accepted)}`);
-          return {
-            success: true,
-            messageId: mailRes.messageId,
-            accepted: mailRes.accepted,
-            rejected: mailRes.rejected,
-          };
-        } else if (this.provider === 'resend' && this.resendClient) {
-          const resendRes = await this.resendClient.emails.send({
-            from: this.fromAddress,
-            to: [recipientEmail],
-            subject,
-            html,
-            attachments: attachments.map(att => ({
-              filename: att.filename,
-              content: att.content,
-            })),
-          });
-          if (resendRes.error) throw new Error(resendRes.error.message);
-          return { success: true, messageId: resendRes.data?.id };
-        } else {
-          // Mock Mode
-          const mockId = `mock_cert_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-          logger.info(`[MOCK EMAIL SENT] Certificate email delivered to ${recipientEmail} (MsgId: ${mockId})`);
-          return { success: true, messageId: mockId };
+        if (!result.success) {
+          throw new Error(result.error || 'Provider attachment email send failed');
         }
+
+        logger.info(`[SMTP ATTACHMENT EMAIL] ✅ Delivered! MsgId: ${result.messageId}`);
+        await this.auditLogger.updateStatus(logDocId, 'sent', result.messageId);
+
+        return {
+          success: true,
+          messageId: result.messageId,
+          accepted: [recipientEmail],
+          rejected: [],
+        };
       } catch (err: any) {
         lastError = err;
-        logger.error(`[SMTP ATTACHMENT EMAIL] ❌ Attempt ${attempt}/${maxRetries} Failed for ${recipientEmail}: ${err?.message || err}`);
+        logger.error(`[SMTP ATTACHMENT EMAIL] ❌ Attempt ${attempt}/${maxRetries} Failed for ${recipientEmail}: ` + (err?.message || err));
 
         if (attempt < maxRetries) {
           const backoffMs = Math.pow(2, attempt) * 1000;
@@ -516,10 +265,13 @@ export class EmailService {
       }
     }
 
+    const errorMsg = lastError?.message || String(lastError);
+    await this.auditLogger.updateStatus(logDocId, 'failed', undefined, errorMsg);
     logger.error(`[SMTP ATTACHMENT EMAIL] ❌ ALL ${maxRetries} ATTEMPTS FAILED for ${recipientEmail}`);
+
     return {
       success: false,
-      error: lastError?.message || String(lastError),
+      error: errorMsg,
     };
   }
 }

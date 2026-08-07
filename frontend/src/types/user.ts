@@ -1,5 +1,5 @@
 export type UserRole = 'admin' | 'instructor' | 'student';
-export type UserStatus = 'Active' | 'Blocked' | 'Pending' | 'Suspended' | 'Inactive' | 'pending' | 'approved' | 'rejected' | 'email_verification_pending';
+export type UserStatus = 'Active' | 'Blocked' | 'Pending' | 'Suspended' | 'Inactive' | 'pending' | 'approved' | 'rejected' | 'email_verification_pending' | 'active';
 export type UserProvider = 'password' | 'github.com' | string;
 
 export interface UserQuizScore {
@@ -53,6 +53,7 @@ export interface UserProfile {
   providerId?: string;
   status: UserStatus;
   branch?: string;
+  semester?: string;
   year?: string;
   college?: string;
   skills?: string[];

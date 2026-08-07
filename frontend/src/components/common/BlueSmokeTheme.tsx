@@ -183,7 +183,7 @@ export const BlueSmokeTheme: React.FC<BlueSmokeThemeProps> = ({ className = '', 
                 d: [
                   "M0,60 Q35,40 70,60 T100,60 L100,100 L0,100 Z",
                   "M0,60 Q35,70 60,50 T100,60 L100,100 L0,100 Z",
-                  "M0,60 Q35,40 70,60 L100,100 L0,100 Z"
+                  "M0,60 Q35,40 70,60 T100,60 L100,100 L0,100 Z"
                 ]
               }}
               transition={{

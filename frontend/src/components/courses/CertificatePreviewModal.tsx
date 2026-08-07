@@ -71,14 +71,19 @@ export const CertificatePreviewModal: React.FC<CertificatePreviewModalProps> = (
   const dynamicModules = certificate.modulesCount || 8;
   const dynamicDate = certificate.completionDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
-  const verificationUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/verify/${certificate.verificationId}?studentId=${dynamicStudentId}`;
+  const safeVerificationId = certificate.verificationId || '';
+  const verificationUrl = safeVerificationId
+    ? `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/verify/${safeVerificationId}?studentId=${dynamicStudentId}`
+    : '';
   
   // Live QR Code Generator URL encoding verification URL & student ID
-  const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(verificationUrl)}&color=0b1a30&bgcolor=ffffff`;
+  const qrCodeImageUrl = verificationUrl
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(verificationUrl)}&color=0b1a30&bgcolor=ffffff`
+    : '';
 
   const handleCopyId = async () => {
     try {
-      await navigator.clipboard.writeText(certificate.verificationId);
+      await navigator.clipboard.writeText(safeVerificationId || 'N/A');
       setCopied(true);
       toast.success('Certificate Verification ID copied!');
       setTimeout(() => setCopied(false), 2000);

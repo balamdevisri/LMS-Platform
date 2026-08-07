@@ -8,6 +8,7 @@ export enum EmailEventType {
   REGISTRATION_PENDING = 'REGISTRATION_PENDING',
   REGISTRATION_APPROVED = 'REGISTRATION_APPROVED',
   REGISTRATION_REJECTED = 'REGISTRATION_REJECTED',
+  INSTRUCTOR_REGISTRATION_PENDING = 'INSTRUCTOR_REGISTRATION_PENDING',
   EMAIL_VERIFICATION = 'EMAIL_VERIFICATION',
   PASSWORD_RESET = 'PASSWORD_RESET',
   COURSE_ENROLLMENT = 'COURSE_ENROLLMENT',
@@ -31,9 +32,17 @@ export interface StudentRegistrationPayload {
 export interface RegistrationPendingPayload {
   studentName: string;
   email: string;
-  githubUrl: string;
-  status: string;
+  githubUrl?: string;
+  status?: string;
   verificationLink?: string;
+}
+
+export interface InstructorRegistrationPendingPayload {
+  instructorName: string;
+  email: string;
+  department?: string;
+  qualification?: string;
+  experience?: string;
 }
 
 export interface RegistrationApprovedPayload {
@@ -132,6 +141,7 @@ export type EventPayloadMap = {
   [EmailEventType.REGISTRATION_PENDING]: RegistrationPendingPayload;
   [EmailEventType.REGISTRATION_APPROVED]: RegistrationApprovedPayload;
   [EmailEventType.REGISTRATION_REJECTED]: RegistrationRejectedPayload;
+  [EmailEventType.INSTRUCTOR_REGISTRATION_PENDING]: InstructorRegistrationPendingPayload;
   [EmailEventType.EMAIL_VERIFICATION]: EmailVerificationPayload;
   [EmailEventType.PASSWORD_RESET]: PasswordResetPayload;
   [EmailEventType.COURSE_ENROLLMENT]: CourseEnrollmentPayload;

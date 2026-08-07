@@ -14,17 +14,17 @@ const emailService = new EmailService();
 export class StudentService {
   /**
    * Complete Manual Student Registration
+   * Writes exclusively to the central `users` collection.
    */
   public async registerStudent(input: StudentRegistrationInput) {
     const { fullName, email, password, githubUrl, linkedin, portfolio, phone } = input;
     const normalizedEmail = email.toLowerCase().trim();
 
-    // 1. Extract GitHub Username & Validate Profile Existence
+    // 1. Extract GitHub Username & Validate Profile
     const username = GitHubService.extractUsername(githubUrl);
+    console.log("1. Signup Started for:", normalizedEmail);
 
-    console.log("1. Signup Started");
-
-    // 2. Check for Duplicate Email in Firebase Auth / Firestore
+    // 2. Check for Duplicate Email in Firebase Auth / Firestore users
     try {
       const existingAuthUser = await adminAuth.getUserByEmail(normalizedEmail).catch(() => null);
       if (existingAuthUser) {
@@ -36,11 +36,11 @@ export class StudentService {
       }
     }
 
-    // 3. Check for Duplicate GitHub Profile in Firestore
+    // 3. Check for Duplicate GitHub Profile in Firestore users
     if (db && typeof db.collection === 'function') {
       try {
         const existingGithubSnap = await db
-          .collection('students')
+          .collection('users')
           .where('github.username', '==', username)
           .get()
           .catch(() => null);
@@ -55,12 +55,12 @@ export class StudentService {
       }
     }
 
-    // 4. Fetch GitHub User Profile & Public Repositories (Throws "Invalid GitHub Profile" if 404)
+    // 4. Fetch GitHub Profile & Repositories
     const githubProfile = await GitHubService.fetchUserProfile(username);
     const githubRepos = await GitHubService.fetchUserRepos(username);
 
     // 5. Create Firebase Authentication Account
-    logger.info(`[SIGNUP FLOW 3] Creating Firebase Auth account for ${normalizedEmail}...`);
+    logger.info(`[SIGNUP] Creating Firebase Auth account for ${normalizedEmail}...`);
     let firebaseUser: { uid: string };
     try {
       firebaseUser = await adminAuth.createUser({
@@ -69,28 +69,32 @@ export class StudentService {
         displayName: fullName,
         disabled: false,
       });
-      logger.info(`[SIGNUP FLOW 4] Firebase user created successfully! UID: ${firebaseUser.uid}`);
+      logger.info(`[SIGNUP] Firebase user created! UID: ${firebaseUser.uid}`);
     } catch (err: any) {
       if (err?.message?.includes('already exists') || err?.code === 'auth/email-already-exists') {
-        logger.warn(`[SIGNUP FLOW 4] Email already exists: ${normalizedEmail}`);
         throw new Error(`A student account is already registered with email address: ${normalizedEmail}`);
       }
-      logger.warn(`[SIGNUP FLOW 4] Firebase Admin Auth createUser notice (proceeding with fallback UID): ${err?.message || err}`);
+      logger.warn(`[SIGNUP] Firebase Admin Auth createUser notice (fallback UID): ${err?.message || err}`);
       firebaseUser = { uid: 'st_' + Date.now() };
     }
 
-    console.log("2. Firebase User Created");
+    console.log("2. Firebase User Created. Storing in users collection...");
 
-    // 6. Build Complete Student Document (with AI Ready Structure)
+    // 6. Build Central User Document Schema
     const now = new Date().toISOString();
-    const studentData = {
+    const userDocument = {
       uid: firebaseUser.uid,
       fullName,
       name: fullName,
       email: normalizedEmail,
-      status: 'pending',
+      photoURL: githubProfile.avatar || null,
+      phone: phone || '',
       role: 'student',
-      provider: 'manual',
+      approved: false,
+      status: 'pending',
+      isActive: true,
+      branch: 'AI & Computer Science',
+      semester: '1st Semester',
       github: {
         username: githubProfile.username,
         profileUrl: githubProfile.profileUrl,
@@ -109,13 +113,14 @@ export class StudentService {
       },
       linkedin: linkedin || '',
       portfolio: portfolio || '',
-      phone: phone || '',
       createdAt: now,
+      updatedAt: now,
       approvedAt: null,
+      approvedBy: null,
       rejectedAt: null,
       rejectionReason: null,
       lastLogin: null,
-      // AI Ready Structure
+      // AI & Learning Metrics
       skills: [],
       languages: Array.from(new Set(githubRepos.map((r) => r.language).filter((l) => l && l !== 'Plain Text'))),
       frameworks: [],
@@ -124,31 +129,25 @@ export class StudentService {
       overallAIScore: Math.min(100, 50 + (githubProfile.repositories * 2)),
     };
 
-    // 7. Store in Firestore (`students` and `users` collections)
-    logger.info(`[SIGNUP FLOW 5] Storing user document in Firestore...`);
+    // 7. Store ONLY in central `users` collection
     if (db && typeof db.collection === 'function') {
       try {
-        await db.collection('students').doc(firebaseUser.uid).set(studentData);
-        await db.collection('users').doc(firebaseUser.uid).set(studentData);
-        logger.info(`[SIGNUP FLOW 5] Firestore user saved successfully.`);
+        await db.collection('users').doc(firebaseUser.uid).set(userDocument);
+        logger.info(`[SIGNUP] Saved user document in central users collection successfully.`);
       } catch (firestoreErr: any) {
-        logger.warn(`[SIGNUP FLOW 5] Firestore store notice (non-blocking): ${firestoreErr?.message || firestoreErr}`);
+        logger.warn(`[SIGNUP] Firestore write notice: ${firestoreErr?.message || firestoreErr}`);
       }
     }
 
-    // 8. Generate Verification Link & Send Welcome/Verification Email via Nodemailer SMTP
-    console.log("Generating verification link...");
+    // 8. Generate Link & Dispatch SMTP Pending Email
     let link = `https://shaivika-lms.vercel.app/auth/login?verified=true&email=${encodeURIComponent(normalizedEmail)}`;
     try {
       if (typeof adminAuth.generateEmailVerificationLink === 'function') {
         link = await adminAuth.generateEmailVerificationLink(normalizedEmail);
       }
     } catch (linkErr: any) {
-      console.warn("Notice generating Admin Auth verification link (using default link):", linkErr?.message || linkErr);
+      console.warn("Notice generating Admin Auth verification link:", linkErr?.message || linkErr);
     }
-
-    console.log("Generated Link:", link);
-    console.log("Sending email...");
 
     try {
       const emailResult = await emailService.sendEventEmail(
@@ -163,26 +162,20 @@ export class StudentService {
         }
       );
 
-      console.log("Mail Info:", {
-        success: emailResult.success,
-        messageId: emailResult.messageId || null,
-        logId: emailResult.logId || null,
-      });
-      logger.info(`[SIGNUP FLOW 7] Email dispatch result -> Success: ${emailResult.success} | MessageId: ${emailResult.messageId || 'N/A'}`);
+      logger.info(`[SIGNUP] SMTP Pending Email dispatched. Result: ${emailResult.success}`);
     } catch (emailErr: any) {
-      console.error("SIGNUP ERROR:", emailErr);
-      logger.error(`[SIGNUP FLOW 7-ERR] Welcome Email delivery exception:`, emailErr);
+      logger.error(`[SIGNUP-ERR] Pending Email delivery exception:`, emailErr);
     }
 
     return {
       success: true,
-      message: 'Registration submitted successfully. Your account is pending admin approval.',
-      student: studentData,
+      message: 'Student registration submitted successfully. Your account is pending admin approval.',
+      student: userDocument,
     };
   }
 
   /**
-   * Get all pending approval students
+   * Get all pending approval students from central `users` collection
    */
   public async getPendingStudents() {
     if (!db || typeof db.collection !== 'function') {
@@ -190,16 +183,22 @@ export class StudentService {
     }
 
     try {
-      const snap = await db.collection('students').where('status', '==', 'pending').get();
+      const snap = await db
+        .collection('users')
+        .where('role', '==', 'student')
+        .where('approved', '==', false)
+        .get();
+
       return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     } catch (err: any) {
-      console.warn('Error fetching pending students:', err?.message || err);
+      console.warn('Error fetching pending students from users collection:', err?.message || err);
       return [];
     }
   }
 
   /**
    * Approve Student Account
+   * Updates central `users` collection: approved=true, status='active', approvedAt, approvedBy
    */
   public async approveStudent(input: StudentApproveInput) {
     const { studentId } = input;
@@ -208,36 +207,36 @@ export class StudentService {
     let studentData: any = null;
 
     if (db && typeof db.collection === 'function') {
-      let docRef = db.collection('students').doc(studentId);
       let userRef = db.collection('users').doc(studentId);
 
-      let docSnap = await docRef.get();
+      let docSnap = await userRef.get();
       if (!docSnap.exists) {
-        const fallbackSnap = await db.collection('students').where('uid', '==', studentId).get();
+        const fallbackSnap = await db.collection('users').where('uid', '==', studentId).get();
         if (!fallbackSnap.empty) {
-          const matchDoc = fallbackSnap.docs[0];
-          docRef = db.collection('students').doc(matchDoc.id);
-          userRef = db.collection('users').doc(matchDoc.id);
-          docSnap = await docRef.get();
+          userRef = db.collection('users').doc(fallbackSnap.docs[0].id);
+          docSnap = await userRef.get();
         } else {
-          throw new Error('Student record not found');
+          throw new Error('Student user record not found in users collection');
         }
       }
 
       studentData = docSnap.data();
 
       const updatePayload = {
-        status: 'approved',
+        approved: true,
+        status: 'active',
+        isActive: true,
         approvedAt: now,
+        approvedBy: 'admin',
         rejectedAt: null,
         rejectionReason: null,
+        updatedAt: now,
       };
 
-      await docRef.update(updatePayload);
-      await userRef.update(updatePayload).catch(() => null);
+      await userRef.update(updatePayload);
     }
 
-    // Send Approval Email
+    // Send SMTP Approval Email
     if (studentData && studentData.email) {
       try {
         await emailService.sendEventEmail(
@@ -271,35 +270,34 @@ export class StudentService {
     let studentData: any = null;
 
     if (db && typeof db.collection === 'function') {
-      let docRef = db.collection('students').doc(studentId);
       let userRef = db.collection('users').doc(studentId);
 
-      let docSnap = await docRef.get();
+      let docSnap = await userRef.get();
       if (!docSnap.exists) {
-        const fallbackSnap = await db.collection('students').where('uid', '==', studentId).get();
+        const fallbackSnap = await db.collection('users').where('uid', '==', studentId).get();
         if (!fallbackSnap.empty) {
-          const matchDoc = fallbackSnap.docs[0];
-          docRef = db.collection('students').doc(matchDoc.id);
-          userRef = db.collection('users').doc(matchDoc.id);
-          docSnap = await docRef.get();
+          userRef = db.collection('users').doc(fallbackSnap.docs[0].id);
+          docSnap = await userRef.get();
         } else {
-          throw new Error('Student record not found');
+          throw new Error('Student user record not found in users collection');
         }
       }
 
       studentData = docSnap.data();
 
       const updatePayload = {
+        approved: false,
         status: 'rejected',
+        isActive: false,
         rejectedAt: now,
-        rejectionReason: reason,
+        rejectionReason: reason || 'Registration details did not meet criteria.',
+        updatedAt: now,
       };
 
-      await docRef.update(updatePayload);
-      await userRef.update(updatePayload).catch(() => null);
+      await userRef.update(updatePayload);
     }
 
-    // Send Rejection Email
+    // Send SMTP Rejection Email
     if (studentData && studentData.email) {
       try {
         await emailService.sendEventEmail(
@@ -308,7 +306,7 @@ export class StudentService {
           {
             studentName: studentData.fullName || studentData.name || 'Student',
             email: studentData.email,
-            reason,
+            reason: reason || 'Registration details did not meet criteria.',
           }
         );
       } catch (emailErr: any) {

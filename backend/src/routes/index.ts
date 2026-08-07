@@ -15,6 +15,8 @@ import adminRoutes from './admin.routes';
 import liveClassroomRoutes from '../modules/liveClassroom/liveClassroom.routes';
 import certificateRoutes from './certificateRoutes';
 
+import { verifyFirebaseToken, requireRole } from '../middleware/auth.middleware';
+
 const router = Router();
 
 router.get('/', (req, res) => {
@@ -24,7 +26,8 @@ router.get('/', (req, res) => {
 router.use('/auth', authRoutes);
 router.use('/auth', studentRoutes);
 router.use('/students', studentRoutes);
-router.use('/users', userRoutes);
+router.use('/users/students', studentRoutes);
+router.use('/users', verifyFirebaseToken as any, requireRole('admin') as any, userRoutes);
 router.use('/courses', courseRoutes);
 router.use('/lessons', lessonRoutes);
 router.use('/quizzes', quizRoutes);

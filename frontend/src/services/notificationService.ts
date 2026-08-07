@@ -120,6 +120,13 @@ class NotificationService {
 
     const unsubscribers: (() => void)[] = [];
 
+    if (!userId) {
+      console.log('[Firestore Audit] Skipped notifications listener: No authenticated userId.');
+      return () => {
+        this.listeners.delete(callback);
+      };
+    }
+
     if (db) {
       try {
         const notifRef = collection(db, 'notifications');

@@ -97,21 +97,24 @@ export class AuthService {
     }
 
     try {
-      const eventType = isInstructor ? 'EMAIL_VERIFICATION' : 'REGISTRATION_PENDING';
+      const eventType = isInstructor ? 'INSTRUCTOR_REGISTRATION_PENDING' : 'REGISTRATION_PENDING';
       const verificationUrl = `${window.location.origin}/auth/login?verified=true&email=${encodeURIComponent(targetEmail.toLowerCase().trim())}`;
       
       const payload = isInstructor
         ? {
-            userName: fullName || targetEmail.split('@')[0],
+            instructorName: fullName || targetEmail.split('@')[0],
             email: targetEmail.toLowerCase().trim(),
+            department: 'Computer Science & System Architecture',
+            qualification: 'Pending Verification',
+            experience: 'Not yet specified',
             verificationUrl,
-            expiresInMinutes: 30,
           }
         : {
             studentName: fullName || targetEmail.split('@')[0],
             email: targetEmail.toLowerCase().trim(),
             githubUrl: `https://github.com/${targetEmail.split('@')[0]}`,
             status: 'Pending Approval',
+            verificationUrl,
           };
 
       const response = await fetch(`${API_BASE_URL}/email/send`, {

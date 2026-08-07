@@ -4,8 +4,6 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
-  sendPasswordResetEmail,
-  sendEmailVerification,
   updateProfile,
   setPersistence,
   browserLocalPersistence,
@@ -18,10 +16,51 @@ import {
   fetchSignInMethodsForEmail,
   linkWithCredential,
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection } from 'firebase/firestore';
 import { auth, db } from '@/firebase';
 import type { UserProfile, UserRole } from '@/types/user';
-import { studentService } from '@/services/studentService';
+
+const syncStudent = async (profile: UserProfile) => {
+  if (!db) return;
+  try {
+    const studentRef = doc(db, 'students', profile.uid);
+    await setDoc(studentRef, {
+      ...profile,
+      id: profile.uid,
+      name: profile.fullName || profile.name || 'Student',
+      email: profile.email,
+      joined: profile.createdAt || new Date().toISOString(),
+      courses: profile.enrolledCoursesCount || 1,
+      status: profile.status || 'Active',
+      updatedAt: new Date().toISOString(),
+    }, { merge: true });
+  } catch (e) {
+    console.warn('Sync student notice:', e);
+  }
+};
+
+const syncInstructor = async (profile: UserProfile) => {
+  if (!db) return;
+  try {
+    const instructorRef = doc(db, 'instructors', profile.uid);
+    await setDoc(instructorRef, {
+      id: profile.uid,
+      name: profile.fullName || profile.name || 'Instructor',
+      email: profile.email,
+      specialty: 'Computer Science & System Architecture',
+      joined: profile.createdAt || new Date().toISOString(),
+      assignedCourses: 0,
+      studentsCount: '0',
+      rating: 5.0,
+      status: profile.status || 'pending',
+      approved: profile.approved || false,
+      appliedDate: profile.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }, { merge: true });
+  } catch (e) {
+    console.warn('Sync instructor notice:', e);
+  }
+};
 
 interface AuthContextType {
   user: User | null;
@@ -38,6 +77,11 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+console.log("🚀 ACTIVE AUTH PROVIDER: frontend/src/contexts/AuthContext.tsx (AuthProvider)");
+console.log("🚀 ACTIVE FIREBASE CONFIG: frontend/src/services/firebase.ts (shaivika-lms-ai)");
+console.log("🚀 ACTIVE FIRESTORE INSTANCE: frontend/src/firebase.ts (db)");
+console.log("🚀 ACTIVE AUTH CONTEXT: frontend/src/contexts/AuthContext.tsx (AuthContext)");
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -67,6 +111,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const storedRole = typeof window !== 'undefined' ? sessionStorage.getItem('kaizenq_signup_role') as UserRole : undefined;
     const targetRole: UserRole = isAdmin ? 'admin' : (initialRole || storedRole || 'student');
 
+    console.log(`[FIRESTORE AUDIT] fetchUserProfile called | initialRole: ${initialRole} | storedRole: ${storedRole} | targetRole: ${targetRole}`);
+
     const calculatedName = firebaseUser.displayName || (isAdmin ? 'Administrator' : 'Student User');
     const baseProfileData: Partial<UserProfile> = {
       uid: firebaseUser.uid,
@@ -79,19 +125,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       providerId: isGithub ? 'github.com' : 'password',
       status: 'Active',
       ...(calculatedUsername ? { githubUsername: calculatedUsername } : {}),
-    };
-
-    const syncStudent = (profile: UserProfile) => {
-      if (profile.role === 'student') {
-        studentService.registerSignedUpStudent(
-          profile.uid,
-          profile.fullName || profile.name || firebaseUser.displayName || 'Student User',
-          profile.email || firebaseUser.email || '',
-          firebaseUser.photoURL || profile.photoURL || undefined,
-          isGithub ? 'github.com' : 'password',
-          calculatedUsername
-        );
-      }
     };
 
     if (!db) {
@@ -110,7 +143,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isVerified: firebaseUser.emailVerified || isGithub || isAdmin || false,
         githubUsername: calculatedUsername,
       };
-      syncStudent(fallback);
       setUserProfile(fallback);
       return fallback;
     }
@@ -121,67 +153,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (userSnap.exists()) {
         const data = userSnap.data() as UserProfile;
-        const finalRole: UserRole = isAdmin ? 'admin' : (data.role || targetRole);
+        const shouldRepairInstructor = targetRole === 'instructor' || storedRole === 'instructor';
+        const finalRole: UserRole = isAdmin ? 'admin' : (shouldRepairInstructor ? 'instructor' : (data.role || targetRole));
         
-        let mergedData = { ...data };
+        const isApproved = isAdmin ? true : (data.approved !== undefined ? data.approved : (data.status === 'active' || data.status === 'Active' || data.status === 'approved'));
+        const currentStatus = data.status || (isAdmin ? 'active' : 'pending');
 
-        // Load details from role-based collection
-        try {
-          if (finalRole === 'student') {
-            const studentSnap = await getDoc(doc(db, 'students', firebaseUser.uid));
-            if (studentSnap.exists()) {
-              mergedData = { ...mergedData, ...studentSnap.data() };
-            }
-          } else if (finalRole === 'instructor') {
-            const instructorSnap = await getDoc(doc(db, 'instructors', firebaseUser.uid));
-            if (instructorSnap.exists()) {
-              mergedData = { ...mergedData, ...instructorSnap.data() };
-            }
-          } else if (finalRole === 'admin') {
-            const adminSnap = await getDoc(doc(db, 'admins', firebaseUser.uid));
-            if (adminSnap.exists()) {
-              mergedData = { ...mergedData, ...adminSnap.data() };
-            }
-          }
-        } catch (roleFetchErr) {
-          console.warn('Failed to fetch role-based extra profile details:', roleFetchErr);
-        }
-
-        const updatedPayload: UserProfile = {
-          ...mergedData,
+        const profileData: UserProfile = {
+          ...data,
           ...baseProfileData,
           role: finalRole,
+          approved: isApproved,
+          status: currentStatus,
+          isActive: data.isActive !== undefined ? data.isActive : true,
+          phone: data.phone || '',
+          github: data.github || (calculatedUsername ? `https://github.com/${calculatedUsername}` : ''),
+          linkedin: data.linkedin || '',
+          branch: data.branch || 'AI & Computer Science',
+          semester: (data as any).semester || '1st Semester',
+          photoURL: data.photoURL || firebaseUser.photoURL || null,
           lastLogin: new Date().toISOString(),
         };
 
-        await updateDoc(userRef, {
-          ...baseProfileData,
-          role: finalRole,
-          lastLogin: new Date().toISOString(),
-        }).catch((err) => console.warn('Firestore updateDoc users notice:', err));
-
-        try {
-          if (finalRole === 'student') {
-            await updateDoc(doc(db, 'students', firebaseUser.uid), {
-              lastLogin: new Date().toISOString(),
-            });
-          } else if (finalRole === 'instructor') {
-            await updateDoc(doc(db, 'instructors', firebaseUser.uid), {
-              lastLogin: new Date().toISOString(),
-            });
-          } else if (finalRole === 'admin') {
-            await updateDoc(doc(db, 'admins', firebaseUser.uid), {
-              lastLogin: new Date().toISOString(),
-            });
-          }
-        } catch (updateRoleErr) {
-          console.warn('Failed to update role-based lastLogin:', updateRoleErr);
-        }
-
-        syncStudent(updatedPayload);
-        setUserProfile(updatedPayload);
-        return updatedPayload;
+        setUserProfile(profileData);
+        return profileData;
       } else {
+        const isApproved = isAdmin ? true : false;
+        const initialStatus = isAdmin ? 'active' : 'pending';
+
         const newProfile: UserProfile = {
           uid: firebaseUser.uid,
           fullName: calculatedName,
@@ -190,13 +189,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           photoURL: firebaseUser.photoURL || null,
           profilePhoto: firebaseUser.photoURL || null,
           role: targetRole,
+          approved: isApproved,
+          status: initialStatus,
+          isActive: true,
           provider: isGithub ? 'github.com' : 'password',
           providerId: isGithub ? 'github.com' : 'password',
-          status: targetRole === 'instructor' ? 'pending' : 'Active',
-          approvedBy: undefined,
-          approvedAt: undefined,
+          approvedBy: isAdmin ? 'system' : undefined,
+          approvedAt: isAdmin ? new Date().toISOString() : undefined,
           rejectedAt: undefined,
           branch: 'AI & Computer Science',
+          semester: '1st Semester',
           year: '1st Year',
           college: 'Shaivika AI Foundation',
           phone: '+1 (555) 019-2831',
@@ -206,7 +208,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           bio: 'Enthusiastic KaizenQ learner mastering Linux, AI, and DevOps.',
           skills: ['Linux', 'Git', 'Python', 'AI Foundation'],
           emailVerified: firebaseUser.emailVerified || isGithub || isAdmin || false,
-          isActive: true,
           courseCount: 1,
           completedCourses: 0,
           currentCourse: 'Linux Systems & Administration Mastery',
@@ -219,67 +220,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           githubUsername: calculatedUsername,
         };
 
-        await setDoc(userRef, newProfile).catch((err) => console.warn('Firestore setDoc users notice:', err));
+        console.log(`[FIRESTORE] Creating initial users profile for ${firebaseUser.uid}...`);
+        try {
+          await setDoc(userRef, newProfile);
+          console.log(`[FIRESTORE] Initial users profile created: users/${firebaseUser.uid}`);
+        } catch (err: any) {
+          console.error(`[FIRESTORE CRITICAL REJECTION] Failed creating users/${firebaseUser.uid}!`, err);
+          console.error('[FIRESTORE REJECTION REASON]', err?.message || err?.code || String(err));
+          console.error('[FIRESTORE REJECTION STACK]', err?.stack);
+          throw err;
+        }
 
         if (targetRole === 'student') {
-          syncStudent(newProfile);
+          await syncStudent(newProfile);
         } else if (targetRole === 'instructor') {
-          console.log("Firebase Auth Success");
-          console.log("Creating Instructor Document...");
-          
-          const instructorPayload = {
-            uid: firebaseUser.uid,
-            id: firebaseUser.uid,
-            name: calculatedName,
-            fullName: calculatedName,
-            email: firebaseUser.email || '',
-            role: 'instructor',
-            status: 'pending',
-            approvedBy: null,
-            approvedAt: null,
-            specialty: 'Linux & System Architecture',
-            skills: ['Linux', 'Git', 'Python'],
-            experience: 'Not Specified',
-            phone: '',
-            joined: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          };
+          await syncInstructor(newProfile);
 
+          // Dispatch instructor pending-approval email via SMTP backend
           try {
-            await setDoc(doc(db, 'instructors', firebaseUser.uid), instructorPayload);
-            console.log("Instructor Document Created Successfully");
-          } catch (err) {
-            console.error("Firestore Error", err);
+            const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+            await fetch(`${apiBaseUrl}/email/send`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                eventType: 'INSTRUCTOR_REGISTRATION_PENDING',
+                recipientEmail: (firebaseUser.email || '').toLowerCase().trim(),
+                payload: {
+                  instructorName: calculatedName,
+                  email: (firebaseUser.email || '').toLowerCase().trim(),
+                  department: 'Computer Science & System Architecture',
+                  qualification: 'Pending Verification',
+                  experience: 'Not yet specified',
+                },
+              }),
+            });
+            console.log('[INSTRUCTOR REGISTRATION AUDIT] Pending approval SMTP email dispatched.');
+          } catch (emailErr) {
+            console.warn('[INSTRUCTOR REGISTRATION AUDIT] SMTP email dispatch notice:', emailErr);
           }
 
+          // Notify admin in Firestore notifications collection
           try {
             const adminNotifRef = doc(collection(db, 'notifications'));
             await setDoc(adminNotifRef, {
-              title: 'New Instructor Registration',
-              desc: `${calculatedName} (${firebaseUser.email}) registered as an Instructor and is pending approval.`,
+              userId: firebaseUser.uid,
+              title: 'New Lecturer Registration',
+              message: `${calculatedName} (${firebaseUser.email}) registered as an Instructor and is pending approval.`,
               createdAt: new Date().toISOString(),
-              read: false,
+              isRead: false,
               type: 'info',
               recipientRole: 'admin',
             });
-            console.log('[Firestore Audit] Dispatched Admin notification for Instructor registration.');
+            console.log('[INSTRUCTOR REGISTRATION AUDIT] Admin notification written to Firestore notifications.');
           } catch (notifErr) {
-            console.warn('Failed to write admin notification for instructor:', notifErr);
+            console.warn('[INSTRUCTOR REGISTRATION AUDIT] Failed to write admin notification:', notifErr);
           }
-        } else if (targetRole === 'admin') {
-          const adminPayload = {
-            uid: firebaseUser.uid,
-            id: firebaseUser.uid,
-            name: calculatedName,
-            fullName: calculatedName,
-            email: firebaseUser.email || '',
-            role: 'admin',
-            status: 'Active',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          };
-          await setDoc(doc(db, 'admins', firebaseUser.uid), adminPayload).catch((err) => console.warn('Firestore setDoc admins notice:', err));
         }
 
         setUserProfile(newProfile);
@@ -294,9 +289,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: firebaseUser.email || '',
         photoURL: firebaseUser.photoURL || null,
         role: targetRole,
+        approved: false,
+        // CRITICAL: use lowercase 'pending' — uppercase 'Pending' breaks Admin Dashboard filter
+        status: targetRole === 'instructor' ? 'pending' : 'Active',
         provider: isGithub ? 'github.com' : 'password',
         providerId: isGithub ? 'github.com' : 'password',
-        status: targetRole === 'instructor' ? 'Pending' : 'Active',
         createdAt: new Date().toISOString(),
         lastLogin: new Date().toISOString(),
         isVerified: firebaseUser.emailVerified || isGithub || isAdmin || false,
@@ -327,7 +324,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             localStorage.setItem('shaivika_auth_token', token);
             localStorage.setItem('token', token);
 
-            const profile = await fetchUserProfile(currentUser);
+            const storedSignupRole = typeof window !== 'undefined' ? sessionStorage.getItem('kaizenq_signup_role') as UserRole : undefined;
+            const profile = await fetchUserProfile(currentUser, undefined, storedSignupRole);
             if (profile) {
               // Enforce account status check on initialization
               const isPending = (profile.role === 'instructor' && (profile.status === 'pending' || profile.status === 'Pending')) || 
@@ -383,51 +381,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     password: string,
     role: UserRole = 'student'
   ): Promise<void> => {
-    if (!auth) {
-      throw new Error('Firebase Auth is not configured.');
-    }
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const firebaseUser = userCredential.user;
+    const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const endpoint = role === 'instructor' ? `${apiBaseUrl}/auth/signup/lecturer` : `${apiBaseUrl}/auth/signup/student`;
 
-    await updateProfile(firebaseUser, { displayName: name });
+    console.log(`[SIGNUP] Dispatching ${role} registration to backend endpoint: ${endpoint}...`);
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fullName: name,
+        email: email.toLowerCase().trim(),
+        password,
+        branch: 'AI & Computer Science',
+        specialty: 'Computer Science & System Architecture',
+        experience: 'Pending Verification',
+      }),
+    });
 
-    // Trigger custom backend verification email via Nodemailer SMTP
-    try {
-      const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const verificationUrl = `${window.location.origin}/auth/login?verified=true&email=${encodeURIComponent(email.toLowerCase().trim())}`;
-      
-      await fetch(`${apiBaseUrl}/email/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          eventType: 'EMAIL_VERIFICATION',
-          recipientEmail: email.toLowerCase().trim(),
-          payload: {
-            userName: name,
-            email: email.toLowerCase().trim(),
-            verificationUrl,
-            expiresInMinutes: 30,
-          },
-        }),
-      });
-    } catch (e) {
-      console.warn('Backend custom email verification failed:', e);
+    const resData = await response.json();
+    if (!response.ok || !resData.success) {
+      console.error(`[SIGNUP ERROR] Backend ${role} signup failed:`, resData);
+      throw new Error(resData.error || resData.message || `Failed to submit ${role} registration.`);
     }
 
-    try {
-      await sendEmailVerification(firebaseUser);
-    } catch (e) {
-      console.warn('Email verification failed:', e);
-    }
-
-    await fetchUserProfile(firebaseUser, undefined, role);
-
-    if (role === 'instructor') {
-      if (auth) {
-        await signOut(auth).catch(() => null);
-      }
-    }
-
+    console.log(`[SIGNUP SUCCESS] ${role} registration completed via backend:`, resData);
     if (typeof window !== 'undefined') {
       sessionStorage.removeItem('kaizenq_signup_role');
     }
@@ -497,7 +474,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           throw unverifiedError;
         }
 
-        // 2. Admin Approval Check
+        // 2. Admin Approval Check — read ONLY from `users` collection (single source of truth)
         let approvalStatus = 'approved';
         let userRole: UserRole = 'student';
         if (db) {
@@ -506,40 +483,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (userDoc.exists()) {
               const data = userDoc.data();
               userRole = data.role || 'student';
-              approvalStatus = data.status || 'Active';
+              // Normalize: 'active', 'Active', 'approved' → approved; 'pending' → pending
+              const rawStatus = data.status || '';
+              const isApproved = data.approved === true || rawStatus === 'active' || rawStatus === 'Active' || rawStatus === 'approved';
+              approvalStatus = isApproved ? 'approved' : (rawStatus || 'pending');
             }
           } catch (err) {
             console.warn('User status check failed:', err);
           }
         }
 
-        // For student, check student collection if user doc did not specify status
-        if (userRole === 'student' && approvalStatus === 'Active') {
-          try {
-            const localStudents = studentService.getLocalStudents();
-            const match = localStudents.find((s) => s.id === currentUser.uid || s.uid === currentUser.uid || s.email === currentUser.email);
-            if (match && match.status) {
-              approvalStatus = match.status;
-            } else if (db) {
-              let studentDoc = await getDoc(doc(db, 'students', currentUser.uid));
-              let data = studentDoc.exists() ? studentDoc.data() : null;
-
-              if (!studentDoc.exists()) {
-                const q = query(collection(db, 'students'), where('uid', '==', currentUser.uid));
-                const qSnap = await getDocs(q);
-                if (!qSnap.empty) {
-                  data = qSnap.docs[0].data();
-                }
-              }
-
-              if (data) {
-                approvalStatus = data.status || (data.approved ? 'approved' : 'pending');
-              }
-            }
-          } catch (docErr) {
-            console.warn('Student status check notice:', docErr);
-          }
-        }
 
         const isPending = (userRole === 'instructor' && (approvalStatus === 'pending' || approvalStatus === 'Pending')) || 
                           (userRole === 'student' && (approvalStatus === 'pending' || approvalStatus === 'Pending Approval'));
@@ -550,7 +503,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           console.warn(`[Dashboard Access Blocked] User ${currentUser.email} blocked because status is ${approvalStatus}.`);
           const pendingErr: any = new Error(userRole === 'instructor'
-            ? 'Your instructor account is under review. You will receive an approval email once the administrator approves your application.'
+            ? 'Your instructor account is awaiting administrator approval. Please check your email.'
             : 'Your registration application is pending administrator review and approval.'
           );
           pendingErr.code = 'ADMIN_APPROVAL_PENDING';
@@ -788,15 +741,78 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    // Client SDK fallback if backend is offline
-    if (auth) {
-      await sendPasswordResetEmail(auth, email);
+    // Custom Gmail SMTP Dispatcher (Firebase Default Email Disabled)
+    const resetUrl = `${window.location.origin}/auth/login?reset=true&email=${encodeURIComponent(email)}`;
+    const apiBaseUrl = typeof window !== 'undefined' && window.location.hostname === 'localhost'
+      ? 'http://localhost:5000/api'
+      : '/api';
+
+    try {
+      await fetch(`${apiBaseUrl}/email/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventType: 'PASSWORD_RESET',
+          recipientEmail: email.toLowerCase().trim(),
+          payload: {
+            userName: email.split('@')[0],
+            email: email.toLowerCase().trim(),
+            resetUrl,
+            expiresInMinutes: 15,
+          },
+        }),
+      });
+    } catch (e) {
+      console.warn('Backend custom password reset notice:', e);
     }
   };
 
   const sendVerificationEmail = async (): Promise<void> => {
-    if (auth && auth.currentUser) {
-      await sendEmailVerification(auth.currentUser);
+    if (user && user.email) {
+      const email = user.email;
+      const isInstructorRole = userProfile?.role === 'instructor';
+      const name = userProfile?.fullName || userProfile?.name || email.split('@')[0];
+      const verificationUrl = `${window.location.origin}/auth/login?verified=true&email=${encodeURIComponent(email)}`;
+      const apiBaseUrl = typeof window !== 'undefined' && window.location.hostname === 'localhost'
+        ? 'http://localhost:5000/api'
+        : '/api';
+
+      try {
+        if (isInstructorRole) {
+          await fetch(`${apiBaseUrl}/email/send`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              eventType: 'INSTRUCTOR_REGISTRATION_PENDING',
+              recipientEmail: email.toLowerCase().trim(),
+              payload: {
+                instructorName: name,
+                email: email.toLowerCase().trim(),
+                department: 'Computer Science & System Architecture',
+                qualification: 'Pending Verification',
+                experience: 'Not yet specified',
+              },
+            }),
+          });
+        } else {
+          await fetch(`${apiBaseUrl}/email/send`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              eventType: 'EMAIL_VERIFICATION',
+              recipientEmail: email.toLowerCase().trim(),
+              payload: {
+                userName: name,
+                email: email.toLowerCase().trim(),
+                verificationUrl,
+                expiresInMinutes: 30,
+              },
+            }),
+          });
+        }
+      } catch (e) {
+        console.warn('Backend custom email dispatch notice:', e);
+      }
     }
   };
 

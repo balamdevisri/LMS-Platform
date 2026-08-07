@@ -32,6 +32,7 @@ import type { XPClaimRecord } from '@/services/courseService';
 import type { ICourse } from '../../../../shared/types/course';
 import { courseTimeService } from '@/services/courseTimeService';
 import { useCourseTimeTracker } from '@/hooks/useCourseTimeTracker';
+import { mockAIProvider } from '@/services/aiProvider';
 
 import { AnalyticsDashboard } from '../../components/courses/AnalyticsDashboard';
 import { LeaderboardView } from '../../components/courses/LeaderboardView';
@@ -114,9 +115,9 @@ export const Dashboard: React.FC = () => {
     setTimeout(() => {
       const q = aiSearchQuery.toLowerCase();
       const matches = enrolledCourses.filter(c => 
-        c.title.toLowerCase().includes(q) || 
-        c.category.toLowerCase().includes(q) ||
-        (c.skills && c.skills.some(s => s.toLowerCase().includes(q)))
+        (c.title || '').toLowerCase().includes(q) || 
+        (c.category || '').toLowerCase().includes(q) ||
+        (c.skills && c.skills.some(s => (s || '').toLowerCase().includes(q)))
       );
       setAiSearchResults(matches);
       setIsAiSearching(false);
@@ -131,7 +132,6 @@ export const Dashboard: React.FC = () => {
   useEffect(() => {
     const loadWeakness = async () => {
       try {
-        const { mockAIProvider } = await import('@/services/aiProvider');
         const res = await mockAIProvider.getWeakTopicAnalysis(activeUserId);
         setWeakTopics(res);
       } catch (err) {}

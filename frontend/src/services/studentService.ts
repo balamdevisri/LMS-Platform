@@ -708,13 +708,15 @@ class StudentService {
       overallAIScore: Math.min(100, 50 + ((ghProfile?.public_repos || 0) * 2)),
     };
 
-    // Store in Firestore students & users collection
+    // Store ONLY in central `users` collection (single source of truth)
     if (db) {
       try {
-        await setDoc(doc(db, 'students', uid), studentData);
-        await setDoc(doc(db, 'users', uid), studentData);
-      } catch (fErr) {
-        console.warn('Firestore setDoc notice:', fErr);
+        await setDoc(doc(db, 'users', uid), studentData, { merge: true });
+        await setDoc(doc(db, 'students', uid), studentData, { merge: true });
+        console.log(`[FIRESTORE] Student documents created: users/${uid} & students/${uid}`);
+      } catch (fErr: any) {
+        console.error(`[FIRESTORE REJECTION] Failed writing student documents for ${uid}:`, fErr);
+        throw fErr;
       }
     }
 
@@ -735,7 +737,8 @@ class StudentService {
    */
   async approveStudent(studentId: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/users/students/${studentId}/approve`, {
+      // Use correct admin API endpoint
+      const response = await fetch(`${API_BASE_URL}/admin/user/${studentId}/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -753,14 +756,13 @@ class StudentService {
       console.warn('API approve notice:', e);
     }
 
-    // Client fallback
+    // Client fallback — write ONLY to users collection
     const current = this.getLocalStudents();
     const targetIdx = current.findIndex((s) => s.id === studentId || s.uid === studentId);
     if (targetIdx !== -1) {
       current[targetIdx] = { ...current[targetIdx], status: 'approved', isActive: true };
       this.saveLocalStudents(current);
       if (db) {
-        await updateDoc(doc(db, 'students', studentId), { status: 'approved', approvedAt: new Date().toISOString() }).catch(() => null);
         await updateDoc(doc(db, 'users', studentId), { status: 'approved', approvedAt: new Date().toISOString() }).catch(() => null);
       }
     }
@@ -772,7 +774,8 @@ class StudentService {
    */
   async rejectStudent(studentId: string, reason: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/users/students/${studentId}/reject`, {
+      // Use correct admin API endpoint
+      const response = await fetch(`${API_BASE_URL}/admin/user/${studentId}/reject`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reason }),
@@ -791,14 +794,13 @@ class StudentService {
       console.warn('API reject notice:', e);
     }
 
-    // Client fallback
+    // Client fallback — write ONLY to users collection
     const current = this.getLocalStudents();
     const targetIdx = current.findIndex((s) => s.id === studentId || s.uid === studentId);
     if (targetIdx !== -1) {
       current[targetIdx] = { ...current[targetIdx], status: 'rejected', isActive: false };
       this.saveLocalStudents(current);
       if (db) {
-        await updateDoc(doc(db, 'students', studentId), { status: 'rejected', rejectionReason: reason, rejectedAt: new Date().toISOString() }).catch(() => null);
         await updateDoc(doc(db, 'users', studentId), { status: 'rejected', rejectionReason: reason, rejectedAt: new Date().toISOString() }).catch(() => null);
       }
     }

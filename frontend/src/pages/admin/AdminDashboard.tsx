@@ -115,6 +115,66 @@ export const AdminDashboard: React.FC = () => {
     () => studentsList.filter((s) => s.provider === 'github.com' || Boolean(s.photoURL?.includes('github')) || s.githubUsername).length,
     [studentsList]
   );
+  const emailVerified = useMemo(
+    () => studentsList.filter((s) => (s as any).emailVerified === true || (s as any).isVerified === true).length,
+    [studentsList]
+  );
+
+  // Real-time daily registrations (last 7 days by day-of-week)
+  const dailyRegistrations = useMemo(() => {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const counts: Record<string, number> = { Sun: 0, Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0 };
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+    studentsList.forEach((s) => {
+      const createdAt = (s as any).createdAt || (s as any).joinedAt;
+      if (createdAt) {
+        const d = new Date(createdAt);
+        if (d >= sevenDaysAgo) {
+          const dayName = days[d.getDay()];
+          counts[dayName] = (counts[dayName] || 0) + 1;
+        }
+      }
+    });
+    // Return last 7 days in order starting from oldest
+    const result = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dayName = days[d.getDay()];
+      result.push({ day: dayName, count: counts[dayName] || 0 });
+    }
+    return result;
+  }, [studentsList]);
+
+  const maxDailyCount = useMemo(() => Math.max(...dailyRegistrations.map(d => d.count), 1), [dailyRegistrations]);
+
+  // Branch distribution from real student data
+  const branchDistribution = useMemo(() => {
+    const branchMap: Record<string, number> = {};
+    studentsList.forEach((s) => {
+      const branch = (s as any).branch || 'Other';
+      branchMap[branch] = (branchMap[branch] || 0) + 1;
+    });
+    const total = studentsList.length || 1;
+    const colorMap: Record<string, string> = {
+      'Computer Science (CSE)': 'bg-blue-500',
+      'AI & Computer Science': 'bg-indigo-500',
+      'Artificial Intelligence & ML': 'bg-indigo-500',
+      'Information Technology (IT)': 'bg-cyan-500',
+      'Electronics & Comm (ECE)': 'bg-purple-500',
+      'Other': 'bg-slate-400',
+    };
+    return Object.entries(branchMap)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 4)
+      .map(([name, count]) => ({
+        name,
+        pct: Math.round((count / total) * 100),
+        count,
+        color: colorMap[name] || 'bg-sky-500',
+      }));
+  }, [studentsList]);
 
   const metrics = [
     {
@@ -410,7 +470,7 @@ export const AdminDashboard: React.FC = () => {
                   className="block p-4 rounded-3xl bg-white/90 border border-sky-100 backdrop-blur-xl space-y-3 hover:border-sky-300 hover:shadow-xl transition-all shadow-xs group relative overflow-hidden"
                 >
                   <div className={`w-10 h-10 rounded-2xl bg-linear-to-tr ${metric.gradient} text-white flex items-center justify-center shadow-md ${metric.bgGlow}`}>
-                    <Icon className="w-5 h-5" />
+                    {Icon ? <Icon className="w-5 h-5" /> : null}
                   </div>
 
                   <div>
@@ -431,7 +491,7 @@ export const AdminDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* MODULE 9: ANALYTICS DASHBOARD CHARTS */}
+      {/* MODULE 9: ANALYTICS DASHBOARD CHARTS — REAL-TIME DATA */}
       <div className="bg-white border border-sky-100 rounded-3xl p-6 shadow-sm space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-sky-100 pb-4">
           <div>
@@ -439,100 +499,116 @@ export const AdminDashboard: React.FC = () => {
               <TrendingUp className="w-5 h-5 text-indigo-600" />
               <h3 className="font-heading font-extrabold text-lg text-slate-900">Platform Analytics Telemetry</h3>
             </div>
-            <p className="text-xs text-slate-500 font-medium mt-0.5">Daily growth, branch distribution & verification ratios</p>
+            <p className="text-xs text-slate-500 font-medium mt-0.5">Live registration trends, branch distribution & verification ratios from Firestore</p>
           </div>
           <div className="flex items-center gap-2 text-xs font-bold">
-            <span className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl">
-              Monthly Growth: +24.5%
+            <span className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              {approvedStudents} Approved
             </span>
             <span className="px-3 py-1 bg-sky-50 text-sky-700 border border-sky-200 rounded-xl">
-              Completion Rate: 88.2%
+              {totalStudents} Total Students
             </span>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Daily Registrations Growth Bar Viz */}
+          {/* Real-Time Daily Registrations Bar Chart */}
           <div className="bg-slate-50/70 border border-slate-200/80 p-5 rounded-2xl space-y-4">
-            <h4 className="font-bold text-xs text-slate-700 uppercase tracking-wider">Daily Student Registrations</h4>
-            <div className="h-40 flex items-end justify-between gap-2 pt-4 px-2">
-              {[
-                { day: 'Mon', count: 12, height: '40%' },
-                { day: 'Tue', count: 18, height: '60%' },
-                { day: 'Wed', count: 26, height: '85%' },
-                { day: 'Thu', count: 15, height: '50%' },
-                { day: 'Fri', count: 32, height: '100%' },
-                { day: 'Sat', count: 22, height: '70%' },
-                { day: 'Sun', count: 19, height: '62%' }
-              ].map((item, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
-                  <div className="text-[10px] font-bold text-slate-400 group-hover:text-blue-600 transition-colors">{item.count}</div>
-                  <motion.div
-                    initial={{ height: 0 }}
-                    animate={{ height: item.height }}
-                    transition={{ duration: 0.6, delay: i * 0.1 }}
-                    className="w-full bg-linear-to-t from-blue-600 to-indigo-500 rounded-t-lg shadow-xs group-hover:from-blue-500 group-hover:to-cyan-400 transition-all"
-                  />
-                  <div className="text-[10px] font-bold text-slate-500">{item.day}</div>
-                </div>
-              ))}
-            </div>
+            <h4 className="font-bold text-xs text-slate-700 uppercase tracking-wider">Daily Student Registrations (Last 7 Days)</h4>
+            {totalStudents === 0 ? (
+              <div className="h-40 flex items-center justify-center text-xs text-slate-400 font-medium">Loading live data...</div>
+            ) : (
+              <div className="h-40 flex items-end justify-between gap-2 pt-4 px-2">
+                {dailyRegistrations.map((item, i) => {
+                  const heightPct = maxDailyCount > 0 ? Math.max((item.count / maxDailyCount) * 100, item.count > 0 ? 8 : 0) : 0;
+                  return (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
+                      <div className="text-[10px] font-bold text-slate-500 group-hover:text-blue-600 transition-colors">{item.count > 0 ? item.count : ''}</div>
+                      <motion.div
+                        initial={{ height: 0 }}
+                        animate={{ height: `${heightPct}%` }}
+                        transition={{ duration: 0.6, delay: i * 0.08 }}
+                        className={`w-full rounded-t-lg shadow-xs transition-all ${
+                          heightPct > 0
+                            ? 'bg-linear-to-t from-blue-600 to-indigo-500 group-hover:from-blue-500 group-hover:to-cyan-400'
+                            : 'bg-slate-200'
+                        }`}
+                      />
+                      <div className="text-[10px] font-bold text-slate-500">{item.day}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            <p className="text-[10px] text-slate-400 font-medium text-center">Computed from {totalStudents} real student registrations</p>
           </div>
 
-          {/* Branch Distribution */}
+          {/* Real-Time Branch Distribution */}
           <div className="bg-slate-50/70 border border-slate-200/80 p-5 rounded-2xl space-y-4">
             <h4 className="font-bold text-xs text-slate-700 uppercase tracking-wider">Branch & Specialization Distribution</h4>
             <div className="space-y-3 pt-2">
-              {[
-                { name: 'Computer Science (CSE)', pct: 45, color: 'bg-blue-500' },
-                { name: 'Artificial Intelligence & ML', pct: 30, color: 'bg-indigo-500' },
-                { name: 'Information Technology (IT)', pct: 15, color: 'bg-cyan-500' },
-                { name: 'Electronics & Comm (ECE)', pct: 10, color: 'bg-purple-500' }
-              ].map((b, idx) => (
-                <div key={idx} className="space-y-1">
-                  <div className="flex justify-between text-xs font-semibold text-slate-700">
-                    <span>{b.name}</span>
-                    <span className="font-mono">{b.pct}%</span>
+              {branchDistribution.length === 0 ? (
+                <div className="py-4 text-center text-xs text-slate-400 font-medium">No branch data yet</div>
+              ) : (
+                branchDistribution.map((b, idx) => (
+                  <div key={idx} className="space-y-1">
+                    <div className="flex justify-between text-xs font-semibold text-slate-700">
+                      <span className="truncate pr-2">{b.name}</span>
+                      <span className="font-mono shrink-0">{b.pct}% ({b.count})</span>
+                    </div>
+                    <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${b.pct}%` }}
+                        transition={{ duration: 0.8, delay: idx * 0.1 }}
+                        className={`h-full ${b.color}`}
+                      />
+                    </div>
                   </div>
-                  <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${b.pct}%` }}
-                      transition={{ duration: 0.8 }}
-                      className={`h-full ${b.color}`}
-                    />
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
 
-          {/* Verification & Integration Status */}
+          {/* Real-Time Verification & Integration Status */}
           <div className="bg-slate-50/70 border border-slate-200/80 p-5 rounded-2xl space-y-4">
-            <h4 className="font-bold text-xs text-slate-700 uppercase tracking-wider">Verification & GitHub Ratios</h4>
+            <h4 className="font-bold text-xs text-slate-700 uppercase tracking-wider">Live Verification & GitHub Ratios</h4>
             <div className="space-y-4 pt-1">
               <div className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  <span className="text-xs font-bold text-slate-700">Email Verified Ratio</span>
+                  <span className="text-xs font-bold text-slate-700">Email Verified</span>
                 </div>
-                <span className="font-mono font-bold text-xs text-emerald-600">92.4%</span>
+                <span className="font-mono font-bold text-xs text-emerald-600">
+                  {emailVerified} / {totalStudents} ({totalStudents > 0 ? Math.round((emailVerified / totalStudents) * 100) : 0}%)
+                </span>
               </div>
 
               <div className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Code2 className="w-4 h-4 text-slate-800" />
-                  <span className="text-xs font-bold text-slate-700">GitHub OAuth Connected</span>
+                  <span className="text-xs font-bold text-slate-700">GitHub Connected</span>
                 </div>
-                <span className="font-mono font-bold text-xs text-indigo-600">75.0%</span>
+                <span className="font-mono font-bold text-xs text-indigo-600">
+                  {githubConnected} / {totalStudents} ({totalStudents > 0 ? Math.round((githubConnected / totalStudents) * 100) : 0}%)
+                </span>
               </div>
 
               <div className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-sky-600" />
-                  <span className="text-xs font-bold text-slate-700">Admin Approved Students</span>
+                  <span className="text-xs font-bold text-slate-700">Admin Approved</span>
                 </div>
                 <span className="font-mono font-bold text-xs text-sky-600">{approvedStudents} / {totalStudents}</span>
+              </div>
+
+              <div className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-500" />
+                  <span className="text-xs font-bold text-slate-700">Pending Review</span>
+                </div>
+                <span className="font-mono font-bold text-xs text-amber-600">{pendingApprovals}</span>
               </div>
             </div>
           </div>

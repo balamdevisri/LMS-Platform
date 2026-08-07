@@ -18,6 +18,9 @@ export const isFirestoreInitialized = (): boolean => {
 /**
  * Enterprise Collection Getters
  */
+export const usersCollection = () => getCollection('users');
+export const enrollmentsCollection = () => getCollection('enrollments');
+export const notificationsCollection = () => getCollection('notifications');
 export const coursesCollection = () => getCollection('courses');
 export const courseModulesCollection = () => getCollection('course_modules');
 export const courseLessonsCollection = () => getCollection('course_lessons');
@@ -28,7 +31,10 @@ export const studentAnalysisCollection = () => getCollection('student_analysis')
 export const generatedQuizzesCollection = () => getCollection('generated_quizzes');
 export const quizAttemptsCollection = () => getCollection('quiz_attempts');
 
-// Legacy Aliases
+// Single Source of Truth Collection Aliases
+export const studentsCollection = () => getCollection('users');
+export const instructorsCollection = () => getCollection('users');
+export const adminsCollection = () => getCollection('admins');
 export const modulesCollection = () => getCollection('modules');
 export const lessonsCollection = () => getCollection('lessons');
 export const quizzesCollection = () => getCollection('quizzes');

@@ -3,10 +3,13 @@ import {
   collection,
   doc,
   getDoc,
+  getDocs,
   setDoc,
   updateDoc,
   deleteDoc,
-  onSnapshot
+  onSnapshot,
+  query,
+  where
 } from 'firebase/firestore';
 
 export interface InstructorUser {
@@ -24,6 +27,7 @@ export interface InstructorUser {
   experience?: string;
   appliedDate?: string;
   phone?: string;
+  approved?: boolean;
   approvedBy?: string | null;
   approvedAt?: string | null;
   rejectedAt?: string | null;
@@ -58,75 +62,331 @@ class InstructorService {
   }
 
   /**
-   * Subscribe to real-time instructor updates from Firestore database.
+   * Get a fresh Firebase ID token from the currently logged-in user.
+   * Falls back to localStorage token if no user is active.
+   */
+  private async getFreshToken(): Promise<string> {
+    try {
+      if (auth?.currentUser) {
+        // Force refresh = true to always get a valid, non-expired token
+        const freshToken = await auth.currentUser.getIdToken(true);
+        if (freshToken) {
+          localStorage.setItem('shaivika_auth_token', freshToken);
+          localStorage.setItem('token', freshToken);
+          return freshToken;
+        }
+      }
+    } catch (e) {
+      console.warn('[INSTRUCTOR SERVICE] Token refresh notice:', e);
+    }
+    // Fallback to cached token
+    return localStorage.getItem('shaivika_auth_token') || localStorage.getItem('token') || '';
+  }
+
+  /**
+   * Directly fetch all instructors from backend API using a FRESH auth token.
+   */
+  async fetchFirestoreInstructorsDirectly(): Promise<InstructorUser[]> {
+    const currentLocal = this.getLocalInstructors();
+    try {
+      const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      // Always get a fresh token — never use expired cached token
+      const token = await this.getFreshToken();
+
+      console.log(`[INSTRUCTOR SERVICE] Fetching from: ${apiBaseUrl}/admin/instructors`);
+      console.log(`[INSTRUCTOR SERVICE] Fresh token present: ${!!token}`);
+
+      const response = await fetch(`${apiBaseUrl}/admin/instructors`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      });
+
+      console.log(`[INSTRUCTOR SERVICE] Backend response status: ${response.status}`);
+
+      if (response.ok) {
+        const json = await response.json();
+        console.log(`[INSTRUCTOR SERVICE] Backend returned: success=${json.success}, count=${json.count}`);
+
+        if (json.success && Array.isArray(json.data)) {
+          const fetched: InstructorUser[] = json.data.map((data: any) => ({
+            id: data.id || data.uid,
+            name: data.fullName || data.name || data.displayName || 'Faculty Member',
+            email: data.email || '',
+            specialty: data.department || data.specialty || 'Linux & Systems Architecture',
+            joined: data.createdAt
+              ? new Date(data.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+              : 'Recently',
+            assignedCourses: data.assignedCourses || 1,
+            studentsCount: data.studentsCount || '0',
+            rating: data.rating || 5.0,
+            status: data.status || (data.approved ? 'approved' : 'pending'),
+            approved: data.approved,
+            avatar: data.photoURL || '',
+            skills: data.skills || ['Linux', 'Git', 'Python'],
+            experience: data.experience || 'Not Specified',
+            appliedDate: data.createdAt || new Date().toISOString(),
+            phone: data.phone || '',
+            approvedBy: data.approvedBy || null,
+            approvedAt: data.approvedAt || null,
+            rejectedAt: data.rejectedAt || null,
+            rejectionReason: data.rejectionReason || data.rejectReason || '',
+          }));
+
+          const combinedMap = new Map<string, InstructorUser>();
+          fetched.forEach((inst) => combinedMap.set(inst.id, inst));
+          currentLocal.forEach((inst) => {
+            if (!combinedMap.has(inst.id)) combinedMap.set(inst.id, inst);
+          });
+
+          const finalInstructors = Array.from(combinedMap.values());
+          console.log(`[INSTRUCTOR SERVICE] REST result: ${finalInstructors.length} total instructors`);
+          this.saveLocalInstructors(finalInstructors);
+          return finalInstructors;
+        }
+      } else {
+        console.warn(`[INSTRUCTOR SERVICE] Backend returned ${response.status} — will use Firestore client queries.`);
+      }
+    } catch (e) {
+      console.warn('[INSTRUCTOR SERVICE] REST fetch error:', e);
+    }
+    return currentLocal;
+  }
+
+  /**
+   * One-shot Firestore getDocs fetch — reads users with role=instructor directly.
+   * Used as an immediate data source before onSnapshot listeners warm up.
+   */
+  async fetchFromFirestoreDirectly(): Promise<InstructorUser[]> {
+    if (!db) return [];
+    try {
+      const map = new Map<string, InstructorUser>();
+
+      // Query 1: users collection where role == 'instructor'
+      try {
+        const q = query(collection(db, 'users'), where('role', '==', 'instructor'));
+        const snap = await getDocs(q);
+        console.log(`[INSTRUCTOR SERVICE] getDocs(users where role==instructor): ${snap.size} docs`);
+        snap.forEach((docSnap) => {
+          const mapped = this.mapDocToInstructor(docSnap);
+          if (mapped) map.set(mapped.id, mapped);
+        });
+      } catch (e) {
+        console.warn('[INSTRUCTOR SERVICE] users query notice:', e);
+      }
+
+      // Query 2: instructors collection
+      try {
+        const instSnap = await getDocs(collection(db, 'instructors'));
+        console.log(`[INSTRUCTOR SERVICE] getDocs(instructors collection): ${instSnap.size} docs`);
+        instSnap.forEach((docSnap) => {
+          if (!map.has(docSnap.id)) {
+            const mapped = this.mapDocToInstructor(docSnap);
+            if (mapped) map.set(mapped.id, mapped);
+          }
+        });
+      } catch (e) {
+        console.warn('[INSTRUCTOR SERVICE] instructors collection query notice:', e);
+      }
+
+      // Fallback Query 3: if still empty, scan all users client-side
+      if (map.size === 0) {
+        console.log(`[INSTRUCTOR SERVICE] Zero results from queries — scanning all users...`);
+        const allSnap = await getDocs(collection(db, 'users'));
+        allSnap.forEach((docSnap) => {
+          const data = docSnap.data();
+          const roleRaw = (data.role || '').toLowerCase();
+          if (roleRaw === 'instructor') {
+            const mapped = this.mapDocToInstructor(docSnap);
+            if (mapped) map.set(mapped.id, mapped);
+          }
+        });
+      }
+
+      const results = Array.from(map.values());
+      console.log(`[INSTRUCTOR SERVICE] Direct Firestore read result: ${results.length} instructors`);
+      return results;
+    } catch (e) {
+      console.warn('[INSTRUCTOR SERVICE] getDocs error:', e);
+      return [];
+    }
+  }
+
+
+  /**
+   * Helper to map a Firestore doc snapshot to InstructorUser shape.
+   */
+  private mapDocToInstructor(docSnap: any): InstructorUser | null {
+    const data = docSnap.data();
+    const email = (data.email || '').toLowerCase();
+    if (MOCK_INSTRUCTOR_EMAILS.includes(email)) return null;
+
+    // Accept docs where role is 'instructor' (any casing) OR where specialty/department is set and no role set yet
+    const roleRaw = (data.role || '').toLowerCase();
+    const isInstructorDoc = roleRaw === 'instructor' || (docSnap.ref && docSnap.ref.path && docSnap.ref.path.startsWith('instructors/')) || Boolean(data.specialty);
+    if (!isInstructorDoc) return null;
+
+    const statusRaw = ((data.status || '') as string).toLowerCase();
+    const normalizedStatus: InstructorUser['status'] =
+      statusRaw === 'approved' || data.approved === true ? 'approved'
+        : statusRaw === 'rejected' ? 'rejected'
+        : 'pending';
+
+    return {
+      id: docSnap.id,
+      name: data.fullName || data.name || data.displayName || 'Faculty Member',
+      email: data.email || '',
+      specialty: data.department || data.specialty || 'Linux & Systems Architecture',
+      joined: data.createdAt
+        ? new Date(data.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        : 'Recently',
+      assignedCourses: data.assignedCourses || 1,
+      studentsCount: data.studentsCount || '0',
+      rating: data.rating || 5.0,
+      status: normalizedStatus,
+      approved: data.approved === true || normalizedStatus === 'approved',
+      avatar: data.photoURL || '',
+      skills: data.skills || ['Linux', 'Git', 'Python'],
+      experience: data.experience || 'Not Specified',
+      appliedDate: data.createdAt || new Date().toISOString(),
+      phone: data.phone || '',
+      approvedBy: data.approvedBy || null,
+      approvedAt: data.approvedAt || null,
+      rejectedAt: data.rejectedAt || null,
+      rejectionReason: data.rejectionReason || data.rejectReason || '',
+    };
+  }
+
+  /**
+   * Subscribe to real-time instructor updates.
+   * Strategy:
+   * 1. Immediately emit localStorage cache (avoids blank flash)
+   * 2. Fire a one-shot getDocs (immediate Firestore read, no token expiry issue)
+   * 3. REST API call with fresh token via auth.currentUser.getIdToken()
+   * 4. Two live onSnapshot listeners for real-time updates
    */
   subscribeToInstructors(callback: (instructors: InstructorUser[]) => void): () => void {
+    // Step 1: Emit localStorage cache immediately
     const localData = this.getLocalInstructors();
-    callback(localData);
+    callback(localData); // Always call (even if empty) so loading=false fires
+
+    // Step 2: One-shot immediate Firestore getDocs (uses Firebase SDK auth, not localStorage token)
+    this.fetchFromFirestoreDirectly().then((instructors) => {
+      console.log(`[INSTRUCTOR SERVICE] One-shot getDocs returned ${instructors.length} instructors`);
+      const merged = this.mergeWithLocal(instructors);
+      callback(merged);
+    });
+
+    // Step 3: REST API with fresh token
+    this.fetchFirestoreInstructorsDirectly().then((instructors) => {
+      if (instructors.length > 0) {
+        console.log(`[INSTRUCTOR SERVICE] REST sync returned ${instructors.length} instructors`);
+        callback(instructors);
+      }
+    });
 
     if (!db) {
       return () => {};
     }
 
+    let filteredResult: InstructorUser[] = [];
+    let allUsersResult: InstructorUser[] = [];
+    let instructorsColResult: InstructorUser[] = [];
+
+    const emit = () => {
+      const combined = new Map<string, InstructorUser>();
+      filteredResult.forEach(i => combined.set(i.id, i));
+      allUsersResult.forEach(i => combined.set(i.id, i));
+      instructorsColResult.forEach(i => combined.set(i.id, i));
+      const result = Array.from(combined.values());
+      console.log(`[INSTRUCTOR SERVICE] onSnapshot merged — total: ${result.length}`);
+      this.saveLocalInstructors(result);
+      callback(result);
+    };
+
+    const unsubscribers: (() => void)[] = [];
+
     try {
-      const instructorsRef = collection(db, 'instructors');
-      const unsubscribe = onSnapshot(
-        instructorsRef,
+      // Strategy 1: Filtered onSnapshot on users collection (where role==instructor)
+      const filteredQuery = query(collection(db, 'users'), where('role', '==', 'instructor'));
+      const unsubFiltered = onSnapshot(
+        filteredQuery,
         (snapshot) => {
-          const firestoreInstructors: InstructorUser[] = [];
-          
+          console.log(`[INSTRUCTOR SERVICE] onSnapshot(role==instructor): ${snapshot.size} docs`);
+          filteredResult = [];
+          snapshot.forEach((docSnap) => {
+            const mapped = this.mapDocToInstructor(docSnap);
+            if (mapped) filteredResult.push(mapped);
+          });
+          emit();
+        },
+        (err) => console.warn('[INSTRUCTOR SERVICE] Filtered onSnapshot error:', err)
+      );
+      unsubscribers.push(unsubFiltered);
+    } catch (e) {
+      console.warn('[INSTRUCTOR SERVICE] Filtered subscription error:', e);
+    }
+
+    try {
+      // Strategy 2: All-users onSnapshot with client-side filter
+      const allUsersQuery = query(collection(db, 'users'));
+      const unsubAll = onSnapshot(
+        allUsersQuery,
+        (snapshot) => {
+          console.log(`[INSTRUCTOR SERVICE] onSnapshot(all-users): ${snapshot.size} total docs`);
+          allUsersResult = [];
           snapshot.forEach((docSnap) => {
             const data = docSnap.data();
-            const email = (data.email || '').toLowerCase();
-
-            // Include real registered users with role 'instructor' from the instructors collection
-            if (!MOCK_INSTRUCTOR_EMAILS.includes(email)) {
-              firestoreInstructors.push({
-                id: docSnap.id,
-                name: data.name || data.fullName || data.displayName || 'Faculty Member',
-                email: data.email || '',
-                specialty: data.specialty || 'Linux & Systems Architecture',
-                joined: data.createdAt
-                  ? new Date(data.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                  : 'Recently',
-                assignedCourses: data.assignedCourses || 1,
-                studentsCount: data.studentsCount || '0',
-                rating: data.rating || 5.0,
-                status: data.status || 'pending',
-                avatar: data.photoURL || '',
-                skills: data.skills || ['Linux', 'Git', 'Python'],
-                experience: data.experience || 'Not Specified',
-                appliedDate: data.createdAt || new Date().toISOString(),
-                phone: data.phone || '',
-                approvedBy: data.approvedBy || null,
-                approvedAt: data.approvedAt || null,
-                rejectedAt: data.rejectedAt || null,
-                rejectionReason: data.rejectionReason || '',
-              });
+            const roleRaw = (data.role || '').toLowerCase();
+            if (roleRaw === 'instructor') {
+              const mapped = this.mapDocToInstructor(docSnap);
+              if (mapped) allUsersResult.push(mapped);
             }
           });
-
-          // Combine with locally created faculty (non-mock)
-          const localOnly = localData.filter(
-            (li) => !firestoreInstructors.some((fi) => fi.email.toLowerCase() === li.email.toLowerCase())
-          );
-          const finalInstructors = [...firestoreInstructors, ...localOnly];
-
-          this.saveLocalInstructors(finalInstructors);
-          callback(finalInstructors);
+          emit();
         },
-        (error) => {
-          console.warn('Realtime Firestore instructors listener notice:', error);
-          callback(this.getLocalInstructors());
-        }
+        (err) => console.warn('[INSTRUCTOR SERVICE] All-users onSnapshot error:', err)
       );
-
-      return unsubscribe;
+      unsubscribers.push(unsubAll);
     } catch (e) {
-      console.warn('Realtime subscription error:', e);
-      return () => {};
+      console.warn('[INSTRUCTOR SERVICE] All-users subscription error:', e);
     }
+
+    try {
+      // Strategy 3: Real-time onSnapshot on instructors collection
+      const instQuery = collection(db, 'instructors');
+      const unsubInst = onSnapshot(
+        instQuery,
+        (snapshot) => {
+          console.log(`[INSTRUCTOR SERVICE] onSnapshot(instructors collection): ${snapshot.size} docs`);
+          instructorsColResult = [];
+          snapshot.forEach((docSnap) => {
+            const mapped = this.mapDocToInstructor(docSnap);
+            if (mapped) instructorsColResult.push(mapped);
+          });
+          emit();
+        },
+        (err) => console.warn('[INSTRUCTOR SERVICE] Instructors collection onSnapshot error:', err)
+      );
+      unsubscribers.push(unsubInst);
+    } catch (e) {
+      console.warn('[INSTRUCTOR SERVICE] Instructors collection subscription error:', e);
+    }
+
+    return () => unsubscribers.forEach(fn => fn());
   }
+
+  /**
+   * Merge a fetched list with localStorage, deduplicating by ID.
+   */
+  private mergeWithLocal(fetched: InstructorUser[]): InstructorUser[] {
+    const localData = this.getLocalInstructors();
+    const combined = new Map<string, InstructorUser>();
+    fetched.forEach(i => combined.set(i.id, i));
+    localData.forEach(i => { if (!combined.has(i.id)) combined.set(i.id, i); });
+    const result = Array.from(combined.values());
+    this.saveLocalInstructors(result);
+    return result;
+  }
+
 
   async addInstructor(name: string, email: string, specialty: string): Promise<InstructorUser> {
     const adminUid = auth?.currentUser?.uid || 'admin_onboard';
@@ -140,6 +400,7 @@ class InstructorService {
       studentsCount: '0',
       rating: 5.0,
       status: 'approved',
+      approved: true,
       approvedBy: adminUid,
       approvedAt: new Date().toISOString(),
     };
@@ -157,8 +418,11 @@ class InstructorService {
           fullName: newInstructor.name,
           email: newInstructor.email,
           specialty: newInstructor.specialty,
+          department: newInstructor.specialty,
           role: 'instructor',
+          approved: true,
           status: 'approved',
+          isActive: true,
           approvedBy: adminUid,
           approvedAt: new Date().toISOString(),
           createdAt: new Date().toISOString(),
@@ -167,8 +431,8 @@ class InstructorService {
           rating: 5.0,
         };
 
-        await setDoc(doc(db, 'users', newInstructor.id), payload);
-        await setDoc(doc(db, 'instructors', newInstructor.id), payload);
+        await setDoc(doc(db, 'users', newInstructor.id), payload, { merge: true });
+        console.log(`[INSTRUCTOR SERVICE AUDIT] Manually added instructor written to users/${newInstructor.id}`);
       } catch (err) {
         console.warn('Firestore add instructor notice:', err);
       }
@@ -208,7 +472,9 @@ class InstructorService {
         const timestamp = new Date().toISOString();
         
         const updateData = {
+          approved: true,
           status: 'approved',
+          isActive: true,
           approvedBy: adminUid,
           approvedAt: timestamp,
           rejectedAt: null,
@@ -216,19 +482,17 @@ class InstructorService {
           updatedAt: timestamp,
         };
 
-        await updateDoc(userRef, updateData);
-        await updateDoc(instructorRef, updateData);
-
+        await setDoc(userRef, updateData, { merge: true });
+        await setDoc(instructorRef, updateData, { merge: true });
         console.log(`[Admin Approval] Approved instructor UID: ${id} by Admin: ${adminUid}`);
 
-        // Fetch instructor details to send SMTP mail
-        const userSnap = await getDoc(instructorRef);
+        // Fetch instructor details from users collection to send SMTP mail
+        const userSnap = await getDoc(userRef);
         if (userSnap.exists()) {
           const data = userSnap.data();
           const name = data.name || data.fullName || 'Instructor';
           const email = data.email || '';
           
-          // Send SMTP email
           try {
             const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
             const response = await fetch(`${apiBaseUrl}/email/send`, {
@@ -242,14 +506,12 @@ class InstructorService {
                   email: email.toLowerCase().trim(),
                   status: 'approved',
                   portalUrl: `${window.location.origin}/auth/login`,
-                  comments: 'Your application has been approved by the administrator.',
+                  comments: 'Your instructor application has been approved by the administrator.',
                 },
               }),
             });
             if (response.ok) {
               console.log(`[SMTP Email Sent] Dispatched approval email to ${email}`);
-            } else {
-              console.warn('[SMTP Email Sent] Email API returned error status.');
             }
           } catch (smtpErr) {
             console.warn('Failed to send SMTP email:', smtpErr);
@@ -266,11 +528,12 @@ class InstructorService {
     if (db) {
       try {
         const userRef = doc(db, 'users', id);
-        const instructorRef = doc(db, 'instructors', id);
         const timestamp = new Date().toISOString();
 
         const updateData = {
+          approved: false,
           status: 'rejected',
+          isActive: false,
           rejectedAt: timestamp,
           rejectionReason: reason,
           approvedBy: null,
@@ -279,18 +542,15 @@ class InstructorService {
         };
 
         await updateDoc(userRef, updateData);
-        await updateDoc(instructorRef, updateData);
-
         console.log(`[Admin Rejection] Rejected instructor UID: ${id} by Admin: ${adminUid}. Reason: ${reason}`);
 
-        // Fetch instructor details to send SMTP mail
-        const userSnap = await getDoc(instructorRef);
+        // Fetch instructor details from users collection to send SMTP mail
+        const userSnap = await getDoc(userRef);
         if (userSnap.exists()) {
           const data = userSnap.data();
           const name = data.name || data.fullName || 'Instructor';
           const email = data.email || '';
 
-          // Send SMTP email
           try {
             const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
             const response = await fetch(`${apiBaseUrl}/email/send`, {
@@ -310,8 +570,6 @@ class InstructorService {
             });
             if (response.ok) {
               console.log(`[SMTP Email Sent] Dispatched rejection email to ${email}`);
-            } else {
-              console.warn('[SMTP Email Sent] Rejection email API returned error status.');
             }
           } catch (smtpErr) {
             console.warn('Failed to send SMTP email:', smtpErr);
@@ -336,22 +594,23 @@ class InstructorService {
       try {
         const updateData = {
           name: instructor.name,
+          fullName: instructor.name,
           email: instructor.email,
           specialty: instructor.specialty,
+          department: instructor.specialty,
           status: instructor.status,
+          approved: instructor.status === 'approved',
           assignedCourses: instructor.assignedCourses,
           updatedAt: new Date().toISOString(),
         };
 
         await updateDoc(doc(db, 'users', instructor.id), updateData);
-        await updateDoc(doc(db, 'instructors', instructor.id), updateData);
       } catch (err) {
         console.warn('Firestore update instructor notice:', err);
       }
     }
 
     if (statusChanged) {
-      // Dispatch status update email via Express Nodemailer SMTP Server
       try {
         const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
         await fetch(`${apiBaseUrl}/email/send`, {
@@ -369,7 +628,6 @@ class InstructorService {
             },
           }),
         });
-        console.log(`[SMTP Email Sent] Status update email sent to ${instructor.email}`);
       } catch (smtpErr) {
         console.warn('Backend Nodemailer SMTP instructor update status email notice:', smtpErr);
       }
@@ -384,7 +642,6 @@ class InstructorService {
     if (db && id) {
       try {
         await deleteDoc(doc(db, 'users', id));
-        await deleteDoc(doc(db, 'instructors', id));
       } catch (err) {
         console.warn('Firestore delete instructor notice:', err);
       }

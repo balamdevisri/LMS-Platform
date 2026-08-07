@@ -1,0 +1,182 @@
+[
+  {
+    "id": "dbms-assign-1",
+    "moduleId": "dbms-mod-1",
+    "title": "Practice Terminal (For Practice Only)",
+    "description": "Simulated environment exercises.",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026976,
+      "_nanoseconds": 177000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026976,
+      "_nanoseconds": 177000000
+    }
+  },
+  {
+    "id": "dbms-assign-2",
+    "moduleId": "dbms-mod-2",
+    "title": "Practice Terminal (For Practice Only)",
+    "description": "ER diagram database schemas.",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026976,
+      "_nanoseconds": 533000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026976,
+      "_nanoseconds": 533000000
+    }
+  },
+  {
+    "id": "dbms-assign-3",
+    "moduleId": "dbms-mod-3",
+    "title": "Practice Terminal (For Practice Only)",
+    "description": "Write SQL query scripts.",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026976,
+      "_nanoseconds": 889000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026976,
+      "_nanoseconds": 889000000
+    }
+  },
+  {
+    "id": "dbms-assign-4",
+    "moduleId": "dbms-mod-4",
+    "title": "Practice Terminal (For Practice Only)",
+    "description": "Join queries.",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026977,
+      "_nanoseconds": 246000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026977,
+      "_nanoseconds": 246000000
+    }
+  },
+  {
+    "id": "dbms-assign-5",
+    "moduleId": "dbms-mod-5",
+    "title": "Practice Terminal (For Practice Only)",
+    "description": "Transaction isolation queries.",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026977,
+      "_nanoseconds": 610000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026977,
+      "_nanoseconds": 610000000
+    }
+  },
+  {
+    "id": "dbms-assign-6",
+    "moduleId": "dbms-mod-6",
+    "title": "SQL Mini Project",
+    "description": "Implement capstone schemas.",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026977,
+      "_nanoseconds": 959000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026977,
+      "_nanoseconds": 959000000
+    }
+  },
+  {
+    "id": "git-assign-1",
+    "moduleId": "git-mod-1",
+    "title": "Assignment 1: Initialize Git Repository",
+    "description": "Initialize a new Git repository locally, create an index.html file, stage and commit the file. Submit the commit log.",
+    "courseId": "git-github-mastery-course-id",
+    "createdAt": {
+      "_seconds": 1786026950,
+      "_nanoseconds": 91000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026950,
+      "_nanoseconds": 91000000
+    }
+  },
+  {
+    "id": "git-assign-2",
+    "moduleId": "git-mod-2",
+    "title": "Assignment 2: Push Code to GitHub",
+    "description": "Create a new public repository on GitHub. Link your local repository to GitHub, and push your commits. Submit the GitHub URL.",
+    "courseId": "git-github-mastery-course-id",
+    "createdAt": {
+      "_seconds": 1786026950,
+      "_nanoseconds": 755000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026950,
+      "_nanoseconds": 755000000
+    }
+  },
+  {
+    "id": "git-assign-3",
+    "moduleId": "git-mod-3",
+    "title": "Assignment 3: Resolve Merge Conflict",
+    "description": "Simulate a merge conflict locally between two branches editing the same line of code. Resolve the conflict, complete the merge commit, and submit the conflict resolution logs.",
+    "courseId": "git-github-mastery-course-id",
+    "createdAt": {
+      "_seconds": 1786026951,
+      "_nanoseconds": 630000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026951,
+      "_nanoseconds": 630000000
+    }
+  },
+  {
+    "id": "git-assign-4",
+    "moduleId": "git-mod-4",
+    "title": "Assignment 4: Create Pull Request",
+    "description": "Create a new feature branch, modify README.md with markdown guidelines, push it, and create a Pull Request on GitHub. Submit the Pull Request link.",
+    "courseId": "git-github-mastery-course-id",
+    "createdAt": {
+      "_seconds": 1786026952,
+      "_nanoseconds": 311000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026952,
+      "_nanoseconds": 311000000
+    }
+  },
+  {
+    "id": "git-assign-5",
+    "moduleId": "git-mod-5",
+    "title": "Assignment 5: Deploy GitHub Pages",
+    "description": "Create a simple static landing page, configure GitHub Pages, push the site, and verify it is live. Submit the hosted site URL.",
+    "courseId": "git-github-mastery-course-id",
+    "createdAt": {
+      "_seconds": 1786026953,
+      "_nanoseconds": 244000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026953,
+      "_nanoseconds": 244000000
+    }
+  },
+  {
+    "id": "git-assign-6",
+    "moduleId": "git-mod-6",
+    "title": "Assignment 6: Capstone Project - Production Pipeline",
+    "description": "Implement a full workspace repository, configure branch protection rules, write a GitHub Actions workflow that executes automated testing on PRs and auto-deploys to static servers. Submit the repository and actions logs.",
+    "courseId": "git-github-mastery-course-id",
+    "createdAt": {
+      "_seconds": 1786026953,
+      "_nanoseconds": 819000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026953,
+      "_nanoseconds": 819000000
+    }
+  }
+]
