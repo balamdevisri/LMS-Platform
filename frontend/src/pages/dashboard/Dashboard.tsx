@@ -42,6 +42,7 @@ import { ResumeBuilder } from '../../components/courses/ResumeBuilder';
 import { CareerRoadmap } from '../../components/courses/CareerRoadmap';
 import { PracticeHub } from '../../components/courses/PracticeHub';
 import { InterviewPrep } from '../../components/courses/InterviewPrep';
+import { StudentLiveClassroomSection } from '../../components/liveClassroom/StudentLiveClassroomSection';
 
 export const Dashboard: React.FC = () => {
   const { user, userProfile } = useAuth();
@@ -534,6 +535,7 @@ export const Dashboard: React.FC = () => {
 
   const tabLabelMap: Record<string, string> = {
     overview: 'Overview Dashboard',
+    'live-classroom': 'Enterprise Live Classroom Sessions',
     assignments: 'Quiz Results & Gradebook',
     certificates: 'Certificates',
     achievements: 'Achievements & Badges',
@@ -1345,6 +1347,11 @@ export const Dashboard: React.FC = () => {
       {/* ------------------- 15. INTERVIEW PREP TAB ------------------- */}
       {currentTab === 'interview-prep' && (
         <InterviewPrep />
+      )}
+
+      {/* ------------------- 16. LIVE CLASSROOM TAB ------------------- */}
+      {currentTab === 'live-classroom' && (
+        <StudentLiveClassroomSection />
       )}
 
       {/* ----------------- CERTIFICATE PREVIEW MODAL ----------------- */}

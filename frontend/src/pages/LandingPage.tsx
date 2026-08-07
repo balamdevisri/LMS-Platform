@@ -28,6 +28,7 @@ import { BlueSmokeTheme } from '@/components/common/BlueSmokeTheme';
 import { AiCoreOrb } from '@/components/common/AiCoreOrb';
 import { courseService } from '@/services/courseService';
 import type { ICourse } from '../../../shared/types/course';
+import { UpcomingLiveSessionsWidget } from '@/components/liveClassroom/UpcomingLiveSessionsWidget';
 
 // Custom Animated Counter Component
 const AnimatedCounter: React.FC<{ value: number; suffix?: string; prefix?: string }> = ({ value, suffix = '', prefix = '' }) => {
@@ -699,6 +700,8 @@ export const LandingPage: React.FC = () => {
           </div>
         </section>
 
+        {/* Enterprise Live Broadcast Sessions */}
+        <UpcomingLiveSessionsWidget />
 
         {/* Core Features Divider */}
         <AnimatedDivider className="mt-12 mb-12" />

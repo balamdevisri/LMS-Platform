@@ -47,6 +47,7 @@ const AdminUserProfile = lazyLoad(() => import('@/pages/admin/AdminUserProfile')
 const AdminCourseDetails = lazyLoad(() => import('@/pages/admin/AdminCourseDetails'), 'AdminCourseDetails');
 const AdminContentManagement = lazyLoad(() => import('@/pages/admin/AdminContentManagement'), 'AdminContentManagement');
 const LiveClassroomDashboard = lazyLoad(() => import('@/pages/liveClassroom/LiveClassroomDashboard'), 'LiveClassroomDashboard');
+const AdminLiveClassroom = lazyLoad(() => import('@/pages/liveClassroom/AdminLiveClassroom'), 'AdminLiveClassroom');
 const LiveClassroomScreen = lazyLoad(() => import('@/pages/liveClassroom/LiveClassroomScreen'), 'LiveClassroomScreen');
 const MentorAnalytics = lazyLoad(() => import('@/pages/liveClassroom/MentorAnalytics'), 'MentorAnalytics');
 const VerifyCertificate = lazyLoad(() => import('@/pages/certificates/VerifyCertificate'), 'VerifyCertificate');
@@ -150,6 +151,8 @@ const router = createBrowserRouter([
     ),
     children: [
       { path: 'dashboard', element: <AdminDashboard /> },
+      { path: 'live-classroom', element: <AdminLiveClassroom /> },
+      { path: 'live-classroom/studio', element: <LiveClassroomDashboard /> },
       { path: 'users', element: <AdminUsers /> },
       { path: 'users/:id', element: <AdminUserProfile /> },
       { path: 'instructors', element: <AdminInstructors /> },
@@ -164,6 +167,14 @@ const router = createBrowserRouter([
     ],
   },
   // Full-screen Protected Live Classroom screen
+  {
+    path: '/live-classroom/room/:classId',
+    element: (
+      <ProtectedRoute>
+        <LiveClassroomScreen />
+      </ProtectedRoute>
+    ),
+  },
   {
     path: '/live-classroom/:classId',
     element: (
