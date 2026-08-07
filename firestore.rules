@@ -2,24 +2,113 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper functions
+    // --- HELPER FUNCTIONS ---
     function isAuthenticated() {
       return request.auth != null;
     }
     
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
     function isAdmin() {
-      return isAuthenticated() && (request.auth.token.role == 'admin' || request.auth.token.admin == true);
+      return isAuthenticated() && (
+        request.auth.token.role == 'admin' || 
+        request.auth.token.admin == true ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
     }
     
     function isInstructor() {
-      return isAuthenticated() && (request.auth.token.role == 'instructor' || request.auth.token.role == 'admin');
+      return isAuthenticated() && (
+        request.auth.token.role == 'instructor' || 
+        request.auth.token.role == 'admin' ||
+        isAdmin()
+      );
     }
     
     function isAssignedInstructor(resourceData) {
-      return isInstructor() && resourceData.instructorId == request.auth.uid;
+      return isInstructor() && (resourceData.instructorId == request.auth.uid || resourceData.createdBy == request.auth.uid);
     }
 
-    // Root Collection: liveClasses
+    // --- 1. EXISTING LMS COLLECTIONS ---
+
+    // Users Collection
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Admins Collection
+    match /admins/{adminId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Courses & Subcollections
+    match /courses/{courseId} {
+      allow read: if true; // Public view for landing page & course catalog
+      allow write: if isInstructor();
+
+      match /{allSubcollections=**} {
+        allow read: if true;
+        allow write: if isInstructor();
+      }
+    }
+
+    // Modules, Lessons, Resources, Quizzes, Assignments, Progress, Certificates
+    match /modules/{id} { allow read: if true; allow write: if isInstructor(); }
+    match /lessons/{id} { allow read: if true; allow write: if isInstructor(); }
+    match /resources/{id} { allow read: if isAuthenticated(); allow write: if isInstructor(); }
+    match /quizzes/{id} { allow read: if isAuthenticated(); allow write: if isInstructor(); }
+    match /assignments/{id} { allow read: if isAuthenticated(); allow write: if isInstructor(); }
+    match /certificates/{id} { allow read: if isAuthenticated(); allow write: if isAdmin(); }
+
+    // Course Aux Collections
+    match /course_modules/{id} { allow read: if true; allow write: if isInstructor(); }
+    match /course_lessons/{id} { allow read: if true; allow write: if isInstructor(); }
+    match /course_knowledge/{id} { allow read: if isAuthenticated(); allow write: if isInstructor(); }
+    match /question_bank/{id} { allow read: if isInstructor(); allow write: if isInstructor(); }
+    match /generated_quizzes/{id} { allow read: if isAuthenticated(); allow write: if isInstructor(); }
+
+    // Student Submissions & Progress
+    match /student_progress/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+    match /progress/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+    match /student_analysis/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isInstructor();
+    }
+    match /quiz_attempts/{id} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated();
+      allow delete: if isInstructor();
+    }
+    match /assignment_submissions/{id} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated();
+      allow delete: if isInstructor();
+    }
+
+    // Notifications & Enrollments
+    match /notifications/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+    match /enrollments/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+    match /email_logs/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    // --- 2. KAIZENQ LIVE CLASSROOM SYSTEM (PHASE 1 ARCHITECTURE) ---
     match /liveClasses/{classId} {
       allow read: if isAuthenticated();
       allow create, delete: if isAdmin();
