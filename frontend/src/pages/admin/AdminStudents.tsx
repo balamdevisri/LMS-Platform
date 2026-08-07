@@ -19,9 +19,13 @@ import {
   CheckSquare,
   Square,
   FileSpreadsheet,
-  AlertCircle
+  AlertCircle,
+  Flag,
+  FileText,
+  BarChart3
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 import { studentService, type StudentUser } from '@/services/studentService';
 import { StudentProfileDrawer } from '@/components/admin/students/StudentProfileDrawer';
 import { EditStudentModal } from '@/components/admin/students/EditStudentModal';
@@ -41,6 +45,9 @@ const isPendingStudent = (s: any) => {
 };
 
 export const AdminStudents: React.FC = () => {
+  const { userProfile } = useAuth();
+  const isInstructor = userProfile?.role === 'instructor';
+
   const [students, setStudents] = useState<StudentUser[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -67,6 +74,11 @@ export const AdminStudents: React.FC = () => {
   const [rejectingStudentId, setRejectingStudentId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Reporting / Academic Flag Modal State (For Instructor)
+  const [flagStudentModal, setFlagStudentModal] = useState<StudentUser | null>(null);
+  const [flagCategory, setFlagCategory] = useState<string>('Academic Performance Progress');
+  const [flagNotes, setFlagNotes] = useState<string>('');
 
   // Quick Add Student State
   const [newStudentName, setNewStudentName] = useState('');
@@ -337,6 +349,19 @@ export const AdminStudents: React.FC = () => {
     });
   };
 
+  const handleSubmitStudentReport = () => {
+    if (!flagStudentModal) return;
+    adminNotificationService.addNotification({
+      type: 'NEW_STUDENT',
+      title: `Instructor Report: ${flagStudentModal.name}`,
+      message: `[${flagCategory}]: ${flagNotes || 'Academic progress telemetry report submitted.'}`,
+      link: '/admin/students'
+    });
+    toast.success(`Academic progress report for ${flagStudentModal.name} dispatched to Administrator!`);
+    setFlagStudentModal(null);
+    setFlagNotes('');
+  };
+
   const handleExportCSV = () => {
     const dataset = selectedIds.length > 0
       ? students.filter((s) => selectedIds.includes(s.id || s.uid))
@@ -353,16 +378,25 @@ export const AdminStudents: React.FC = () => {
       <div className="bg-white/90 backdrop-blur-2xl border border-sky-200/80 p-6 rounded-3xl shadow-xl shadow-sky-500/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50 border border-sky-200 text-sky-700 text-xs font-bold uppercase tracking-wider">
-              <Users className="w-3.5 h-3.5 text-sky-600" />
-              <span>STUDENT APPROVAL & ROSTER MANAGEMENT</span>
-            </div>
+            {isInstructor ? (
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold uppercase tracking-wider">
+                <BarChart3 className="w-3.5 h-3.5 text-blue-600" />
+                <span>STUDENT PERFORMANCE & REPORTING TELEMETRY</span>
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50 border border-sky-200 text-sky-700 text-xs font-bold uppercase tracking-wider">
+                <Users className="w-3.5 h-3.5 text-sky-600" />
+                <span>STUDENT APPROVAL & ROSTER MANAGEMENT</span>
+              </div>
+            )}
           </div>
           <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-slate-900">
-            Student Intelligence Roster ({filteredStudents.length})
+            {isInstructor ? 'Student Performance Telemetry' : 'Student Intelligence Roster'} ({filteredStudents.length})
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
-            Review student applications, verify credentials, perform bulk actions, and dispatch automated lifecycle emails.
+            {isInstructor
+              ? 'Monitor real-time student learning telemetry, review course progress, analyze quiz scores, and export progress reports.'
+              : 'Review student applications, verify credentials, perform bulk actions, and dispatch automated lifecycle emails.'}
           </p>
         </div>
 
@@ -381,13 +415,27 @@ export const AdminStudents: React.FC = () => {
             <span>Export CSV / Excel</span>
           </button>
 
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="btn-blue-primary text-xs py-3 px-5 shadow-lg shadow-sky-500/20 flex items-center justify-center gap-2 font-bold cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Register New Student</span>
-          </button>
+          {!isInstructor && (
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="btn-blue-primary text-xs py-3 px-5 shadow-lg shadow-sky-500/20 flex items-center justify-center gap-2 font-bold cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Register New Student</span>
+            </button>
+          )}
+
+          {isInstructor && (
+            <button
+              onClick={() => {
+                if (filteredStudents.length > 0) setFlagStudentModal(filteredStudents[0]);
+              }}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-3 px-4 rounded-xl transition-all shadow-md shadow-blue-500/20 flex items-center gap-2 cursor-pointer"
+            >
+              <FileText className="w-4 h-4" />
+              <span>Submit Academic Report</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -648,7 +696,7 @@ export const AdminStudents: React.FC = () => {
                   <th className="py-3 px-4">GitHub & Portfolio</th>
                   <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4">Registered Date</th>
-                  <th className="py-3 px-4 text-right">Approval Actions</th>
+                  <th className="py-3 px-4 text-right">{isInstructor ? 'Reporting Actions' : 'Approval Actions'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-sky-100">
@@ -762,12 +810,12 @@ export const AdminStudents: React.FC = () => {
                         {st.joined || 'Recently'}
                       </td>
 
-                      {/* Approval Action Buttons */}
+                      {/* Actions */}
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1">
                           
-                          {/* Approve Button */}
-                          {status === 'pending' && (
+                          {/* Admin Approve Button */}
+                          {!isInstructor && status === 'pending' && (
                             <button
                               onClick={() => handleApproveStudent(id)}
                               className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white border border-emerald-200 font-bold transition-all cursor-pointer shadow-xs"
@@ -777,8 +825,8 @@ export const AdminStudents: React.FC = () => {
                             </button>
                           )}
 
-                          {/* Reject Button */}
-                          {status === 'pending' && (
+                          {/* Admin Reject Button */}
+                          {!isInstructor && status === 'pending' && (
                             <button
                               onClick={() => setRejectingStudentId(id)}
                               className="p-1.5 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-600 hover:text-white border border-rose-200 font-bold transition-all cursor-pointer shadow-xs"
@@ -788,41 +836,56 @@ export const AdminStudents: React.FC = () => {
                             </button>
                           )}
 
-                          {/* View Profile Drawer */}
+                          {/* View Profile Telemetry */}
                           <button
                             onClick={() => setInspectStudent(st)}
                             className="p-1.5 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-all cursor-pointer"
-                            title="View Student Profile"
+                            title={isInstructor ? "View Student Telemetry & Progress Report" : "View Student Profile"}
                           >
                             <Eye className="w-4 h-4" />
                           </button>
 
-                          {/* Edit Details */}
-                          <button
-                            onClick={() => setEditingStudent(st)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-all cursor-pointer"
-                            title="Edit Student"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
+                          {/* Instructor: Submit Academic Concern / Progress Report */}
+                          {isInstructor && (
+                            <button
+                              onClick={() => setFlagStudentModal(st)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-all cursor-pointer"
+                              title="Submit Academic Report / Concern"
+                            >
+                              <Flag className="w-4 h-4" />
+                            </button>
+                          )}
+
+                          {/* Admin Edit Details */}
+                          {!isInstructor && (
+                            <button
+                              onClick={() => setEditingStudent(st)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-all cursor-pointer"
+                              title="Edit Student"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                          )}
 
                           {/* Send Email */}
                           <button
                             onClick={() => setEmailStudent(st)}
                             className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all cursor-pointer"
-                            title="Send Automated Email"
+                            title="Send Email / Feedback"
                           >
                             <Send className="w-4 h-4" />
                           </button>
 
-                          {/* Delete Account */}
-                          <button
-                            onClick={() => setDeletingStudentId(id)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all cursor-pointer"
-                            title="Delete Student"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {/* Admin Delete Account */}
+                          {!isInstructor && (
+                            <button
+                              onClick={() => setDeletingStudentId(id)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all cursor-pointer"
+                              title="Delete Student"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
 
                         </div>
                       </td>
@@ -842,11 +905,11 @@ export const AdminStudents: React.FC = () => {
       <StudentProfileDrawer
         student={inspectStudent}
         onClose={() => setInspectStudent(null)}
-        onEdit={(st) => {
+        onEdit={isInstructor ? undefined : (st) => {
           setInspectStudent(null);
           setEditingStudent(st);
         }}
-        onToggleStatus={async (id) => {
+        onToggleStatus={isInstructor ? undefined : async (id) => {
           const st = students.find((s) => s.id === id || s.uid === id);
           if (st?.status === 'approved') {
             await handleSuspendStudent(id);
@@ -854,7 +917,7 @@ export const AdminStudents: React.FC = () => {
             await handleReactivateStudent(id);
           }
         }}
-        onResetPassword={handleResetPassword}
+        onResetPassword={isInstructor ? undefined : handleResetPassword}
         onSendEmail={(st) => {
           setInspectStudent(null);
           setEmailStudent(st);
@@ -1001,6 +1064,75 @@ export const AdminStudents: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* SUBMIT STUDENT ACADEMIC REPORT MODAL (For Instructors) */}
+      {flagStudentModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 font-['Sora'] border border-sky-200 animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-amber-50 text-amber-600 border border-amber-200">
+                  <AlertCircle className="w-5 h-5 text-amber-500" />
+                </div>
+                <div>
+                  <h3 className="font-heading font-extrabold text-base text-slate-900">Submit Student Academic Report</h3>
+                  <p className="text-[11px] text-slate-500 font-medium">Telemetry & progress feedback for Administrator</p>
+                </div>
+              </div>
+              <button onClick={() => setFlagStudentModal(null)} className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="p-3 rounded-2xl bg-sky-50 border border-sky-200 text-slate-800 font-medium">
+                Student Target: <strong className="text-slate-900 font-bold">{flagStudentModal.name}</strong> ({flagStudentModal.email})
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Report Classification</label>
+                <select
+                  value={flagCategory}
+                  onChange={(e) => setFlagCategory(e.target.value)}
+                  className="w-full bg-slate-50 border border-sky-200 rounded-xl p-2.5 text-xs text-slate-900 focus:outline-hidden"
+                >
+                  <option value="Academic Performance Progress">Academic Performance Progress</option>
+                  <option value="Attendance & Low Activity">Attendance & Low Activity</option>
+                  <option value="Assignment / Lab Support Needed">Assignment / Lab Support Needed</option>
+                  <option value="Special Distinction Candidate">Special Distinction Candidate</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Instructor Telemetry Observations</label>
+                <textarea
+                  rows={4}
+                  value={flagNotes}
+                  onChange={(e) => setFlagNotes(e.target.value)}
+                  placeholder="Enter detailed feedback or support recommendations for this student..."
+                  className="w-full bg-slate-50 border border-sky-200 rounded-xl p-2.5 text-xs text-slate-900 focus:outline-hidden"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                onClick={() => setFlagStudentModal(null)}
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitStudentReport}
+                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs cursor-pointer shadow-md flex items-center gap-1.5"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>Dispatch Report</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
