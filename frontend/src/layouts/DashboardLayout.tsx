@@ -123,15 +123,6 @@ export const DashboardLayout: React.FC = () => {
       ],
     },
     {
-      title: 'PRACTICE & TOOLS',
-      accent: 'text-sky-500 dark:text-sky-400',
-      divider: 'bg-sky-100 dark:bg-sky-900/40',
-      items: [
-        { name: 'AI Assistant', href: '/dashboard?tab=ai-tutor', icon: Brain },
-        { name: 'Practice Hub', href: '/dashboard?tab=practice-hub', icon: Terminal },
-      ],
-    },
-    {
       title: 'ACCOUNT',
       accent: 'text-slate-400 dark:text-zinc-500',
       divider: 'bg-slate-100 dark:bg-zinc-800',
