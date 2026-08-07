@@ -17,6 +17,7 @@ export interface LiveClass {
   instructorName: string;
   instructorAvatar?: string;
   meetingProvider: 'jitsi' | 'google_meet' | 'zoom' | 'teams';
+  meetingRoomId: string;
   meetingUrl: string;
   banner?: string;
   thumbnail?: string;
@@ -102,8 +103,8 @@ export interface LiveQuiz {
   createdAt: string;
 }
 
-const STORAGE_KEY = 'kaizenq_live_classes_v2';
-const ATTENDANCE_STORAGE_KEY = 'kaizenq_live_attendance_v2';
+const STORAGE_KEY = 'kaizenq_live_classes_v3';
+const ATTENDANCE_STORAGE_KEY = 'kaizenq_live_attendance_v3';
 
 const INITIAL_CLASSES: LiveClass[] = [
   {
@@ -121,7 +122,8 @@ const INITIAL_CLASSES: LiveClass[] = [
     instructorName: 'Prof. Manoj Acharya',
     instructorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
     meetingProvider: 'jitsi',
-    meetingUrl: 'https://meet.jit.si/KaizenQ_LinuxKernel_Masterclass',
+    meetingRoomId: 'kaizenq-linux-kernel-batch-01',
+    meetingUrl: 'https://meet.jit.si/kaizenq-linux-kernel-batch-01',
     banner: 'https://images.unsplash.com/photo-1629654297299-c8506221ca97?w=1200&q=80',
     thumbnail: 'https://images.unsplash.com/photo-1629654297299-c8506221ca97?w=400&q=80',
     startTime: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
@@ -157,7 +159,8 @@ const INITIAL_CLASSES: LiveClass[] = [
     instructorName: 'Dr. Ananya Rao',
     instructorAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150',
     meetingProvider: 'jitsi',
-    meetingUrl: 'https://meet.jit.si/KaizenQ_Git_Conflict_Workshop',
+    meetingRoomId: 'kaizenq-git-mastery-batch-02',
+    meetingUrl: 'https://meet.jit.si/kaizenq-git-mastery-batch-02',
     banner: 'https://images.unsplash.com/photo-1556075798-4825dfaaf498?w=1200&q=80',
     thumbnail: 'https://images.unsplash.com/photo-1556075798-4825dfaaf498?w=400&q=80',
     startTime: new Date(Date.now() + 3 * 3600 * 1000).toISOString(),
@@ -192,7 +195,8 @@ const INITIAL_CLASSES: LiveClass[] = [
     instructorName: 'Prof. Manoj Acharya',
     instructorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
     meetingProvider: 'jitsi',
-    meetingUrl: 'https://meet.jit.si/KaizenQ_eBPF_Observability',
+    meetingRoomId: 'kaizenq-ebpf-observability-batch-03',
+    meetingUrl: 'https://meet.jit.si/kaizenq-ebpf-observability-batch-03',
     banner: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1200&q=80',
     thumbnail: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&q=80',
     startTime: new Date(Date.now() - 26 * 3600 * 1000).toISOString(),
@@ -209,7 +213,7 @@ const INITIAL_CLASSES: LiveClass[] = [
     tags: ['eBPF', 'Observability', 'Linux', 'Performance'],
     difficulty: 'Advanced',
     notesUrl: 'https://kaizenq.lms/notes/ebpf-tracing.pdf',
-    recordingUrl: 'https://meet.jit.si/KaizenQ_eBPF_Observability#recording',
+    recordingUrl: 'https://meet.jit.si/kaizenq-ebpf-observability-batch-03#recording',
     createdBy: 'admin_sys',
     createdAt: new Date(Date.now() - 48 * 3600 * 1000).toISOString(),
     updatedAt: new Date().toISOString()
@@ -296,13 +300,19 @@ class LiveClassService {
     this.listeners.forEach((l) => l(classes));
   }
 
-  async createLiveClass(data: Omit<LiveClass, 'id' | 'classId' | 'createdAt' | 'updatedAt'>): Promise<LiveClass> {
+  async createLiveClass(data: Omit<LiveClass, 'id' | 'classId' | 'createdAt' | 'updatedAt' | 'meetingRoomId'> & { meetingRoomId?: string }): Promise<LiveClass> {
     const id = `live_class_${Date.now()}`;
+    const courseSlug = (data.courseName || 'batch').toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
+    const roomId = data.meetingRoomId || `kaizenq-${courseSlug}-${Date.now().toString().slice(-4)}`;
+    const meetingUrl = data.meetingUrl || `https://meet.jit.si/${roomId}`;
+
     const newClass: LiveClass = {
       ...data,
       id,
       classId: id,
-      meetingUrl: data.meetingUrl || `https://meet.jit.si/KaizenQ_LiveSession_${id}`,
+      meetingProvider: data.meetingProvider || 'jitsi',
+      meetingRoomId: roomId,
+      meetingUrl: meetingUrl,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

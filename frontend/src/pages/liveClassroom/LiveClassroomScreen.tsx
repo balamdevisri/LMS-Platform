@@ -39,6 +39,7 @@ import { LiveQuizWidget } from '@/components/liveClassroom/LiveQuizWidget';
 import { LeaderboardWidget } from '@/components/liveClassroom/LeaderboardWidget';
 import { AIInsightsWidget } from '@/components/liveClassroom/AIInsightsWidget';
 import { InteractiveWhiteboard } from '@/components/liveClassroom/InteractiveWhiteboard';
+import { JitsiMeetingComponent } from '@/components/liveClassroom/JitsiMeetingComponent';
 
 export const LiveClassroomScreen: React.FC = () => {
   const { classId } = useParams<{ classId: string }>();
@@ -111,7 +112,8 @@ export const LiveClassroomScreen: React.FC = () => {
           instructorName: 'Prof. Manoj Acharya',
           instructorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
           meetingProvider: 'jitsi',
-          meetingUrl: `https://meet.jit.si/KaizenQ_LiveClass_${classId}`,
+          meetingRoomId: `kaizenq-linux-kernel-batch-${classId}`,
+          meetingUrl: `https://meet.jit.si/kaizenq-linux-kernel-batch-${classId}`,
           startTime: new Date().toISOString(),
           endTime: new Date(Date.now() + 90 * 60000).toISOString(),
           duration: 90,
@@ -282,9 +284,6 @@ export const LiveClassroomScreen: React.FC = () => {
         role: 'student' as const,
       };
 
-  // Derive Jitsi Room Embed URL
-  const jitsiRoomUrl = liveClassData?.meetingUrl || `https://meet.jit.si/KaizenQ_Live_${classId}`;
-
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-['Sora'] select-none overflow-x-hidden">
       
@@ -380,12 +379,13 @@ export const LiveClassroomScreen: React.FC = () => {
           {/* Jitsi Meet Interactive Frame Container */}
           <div className="flex-1 bg-slate-950 relative overflow-hidden flex flex-col items-center justify-center">
             
-            {/* Embedded Jitsi IFrame Player */}
-            <iframe
-              src={`${jitsiRoomUrl}#config.prejoinPageEnabled=false&interfaceConfig.TOOLBAR_BUTTONS=['microphone','camera','desktop','fullscreen','furl','chat']`}
-              allow="camera; microphone; display-capture; autoplay; clipboard-write; encrypted-media"
-              className="w-full h-full border-0 min-h-[420px] sm:min-h-[500px]"
-              title="Jitsi Enterprise Virtual Classroom Stream"
+            {/* Embedded Jitsi Meeting Component */}
+            <JitsiMeetingComponent
+              roomName={liveClassData?.meetingRoomId || `kaizenq-room-${classId}`}
+              displayName={currentUser.name}
+              userEmail={userProfile?.email}
+              isInstructor={Boolean(isInstructor)}
+              onLeave={handleEndSession}
             />
 
             {/* Hand Raised Queue Banner (Instructor View) */}

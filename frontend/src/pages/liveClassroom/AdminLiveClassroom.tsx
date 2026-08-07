@@ -227,7 +227,9 @@ export const AdminLiveClassroom: React.FC = () => {
       const endMs = new Date(endISO).getTime();
       const durationMins = Math.max(30, Math.round((endMs - startMs) / 60000));
 
-      const generatedUrl = formMeetingUrl || `https://meet.jit.si/KaizenQ_LiveClass_${Date.now()}`;
+      const courseSlug = (courseNameStr || 'batch').toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
+      const generatedRoomId = `kaizenq-${courseSlug}-${Date.now().toString().slice(-4)}`;
+      const generatedUrl = formMeetingUrl || `https://meet.jit.si/${generatedRoomId}`;
 
       const payload = {
         title: formTitle.trim(),
@@ -241,6 +243,7 @@ export const AdminLiveClassroom: React.FC = () => {
         instructorId: formInstructorId || 'inst_sys',
         instructorName,
         meetingProvider: formProvider,
+        meetingRoomId: generatedRoomId,
         meetingUrl: generatedUrl,
         banner: formBanner,
         thumbnail: formThumbnail,
