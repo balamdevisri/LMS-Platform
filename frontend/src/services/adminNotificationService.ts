@@ -3,12 +3,13 @@ import { collection, onSnapshot, query, where } from 'firebase/firestore';
 
 export interface AdminNotification {
   id: string;
-  type: 'NEW_STUDENT' | 'APPROVAL' | 'REJECTION' | 'COURSE_CREATED' | 'ASSIGNMENT_SUBMITTED' | 'QUIZ_COMPLETED';
+  type: 'NEW_STUDENT' | 'APPROVAL' | 'REJECTION' | 'COURSE_CREATED' | 'ASSIGNMENT_SUBMITTED' | 'QUIZ_COMPLETED' | 'INSTRUCTOR_REGISTERED';
   title: string;
   message: string;
   timestamp: string;
   read: boolean;
   avatar?: string;
+  link?: string;
 }
 
 const STORAGE_KEY = 'shaivika_admin_notifications_v1';
@@ -21,6 +22,7 @@ const INITIAL_NOTIFICATIONS: AdminNotification[] = [
     message: 'Vikram Sharma registered and completed email verification.',
     timestamp: '2 mins ago',
     read: false,
+    link: '/admin/students?status=pending',
   },
   {
     id: 'notif_2',
@@ -29,6 +31,7 @@ const INITIAL_NOTIFICATIONS: AdminNotification[] = [
     message: 'Ananya Rao submitted Linux Shell Scripting Lab #3.',
     timestamp: '15 mins ago',
     read: false,
+    link: '/admin/courses',
   },
   {
     id: 'notif_3',
@@ -37,6 +40,7 @@ const INITIAL_NOTIFICATIONS: AdminNotification[] = [
     message: 'Rahul Verma account was approved by Admin.',
     timestamp: '1 hour ago',
     read: true,
+    link: '/admin/students?status=approved',
   },
   {
     id: 'notif_4',
@@ -45,6 +49,7 @@ const INITIAL_NOTIFICATIONS: AdminNotification[] = [
     message: 'Neha Gupta scored 95% on System Architecture Mastery.',
     timestamp: '2 hours ago',
     read: true,
+    link: '/admin/courses',
   }
 ];
 
@@ -76,13 +81,19 @@ class AdminNotificationService {
               const firestoreNotifs: AdminNotification[] = [];
               snapshot.forEach((docSnap) => {
                 const data = docSnap.data();
+                const titleStr = data.title || 'Notification';
+                const defaultLink = titleStr.toLowerCase().includes('lecturer') || titleStr.toLowerCase().includes('instructor')
+                  ? '/admin/instructors'
+                  : '/admin/students?status=pending';
+
                 firestoreNotifs.push({
                   id: docSnap.id,
                   type: data.type === 'info' ? 'NEW_STUDENT' : (data.type || 'NEW_STUDENT'),
-                  title: data.title || 'Notification',
-                  message: data.desc || '',
+                  title: titleStr,
+                  message: data.message || data.desc || '',
                   timestamp: data.createdAt ? this.formatTimeAgo(data.createdAt) : 'Recently',
-                  read: Boolean(data.read),
+                  read: Boolean(data.read || data.isRead),
+                  link: data.link || defaultLink,
                 });
               });
 
@@ -181,6 +192,25 @@ class AdminNotificationService {
   markAllAsRead() {
     const current = this.getNotifications().map(n => ({ ...n, read: true }));
     this.saveNotifications(current);
+  }
+
+  markAsRead(id: string) {
+    const current = this.getNotifications().map(n => n.id === id ? { ...n, read: true } : n);
+    this.saveNotifications(current);
+  }
+
+  toggleRead(id: string) {
+    const current = this.getNotifications().map(n => n.id === id ? { ...n, read: !n.read } : n);
+    this.saveNotifications(current);
+  }
+
+  deleteNotification(id: string) {
+    const current = this.getNotifications().filter(n => n.id !== id);
+    this.saveNotifications(current);
+  }
+
+  clearAll() {
+    this.saveNotifications([]);
   }
 
   subscribe(callback: (notifs: AdminNotification[]) => void): () => void {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   Users,
@@ -10,6 +10,8 @@ import {
   ChevronRight,
   Award,
   CheckCircle2,
+  CheckCheck,
+  ExternalLink,
   X,
   Plus,
   Sliders,
@@ -269,6 +271,34 @@ export const AdminDashboard: React.FC = () => {
     }
   ];
 
+  const navigate = useNavigate();
+  const [notifFilter, setNotifFilter] = useState<'all' | 'unread'>('all');
+
+  const filteredNotifications = useMemo(() => {
+    if (notifFilter === 'unread') {
+      return notifications.filter((n) => !n.read);
+    }
+    return notifications;
+  }, [notifications, notifFilter]);
+
+  const handleMarkAllNotifsRead = () => {
+    adminNotificationService.markAllAsRead();
+    toast.success('All notifications marked as read.');
+  };
+
+  const handleClearAllNotifs = () => {
+    adminNotificationService.clearAll();
+    toast.info('All notifications cleared.');
+  };
+
+  const handleNotifClick = (n: AdminNotification) => {
+    adminNotificationService.markAsRead(n.id);
+    setIsNotifOpen(false);
+    if (n.link) {
+      navigate(n.link);
+    }
+  };
+
   const unreadNotifsCount = notifications.filter((n) => !n.read).length;
 
   // Handlers - Instructor
@@ -377,49 +407,167 @@ export const AdminDashboard: React.FC = () => {
               )}
             </button>
 
-            {/* Notification Dropdown Drawer */}
+            {/* Notification Fixed Overlay Drawer */}
             <AnimatePresence>
               {isNotifOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute right-0 mt-3 w-80 sm:w-96 bg-white rounded-3xl shadow-2xl border border-sky-100 p-4 z-50 space-y-3 font-['Sora']"
-                >
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                    <div className="flex items-center gap-2">
-                      <Bell className="w-4 h-4 text-sky-600" />
-                      <h4 className="font-bold text-sm text-slate-900">System Notifications</h4>
-                    </div>
-                    <button
-                      onClick={() => adminNotificationService.markAllAsRead()}
-                      className="text-[11px] font-bold text-sky-600 hover:text-sky-700 cursor-pointer"
-                    >
-                      Mark all read
-                    </button>
-                  </div>
+                <>
+                  {/* Backdrop overlay so it never opens inside content or gets clipped */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => setIsNotifOpen(false)}
+                    className="fixed inset-0 bg-slate-900/30 backdrop-blur-xs z-50"
+                  />
 
-                  <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-                    {notifications.length === 0 ? (
-                      <p className="text-xs text-slate-400 py-4 text-center">No notifications yet.</p>
-                    ) : (
-                      notifications.map((n) => (
-                        <div
-                          key={n.id}
-                          className={`p-3 rounded-2xl border transition-all text-xs space-y-1 ${
-                            n.read ? 'bg-slate-50/60 border-slate-100 text-slate-600' : 'bg-sky-50/60 border-sky-200 text-slate-900 font-semibold'
+                  {/* Floating high-z-index panel */}
+                  <motion.div
+                    initial={{ opacity: 0, y: -10, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.96 }}
+                    transition={{ duration: 0.2 }}
+                    className="fixed top-16 right-4 sm:right-8 w-80 sm:w-96 bg-white dark:bg-zinc-900 border border-sky-200 dark:border-zinc-800 rounded-3xl shadow-2xl p-4 sm:p-5 z-50 flex flex-col space-y-3 font-['Sora'] max-h-[85vh]"
+                  >
+                    {/* Header */}
+                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 pb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-xl bg-sky-50 dark:bg-sky-950/50 text-sky-600 dark:text-sky-400">
+                          <Bell className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h4 className="font-heading font-extrabold text-sm text-slate-900 dark:text-zinc-100">
+                            System Notifications
+                          </h4>
+                          <p className="text-[10px] text-slate-500 dark:text-zinc-400">
+                            {unreadNotifsCount} unread update{unreadNotifsCount !== 1 ? 's' : ''}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setIsNotifOpen(false)}
+                        className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200 transition-colors cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Filter & Action Toolbar */}
+                    <div className="flex items-center justify-between gap-2 pb-1">
+                      <div className="flex items-center gap-1 bg-slate-100 dark:bg-zinc-800/80 p-1 rounded-xl">
+                        <button
+                          onClick={() => setNotifFilter('all')}
+                          className={`py-1 px-3 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                            notifFilter === 'all'
+                              ? 'bg-white dark:bg-zinc-900 text-sky-600 dark:text-sky-400 shadow-xs'
+                              : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100'
                           }`}
                         >
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold">{n.title}</span>
-                            <span className="text-[10px] text-slate-400 font-mono">{n.timestamp}</span>
-                          </div>
-                          <p className="text-[11px] text-slate-600">{n.message}</p>
+                          All ({notifications.length})
+                        </button>
+                        <button
+                          onClick={() => setNotifFilter('unread')}
+                          className={`py-1 px-3 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                            notifFilter === 'unread'
+                              ? 'bg-white dark:bg-zinc-900 text-sky-600 dark:text-sky-400 shadow-xs'
+                              : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100'
+                          }`}
+                        >
+                          Unread ({unreadNotifsCount})
+                        </button>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        {unreadNotifsCount > 0 && (
+                          <button
+                            onClick={handleMarkAllNotifsRead}
+                            className="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline flex items-center gap-1 cursor-pointer"
+                            title="Mark all read"
+                          >
+                            <CheckCheck className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Mark read</span>
+                          </button>
+                        )}
+                        {notifications.length > 0 && (
+                          <button
+                            onClick={handleClearAllNotifs}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                            title="Clear all notifications"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Scrollable Notification Items */}
+                    <div className="space-y-2 overflow-y-auto flex-1 pr-1 max-h-80 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-zinc-800">
+                      {filteredNotifications.length === 0 ? (
+                        <div className="py-10 text-center space-y-2">
+                          <Bell className="w-8 h-8 text-slate-300 dark:text-zinc-700 mx-auto" />
+                          <p className="text-xs text-slate-400 font-medium">
+                            {notifFilter === 'unread' ? 'No unread notifications.' : 'No notifications in system.'}
+                          </p>
                         </div>
-                      ))
-                    )}
-                  </div>
-                </motion.div>
+                      ) : (
+                        filteredNotifications.map((n) => (
+                          <div
+                            key={n.id}
+                            className={`p-3 rounded-2xl border transition-all text-xs space-y-1.5 ${
+                              n.read
+                                ? 'bg-slate-50/70 dark:bg-zinc-800/40 border-slate-200/60 dark:border-zinc-800 text-slate-600 dark:text-zinc-400'
+                                : 'bg-sky-50/70 dark:bg-sky-950/30 border-sky-200 dark:border-sky-800/50 text-slate-900 dark:text-zinc-100 font-medium'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between font-bold gap-2">
+                              <span
+                                onClick={() => handleNotifClick(n)}
+                                className="flex items-center gap-2 cursor-pointer hover:text-sky-600 dark:hover:text-sky-400 min-w-0"
+                              >
+                                {!n.read && <span className="w-2 h-2 rounded-full bg-sky-500 shrink-0 animate-pulse" />}
+                                <span className="truncate">{n.title}</span>
+                              </span>
+
+                              <div className="flex items-center gap-1 shrink-0">
+                                <span className="text-[10px] text-slate-400 font-mono font-normal mr-1">{n.timestamp}</span>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); adminNotificationService.toggleRead(n.id); }}
+                                  className={`p-1 rounded-lg transition-colors cursor-pointer ${n.read ? 'text-slate-400 hover:text-sky-600' : 'text-sky-600 hover:bg-sky-100 dark:hover:bg-sky-900/40'}`}
+                                  title={n.read ? 'Mark as Unread' : 'Mark as Read'}
+                                >
+                                  <CheckCheck className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); adminNotificationService.deleteNotification(n.id); }}
+                                  className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                                  title="Delete notification"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+
+                            <p
+                              onClick={() => handleNotifClick(n)}
+                              className="text-[11px] leading-relaxed text-slate-600 dark:text-zinc-400 cursor-pointer"
+                            >
+                              {n.message}
+                            </p>
+
+                            {n.link && (
+                              <div
+                                onClick={() => handleNotifClick(n)}
+                                className="text-[10px] text-sky-600 dark:text-sky-400 font-bold flex items-center gap-1 pt-0.5 cursor-pointer hover:underline"
+                              >
+                                <span>Take Action</span>
+                                <ExternalLink className="w-3 h-3" />
+                              </div>
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </motion.div>
+                </>
               )}
             </AnimatePresence>
           </div>
