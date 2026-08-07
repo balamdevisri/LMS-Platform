@@ -16,6 +16,7 @@ import {
   RefreshCw,
   Download,
   ExternalLink,
+  Users,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -33,6 +34,7 @@ import type { ICourse } from '../../../../shared/types/course';
 import { courseTimeService } from '@/services/courseTimeService';
 import { useCourseTimeTracker } from '@/hooks/useCourseTimeTracker';
 import { mockAIProvider } from '@/services/aiProvider';
+import { studentService, type StudentUser } from '@/services/studentService';
 
 import { AnalyticsDashboard } from '../../components/courses/AnalyticsDashboard';
 import { LeaderboardView } from '../../components/courses/LeaderboardView';
@@ -50,6 +52,18 @@ export const Dashboard: React.FC = () => {
   // Dynamic Courses State
   const [enrolledCourses, setEnrolledCourses] = useState<ICourse[]>([]);
   const [loadingCourses, setLoadingCourses] = useState(true);
+
+  // Instructor Student Roster State
+  const [allStudents, setAllStudents] = useState<StudentUser[]>([]);
+
+  useEffect(() => {
+    if (userProfile?.role === 'instructor') {
+      const unsub = studentService.subscribeToStudents((data) => {
+        setAllStudents(data);
+      });
+      return () => unsub();
+    }
+  }, [userProfile?.role]);
 
   // XP & Claims State
   const [totalXP, setTotalXP] = useState(0);
@@ -734,6 +748,97 @@ export const Dashboard: React.FC = () => {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Instructor Mode: Student Roster & Profile Cards Widget */}
+          {userProfile?.role === 'instructor' && (
+            <div className="bg-white dark:bg-zinc-900 border border-sky-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm space-y-5 font-['Sora']">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-zinc-800">
+                <div>
+                  <h3 className="font-heading font-extrabold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                    <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    <span>Enrolled Students & Learner Profiles</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5 font-medium">
+                    Real-time student roster, profile pictures, academic progress, and learning telemetry.
+                  </p>
+                </div>
+                <Link
+                  to="/admin/students"
+                  className="px-4 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 font-bold text-xs flex items-center gap-1.5 transition-all w-fit cursor-pointer"
+                >
+                  <span>View Full Roster ({allStudents.length})</span>
+                  <ChevronRight className="w-4 h-4" />
+                </Link>
+              </div>
+
+              {allStudents.length === 0 ? (
+                <p className="text-xs text-slate-400 italic py-6 text-center">Loading enrolled students telemetry...</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {allStudents.slice(0, 6).map((student) => {
+                    const isGithub = student.provider === 'github.com' || Boolean(student.photoURL?.includes('github')) || student.githubUsername;
+                    return (
+                      <div
+                        key={student.id || student.uid}
+                        className="p-4 rounded-2xl border border-sky-100 dark:border-zinc-800 bg-slate-50/70 dark:bg-zinc-800/50 space-y-3 hover:border-blue-300 dark:hover:border-blue-600 transition-all group"
+                      >
+                        <div className="flex items-center gap-3">
+                          {/* Student Profile Image */}
+                          <div className="relative shrink-0">
+                            {student.photoURL ? (
+                              <img
+                                src={student.photoURL}
+                                alt={student.name}
+                                className="w-12 h-12 rounded-full object-cover border-2 border-blue-400 shadow-md shadow-blue-500/10 group-hover:scale-105 transition-transform"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 rounded-full bg-linear-to-r from-blue-500 to-indigo-600 text-white flex items-center justify-center font-extrabold text-base shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
+                                {student.name ? student.name.charAt(0).toUpperCase() : 'S'}
+                              </div>
+                            )}
+                            {isGithub ? (
+                              <span className="absolute -bottom-1 -right-1 text-xs" title="GitHub Account">🐱</span>
+                            ) : (
+                              <span className="absolute -bottom-1 -right-1 text-xs" title="Email Verified Student">✉️</span>
+                            )}
+                          </div>
+
+                          <div className="min-w-0 flex-1 space-y-0.5">
+                            <div className="flex items-center justify-between gap-1">
+                              <h4 className="font-bold text-xs text-slate-900 dark:text-zinc-100 truncate group-hover:text-blue-600">
+                                {student.name}
+                              </h4>
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shrink-0">
+                                {student.learningScore || 85}%
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-500 dark:text-zinc-400 truncate">{student.email}</p>
+                            <p className="text-[10px] text-slate-400 dark:text-zinc-500 font-medium">
+                              {student.branch || 'AI Foundations'} • {student.year || '1st Year'}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="space-y-1 pt-1 border-t border-slate-200/60 dark:border-zinc-700/60">
+                          <div className="flex justify-between text-[10px] font-semibold text-slate-600 dark:text-zinc-400">
+                            <span>Learning Telemetry</span>
+                            <span className="text-blue-600 dark:text-blue-400 font-mono font-bold">{student.learningScore || 85}% Score</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-slate-200 dark:bg-zinc-700 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-linear-to-r from-blue-500 to-indigo-600 rounded-full"
+                              style={{ width: `${student.learningScore || 85}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
