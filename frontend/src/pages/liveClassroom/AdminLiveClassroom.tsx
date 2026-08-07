@@ -65,12 +65,19 @@ export const AdminLiveClassroom: React.FC = () => {
   const [formDifficulty, setFormDifficulty] = useState<'Beginner' | 'Intermediate' | 'Advanced'>('Intermediate');
   const [formStatus, setFormStatus] = useState<'Draft' | 'Scheduled' | 'Live' | 'Completed' | 'Cancelled'>('Scheduled');
 
+  // Branch & Academic Filtering
+  const [formBranch, setFormBranch] = useState('CSE');
+  const [formSemester, setFormSemester] = useState('Sem 5');
+  const [formYear, setFormYear] = useState('3rd Year');
+  const [formSection, setFormSection] = useState('Sec A');
+
   // Feature Toggles
   const [isRecordingEnabled, setIsRecordingEnabled] = useState(true);
   const [isQuizEnabled, setIsQuizEnabled] = useState(true);
   const [isPollEnabled, setIsPollEnabled] = useState(true);
   const [isChatEnabled, setIsChatEnabled] = useState(true);
   const [isAttendanceEnabled, setIsAttendanceEnabled] = useState(true);
+  const [resourceDownloadEnabled, setResourceDownloadEnabled] = useState(true);
   const [certificateEligible, setCertificateEligible] = useState(true);
 
   useEffect(() => {
@@ -164,11 +171,16 @@ export const AdminLiveClassroom: React.FC = () => {
     setFormTags('Linux, Kernel, Systems');
     setFormDifficulty('Intermediate');
     setFormStatus('Scheduled');
+    setFormBranch('CSE');
+    setFormSemester('Sem 5');
+    setFormYear('3rd Year');
+    setFormSection('Sec A');
     setIsRecordingEnabled(true);
     setIsQuizEnabled(true);
     setIsPollEnabled(true);
     setIsChatEnabled(true);
     setIsAttendanceEnabled(true);
+    setResourceDownloadEnabled(true);
     setCertificateEligible(true);
     setIsCreateModalOpen(true);
   };
@@ -181,6 +193,10 @@ export const AdminLiveClassroom: React.FC = () => {
     setFormInstructorId(c.instructorId);
     setFormTitle(c.title);
     setFormDescription(c.description);
+    setFormBranch(c.branch || 'CSE');
+    setFormSemester(c.semester || 'Sem 5');
+    setFormYear(c.year || '3rd Year');
+    setFormSection(c.section || 'Sec A');
 
     const startObj = new Date(c.startTime);
     const endObj = new Date(c.endTime);
@@ -202,6 +218,7 @@ export const AdminLiveClassroom: React.FC = () => {
     setIsPollEnabled(c.isPollEnabled);
     setIsChatEnabled(c.isChatEnabled);
     setIsAttendanceEnabled(c.isAttendanceEnabled);
+    setResourceDownloadEnabled(c.resourceDownloadEnabled !== undefined ? c.resourceDownloadEnabled : true);
     setCertificateEligible(c.certificateEligible);
     setIsCreateModalOpen(true);
   };
@@ -242,6 +259,10 @@ export const AdminLiveClassroom: React.FC = () => {
         lessonTitle: lessonNameStr,
         instructorId: formInstructorId || 'inst_sys',
         instructorName,
+        branch: formBranch,
+        semester: formSemester,
+        year: formYear,
+        section: formSection,
         meetingProvider: formProvider,
         meetingRoomId: generatedRoomId,
         meetingUrl: generatedUrl,
@@ -256,6 +277,7 @@ export const AdminLiveClassroom: React.FC = () => {
         isPollEnabled,
         isChatEnabled,
         isAttendanceEnabled,
+        resourceDownloadEnabled,
         certificateEligible,
         maxParticipants: formMaxParticipants,
         tags: formTags.split(',').map((t) => t.trim()).filter(Boolean),

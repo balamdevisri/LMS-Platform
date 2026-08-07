@@ -40,6 +40,9 @@ import { LeaderboardWidget } from '@/components/liveClassroom/LeaderboardWidget'
 import { AIInsightsWidget } from '@/components/liveClassroom/AIInsightsWidget';
 import { InteractiveWhiteboard } from '@/components/liveClassroom/InteractiveWhiteboard';
 import { JitsiMeetingComponent } from '@/components/liveClassroom/JitsiMeetingComponent';
+import { LiveQuestionsWidget } from '@/components/liveClassroom/LiveQuestionsWidget';
+import { LiveNotesEditor } from '@/components/liveClassroom/LiveNotesEditor';
+import { MultiformatResourceManager } from '@/components/liveClassroom/MultiformatResourceManager';
 
 export const LiveClassroomScreen: React.FC = () => {
   const { classId } = useParams<{ classId: string }>();
@@ -63,7 +66,7 @@ export const LiveClassroomScreen: React.FC = () => {
   const [raisedHands, setRaisedHands] = useState<{ userId: string; userName: string; timestamp: Date }[]>([]);
 
   // Modals & Sidebars
-  const [activeTab, setActiveTab] = useState<'chat' | 'poll' | 'quiz' | 'leaderboard' | 'ai'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'questions' | 'notes' | 'resources' | 'poll' | 'quiz' | 'leaderboard' | 'ai'>('chat');
   const [isWhiteboardOpen, setIsWhiteboardOpen] = useState(false);
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
   const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
@@ -607,10 +610,10 @@ export const LiveClassroomScreen: React.FC = () => {
           <div className="lg:col-span-4 xl:col-span-3 bg-slate-900 border border-sky-500/10 rounded-3xl overflow-hidden flex flex-col justify-between shadow-2xl transition-all duration-300">
             
             {/* Tab Selector Header */}
-            <div className="bg-slate-950/60 p-2.5 border-b border-sky-500/10 flex items-center justify-between gap-1">
+            <div className="bg-slate-950/60 p-2 border-b border-sky-500/10 flex items-center justify-between gap-1 overflow-x-auto no-scrollbar">
               <button
                 onClick={() => setActiveTab('chat')}
-                className={`p-2 rounded-xl text-xs font-bold flex-1 flex items-center justify-center cursor-pointer ${
+                className={`p-2 rounded-xl text-xs font-bold shrink-0 flex items-center justify-center cursor-pointer ${
                   activeTab === 'chat' ? 'bg-sky-500/15 text-sky-400 border border-sky-500/25' : 'text-slate-400 hover:text-white'
                 }`}
                 title="Chat Feed"
@@ -619,8 +622,38 @@ export const LiveClassroomScreen: React.FC = () => {
               </button>
 
               <button
+                onClick={() => setActiveTab('questions')}
+                className={`p-2 rounded-xl text-xs font-bold shrink-0 flex items-center justify-center cursor-pointer ${
+                  activeTab === 'questions' ? 'bg-amber-500/15 text-amber-400 border border-amber-500/25' : 'text-slate-400 hover:text-white'
+                }`}
+                title="Questions Queue"
+              >
+                <HelpCircle className="w-4 h-4" />
+              </button>
+
+              <button
+                onClick={() => setActiveTab('notes')}
+                className={`p-2 rounded-xl text-xs font-bold shrink-0 flex items-center justify-center cursor-pointer ${
+                  activeTab === 'notes' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25' : 'text-slate-400 hover:text-white'
+                }`}
+                title="Live Notes"
+              >
+                <FileText className="w-4 h-4" />
+              </button>
+
+              <button
+                onClick={() => setActiveTab('resources')}
+                className={`p-2 rounded-xl text-xs font-bold shrink-0 flex items-center justify-center cursor-pointer ${
+                  activeTab === 'resources' ? 'bg-purple-500/15 text-purple-400 border border-purple-500/25' : 'text-slate-400 hover:text-white'
+                }`}
+                title="Multiformat Assets"
+              >
+                <Upload className="w-4 h-4" />
+              </button>
+
+              <button
                 onClick={() => setActiveTab('quiz')}
-                className={`p-2 rounded-xl text-xs font-bold flex-1 flex items-center justify-center cursor-pointer ${
+                className={`p-2 rounded-xl text-xs font-bold shrink-0 flex items-center justify-center cursor-pointer ${
                   activeTab === 'quiz' ? 'bg-sky-500/15 text-sky-400 border border-sky-500/25' : 'text-slate-400 hover:text-white'
                 }`}
                 title="Live Quizzes"
@@ -630,8 +663,8 @@ export const LiveClassroomScreen: React.FC = () => {
 
               <button
                 onClick={() => setActiveTab('poll')}
-                className={`p-2 rounded-xl text-xs font-bold flex-1 flex items-center justify-center cursor-pointer ${
-                  activeTab === 'poll' ? 'bg-sky-500/15 text-sky-400 border border-sky-500/25' : 'text-slate-400 hover:text-white'
+                className={`p-2 rounded-xl text-xs font-bold shrink-0 flex items-center justify-center cursor-pointer ${
+                  activeTab === 'poll' ? 'bg-blue-500/15 text-blue-400 border border-blue-500/25' : 'text-slate-400 hover:text-white'
                 }`}
                 title="Audience Polls"
               >
@@ -640,8 +673,8 @@ export const LiveClassroomScreen: React.FC = () => {
 
               <button
                 onClick={() => setActiveTab('leaderboard')}
-                className={`p-2 rounded-xl text-xs font-bold flex-1 flex items-center justify-center cursor-pointer ${
-                  activeTab === 'leaderboard' ? 'bg-sky-500/15 text-sky-400 border border-sky-500/25' : 'text-slate-400 hover:text-white'
+                className={`p-2 rounded-xl text-xs font-bold shrink-0 flex items-center justify-center cursor-pointer ${
+                  activeTab === 'leaderboard' ? 'bg-amber-500/15 text-amber-400 border border-amber-500/25' : 'text-slate-400 hover:text-white'
                 }`}
                 title="Live Leaderboard"
               >
@@ -651,8 +684,8 @@ export const LiveClassroomScreen: React.FC = () => {
               {isInstructor && (
                 <button
                   onClick={() => setActiveTab('ai')}
-                  className={`p-2 rounded-xl text-xs font-bold flex-1 flex items-center justify-center cursor-pointer ${
-                    activeTab === 'ai' ? 'bg-sky-500/15 text-sky-400 border border-sky-500/25' : 'text-slate-400 hover:text-white'
+                  className={`p-2 rounded-xl text-xs font-bold shrink-0 flex items-center justify-center cursor-pointer ${
+                    activeTab === 'ai' ? 'bg-purple-500/15 text-purple-400 border border-purple-500/25' : 'text-slate-400 hover:text-white'
                   }`}
                   title="AI Insights"
                 >
@@ -665,6 +698,15 @@ export const LiveClassroomScreen: React.FC = () => {
             <div className="flex-1 overflow-y-auto p-4">
               {activeTab === 'chat' && (
                 <LiveChatWidget socket={socket} classId={classId || ''} currentUser={currentUser} />
+              )}
+              {activeTab === 'questions' && (
+                <LiveQuestionsWidget classId={classId || ''} currentUser={currentUser} />
+              )}
+              {activeTab === 'notes' && (
+                <LiveNotesEditor classId={classId || ''} currentUser={currentUser} />
+              )}
+              {activeTab === 'resources' && (
+                <MultiformatResourceManager classId={classId || ''} currentUser={currentUser} />
               )}
               {activeTab === 'quiz' && (
                 <LiveQuizWidget socket={socket} classId={classId || ''} currentUser={currentUser} />

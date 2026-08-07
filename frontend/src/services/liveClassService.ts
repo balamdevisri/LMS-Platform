@@ -1,5 +1,5 @@
 import { db } from '@/firebase';
-import { collection, onSnapshot, query, doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query, doc, setDoc, updateDoc, deleteDoc, where } from 'firebase/firestore';
 import { adminNotificationService } from './adminNotificationService';
 
 export interface LiveClass {
@@ -16,6 +16,11 @@ export interface LiveClass {
   instructorId: string;
   instructorName: string;
   instructorAvatar?: string;
+  branch?: string;
+  semester?: string;
+  year?: string;
+  section?: string;
+  allowedStudents?: string[];
   meetingProvider: 'jitsi' | 'google_meet' | 'zoom' | 'teams';
   meetingRoomId: string;
   meetingUrl: string;
@@ -30,6 +35,7 @@ export interface LiveClass {
   isPollEnabled: boolean;
   isChatEnabled: boolean;
   isAttendanceEnabled: boolean;
+  resourceDownloadEnabled?: boolean;
   certificateEligible: boolean;
   maxParticipants: number;
   tags: string[];
@@ -69,6 +75,37 @@ export interface LiveChatMessage {
   pinned?: boolean;
 }
 
+export interface LiveQuestion {
+  id: string;
+  classId: string;
+  studentId: string;
+  studentName: string;
+  studentAvatar?: string;
+  question: string;
+  status: 'pending' | 'accepted' | 'answered';
+  micAllowed?: boolean;
+  createdAt: string;
+}
+
+export interface LiveNote {
+  id: string;
+  classId: string;
+  title: string;
+  content: string;
+  authorName: string;
+  updatedAt: string;
+}
+
+export interface LiveResource {
+  id: string;
+  classId: string;
+  title: string;
+  type: 'pdf' | 'ppt' | 'zip' | 'image' | 'github' | 'youtube';
+  url: string;
+  fileSize?: string;
+  uploadedAt: string;
+}
+
 export interface LivePollOption {
   id: string;
   text: string;
@@ -103,8 +140,11 @@ export interface LiveQuiz {
   createdAt: string;
 }
 
-const STORAGE_KEY = 'kaizenq_live_classes_v3';
-const ATTENDANCE_STORAGE_KEY = 'kaizenq_live_attendance_v3';
+const STORAGE_KEY = 'kaizenq_live_classes_v4';
+const ATTENDANCE_STORAGE_KEY = 'kaizenq_live_attendance_v4';
+const QUESTIONS_STORAGE_KEY = 'kaizenq_live_questions_v4';
+const NOTES_STORAGE_KEY = 'kaizenq_live_notes_v4';
+const RESOURCES_STORAGE_KEY = 'kaizenq_live_resources_v4';
 
 const INITIAL_CLASSES: LiveClass[] = [
   {
@@ -121,6 +161,10 @@ const INITIAL_CLASSES: LiveClass[] = [
     instructorId: 'inst_1',
     instructorName: 'Prof. Manoj Acharya',
     instructorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+    branch: 'CSE',
+    semester: 'Sem 5',
+    year: '3rd Year',
+    section: 'Sec A',
     meetingProvider: 'jitsi',
     meetingRoomId: 'kaizenq-linux-kernel-batch-01',
     meetingUrl: 'https://meet.jit.si/kaizenq-linux-kernel-batch-01',
@@ -135,6 +179,7 @@ const INITIAL_CLASSES: LiveClass[] = [
     isPollEnabled: true,
     isChatEnabled: true,
     isAttendanceEnabled: true,
+    resourceDownloadEnabled: true,
     certificateEligible: true,
     maxParticipants: 100,
     tags: ['Linux', 'Kernel', 'OS', 'Systems'],
@@ -158,6 +203,10 @@ const INITIAL_CLASSES: LiveClass[] = [
     instructorId: 'inst_2',
     instructorName: 'Dr. Ananya Rao',
     instructorAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150',
+    branch: 'AI & DS',
+    semester: 'Sem 3',
+    year: '2nd Year',
+    section: 'Sec B',
     meetingProvider: 'jitsi',
     meetingRoomId: 'kaizenq-git-mastery-batch-02',
     meetingUrl: 'https://meet.jit.si/kaizenq-git-mastery-batch-02',
@@ -172,6 +221,7 @@ const INITIAL_CLASSES: LiveClass[] = [
     isPollEnabled: true,
     isChatEnabled: true,
     isAttendanceEnabled: true,
+    resourceDownloadEnabled: true,
     certificateEligible: true,
     maxParticipants: 150,
     tags: ['Git', 'DevOps', 'Version Control'],
@@ -194,6 +244,10 @@ const INITIAL_CLASSES: LiveClass[] = [
     instructorId: 'inst_1',
     instructorName: 'Prof. Manoj Acharya',
     instructorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+    branch: 'IT',
+    semester: 'Sem 7',
+    year: '4th Year',
+    section: 'Sec C',
     meetingProvider: 'jitsi',
     meetingRoomId: 'kaizenq-ebpf-observability-batch-03',
     meetingUrl: 'https://meet.jit.si/kaizenq-ebpf-observability-batch-03',
@@ -208,6 +262,7 @@ const INITIAL_CLASSES: LiveClass[] = [
     isPollEnabled: true,
     isChatEnabled: true,
     isAttendanceEnabled: true,
+    resourceDownloadEnabled: true,
     certificateEligible: true,
     maxParticipants: 120,
     tags: ['eBPF', 'Observability', 'Linux', 'Performance'],
@@ -279,7 +334,7 @@ class LiveClassService {
             this.saveClasses(merged);
           },
           (err) => {
-            console.warn('[Firestore LiveClasses Listener] Using local fallback:', err.message);
+            console.warn('[Firestore LiveClasses Listener] Local fallback active:', err.message);
           }
         );
       } catch (e) {
@@ -422,6 +477,7 @@ class LiveClassService {
     });
   }
 
+  // Attendance Logger & Report
   recordAttendance(record: Omit<AttendanceRecord, 'id'>) {
     try {
       const savedStr = localStorage.getItem(ATTENDANCE_STORAGE_KEY);
@@ -454,9 +510,7 @@ class LiveClassService {
 
   exportAttendanceCSV(classId: string, classTitle: string) {
     const records = this.getAttendanceRecords(classId);
-    if (records.length === 0) {
-      return false;
-    }
+    if (records.length === 0) return false;
 
     const headers = ['Student ID', 'Student Name', 'Student Email', 'Joined At', 'Left At', 'Duration (Mins)', 'Status'];
     const rows = records.map((r) => [
@@ -479,6 +533,183 @@ class LiveClassService {
     link.click();
     document.body.removeChild(link);
     return true;
+  }
+
+  // --- QUESTIONS MANAGEMENT ---
+  subscribeQuestions(classId: string, callback: (questions: LiveQuestion[]) => void): () => void {
+    const getLocal = (): LiveQuestion[] => {
+      try {
+        const saved = localStorage.getItem(`${QUESTIONS_STORAGE_KEY}_${classId}`);
+        return saved ? JSON.parse(saved) : [];
+      } catch (e) { return []; }
+    };
+
+    callback(getLocal());
+
+    if (db) {
+      try {
+        const ref = collection(db, 'liveQuestions');
+        const q = query(ref, where('classId', '==', classId));
+        return onSnapshot(q, (snapshot) => {
+          const list: LiveQuestion[] = [];
+          snapshot.forEach((d) => list.push(d.data() as LiveQuestion));
+          localStorage.setItem(`${QUESTIONS_STORAGE_KEY}_${classId}`, JSON.stringify(list));
+          callback(list);
+        });
+      } catch (e) {}
+    }
+
+    return () => {};
+  }
+
+  async submitQuestion(classId: string, studentId: string, studentName: string, questionText: string, studentAvatar?: string): Promise<LiveQuestion> {
+    const newQ: LiveQuestion = {
+      id: `q_${Date.now()}`,
+      classId,
+      studentId,
+      studentName,
+      studentAvatar,
+      question: questionText,
+      status: 'pending',
+      micAllowed: false,
+      createdAt: new Date().toISOString()
+    };
+
+    try {
+      const saved = localStorage.getItem(`${QUESTIONS_STORAGE_KEY}_${classId}`);
+      const list: LiveQuestion[] = saved ? JSON.parse(saved) : [];
+      list.push(newQ);
+      localStorage.setItem(`${QUESTIONS_STORAGE_KEY}_${classId}`, JSON.stringify(list));
+
+      if (db) {
+        await setDoc(doc(db, 'liveQuestions', newQ.id), newQ);
+      }
+    } catch (e) {}
+
+    return newQ;
+  }
+
+  async updateQuestionStatus(classId: string, questionId: string, status: 'pending' | 'accepted' | 'answered', micAllowed?: boolean): Promise<void> {
+    try {
+      const saved = localStorage.getItem(`${QUESTIONS_STORAGE_KEY}_${classId}`);
+      if (saved) {
+        const list: LiveQuestion[] = JSON.parse(saved);
+        const updated = list.map((q) => (q.id === questionId ? { ...q, status, micAllowed: micAllowed !== undefined ? micAllowed : q.micAllowed } : q));
+        localStorage.setItem(`${QUESTIONS_STORAGE_KEY}_${classId}`, JSON.stringify(updated));
+      }
+
+      if (db) {
+        await updateDoc(doc(db, 'liveQuestions', questionId), { status, micAllowed });
+      }
+    } catch (e) {}
+  }
+
+  // --- LIVE NOTES REALTIME EDITOR ---
+  subscribeLiveNotes(classId: string, callback: (note: LiveNote | null) => void): () => void {
+    const getLocal = (): LiveNote | null => {
+      try {
+        const saved = localStorage.getItem(`${NOTES_STORAGE_KEY}_${classId}`);
+        return saved ? JSON.parse(saved) : null;
+      } catch (e) { return null; }
+    };
+
+    callback(getLocal());
+
+    if (db) {
+      try {
+        return onSnapshot(doc(db, 'liveNotes', classId), (snapshot) => {
+          if (snapshot.exists()) {
+            const data = snapshot.data() as LiveNote;
+            localStorage.setItem(`${NOTES_STORAGE_KEY}_${classId}`, JSON.stringify(data));
+            callback(data);
+          }
+        });
+      } catch (e) {}
+    }
+
+    return () => {};
+  }
+
+  async updateLiveNotes(classId: string, title: string, content: string, authorName: string): Promise<void> {
+    const note: LiveNote = {
+      id: classId,
+      classId,
+      title,
+      content,
+      authorName,
+      updatedAt: new Date().toISOString()
+    };
+
+    try {
+      localStorage.setItem(`${NOTES_STORAGE_KEY}_${classId}`, JSON.stringify(note));
+      if (db) {
+        await setDoc(doc(db, 'liveNotes', classId), note);
+      }
+    } catch (e) {}
+  }
+
+  // --- MULTIFORMAT RESOURCES ---
+  subscribeResources(classId: string, callback: (resources: LiveResource[]) => void): () => void {
+    const getLocal = (): LiveResource[] => {
+      try {
+        const saved = localStorage.getItem(`${RESOURCES_STORAGE_KEY}_${classId}`);
+        return saved ? JSON.parse(saved) : [];
+      } catch (e) { return []; }
+    };
+
+    callback(getLocal());
+
+    if (db) {
+      try {
+        const ref = collection(db, 'resources');
+        const q = query(ref, where('classId', '==', classId));
+        return onSnapshot(q, (snapshot) => {
+          const list: LiveResource[] = [];
+          snapshot.forEach((d) => list.push(d.data() as LiveResource));
+          localStorage.setItem(`${RESOURCES_STORAGE_KEY}_${classId}`, JSON.stringify(list));
+          callback(list);
+        });
+      } catch (e) {}
+    }
+
+    return () => {};
+  }
+
+  async addResource(classId: string, resource: Omit<LiveResource, 'id' | 'classId' | 'uploadedAt'>): Promise<LiveResource> {
+    const newRes: LiveResource = {
+      ...resource,
+      id: `res_${Date.now()}`,
+      classId,
+      uploadedAt: new Date().toISOString()
+    };
+
+    try {
+      const saved = localStorage.getItem(`${RESOURCES_STORAGE_KEY}_${classId}`);
+      const list: LiveResource[] = saved ? JSON.parse(saved) : [];
+      list.push(newRes);
+      localStorage.setItem(`${RESOURCES_STORAGE_KEY}_${classId}`, JSON.stringify(list));
+
+      if (db) {
+        await setDoc(doc(db, 'resources', newRes.id), newRes);
+      }
+    } catch (e) {}
+
+    return newRes;
+  }
+
+  async deleteResource(classId: string, resourceId: string): Promise<void> {
+    try {
+      const saved = localStorage.getItem(`${RESOURCES_STORAGE_KEY}_${classId}`);
+      if (saved) {
+        const list: LiveResource[] = JSON.parse(saved);
+        const updated = list.filter((r) => r.id !== resourceId);
+        localStorage.setItem(`${RESOURCES_STORAGE_KEY}_${classId}`, JSON.stringify(updated));
+      }
+
+      if (db) {
+        await deleteDoc(doc(db, 'resources', resourceId));
+      }
+    } catch (e) {}
   }
 }
 
