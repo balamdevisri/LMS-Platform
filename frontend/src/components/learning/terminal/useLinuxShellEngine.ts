@@ -144,12 +144,259 @@ function getNodeAtPath(root: VFSNode, absPath: string): VFSNode | null {
   return curr;
 }
 
+function getInitialVfs(isKubernetesCourse: boolean): VFSNode {
+  if (!isKubernetesCourse) return INITIAL_ROOT_VFS;
+  
+  // Clone INITIAL_ROOT_VFS and add templates in home/student
+  const clone = JSON.parse(JSON.stringify(INITIAL_ROOT_VFS));
+  
+  // Safe dynamic lookup of student home directory
+  let studentDir = clone.children?.find((c: any) => c.name === 'home')
+    ?.children?.find((c: any) => c.name === 'student');
+
+  if (!studentDir) {
+    studentDir = clone.children?.[0]?.children?.[0];
+  }
+
+  // Ensure children array is initialized before performing push operations
+  if (studentDir && !studentDir.children) {
+    studentDir.children = [];
+  }
+  
+  const templates = [
+    {
+      name: 'pod.yaml',
+      content: `apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-pod
+  labels:
+    app: web
+spec:
+  containers:
+  - name: web-container
+    image: nginx:latest
+    ports:
+    - containerPort: 80`
+    },
+    {
+      name: 'deployment.yaml',
+      content: `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.21`
+    },
+    {
+      name: 'service.yaml',
+      content: `apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+spec:
+  type: NodePort
+  selector:
+    app: web
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30080`
+    },
+    {
+      name: 'ingress.yaml',
+      content: `apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nginx-ingress
+spec:
+  rules:
+  - host: myweb.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: nginx-service
+            port:
+              number: 80`
+    },
+    {
+      name: 'pvc.yaml',
+      content: `apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nginx-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi`
+    },
+    {
+      name: 'deployment-storage.yaml',
+      content: `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-storage-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web-storage
+  template:
+    metadata:
+      labels:
+        app: web-storage
+    spec:
+      containers:
+      - name: web-server
+        image: nginx:latest
+        volumeMounts:
+        - mountPath: "/usr/share/nginx/html"
+          name: web-data
+      volumes:
+      - name: web-data
+        persistentVolumeClaim:
+          claimName: nginx-pvc`
+    },
+    {
+      name: 'serviceaccount.yaml',
+      content: `apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nginx-sa`
+    },
+    {
+      name: 'rbac.yaml',
+      content: `apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pod-reader
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: read-pods
+subjects:
+- kind: ServiceAccount
+  name: nginx-sa
+roleRef:
+  kind: Role
+  name: pod-reader
+  apiGroup: rbac.authorization.k8s.io`
+    },
+    {
+      name: 'secret.yaml',
+      content: `apiVersion: v1
+kind: Secret
+metadata:
+  name: db-secret
+type: Opaque
+data:
+  password: c3VwZXJzZWNyZXQ=`
+    },
+    {
+      name: 'fullstack-app.yaml',
+      content: `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: frontend:latest
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: backend:latest
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+spec:
+  ports:
+  - port: 8080
+    targetPort: 5000
+  selector:
+    app: backend`
+    }
+  ];
+  
+  if (studentDir && studentDir.children) {
+    templates.forEach(t => {
+      studentDir.children.push({
+        name: t.name,
+        type: 'file',
+        permissions: '-rw-r--r--',
+        owner: 'student',
+        group: 'student',
+        content: t.content,
+        size: t.content.length,
+        updatedAt: getDefaultFileDate(),
+      });
+    });
+  }
+  
+  return clone;
+}
+
 export const useLinuxShellEngine = (
   _isGitCourse = false,
-  initialCommands?: Array<{ command: string; description: string }>
+  initialCommands?: Array<{ command: string; description: string }>,
+  isKubernetesCourse = false
 ) => {
   const [currentPath, setCurrentPath] = useState<string>('/home/student');
-  const [vfsRoot, setVfsRoot] = useState<VFSNode>(INITIAL_ROOT_VFS);
+  const [vfsRoot, setVfsRoot] = useState<VFSNode>(() => getInitialVfs(isKubernetesCourse));
+  const [appliedResources, setAppliedResources] = useState<Set<string>>(() => {
+    const initial = new Set<string>();
+    if (isKubernetesCourse) {
+      initial.add('minikube');
+    }
+    return initial;
+  });
+  const [scaledDeployments, setScaledDeployments] = useState<Map<string, number>>(() => new Map());
   const [gitBranch, setGitBranch] = useState<string>('main');
   const [tasks, setTasks] = useState<LabTask[]>(() => createDynamicTasks(initialCommands));
   const [commandHistoryList, setCommandHistoryList] = useState<string[]>(['uname -a', 'whoami', 'pwd']);
@@ -486,6 +733,342 @@ export const useLinuxShellEngine = (
         output = `git: '${gitSub}' is not a git command. See 'git --help'.`;
         isError = true;
       }
+    } else if (cmd === 'minikube') {
+      const sub = tokens[1];
+      if (sub === 'start') {
+        setAppliedResources(prev => {
+          const next = new Set(prev);
+          next.add('minikube');
+          return next;
+        });
+        output = `😄  minikube v1.32.0 on Ubuntu 24.04\n✨  Automatically selected the docker driver\n👍  Starting control plane node minikube in cluster minikube\n🚜  Pulling base image ...\n🔥  Creating docker container (CPUs=2, Memory=2200MB, Disk=20000MB) ...\n🐳  Preparing Kubernetes v1.28.3 on Docker 24.0.7 ...\n🔎  Verifying Kubernetes components...\n    ▪ Enabled addons: default-storageclass, storage-provisioner\n🌟  Enabled addons: \n🏄  Done! kubectl is now configured to use "minikube" cluster and "default" namespace by default`;
+      } else if (sub === 'status') {
+        const started = appliedResources.has('minikube');
+        if (started) {
+          output = `minikube\ntype: Control Plane\nhost: Running\nkubelet: Running\napiserver: Running\nkubeconfig: Configured`;
+        } else {
+          output = `minikube\ntype: Control Plane\nhost: Stopped\nkubelet: Stopped\napiserver: Stopped\nkubeconfig: Misconfigured`;
+        }
+      } else {
+        output = `minikube: '${sub}' is not supported in this learning sandbox environment.`;
+        isError = true;
+      }
+    } else if (cmd === 'kubectl') {
+      const sub = tokens[1];
+      const target = tokens[2];
+      const extra = tokens.slice(3).join(' ');
+      
+      const isMinikubeRunning = appliedResources.has('minikube') || !isKubernetesCourse;
+      
+      if (!isMinikubeRunning) {
+        output = 'The connection to the server localhost:8080 was refused - did you specify the right host or port? (Minikube is stopped. Run "minikube start" to start the cluster)';
+        isError = true;
+      } else if (sub === 'version') {
+        output = 'Client Version: v1.28.3\nKustomize Version: v5.0.4-0.20230601165947-6ce0bf390ce3';
+      } else if (sub === 'get' && target === 'nodes') {
+        output = 'NAME       STATUS   ROLES           AGE   VERSION\nminikube   Ready    control-plane   2d    v1.28.3';
+      } else if (sub === 'get' && (target === 'ns' || target === 'namespaces')) {
+        output = 'NAME              STATUS   AGE\ndefault           Active   2d\nkube-node-lease   Active   2d\nkube-public       Active   2d\nkube-system       Active   2d';
+      } else if (sub === 'apply' && cleanCmd.includes('-f')) {
+        const file = cleanCmd.split('-f')[1]?.trim() || '';
+        
+        const parentDir = getDirectoryNode(vfsRoot, currentPath);
+        const fileExists = parentDir?.children?.some(c => c.name === file && c.type === 'file');
+        
+        if (!fileExists) {
+          output = `Error: the path "${file}" does not exist.`;
+          isError = true;
+        } else {
+          setAppliedResources(prev => {
+            const next = new Set(prev);
+            next.add(file);
+            return next;
+          });
+          
+          if (file === 'pod.yaml') {
+            output = 'pod/nginx-pod created';
+          } else if (file === 'deployment.yaml') {
+            output = 'deployment.apps/nginx-deployment created';
+          } else if (file === 'service.yaml') {
+            output = 'service/nginx-service created';
+          } else if (file === 'ingress.yaml') {
+            output = 'ingress.networking.k8s.io/nginx-ingress created';
+          } else if (file === 'pvc.yaml') {
+            output = 'persistentvolumeclaim/nginx-pvc created';
+          } else if (file === 'deployment-storage.yaml') {
+            output = 'deployment.apps/nginx-storage-deployment created';
+          } else if (file === 'serviceaccount.yaml') {
+            output = 'serviceaccount/nginx-sa created';
+          } else if (file === 'rbac.yaml') {
+            output = 'role.rbac.authorization.k8s.io/pod-reader created\nrolebinding.rbac.authorization.k8s.io/read-pods created';
+          } else if (file === 'secret.yaml') {
+            output = 'secret/db-secret created';
+          } else if (file === 'fullstack-app.yaml') {
+            output = 'deployment.apps/frontend-deployment created\nservice/frontend-service created\ndeployment.apps/backend-deployment created\nservice/backend-service created';
+          } else {
+            output = `kubectl apply: custom file "${file}" processed successfully.`;
+          }
+        }
+      } else if (sub === 'get') {
+        const showAllNamespaces = cleanCmd.includes('-A') || cleanCmd.includes('--all-namespaces');
+        
+        if (target === 'pods' || target === 'pod') {
+          let rows = 'NAME                                READY   STATUS    RESTARTS   AGE\n';
+          let count = 0;
+          
+          if (showAllNamespaces) {
+            rows = `NAMESPACE     NAME                               READY   STATUS    RESTARTS   AGE\n`;
+            rows += `kube-system   coredns-5dd5756b68-r4k6n           1/1     Running   0          2d\n`;
+            rows += `kube-system   etcd-minikube                      1/1     Running   0          2d\n`;
+            rows += `kube-system   kube-apiserver-minikube            1/1     Running   0          2d\n`;
+            rows += `kube-system   kube-controller-manager-minikube   1/1     Running   0          2d\n`;
+            rows += `kube-system   kube-proxy-m4v5x                   1/1     Running   0          2d\n`;
+            rows += `kube-system   kube-scheduler-minikube            1/1     Running   0          2d\n`;
+            rows += `kube-system   storage-provisioner                1/1     Running   0          2d\n`;
+            count += 7;
+          }
+          
+          if (appliedResources.has('pod.yaml')) {
+            const prefix = showAllNamespaces ? 'default       ' : '';
+            rows += `${prefix}nginx-pod                           1/1     Running   0          45s\n`;
+            count++;
+          }
+          if (appliedResources.has('deployment.yaml')) {
+            const prefix = showAllNamespaces ? 'default       ' : '';
+            const reps = scaledDeployments.get('nginx-deployment') ?? 3;
+            for (let i = 0; i < reps; i++) {
+              const randHex = `7fb96c846b-8xpr${i}`;
+              rows += `${prefix}nginx-deployment-${randHex}   1/1     Running   0          12s\n`;
+              count++;
+            }
+          }
+          if (appliedResources.has('deployment-storage.yaml')) {
+            const prefix = showAllNamespaces ? 'default       ' : '';
+            rows += `${prefix}nginx-storage-deployment-6f9fb9-abc 1/1     Running   0          10s\n`;
+            count++;
+          }
+          if (appliedResources.has('fullstack-app.yaml')) {
+            const prefix = showAllNamespaces ? 'default       ' : '';
+            rows += `${prefix}frontend-deployment-8594966-w8q4s   1/1     Running   0          22s\n`;
+            rows += `${prefix}backend-deployment-64d85db-k9l2g    1/1     Running   0          22s\n`;
+            count += 2;
+          }
+          
+          if (count === 0) {
+            output = 'No resources found in default namespace.';
+          } else {
+            output = rows.trim();
+          }
+        } else if (target === 'deployments' || target === 'deployment') {
+          let rows = 'NAME               READY   UP-TO-DATE   AVAILABLE   AGE\n';
+          let count = 0;
+          if (appliedResources.has('deployment.yaml')) {
+            const reps = scaledDeployments.get('nginx-deployment') ?? 3;
+            rows += `nginx-deployment   ${reps}/${reps}     ${reps}            ${reps}           1m\n`;
+            count++;
+          }
+          if (appliedResources.has('deployment-storage.yaml')) {
+            rows += `nginx-storage-deployment   1/1     1            1           30s\n`;
+            count++;
+          }
+          if (appliedResources.has('fullstack-app.yaml')) {
+            rows += `frontend-deployment        1/1     1            1           22s\n`;
+            rows += `backend-deployment         1/1     1            1           22s\n`;
+            count += 2;
+          }
+          if (count === 0) {
+            output = 'No resources found in default namespace.';
+          } else {
+            output = rows.trim();
+          }
+        } else if (target === 'services' || target === 'service' || target === 'svc') {
+          let rows = 'NAME            TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE\n';
+          rows += `kubernetes      ClusterIP   10.96.0.1       <none>        443/TCP        2h\n`;
+          let count = 1;
+          if (appliedResources.has('service.yaml')) {
+            rows += `nginx-service   NodePort    10.104.22.193   <none>        80:30080/TCP   45s\n`;
+            count++;
+          }
+          if (appliedResources.has('fullstack-app.yaml')) {
+            rows += `frontend-service LoadBalancer 10.101.44.89   34.120.12.89  80:31280/TCP   22s\n`;
+            rows += `backend-service  ClusterIP    10.102.155.12  <none>        8080/TCP       22s\n`;
+            count += 2;
+          }
+          output = rows.trim();
+        } else if (target === 'pvc' || target === 'persistentvolumeclaim') {
+          let rows = 'NAME        STATUS   VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS   AGE\n';
+          let count = 0;
+          if (appliedResources.has('pvc.yaml')) {
+            rows += `nginx-pvc   Bound    pv0001   1Gi        RWO            standard       1m\n`;
+            count++;
+          }
+          if (count === 0) {
+            output = 'No resources found in default namespace.';
+          } else {
+            output = rows.trim();
+          }
+        } else if (target === 'all') {
+          let sections = '';
+          
+          let pods = 'NAME                                READY   STATUS    RESTARTS   AGE\n';
+          let hasPod = false;
+          if (appliedResources.has('pod.yaml')) {
+            pods += `nginx-pod                           1/1     Running   0          45s\n`;
+            hasPod = true;
+          }
+          if (appliedResources.has('deployment.yaml')) {
+            const reps = scaledDeployments.get('nginx-deployment') ?? 3;
+            for (let i = 0; i < reps; i++) {
+              pods += `nginx-deployment-7fb96c846b-rand${i}   1/1     Running   0          12s\n`;
+            }
+            hasPod = true;
+          }
+          if (appliedResources.has('fullstack-app.yaml')) {
+            pods += `frontend-deployment-8594966-w8q4s   1/1     Running   0          22s\n`;
+            pods += `backend-deployment-64d85db-k9l2g    1/1     Running   0          22s\n`;
+            hasPod = true;
+          }
+          if (hasPod) sections += pods.trim() + '\n\n';
+          
+          let svcs = 'NAME            TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE\n';
+          svcs += `kubernetes      ClusterIP   10.96.0.1       <none>        443/TCP        2h\n`;
+          if (appliedResources.has('service.yaml')) {
+            svcs += `nginx-service   NodePort    10.104.22.193   <none>        80:30080/TCP   45s\n`;
+          }
+          if (appliedResources.has('fullstack-app.yaml')) {
+            svcs += `frontend-service LoadBalancer 10.101.44.89   34.120.12.89  80:31280/TCP   22s\n`;
+            svcs += `backend-service  ClusterIP    10.102.155.12  <none>        8080/TCP       22s\n`;
+          }
+          sections += svcs.trim() + '\n\n';
+          
+          let deploys = 'NAME               READY   UP-TO-DATE   AVAILABLE   AGE\n';
+          let hasDeploy = false;
+          if (appliedResources.has('deployment.yaml')) {
+            const reps = scaledDeployments.get('nginx-deployment') ?? 3;
+            deploys += `nginx-deployment   ${reps}/${reps}     ${reps}            ${reps}           1m\n`;
+            hasDeploy = true;
+          }
+          if (appliedResources.has('fullstack-app.yaml')) {
+            deploys += `frontend-deployment   1/1     1            1           22s\n`;
+            deploys += `backend-deployment    1/1     1            1           22s\n`;
+            hasDeploy = true;
+          }
+          if (hasDeploy) sections += deploys.trim();
+          
+          output = sections.trim();
+        } else {
+          output = 'No resources found in default namespace.';
+        }
+      } else if (sub === 'scale') {
+        const isDeploy = target === 'deployment' || target === 'deployments';
+        const deployName = tokens[3] || '';
+        const repArg = tokens.find(t => t.startsWith('--replicas='));
+        const reps = repArg ? parseInt(repArg.split('=')[1] || '1') : 3;
+        
+        const key = deployName === 'nginx-deployment' ? 'deployment.yaml' : '';
+        
+        if (isDeploy && appliedResources.has(key)) {
+          setScaledDeployments(prev => {
+            const next = new Map(prev);
+            next.set(deployName, reps);
+            return next;
+          });
+          output = `deployment.apps/${deployName} scaled`;
+        } else {
+          output = `Error from server (NotFound): deployments.apps "${deployName}" not found`;
+          isError = true;
+        }
+      } else if (sub === 'rollout') {
+        const action = target;
+        const targetDeploy = tokens[3] || '';
+        const deployName = targetDeploy.split('/')[1] || targetDeploy || '';
+        const key = deployName === 'nginx-deployment' ? 'deployment.yaml' : '';
+        
+        if (appliedResources.has(key)) {
+          if (action === 'status') {
+            const reps = scaledDeployments.get(deployName) ?? 3;
+            output = `Waiting for deployment "${deployName}" rollout to finish: ${reps} replicas are available...\ndeployment "${deployName}" successfully rolled out`;
+          } else if (action === 'undo') {
+            output = `deployment.apps/${deployName} rolled back`;
+          } else {
+            output = `kubectl rollout: action "${action}" not recognized.`;
+          }
+        } else {
+          output = `Error from server (NotFound): deployments.apps "${deployName}" not found`;
+          isError = true;
+        }
+      } else if (sub === 'logs') {
+        const podName = target;
+        const exists = appliedResources.has('pod.yaml') && podName === 'nginx-pod';
+        if (exists) {
+          output = `10.244.0.1 - - [08/Aug/2026:09:54:12 +0000] "GET / HTTP/1.1" 200 615 "-" "Mozilla/5.0"\n2026/08/08 09:54:12 [notice] 1#1: start worker process 31`;
+        } else {
+          output = `Error from server (NotFound): pods "${podName}" not found`;
+          isError = true;
+        }
+      } else if (sub === 'delete') {
+        const resourceType = target;
+        const resourceName = extra.trim() || tokens[3] || '';
+        
+        if (resourceType === 'pod') {
+          if (resourceName === 'nginx-pod') {
+            setAppliedResources(prev => {
+              const next = new Set(prev);
+              next.delete('pod.yaml');
+              return next;
+            });
+            output = 'pod "nginx-pod" deleted';
+          } else {
+            output = `pod "${resourceName}" not found`;
+            isError = true;
+          }
+        } else if (resourceType === 'deployment') {
+          if (resourceName === 'nginx-deployment') {
+            setAppliedResources(prev => {
+              const next = new Set(prev);
+              next.delete('deployment.yaml');
+              return next;
+            });
+            output = 'deployment.apps "nginx-deployment" deleted';
+          } else {
+            output = `deployment "${resourceName}" not found`;
+            isError = true;
+          }
+        } else {
+          output = `${resourceType} "${resourceName}" deleted`;
+        }
+      } else if (sub === 'describe') {
+        const resourceType = target;
+        const resourceName = tokens[3] || '';
+        
+        if (resourceType === 'pod' && resourceName === 'failed-pod') {
+          output = `Name:             failed-pod\nNamespace:        default\nStatus:           Failed\nReason:           CrashLoopBackOff\nContainers:\n  web-container:\n    Image:          nginx:invalid-tag\n    State:          Waiting\n      Reason:       ImagePullBackOff\nEvents:\n  Type     Reason     Age                From               Message\n  ----     ------     ---                ----               -------\n  Normal   Scheduled  1m                 default-scheduler  Successfully assigned default/failed-pod to minikube\n  Warning  Failed     45s (x3 over 55s)  kubelet            Failed to pull image "nginx:invalid-tag": rpc error: code = NotFound desc = failed to pull and unpack image`;
+        } else if (resourceType === 'pod' && resourceName === 'nginx-pod' && appliedResources.has('pod.yaml')) {
+          output = `Name:             nginx-pod\nNamespace:        default\nStatus:           Running\nContainers:\n  web-container:\n    Image:          nginx:latest\n    State:          Running\nEvents:\n  Type    Reason     Age   From               Message\n  ----    ------     ---   ----               -------\n  Normal  Scheduled  1m    default-scheduler  Successfully assigned default/nginx-pod to minikube\n  Normal  Pulled     55s   kubelet            Container image "nginx:latest" already present on machine\n  Normal  Created    55s   kubelet            Created container web-container\n  Normal  Started    54s   kubelet            Started container web-container`;
+        } else {
+          output = `Error from server (NotFound): ${resourceType}s "${resourceName}" not found`;
+          isError = true;
+        }
+      } else {
+        output = `kubectl: command not supported or invalid syntax. Available: apply, get, scale, rollout, logs, delete, describe.`;
+        isError = true;
+      }
+    } else if (cmd === 'helm') {
+      const sub = tokens[1];
+      if (sub === 'install') {
+        output = `NAME: my-release\nLAST DEPLOYED: Sat Aug  8 09:55:00 2026\nNAMESPACE: default\nSTATUS: deployed\nREVISION: 1\nTEST SUITE: None\nNOTES:\nGet the NGINX URL by running:\n  kubectl get svc --namespace default my-release-nginx`;
+      } else if (sub === 'list') {
+        output = `NAME          NAMESPACE    REVISION    UPDATED                                 STATUS      CHART            APP VERSION\nmy-release    default      1           2026-08-08 09:55:00.825121 -0500 CDT    deployed    nginx-15.0.2     1.25.3`;
+      } else {
+        output = `Helm package manager emulator. Supported: install, list.`;
+      }
+    } else if (cmd === 'docker') {
+      const sub = tokens[1];
+      if (sub === 'build') {
+        output = `Sending build context to Docker daemon  42.5MB\nStep 1/5 : FROM node:18-alpine\n ---> 827292a839f2\nStep 2/5 : WORKDIR /app\n ---> Using cache\nStep 3/5 : COPY package*.json ./\n ---> Using cache\nStep 4/5 : RUN npm install\n ---> Using cache\nStep 5/5 : COPY . .\n ---> 91f3cb8a0bfb\nSuccessfully built 91f3cb8a0bfb\nSuccessfully tagged frontend:latest`;
+      } else {
+        output = `Docker emulator. Supported: build.`;
+      }
     } else {
       output = `bash: ${cmd}: command not found`;
       isError = true;
@@ -519,7 +1102,15 @@ export const useLinuxShellEngine = (
   const resetLab = useCallback(() => {
     setCurrentPath('/home/student');
     setGitBranch('main');
-    setVfsRoot(INITIAL_ROOT_VFS);
+    setVfsRoot(getInitialVfs(isKubernetesCourse));
+    setAppliedResources(() => {
+      const initial = new Set<string>();
+      if (isKubernetesCourse) {
+        initial.add('minikube');
+      }
+      return initial;
+    });
+    setScaledDeployments(new Map());
     setTasks(createDynamicTasks(initialCommands));
     setTabs([
       {

@@ -22,6 +22,11 @@ import {
   CertificateGeneratedPayload,
   InstructorApprovalPayload,
   AdminNotificationPayload,
+  LecturerPendingPayload,
+  LecturerApprovedPayload,
+  CoursePublishedPayload,
+  AssignmentReminderPayload,
+  QuizReminderPayload,
 } from '../../types/emailTypes';
 
 interface MasterLayoutOptions {
@@ -931,6 +936,116 @@ export const buildRegistrationRejectedTemplate = (payload: RegistrationRejectedP
   };
 };
 
+export const buildLecturerPendingTemplate = (payload: LecturerPendingPayload) => {
+  const subject = 'Lecturer Registration Received';
+  const contentHtml = `
+    <h1 class="h1-title" style="color: #1E3A8A; font-size: 22px; margin-bottom: 12px;">Application Received</h1>
+    <p class="p-text">Hello <strong>${payload.lecturerName}</strong>,</p>
+    <p class="p-text">Your lecturer application for KaizenQ LMS has been received successfully.</p>
+    <p class="p-text">Please wait while our administrative team reviews your academic details and repository history. You will receive an email confirmation once reviewed.</p>
+  `;
+  return {
+    subject,
+    html: renderMasterLayout({
+      title: subject,
+      preheader: 'Your lecturer registration has been received successfully.',
+      contentHtml,
+    })
+  };
+};
+
+export const buildLecturerApprovedTemplate = (payload: LecturerApprovedPayload) => {
+  const subject = 'Congratulations! You are Approved as Lecturer';
+  const ctaUrl = payload.dashboardUrl || 'https://shaivika-lms.vercel.app/instructor/dashboard';
+  const contentHtml = `
+    <h1 class="h1-title" style="color: #10B981; font-size: 24px; margin-bottom: 12px;">Welcome Aboard!</h1>
+    <p class="p-text">Hello <strong>${payload.lecturerName}</strong>,</p>
+    <p class="p-text">Your Lecturer application for KaizenQ LMS has been officially approved and activated.</p>
+    <p class="p-text">You now have complete access to the Instructor Dashboard where you can release course tracks, write sandbox guides, and check student progress metrics.</p>
+  `;
+  return {
+    subject,
+    html: renderMasterLayout({
+      title: subject,
+      preheader: 'Congratulations! Your instructor portal registration is approved.',
+      contentHtml,
+      ctaText: 'Access Instructor Dashboard 🚀',
+      ctaUrl,
+    })
+  };
+};
+
+export const buildCoursePublishedTemplate = (payload: CoursePublishedPayload) => {
+  const subject = 'New Course Track Published!';
+  const ctaUrl = payload.courseUrl || 'https://shaivika-lms.vercel.app/courses';
+  const contentHtml = `
+    <h1 class="h1-title" style="color: #3B82F6; font-size: 22px; margin-bottom: 12px;">New Course Track Released</h1>
+    <p class="p-text">Hello <strong>${payload.studentName}</strong>,</p>
+    <p class="p-text">We are excited to announce that a new course has just been published: <strong>${payload.courseTitle}</strong>.</p>
+    <p class="p-text">Explore the syllabus, configure your practice lab sandbox, and start learning now.</p>
+  `;
+  return {
+    subject,
+    html: renderMasterLayout({
+      title: subject,
+      preheader: `New Course Released: ${payload.courseTitle}`,
+      contentHtml,
+      ctaText: 'Explore Course Track',
+      ctaUrl,
+    })
+  };
+};
+
+export const buildAssignmentReminderTemplate = (payload: AssignmentReminderPayload) => {
+  const subject = `Reminder: Assignment Pending - ${payload.assignmentTitle}`;
+  const ctaUrl = payload.submissionUrl || 'https://shaivika-lms.vercel.app/dashboard';
+  const contentHtml = `
+    <h1 class="h1-title" style="color: #F59E0B; font-size: 22px; margin-bottom: 12px;">Assignment Submission Reminder</h1>
+    <p class="p-text">Hello <strong>${payload.studentName}</strong>,</p>
+    <p class="p-text">This is a reminder that you have a pending assignment submission: <strong>${payload.assignmentTitle}</strong> for the course <strong>${payload.courseTitle}</strong>.</p>
+    <div class="metric-box" style="border-left-color: #F59E0B; margin: 20px 0; background: #FFFBEB; padding: 15px; border-radius: 8px;">
+      <div class="metric-label" style="font-size: 11px; text-transform: uppercase; color: #B45309; font-weight: 700;">Submission Deadline</div>
+      <div class="metric-value" style="color: #B45309; font-size: 18px; font-weight: bold; margin-top: 4px;">${payload.dueDate}</div>
+    </div>
+  `;
+  return {
+    subject,
+    html: renderMasterLayout({
+      title: subject,
+      preheader: `Reminder: Assignment due by ${payload.dueDate}`,
+      contentHtml,
+      ctaText: 'Submit Assignment',
+      ctaUrl,
+    })
+  };
+};
+
+export const buildQuizReminderTemplate = (payload: QuizReminderPayload) => {
+  const subject = `Reminder: Quiz Pending - ${payload.quizTitle}`;
+  const ctaUrl = payload.quizUrl || 'https://shaivika-lms.vercel.app/dashboard';
+  const contentHtml = `
+    <h1 class="h1-title" style="color: #3B82F6; font-size: 22px; margin-bottom: 12px;">Quiz Attempt Reminder</h1>
+    <p class="p-text">Hello <strong>${payload.studentName}</strong>,</p>
+    <p class="p-text">This is a reminder that you have a pending quiz attempt: <strong>${payload.quizTitle}</strong> for the course <strong>${payload.courseTitle}</strong>.</p>
+    ${payload.dueDate ? `
+    <div class="metric-box" style="border-left-color: #3B82F6; margin: 20px 0; background: #EFF6FF; padding: 15px; border-radius: 8px;">
+      <div class="metric-label" style="font-size: 11px; text-transform: uppercase; color: #1D4ED8; font-weight: 700;">Complete By</div>
+      <div class="metric-value" style="color: #1D4ED8; font-size: 18px; font-weight: bold; margin-top: 4px;">${payload.dueDate}</div>
+    </div>
+    ` : ''}
+  `;
+  return {
+    subject,
+    html: renderMasterLayout({
+      title: subject,
+      preheader: `Reminder: Quiz attempt pending for ${payload.quizTitle}`,
+      contentHtml,
+      ctaText: 'Take Quiz Now',
+      ctaUrl,
+    })
+  };
+};
+
 /**
  * Registry to build HTML template based on event type
  */
@@ -967,6 +1082,16 @@ export const buildEventEmailTemplate = (
       return buildInstructorApprovalTemplate(payload);
     case EmailEventType.ADMIN_NOTIFICATION:
       return buildAdminNotificationTemplate(payload);
+    case EmailEventType.LECTURER_PENDING:
+      return buildLecturerPendingTemplate(payload);
+    case EmailEventType.LECTURER_APPROVED:
+      return buildLecturerApprovedTemplate(payload);
+    case EmailEventType.COURSE_PUBLISHED:
+      return buildCoursePublishedTemplate(payload);
+    case EmailEventType.ASSIGNMENT_REMINDER:
+      return buildAssignmentReminderTemplate(payload);
+    case EmailEventType.QUIZ_REMINDER:
+      return buildQuizReminderTemplate(payload);
     default:
       return {
         subject: `Notification from KaizenQ AI LMS`,

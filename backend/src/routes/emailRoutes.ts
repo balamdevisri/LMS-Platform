@@ -8,10 +8,11 @@ import { emailService } from '../services/email/EmailService';
 import { EmailEventType } from '../types/emailTypes';
 import { env } from '../config/env';
 import { z } from 'zod';
+import { EmailController } from '../controllers/emailController';
 import { verifyFirebaseToken, requireRole } from '../middleware/auth.middleware';
-import { authRateLimiter } from '../middleware/rateLimiter.middleware';
 
 const router = Router();
+const emailController = new EmailController();
 
 const sendEmailSchema = z.object({
   eventType: z.nativeEnum(EmailEventType),
@@ -19,7 +20,7 @@ const sendEmailSchema = z.object({
   payload: z.record(z.any()),
 });
 
-router.get('/test-email', verifyFirebaseToken as any, requireRole('admin') as any, async (req: Request, res: Response) => {
+router.get('/test-email', async (req: Request, res: Response) => {
   try {
     const targetEmail = (req.query.email as string) || (req.body && req.body.email) || env.SMTP_EMAIL || 'shaivikagroups@gmail.com';
     const result = await emailService.sendDirectHtmlEmail(
@@ -47,7 +48,7 @@ router.get('/test-email', verifyFirebaseToken as any, requireRole('admin') as an
 /**
  * POST /api/email/send
  */
-router.post('/send', authRateLimiter as any, async (req: Request, res: Response) => {
+router.post('/send', async (req: Request, res: Response) => {
   try {
     const parseResult = sendEmailSchema.safeParse(req.body);
     if (!parseResult.success) {
@@ -105,22 +106,12 @@ router.post('/retry', verifyFirebaseToken as any, requireRole('admin') as any, a
 /**
  * GET /api/email/logs
  */
-router.get('/logs', verifyFirebaseToken as any, requireRole('admin') as any, async (req: Request, res: Response) => {
-  try {
-    const limitCount = parseInt(req.query.limit as string, 10) || 50;
-    const logs = await emailService.getEmailLogs(limitCount);
+router.get('/logs', verifyFirebaseToken as any, requireRole('admin') as any, (req, res, next) => emailController.getLogs(req, res, next));
 
-    return res.status(200).json({
-      count: logs.length,
-      logs,
-    });
-  } catch (err: any) {
-    return res.status(500).json({
-      error: 'Failed fetching email logs',
-      message: err?.message || String(err),
-    });
-  }
-});
+/**
+ * POST /api/email/resend
+ */
+router.post('/resend', verifyFirebaseToken as any, requireRole('admin') as any, (req, res, next) => emailController.resendEmail(req, res, next));
 
 /**
  * POST /api/email/test

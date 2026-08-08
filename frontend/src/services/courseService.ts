@@ -3,6 +3,7 @@ import { doc, setDoc, updateDoc, deleteDoc, collection, getDocs } from 'firebase
 import type { ICourse, CreateCourseDTO, UpdateCourseDTO, CourseFilterOptions, CoursePaginationResult, CourseLevel, CourseStatus } from '../../../shared/types/course';
 export type { ICourse };
 import { gitCourseModules } from '@/data/gitCourseFullData';
+import { kubernetesCourseModules } from '@/data/kubernetesCourseFullData';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -311,6 +312,54 @@ const DEFAULT_COURSES: ICourse[] = [
     ],
     createdAt: new Date('2026-03-01').toISOString(),
     updatedAt: new Date('2026-03-05').toISOString(),
+  },
+  {
+    id: 'kubernetes-complete-course-beginner-to-advanced',
+    title: 'Kubernetes Complete Course – Beginner to Advanced',
+    slug: 'kubernetes-complete-course-beginner-to-advanced',
+    shortDescription: 'Learn Kubernetes from the fundamentals to production-level deployment through practical, hands-on learning.',
+    description: 'Learn Kubernetes from the fundamentals to production-level deployment through practical, hands-on learning. Understand Kubernetes architecture, Pods, Deployments, Services, Networking, Storage, Security, Scheduling, Helm, CI/CD, and real-world application deployment.',
+    thumbnail: 'https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?auto=format&fit=crop&w=800&q=80',
+    banner: 'https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?auto=format&fit=crop&w=800&q=80',
+    category: 'DevOps / Cloud / Containers',
+    level: 'all_levels',
+    duration: '30 Hours',
+    language: 'English',
+    price: 0,
+    instructor: {
+      id: 'inst_kaizen',
+      name: 'Kaizen-Q Academy',
+      role: 'DevOps & Cloud Engineers',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    },
+    skills: ['Kubernetes', 'Docker', 'kubectl', 'Minikube', 'Helm', 'CI/CD'],
+    prerequisites: ['Basic Linux commands', 'Basic Docker knowledge', 'Basic networking concepts', 'Basic YAML knowledge'],
+    learningOutcomes: [
+      'Understand Kubernetes architecture and core worker components',
+      'Deploy and scale applications using Pods, ReplicaSets, and Deployments',
+      'Expose applications with ClusterIP, NodePort, LoadBalancer Services and Ingress',
+      'Manage persistent storage with PersistentVolumes and Claims',
+      'Secure clusters using ServiceAccounts, RBAC, and Security Contexts',
+      'Deploy microservices in cloud Kubernetes clusters using CI/CD and Helm'
+    ],
+    status: 'published',
+    visibility: 'public',
+    featured: true,
+    tags: ['kubernetes', 'k8s', 'devops', 'docker', 'containers', 'helm'],
+    enrollmentCount: 0,
+    rating: 5.0,
+    ratingCount: 100,
+    syllabus: [
+      { id: 'k8s-mod-1', title: 'Module 1 — Kubernetes Basics', description: 'Learn container orchestration fundamentals, Kubernetes architecture components, YAML objects, cluster setup using Minikube, and basic kubectl operations.', duration: '5 Hours', lessonsCount: 7 },
+      { id: 'k8s-mod-2', title: 'Module 2 — Pods & Deployments', description: 'Master pod life cycles, labels/selectors, deployments, scaling, rolling updates, cron jobs, and health check probes.', duration: '6 Hours', lessonsCount: 8 },
+      { id: 'k8s-mod-3', title: 'Module 3 — Networking & Services', description: 'Learn pod-to-pod networking, service abstractions (ClusterIP, NodePort, LoadBalancer), DNS routing, Ingress config, and Network Policies.', duration: '5 Hours', lessonsCount: 7 },
+      { id: 'k8s-mod-4', title: 'Module 4 — Configuration & Storage', description: 'Learn ConfigMaps, Secrets, persistent volumes (PV, PVC), storage classes, dynamic provisioning, and resource requests/limits.', duration: '6 Hours', lessonsCount: 8 },
+      { id: 'k8s-mod-5', title: 'Module 5 — Security & Administration', description: 'Master ServiceAccounts, Role-Based Access Control (RBAC), security contexts, scheduling nodes (Selector, Taints, Tolerations, Affinity), and troubleshooting failed deployments.', duration: '6 Hours', lessonsCount: 8 },
+      { id: 'k8s-mod-6', title: 'Module 6 — Production & DevOps', description: 'Learn production guidelines, Horizontal Pod Autoscaler (HPA), Helm package management, CI/CD pipelines, managed cloud engines, and deploy a full-stack project.', duration: '6 Hours', lessonsCount: 8 }
+    ],
+    modules: kubernetesCourseModules,
+    createdAt: new Date('2026-08-08').toISOString(),
+    updatedAt: new Date('2026-08-08').toISOString(),
   }
 ];
 
@@ -641,6 +690,10 @@ class CourseService {
     if (!result.some((c) => String(c.id) === 'database-management-system' || c.slug === 'database-management-system' || c.title.toLowerCase().includes('database') || c.title.toLowerCase().includes('dbms'))) {
       const dbmsCourse = DEFAULT_COURSES.find((c) => c.id === 'database-management-system') || DEFAULT_COURSES[2];
       if (dbmsCourse) result.push(this.normalizeCourseToICourse(dbmsCourse));
+    }
+    if (!result.some((c) => String(c.id) === 'kubernetes-complete-course-beginner-to-advanced' || c.slug === 'kubernetes-complete-course-beginner-to-advanced' || c.title.toLowerCase().includes('kubernetes') || c.title.toLowerCase().includes('k8s'))) {
+      const k8sCourse = DEFAULT_COURSES.find((c) => c.id === 'kubernetes-complete-course-beginner-to-advanced') || DEFAULT_COURSES[3];
+      if (k8sCourse) result.push(this.normalizeCourseToICourse(k8sCourse));
     }
 
     // Apply smart merge for default courses in result

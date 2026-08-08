@@ -29,6 +29,7 @@ export const Terminal: React.FC<TerminalProps> = ({
   courseTitle = '',
 }) => {
   const titleLower = courseTitle.toLowerCase();
+  const isKubernetesCourse = titleLower.includes('kubernetes') || titleLower.includes('k8s');
 
   const renderTerminal = () => {
     if (titleLower.includes('database') || titleLower.includes('dbms') || titleLower.includes('sql')) {
@@ -82,6 +83,7 @@ export const Terminal: React.FC<TerminalProps> = ({
         isGitCourse={false}
         onExecuteCommand={onExecuteCommand}
         isNightMode={isNightMode}
+        isKubernetesCourse={isKubernetesCourse}
       />
     );
   };

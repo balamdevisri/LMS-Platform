@@ -12,6 +12,7 @@ interface LinuxLabWorkspaceProps {
   initialCommands?: Array<{ command: string; description: string }>;
   onExecuteCommand?: (cmd: string) => void;
   isNightMode?: boolean;
+  isKubernetesCourse?: boolean;
 }
 
 export const LinuxLabWorkspace: React.FC<LinuxLabWorkspaceProps> = ({
@@ -19,13 +20,14 @@ export const LinuxLabWorkspace: React.FC<LinuxLabWorkspaceProps> = ({
   initialCommands,
   onExecuteCommand,
   isNightMode: externalNightMode = true,
+  isKubernetesCourse = false,
 }) => {
   const [isNightMode, setIsNightMode] = useState(externalNightMode);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isAIOpen, setIsAIOpen] = useState(false);
   const workspaceRef = useRef<HTMLDivElement>(null);
 
-  const engine = useLinuxShellEngine(isGitCourse, initialCommands);
+  const engine = useLinuxShellEngine(isGitCourse, initialCommands, isKubernetesCourse);
 
   // Fullscreen toggle helper with native element-level fullscreen request
   const toggleFullscreen = () => {
@@ -153,6 +155,7 @@ export const LinuxLabWorkspace: React.FC<LinuxLabWorkspaceProps> = ({
           isNightMode={isNightMode}
           currentPathDisplay={engine.getDisplayPath(engine.currentPath)}
           gitBranch={engine.gitBranch}
+          isKubernetesCourse={isKubernetesCourse}
         />
       )}
 

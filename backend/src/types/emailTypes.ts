@@ -18,6 +18,11 @@ export enum EmailEventType {
   CERTIFICATE_GENERATED = 'CERTIFICATE_GENERATED',
   INSTRUCTOR_APPROVAL = 'INSTRUCTOR_APPROVAL',
   ADMIN_NOTIFICATION = 'ADMIN_NOTIFICATION',
+  LECTURER_PENDING = 'LECTURER_PENDING',
+  LECTURER_APPROVED = 'LECTURER_APPROVED',
+  COURSE_PUBLISHED = 'COURSE_PUBLISHED',
+  ASSIGNMENT_REMINDER = 'ASSIGNMENT_REMINDER',
+  QUIZ_REMINDER = 'QUIZ_REMINDER',
 }
 
 export type EmailStatus = 'pending' | 'sent' | 'failed';
@@ -136,6 +141,42 @@ export interface AdminNotificationPayload {
   actionUrl?: string;
 }
 
+export interface LecturerPendingPayload {
+  lecturerName: string;
+  email: string;
+}
+
+export interface LecturerApprovedPayload {
+  lecturerName: string;
+  email: string;
+  dashboardUrl?: string;
+}
+
+export interface CoursePublishedPayload {
+  studentName: string;
+  email: string;
+  courseTitle: string;
+  courseUrl?: string;
+}
+
+export interface AssignmentReminderPayload {
+  studentName: string;
+  email: string;
+  assignmentTitle: string;
+  courseTitle: string;
+  dueDate: string;
+  submissionUrl?: string;
+}
+
+export interface QuizReminderPayload {
+  studentName: string;
+  email: string;
+  quizTitle: string;
+  courseTitle: string;
+  dueDate?: string;
+  quizUrl?: string;
+}
+
 export type EventPayloadMap = {
   [EmailEventType.STUDENT_REGISTRATION]: StudentRegistrationPayload;
   [EmailEventType.REGISTRATION_PENDING]: RegistrationPendingPayload;
@@ -151,6 +192,11 @@ export type EventPayloadMap = {
   [EmailEventType.CERTIFICATE_GENERATED]: CertificateGeneratedPayload;
   [EmailEventType.INSTRUCTOR_APPROVAL]: InstructorApprovalPayload;
   [EmailEventType.ADMIN_NOTIFICATION]: AdminNotificationPayload;
+  [EmailEventType.LECTURER_PENDING]: LecturerPendingPayload;
+  [EmailEventType.LECTURER_APPROVED]: LecturerApprovedPayload;
+  [EmailEventType.COURSE_PUBLISHED]: CoursePublishedPayload;
+  [EmailEventType.ASSIGNMENT_REMINDER]: AssignmentReminderPayload;
+  [EmailEventType.QUIZ_REMINDER]: QuizReminderPayload;
 };
 
 export interface EmailLogRecord {

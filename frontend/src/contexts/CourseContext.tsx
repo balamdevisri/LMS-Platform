@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { db } from '@/firebase';
 import { gitCourseModules } from '@/data/gitCourseFullData';
+import { kubernetesCourseModules } from '@/data/kubernetesCourseFullData';
 import { courseService } from '@/services/courseService';
 
 export type LearningUnitType = 'Video' | 'Reading' | 'Quiz' | 'Assignment';
@@ -638,6 +639,35 @@ const initialDefaultCoursesRaw: CourseItem[] = [
         ]
       }
     ]
+  },
+  {
+    id: 'kubernetes-complete-course-beginner-to-advanced',
+    title: 'Kubernetes Complete Course – Beginner to Advanced',
+    subtitle: '☸️ Kubernetes Complete Course',
+    instructor: 'Kaizen-Q Academy',
+    role: 'DevOps & Cloud Engineers',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    rating: 5.0,
+    reviews: 100,
+    students: '0',
+    duration: '30 Hours',
+    category: 'DevOps / Cloud / Containers',
+    level: 'Beginner to Advanced',
+    badge: 'New Track',
+    tracks: '6 Modules (30 Hours)',
+    status: 'Published',
+    thumbnail: 'https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?auto=format&fit=crop&w=800&q=80',
+    description: 'Learn Kubernetes from the fundamentals to production-level deployment through practical, hands-on learning. Understand Kubernetes architecture, Pods, Deployments, Services, Networking, Storage, Security, Scheduling, Helm, CI/CD, and real-world application deployment.',
+    syllabus: [
+      'Module 1 — Kubernetes Basics',
+      'Module 2 — Pods & Deployments',
+      'Module 3 — Networking & Services',
+      'Module 4 — Configuration & Storage',
+      'Module 5 — Security & Administration',
+      'Module 6 — Production & DevOps'
+    ],
+    createdAt: new Date('2026-08-08').toISOString(),
+    modules: kubernetesCourseModules
   }
 ];
 
@@ -703,6 +733,22 @@ const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
         modules: mergeCourseModules(defaultDbmsCourse.modules, c.modules),
       };
       map.set(key, updatedItem);
+    } else if (
+      title.includes('kubernetes') ||
+      String(c.id) === 'kubernetes-complete-course-beginner-to-advanced'
+    ) {
+      const key = 'kubernetes-complete-course-beginner-to-advanced';
+      const defaultK8sCourse = initialDefaultCourses.find(item => item.id === 'kubernetes-complete-course-beginner-to-advanced') || c;
+      const updatedItem: CourseItem = {
+        ...defaultK8sCourse,
+        ...c,
+        id: 'kubernetes-complete-course-beginner-to-advanced',
+        title: 'Kubernetes Complete Course – Beginner to Advanced',
+        subtitle: '☸️ Kubernetes Complete Course',
+        thumbnail: c.thumbnail || 'https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?auto=format&fit=crop&w=800&q=80',
+        modules: mergeCourseModules(defaultK8sCourse.modules, c.modules),
+      };
+      map.set(key, updatedItem);
     } else {
       map.set(String(c.id), c);
     }
@@ -716,6 +762,9 @@ const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
   }
   if (!map.has('database-management-system')) {
     map.set('database-management-system', initialDefaultCourses[2]);
+  }
+  if (!map.has('kubernetes-complete-course-beginner-to-advanced')) {
+    map.set('kubernetes-complete-course-beginner-to-advanced', initialDefaultCourses.find(item => item.id === 'kubernetes-complete-course-beginner-to-advanced') || initialDefaultCourses[3]);
   }
 
   return Array.from(map.values());

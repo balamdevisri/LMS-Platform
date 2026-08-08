@@ -65,7 +65,7 @@ export const verifyFirebaseToken = async (
   }
 };
 
-export const requireRole = (role: 'student' | 'instructor' | 'admin') => {
+export const requireRole = (roles: string | string[]) => {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
     if (!req.user) {
       res.status(401).json({ error: 'Unauthorized: User authentication required' });
@@ -74,17 +74,18 @@ export const requireRole = (role: 'student' | 'instructor' | 'admin') => {
 
     const userRole = req.user.role || 'student';
     const userEmail = req.user.email || '';
-    // Admin email check as fallback for cases where role claim is not set
     const isAdminByEmail = userEmail.includes('admin') || userEmail === 'admin@gmail.com';
     const isAdmin = userRole === 'admin' || isAdminByEmail;
 
-    if (role === 'admin' && !isAdmin) {
-      res.status(403).json({ error: 'Forbidden: Requires admin privileges' });
+    // Admins bypass all role checks
+    if (isAdmin) {
+      next();
       return;
     }
 
-    if (role !== 'admin' && userRole !== role && !isAdmin) {
-      res.status(403).json({ error: `Forbidden: Requires ${role} privileges` });
+    const allowedRoles = Array.isArray(roles) ? roles : [roles];
+    if (!allowedRoles.includes(userRole)) {
+      res.status(403).json({ error: `Forbidden: Requires one of [${allowedRoles.join(', ')}] privileges` });
       return;
     }
 
