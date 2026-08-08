@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { db } from '@/firebase';
 import { gitCourseModules } from '@/data/gitCourseFullData';
 import { kubernetesCourseModules } from '@/data/kubernetesCourseFullData';
+import { reactCourseModules } from '@/data/reactCourseFullData';
 import { courseService } from '@/services/courseService';
 
 export type LearningUnitType = 'Video' | 'Reading' | 'Quiz' | 'Assignment';
@@ -668,6 +669,44 @@ const initialDefaultCoursesRaw: CourseItem[] = [
     ],
     createdAt: new Date('2026-08-08').toISOString(),
     modules: kubernetesCourseModules
+  },
+  {
+    id: 'react-js-complete-course',
+    title: 'React JS Complete Course',
+    subtitle: '⚛️ React JS Complete Course',
+    instructor: 'KaizenQ Systems Team',
+    role: 'React Systems Architect & LMS Specialist',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    rating: 5.0,
+    reviews: 120,
+    students: '0',
+    duration: '24 Hours',
+    category: 'Web Development / Frontend Development',
+    level: 'Beginner to Advanced',
+    badge: 'New Track',
+    tracks: '15 Modules (24 Hours)',
+    status: 'Published',
+    thumbnail: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&w=800&q=80',
+    description: 'A complete beginner-to-advanced React JS course covering React fundamentals, development environment setup, JSX, components, props, state, hooks, events, forms, conditional rendering, routing, API integration, state management, styling, real-time projects, and interview preparation.',
+    syllabus: [
+      'Module 1: Introduction to React JS',
+      'Module 2: Setting Up React Environment',
+      'Module 3: JSX (JavaScript XML)',
+      'Module 4: React Components',
+      'Module 5: React Props',
+      'Module 6: React State & Hooks',
+      'Module 7: React Events & Forms',
+      'Module 8: Lists & Conditional Rendering',
+      'Module 9: React Hooks',
+      'Module 10: React Router',
+      'Module 11: API Integration',
+      'Module 12: State Management',
+      'Module 13: Styling React',
+      'Module 14: Real-Time Projects',
+      'Module 15: Interview Preparation',
+    ],
+    createdAt: new Date('2026-08-08').toISOString(),
+    modules: reactCourseModules
   }
 ];
 
@@ -749,6 +788,23 @@ const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
         modules: mergeCourseModules(defaultK8sCourse.modules, c.modules),
       };
       map.set(key, updatedItem);
+    } else if (
+      title.includes('react js') ||
+      title.includes('react complete') ||
+      String(c.id) === 'react-js-complete-course'
+    ) {
+      const key = 'react-js-complete-course';
+      const defaultReactCourse = initialDefaultCourses.find(item => item.id === 'react-js-complete-course') || c;
+      const updatedItem: CourseItem = {
+        ...defaultReactCourse,
+        ...c,
+        id: 'react-js-complete-course',
+        title: 'React JS Complete Course',
+        subtitle: '⚛️ React JS Complete Course',
+        thumbnail: c.thumbnail || 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&w=800&q=80',
+        modules: mergeCourseModules(defaultReactCourse.modules, c.modules),
+      };
+      map.set(key, updatedItem);
     } else {
       map.set(String(c.id), c);
     }
@@ -765,6 +821,9 @@ const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
   }
   if (!map.has('kubernetes-complete-course-beginner-to-advanced')) {
     map.set('kubernetes-complete-course-beginner-to-advanced', initialDefaultCourses.find(item => item.id === 'kubernetes-complete-course-beginner-to-advanced') || initialDefaultCourses[3]);
+  }
+  if (!map.has('react-js-complete-course')) {
+    map.set('react-js-complete-course', initialDefaultCourses.find(item => item.id === 'react-js-complete-course') || initialDefaultCourses[4]);
   }
 
   return Array.from(map.values());

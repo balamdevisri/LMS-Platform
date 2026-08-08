@@ -11,7 +11,8 @@
     "clean": "node -e \"fs.rmSync('dist', { recursive: true, force: true })\"",
     "build": "node scripts/copy-shared.js && node -e \"fs.rmSync('dist', { recursive: true, force: true })\" && tsc",
     "start": "node dist/server.js",
-    "test": "jest"
+    "test": "jest",
+    "seed:react": "npx ts-node src/scripts/seed-react-course.ts"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",

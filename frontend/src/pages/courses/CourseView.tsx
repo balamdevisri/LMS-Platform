@@ -214,6 +214,24 @@ export const CourseView: React.FC = () => {
       };
     }
     
+    if (idLower === 'react-js-complete-course' || titleLower.includes('react')) {
+      return {
+        introText: [
+          "Welcome to React JS Complete Course! React is a popular and powerful open-source JavaScript library developed by Meta (Facebook) for building dynamic, fast, and reusable user interfaces.",
+          "This comprehensive course covers everything from React basics to advanced state management and routing. You will learn setting up Vite environments, JSX rules, components, props, state, event handling, routing with React Router, API fetching with Axios, and styling frameworks like Tailwind CSS.",
+          "By the end of this course, you will build 5 real-world applications and gain practical interview preparation knowledge."
+        ],
+        outcomes: [
+          "Understand Component-Based Architecture and the Virtual DOM rendering cycle",
+          "Use JSX expressions, fragments, and conditional rendering operators",
+          "Manage local state with useState and leverage useEffect for lifecycle hooks",
+          "Coordinate routing using BrowserRouter, Routes, Route, and useNavigate",
+          "Perform remote API fetches and integration using Axios",
+          "Implement global state management via the Context API and Redux Toolkit"
+        ]
+      };
+    }
+    
     // Generic fallback for custom admin courses
     return {
       introText: (course as any).introText || [course.description || (course as any).shortDescription || 'Welcome to this technical training course track.'],
