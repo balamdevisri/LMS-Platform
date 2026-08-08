@@ -7,10 +7,10 @@ const legacyController = new LegacyAuthController();
 const controller = new AuthController();
 
 // Firebase Authentication Endpoints
-router.post('/signup/student', (req, res) => controller.studentSignup(req, res));
-router.post('/signup/lecturer', (req, res) => controller.lecturerSignup(req, res));
-router.post('/login/admin', (req, res) => controller.adminLogin(req, res));
-router.post('/verify-token', (req, res) => controller.verifyToken(req, res));
+router.post('/signup/student', (req, res) => legacyController.studentSignup(req, res));
+router.post('/signup/lecturer', (req, res) => legacyController.lecturerSignup(req, res));
+router.post('/login/admin', (req, res) => legacyController.adminLogin(req, res));
+router.post('/verify-token', (req, res) => legacyController.verifyToken(req, res));
 
 // Public Password Reset via Nodemailer SMTP Backend
 router.post('/forgot-password', (req, res, next) => legacyController.forgotPassword(req, res, next));
