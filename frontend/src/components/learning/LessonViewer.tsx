@@ -223,11 +223,16 @@ function getTabSectionData(title: string, courseId?: string): TabSectionData {
   }
 }
 
-function enrichTheoryContent(title: string, content: string): string {
+function enrichTheoryContent(title: string, content: string, courseId: string = ''): string {
   const titleLower = title.toLowerCase();
+  const cId = courseId.toLowerCase();
   let enrichedMarkdown = content + "\n\n---\n\n";
 
-  if (titleLower.includes('git') || titleLower.includes('github') || titleLower.includes('version control') || titleLower.includes('branch') || titleLower.includes('stash') || titleLower.includes('merge') || titleLower.includes('rebase')) {
+  const isGitCourse = cId === 'git-github-mastery' || cId === 'git-github-mastery-course-id' || cId.includes('git');
+  const isDbmsCourse = cId === 'database-management-system' || cId.includes('dbms') || cId.includes('database');
+  const isLinuxCourse = cId === 'course_linux_101' || cId === 'linux-essentials' || cId.includes('linux') || cId === '1';
+
+  if (isGitCourse) {
     // ----------------------------------------------------
     // GIT & GITHUB TRACK
     // ----------------------------------------------------
@@ -375,7 +380,7 @@ This metadata comparison makes status updates extremely fast, even on codebases 
 * **Use PGP Signed Commits:** Configure GPG signing (\`git config --global commit.gpgsign true\`) to digitally sign commits, verifying identity and preventing author spoofing.
 * **Backup Remotes:** Configure secondary automated backup mirrors of repositories to protect against server failures.`;
     }
-  } else if (titleLower.includes('data') || titleLower.includes('dbms') || titleLower.includes('sql') || titleLower.includes('table') || titleLower.includes('key') || titleLower.includes('constraint') || titleLower.includes('relation') || titleLower.includes('normalization') || titleLower.includes('transaction')) {
+  } else if (isDbmsCourse) {
     // ----------------------------------------------------
     // DATABASE & DBMS TRACK (Enriched)
     // ----------------------------------------------------
@@ -527,7 +532,7 @@ Transactions are sequences of one or more database operations executed as a sing
 * **Use Indexed Searches:** Create indexes on columns frequently used in WHERE conditions, JOIN clauses, or ORDER BY operations to prevent full table scans.
 * **Sanitize Inputs:** Never concatenate raw user input into SQL queries. Always utilize Prepared Statements and Parameterized Queries to block SQL Injection attacks.`;
     }
-  } else {
+  } else if (isLinuxCourse) {
     // ----------------------------------------------------
     // GENERAL / LINUX TRACK
     // ----------------------------------------------------
@@ -716,6 +721,8 @@ Every file in a Linux/Unix filesystem is represented by an **Inode (Index Node)*
 * **Audit System Logs:** Continuously monitor authorization and security logs in \`/var/log/auth.log\` or \`/var/log/secure\` to detect anomalies.
 * **Secure Permissions:** Restrict access using octal file masks. Run audits checking for world-writable directories and SUID/SGID executable binary configurations.`;
     }
+  } else {
+    return content;
   }
 
   return enrichedMarkdown;
@@ -990,8 +997,8 @@ export const LessonViewer: React.FC<LessonViewerProps> = React.memo(({
   }, [lesson.title]);
 
   const enrichedContent = useMemo(() => {
-    return enrichTheoryContent(lesson.title, lesson.content);
-  }, [lesson.title, lesson.content]);
+    return enrichTheoryContent(lesson.title, lesson.content, _courseId);
+  }, [lesson.title, lesson.content, _courseId]);
 
   const generatedContent = useMemo(() => {
     return generateStructuredLessonContent(lesson.title, enrichedContent);
@@ -1011,7 +1018,8 @@ export const LessonViewer: React.FC<LessonViewerProps> = React.memo(({
     }
 
     // Database track
-    if (_courseId === 'database-management-system' || t.includes('data') || t.includes('dbms') || t.includes('sql') || t.includes('table') || t.includes('key') || t.includes('constraint') || t.includes('relation') || t.includes('normalization') || t.includes('transaction')) {
+    const isDbmsCourse = _courseId === 'database-management-system' || _courseId.toLowerCase().includes('database') || _courseId.toLowerCase().includes('dbms');
+    if (isDbmsCourse) {
       if (t.includes('normalization') || t.includes('normal form') || t.includes('3nf')) {
         return '/assets/images/dbms_normalization_stages.png';
       }
@@ -1025,7 +1033,8 @@ export const LessonViewer: React.FC<LessonViewerProps> = React.memo(({
     }
 
     // Git/GitHub track
-    if (_courseId === 'git-github-mastery' || isGitCourse || t.includes('git') || t.includes('github')) {
+    const isGit = _courseId === 'git-github-mastery' || isGitCourse || _courseId.toLowerCase().includes('git');
+    if (isGit) {
       if (t.includes('action') || t.includes('ci') || t.includes('cd') || t.includes('workflow') || t.includes('pipeline')) {
         return '/assets/images/github_actions_pipeline.png';
       }
@@ -1036,38 +1045,41 @@ export const LessonViewer: React.FC<LessonViewerProps> = React.memo(({
     }
 
     // Linux Operating System track
-    if (t.includes('permission') || t.includes('chmod') || t.includes('chown') || t.includes('acl')) {
-      return '/assets/images/linux_permissions_fhs.webp';
-    }
-    if (t.includes('process') || t.includes('systemd') || t.includes('service') || t.includes('daemon') || t.includes('pid') || t.includes('kill')) {
-      return '/assets/images/linux_process_states.png';
-    }
-    if (t.includes('fhs') || t.includes('hierarchy') || t.includes('directory') || t.includes('folder') || t.includes('inode') || t.includes('link')) {
-      return '/assets/images/linux_inode_filesystem.png';
-    }
-    if (t.includes('kernel') || t.includes('subsystem') || t.includes('monolithic') || t.includes('microkernel') || t.includes('system call') || t.includes('syscall') || t.includes('trap')) {
-      return '/assets/images/linux_kernel_rings.png';
-    }
-    if (t.includes('sudo') || t.includes('security') || t.includes('hardening') || t.includes('root')) {
-      return '/assets/images/linux_sudo_security_hardening.webp';
-    }
-    if (t.includes('bash') || t.includes('script') || t.includes('loop') || t.includes('variable')) {
-      return '/assets/images/linux_bash_scripting.png';
-    }
-    if (t.includes('terminal') || t.includes('cli') || t.includes('navigation') || t.includes('ls') || t.includes('cd') || t.includes('pwd')) {
-      return '/assets/images/linux_terminal_cli.png';
-    }
-    if (t.includes('editor') || t.includes('vim') || t.includes('nano') || t.includes('vi')) {
-      return '/assets/images/topic_text_editors.webp';
-    }
-    if (t.includes('redirection') || t.includes('pipe') || t.includes('stdout') || t.includes('stdin') || t.includes('stderr')) {
-      return '/assets/images/linux_io_redirection.png';
-    }
-    if (t.includes('storage') || t.includes('mount') || t.includes('disk') || t.includes('partition')) {
-      return '/assets/images/topic_storage_mounting.webp';
+    const isLinux = _courseId === 'course_linux_101' || _courseId === 'linux-essentials' || _courseId.toLowerCase().includes('linux') || _courseId === '1';
+    if (isLinux) {
+      if (t.includes('permission') || t.includes('chmod') || t.includes('chown') || t.includes('acl')) {
+        return '/assets/images/linux_permissions_fhs.webp';
+      }
+      if (t.includes('process') || t.includes('systemd') || t.includes('service') || t.includes('daemon') || t.includes('pid') || t.includes('kill')) {
+        return '/assets/images/linux_process_states.png';
+      }
+      if (t.includes('fhs') || t.includes('hierarchy') || t.includes('directory') || t.includes('folder') || t.includes('inode') || t.includes('link')) {
+        return '/assets/images/linux_inode_filesystem.png';
+      }
+      if (t.includes('kernel') || t.includes('subsystem') || t.includes('monolithic') || t.includes('microkernel') || t.includes('system call') || t.includes('syscall') || t.includes('trap')) {
+        return '/assets/images/linux_kernel_rings.png';
+      }
+      if (t.includes('sudo') || t.includes('security') || t.includes('hardening') || t.includes('root')) {
+        return '/assets/images/linux_sudo_security_hardening.webp';
+      }
+      if (t.includes('bash') || t.includes('script') || t.includes('loop') || t.includes('variable')) {
+        return '/assets/images/linux_bash_scripting.png';
+      }
+      if (t.includes('terminal') || t.includes('cli') || t.includes('navigation') || t.includes('ls') || t.includes('cd') || t.includes('pwd')) {
+        return '/assets/images/linux_terminal_cli.png';
+      }
+      if (t.includes('editor') || t.includes('vim') || t.includes('nano') || t.includes('vi')) {
+        return '/assets/images/topic_text_editors.webp';
+      }
+      if (t.includes('redirection') || t.includes('pipe') || t.includes('stdout') || t.includes('stdin') || t.includes('stderr')) {
+        return '/assets/images/linux_io_redirection.png';
+      }
+      if (t.includes('storage') || t.includes('mount') || t.includes('disk') || t.includes('partition')) {
+        return '/assets/images/topic_storage_mounting.webp';
+      }
     }
 
-    // Final default fallback based on course if possible, otherwise generic linux
+    // Final default fallback based on course if possible, otherwise generic fallback
     if (_courseId.includes('linux') || _courseId === '1') {
       return '/assets/images/linux_course_thumbnail.webp';
     }
@@ -1077,7 +1089,7 @@ export const LessonViewer: React.FC<LessonViewerProps> = React.memo(({
     if (_courseId === 'git-github-mastery' || isGitCourse) {
       return '/assets/images/git_data_lifecycle.png';
     }
-    return '/assets/images/linux_course_thumbnail.webp';
+    return '/assets/images/react_logo_frontend.png';
   }, [lesson.title, isGitCourse, _courseId]);
 
   const tabData = useMemo(() => {
