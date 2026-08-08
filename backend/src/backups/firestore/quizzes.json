@@ -1,0 +1,734 @@
+[
+  {
+    "id": "dbms-quiz-1",
+    "moduleId": "dbms-mod-1",
+    "title": "Types of Databases Quiz",
+    "questions": {},
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026975,
+      "_nanoseconds": 461000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026975,
+      "_nanoseconds": 461000000
+    }
+  },
+  {
+    "id": "dbms-quiz-2",
+    "moduleId": "dbms-mod-6",
+    "title": "Final Assessment Quiz",
+    "questions": {},
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026975,
+      "_nanoseconds": 807000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026975,
+      "_nanoseconds": 807000000
+    }
+  },
+  {
+    "id": "git-quiz-1",
+    "moduleId": "git-mod-1",
+    "title": "Module 1 Quiz: Version Control & Git Basics",
+    "passingScore": 70,
+    "questions": {
+      "0": {
+        "question": "What does a Version Control System track?",
+        "options": {
+          "0": "Hardware configurations",
+          "1": "Code changes over time",
+          "2": "Network latency",
+          "3": "CPU temperatures"
+        },
+        "correct": 1
+      },
+      "1": {
+        "question": "Which of the following is a Distributed VCS?",
+        "options": {
+          "0": "SVN",
+          "1": "Perforce",
+          "2": "Git",
+          "3": "CVS"
+        },
+        "correct": 2
+      },
+      "2": {
+        "question": "What hidden folder is initialized when running git init?",
+        "options": {
+          "0": ".github",
+          "1": ".gitignore",
+          "2": ".git",
+          "3": ".gitconfig"
+        },
+        "correct": 2
+      },
+      "3": {
+        "question": "Which command stages all changes in the current directory?",
+        "options": {
+          "0": "git add .",
+          "1": "git commit -a",
+          "2": "git status",
+          "3": "git push"
+        },
+        "correct": 0
+      },
+      "4": {
+        "question": "What is the default tracking remote repository alias name?",
+        "options": {
+          "0": "main",
+          "1": "origin",
+          "2": "github",
+          "3": "upstream"
+        },
+        "correct": 1
+      },
+      "5": {
+        "question": "Which command displays commit history details?",
+        "options": {
+          "0": "git diff",
+          "1": "git log",
+          "2": "git status",
+          "3": "git show"
+        },
+        "correct": 1
+      },
+      "6": {
+        "question": "Which state represents changes registered ready for commit?",
+        "options": {
+          "0": "Untracked",
+          "1": "Modified",
+          "2": "Staged",
+          "3": "Committed"
+        },
+        "correct": 2
+      },
+      "7": {
+        "question": "How does Git ensure data integrity of commits?",
+        "options": {
+          "0": "Password hashes",
+          "1": "SHA-1 hashing",
+          "2": "Data backups",
+          "3": "Cloud storage"
+        },
+        "correct": 1
+      },
+      "8": {
+        "question": "Which command configures global Git username?",
+        "options": {
+          "0": "git config user.name",
+          "1": "git config --global user.name",
+          "2": "git init name",
+          "3": "git add name"
+        },
+        "correct": 1
+      },
+      "9": {
+        "question": "What does git diff display?",
+        "options": {
+          "0": "All commit logs",
+          "1": "Differences between unstaged changes",
+          "2": "Branch hierarchies",
+          "3": "Remote URL lists"
+        },
+        "correct": 1
+      }
+    },
+    "courseId": "git-github-mastery-course-id",
+    "createdAt": {
+      "_seconds": 1786026945,
+      "_nanoseconds": 429000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026945,
+      "_nanoseconds": 429000000
+    }
+  },
+  {
+    "id": "git-quiz-2",
+    "moduleId": "git-mod-2",
+    "title": "Module 2 Quiz: GitHub Foundations",
+    "passingScore": 70,
+    "questions": {
+      "0": {
+        "question": "What command downloads a repository from GitHub to local?",
+        "options": {
+          "0": "git pull",
+          "1": "git download",
+          "2": "git clone",
+          "3": "git checkout"
+        },
+        "correct": 2
+      },
+      "1": {
+        "question": "Which command registers a remote origin repository?",
+        "options": {
+          "0": "git remote add origin",
+          "1": "git push origin",
+          "2": "git pull origin",
+          "3": "git add origin"
+        },
+        "correct": 0
+      },
+      "2": {
+        "question": "What does git pull perform?",
+        "options": {
+          "0": "git push & fetch",
+          "1": "git fetch & merge",
+          "2": "git status & commit",
+          "3": "git add & merge"
+        },
+        "correct": 1
+      },
+      "3": {
+        "question": "Which command switches to a branch or creates a new one in modern Git?",
+        "options": {
+          "0": "git branch",
+          "1": "git switch",
+          "2": "git checkout",
+          "3": "git merge"
+        },
+        "correct": 1
+      },
+      "4": {
+        "question": "What feature proposes code integration reviews on GitHub?",
+        "options": {
+          "0": "Issues",
+          "1": "Pull Requests",
+          "2": "Codespaces",
+          "3": "Pages"
+        },
+        "correct": 1
+      },
+      "5": {
+        "question": "What does git fetch download?",
+        "options": {
+          "0": "Only text files",
+          "1": "History logs without changing working directory",
+          "2": "Entire files overwriting current changes",
+          "3": "Branches list only"
+        },
+        "correct": 1
+      },
+      "6": {
+        "question": "What is a branch in Git?",
+        "options": {
+          "0": "A separate folder",
+          "1": "A pointer to a specific commit",
+          "2": "A backup archive",
+          "3": "A network connection"
+        },
+        "correct": 1
+      },
+      "7": {
+        "question": "What does git merge do?",
+        "options": {
+          "0": "Splits repositories",
+          "1": "Combines history of branches",
+          "2": "Deletes branches",
+          "3": "Clones remote repository"
+        },
+        "correct": 1
+      },
+      "8": {
+        "question": "What are GitHub labels used for?",
+        "options": {
+          "0": "Styling code files",
+          "1": "Categorizing issues and PRs",
+          "2": "Renaming branches",
+          "3": "Assigning reviewers"
+        },
+        "correct": 1
+      },
+      "9": {
+        "question": "What is a Milestone on GitHub?",
+        "options": {
+          "0": "A branch name",
+          "1": "A container registry",
+          "2": "A target grouping of issues/PRs",
+          "3": "A deployment server"
+        },
+        "correct": 2
+      }
+    },
+    "courseId": "git-github-mastery-course-id",
+    "createdAt": {
+      "_seconds": 1786026946,
+      "_nanoseconds": 101000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026946,
+      "_nanoseconds": 101000000
+    }
+  },
+  {
+    "id": "git-quiz-3",
+    "moduleId": "git-mod-3",
+    "title": "Module 3 Quiz: Advanced Git",
+    "passingScore": 70,
+    "questions": {
+      "0": {
+        "question": "When does a merge conflict occur?",
+        "options": {
+          "0": "When renaming files",
+          "1": "When overlapping changes are made to the same lines in a file",
+          "2": "When git push fails",
+          "3": "When branches have different names"
+        },
+        "correct": 1
+      },
+      "1": {
+        "question": "Which command undoes unstaged local modifications in working files?",
+        "options": {
+          "0": "git reset",
+          "1": "git restore",
+          "2": "git revert",
+          "3": "git stash"
+        },
+        "correct": 1
+      },
+      "2": {
+        "question": "What reset flag undoes commits and completely deletes changes?",
+        "options": {
+          "0": "--soft",
+          "1": "--mixed",
+          "2": "--hard",
+          "3": "--clean"
+        },
+        "correct": 2
+      },
+      "3": {
+        "question": "How is git revert different from git reset?",
+        "options": {
+          "0": "It does not change files",
+          "1": "It creates a new commit undoing changes, preserving history",
+          "2": "It deletes commits",
+          "3": "It runs only on remote repositories"
+        },
+        "correct": 1
+      },
+      "4": {
+        "question": "What command temporarily shelves modified changes?",
+        "options": {
+          "0": "git pause",
+          "1": "git stash",
+          "2": "git save",
+          "3": "git backup"
+        },
+        "correct": 1
+      },
+      "5": {
+        "question": "What command applies commits from a branch on top of another branch?",
+        "options": {
+          "0": "git merge",
+          "1": "git rebase",
+          "2": "git cherry-pick",
+          "3": "git stash pop"
+        },
+        "correct": 1
+      },
+      "6": {
+        "question": "What is commit squashing?",
+        "options": {
+          "0": "Compressing file sizes",
+          "1": "Combining multiple commits into a single commit",
+          "2": "Deleting history logs",
+          "3": "Fixing code bugs"
+        },
+        "correct": 1
+      },
+      "7": {
+        "question": "Which command applies a single specific commit from another branch?",
+        "options": {
+          "0": "git merge",
+          "1": "git rebase",
+          "2": "git cherry-pick",
+          "3": "git clone"
+        },
+        "correct": 2
+      },
+      "8": {
+        "question": "What flag triggers interactive rebase?",
+        "options": {
+          "0": "-v",
+          "1": "-a",
+          "2": "-i",
+          "3": "--force"
+        },
+        "correct": 2
+      },
+      "9": {
+        "question": "How do you restore stashed changes and remove them from the stash list?",
+        "options": {
+          "0": "git stash apply",
+          "1": "git stash pop",
+          "2": "git stash drop",
+          "3": "git stash clear"
+        },
+        "correct": 1
+      }
+    },
+    "courseId": "git-github-mastery-course-id",
+    "createdAt": {
+      "_seconds": 1786026946,
+      "_nanoseconds": 974000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026946,
+      "_nanoseconds": 974000000
+    }
+  },
+  {
+    "id": "git-quiz-4",
+    "moduleId": "git-mod-4",
+    "title": "Module 4 Quiz: Repository Management",
+    "passingScore": 70,
+    "questions": {
+      "0": {
+        "question": "What is the default filename for a repository landing page?",
+        "options": {
+          "0": "INDEX.html",
+          "1": "README.md",
+          "2": "ABOUT.txt",
+          "3": "LICENSE.md"
+        },
+        "correct": 1
+      },
+      "1": {
+        "question": "What formatting format is used in README files?",
+        "options": {
+          "0": "HTML",
+          "1": "Markdown",
+          "2": "XML",
+          "3": "Plain Text"
+        },
+        "correct": 1
+      },
+      "2": {
+        "question": "What does a LICENSE file specify?",
+        "options": {
+          "0": "Usage and distribution permissions",
+          "1": "Developer logins",
+          "2": "Project pricing",
+          "3": "Build instructions"
+        },
+        "correct": 0
+      },
+      "3": {
+        "question": "Where do you list file patterns that Git should not track?",
+        "options": {
+          "0": ".gitconfig",
+          "1": ".gitignore",
+          "2": ".github",
+          "3": "README.md"
+        },
+        "correct": 1
+      },
+      "4": {
+        "question": "What is a GitHub Project Board based on?",
+        "options": {
+          "0": "Excel spreadsheets",
+          "1": "Kanban columns",
+          "2": "Gantt charts",
+          "3": "Network diagrams"
+        },
+        "correct": 1
+      },
+      "5": {
+        "question": "Which service hosts static websites directly from GitHub repositories?",
+        "options": {
+          "0": "GitHub Actions",
+          "1": "GitHub Codespaces",
+          "2": "GitHub Pages",
+          "3": "Dependabot"
+        },
+        "correct": 2
+      },
+      "6": {
+        "question": "Which markdown syntax creates a link?",
+        "options": {
+          "0": "[Link](url)",
+          "1": "(Link)[url]",
+          "2": "link:url",
+          "3": "href=\"url\""
+        },
+        "correct": 0
+      },
+      "7": {
+        "question": "How is a header level 1 declared in markdown?",
+        "options": {
+          "0": "Header",
+          "1": "# Header",
+          "2": "==Header==",
+          "3": "<h1>Header"
+        },
+        "correct": 1
+      },
+      "8": {
+        "question": "What are GitHub Issues used for?",
+        "options": {
+          "0": "Hosting websites",
+          "1": "Tracking bugs, features, and tasks",
+          "2": "Resolving merge conflicts",
+          "3": "Running CI/CD jobs"
+        },
+        "correct": 1
+      },
+      "9": {
+        "question": "Can .gitignore ignore files that are already tracked by Git?",
+        "options": {
+          "0": "Yes",
+          "1": "No, they must be untracked first using git rm --cached",
+          "2": "Yes, automatically",
+          "3": "No, .gitignore cannot ignore any files"
+        },
+        "correct": 1
+      }
+    },
+    "courseId": "git-github-mastery-course-id",
+    "createdAt": {
+      "_seconds": 1786026947,
+      "_nanoseconds": 657000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026947,
+      "_nanoseconds": 657000000
+    }
+  },
+  {
+    "id": "git-quiz-5",
+    "moduleId": "git-mod-5",
+    "title": "Module 5 Quiz: GitHub Actions",
+    "passingScore": 70,
+    "questions": {
+      "0": {
+        "question": "What does CI stand for?",
+        "options": {
+          "0": "Continuous Integration",
+          "1": "Code Inspection",
+          "2": "Cloud Infrastructure",
+          "3": "Computer Intelligence"
+        },
+        "correct": 0
+      },
+      "1": {
+        "question": "What does CD stand for?",
+        "options": {
+          "0": "Code Delivery",
+          "1": "Continuous Deployment / Delivery",
+          "2": "Control Daemon",
+          "3": "Central Database"
+        },
+        "correct": 1
+      },
+      "2": {
+        "question": "Where are GitHub Actions workflow files stored?",
+        "options": {
+          "0": ".github/workflows/",
+          "1": "actions/workflows/",
+          "2": ".git/hooks/",
+          "3": "scripts/ci/"
+        },
+        "correct": 0
+      },
+      "3": {
+        "question": "What syntax format is used in workflow files?",
+        "options": {
+          "0": "JSON",
+          "1": "XML",
+          "2": "YAML",
+          "3": "HTML"
+        },
+        "correct": 2
+      },
+      "4": {
+        "question": "What component runs the actions in a job?",
+        "options": {
+          "0": "The repository",
+          "1": "A Runner",
+          "2": "The browser",
+          "3": "An API gateway"
+        },
+        "correct": 1
+      },
+      "5": {
+        "question": "What is the secret store on GitHub used for?",
+        "options": {
+          "0": "Storing private repository code",
+          "1": "Storing encrypted deployment keys and tokens",
+          "2": "Hosting databases",
+          "3": "Hiding issues"
+        },
+        "correct": 1
+      },
+      "6": {
+        "question": "Which platform is commonly used to host static web deployments?",
+        "options": {
+          "0": "Docker Hub",
+          "1": "Vercel",
+          "2": "Jira",
+          "3": "PyPI"
+        },
+        "correct": 1
+      },
+      "7": {
+        "question": "How are secrets referenced in a YAML file?",
+        "options": {
+          "0": "${{ secrets.TOKEN }}",
+          "1": "process.env.TOKEN",
+          "2": "$TOKEN",
+          "3": "{{ token }}"
+        },
+        "correct": 0
+      },
+      "8": {
+        "question": "What workflow block contains the execution steps?",
+        "options": {
+          "0": "events",
+          "1": "jobs",
+          "2": "runners",
+          "3": "triggers"
+        },
+        "correct": 1
+      },
+      "9": {
+        "question": "Can jobs run sequentially by specifying dependencies?",
+        "options": {
+          "0": "No, always parallel",
+          "1": "Yes, using the needs keyword",
+          "2": "Yes, using the runs-after keyword",
+          "3": "No, only one job is allowed"
+        },
+        "correct": 1
+      }
+    },
+    "courseId": "git-github-mastery-course-id",
+    "createdAt": {
+      "_seconds": 1786026948,
+      "_nanoseconds": 545000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026948,
+      "_nanoseconds": 545000000
+    }
+  },
+  {
+    "id": "git-quiz-6",
+    "moduleId": "git-mod-6",
+    "title": "Module 6 Quiz: Modern GitHub & Capstone",
+    "passingScore": 70,
+    "questions": {
+      "0": {
+        "question": "What is GitHub Codespaces?",
+        "options": {
+          "0": "A project management dashboard",
+          "1": "A cloud-hosted VS Code environment",
+          "2": "A chat application",
+          "3": "A documentation compiler"
+        },
+        "correct": 1
+      },
+      "1": {
+        "question": "What file configures development container parameters?",
+        "options": {
+          "0": "docker-compose.yml",
+          "1": "devcontainer.json",
+          "2": "package.json",
+          "3": "Dockerfile"
+        },
+        "correct": 1
+      },
+      "2": {
+        "question": "What is GitHub Copilot?",
+        "options": {
+          "0": "A branch reviewer",
+          "1": "An AI pair programmer assistant",
+          "2": "A CI build compiler",
+          "3": "A deployment server"
+        },
+        "correct": 1
+      },
+      "3": {
+        "question": "Which tool automatically opens PRs to fix security vulnerabilities in dependencies?",
+        "options": {
+          "0": "Dependabot",
+          "1": "GitHub Secrets",
+          "2": "GitHub Copilot",
+          "3": "Branch Protection"
+        },
+        "correct": 0
+      },
+      "4": {
+        "question": "What does secret scanning alert developers about?",
+        "options": {
+          "0": "Formatting bugs",
+          "1": "Exposed credentials in commits",
+          "2": "Inefficient algorithms",
+          "3": "Deprecated packages"
+        },
+        "correct": 1
+      },
+      "5": {
+        "question": "What feature prevents force pushing and enforces code review before merging?",
+        "options": {
+          "0": "Collaborators list",
+          "1": "Branch Protection Rules",
+          "2": "Milestones",
+          "3": "GitHub Secrets"
+        },
+        "correct": 1
+      },
+      "6": {
+        "question": "What does Dev Containers enable?",
+        "options": {
+          "0": "Faster deployment",
+          "1": "Standardized and containerized local dev environments",
+          "2": "Multi-tenant cloud hosting",
+          "3": "Auto-scaling clusters"
+        },
+        "correct": 1
+      },
+      "7": {
+        "question": "Which prompts are optimized to direct AI assistants?",
+        "options": {
+          "0": "Database scripts",
+          "1": "Prompt Engineering guidelines",
+          "2": "Workflow steps",
+          "3": "Branch names"
+        },
+        "correct": 1
+      },
+      "8": {
+        "question": "Can branch protection rules require status checks to pass before merging?",
+        "options": {
+          "0": "Yes",
+          "1": "No",
+          "2": "Only for public repositories",
+          "3": "Only for admin roles"
+        },
+        "correct": 0
+      },
+      "9": {
+        "question": "What is the target of the Capstone project?",
+        "options": {
+          "0": "Writing a text essay",
+          "1": "Applying Git, GitHub, PRs, and Actions in a practical workflow",
+          "2": "Resolving an OS bug",
+          "3": "Installing Node.js"
+        },
+        "correct": 1
+      }
+    },
+    "courseId": "git-github-mastery-course-id",
+    "createdAt": {
+      "_seconds": 1786026949,
+      "_nanoseconds": 199000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026949,
+      "_nanoseconds": 199000000
+    }
+  }
+]

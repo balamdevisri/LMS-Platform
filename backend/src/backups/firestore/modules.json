@@ -1,0 +1,182 @@
+[
+  {
+    "id": "dbms-mod-1",
+    "title": "Module 1 - Database Fundamentals",
+    "order": 1,
+    "duration": "4 Hours",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026956,
+      "_nanoseconds": 268000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026956,
+      "_nanoseconds": 268000000
+    }
+  },
+  {
+    "id": "dbms-mod-2",
+    "title": "Module 2 - Relational Database Concepts",
+    "order": 2,
+    "duration": "4 Hours",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026956,
+      "_nanoseconds": 854000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026956,
+      "_nanoseconds": 854000000
+    }
+  },
+  {
+    "id": "dbms-mod-3",
+    "title": "Module 3 - SQL Fundamentals",
+    "order": 3,
+    "duration": "4 Hours",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026957,
+      "_nanoseconds": 805000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026957,
+      "_nanoseconds": 805000000
+    }
+  },
+  {
+    "id": "dbms-mod-4",
+    "title": "Module 4 - Advanced SQL",
+    "order": 4,
+    "duration": "4 Hours",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026958,
+      "_nanoseconds": 368000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026958,
+      "_nanoseconds": 368000000
+    }
+  },
+  {
+    "id": "dbms-mod-5",
+    "title": "Module 5 - Database Design",
+    "order": 5,
+    "duration": "5 Hours",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026959,
+      "_nanoseconds": 353000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026959,
+      "_nanoseconds": 353000000
+    }
+  },
+  {
+    "id": "dbms-mod-6",
+    "title": "Module 6 - Real World Database Project",
+    "order": 6,
+    "duration": "4 Hours",
+    "courseId": "database-management-system",
+    "createdAt": {
+      "_seconds": 1786026959,
+      "_nanoseconds": 881000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026959,
+      "_nanoseconds": 881000000
+    }
+  },
+  {
+    "id": "git-mod-1",
+    "title": "Module 1: Version Control & Git Basics",
+    "order": 1,
+    "duration": "3 Hours",
+    "courseId": "git-github-mastery-course-id",
+    "createdAt": {
+      "_seconds": 1786026889,
+      "_nanoseconds": 214000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026889,
+      "_nanoseconds": 214000000
+    }
+  },
+  {
+    "id": "git-mod-2",
+    "title": "Module 2: GitHub Foundations",
+    "order": 2,
+    "duration": "3 Hours",
+    "courseId": "git-github-mastery-course-id",
+    "createdAt": {
+      "_seconds": 1786026889,
+      "_nanoseconds": 598000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026889,
+      "_nanoseconds": 598000000
+    }
+  },
+  {
+    "id": "git-mod-3",
+    "title": "Module 3: Advanced Git",
+    "order": 3,
+    "duration": "4 Hours",
+    "courseId": "git-github-mastery-course-id",
+    "createdAt": {
+      "_seconds": 1786026890,
+      "_nanoseconds": 753000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026890,
+      "_nanoseconds": 753000000
+    }
+  },
+  {
+    "id": "git-mod-4",
+    "title": "Module 4: Repository Management",
+    "order": 4,
+    "duration": "3 Hours",
+    "courseId": "git-github-mastery-course-id",
+    "createdAt": {
+      "_seconds": 1786026891,
+      "_nanoseconds": 142000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026891,
+      "_nanoseconds": 142000000
+    }
+  },
+  {
+    "id": "git-mod-5",
+    "title": "Module 5: GitHub Actions",
+    "order": 5,
+    "duration": "4 Hours",
+    "courseId": "git-github-mastery-course-id",
+    "createdAt": {
+      "_seconds": 1786026892,
+      "_nanoseconds": 269000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026892,
+      "_nanoseconds": 269000000
+    }
+  },
+  {
+    "id": "git-mod-6",
+    "title": "Module 6: Modern GitHub Ecosystem",
+    "order": 6,
+    "duration": "3 Hours",
+    "courseId": "git-github-mastery-course-id",
+    "createdAt": {
+      "_seconds": 1786026892,
+      "_nanoseconds": 665000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026892,
+      "_nanoseconds": 665000000
+    }
+  }
+]

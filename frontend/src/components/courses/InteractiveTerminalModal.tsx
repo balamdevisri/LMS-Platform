@@ -415,8 +415,12 @@ export const InteractiveTerminalModal: React.FC<InteractiveTerminalModalProps> =
     }
   }, [initialCommand]);
 
+  const terminalContainerRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    terminalEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (terminalContainerRef.current) {
+      terminalContainerRef.current.scrollTop = terminalContainerRef.current.scrollHeight;
+    }
   }, [history]);
 
   const handleCopy = () => {
@@ -487,7 +491,7 @@ export const InteractiveTerminalModal: React.FC<InteractiveTerminalModalProps> =
         </div>
 
         {/* Pure Pitch Black Terminal Content */}
-        <div className="flex-1 p-5 text-xs text-slate-200 overflow-y-auto space-y-4 bg-black leading-relaxed">
+        <div ref={terminalContainerRef} className="flex-1 p-5 text-xs text-slate-200 overflow-y-auto overscroll-y-auto touch-pan-y space-y-4 bg-black leading-relaxed">
           {history.map((item, idx) => (
             <div key={idx} className="space-y-1">
               <div className="flex items-center gap-2 text-white font-bold">

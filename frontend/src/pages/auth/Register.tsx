@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, Eye, EyeOff, ArrowRight, Loader2, Globe, Phone, Clock, Code2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { studentService } from '@/services/studentService';
+import { getFriendlyAuthErrorMessage } from '@/services/authService';
 import { BrandLogo } from '@/components/common/BrandLogo';
 import type { UserRole } from '@/types/user';
 import { motion } from 'framer-motion';
@@ -22,6 +22,10 @@ export const Register: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [registrationSubmitted, setRegistrationSubmitted] = useState<boolean>(false);
+
+  React.useEffect(() => {
+    console.log("🚀 ACTIVE REGISTER COMPONENT: frontend/src/pages/auth/Register.tsx");
+  }, []);
 
   const { signup, signInWithGithub } = useAuth();
   const navigate = useNavigate();
@@ -45,17 +49,21 @@ export const Register: React.FC = () => {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('[REGISTER COMPONENT] handleRegister submitted with role:', role);
 
     // 1. Client-Side Validations
     if (!fullName || !email || !password || !confirmPassword || !githubUrl) {
+      console.warn('[REGISTER COMPONENT] Form submission blocked: missing required fields.');
       toast.error('Please fill in all required fields (Full Name, Email, Password, GitHub URL).');
       return;
     }
     if (password.length < 8) {
+      console.warn('[REGISTER COMPONENT] Form submission blocked: password too short.');
       toast.error('Password must be at least 8 characters long.');
       return;
     }
     if (password !== confirmPassword) {
+      console.warn('[REGISTER COMPONENT] Form submission blocked: passwords do not match.');
       toast.error('Passwords do not match.');
       return;
     }
@@ -63,33 +71,28 @@ export const Register: React.FC = () => {
     // GitHub URL regex validation: accept only https://github.com/username
     const githubRegex = /^https?:\/\/(?:www\.)?github\.com\/([a-zA-Z0-9-]+)\/?$/;
     if (!githubRegex.test(githubUrl.trim())) {
+      console.warn('[REGISTER COMPONENT] Form submission blocked: invalid GitHub URL format.');
       toast.error('Invalid GitHub Profile URL format. Must be https://github.com/username');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      if (role === 'student') {
-        await studentService.registerStudent({
-          fullName,
-          email,
-          password,
-          confirmPassword,
-          githubUrl: githubUrl.trim(),
-          linkedin: linkedin.trim(),
-          portfolio: portfolio.trim(),
-          phone: phone.trim(),
-        });
-        toast.success('Registration submitted! Verification welcome email sent.');
+      console.log(`[REGISTER COMPONENT] Dispatching ${role} registration via AuthContext.signup()...`);
+      sessionStorage.setItem('kaizenq_signup_role', role);
+      await signup(fullName, email, password, role);
+
+      if (role === 'instructor') {
+        toast.success('Instructor registration submitted! Please wait for approval from KaizenQ team.');
         setRegistrationSubmitted(true);
       } else {
-        await signup(fullName, email, password, role);
-        toast.success(`Account created as ${role === 'instructor' ? 'Instructor' : 'Student'}! Verification email sent.`);
-        navigate('/auth/verify-email');
+        toast.success('Student registration submitted successfully!');
+        setRegistrationSubmitted(true);
       }
     } catch (err: any) {
-      console.error('Registration error:', err);
-      toast.error(err?.message || 'Failed to complete registration. Please check your details.');
+      console.error('[REGISTER COMPONENT] Registration error caught:', err);
+      const friendlyMsg = err?.code ? getFriendlyAuthErrorMessage(err) : (err?.message || 'Failed to complete registration. Please check your details.');
+      toast.error(friendlyMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -98,7 +101,8 @@ export const Register: React.FC = () => {
   const handleGithubAuth = async () => {
     setIsSubmitting(true);
     try {
-      const profile = await signInWithGithub();
+      sessionStorage.setItem('kaizenq_signup_role', role);
+      const profile = await signInWithGithub(role);
       toast.success('Signed in with GitHub successfully!');
       if (profile?.role === 'admin') {
         navigate('/admin/dashboard', { replace: true });
@@ -138,14 +142,22 @@ export const Register: React.FC = () => {
             Welcome to KaizenQ LMS, {fullName}!
           </h2>
           <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-medium max-w-md mx-auto">
-            Your registration has been received successfully. A welcome verification email has been dispatched to <strong className="text-[#2563EB] dark:text-[#60A5FA]">{email}</strong>.
+            {role === 'instructor' ? (
+              <strong className="text-amber-600 dark:text-amber-400 font-bold block text-sm pt-1">
+                Please wait for approval from KaizenQ team.
+              </strong>
+            ) : (
+              <>Your registration has been received successfully. A welcome verification email has been dispatched to <strong className="text-[#2563EB] dark:text-[#60A5FA]">{email}</strong>.</>
+            )}
           </p>
         </div>
 
-        <div className="p-4 rounded-2xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100/60 dark:border-white/5 text-left text-xs space-y-2 font-mono">
+        <div className="p-4 rounded-2xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40 text-left text-xs space-y-2 font-mono">
           <p><strong>Status:</strong> <span className="text-amber-700 dark:text-amber-400 font-bold">Pending Approval</span></p>
-          <p><strong>GitHub URL:</strong> <a href={githubUrl} target="_blank" rel="noopener noreferrer" className="text-[#2563EB] dark:text-[#60A5FA] underline font-bold">{githubUrl}</a></p>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-sans pt-1">Our team will verify your GitHub repositories & account details shortly.</p>
+          <p><strong>Email:</strong> <span className="text-[#2563EB] dark:text-[#60A5FA] font-bold">{email}</span></p>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-sans pt-1">
+            ⏳ Your instructor account is under review. You will receive an email once approved by KaizenQ team.
+          </p>
         </div>
 
         <div className="pt-2">

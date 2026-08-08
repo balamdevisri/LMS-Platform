@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { createPortal } from 'react-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   Users,
@@ -10,6 +11,8 @@ import {
   ChevronRight,
   Award,
   CheckCircle2,
+  CheckCheck,
+  ExternalLink,
   X,
   Plus,
   Sliders,
@@ -58,6 +61,18 @@ export const AdminDashboard: React.FC = () => {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
 
   useEffect(() => {
+    // 1. Sync Firebase Auth users with Firestore on dashboard mount
+    const triggerSync = async () => {
+      try {
+        const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        await fetch(`${apiBaseUrl}/admin/sync-auth-users`, { method: 'POST' });
+      } catch (err) {
+        console.warn('[Admin Dashboard] Auth users sync notice:', err);
+      }
+    };
+    triggerSync();
+
+    // 2. Subscribe to real-time collections
     const unsubStudents = studentService.subscribeToStudents((data) => {
       setStudentsList(data);
     });
@@ -103,6 +118,66 @@ export const AdminDashboard: React.FC = () => {
     () => studentsList.filter((s) => s.provider === 'github.com' || Boolean(s.photoURL?.includes('github')) || s.githubUsername).length,
     [studentsList]
   );
+  const emailVerified = useMemo(
+    () => studentsList.filter((s) => (s as any).emailVerified === true || (s as any).isVerified === true).length,
+    [studentsList]
+  );
+
+  // Real-time daily registrations (last 7 days by day-of-week)
+  const dailyRegistrations = useMemo(() => {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const counts: Record<string, number> = { Sun: 0, Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0 };
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+    studentsList.forEach((s) => {
+      const createdAt = (s as any).createdAt || (s as any).joinedAt;
+      if (createdAt) {
+        const d = new Date(createdAt);
+        if (d >= sevenDaysAgo) {
+          const dayName = days[d.getDay()];
+          counts[dayName] = (counts[dayName] || 0) + 1;
+        }
+      }
+    });
+    // Return last 7 days in order starting from oldest
+    const result = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dayName = days[d.getDay()];
+      result.push({ day: dayName, count: counts[dayName] || 0 });
+    }
+    return result;
+  }, [studentsList]);
+
+  const maxDailyCount = useMemo(() => Math.max(...dailyRegistrations.map(d => d.count), 1), [dailyRegistrations]);
+
+  // Branch distribution from real student data
+  const branchDistribution = useMemo(() => {
+    const branchMap: Record<string, number> = {};
+    studentsList.forEach((s) => {
+      const branch = (s as any).branch || 'Other';
+      branchMap[branch] = (branchMap[branch] || 0) + 1;
+    });
+    const total = studentsList.length || 1;
+    const colorMap: Record<string, string> = {
+      'Computer Science (CSE)': 'bg-blue-500',
+      'AI & Computer Science': 'bg-indigo-500',
+      'Artificial Intelligence & ML': 'bg-indigo-500',
+      'Information Technology (IT)': 'bg-cyan-500',
+      'Electronics & Comm (ECE)': 'bg-purple-500',
+      'Other': 'bg-slate-400',
+    };
+    return Object.entries(branchMap)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 4)
+      .map(([name, count]) => ({
+        name,
+        pct: Math.round((count / total) * 100),
+        count,
+        color: colorMap[name] || 'bg-sky-500',
+      }));
+  }, [studentsList]);
 
   const metrics = [
     {
@@ -196,6 +271,34 @@ export const AdminDashboard: React.FC = () => {
       link: '/admin/students?provider=github'
     }
   ];
+
+  const navigate = useNavigate();
+  const [notifFilter, setNotifFilter] = useState<'all' | 'unread'>('all');
+
+  const filteredNotifications = useMemo(() => {
+    if (notifFilter === 'unread') {
+      return notifications.filter((n) => !n.read);
+    }
+    return notifications;
+  }, [notifications, notifFilter]);
+
+  const handleMarkAllNotifsRead = () => {
+    adminNotificationService.markAllAsRead();
+    toast.success('All notifications marked as read.');
+  };
+
+  const handleClearAllNotifs = () => {
+    adminNotificationService.clearAll();
+    toast.info('All notifications cleared.');
+  };
+
+  const handleNotifClick = (n: AdminNotification) => {
+    adminNotificationService.markAsRead(n.id);
+    setIsNotifOpen(false);
+    if (n.link) {
+      navigate(n.link);
+    }
+  };
 
   const unreadNotifsCount = notifications.filter((n) => !n.read).length;
 
@@ -305,51 +408,166 @@ export const AdminDashboard: React.FC = () => {
               )}
             </button>
 
-            {/* Notification Dropdown Drawer */}
-            <AnimatePresence>
-              {isNotifOpen && (
+            {/* Notification Portal Drawer into document.body */}
+            {isNotifOpen && createPortal(
+              <AnimatePresence>
                 <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setIsNotifOpen(false)}
+                  className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-[99998]"
+                />
+
+                <motion.div
+                  initial={{ opacity: 0, y: -10, scale: 0.96 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute right-0 mt-3 w-80 sm:w-96 bg-white rounded-3xl shadow-2xl border border-sky-100 p-4 z-50 space-y-3 font-['Sora']"
+                  exit={{ opacity: 0, y: -10, scale: 0.96 }}
+                  transition={{ duration: 0.2 }}
+                  className="fixed top-16 right-4 sm:right-8 w-80 sm:w-96 bg-white dark:bg-zinc-900 border border-sky-200 dark:border-zinc-800 rounded-3xl shadow-2xl p-4 sm:p-5 z-[99999] flex flex-col space-y-3 font-['Sora'] max-h-[85vh]"
                 >
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  {/* Header */}
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 pb-3">
                     <div className="flex items-center gap-2">
-                      <Bell className="w-4 h-4 text-sky-600" />
-                      <h4 className="font-bold text-sm text-slate-900">System Notifications</h4>
+                      <div className="p-1.5 rounded-xl bg-sky-50 dark:bg-sky-950/50 text-sky-600 dark:text-sky-400">
+                        <Bell className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="font-heading font-extrabold text-sm text-slate-900 dark:text-zinc-100">
+                          System Notifications
+                        </h4>
+                        <p className="text-[10px] text-slate-500 dark:text-zinc-400">
+                          {unreadNotifsCount} unread update{unreadNotifsCount !== 1 ? 's' : ''}
+                        </p>
+                      </div>
                     </div>
                     <button
-                      onClick={() => adminNotificationService.markAllAsRead()}
-                      className="text-[11px] font-bold text-sky-600 hover:text-sky-700 cursor-pointer"
+                      onClick={() => setIsNotifOpen(false)}
+                      className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200 transition-colors cursor-pointer"
                     >
-                      Mark all read
+                      <X className="w-4 h-4" />
                     </button>
                   </div>
 
-                  <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-                    {notifications.length === 0 ? (
-                      <p className="text-xs text-slate-400 py-4 text-center">No notifications yet.</p>
+                  {/* Filter & Action Toolbar */}
+                  <div className="flex items-center justify-between gap-2 pb-1">
+                    <div className="flex items-center gap-1 bg-slate-100 dark:bg-zinc-800/80 p-1 rounded-xl">
+                      <button
+                        onClick={() => setNotifFilter('all')}
+                        className={`py-1 px-3 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                          notifFilter === 'all'
+                            ? 'bg-white dark:bg-zinc-900 text-sky-600 dark:text-sky-400 shadow-xs'
+                            : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100'
+                        }`}
+                      >
+                        All ({notifications.length})
+                      </button>
+                      <button
+                        onClick={() => setNotifFilter('unread')}
+                        className={`py-1 px-3 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                          notifFilter === 'unread'
+                            ? 'bg-white dark:bg-zinc-900 text-sky-600 dark:text-sky-400 shadow-xs'
+                            : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100'
+                        }`}
+                      >
+                        Unread ({unreadNotifsCount})
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      {unreadNotifsCount > 0 && (
+                        <button
+                          onClick={handleMarkAllNotifsRead}
+                          className="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline flex items-center gap-1 cursor-pointer"
+                          title="Mark all read"
+                        >
+                          <CheckCheck className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">Mark read</span>
+                        </button>
+                      )}
+                      {notifications.length > 0 && (
+                        <button
+                          onClick={handleClearAllNotifs}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                          title="Clear all notifications"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Scrollable Notification Items */}
+                  <div className="space-y-2 overflow-y-auto flex-1 pr-1 max-h-80 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-zinc-800">
+                    {filteredNotifications.length === 0 ? (
+                      <div className="py-10 text-center space-y-2">
+                        <Bell className="w-8 h-8 text-slate-300 dark:text-zinc-700 mx-auto" />
+                        <p className="text-xs text-slate-400 font-medium">
+                          {notifFilter === 'unread' ? 'No unread notifications.' : 'No notifications in system.'}
+                        </p>
+                      </div>
                     ) : (
-                      notifications.map((n) => (
+                      filteredNotifications.map((n) => (
                         <div
                           key={n.id}
-                          className={`p-3 rounded-2xl border transition-all text-xs space-y-1 ${
-                            n.read ? 'bg-slate-50/60 border-slate-100 text-slate-600' : 'bg-sky-50/60 border-sky-200 text-slate-900 font-semibold'
+                          className={`p-3 rounded-2xl border transition-all text-xs space-y-1.5 ${
+                            n.read
+                              ? 'bg-slate-50/70 dark:bg-zinc-800/40 border-slate-200/60 dark:border-zinc-800 text-slate-600 dark:text-zinc-400'
+                              : 'bg-sky-50/70 dark:bg-sky-950/30 border-sky-200 dark:border-sky-800/50 text-slate-900 dark:text-zinc-100 font-medium'
                           }`}
                         >
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold">{n.title}</span>
-                            <span className="text-[10px] text-slate-400 font-mono">{n.timestamp}</span>
+                          <div className="flex items-center justify-between font-bold gap-2">
+                            <span
+                              onClick={() => handleNotifClick(n)}
+                              className="flex items-center gap-2 cursor-pointer hover:text-sky-600 dark:hover:text-sky-400 min-w-0"
+                            >
+                              {!n.read && <span className="w-2 h-2 rounded-full bg-sky-500 shrink-0 animate-pulse" />}
+                              <span className="truncate">{n.title}</span>
+                            </span>
+
+                            <div className="flex items-center gap-1 shrink-0">
+                              <span className="text-[10px] text-slate-400 font-mono font-normal mr-1">{n.timestamp}</span>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); adminNotificationService.toggleRead(n.id); }}
+                                className={`p-1 rounded-lg transition-colors cursor-pointer ${n.read ? 'text-slate-400 hover:text-sky-600' : 'text-sky-600 hover:bg-sky-100 dark:hover:bg-sky-900/40'}`}
+                                title={n.read ? 'Mark as Unread' : 'Mark as Read'}
+                              >
+                                <CheckCheck className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); adminNotificationService.deleteNotification(n.id); }}
+                                className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                                title="Delete notification"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </div>
-                          <p className="text-[11px] text-slate-600">{n.message}</p>
+
+                          <p
+                            onClick={() => handleNotifClick(n)}
+                            className="text-[11px] leading-relaxed text-slate-600 dark:text-zinc-400 cursor-pointer"
+                          >
+                            {n.message}
+                          </p>
+
+                          {n.link && (
+                            <div
+                              onClick={() => handleNotifClick(n)}
+                              className="text-[10px] text-sky-600 dark:text-sky-400 font-bold flex items-center gap-1 pt-0.5 cursor-pointer hover:underline"
+                            >
+                              <span>Take Action</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </div>
+                          )}
                         </div>
                       ))
                     )}
                   </div>
                 </motion.div>
-              )}
-            </AnimatePresence>
+              </AnimatePresence>,
+              document.body
+            )}
           </div>
 
           <Link
@@ -398,7 +616,7 @@ export const AdminDashboard: React.FC = () => {
                   className="block p-4 rounded-3xl bg-white/90 border border-sky-100 backdrop-blur-xl space-y-3 hover:border-sky-300 hover:shadow-xl transition-all shadow-xs group relative overflow-hidden"
                 >
                   <div className={`w-10 h-10 rounded-2xl bg-linear-to-tr ${metric.gradient} text-white flex items-center justify-center shadow-md ${metric.bgGlow}`}>
-                    <Icon className="w-5 h-5" />
+                    {Icon ? <Icon className="w-5 h-5" /> : null}
                   </div>
 
                   <div>
@@ -419,7 +637,7 @@ export const AdminDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* MODULE 9: ANALYTICS DASHBOARD CHARTS */}
+      {/* MODULE 9: ANALYTICS DASHBOARD CHARTS — REAL-TIME DATA */}
       <div className="bg-white border border-sky-100 rounded-3xl p-6 shadow-sm space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-sky-100 pb-4">
           <div>
@@ -427,100 +645,116 @@ export const AdminDashboard: React.FC = () => {
               <TrendingUp className="w-5 h-5 text-indigo-600" />
               <h3 className="font-heading font-extrabold text-lg text-slate-900">Platform Analytics Telemetry</h3>
             </div>
-            <p className="text-xs text-slate-500 font-medium mt-0.5">Daily growth, branch distribution & verification ratios</p>
+            <p className="text-xs text-slate-500 font-medium mt-0.5">Live registration trends, branch distribution & verification ratios from Firestore</p>
           </div>
           <div className="flex items-center gap-2 text-xs font-bold">
-            <span className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl">
-              Monthly Growth: +24.5%
+            <span className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              {approvedStudents} Approved
             </span>
             <span className="px-3 py-1 bg-sky-50 text-sky-700 border border-sky-200 rounded-xl">
-              Completion Rate: 88.2%
+              {totalStudents} Total Students
             </span>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Daily Registrations Growth Bar Viz */}
+          {/* Real-Time Daily Registrations Bar Chart */}
           <div className="bg-slate-50/70 border border-slate-200/80 p-5 rounded-2xl space-y-4">
-            <h4 className="font-bold text-xs text-slate-700 uppercase tracking-wider">Daily Student Registrations</h4>
-            <div className="h-40 flex items-end justify-between gap-2 pt-4 px-2">
-              {[
-                { day: 'Mon', count: 12, height: '40%' },
-                { day: 'Tue', count: 18, height: '60%' },
-                { day: 'Wed', count: 26, height: '85%' },
-                { day: 'Thu', count: 15, height: '50%' },
-                { day: 'Fri', count: 32, height: '100%' },
-                { day: 'Sat', count: 22, height: '70%' },
-                { day: 'Sun', count: 19, height: '62%' }
-              ].map((item, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
-                  <div className="text-[10px] font-bold text-slate-400 group-hover:text-blue-600 transition-colors">{item.count}</div>
-                  <motion.div
-                    initial={{ height: 0 }}
-                    animate={{ height: item.height }}
-                    transition={{ duration: 0.6, delay: i * 0.1 }}
-                    className="w-full bg-linear-to-t from-blue-600 to-indigo-500 rounded-t-lg shadow-xs group-hover:from-blue-500 group-hover:to-cyan-400 transition-all"
-                  />
-                  <div className="text-[10px] font-bold text-slate-500">{item.day}</div>
-                </div>
-              ))}
-            </div>
+            <h4 className="font-bold text-xs text-slate-700 uppercase tracking-wider">Daily Student Registrations (Last 7 Days)</h4>
+            {totalStudents === 0 ? (
+              <div className="h-40 flex items-center justify-center text-xs text-slate-400 font-medium">Loading live data...</div>
+            ) : (
+              <div className="h-40 flex items-end justify-between gap-2 pt-4 px-2">
+                {dailyRegistrations.map((item, i) => {
+                  const heightPct = maxDailyCount > 0 ? Math.max((item.count / maxDailyCount) * 100, item.count > 0 ? 8 : 0) : 0;
+                  return (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
+                      <div className="text-[10px] font-bold text-slate-500 group-hover:text-blue-600 transition-colors">{item.count > 0 ? item.count : ''}</div>
+                      <motion.div
+                        initial={{ height: 0 }}
+                        animate={{ height: `${heightPct}%` }}
+                        transition={{ duration: 0.6, delay: i * 0.08 }}
+                        className={`w-full rounded-t-lg shadow-xs transition-all ${
+                          heightPct > 0
+                            ? 'bg-linear-to-t from-blue-600 to-indigo-500 group-hover:from-blue-500 group-hover:to-cyan-400'
+                            : 'bg-slate-200'
+                        }`}
+                      />
+                      <div className="text-[10px] font-bold text-slate-500">{item.day}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            <p className="text-[10px] text-slate-400 font-medium text-center">Computed from {totalStudents} real student registrations</p>
           </div>
 
-          {/* Branch Distribution */}
+          {/* Real-Time Branch Distribution */}
           <div className="bg-slate-50/70 border border-slate-200/80 p-5 rounded-2xl space-y-4">
             <h4 className="font-bold text-xs text-slate-700 uppercase tracking-wider">Branch & Specialization Distribution</h4>
             <div className="space-y-3 pt-2">
-              {[
-                { name: 'Computer Science (CSE)', pct: 45, color: 'bg-blue-500' },
-                { name: 'Artificial Intelligence & ML', pct: 30, color: 'bg-indigo-500' },
-                { name: 'Information Technology (IT)', pct: 15, color: 'bg-cyan-500' },
-                { name: 'Electronics & Comm (ECE)', pct: 10, color: 'bg-purple-500' }
-              ].map((b, idx) => (
-                <div key={idx} className="space-y-1">
-                  <div className="flex justify-between text-xs font-semibold text-slate-700">
-                    <span>{b.name}</span>
-                    <span className="font-mono">{b.pct}%</span>
+              {branchDistribution.length === 0 ? (
+                <div className="py-4 text-center text-xs text-slate-400 font-medium">No branch data yet</div>
+              ) : (
+                branchDistribution.map((b, idx) => (
+                  <div key={idx} className="space-y-1">
+                    <div className="flex justify-between text-xs font-semibold text-slate-700">
+                      <span className="truncate pr-2">{b.name}</span>
+                      <span className="font-mono shrink-0">{b.pct}% ({b.count})</span>
+                    </div>
+                    <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${b.pct}%` }}
+                        transition={{ duration: 0.8, delay: idx * 0.1 }}
+                        className={`h-full ${b.color}`}
+                      />
+                    </div>
                   </div>
-                  <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${b.pct}%` }}
-                      transition={{ duration: 0.8 }}
-                      className={`h-full ${b.color}`}
-                    />
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
 
-          {/* Verification & Integration Status */}
+          {/* Real-Time Verification & Integration Status */}
           <div className="bg-slate-50/70 border border-slate-200/80 p-5 rounded-2xl space-y-4">
-            <h4 className="font-bold text-xs text-slate-700 uppercase tracking-wider">Verification & GitHub Ratios</h4>
+            <h4 className="font-bold text-xs text-slate-700 uppercase tracking-wider">Live Verification & GitHub Ratios</h4>
             <div className="space-y-4 pt-1">
               <div className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  <span className="text-xs font-bold text-slate-700">Email Verified Ratio</span>
+                  <span className="text-xs font-bold text-slate-700">Email Verified</span>
                 </div>
-                <span className="font-mono font-bold text-xs text-emerald-600">92.4%</span>
+                <span className="font-mono font-bold text-xs text-emerald-600">
+                  {emailVerified} / {totalStudents} ({totalStudents > 0 ? Math.round((emailVerified / totalStudents) * 100) : 0}%)
+                </span>
               </div>
 
               <div className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Code2 className="w-4 h-4 text-slate-800" />
-                  <span className="text-xs font-bold text-slate-700">GitHub OAuth Connected</span>
+                  <span className="text-xs font-bold text-slate-700">GitHub Connected</span>
                 </div>
-                <span className="font-mono font-bold text-xs text-indigo-600">75.0%</span>
+                <span className="font-mono font-bold text-xs text-indigo-600">
+                  {githubConnected} / {totalStudents} ({totalStudents > 0 ? Math.round((githubConnected / totalStudents) * 100) : 0}%)
+                </span>
               </div>
 
               <div className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-sky-600" />
-                  <span className="text-xs font-bold text-slate-700">Admin Approved Students</span>
+                  <span className="text-xs font-bold text-slate-700">Admin Approved</span>
                 </div>
                 <span className="font-mono font-bold text-xs text-sky-600">{approvedStudents} / {totalStudents}</span>
+              </div>
+
+              <div className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-500" />
+                  <span className="text-xs font-bold text-slate-700">Pending Review</span>
+                </div>
+                <span className="font-mono font-bold text-xs text-amber-600">{pendingApprovals}</span>
               </div>
             </div>
           </div>

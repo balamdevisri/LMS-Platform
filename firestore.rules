@@ -17,15 +17,21 @@ service cloud.firestore {
     function isAdmin() {
       return isAuthenticated() && (
         getUserData().role == 'admin' || 
-        request.auth.token.role == 'admin'
+        request.auth.token.role == 'admin' ||
+        request.auth.token.admin == true
       );
     }
 
     function isInstructor() {
       return isAuthenticated() && (
         getUserData().role == 'instructor' || 
-        request.auth.token.role == 'instructor'
+        request.auth.token.role == 'instructor' ||
+        request.auth.token.role == 'admin'
       );
+    }
+    
+    function isAssignedInstructor(resourceData) {
+      return isInstructor() && resourceData.instructorId == request.auth.uid;
     }
 
     // Users Collection rules
@@ -94,6 +100,82 @@ service cloud.firestore {
     // Audit logs & email logs
     match /email_logs/{logId} {
       allow read, write: if isAdmin();
+    }
+
+    // Root Collection: liveClasses
+    match /liveClasses/{classId} {
+      allow read: if isAuthenticated();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || isAssignedInstructor(resource.data);
+
+      // Subcollection: attendance
+      match /attendance/{attendanceId} {
+        allow read: if isInstructor() || (isAuthenticated() && resource.data.studentId == request.auth.uid);
+        allow create: if isAuthenticated() && request.resource.data.studentId == request.auth.uid;
+        allow update, delete: if isInstructor();
+      }
+
+      // Subcollection: chat
+      match /chat/{messageId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated() && request.resource.data.senderId == request.auth.uid;
+        allow update, delete: if isInstructor() || (isAuthenticated() && resource.data.senderId == request.auth.uid);
+      }
+
+      // Subcollection: questions
+      match /questions/{questionId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated() && request.resource.data.studentId == request.auth.uid;
+        allow update, delete: if isInstructor();
+      }
+
+      // Subcollection: notes
+      match /notes/{noteId} {
+        allow read: if isAuthenticated();
+        allow write: if isInstructor();
+      }
+
+      // Subcollection: resources
+      match /resources/{resourceId} {
+        allow read: if isAuthenticated();
+        allow write: if isInstructor();
+      }
+
+      // Subcollection: polls
+      match /polls/{pollId} {
+        allow read: if isAuthenticated();
+        allow write: if isInstructor();
+      }
+
+      // Subcollection: quizzes
+      match /quizzes/{quizId} {
+        allow read: if isAuthenticated();
+        allow write: if isInstructor();
+      }
+
+      // Subcollection: quizAttempts
+      match /quizAttempts/{attemptId} {
+        allow read: if isInstructor() || (isAuthenticated() && resource.data.studentId == request.auth.uid);
+        allow create: if isAuthenticated() && request.resource.data.studentId == request.auth.uid;
+        allow update, delete: if isInstructor();
+      }
+
+      // Subcollection: recordings
+      match /recordings/{recordingId} {
+        allow read: if isAuthenticated();
+        allow write: if isInstructor();
+      }
+
+      // Subcollection: announcements
+      match /announcements/{announcementId} {
+        allow read: if isAuthenticated();
+        allow write: if isInstructor();
+      }
+
+      // Subcollection: analytics
+      match /analytics/{analyticsId} {
+        allow read, write: if isInstructor();
+      }
     }
   }
 }

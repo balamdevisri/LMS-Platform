@@ -9,13 +9,13 @@ interface SendEmailModalProps {
 }
 
 export const SendEmailModal: React.FC<SendEmailModalProps> = ({ student, onClose }) => {
-  if (!student) return null;
-
-  const [subject, setSubject] = useState(`KaizenQ Academic Notice: Welcome ${student.name}`);
+  const [subject, setSubject] = useState(student ? `KaizenQ Academic Notice: Welcome ${student.name}` : '');
   const [message, setMessage] = useState(
-    `Hello ${student.name},\n\nWe noticed your active progress on KaizenQ AI Platform in ${student.currentCourse || 'Linux Systems Mastery'}.\n\nKeep up the great work!\nBest regards,\nKaizenQ Administration Team`
+    student ? `Hello ${student.name},\n\nWe noticed your active progress on KaizenQ AI Platform in ${student.currentCourse || 'Linux Systems Mastery'}.\n\nKeep up the great work!\nBest regards,\nKaizenQ Administration Team` : ''
   );
   const [isSending, setIsSending] = useState(false);
+
+  if (!student) return null;
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();

@@ -13,30 +13,32 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
   onClose,
   onSave,
 }) => {
-  if (!student) return null;
-
-  const [name, setName] = useState(student.name || student.fullName || '');
-  const [email, setEmail] = useState(student.email || '');
-  const [branch, setBranch] = useState(student.branch || 'AI & Computer Science');
-  const [year, setYear] = useState(student.year || '1st Year');
-  const [college, setCollege] = useState(student.college || 'Shaivika AI Foundation');
-  const [phone, setPhone] = useState(student.phone || '');
-  const [status, setStatus] = useState<'Active' | 'Suspended'>(student.status === 'Suspended' ? 'Suspended' : 'Active');
-  const [bio, setBio] = useState(student.bio || '');
-  const [skillsStr, setSkillsStr] = useState((student.skills || []).join(', '));
+  const [name, setName] = useState(student?.name || student?.fullName || '');
+  const [email, setEmail] = useState(student?.email || '');
+  const [branch, setBranch] = useState(student?.branch || 'AI & Computer Science');
+  const [year, setYear] = useState(student?.year || '1st Year');
+  const [college, setCollege] = useState(student?.college || 'Shaivika AI Foundation');
+  const [phone, setPhone] = useState(student?.phone || '');
+  const [status, setStatus] = useState<'Active' | 'Suspended'>(student?.status === 'Suspended' ? 'Suspended' : 'Active');
+  const [bio, setBio] = useState(student?.bio || '');
+  const [skillsStr, setSkillsStr] = useState((student?.skills || []).join(', '));
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    setName(student.name || student.fullName || '');
-    setEmail(student.email || '');
-    setBranch(student.branch || 'AI & Computer Science');
-    setYear(student.year || '1st Year');
-    setCollege(student.college || 'Shaivika AI Foundation');
-    setPhone(student.phone || '');
-    setStatus(student.status === 'Suspended' ? 'Suspended' : 'Active');
-    setBio(student.bio || '');
-    setSkillsStr((student.skills || []).join(', '));
+    if (student) {
+      setName(student.name || student.fullName || '');
+      setEmail(student.email || '');
+      setBranch(student.branch || 'AI & Computer Science');
+      setYear(student.year || '1st Year');
+      setCollege(student.college || 'Shaivika AI Foundation');
+      setPhone(student.phone || '');
+      setStatus(student.status === 'Suspended' ? 'Suspended' : 'Active');
+      setBio(student.bio || '');
+      setSkillsStr((student.skills || []).join(', '));
+    }
   }, [student]);
+
+  if (!student) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

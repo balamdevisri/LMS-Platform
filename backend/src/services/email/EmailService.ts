@@ -1,148 +1,130 @@
-import { env, maskSensitiveString } from '../../config/env';
+/**
+ * SHAIVIKA LMS AI Platform - Modular Email Dispatcher Service
+ * KaizenQ - Powered by SHAIVIKA GROUPS
+ */
+
+import { env } from '../../config/env';
 import logger from '../../config/logger';
-import { IEmailProvider } from './providers/EmailProvider.interface';
+import { EmailEventType, EmailStatus, EmailLogRecord } from '../../types/emailTypes';
+import { isFirestoreInitialized } from '../../firebase/collections';
+import { IEmailProvider } from './IEmailProvider';
 import { NodemailerProvider } from './providers/NodemailerProvider';
 import { ResendProvider } from './providers/ResendProvider';
 import { MockProvider } from './providers/MockProvider';
-import { AuditLogger } from './AuditLogger';
-import { RetryManager } from './RetryManager';
-import { buildEventEmailTemplate } from './emailTemplates';
-import { EmailEventType, EmailLogRecord, EmailStatus } from '../../types/emailTypes';
+import { EmailAuditLogger } from './audit/EmailAuditLogger';
+import { EmailRetryManager } from './queue/EmailRetryManager';
+import { EmailTemplateEngine } from './templates/EmailTemplateEngine';
 
 export class EmailService {
-  private activeProvider: IEmailProvider;
-  private providerType: 'nodemailer' | 'resend' | 'mock';
-  private fromAddress: string;
-  private isTransporterVerified: boolean = false;
-  private lastVerificationError?: string;
+  private emailProvider: IEmailProvider;
+  private auditLogger: EmailAuditLogger;
+  private templateEngine: EmailTemplateEngine;
+  private retryManager: EmailRetryManager;
+
+  public provider: 'nodemailer' | 'resend' | 'mock';
+  public fromAddress: string;
+  public isTransporterVerified: boolean = false;
+  public lastVerificationError: string | null = null;
 
   constructor() {
-    this.fromAddress = env.SMTP_FROM || env.EMAIL_FROM || 'KaizenQ AI LMS <kaizenq.lms@gmail.com>';
-    
-    if (process.env.NODE_ENV === 'test' || env.NODE_ENV === 'test') {
-      this.providerType = 'mock';
-      this.activeProvider = new MockProvider();
+    this.provider = (env.EMAIL_PROVIDER as 'nodemailer' | 'resend' | 'mock') || 'nodemailer';
+    this.fromAddress = env.SMTP_FROM || 'KaizenQ AI LMS <kaizenq.lms@gmail.com>';
+
+    // Instantiate appropriate provider
+    if (this.provider === 'resend' && env.RESEND_API_KEY) {
+      this.emailProvider = new ResendProvider();
+    } else if (this.provider === 'nodemailer') {
+      this.emailProvider = new NodemailerProvider();
     } else {
-      this.providerType = (env.EMAIL_PROVIDER as 'nodemailer' | 'resend' | 'mock') || 'nodemailer';
-      this.activeProvider = this.initializeProvider();
+      this.emailProvider = new MockProvider();
     }
+
+    this.auditLogger = new EmailAuditLogger();
+    this.templateEngine = new EmailTemplateEngine();
+    this.retryManager = new EmailRetryManager(this.emailProvider, this.templateEngine);
+
+    // Run verification asynchronously
+    this.verifyTransporterAsync().catch((err) => {
+      this.lastVerificationError = err?.message || String(err);
+      this.isTransporterVerified = false;
+    });
   }
 
-  private initializeProvider(): IEmailProvider {
-    logger.info(`[SMTP AUDIT] Loading SMTP configuration for provider: ${this.providerType}`);
-
-    const smtpHost = env.SMTP_HOST || process.env.SMTP_HOST || 'smtp.gmail.com';
-    const smtpPort = Number(env.SMTP_PORT || process.env.SMTP_PORT || 587);
-    const isSecure = (env.SMTP_SECURE || process.env.SMTP_SECURE) === 'true';
-    const smtpUser = env.SMTP_EMAIL || process.env.SMTP_EMAIL || env.SMTP_USER || 'kaizenqlms@gmail.com';
-    const smtpPass = env.SMTP_PASSWORD || process.env.SMTP_PASSWORD || env.SMTP_PASS || 'nslv bymb dnnq swcw';
-
-    const maskedPass = maskSensitiveString(smtpPass);
-    logger.info(`[SMTP AUDIT] Config Loaded -> Host: ${smtpHost} | Port: ${smtpPort} | Secure: ${isSecure} | User: ${smtpUser} | Pass: ${maskedPass}`);
-
-    if (this.providerType === 'nodemailer' || (smtpHost && smtpUser && smtpPass)) {
-      this.providerType = 'nodemailer';
-      const provider = new NodemailerProvider({
-        host: smtpHost,
-        port: smtpPort,
-        secure: isSecure,
-        auth: {
-          user: smtpUser,
-          pass: smtpPass,
-        },
-      });
-      
-      this.verifyNodemailerAsync(provider);
-      return provider;
-    } else if (this.providerType === 'resend' && env.RESEND_API_KEY) {
-      logger.info('[SMTP AUDIT] ✅ Initializing Resend API Client.');
-      return new ResendProvider(env.RESEND_API_KEY);
-    } else {
-      this.providerType = 'mock';
-      logger.info('[SMTP AUDIT] ℹ️ Fallback: Using Mock Email Provider.');
-      return new MockProvider();
-    }
-  }
-
-  private async verifyNodemailerAsync(provider: NodemailerProvider): Promise<void> {
+  /**
+   * Asynchronously verify connection to the mail transport server
+   */
+  public async verifyTransporterAsync(): Promise<boolean> {
     try {
-      const verified = await provider.verify();
-      this.isTransporterVerified = verified;
-      if (verified) {
-        console.log("✅ SMTP Connected");
-        logger.info("[SMTP AUDIT] ✅ SMTP Connected");
+      logger.info(`[SMTP AUDIT] ⚡ Verifying connection to ${this.provider} service...`);
+      const success = await this.emailProvider.verify();
+      if (success) {
+        this.isTransporterVerified = true;
+        this.lastVerificationError = null;
+        logger.info(`[SMTP AUDIT] ✅ Connection to ${this.provider} verified successfully.`);
+        return true;
       } else {
-        this.lastVerificationError = 'Nodemailer verify failed';
+        throw new Error(`Verification failed for provider ${this.provider}`);
       }
     } catch (err: any) {
-      this.isTransporterVerified = false;
       this.lastVerificationError = err?.message || String(err);
-      console.error("❌ SMTP Error:", err);
+      this.isTransporterVerified = false;
+      logger.error(`[SMTP AUDIT] ❌ Connection verification failed: ` + this.lastVerificationError);
+      return false;
     }
   }
 
-  public async verifyTransporterAsync(): Promise<boolean> {
-    if (this.providerType === 'nodemailer' && this.activeProvider instanceof NodemailerProvider) {
-      const verified = await this.activeProvider.verify();
-      this.isTransporterVerified = verified;
-      return verified;
-    }
-    return true;
-  }
-
+  /**
+   * Main method to send event emails
+   */
   async sendEventEmail<T = any>(
     eventType: EmailEventType,
     recipientEmail: string,
     payload: T
   ): Promise<{ success: boolean; messageId?: string; logId?: string; error?: string }> {
-    const { subject, html } = buildEventEmailTemplate(eventType, payload);
-    const nowIso = new Date().toISOString();
+    const { subject, html } = this.templateEngine.build(eventType, payload);
 
-    logger.info(`[EMAIL SERVICE] Sending email... Event: ${eventType} | To: ${recipientEmail}`);
+    logger.info(`[EMAIL SERVICE] Sending event email: ${eventType} | To: ${recipientEmail}`);
 
-    const logRecord: EmailLogRecord = {
+    const logRecord = {
       eventType,
       recipientEmail,
       subject,
-      status: 'pending',
-      attempts: 1,
-      maxRetries: 3,
-      provider: this.providerType,
+      provider: this.provider,
       payload,
-      createdAt: nowIso,
-      updatedAt: nowIso,
-      lastAttemptAt: nowIso,
     };
 
-    let logDocId: string | undefined;
+    // 1. Create Pending Log Record in Firestore
+    const logDocId = await this.auditLogger.logPending(logRecord);
 
-    // 1. Log pending status
-    logDocId = await AuditLogger.createPendingLog(logRecord);
-
-    // 2. Dispatch
+    // 2. Dispatch Email through transport provider
     try {
-      const result = await this.activeProvider.send({
-        from: this.fromAddress,
+      const result = await this.emailProvider.send({
         to: recipientEmail,
         subject,
         html,
       });
 
-      if (result.success) {
-        logger.info(`[EMAIL SERVICE] ✅ Email sent successfully. MsgID: ${result.messageId}`);
-        await AuditLogger.updateLogStatus(logDocId, 'sent', result.messageId);
-        return {
-          success: true,
-          messageId: result.messageId,
-          logId: logDocId,
-        };
-      } else {
-        throw new Error(result.error);
+      if (!result.success) {
+        throw new Error(result.error || 'Provider failed to dispatch email');
       }
-    } catch (err: any) {
-      const errorMessage = err?.message || String(err);
-      logger.error(`[EMAIL SERVICE] ❌ Failed to send ${eventType} to ${recipientEmail}:`, errorMessage);
-      await AuditLogger.updateLogStatus(logDocId, 'failed', undefined, errorMessage);
+
+      logger.info(`[EMAIL SERVICE] ✅ Email sent successfully. MsgID: ${result.messageId}`);
+
+      // 3. Update Log status to 'sent'
+      await this.auditLogger.updateStatus(logDocId, 'sent', result.messageId);
+
+      return {
+        success: true,
+        messageId: result.messageId,
+        logId: logDocId,
+      };
+    } catch (sendError: any) {
+      const errorMessage = sendError?.message || String(sendError);
+      logger.error(`[EMAIL SERVICE] ❌ Failed to send ${eventType} to ${recipientEmail}: ` + errorMessage);
+
+      // 4. Update Log status to 'failed'
+      await this.auditLogger.updateStatus(logDocId, 'failed', undefined, errorMessage);
+
       return {
         success: false,
         logId: logDocId,
@@ -151,63 +133,146 @@ export class EmailService {
     }
   }
 
+  /**
+   * Direct Custom HTML Email Dispatcher (e.g. for SMTP Test endpoint)
+   */
   async sendDirectHtmlEmail(
     recipientEmail: string,
     subject: string,
     html: string,
     plainText?: string
   ): Promise<{ success: boolean; messageId?: string; accepted?: any[]; rejected?: any[]; response?: string; error?: string }> {
-    logger.info(`[SMTP TEST] Preparing direct HTML email to: ${recipientEmail} with subject: ${subject}`);
     try {
-      const result = await this.activeProvider.send({
-        from: this.fromAddress,
+      logger.info(`[EMAIL SERVICE] Sending direct email to ${recipientEmail}`);
+
+      const result = await this.emailProvider.send({
         to: recipientEmail,
         subject,
         html,
         text: plainText,
       });
 
-      if (result.success) {
-        return {
-          success: true,
-          messageId: result.messageId,
-          accepted: [recipientEmail],
-          rejected: [],
-          response: '250 OK',
-        };
-      } else {
-        throw new Error(result.error);
+      if (!result.success) {
+        throw new Error(result.error || 'Provider failed sending direct email');
       }
+
+      return {
+        success: true,
+        messageId: result.messageId,
+        accepted: [recipientEmail],
+        rejected: [],
+        response: '200 OK',
+      };
     } catch (err: any) {
-      const errorMsg = err?.message || String(err);
-      logger.error(`[SMTP TEST] ❌ Failed sending direct HTML email:`, errorMsg);
+      logger.error(`[EMAIL SERVICE] Direct email send failed to ${recipientEmail}: ` + (err?.message || err));
       return {
         success: false,
-        error: errorMsg,
+        error: err?.message || String(err),
         accepted: [],
         rejected: [recipientEmail],
       };
     }
   }
 
+  /**
+   * Check SMTP Transporter Status
+   */
   public getTransporterStatus() {
     return {
-      provider: this.providerType,
-      host: env.SMTP_HOST || process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: Number(env.SMTP_PORT || process.env.SMTP_PORT || 587),
-      user: env.SMTP_EMAIL || process.env.SMTP_EMAIL || env.SMTP_USER || 'kaizenqlms@gmail.com',
+      provider: this.provider,
+      host: env.SMTP_HOST || 'smtp.gmail.com',
+      port: Number(env.SMTP_PORT || 587),
+      user: env.SMTP_EMAIL || env.SMTP_USER || 'kaizenqlms@gmail.com',
       from: this.fromAddress,
       verified: this.isTransporterVerified,
       lastError: this.lastVerificationError || null,
     };
   }
 
+  /**
+   * Automated Retry Worker: Retries failed emails from Firestore email_logs
+   */
   async retryFailedEmails(maxRetries: number = 3): Promise<{ retriedCount: number; succeededCount: number; failedCount: number }> {
-    return RetryManager.retryFailedEmails(this.activeProvider, this.fromAddress, maxRetries);
+    return this.retryManager.retryFailedEmails(maxRetries);
   }
 
+  /**
+   * Fetches recent email delivery logs from Firestore
+   */
   async getEmailLogs(limitCount: number = 50): Promise<EmailLogRecord[]> {
-    return AuditLogger.getLogs(limitCount);
+    return this.auditLogger.fetchRecent(limitCount);
+  }
+
+  /**
+   * Dispatches Email with Attachments (e.g. Certificate PDF) with automatic retry
+   */
+  async sendEmailWithAttachments(
+    recipientEmail: string,
+    subject: string,
+    html: string,
+    attachments: Array<{ filename: string; content: Buffer; contentType?: string }>,
+    maxRetries: number = 3
+  ): Promise<{ success: boolean; messageId?: string; accepted?: any[]; rejected?: any[]; error?: string }> {
+    let attempt = 0;
+    let lastError: any = null;
+
+    const logDocId = await this.auditLogger.logPending({
+      eventType: EmailEventType.CERTIFICATE_GENERATED,
+      recipientEmail,
+      subject,
+      provider: this.provider,
+      payload: { attachmentCount: attachments.length },
+    });
+
+    while (attempt < maxRetries) {
+      attempt++;
+      logger.info(`[SMTP ATTACHMENT EMAIL] Attempt ${attempt}/${maxRetries} to ${recipientEmail} | Subject: "${subject}"`);
+
+      try {
+        const result = await this.emailProvider.send({
+          to: recipientEmail,
+          subject,
+          html,
+          attachments: attachments.map(att => ({
+            filename: att.filename,
+            content: att.content,
+            contentType: att.contentType,
+          })),
+        });
+
+        if (!result.success) {
+          throw new Error(result.error || 'Provider attachment email send failed');
+        }
+
+        logger.info(`[SMTP ATTACHMENT EMAIL] ✅ Delivered! MsgId: ${result.messageId}`);
+        await this.auditLogger.updateStatus(logDocId, 'sent', result.messageId);
+
+        return {
+          success: true,
+          messageId: result.messageId,
+          accepted: [recipientEmail],
+          rejected: [],
+        };
+      } catch (err: any) {
+        lastError = err;
+        logger.error(`[SMTP ATTACHMENT EMAIL] ❌ Attempt ${attempt}/${maxRetries} Failed for ${recipientEmail}: ` + (err?.message || err));
+
+        if (attempt < maxRetries) {
+          const backoffMs = Math.pow(2, attempt) * 1000;
+          logger.info(`[SMTP ATTACHMENT EMAIL] Retrying in ${backoffMs}ms...`);
+          await new Promise((res) => setTimeout(res, backoffMs));
+        }
+      }
+    }
+
+    const errorMsg = lastError?.message || String(lastError);
+    await this.auditLogger.updateStatus(logDocId, 'failed', undefined, errorMsg);
+    logger.error(`[SMTP ATTACHMENT EMAIL] ❌ ALL ${maxRetries} ATTEMPTS FAILED for ${recipientEmail}`);
+
+    return {
+      success: false,
+      error: errorMsg,
+    };
   }
 }
 

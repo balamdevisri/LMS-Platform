@@ -153,49 +153,107 @@ const ARCHITECTURE_SLIDES = [
 const MODULE_COMMAND_TABLES: Record<number, { command: string; category: string; description: string; usage: string }[]> = {
   0: [
     { command: 'pwd', category: 'Navigation', description: 'Displays the current working directory path', usage: 'pwd' },
-    { command: 'ls', category: 'File Management', description: 'Lists directory contents. Flags: -l (long format), -a (hidden), -h (human)', usage: 'ls -lah' },
+    { command: 'ls', category: 'File & Directory Management', description: 'Lists directory contents. Flags: -l (long format), -a (hidden), -h (human)', usage: 'ls -lah' },
+    { command: 'ls -l', category: 'File & Directory Management', description: 'Lists directory contents in long format showing permissions, sizes, and owners', usage: 'ls -l' },
+    { command: 'ls -a', category: 'File & Directory Management', description: 'Lists all files, including hidden files starting with a dot (.)', usage: 'ls -a' },
     { command: 'cd', category: 'Navigation', description: 'Changes the current working directory', usage: 'cd /var/log' },
-    { command: 'mkdir', category: 'File Management', description: 'Creates a new directory. Flag -p builds nested parent directories', usage: 'mkdir -p project/src' },
-    { command: 'touch', category: 'File Management', description: 'Creates an empty file or updates the timestamp of an existing file', usage: 'touch index.html' },
-    { command: 'cp', category: 'File Management', description: 'Copies files/directories. Flag -r copies recursively', usage: 'cp -r src/ backup/' },
-    { command: 'mv', category: 'File Management', description: 'Moves or renames files and directories', usage: 'mv old.txt new.txt' },
-    { command: 'rm', category: 'File Management', description: 'Deletes files/directories. Flag -rf forces recursive deletion', usage: 'rm -rf temp_dir/' },
-    { command: 'cat', category: 'Text Processing', description: 'Displays the complete contents of a file in the terminal', usage: 'cat /etc/os-release' },
-    { command: 'head / tail', category: 'Log Analysis', description: 'Displays top (head) or bottom (tail) lines. Flag -f streams live updates', usage: 'tail -f -n 50 /var/log/syslog' },
-    { command: 'grep', category: 'Search Utility', description: 'Filters text matching a specific pattern. Flags: -i (case-insensitive), -r (recursive)', usage: 'grep -ir "error" /var/log/' },
-    { command: '> / >>', category: 'Redirection', description: 'Redirects output to a file. > overwrites, >> appends', usage: 'echo "log data" >> app.log' },
-    { command: '|', category: 'Pipeline', description: 'Passes the output of one command as the input to another', usage: 'cat /etc/passwd | grep "bash"' },
+    { command: 'mkdir', category: 'File & Directory Management', description: 'Creates a new directory. Flag -p builds nested parent directories', usage: 'mkdir -p project/src' },
+    { command: 'rmdir', category: 'File & Directory Management', description: 'Removes empty directories', usage: 'rmdir empty_dir/' },
+    { command: 'rm', category: 'File & Directory Management', description: 'Deletes files', usage: 'rm notes.txt' },
+    { command: 'rm -r', category: 'File & Directory Management', description: 'Deletes directories and their contents recursively', usage: 'rm -r backup_dir/' },
+    { command: 'cp', category: 'File & Directory Management', description: 'Copies files/directories. Flag -r copies recursively', usage: 'cp -r src/ backup/' },
+    { command: 'mv', category: 'File & Directory Management', description: 'Moves or renames files and directories', usage: 'mv old.txt new.txt' },
+    { command: 'touch', category: 'File & Directory Management', description: 'Creates an empty file or updates the timestamp of an existing file', usage: 'touch index.html' },
+    { command: 'file', category: 'File & Directory Management', description: 'Checks the file type and encoding format of a file', usage: 'file script.sh' },
+    { command: 'ln -s', category: 'File & Directory Management', description: 'Creates a soft/symbolic link to a file or directory', usage: 'ln -s /var/log/nginx/access.log nginx_access.log' },
+    { command: 'cat', category: 'View & Search Files', description: 'Displays the complete contents of a file in the terminal', usage: 'cat /etc/os-release' },
+    { command: 'less', category: 'View & Search Files', description: 'Views file content with page-by-page backward/forward navigation', usage: 'less /var/log/syslog' },
+    { command: 'more', category: 'View & Search Files', description: 'Views file content page-by-page (basic primitive pager)', usage: 'more /var/log/syslog' },
+    { command: 'head', category: 'View & Search Files', description: 'Displays the first 10 lines of a file (change count with -n)', usage: 'head -n 15 /etc/passwd' },
+    { command: 'tail', category: 'View & Search Files', description: 'Displays the last 10 lines of a file (change count with -n)', usage: 'tail -n 15 /var/log/syslog' },
+    { command: 'tail -f', category: 'View & Search Files', description: 'Streams and follows file updates live as they are written', usage: 'tail -f /var/log/nginx/error.log' },
+    { command: 'grep', category: 'View & Search Files', description: 'Filters text matching a specific pattern. Flags: -i (case-insensitive), -r (recursive)', usage: 'grep -ir "error" /var/log/' },
+    { command: 'grep -r', category: 'View & Search Files', description: 'Searches for text patterns recursively through directories', usage: 'grep -r "TODO" src/' },
+    { command: 'find', category: 'View & Search Files', description: 'Finds files by name, type, size, or modification date within a path', usage: 'find /var/log -name "*.log"' },
+    { command: 'locate', category: 'View & Search Files', description: 'Finds files quickly using a pre-built system index database', usage: 'locate nginx.conf' },
+    { command: 'which', category: 'View & Search Files', description: 'Shows the path of the executable command that runs in the shell', usage: 'which node' },
+    { command: 'whereis', category: 'View & Search Files', description: 'Locates the binary, source, and manual files for a command', usage: 'whereis bash' },
+    { command: 'wc -l', category: 'View & Search Files', description: 'Counts the number of lines in a file', usage: 'wc -l /etc/passwd' },
+    { command: 'sort', category: 'View & Search Files', description: 'Sorts lines of a text file alphabetically or numerically', usage: 'sort list.txt' },
   ],
   1: [
-    { command: 'useradd', category: 'User Management', description: 'Creates a new user account. Flag -m creates a home directory', usage: 'sudo useradd -m -s /bin/bash dev_user' },
-    { command: 'usermod', category: 'User Management', description: 'Modifies existing user properties', usage: 'sudo usermod -aG docker dev_user' },
+    { command: 'chmod', category: 'Permissions & Ownership', description: 'Changes file/directory access permissions using Octal notation (Read=4, Write=2, Execute=1)', usage: 'chmod 755 script.sh' },
+    { command: 'chmod 755', category: 'Permissions & Ownership', description: 'Grants rwxr-xr-x (read, write, execute to owner; read, execute to group/others)', usage: 'chmod 755 deploy.sh' },
+    { command: 'chown', category: 'Permissions & Ownership', description: 'Changes file or directory ownership (User and Group)', usage: 'sudo chown -R dev_user:developers /var/www' },
+    { command: 'chgrp', category: 'Permissions & Ownership', description: 'Changes group ownership of files or directories', usage: 'sudo chgrp developers index.html' },
+    { command: 'id', category: 'Permissions & Ownership', description: 'Displays the user and group IDs (UID/GID) of the current user', usage: 'id' },
+    { command: 'groups', category: 'Permissions & Ownership', description: 'Lists all groups the current user is a member of', usage: 'groups' },
+    { command: 'whoami', category: 'Permissions & Ownership', description: 'Displays the active username of the current terminal session', usage: 'whoami' },
+    { command: 'adduser', category: 'User Management', description: 'Creates a new user account. Flag -m creates a home directory', usage: 'sudo adduser dev_user' },
+    { command: 'deluser', category: 'User Management', description: 'Deletes a user account from the system', usage: 'sudo deluser dev_user' },
+    { command: 'usermod -aG', category: 'User Management', description: 'Appends a user to specific groups (e.g. docker, sudo) without removing current groups', usage: 'sudo usermod -aG sudo dev_user' },
     { command: 'passwd', category: 'User Management', description: 'Sets or changes a user account password', usage: 'sudo passwd dev_user' },
-    { command: 'groupadd', category: 'Group Management', description: 'Creates a new user group', usage: 'sudo groupadd developers' },
-    { command: 'chmod', category: 'Permissions', description: 'Changes file access permissions using Octal notation (Read=4, Write=2, Execute=1)', usage: 'chmod 755 script.sh' },
-    { command: 'chown', category: 'Ownership', description: 'Changes file or directory ownership (User and Group)', usage: 'sudo chown -R dev_user:developers /var/www' },
+    { command: 'su -', category: 'User Management', description: 'Switches shell context to another user account with full environment login', usage: 'sudo su - root' },
     { command: 'getfacl', category: 'Advanced Security', description: 'Displays file Access Control Lists (ACLs)', usage: 'getfacl /shared/file.txt' },
     { command: 'setfacl', category: 'Advanced Security', description: 'Configures custom ACL permissions for specific users/groups', usage: 'setfacl -m u:alice:rw /shared/file.txt' },
   ],
   2: [
-    { command: 'ps', category: 'Process Control', description: 'Displays a snapshot of current running processes', usage: 'ps aux | grep python' },
-    { command: 'htop', category: 'Process Control', description: 'Interactive real-time process manager and system monitor', usage: 'htop' },
-    { command: 'kill', category: 'Process Control', description: 'Sends a termination signal to a process using its PID', usage: 'kill -9 1234' },
-    { command: 'pkill', category: 'Process Control', description: 'Terminates processes based on their execution name', usage: 'pkill -f node' },
-    { command: 'nice / renice', category: 'Process Control', description: 'Launches a process with adjusted priority or alters an active process priority', usage: 'renice -n -5 -p 1234' },
-    { command: 'systemctl', category: 'Service Control', description: 'Manages system services (start, stop, restart, status, enable, disable)', usage: 'sudo systemctl status nginx' },
-    { command: 'journalctl', category: 'Log Parsing', description: 'Inspects systemd logs. Flag -u filters by service unit', usage: 'sudo journalctl -u nginx -n 100 --no-pager' },
-    { command: 'crontab', category: 'Task Automation', description: 'Schedules recurring background tasks. Options: -e (edit), -l (list)', usage: 'crontab -e' },
+    { command: 'ps aux', category: 'Process Management', description: 'Displays detailed snapshot of all running processes on the system', usage: 'ps aux' },
+    { command: 'ps -ef', category: 'Process Management', description: 'Lists processes in full format showing parent-child process mappings', usage: 'ps -ef' },
+    { command: 'top', category: 'System Information', description: 'Real-time dynamic process manager showing CPU and Memory statistics', usage: 'top' },
+    { command: 'htop', category: 'System Information', description: 'Interactive real-time process manager and system monitor', usage: 'htop' },
+    { command: 'kill', category: 'Process Management', description: 'Sends a termination signal to a process using its PID', usage: 'kill 1234' },
+    { command: 'kill -9', category: 'Process Management', description: 'Forces immediate SIGKILL termination to a process by PID', usage: 'kill -9 1234' },
+    { command: 'pkill', category: 'Process Management', description: 'Terminates processes based on their execution name', usage: 'pkill -f node' },
+    { command: 'killall', category: 'Process Management', description: 'Kills all instances of processes running under a specific executable name', usage: 'killall nginx' },
+    { command: 'nice', category: 'Process Management', description: 'Launches a process with a custom priority adjustment (nice value)', usage: 'nice -n 10 python3 script.py' },
+    { command: 'renice', category: 'Process Management', description: 'Alters the scheduling priority of an active running process', usage: 'renice -n -5 -p 1234' },
+    { command: 'systemctl', category: 'Process Management', description: 'Manages system services (start, stop, restart, status, enable, disable)', usage: 'sudo systemctl status nginx' },
+    { command: 'journalctl', category: 'Process Management', description: 'Inspects systemd logs. Flag -u filters by service unit', usage: 'sudo journalctl -u nginx -n 100 --no-pager' },
+    { command: 'crontab', category: 'Process Management', description: 'Schedules recurring background cron tasks. Options: -e (edit), -l (list)', usage: 'crontab -l' },
+    { command: 'df -h', category: 'System Information', description: 'Displays disk space usage for all mounted file systems in human-readable sizes', usage: 'df -h' },
+    { command: 'du -sh', category: 'System Information', description: 'Calculates the total disk usage size of a directory', usage: 'du -sh /var/log/' },
+    { command: 'free -h', category: 'System Information', description: 'Displays total, used, and free RAM and swap space memory', usage: 'free -h' },
+    { command: 'uptime', category: 'System Information', description: 'Displays system load averages and elapsed time since last reboot', usage: 'uptime' },
+    { command: 'uname -a', category: 'System Information', description: 'Prints comprehensive system and Linux kernel version architecture details', usage: 'uname -a' },
+    { command: 'hostname', category: 'System Information', description: 'Shows or sets the host network server node name', usage: 'hostname' },
+    { command: 'tar -cvf', category: 'Archives & Compression', description: 'Creates a new tape archive (.tar) bundle of a folder', usage: 'tar -cvf backup.tar ./src' },
+    { command: 'tar -xvf', category: 'Archives & Compression', description: 'Extracts the contents of a tape archive (.tar) file', usage: 'tar -xvf backup.tar' },
+    { command: 'tar -czvf', category: 'Archives & Compression', description: 'Creates a compressed Gzipped tape archive (.tar.gz) of a directory', usage: 'tar -czvf backup.tar.gz ./src' },
+    { command: 'tar -xzvf', category: 'Archives & Compression', description: 'Extracts a compressed Gzipped tape archive (.tar.gz) file', usage: 'tar -xzvf backup.tar.gz' },
+    { command: 'zip -r', category: 'Archives & Compression', description: 'Creates a compressed Zip archive folder recursively', usage: 'zip -r backup.zip ./src' },
+    { command: 'unzip', category: 'Archives & Compression', description: 'Extracts files from a Zip compressed archive', usage: 'unzip backup.zip' },
+    { command: 'gzip', category: 'Archives & Compression', description: 'Compresses a file into .gz format, deleting the original file', usage: 'gzip data.txt' },
+    { command: 'gunzip', category: 'Archives & Compression', description: 'Decompress files compressed in .gz format back to raw formats', usage: 'gunzip data.txt.gz' },
   ],
   3: [
-    { command: 'ip', category: 'Networking', description: 'Replaces legacy ifconfig. Inspects IP addresses, interfaces, and routes', usage: 'ip addr show' },
-    { command: 'ping', category: 'Networking', description: 'Tests network layer connectivity to a remote host', usage: 'ping -c 4 8.8.8.8' },
-    { command: 'ss', category: 'Networking', description: 'Replaces netstat. Audits active network sockets and open ports', usage: 'ss -tulnp' },
+    { command: '>', category: 'Redirection & Pipes', description: 'Redirects command output to a file, overwriting existing file content', usage: 'echo "hello" > index.html' },
+    { command: '>>', category: 'Redirection & Pipes', description: 'Redirects command output to a file, appending content to the end', usage: 'echo "log line" >> app.log' },
+    { command: '<', category: 'Redirection & Pipes', description: 'Redirects file contents to be used as input for a command', usage: 'mysql database < schema.sql' },
+    { command: '|', category: 'Redirection & Pipes', description: 'Pipes stdout output of one command as the stdin input to another command', usage: 'cat /etc/passwd | grep "bash"' },
+    { command: '2>', category: 'Redirection & Pipes', description: 'Redirects stderr error output to a log file', usage: 'run_app 2> errors.log' },
+    { command: '&', category: 'Redirection & Pipes', description: 'Runs the preceding command in the background, freeing the shell', usage: 'node server.js &' },
+    { command: '&&', category: 'Redirection & Pipes', description: 'Conditional execution: runs the next command only if the first succeeds (exit 0)', usage: 'npm run build && npm run start' },
+    { command: '||', category: 'Redirection & Pipes', description: 'Conditional execution: runs the next command only if the first fails (exit non-zero)', usage: 'ping -c 1 host || echo "Host is offline"' },
+    { command: 'ip addr', category: 'Networking', description: 'Inspects IP addresses, network interfaces, and operational states', usage: 'ip addr show' },
+    { command: 'ifconfig', category: 'Networking', description: 'Legacy network configuration tool to view active interfaces and IPs', usage: 'ifconfig' },
+    { command: 'ping', category: 'Networking', description: 'Tests network layer connectivity to a remote host/IP', usage: 'ping -c 4 8.8.8.8' },
+    { command: 'traceroute', category: 'Networking', description: 'Traces the hops and routers traversed to reach a remote server address', usage: 'traceroute google.com' },
+    { command: 'ss -tulnp', category: 'Networking', description: 'Audits open TCP/UDP listening ports and active socket connections', usage: 'ss -tulnp' },
+    { command: 'netstat -tulnp', category: 'Networking', description: 'Legacy tool to view open ports, socket connections, and process IDs', usage: 'netstat -tulnp' },
     { command: 'curl', category: 'Networking', description: 'Downloads data or interacts with web endpoints/REST APIs', usage: 'curl -I https://api.github.com' },
     { command: 'wget', category: 'Networking', description: 'Downloads files directly from web URLs to the server', usage: 'wget https://example.com/package.tar.gz' },
     { command: 'ssh', category: 'Security', description: 'Connects securely to a remote Linux server via encrypted SSH protocol', usage: 'ssh -i key.pem user@10.0.0.1' },
     { command: 'ssh-keygen', category: 'Security', description: 'Generates a secure SSH public/private key pair', usage: 'ssh-keygen -t ed25519' },
     { command: 'ufw', category: 'Security', description: 'Simplifies firewall management to allow or block port traffic', usage: 'sudo ufw allow 22/tcp && sudo ufw enable' },
     { command: 'visudo', category: 'Security', description: 'Safely edits the /etc/sudoers file to prevent syntax corruption', usage: 'sudo visudo' },
+    { command: 'history', category: 'Miscellaneous', description: 'Displays lists of previously executed terminal commands', usage: 'history | grep "ssh"' },
+    { command: 'clear', category: 'Miscellaneous', description: 'Clears the screen scrollback buffers of the terminal emulator', usage: 'clear' },
+    { command: 'man', category: 'Miscellaneous', description: 'Opens the formal documentation manual pages for a command', usage: 'man ls' },
+    { command: 'alias', category: 'Miscellaneous', description: 'Creates temporary short-alias shortcuts for long commands', usage: 'alias ll="ls -lah"' },
+    { command: 'exit', category: 'Miscellaneous', description: 'Closes the current terminal shell or switches user back', usage: 'exit' },
+    { command: 'reboot', category: 'Miscellaneous', description: 'Restarts the host server operating system immediately', usage: 'sudo reboot' },
+    { command: 'shutdown -h now', category: 'Miscellaneous', description: 'Powers down the computer host server cleanly immediately', usage: 'sudo shutdown -h now' },
   ],
 };
 
@@ -477,7 +535,22 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
   // Modals & Drawers State
   const [activeTerminalCmd, setActiveTerminalCmd] = useState<string | null>(null);
   const [isResourcesOpen, setIsResourcesOpen] = useState(false);
-  const [isReadingMode, setIsReadingMode] = useState(false);
+  const [isReadingMode, setIsReadingMode] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('shaivika_reading_mode');
+      if (saved !== null) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {}
+    return true; // Default to Reading Mode on enter!
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('shaivika_reading_mode', JSON.stringify(isReadingMode));
+    } catch (e) {}
+  }, [isReadingMode]);
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isModulesMenuOpen, setIsModulesMenuOpen] = useState(false);
 
@@ -570,7 +643,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
         setCurrentLessonIdx(path.lessonIdx);
         setCurrentSubtopicIdx(path.subtopicIdx);
         
-        const saved = courseService.getCourseCheckpoint(course.id);
+        const saved = courseService.getCourseCheckpoint(course.id, user?.uid || 'default_student');
         if (saved) {
           if (saved.completedSubtopics?.length) setCompletedSubtopics(saved.completedSubtopics);
           if (saved.completedModules?.length) setCompletedModules(saved.completedModules);
@@ -584,7 +657,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
     }
 
     // 2. Normal checkpoint restoration
-    const saved = courseService.getCourseCheckpoint(course.id);
+    const saved = courseService.getCourseCheckpoint(course.id, user?.uid || 'default_student');
     if (saved) {
       if (typeof saved.lastModuleIdx === 'number') setActiveModuleIdx(saved.lastModuleIdx);
       if (typeof saved.lastLessonIdx === 'number') setCurrentLessonIdx(saved.lastLessonIdx);
@@ -1110,7 +1183,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
         completedModules,
         inProgressSubtopics,
         lastUpdated: new Date().toISOString(),
-      });
+      }, user?.uid || 'default_student');
       if (onProgressUpdate) {
         onProgressUpdate(Math.min(100, Math.max(5, progressPercent)));
       }
@@ -1267,181 +1340,159 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
         : 'bg-slate-50 text-slate-900'
     }`}>
       {/* ----------------- 1. WHITE & SKY BLUE TOP NAVIGATION HEADER ----------------- */}
-      <header className={`h-16 shrink-0 border-b px-3 sm:px-8 flex items-center justify-between gap-2 sm:gap-4 z-10 shadow-xs transition-colors ${
+      <header className={`h-16 shrink-0 border-b px-3 sm:px-6 flex items-center justify-between gap-2 sm:gap-4 z-40 shadow-xs transition-colors ${
         isReadingMode ? 'bg-[#f4efe4] border-[#e2d9c8]' : 'bg-white border-sky-100'
       }`}>
-        <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
-          {/* Mobile Menu Toggle Button (Drawer) */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 rounded-xl bg-sky-50 border border-sky-200 md:hidden text-sky-700 cursor-pointer shrink-0"
-          >
-            <MenuIcon className="w-4 h-4" />
-          </button>
-
-          {/* Desktop/Tablet Collapse Sidebar Toggle Button */}
+        {/* Left Actions & Course Breadcrumb */}
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="hidden md:flex p-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 transition-colors items-center gap-2 text-xs font-bold cursor-pointer shrink-0"
+            className="p-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 transition-all flex items-center gap-1.5 text-xs font-extrabold cursor-pointer shrink-0 active:scale-95"
+            title={sidebarCollapsed ? 'Expand Navigation Sidebar' : 'Collapse Navigation Sidebar'}
           >
             <MenuIcon className="w-4 h-4" />
-            <span className="hidden lg:inline">{sidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}</span>
+            <span className="hidden xl:inline">{sidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}</span>
           </button>
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 transition-colors flex items-center gap-1.5 text-xs font-bold cursor-pointer shrink-0"
+            className="p-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 transition-all flex items-center gap-1.5 text-xs font-extrabold cursor-pointer shrink-0 active:scale-95"
+            title="Exit Course Player"
           >
-            <ChevronLeft className="w-4 h-4" /> <span className="hidden sm:inline">Exit</span>
+            <ChevronLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">Exit</span>
           </button>
 
-          <div className="h-6 w-px bg-sky-200 hidden sm:block shrink-0" />
+          <div className="h-5 w-px bg-sky-200 hidden sm:block shrink-0" />
 
-          <div className="space-y-0.5 min-w-0 flex-1">
-            <h1 className="font-heading font-extrabold text-xs sm:text-sm text-slate-900 truncate max-w-28 xs:max-w-40 sm:max-w-md lg:max-w-xl leading-tight">
+          <div className="min-w-0 flex flex-col justify-center">
+            <h1 className="font-heading font-extrabold text-xs sm:text-sm text-slate-900 truncate max-w-28 xs:max-w-44 sm:max-w-xs md:max-w-sm leading-tight">
               {course.title}
             </h1>
-            <span className="text-[9px] font-bold text-slate-500 block truncate">
-              Category: {course.category}
+            <span className="text-[10px] font-semibold text-slate-500 truncate hidden sm:block">
+              {course.category} • Module 0{activeModuleIdx + 1}
             </span>
-          </div>
-
-          <div className="h-6 w-px bg-sky-200 hidden lg:block shrink-0" />
-
-          {/* Upgraded Animated Progress Tracker */}
-          <div className="hidden lg:flex flex-col gap-1 w-44 lg:w-56 shrink-0">
-            <div className="flex items-center justify-between text-[9px] font-extrabold text-slate-600 uppercase">
-              <span className="text-sky-700">{progressPercent}% Completed</span>
-              <span className="text-emerald-700">{completedLessonsCount}/{allLessons.length} Lessons</span>
-            </div>
-            <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden border border-sky-100/50 relative">
-              <div
-                className="h-full bg-linear-to-r from-sky-500 via-indigo-500 to-emerald-500 rounded-full transition-all duration-700 ease-out"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
-            <div className="flex items-center justify-between text-[8px] font-bold text-slate-400 uppercase">
-              <span>Remaining: {allLessons.length - completedLessonsCount}</span>
-              <span>~{Math.max(0, (allLessons.length - completedLessonsCount) * 5)} mins left</span>
-            </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-          {/* Modules Menu Drawer Button */}
-          <button
-            onClick={() => setIsModulesMenuOpen(true)}
-            className="py-1.5 px-2.5 sm:px-3.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-extrabold flex items-center gap-1.5 cursor-pointer transition-all shadow-md shadow-sky-600/20 shrink-0"
-          >
-            <Layers className="w-4 h-4 text-white" />
-            <span className="hidden sm:inline">Modules Menu</span>
-            <span className="sm:hidden text-[10px]">Modules</span>
-          </button>
+        {/* Center Compact Progress Tracker */}
+        <div className="hidden lg:flex items-center gap-3 px-3 py-1.5 rounded-2xl bg-sky-50/80 border border-sky-100 shrink-0">
+          <div className="w-28 xl:w-36 h-2 bg-slate-200/80 rounded-full overflow-hidden relative">
+            <div
+              className="h-full bg-linear-to-r from-sky-500 via-indigo-500 to-emerald-500 rounded-full transition-all duration-500"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+          <span className="text-[11px] font-extrabold text-sky-900 font-mono">
+            {progressPercent}% <span className="text-slate-400 font-normal font-sans">({completedLessonsCount}/{allLessons.length})</span>
+          </span>
+        </div>
 
-          {/* Reading Mode Toggle Button */}
+        {/* Right Tools & Actions */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Reading Mode Toggle */}
           <button
             onClick={() => {
               setIsReadingMode(!isReadingMode);
               toast.info(isReadingMode ? 'Switched to Sky Blue Theme' : '📖 Sepia Reading Mode Activated!');
             }}
-            className={`py-1.5 px-2.5 sm:px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shrink-0 ${
+            className={`p-2 sm:px-3 sm:py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shrink-0 ${
               isReadingMode
                 ? 'bg-amber-100 border-amber-300 text-amber-900'
                 : 'bg-sky-50 border-sky-200 text-sky-800 hover:bg-sky-100'
             }`}
+            title="Toggle Sepia Reading Mode"
           >
             {isReadingMode ? <Sun className="w-4 h-4 text-amber-600" /> : <Moon className="w-4 h-4 text-sky-600" />}
-            <span className="hidden md:inline">{isReadingMode ? 'Sepia Mode' : 'Reading Mode'}</span>
+            <span className="hidden xl:inline">{isReadingMode ? 'Sepia Mode' : 'Reading Mode'}</span>
           </button>
 
-          {/* Resources Button */}
+          {/* Resources */}
           <button
             onClick={() => setIsResourcesOpen(true)}
-            className="py-1.5 px-2.5 sm:px-3 rounded-xl bg-sky-600 text-white hover:bg-sky-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-sm shrink-0"
+            className="p-2 sm:px-3 sm:py-2 rounded-xl bg-sky-600 text-white hover:bg-sky-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-xs shrink-0"
+            title="Resources"
           >
             <FolderDown className="w-4 h-4" />
             <span className="hidden md:inline">Resources</span>
           </button>
 
-          {/* Bookmark Toggle Icon Button */}
-          <button
-            onClick={handleToggleBookmark}
-            className={`p-2 rounded-xl border transition-all cursor-pointer shrink-0 ${
-              isCurrentSubtopicBookmarked
-                ? 'bg-amber-50 border-amber-300 text-amber-600 shadow-2xs animate-in'
-                : 'bg-slate-50 border-slate-200 text-slate-400 hover:text-slate-600'
-            }`}
-            title={isCurrentSubtopicBookmarked ? 'Remove Bookmark' : 'Bookmark this Lesson'}
-          >
-            <Bookmark className={`w-4 h-4 ${isCurrentSubtopicBookmarked ? 'fill-amber-500 text-amber-500' : ''}`} />
-          </button>
-
-          {/* Notes & Bookmarks Toggle Button */}
+          {/* Notes Button */}
           <button
             onClick={() => {
               setIsNotesPanelOpen(!isNotesPanelOpen);
               setIsAiPanelOpen(false);
             }}
-            className={`py-1.5 px-2.5 sm:px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shrink-0 ${
+            className={`p-2 sm:px-3 sm:py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shrink-0 ${
               isNotesPanelOpen
                 ? 'bg-sky-100 border-sky-300 text-sky-800'
                 : 'bg-white border-sky-200 text-slate-700 hover:bg-sky-50'
             }`}
+            title="Toggle Personal Notes"
           >
             <BookOpen className="w-4 h-4 text-sky-600" />
-            <span className="hidden lg:inline">Notes</span>
-            {bookmarks.length > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full bg-amber-100 border border-amber-200 text-amber-800 text-[9px] font-extrabold leading-none">
-                {bookmarks.length}
-              </span>
-            )}
+            <span className="hidden md:inline">Notes</span>
           </button>
 
-          {/* AI Learning Assistant Toggle Button */}
+          {/* AI Tutor */}
           <button
             onClick={() => {
               setIsAiPanelOpen(!isAiPanelOpen);
               setIsNotesPanelOpen(false);
               setIsQuizPortalOpen(false);
             }}
-            className={`py-1.5 px-2.5 sm:px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shrink-0 ${
+            className={`p-2 sm:px-3 sm:py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shrink-0 ${
               isAiPanelOpen
-                ? 'bg-emerald-600 border-emerald-600 text-white shadow-md shadow-emerald-600/20'
-                : 'bg-emerald-50 border-emerald-200/80 text-emerald-800 hover:bg-emerald-100'
+                ? 'bg-emerald-600 border-emerald-600 text-white shadow-md'
+                : 'bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100'
             }`}
-            title="Toggle AI Tutor Companion"
+            title="AI Study Assistant"
           >
-            <Sparkles className={`w-4 h-4 ${isAiPanelOpen ? 'text-white' : 'text-emerald-600'} animate-pulse`} />
-            <span className="hidden sm:inline">AI Tutor</span>
+            <Sparkles className="w-4 h-4" />
+            <span className="hidden md:inline">AI Tutor</span>
           </button>
 
-          {/* AI Quiz Generator Toggle Button */}
+          {/* Bookmark Button */}
+          <button
+            onClick={handleToggleBookmark}
+            className={`p-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shrink-0 ${
+              isCurrentSubtopicBookmarked
+                ? 'bg-amber-100 border-amber-300 text-amber-900'
+                : 'bg-white border-sky-200 text-slate-700 hover:bg-sky-50'
+            }`}
+            title={isCurrentSubtopicBookmarked ? 'Remove Bookmark' : 'Bookmark this Subtopic'}
+          >
+            <Bookmark className={`w-4 h-4 ${isCurrentSubtopicBookmarked ? 'fill-amber-500 text-amber-500' : 'text-sky-600'}`} />
+          </button>
+
+          {/* AI Quiz Toggle Button */}
           <button
             onClick={() => {
               setIsQuizPortalOpen(!isQuizPortalOpen);
               setIsAiPanelOpen(false);
               setIsNotesPanelOpen(false);
             }}
-            className={`py-1.5 px-2.5 sm:px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shrink-0 ${
+            className={`p-2 sm:px-3 sm:py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shrink-0 ${
               isQuizPortalOpen
-                ? 'bg-purple-600 border-purple-600 text-white shadow-md shadow-purple-600/20'
-                : 'bg-purple-50 border-purple-200/80 text-purple-800 hover:bg-purple-100'
+                ? 'bg-purple-600 border-purple-600 text-white shadow-md'
+                : 'bg-purple-50 border-purple-200 text-purple-800 hover:bg-purple-100'
             }`}
             title="Toggle AI Quiz Generator"
           >
-            <Brain className={`w-4 h-4 ${isQuizPortalOpen ? 'text-white' : 'text-purple-600'}`} />
-            <span className="hidden sm:inline">AI Quiz</span>
+            <Brain className="w-4 h-4" />
+            <span className="hidden xl:inline">AI Quiz</span>
           </button>
 
-          {/* XP Reward Badge */}
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 font-bold text-xs shrink-0">
-            <Zap className="w-3.5 h-3.5 text-amber-500 fill-current animate-bounce" />
+          {/* XP Badge */}
+          <div className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 font-extrabold text-xs shrink-0">
+            <Zap className="w-3.5 h-3.5 text-amber-500 fill-current" />
             <span>{userXP} XP</span>
           </div>
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-slate-100 hover:bg-rose-100 hover:text-rose-700 text-slate-500 transition-colors cursor-pointer shrink-0"
+            className="p-2 rounded-xl hover:bg-rose-100 hover:text-rose-700 text-slate-400 transition-colors cursor-pointer shrink-0"
+            title="Close Course Player"
           >
             <X className="w-5 h-5" />
           </button>
@@ -1859,7 +1910,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                             ) : !isDone ? (
                               <Lock className="w-3.5 h-3.5 text-slate-400" />
                             ) : null}
-                            <span>Subtopic {sub.id}</span>
+                            <span>Subtopic 0{sIdx + 1}</span>
                           </button>
                         );
                       })}
@@ -1879,12 +1930,12 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
                     }`}
                   >
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-sky-100 pb-4">
-                      <div className="space-y-1">
-                        <span className="px-3 py-1 rounded-lg bg-sky-100 border border-sky-200 text-sky-800 text-xs font-extrabold uppercase">
-                          Subtopic {currentSubtopic.id} • Exam & Interview Target
+                      <div className="space-y-1.5 min-w-0 flex-1">
+                        <span className="inline-block px-3 py-1 rounded-lg bg-sky-100 border border-sky-200 text-sky-800 text-xs font-extrabold uppercase">
+                          Subtopic 0{currentSubtopicIdx + 1} • Key Learning Target
                         </span>
-                        <h3 className="font-heading font-extrabold text-lg sm:text-xl text-slate-900">
-                          {currentSubtopic.title}
+                        <h3 className="font-heading font-extrabold text-xl sm:text-2xl text-slate-900 leading-snug">
+                          {currentSubtopic.title.replace(/^(\d+\.\d+\.\d+\s*)/, '')}
                         </h3>
                       </div>
 

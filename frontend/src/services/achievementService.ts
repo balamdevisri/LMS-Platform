@@ -8,9 +8,14 @@ export interface Certificate {
   courseId: string;
   courseTitle: string;
   studentName: string;
+  studentId?: string;
   instructorName: string;
   completionDate: string;
   verificationId: string;
+  courseDuration?: string;
+  modulesCount?: number;
+  score?: number;
+  googleDriveLink?: string;
 }
 
 export interface Badge {
@@ -357,7 +362,10 @@ export class CertificateService {
     courseTitle: string,
     instructorName: string,
     studentName: string,
-    userId = 'default_student'
+    userId = 'default_student',
+    studentId = 'STU-9921',
+    courseDuration = '24 Hours',
+    modulesCount = 8
   ): Certificate {
     const certs = this.getCertificates(userId);
     const existing = certs.find(c => c.courseId === courseId);
@@ -375,9 +383,13 @@ export class CertificateService {
       courseId,
       courseTitle,
       studentName,
+      studentId: studentId || 'STU-' + verificationId.substring(3),
       instructorName,
       completionDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
-      verificationId
+      verificationId,
+      courseDuration,
+      modulesCount,
+      score: 100
     };
 
     certs.push(newCert);
@@ -388,6 +400,16 @@ export class CertificateService {
     statService.incrementStat('coursesCompleted', 1, userId);
 
     return newCert;
+  }
+  saveExternalCertificate(userId: string, cert: Certificate): void {
+    const certs = this.getCertificates(userId);
+    const index = certs.findIndex(c => c.courseId === cert.courseId);
+    if (index >= 0) {
+      certs[index] = { ...certs[index], ...cert };
+    } else {
+      certs.push(cert);
+    }
+    localStorage.setItem(`${this.certKeyPrefix}${userId}`, JSON.stringify(certs));
   }
 
   checkEligibilityAndGenerate(coursesProgress: any[], studentName: string, userId = 'default_student'): Certificate[] {

@@ -25,6 +25,8 @@ export interface StudentUser extends UserProfile {
 
 const LOCAL_STORAGE_KEY = 'shaivika_realtime_students_v3';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 const DEFAULT_STUDENTS: StudentUser[] = [];
 
 class StudentService {
@@ -36,8 +38,7 @@ class StudentService {
       id === 'st_102' ||
       id === 'st_103' ||
       email === 'priya.sharma@shaivika.ai' ||
-      email === 'alex.chen@shaivika.ai' ||
-      email === 'bhanuprakashachari5092@gmail.com'
+      email === 'alex.chen@shaivika.ai'
     );
   }
 
@@ -213,24 +214,19 @@ class StudentService {
     if (!db) return currentLocal;
 
     try {
-      const usersRef = collection(db, 'users');
-      const querySnapshot = await getDocs(usersRef);
+      const studentsRef = collection(db, 'students');
+      const querySnapshot = await getDocs(studentsRef);
       const firestoreStudents: StudentUser[] = [];
 
       querySnapshot.forEach((docSnap: any) => {
         const data = docSnap.data();
-        const role = (data.role || 'student').toLowerCase();
-
-        if (role !== 'admin' && role !== 'instructor') {
-          firestoreStudents.push(this.normalizeStudentData({ ...data, id: docSnap.id, uid: docSnap.id }));
-        }
+        firestoreStudents.push(this.normalizeStudentData({ ...data, id: docSnap.id, uid: docSnap.id }));
       });
 
       const combinedMap = new Map<string, StudentUser>();
-      firestoreStudents.forEach((st) => combinedMap.set((st.email || st.id).toLowerCase(), st));
+      firestoreStudents.forEach((st) => combinedMap.set(st.id, st));
       currentLocal.forEach((st) => {
-        const key = (st.email || st.id).toLowerCase();
-        if (!combinedMap.has(key)) combinedMap.set(key, st);
+        if (!combinedMap.has(st.id)) combinedMap.set(st.id, st);
       });
 
       const finalStudents = Array.from(combinedMap.values()).sort((a, b) => {
@@ -278,32 +274,26 @@ class StudentService {
     }
 
     try {
-      const usersRef = collection(db, 'users');
+      const studentsRef = collection(db, 'students');
       const unsubscribe = onSnapshot(
-        usersRef,
+        studentsRef,
         (snapshot) => {
           const firestoreStudents: StudentUser[] = [];
           
           snapshot.forEach((docSnap) => {
             const data = docSnap.data();
-            const role = (data.role || 'student').toLowerCase();
-
-            if (role !== 'admin' && role !== 'instructor') {
-              firestoreStudents.push(this.normalizeStudentData({ ...data, id: docSnap.id, uid: docSnap.id }));
-            }
+            firestoreStudents.push(this.normalizeStudentData({ ...data, id: docSnap.id, uid: docSnap.id }));
           });
 
           const currentLocal = this.getLocalStudents();
           const combinedMap = new Map<string, StudentUser>();
 
-          firestoreStudents.forEach((st) => combinedMap.set((st.email || st.id).toLowerCase(), st));
+          firestoreStudents.forEach((st) => combinedMap.set(st.id, st));
           currentLocal.forEach((st) => {
-            const key = (st.email || st.id).toLowerCase();
-            if (!combinedMap.has(key)) combinedMap.set(key, st);
+            if (!combinedMap.has(st.id)) combinedMap.set(st.id, st);
           });
           DEFAULT_STUDENTS.forEach((st) => {
-            const key = (st.email || st.id).toLowerCase();
-            if (!combinedMap.has(key)) combinedMap.set(key, st);
+            if (!combinedMap.has(st.id)) combinedMap.set(st.id, st);
           });
 
           const finalStudents = Array.from(combinedMap.values()).sort((a, b) => {
@@ -562,7 +552,7 @@ class StudentService {
 
     // 3. Parallel asynchronous backend & Firestore deletion (non-blocking)
     const deleteTasks: Promise<any>[] = [
-      fetch(`/api/admin/student/${id}`, { method: 'DELETE' }).catch(() => null),
+      fetch(`${API_BASE_URL}/admin/student/${id}`, { method: 'DELETE' }).catch(() => null),
     ];
 
     if (db && id) {
@@ -591,7 +581,7 @@ class StudentService {
     // 1. Try Backend Express API endpoint (attempts both proxy /api and direct http://localhost:5000/api)
     const backendUrls = [
       'http://localhost:5000/api/auth/register-student',
-      '/api/auth/register-student',
+      `${API_BASE_URL}/auth/register-student`,
     ];
 
     for (const apiUrl of backendUrls) {
@@ -652,7 +642,7 @@ class StudentService {
 
         // Dispatch Email via Nodemailer SMTP Backend Engine (Firebase Default Emails Disabled)
         try {
-          await fetch('/api/email/send', {
+          await fetch(`${API_BASE_URL}/email/send`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -718,13 +708,15 @@ class StudentService {
       overallAIScore: Math.min(100, 50 + ((ghProfile?.public_repos || 0) * 2)),
     };
 
-    // Store in Firestore students & users collection
+    // Store ONLY in central `users` collection (single source of truth)
     if (db) {
       try {
-        await setDoc(doc(db, 'students', uid), studentData);
-        await setDoc(doc(db, 'users', uid), studentData);
-      } catch (fErr) {
-        console.warn('Firestore setDoc notice:', fErr);
+        await setDoc(doc(db, 'users', uid), studentData, { merge: true });
+        await setDoc(doc(db, 'students', uid), studentData, { merge: true });
+        console.log(`[FIRESTORE] Student documents created: users/${uid} & students/${uid}`);
+      } catch (fErr: any) {
+        console.error(`[FIRESTORE REJECTION] Failed writing student documents for ${uid}:`, fErr);
+        throw fErr;
       }
     }
 
@@ -745,7 +737,8 @@ class StudentService {
    */
   async approveStudent(studentId: string) {
     try {
-      const response = await fetch(`/api/users/students/${studentId}/approve`, {
+      // Use correct admin API endpoint
+      const response = await fetch(`${API_BASE_URL}/admin/user/${studentId}/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -763,14 +756,13 @@ class StudentService {
       console.warn('API approve notice:', e);
     }
 
-    // Client fallback
+    // Client fallback — write ONLY to users collection
     const current = this.getLocalStudents();
     const targetIdx = current.findIndex((s) => s.id === studentId || s.uid === studentId);
     if (targetIdx !== -1) {
       current[targetIdx] = { ...current[targetIdx], status: 'approved', isActive: true };
       this.saveLocalStudents(current);
       if (db) {
-        await updateDoc(doc(db, 'students', studentId), { status: 'approved', approvedAt: new Date().toISOString() }).catch(() => null);
         await updateDoc(doc(db, 'users', studentId), { status: 'approved', approvedAt: new Date().toISOString() }).catch(() => null);
       }
     }
@@ -782,7 +774,8 @@ class StudentService {
    */
   async rejectStudent(studentId: string, reason: string) {
     try {
-      const response = await fetch(`/api/users/students/${studentId}/reject`, {
+      // Use correct admin API endpoint
+      const response = await fetch(`${API_BASE_URL}/admin/user/${studentId}/reject`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reason }),
@@ -801,14 +794,13 @@ class StudentService {
       console.warn('API reject notice:', e);
     }
 
-    // Client fallback
+    // Client fallback — write ONLY to users collection
     const current = this.getLocalStudents();
     const targetIdx = current.findIndex((s) => s.id === studentId || s.uid === studentId);
     if (targetIdx !== -1) {
       current[targetIdx] = { ...current[targetIdx], status: 'rejected', isActive: false };
       this.saveLocalStudents(current);
       if (db) {
-        await updateDoc(doc(db, 'students', studentId), { status: 'rejected', rejectionReason: reason, rejectedAt: new Date().toISOString() }).catch(() => null);
         await updateDoc(doc(db, 'users', studentId), { status: 'rejected', rejectionReason: reason, rejectedAt: new Date().toISOString() }).catch(() => null);
       }
     }

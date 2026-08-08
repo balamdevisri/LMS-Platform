@@ -105,3 +105,9 @@ dist
 # OS metadata
 .DS_Store
 Thumbs.db
+
+# Google Drive Service Account Key (Secrets protection)
+backend/config/google-drive.json
+**/config/google-drive.json
+*.json.secret
+

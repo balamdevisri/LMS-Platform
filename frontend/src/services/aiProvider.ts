@@ -11,14 +11,15 @@ export interface LessonSummary {
   commonMistakes: string[];
   revisionNotes: string[];
   learningObjectives: string[];
+  formulaSheet?: string[];
 }
 
 export interface PracticeQuestion {
   id: string;
-  type: 'mcq' | 'short_answer' | 'coding' | 'scenario';
+  type: 'mcq' | 'tf' | 'fib' | 'coding' | 'scenario';
   difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
   question: string;
-  options?: string[]; // only for mcq
+  options?: string[]; // for mcq & tf
   answer: string;
   explanation: string;
 }
@@ -35,6 +36,20 @@ export interface SmartRecommendations {
   nextLessons: Array<{ id: string; title: string }>;
   relatedTopics: string[];
   practiceSuggestions: string[];
+}
+
+export interface AIFlashcard {
+  id: string;
+  term: string;
+  definition: string;
+}
+
+export interface WeakTopicItem {
+  topic: string;
+  score: number;
+  timeSpentMins: number;
+  struggleReason: string;
+  remedyAction: string;
 }
 
 export interface AIProvider {
@@ -56,16 +71,23 @@ export interface AIProvider {
   ): Promise<string>;
 
   generateSummary(lessonId: string, lessonTitle: string, content: string): Promise<LessonSummary>;
-
   generatePracticeQuestions(lessonId: string, lessonTitle: string, content: string): Promise<PracticeQuestion[]>;
-
   generateInterviewPrep(lessonId: string, lessonTitle: string, content: string): Promise<InterviewPrepQuestion[]>;
-
   generateRecommendations(
     lessonId: string,
     lessonTitle: string,
     completedUnitIds: string[]
   ): Promise<SmartRecommendations>;
+  
+  // Newly Added Capabilities
+  generateTeluguExplanation(lessonTitle: string, content: string): Promise<string>;
+  generateEnglishExplanation(lessonTitle: string, content: string): Promise<string>;
+  generateBeginnerExplanation(lessonTitle: string, content: string): Promise<string>;
+  generateAdvancedExplanation(lessonTitle: string, content: string): Promise<string>;
+  generateExamplesExplanation(lessonTitle: string, content: string): Promise<string>;
+  generateFlashcards(lessonId: string, lessonTitle: string): Promise<AIFlashcard[]>;
+  generateQuizByType(lessonId: string, lessonTitle: string, type: 'mcq' | 'tf' | 'fib' | 'coding'): Promise<PracticeQuestion[]>;
+  getWeakTopicAnalysis(userId: string): Promise<WeakTopicItem[]>;
 }
 
 class MockAIProvider implements AIProvider {
@@ -85,287 +107,303 @@ class MockAIProvider implements AIProvider {
       lessonContent?: string;
     }
   ): Promise<string> {
-    // Simulate thinking delay
     await new Promise((resolve) => setTimeout(resolve, 800));
 
     const query = message.toLowerCase().trim();
     const topic = context.lessonTitle || 'the lesson';
 
-    // Code Review Intercepts
     const lastCode = typeof window !== 'undefined' ? localStorage.getItem('shaivika_last_active_code') : null;
     const lastLang = typeof window !== 'undefined' ? localStorage.getItem('shaivika_last_active_language') || 'javascript' : 'javascript';
 
+    // Practice Lab code overrides
     if (query.includes('explain my code') || query.includes('explain code')) {
-      if (!lastCode) return "I couldn't find any code in your Practice Lab. Please write or load some code in the Practice Lab editor first!";
-      return `### AI Code Explanation (Language: ${lastLang.toUpperCase()})\n\nHere is a review of your code in the editor:\n\n\`\`\`${lastLang}\n${lastCode}\n\`\`\`\n\n1. **Structure**: Your code correctly implements the base solution interface.\n2. **Logic Flow**: It processes input values linearly or using loops.\n3. **Return Value**: The parsed output is compiled and returned.\n\nLet me know if you want to find bugs or optimize this code!`;
+      if (!lastCode) return "I couldn't find any active code in your Practice Lab. Try writing or loading some code first!";
+      return `### AI Code Review (${lastLang.toUpperCase()})\n\n\`\`\`${lastLang}\n${lastCode}\n\`\`\`\n\n1. **Architecture**: Implements clean algorithmic modular components.\n2. **Flow**: Linear parameter mapping and loop validations.\n\nLet me know if you would like me to optimize this code or find bugs!`;
     }
 
-    if (query.includes('find bugs') || query.includes('bugs in my code') || query.includes('bug in my code')) {
-      if (!lastCode) return "I couldn't find any code in your Practice Lab. Please write or load some code in the Practice Lab editor first!";
-      return `### AI Bug Finder (${lastLang.toUpperCase()})\n\nAnalyzing code for bugs:\n\n\`\`\`${lastLang}\n${lastCode}\n\`\`\`\n\n1. **Validation Checks**: Ensure your parameters handle empty or undefined values.\n2. **Boundary Checks**: Check if loop indexes are off-by-one.\n3. **Syntax**: Ensure all matching brackets and brackets are closed.`;
+    if (query.includes('find bugs') || query.includes('bugs in my code')) {
+      if (!lastCode) return "No code detected. Please write code in the Practice Lab editor.";
+      return `### AI Bug Inspection (${lastLang.toUpperCase()})\n\n\`\`\`${lastLang}\n${lastCode}\n\`\`\`\n\n- **Edge cases**: Verify your null/empty constraints.\n- **Syntax check**: All statements are closed. No active syntactic errors detected.`;
     }
 
-    if (query.includes('suggest optimizations') || query.includes('optimize my code') || query.includes('optimization')) {
-      if (!lastCode) return "I couldn't find any code in your Practice Lab. Please write or load some code in the Practice Lab editor first!";
-      return `### AI Optimizations Suggestions (${lastLang.toUpperCase()})\n\nReviewing performance optimizations:\n\n\`\`\`${lastLang}\n${lastCode}\n\`\`\`\n\n- **Loop Allocations**: Avoid re-instantiating heavy variables inside loops.\n- **Return Fast**: Return results immediately when a condition fails to save cycles.`;
-    }
-
-    if (query.includes('improve readability') || query.includes('readability')) {
-      if (!lastCode) return "I couldn't find any code in your Practice Lab. Please write or load some code in the Practice Lab editor first!";
-      return `### AI Readability Analysis (${lastLang.toUpperCase()})\n\nReviewing naming and structure formatting:\n\n- Use descriptive parameter names.\n- Add helper comments documenting loops or logical assumptions.`;
-    }
-
-    if (query.includes('improve performance') || query.includes('performance')) {
-      if (!lastCode) return "I couldn't find any code in your Practice Lab. Please write or load some code in the Practice Lab editor first!";
-      return `### AI Performance Analysis (${lastLang.toUpperCase()})\n\n- Ensure execution scales linearly O(N).\n- Bypass unneeded operations.`;
+    if (query.includes('suggest optimizations') || query.includes('optimize my code')) {
+      if (!lastCode) return "No code detected to optimize.";
+      return `### AI Code Optimizations (${lastLang.toUpperCase()})\n\n- **Pre-allocation**: Allocate static array sizes beforehand to reduce GC cycles.\n- **Exit early**: Stop loop execution once your match criteria are satisfied.`;
     }
 
     if (query.includes('time complexity')) {
-      if (!lastCode) return "I couldn't find any code in your Practice Lab. Please write or load some code in the Practice Lab editor first!";
-      return `### AI Complexity: Time Complexity (${lastLang.toUpperCase()})\n\nYour code runs in **O(N)** linear time. Scalability is optimal for processing standard inputs.`;
+      return `### AI Time Complexity\n\nYour current solution processes inputs in **O(N)** linear complexity.`;
     }
 
     if (query.includes('space complexity')) {
-      if (!lastCode) return "I couldn't find any code in your Practice Lab. Please write or load some code in the Practice Lab editor first!";
-      return `### AI Complexity: Space Complexity (${lastLang.toUpperCase()})\n\nYour solution runs in **O(1)** auxiliary space if output collections are excluded, or **O(N)** for returned arrays.`;
+      return `### AI Space Complexity\n\nYour current solution operates with **O(1)** auxiliary space.`;
     }
 
-    // 1. Check for specific quick triggers
+    // Contextual responses
     if (query.includes('explain this lesson') || query.includes('explain the lesson')) {
-      return `Here is a detailed explanation of "**${topic}**":\n\nThis lesson covers core concepts in ${context.courseTitle}. In systems engineering, understanding the configuration paradigms and execution sequences is crucial. \n\nKey takeaways include:\n1. Establishing proper permissions and settings.\n2. Running diagnostic tests using local sandboxes.\n3. Analyzing output streams for error logs.\n\nWould you like me to go deeper into any particular system call, permission settings, or configurations?`;
+      return `### Lesson Breakdown: **${topic}**\n\nThis lesson introduces core paradigms of **${context.courseTitle}**.\n\nKey Concepts:\n1. **Setup Rules**: Ensure directory parameters are correctly initialized.\n2. **Diagnostic Telemetry**: Run commands inside simulated terminals.\n3. **Safety Verification**: Ensure proper permissions are assigned.\n\nWould you like me to translate this to Telugu or show real-world examples?`;
     }
 
-    if (query.includes('simplify this topic') || query.includes('simplify')) {
-      return `Let's break down "**${topic}**" into simple terms using an analogy:\n\nThink of the system as a secure library. \n- The **Kernel** is the library headquarter vault where the books are stored.\n- The **System Call** is the request form you write to borrow a book.\n- The **Shell** is the receptionist who translates your plain English request into the vault's numeric code.\n- The **User space** is the reading room where you get to browse.\n\nThis division ensures that readers don't accidentally walk into the vault and mess up the filing system!`;
+    if (query.includes('telugu') || query.includes('te')) {
+      return await this.generateTeluguExplanation(topic, context.lessonContent || '');
     }
 
-    if (query.includes('real-world examples') || query.includes('real world')) {
-      return `Here are some real-world production use cases of the concepts taught in "**${topic}**":\n\n1. **Automated Server Scaling**: DevOps engineers write automated bash scheduling configurations (` + "`crontab`" + `) to run resource diagnostic checks and spin up backup mirrors.\n2. **Security Audits**: Security teams check log streams to identify unauthorized ssh attempts by parsing logs with search tools like ` + "`grep`" + `.\n3. **Permission Hardening**: Limiting SSH private key access (using ` + "`chmod 600`" + `) prevents other users on a shared machine from extracting keys and gaining remote access.`;
+    if (query.includes('simplify') || query.includes('beginner')) {
+      return await this.generateBeginnerExplanation(topic, context.lessonContent || '');
     }
 
-    if (query.includes('what should i learn next') || query.includes('learn next')) {
-      return `Based on your progress in **${context.courseTitle}**, here is your recommended path:\n\n1. **Review**: Check if you have configured permissions or credentials correctly on recent labs.\n2. **Next Milestone**: Dive into automation scripting and daemons. Knowing how to write control flows and manage services makes troubleshooting twice as fast.\n3. **Practical Challenge**: Launch the terminal sandbox and write a loop script that monitors background process signals.`;
+    if (query.includes('advanced')) {
+      return await this.generateAdvancedExplanation(topic, context.lessonContent || '');
     }
 
-    // 2. Check general educational queries
-    if (query.includes('react hooks') || query.includes('react hook')) {
-      return `**React Hooks** (introduced in React 16.8) are functions that let you "hook into" React state and lifecycle features from function components. They eliminate the need for class components.\n\n**Common Hooks**:\n- ` + "`useState`" + `: Preserves state values across renders.\n- ` + "`useEffect`" + `: Handles side effects (fetching data, listening to events, subscriptions).\n- ` + "`useContext`" + `: Consumes values from React Context.\n- ` + "`useMemo`" + ` / ` + "`useCallback`" + `: Cache calculations and functions for performance optimization.`;
+    if (query.includes('example') || query.includes('real world')) {
+      return await this.generateExamplesExplanation(topic, context.lessonContent || '');
     }
 
-    if (query.includes('dependency injection')) {
-      return `**Dependency Injection (DI)** is a software design pattern where an object receives other objects (dependencies) that it helper-relies on, rather than instantiating them internally.\n\n**Benefits**:\n- **Decoupling**: Classes don't need to know how to construct their dependencies.\n- **Testability**: You can easily inject mock implementations (like this MockAIProvider!) during testing.\n- **Maintainability**: Swapping concrete classes (e.g., switching from Local Storage to Firestore) requires editing only the config binder, not the workspace pages.`;
-    }
-
-    if (query.includes('algorithm') && (query.includes('o(n log n)') || query.includes('log'))) {
-      return `An algorithm with a time complexity of **O(n log n)** represents a logarithmic linear complexity. It is the gold standard for sorting algorithms.\n\n**How it works**:\n- The **log n** part comes from a divide-and-conquer approach, dividing the problem in half at each step (e.g., binary tree height).\n- The **n** part comes from doing linear work at each level of the tree (e.g., merging sorted lists).\n\n**Examples**:\n- Merge Sort\n- Quick Sort (average case)\n- Heap Sort`;
-    }
-
-    if (query.includes('shebang') || query.includes('#!/bin/bash')) {
-      return `The shebang (\`#!/bin/bash\`) at the top of a script is an instruction pointing to the path of the interpreter to run the script. In Linux systems, when you execute a file \`./script.sh\`, the kernel reads the shebang line and invokes \`/bin/bash\` to parse the statements.`;
-    }
-
-    // Default contextual answer
-    return `Regarding your question about "**${message}**" in the context of "**${topic}**":\n\nTo apply this to your studies, remember that system logs, command arguments, and security parameters play a key role. \n\nFor example, if you are working on terminal exercises, ensure you check file ownership settings using \`ls -la\` and edit file permissions using \`chmod\`. \n\nLet me know if you would like me to generate practice questions, summarize the concepts, or provide code examples for this!`;
+    return `Regarding your query about "**${message}**" in the context of "**${topic}**":\n\nWe cover parameter setups, shell diagnostic instructions, and validation scripts.\n\nKey commands to verify:\n- \`ls -la\` to trace file attributes.\n- \`chmod\` to handle security parameters.\n\nLet me know if you would like me to compile notes, flashcards, or a practice quiz for this topic!`;
   }
 
-  async generateSummary(lessonId: string, lessonTitle: string, _content: string): Promise<LessonSummary> {
+  async generateTeluguExplanation(lessonTitle: string, _content: string): Promise<string> {
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    return `### 🌟 తెలుగులో వివరణ (Telugu Explanation) - **${lessonTitle}**\n\nనమస్కారం! ఈ పాఠాన్ని మన తెలుగు భాషలో సులభంగా అర్థం చేసుకుందాం:\n\n1. **ముఖ్యమైన భావన (Core Concept)**: ఈ టాపిక్ మన సిస్టమ్స్ లేదా ప్రోగ్రామింగ్ యొక్క పునాదిని వివరిస్తుంది. \n2. **ఎలా పనిచేస్తుంది (How it Works)**:\n   - యూజర్ ఇచ్చే ఇన్పుట్ లేదా కమాండ్ను సిస్టమ్ అర్థం చేసుకుని, ప్రాసెస్ చేస్తుంది.\n   - కమాండ్ లైన్ (\`CLI\`) ఉపయోగించి మనం సిస్టమ్తో వేగంగా సంభాషించవచ్చు.\n3. **నిజ జీవిత ఉదాహరణ (Real-world Example)**: మనం ఒక బ్యాంకు కౌంటర్కు వెళ్లి రిక్వెస్ట్ ఫామ్ ఇచ్చినట్లు, సిస్టమ్ కాల్ కూడా ఓఎస్ కెర్నల్కు అభ్యర్థనను పంపుతుంది.\n\nమీకు ఇంకా ఏదైనా సందేహం ఉంటే అడగండి, నేను సహాయం చేస్తాను!`;
+  }
+
+  async generateEnglishExplanation(lessonTitle: string, _content: string): Promise<string> {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    return `### 📘 English Explanation - **${lessonTitle}**\n\nHere is a clear and professional conceptual overview of **${lessonTitle}**:\n\n1. **Primary Intent**: Establishes structural guidelines and processes for this syllabus area.\n2. **Execution Process**: Requests are captured, validated, and translated into system execution sequences.\n3. **Best Practices**: Keep scripts modular, restrict security contexts, and verify execution output codes regularly.`;
+  }
+
+  async generateBeginnerExplanation(lessonTitle: string, _content: string): Promise<string> {
+    await new Promise((resolve) => setTimeout(resolve, 550));
+    return `### 👶 Beginner Mode: Simple Analogy for **${lessonTitle}**\n\nLet's keep it simple! Imagine you are at a restaurant:\n- **You** are the customer (User Space).\n- **The Waiter** is the translator (Shell / System Call).\n- **The Kitchen** is the locked vault where the food is prepared (Kernel / Operating System).\n\nYou cannot go directly into the kitchen to make food. You tell the waiter what you want, and the waiter safely fetches it from the kitchen. This is exactly how user programs request data from the OS kernel!`;
+  }
+
+  async generateAdvancedExplanation(lessonTitle: string, _content: string): Promise<string> {
+    await new Promise((resolve) => setTimeout(resolve, 650));
+    return `### 🚀 Advanced Mode: Deep Dive Architecture for **${lessonTitle}**\n\nAnalyzing micro-architecture mechanics:\n- **Privilege Transition**: Transfers control from ring 3 to ring 0 via software trap vectors (\`int 0x80\` or \`syscall\` instruction).\n- **Context Saving**: CPU registers are saved to the kernel stack.\n- **Vector Dispatch**: The system call handler queries the syscall dispatch table to find the requested function pointer.\n- **MMU Isolation**: Ensures memory pages remain strictly bounded between virtual spaces.`;
+  }
+
+  async generateExamplesExplanation(lessonTitle: string, _content: string): Promise<string> {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    return `### 💡 Practical Real-World Examples - **${lessonTitle}**\n\n1. **Cloud Orchestration**: Automating micro-instance checks using bash scripts that run telemetry monitoring commands.\n2. **Security Audits**: Scanning authentication authorization access logs with tools like \`grep\` or \`awk\` to find failed logins.\n3. **Storage Quota Enforcement**: Creating user permissions and directory access rights to prevent data corruption.`;
+  }
+
+  async generateSummary(_lessonId: string, lessonTitle: string, _content: string): Promise<LessonSummary> {
     await new Promise((resolve) => setTimeout(resolve, 500));
     
-    // Custom summaries for key lessons
-    if (lessonId === '1.1.3' || lessonTitle.toLowerCase().includes('concentric')) {
-      return {
-        keyConcepts: [
-          'Concentric Layered Security Rings: Hardware, Kernel, Shell, User space.',
-          'System Calls (Syscalls): The protected bridge between User programs and the Kernel.',
-          'Kernel Mode vs User Mode execution privilege rings.'
-        ],
-        importantPoints: [
-          'The Kernel executes in Ring 0 with raw hardware permissions.',
-          'User utilities (like browsers or text editors) run in Ring 3 with restricted access.',
-          'The Shell acts as the command line translator, converting string arguments into binary actions.'
-        ],
-        commonMistakes: [
-          'Confusing the Shell for the Kernel: The shell is just a user program, not the core operating system.',
-          'Writing programs that bypass syscall vectors: Direct hardware access is blocked by CPU privilege levels.'
-        ],
-        revisionNotes: [
-          'Run `strace -c` on any command to view the count and duration of system calls executed.',
-          'User applications call libc library functions, which in turn trigger actual assembly-level syscall instructions.'
-        ],
-        learningObjectives: [
-          'Map the 4 layers of typical Linux OS architectures.',
-          'Explain how user space instructions request kernel assistance.',
-          'Perform diagnostic traces on common system commands.'
-        ]
-      };
-    }
-
-    // Default template-based summaries
     return {
       keyConcepts: [
-        `Core principles of ${lessonTitle}.`,
-        'Structuring correct configurations and commands.',
-        'Analyzing outcomes and system outputs.'
+        `Core architectures of ${lessonTitle}.`,
+        'Safe parameter values and system directory hierarchies.',
+        'Analyzing standard outputs and diagnosing error exceptions.'
       ],
       importantPoints: [
-        'Always verify syntax arguments before executing scripts.',
-        'Proper execution context requires checking system directories.',
-        'Local changes should be staged, committed, and monitored.'
+        'Always check permissions using ls -la before executing local shell scripts.',
+        'Redirect stderr streams using 2> to log error files separately.',
+        'Staging and committing files helps maintain clean version histories.'
       ],
       commonMistakes: [
-        'Running scripts with root privileges unnecessarily.',
-        'Neglecting to review error output streams (stderr).'
+        'Bypassing system call interfaces unnecessarily.',
+        'Executing shell scripts with elevated sudo permissions unless required.'
       ],
       revisionNotes: [
-        'Consult man pages (e.g. `man grep`) to inspect options flags.',
-        `Review the prompt description guidelines for ${lessonTitle}.`
+        'Run man <command> (e.g. man chmod) to look up options and parameters.',
+        'Inspect trace logs with strace to audit system requests.'
       ],
       learningObjectives: [
-        `Understand the fundamental concepts of ${lessonTitle}.`,
-        'Apply configuration settings correctly in local systems.',
-        'Troubleshoot environment or parameter divergences.'
+        `Identify system calls and layer boundaries in ${lessonTitle}.`,
+        'Verify configurations using local virtual terminal sandboxes.',
+        'Troubleshoot network parameters and script loops.'
+      ],
+      formulaSheet: [
+        'DAC Permissions Octal Model: Read (4) + Write (2) + Execute (1)',
+        'Redirections: > (Overwrite), >> (Append), 2> (Error redirect), &> (All outputs)',
+        'Git Cycle: git add (Index) -> git commit (Local DB) -> git push (Remote server)'
       ]
     };
   }
 
-  async generatePracticeQuestions(lessonId: string, lessonTitle: string, _content: string): Promise<PracticeQuestion[]> {
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    if (lessonId === '1.1.3' || lessonTitle.toLowerCase().includes('concentric')) {
-      return [
-        {
-          id: 'q_1',
-          type: 'mcq',
-          difficulty: 'Beginner',
-          question: 'In which CPU execution ring does the Linux Kernel run?',
-          options: ['Ring 3', 'Ring 1', 'Ring 0', 'Ring 2'],
-          answer: 'Ring 0',
-          explanation: 'The Kernel executes in Ring 0 (Supervisor Mode) where it has unrestricted access to CPU instructions and system memory.'
-        },
-        {
-          id: 'q_2',
-          type: 'coding',
-          difficulty: 'Intermediate',
-          question: 'Write a basic shell command to trace system calls and count them for the execution of "ls -la".',
-          answer: 'strace -c ls -la',
-          explanation: 'The `strace` tool is used to trace system calls. The `-c` flag summarizes the counts, errors, and timing of each syscall.'
-        },
-        {
-          id: 'q_3',
-          type: 'scenario',
-          difficulty: 'Advanced',
-          question: 'An application is trying to write to a log file but fails with "Operation not permitted" despite having correct write permissions. What kernel security layer might be blocking this?',
-          answer: 'SELinux or AppArmor MAC rules',
-          explanation: 'Even with standard DAC permissions, Mandatory Access Control (MAC) layers like SELinux or AppArmor can block operations on specific paths.'
-        }
-      ];
-    }
+  async generatePracticeQuestions(_lessonId: string, lessonTitle: string, _content: string): Promise<PracticeQuestion[]> {
+    await new Promise((resolve) => setTimeout(resolve, 600));
 
     return [
       {
         id: 'pq_1',
         type: 'mcq',
         difficulty: 'Beginner',
-        question: `What is the primary objective of ${lessonTitle}?`,
-        options: ['Automating system setup', 'Configuring parameters', 'Understanding core concepts', 'Replacing local databases'],
-        answer: 'Understanding core concepts',
-        explanation: 'Familiarizing yourself with core concepts is the foundation for successfully configuring local settings.'
+        question: `What is the primary utility of ${lessonTitle}?`,
+        options: ['Automating workflows', 'Understanding key architectures', 'Consuming network data', 'Structuring file metadata'],
+        answer: 'Understanding key architectures',
+        explanation: 'Acquiring an architectural understanding is the first step towards configuring safe system environments.'
       },
       {
         id: 'pq_2',
-        type: 'short_answer',
+        type: 'tf',
+        difficulty: 'Beginner',
+        question: `True or False: System commands run in Ring 0 supervisor mode at all times.`,
+        options: ['True', 'False'],
+        answer: 'False',
+        explanation: 'User space utilities run in Ring 3 (restricted mode). Only the core kernel runs in Ring 0 supervisor mode.'
+      },
+      {
+        id: 'pq_3',
+        type: 'fib',
         difficulty: 'Intermediate',
-        question: `How should you verify that configurations for ${lessonTitle} are correct?`,
-        answer: 'Run local test scripts and inspect output streams.',
-        explanation: 'Inspecting outputs and diagnostics is the best way to verify system parameters.'
+        question: `The command used to alter file and directory permissions in Linux is ______.`,
+        answer: 'chmod',
+        explanation: 'The `chmod` command (change mode) modifies permission access rights for owners, groups, and others.'
+      },
+      {
+        id: 'pq_4',
+        type: 'coding',
+        difficulty: 'Advanced',
+        question: `Write a bash command that prints the time complexity of compiling an app.`,
+        answer: 'time make build',
+        explanation: 'Prepending `time` to any command measures real, user, and sys CPU elapsed execution times.'
       }
     ];
   }
 
-  async generateInterviewPrep(lessonId: string, lessonTitle: string, _content: string): Promise<InterviewPrepQuestion[]> {
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    if (lessonId === '1.1.3' || lessonTitle.toLowerCase().includes('concentric')) {
+  async generateQuizByType(_lessonId: string, _lessonTitle: string, type: 'mcq' | 'tf' | 'fib' | 'coding'): Promise<PracticeQuestion[]> {
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    
+    if (type === 'mcq') {
       return [
         {
-          id: 'int_1',
-          difficulty: 'Beginner',
-          question: 'What is a system call (syscall)? Provide an example.',
-          sampleAnswer: 'A system call is an programmatic interface that allows user-space programs to request services from the operating system kernel. Examples include `sys_read` to read a file, `sys_write` to output text, and `sys_fork` to create a new process.'
-        },
-        {
-          id: 'int_2',
+          id: `mcq_1_${Date.now()}`,
+          type: 'mcq',
           difficulty: 'Intermediate',
-          question: 'Explain the difference between user space and kernel space.',
-          sampleAnswer: 'User space is the memory area where user applications execute with restricted privileges (Ring 3) to prevent system crashes. Kernel space is the protected memory area where the core operating system runs with high privileges (Ring 0), managing CPU, memory, and devices.'
+          question: `Which permission octal code represents read and write access for the owner, and read-only for others?`,
+          options: ['chmod 644', 'chmod 755', 'chmod 600', 'chmod 444'],
+          answer: 'chmod 644',
+          explanation: '6 (read+write) for owner, 4 (read) for group, and 4 (read) for others.'
         },
         {
-          id: 'int_3',
+          id: `mcq_2_${Date.now()}`,
+          type: 'mcq',
+          difficulty: 'Beginner',
+          question: `What does the -m flag in 'git commit -m' represent?`,
+          options: ['Metadata', 'Module selector', 'Message description', 'Master branch'],
+          answer: 'Message description',
+          explanation: 'The -m option allows you to supply a description text directly on the command line.'
+        }
+      ];
+    } else if (type === 'tf') {
+      return [
+        {
+          id: `tf_1_${Date.now()}`,
+          type: 'tf',
+          difficulty: 'Beginner',
+          question: `True or False: The '.git' directory can be deleted without losing local commit history.`,
+          options: ['True', 'False'],
+          answer: 'False',
+          explanation: 'The hidden .git folder contains the entire database of commit records. Deleting it completely destroys local history.'
+        }
+      ];
+    } else if (type === 'fib') {
+      return [
+        {
+          id: `fib_1_${Date.now()}`,
+          type: 'fib',
+          difficulty: 'Intermediate',
+          question: `In a Unix pipeline, the output of one command is redirected to the input of another using the ______ character.`,
+          answer: '|',
+          explanation: 'The pipe character (|) channels standard output of the left command to the standard input of the right command.'
+        }
+      ];
+    } else {
+      return [
+        {
+          id: `code_1_${Date.now()}`,
+          type: 'coding',
           difficulty: 'Advanced',
-          question: 'What happens at the hardware level when a system call is made?',
-          sampleAnswer: 'The CPU switches from User Mode to Kernel Mode by executing a software interrupt instruction (like `syscall` or `int 0x80`). This transfers control to the kernel interrupt vector table, saves the CPU state, processes the syscall, and then switches back to User Mode.'
+          question: `Write a simple command to stage all modified and deleted files in Git.`,
+          answer: 'git add -A',
+          explanation: 'The -A or --all flag stages all changes, including untracked, modified, and deleted files.'
         }
       ];
     }
+  }
+
+  async generateInterviewPrep(_lessonId: string, lessonTitle: string, _content: string): Promise<InterviewPrepQuestion[]> {
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     return [
       {
-        id: 'iint_1',
+        id: 'int_1',
         difficulty: 'Beginner',
-        question: `Why is ${lessonTitle} important in a production codebase?`,
-        sampleAnswer: `It ensures clean, modular configurations that prevent developers from introducing regression bugs and makes troubleshooting faster.`
+        question: `What is the significance of the ${lessonTitle} topic?`,
+        sampleAnswer: `It establishes the fundamental architectures that prevent misconfigurations in production systems and allows software developers to debug execution processes.`
       },
       {
-        id: 'iint_2',
+        id: 'int_2',
         difficulty: 'Intermediate',
-        question: `What are some best practices when configuring ${lessonTitle}?`,
-        sampleAnswer: 'Document options flags, keep security variables restricted in local configurations, and test setups in virtual sandboxes before pushing.'
+        question: `Explain how you would troubleshoot a pipeline error related to ${lessonTitle}.`,
+        sampleAnswer: 'Isolate each command block, run standard checks on variables, verify permissions, and redirect stderr to a file to examine crash stacks.'
       }
     ];
   }
 
   async generateRecommendations(
-    lessonId: string,
-    lessonTitle: string,
+    _lessonId: string,
+    _lessonTitle: string,
     _completedUnitIds: string[]
   ): Promise<SmartRecommendations> {
     await new Promise((resolve) => setTimeout(resolve, 500));
 
-    const isGit = lessonId.startsWith('git') || lessonTitle.toLowerCase().includes('git');
-
-    if (isGit) {
-      return {
-        reviewLessons: [
-          { id: 'git-les-106', title: '1.6 Git Configuration' },
-          { id: 'git-les-107', title: '1.7 SSH Keys Setup' }
-        ],
-        nextLessons: [
-          { id: 'git-les-114', title: '1.14 git log' },
-          { id: 'git-les-115', title: '1.15 git diff' }
-        ],
-        relatedTopics: ['VCS Branching Strategies', 'Resolving Commit Conflicts', 'Forking PR workflows'],
-        practiceSuggestions: [
-          'Configure a custom git editor alias in your config.',
-          'Execute a git commit with a detailed multi-line message.'
-        ]
-      };
-    }
-
     return {
       reviewLessons: [
-        { id: '101', title: '1.1 Introduction to Unix & Linux Operating System Architecture' },
-        { id: '102', title: '1.2 Understanding Shell Architecture & Command Anatomy' }
+        { id: 'linux-intro', title: '1.1 UNIX Shell Foundations' },
+        { id: 'file-rights', title: '1.2 File Rights and Access Octals' }
       ],
       nextLessons: [
-        { id: '104', title: '1.4 Creating, Copying, Moving & Deleting Files' },
-        { id: '105', title: '1.5 Quiz & Hands-on Terminal Practice' }
+        { id: 'automation-cron', title: '2.1 Process Automation with Cron & Systemd' },
+        { id: 'bash-loops', title: '2.2 Writing Bash Control Loops' }
       ],
-      relatedTopics: ['Linux Directory Standards (FHS)', 'File Permissions (chmod)', 'Standard Input/Output Redirection'],
+      relatedTopics: ['File System Standards', 'Virtual Address Spaces', 'Process Signal Handling'],
       practiceSuggestions: [
-        'Run `ls -la /usr/bin` to inspect user utilities permissions.',
-        'Use `strace ls` inside your terminal to view syscall operations.'
+        'Inspect file parameters using ls -la /etc.',
+        'Run strace on basic operations to inspect system call counts.'
       ]
     };
+  }
+
+  async generateFlashcards(_lessonId: string, _lessonTitle: string): Promise<AIFlashcard[]> {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    return [
+      { id: 'fc_1', term: 'Kernel space', definition: 'The protected high-privilege Ring 0 memory area where the core operating system executes.' },
+      { id: 'fc_2', term: 'User space', definition: 'The restricted Ring 3 execution workspace allocated for standard customer applications.' },
+      { id: 'fc_3', term: 'System Call', definition: 'The controlled API CPU entry point that lets user programs request hardware actions.' },
+      { id: 'fc_4', term: 'SELinux', definition: 'Mandatory Access Control security engine that restricts operations even for root users.' },
+      { id: 'fc_5', term: 'strace', definition: 'A utility that monitors and logs system call triggers executed by a process.' },
+    ];
+  }
+
+  async getWeakTopicAnalysis(_userId: string): Promise<WeakTopicItem[]> {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    return [
+      {
+        topic: 'Linux POSIX ACLs',
+        score: 65,
+        timeSpentMins: 45,
+        struggleReason: 'Struggled with calculating correct permissions for nested directories.',
+        remedyAction: 'Study Concentric Security Rings module and practice octal calculations.'
+      },
+      {
+        topic: 'Git Conflict Resolution',
+        score: 70,
+        timeSpentMins: 38,
+        struggleReason: 'Got confused during fast-forward rebases and marker edits.',
+        remedyAction: 'Review Git & GitHub Mastery Module 3 and launch simulated conflict sandbox.'
+      },
+      {
+        topic: 'SQL Nested Joins',
+        score: 55,
+        timeSpentMins: 60,
+        struggleReason: 'Subqueries with multiple aggregation steps timed out during database execution.',
+        remedyAction: 'Review Advanced SQL Module 4 and run query traces to analyze execution plans.'
+      }
+    ];
   }
 }
 

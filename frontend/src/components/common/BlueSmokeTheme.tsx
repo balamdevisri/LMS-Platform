@@ -137,11 +137,11 @@ export const BlueSmokeTheme: React.FC<BlueSmokeThemeProps> = ({ className = '', 
   }, []);
 
   return (
-    <div ref={containerRef} className={`relative w-full min-h-screen bg-[var(--color-bg)] ${className}`}>
+    <div ref={containerRef} className={`relative w-full min-h-screen bg-(--color-bg) ${className}`}>
       
       {/* 1. Scroll Progress Bar */}
       <div 
-        className="fixed top-0 left-0 h-[2.5px] bg-gradient-to-r from-blue-600 via-blue-500 to-blue-400 z-100 transition-all duration-75"
+        className="fixed top-0 left-0 h-[2.5px] bg-linear-to-r from-blue-600 via-blue-500 to-blue-400 z-100 transition-all duration-75"
         style={{ width: `${scrollProgress}%` }}
       />
 
@@ -152,15 +152,15 @@ export const BlueSmokeTheme: React.FC<BlueSmokeThemeProps> = ({ className = '', 
       {/* 3. Panel Background Radial Blue Glows */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
         {/* Left Panel Glow */}
-        <div className="absolute top-1/2 left-[20%] -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-blue-600/10 to-blue-400/5 blur-[120px] mix-blend-screen" />
+        <div className="absolute top-1/2 left-[20%] -translate-y-1/2 w-150 h-150 rounded-full bg-linear-to-br from-blue-600/10 to-blue-400/5 blur-[120px] mix-blend-screen" />
         {/* Right Panel Glow */}
-        <div className="absolute top-1/2 right-[20%] -translate-y-1/2 w-[700px] h-[700px] rounded-full bg-gradient-to-br from-blue-500/10 to-blue-300/5 blur-[130px] mix-blend-screen" />
+        <div className="absolute top-1/2 right-[20%] -translate-y-1/2 w-175 h-175 rounded-full bg-linear-to-br from-blue-500/10 to-blue-300/5 blur-[130px] mix-blend-screen" />
       </div>
 
       {/* 4. Curved Abstract Shapes (Drifting Stripe/Cursor inspired curves) */}
       {!isLowPerformance && (
         <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-          <svg className="absolute -top-20 -left-20 w-[600px] h-[600px] text-blue-500/5 dark:text-blue-400/5 select-none" viewBox="0 0 100 100" fill="none">
+          <svg className="absolute -top-20 -left-20 w-150 h-150 text-blue-500/5 dark:text-blue-400/5 select-none" viewBox="0 0 100 100" fill="none">
             <motion.path
               animate={{
                 d: [
@@ -177,13 +177,13 @@ export const BlueSmokeTheme: React.FC<BlueSmokeThemeProps> = ({ className = '', 
               fill="currentColor"
             />
           </svg>
-          <svg className="absolute -bottom-40 -right-20 w-[800px] h-[800px] text-blue-600/5 dark:text-blue-500/5 select-none" viewBox="0 0 100 100" fill="none">
+          <svg className="absolute -bottom-40 -right-20 w-200 h-200 text-blue-600/5 dark:text-blue-500/5 select-none" viewBox="0 0 100 100" fill="none">
             <motion.path
               animate={{
                 d: [
                   "M0,60 Q35,40 70,60 T100,60 L100,100 L0,100 Z",
                   "M0,60 Q35,70 60,50 T100,60 L100,100 L0,100 Z",
-                  "M0,60 Q35,40 70,60 L100,100 L0,100 Z"
+                  "M0,60 Q35,40 70,60 T100,60 L100,100 L0,100 Z"
                 ]
               }}
               transition={{
@@ -206,7 +206,7 @@ export const BlueSmokeTheme: React.FC<BlueSmokeThemeProps> = ({ className = '', 
               y: [0, -70, 50, 0],
             }}
             transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
-            className="absolute top-1/4 left-1/3 w-[300px] h-[300px] rounded-full bg-blue-300/10 dark:bg-blue-900/10 blur-[90px]"
+            className="absolute top-1/4 left-1/3 w-75 h-75 rounded-full bg-blue-300/10 dark:bg-blue-900/10 blur-[90px]"
           />
           <motion.div
             animate={{
@@ -214,7 +214,7 @@ export const BlueSmokeTheme: React.FC<BlueSmokeThemeProps> = ({ className = '', 
               y: [0, 50, -70, 0],
             }}
             transition={{ duration: 22, repeat: Infinity, ease: 'easeInOut' }}
-            className="absolute bottom-1/4 right-1/3 w-[350px] h-[350px] rounded-full bg-blue-400/10 dark:bg-blue-800/10 blur-[110px]"
+            className="absolute bottom-1/4 right-1/3 w-87.5 h-87.5 rounded-full bg-blue-400/10 dark:bg-blue-800/10 blur-[110px]"
           />
         </div>
       )}

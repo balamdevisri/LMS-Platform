@@ -68,15 +68,15 @@ export const SQLPracticeTerminal: React.FC<SQLPracticeTerminalProps> = ({ onComm
     rows: INITIAL_DB_STATE.tables.users.rows
   });
 
-  const consoleEndRef = useRef<HTMLDivElement>(null);
+  const consoleContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     localStorage.setItem('shaivika_sql_db_state', JSON.stringify(dbState));
   }, [dbState]);
 
   useEffect(() => {
-    if (consoleEndRef.current) {
-      consoleEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (consoleContainerRef.current) {
+      consoleContainerRef.current.scrollTop = consoleContainerRef.current.scrollHeight;
     }
   }, [successMessage, errorMessage, outputTable]);
 
@@ -554,7 +554,7 @@ export const SQLPracticeTerminal: React.FC<SQLPracticeTerminalProps> = ({ onComm
             Output Log Console
           </div>
           
-          <div className="flex-1 p-4 font-mono text-xs overflow-auto">
+          <div ref={consoleContainerRef} className="flex-1 p-4 font-mono text-xs overflow-auto">
             {outputType === 'error' && (
               <div className="p-3.5 rounded-xl border border-red-900/50 bg-red-950/20 text-red-400 flex gap-2.5 items-start">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -615,8 +615,6 @@ export const SQLPracticeTerminal: React.FC<SQLPracticeTerminalProps> = ({ onComm
                 </div>
               </div>
             )}
-            
-            <div ref={consoleEndRef} />
           </div>
         </div>
       </div>

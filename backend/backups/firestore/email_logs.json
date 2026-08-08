@@ -1,0 +1,349 @@
+[
+  {
+    "id": "1Rc7ozpqIoag6FnJ8D0s",
+    "eventType": "EMAIL_VERIFICATION",
+    "recipientEmail": "roddhambhanuprakash@gmail.com",
+    "subject": "Verify Your Email Address - KaizenQ AI LMS",
+    "provider": "nodemailer",
+    "payload": {
+      "userName": "kaizenq",
+      "email": "roddhambhanuprakash@gmail.com",
+      "verificationUrl": "http://localhost:5173/auth/login?verified=true&email=roddhambhanuprakash%40gmail.com",
+      "expiresInMinutes": 30
+    },
+    "attempts": 1,
+    "maxRetries": 3,
+    "createdAt": "2026-08-05T16:42:55.614Z",
+    "lastAttemptAt": "2026-08-05T16:42:55.614Z",
+    "messageId": "<7b8d52e1-4e63-de12-3374-2111d895832d@gmail.com>",
+    "status": "sent",
+    "updatedAt": "2026-08-05T16:42:59.873Z"
+  },
+  {
+    "id": "3VcmGYmeHnMuwCDX4rqP",
+    "eventType": "PASSWORD_RESET",
+    "recipientEmail": "shaivikagroups@gmail.com",
+    "subject": "Reset Your Password - KaizenQ AI LMS",
+    "attempts": 1,
+    "maxRetries": 3,
+    "provider": "nodemailer",
+    "payload": {
+      "userName": "shaivikagroups",
+      "email": "shaivikagroups@gmail.com",
+      "resetUrl": "https://shaivika-lms.vercel.app/auth/login?reset=true&email=shaivikagroups%40gmail.com",
+      "expiresInMinutes": 15
+    },
+    "createdAt": "2026-07-30T07:52:46.391Z",
+    "lastAttemptAt": "2026-07-30T07:52:46.391Z",
+    "messageId": "<ca1ad2ec-d735-6063-b6d8-0fac6329c94a@gmail.com>",
+    "status": "sent",
+    "updatedAt": "2026-07-30T07:52:52.237Z"
+  },
+  {
+    "id": "78jgJtZpvs6nVFlSoA2S",
+    "eventType": "PASSWORD_RESET",
+    "recipientEmail": "kh2kgaming@gmail.com",
+    "subject": "Reset Your Password - KaizenQ AI LMS",
+    "attempts": 1,
+    "maxRetries": 3,
+    "provider": "nodemailer",
+    "payload": {
+      "userName": "kh2kgaming",
+      "email": "kh2kgaming@gmail.com",
+      "resetUrl": "https://shaivika-lms-ai.firebaseapp.com/__/auth/action?mode=resetPassword&oobCode=7-fgjhdlj1osQdWQNKaIvkcYJUWjXlnN70HB3nsVDyYAAAGfsgPA7A&apiKey=AIzaSyCKPJ4klGTGxdgTxC3Q93YiaTZixlI0vE0&lang=en",
+      "expiresInMinutes": 15
+    },
+    "createdAt": "2026-07-30T07:53:37.992Z",
+    "lastAttemptAt": "2026-07-30T07:53:37.992Z",
+    "messageId": "<834498ab-dcf9-40be-27e4-575b56354ba2@gmail.com>",
+    "status": "sent",
+    "updatedAt": "2026-07-30T07:53:42.189Z"
+  },
+  {
+    "id": "9qSizLgco9OY0XTxwZ0o",
+    "eventType": "EMAIL_VERIFICATION",
+    "recipientEmail": "roddhambhanuprakash@gmail.com",
+    "subject": "Verify Your Email Address - KaizenQ AI LMS",
+    "provider": "nodemailer",
+    "payload": {
+      "userName": "shaivika LMS",
+      "email": "roddhambhanuprakash@gmail.com",
+      "verificationUrl": "http://localhost:5173/auth/login?verified=true&email=roddhambhanuprakash%40gmail.com",
+      "expiresInMinutes": 30
+    },
+    "attempts": 1,
+    "maxRetries": 3,
+    "createdAt": "2026-08-06T14:24:39.917Z",
+    "lastAttemptAt": "2026-08-06T14:24:39.917Z",
+    "messageId": "<cf8947dd-3b0c-69d4-8dee-aafc34bfbb5d@gmail.com>",
+    "status": "sent",
+    "updatedAt": "2026-08-06T14:24:43.493Z"
+  },
+  {
+    "id": "BjNURfBlmBJiAQmJjx9d",
+    "eventType": "EMAIL_VERIFICATION",
+    "recipientEmail": "roddhambhanuprakash@gmail.com",
+    "subject": "Verify Your Email Address - KaizenQ AI LMS",
+    "attempts": 1,
+    "maxRetries": 3,
+    "provider": "nodemailer",
+    "payload": {
+      "userName": "LMS teams",
+      "email": "roddhambhanuprakash@gmail.com",
+      "verificationUrl": "http://localhost:5173/auth/login?verified=true&email=roddhambhanuprakash%40gmail.com",
+      "expiresInMinutes": 30
+    },
+    "createdAt": "2026-08-05T09:04:59.941Z",
+    "lastAttemptAt": "2026-08-05T09:04:59.941Z",
+    "messageId": "<2f2b8715-2393-bd4c-c525-18bf450572d0@gmail.com>",
+    "status": "sent",
+    "updatedAt": "2026-08-05T09:05:06.258Z"
+  },
+  {
+    "id": "CyJbBeTT941HZHVVtanC",
+    "eventType": "REGISTRATION_PENDING",
+    "recipientEmail": "roddhambhanuprakash@gmail.com",
+    "subject": "Welcome to SHAIVIKA LMS – Registration Received",
+    "provider": "nodemailer",
+    "payload": {
+      "studentName": "shaivika Lms ",
+      "email": "roddhambhanuprakash@gmail.com",
+      "verificationLink": "https://shaivika-lms-ai.firebaseapp.com/__/auth/action?mode=verifyEmail&oobCode=-zrBTyONTiKoMw7HI0-7pX3oG8Ywp3qi9y3Zl93IhgUAAAGf0uyC1A&apiKey=AIzaSyCKPJ4klGTGxdgTxC3Q93YiaTZixlI0vE0&lang=en",
+      "githubUrl": "https://github.com/shaivikagroups",
+      "status": "Pending Approval"
+    },
+    "attempts": 1,
+    "maxRetries": 3,
+    "createdAt": "2026-08-05T17:15:43.497Z",
+    "lastAttemptAt": "2026-08-05T17:15:43.497Z",
+    "messageId": "<0b609992-e2f4-68e4-504a-00165bde137d@gmail.com>",
+    "status": "sent",
+    "updatedAt": "2026-08-05T17:15:47.203Z"
+  },
+  {
+    "id": "FY3PIYiczfzntpB7eBZx",
+    "eventType": "REGISTRATION_PENDING",
+    "recipientEmail": "livetest_1785396524189@gmail.com",
+    "subject": "🚀 Welcome to KaizenQ LMS, Shaivika Live Verification Test!",
+    "attempts": 1,
+    "maxRetries": 3,
+    "provider": "nodemailer",
+    "payload": {
+      "studentName": "Shaivika Live Verification Test",
+      "email": "livetest_1785396524189@gmail.com",
+      "verificationLink": "https://shaivika-lms-ai.firebaseapp.com/__/auth/action?mode=verifyEmail&oobCode=8c8nElTjKrlvEE8O__R1HKUWQBZNolYpgVXKZLZjT7sAAAGfse0RYA&apiKey=AIzaSyCKPJ4klGTGxdgTxC3Q93YiaTZixlI0vE0&lang=en",
+      "githubUrl": "https://github.com/gaearon",
+      "status": "Pending Approval"
+    },
+    "createdAt": "2026-07-30T07:28:51.406Z",
+    "lastAttemptAt": "2026-07-30T07:28:51.406Z",
+    "messageId": "<fdaf1ec2-7f8a-79a0-e572-98e3bc574ac8@gmail.com>",
+    "status": "sent",
+    "updatedAt": "2026-07-30T07:28:56.639Z"
+  },
+  {
+    "id": "Io0IF98OxorpxCwc0A3c",
+    "eventType": "EMAIL_VERIFICATION",
+    "recipientEmail": "roddhambhanuprakash@gmail.com",
+    "subject": "Verify Your Email Address - KaizenQ AI LMS",
+    "provider": "nodemailer",
+    "payload": {
+      "userName": "Shaivika LMS",
+      "email": "roddhambhanuprakash@gmail.com",
+      "verificationUrl": "http://localhost:5173/auth/login?verified=true&email=roddhambhanuprakash%40gmail.com",
+      "expiresInMinutes": 30
+    },
+    "attempts": 1,
+    "maxRetries": 3,
+    "createdAt": "2026-08-06T14:22:23.446Z",
+    "lastAttemptAt": "2026-08-06T14:22:23.446Z",
+    "messageId": "<7be11d48-6a22-8bfb-742a-6bff79abf41a@gmail.com>",
+    "status": "sent",
+    "updatedAt": "2026-08-06T14:22:27.606Z"
+  },
+  {
+    "id": "PIOff6bHnHeug6ntlxEA",
+    "eventType": "REGISTRATION_PENDING",
+    "recipientEmail": "officialcert_1785395796177@gmail.com",
+    "subject": "🚀 Welcome to KaizenQ LMS, Shaivika Official Cert Test!",
+    "attempts": 1,
+    "maxRetries": 3,
+    "provider": "nodemailer",
+    "payload": {
+      "studentName": "Shaivika Official Cert Test",
+      "email": "officialcert_1785395796177@gmail.com",
+      "verificationLink": "https://shaivika-lms-ai.firebaseapp.com/__/auth/action?mode=verifyEmail&oobCode=_QJrPphUluDgNxKcDxyj9B96z8pzEUTjia2ovbepaboAAAGfseH4JQ&apiKey=AIzaSyCKPJ4klGTGxdgTxC3Q93YiaTZixlI0vE0&lang=en",
+      "githubUrl": "https://github.com/torvalds",
+      "status": "Pending Approval"
+    },
+    "createdAt": "2026-07-30T07:16:43.885Z",
+    "lastAttemptAt": "2026-07-30T07:16:43.885Z",
+    "error": "Invalid login: 535-5.7.8 Username and Password not accepted. For more information, go to\n535 5.7.8  https://support.google.com/mail/?p=BadCredentials a92af1059eb24-13e7271f0ddsm17117536c88.11 - gsmtp",
+    "status": "failed",
+    "updatedAt": "2026-07-30T07:16:46.647Z"
+  },
+  {
+    "id": "XL9NHbxwpwpdOAFjY8sk",
+    "eventType": "COURSE_ENROLLMENT",
+    "recipientEmail": "kh2kgaming@gmail.com",
+    "subject": "Enrollment Confirmed: Database Management System (DBMS): Beginner to Advanced 🎓",
+    "attempts": 1,
+    "maxRetries": 3,
+    "provider": "nodemailer",
+    "payload": {
+      "studentName": "Bhanu prakash achari",
+      "email": "kh2kgaming@gmail.com",
+      "courseTitle": "Database Management System (DBMS): Beginner to Advanced",
+      "courseId": "database-management-system",
+      "courseUrl": "http://localhost:5173/courses/database-management-system"
+    },
+    "createdAt": "2026-08-02T16:11:12.005Z",
+    "lastAttemptAt": "2026-08-02T16:11:12.005Z",
+    "messageId": "<e8f49741-8f73-f08f-384f-4c83e10c81bf@gmail.com>",
+    "status": "sent",
+    "updatedAt": "2026-08-02T16:11:16.575Z"
+  },
+  {
+    "id": "cOfpS19asj8SE4ZKqdcz",
+    "eventType": "REGISTRATION_PENDING",
+    "recipientEmail": "kh2kgaming@gmail.com",
+    "subject": "🚀 Welcome to KaizenQ LMS, Bhanu prakash Achari!",
+    "attempts": 1,
+    "maxRetries": 3,
+    "provider": "nodemailer",
+    "payload": {
+      "studentName": "Bhanu prakash Achari",
+      "email": "kh2kgaming@gmail.com",
+      "verificationLink": "https://shaivika-lms-ai.firebaseapp.com/__/auth/action?mode=verifyEmail&oobCode=6v29gys4cmNdkUX4e4IwtlpVuUN9Bww9grj8vK1j1EEAAAGfsfG9Ig&apiKey=AIzaSyCKPJ4klGTGxdgTxC3Q93YiaTZixlI0vE0&lang=en",
+      "githubUrl": "https://github.com/bhanuprakashachari5092",
+      "status": "Pending Approval"
+    },
+    "createdAt": "2026-07-30T07:33:57.368Z",
+    "lastAttemptAt": "2026-07-30T07:33:57.368Z",
+    "messageId": "<a79359b3-c602-99de-9c54-fa6242f1efb6@gmail.com>",
+    "status": "sent",
+    "updatedAt": "2026-07-30T07:34:01.870Z"
+  },
+  {
+    "id": "dbgdh5TIRZ7KTEDmvhBM",
+    "eventType": "EMAIL_VERIFICATION",
+    "recipientEmail": "roddhambhanuprakash@gmail.com",
+    "subject": "Verify Your Email Address - KaizenQ AI LMS",
+    "provider": "nodemailer",
+    "payload": {
+      "userName": "kaizenqlms",
+      "email": "roddhambhanuprakash@gmail.com",
+      "verificationUrl": "http://localhost:5173/auth/login?verified=true&email=roddhambhanuprakash%40gmail.com",
+      "expiresInMinutes": 30
+    },
+    "attempts": 1,
+    "maxRetries": 3,
+    "createdAt": "2026-08-05T16:34:45.822Z",
+    "lastAttemptAt": "2026-08-05T16:34:45.822Z",
+    "messageId": "<023a71d4-d6c6-cf89-919f-45350beb98a4@gmail.com>",
+    "status": "sent",
+    "updatedAt": "2026-08-05T16:34:50.734Z"
+  },
+  {
+    "id": "kHKOcrS92TuaJ8dW6C9C",
+    "eventType": "EMAIL_VERIFICATION",
+    "recipientEmail": "roddhambhanuprakash@gmail.com",
+    "subject": "Verify Your Email Address - KaizenQ AI LMS",
+    "provider": "nodemailer",
+    "payload": {
+      "userName": "shaivikaLMS",
+      "email": "roddhambhanuprakash@gmail.com",
+      "verificationUrl": "http://localhost:5173/auth/login?verified=true&email=roddhambhanuprakash%40gmail.com",
+      "expiresInMinutes": 30
+    },
+    "attempts": 1,
+    "maxRetries": 3,
+    "createdAt": "2026-08-06T14:13:05.537Z",
+    "lastAttemptAt": "2026-08-06T14:13:05.537Z",
+    "messageId": "<e1e109e1-f7e4-a3b3-e5bc-aecba913eaff@gmail.com>",
+    "status": "sent",
+    "updatedAt": "2026-08-06T14:13:10.219Z"
+  },
+  {
+    "id": "mePpgxDIYlXTNP5tilOt",
+    "eventType": "EMAIL_VERIFICATION",
+    "recipientEmail": "roddhambhanuprakash@gmail.com",
+    "subject": "Verify Your Email Address - KaizenQ AI LMS",
+    "provider": "nodemailer",
+    "payload": {
+      "userName": "Kaizenq team",
+      "email": "roddhambhanuprakash@gmail.com",
+      "verificationUrl": "http://localhost:5173/auth/login?verified=true&email=roddhambhanuprakash%40gmail.com",
+      "expiresInMinutes": 30
+    },
+    "attempts": 1,
+    "maxRetries": 3,
+    "createdAt": "2026-08-05T14:11:40.688Z",
+    "lastAttemptAt": "2026-08-05T14:11:40.688Z",
+    "messageId": "<a9b4f0b2-2cdc-44b4-a326-bbb1e352239e@gmail.com>",
+    "status": "sent",
+    "updatedAt": "2026-08-05T14:11:45.543Z"
+  },
+  {
+    "id": "rDcsht2wz6IWXmeP4TtC",
+    "eventType": "REGISTRATION_PENDING",
+    "recipientEmail": "srinivasuluroddham@gmail.com",
+    "subject": "🚀 Welcome to KaizenQ LMS, Bhanu Prakash Achari!",
+    "attempts": 1,
+    "maxRetries": 3,
+    "provider": "nodemailer",
+    "payload": {
+      "studentName": "Bhanu Prakash Achari",
+      "email": "srinivasuluroddham@gmail.com",
+      "verificationLink": "https://shaivika-lms-ai.firebaseapp.com/__/auth/action?mode=verifyEmail&oobCode=XPdajwS3NIwGAl0fm2DlgunF7InH2w7nSDBq6sg9FqcAAAGfsf37vg&apiKey=AIzaSyCKPJ4klGTGxdgTxC3Q93YiaTZixlI0vE0&lang=en",
+      "githubUrl": "https://github.com/shaivikagroups",
+      "status": "Pending Approval"
+    },
+    "createdAt": "2026-07-30T07:47:19.932Z",
+    "lastAttemptAt": "2026-07-30T07:47:19.932Z",
+    "messageId": "<a2eb110d-0848-1d14-2bf1-c713af037dfa@gmail.com>",
+    "status": "sent",
+    "updatedAt": "2026-07-30T07:47:24.335Z"
+  },
+  {
+    "id": "vNy3Lw86KjzNXQ7XzKZV",
+    "eventType": "EMAIL_VERIFICATION",
+    "recipientEmail": "roddhambhanuprakash@gmail.com",
+    "subject": "Verify Your Email Address - KaizenQ AI LMS",
+    "provider": "nodemailer",
+    "payload": {
+      "userName": "Shaivika LMS ",
+      "email": "roddhambhanuprakash@gmail.com",
+      "verificationUrl": "http://localhost:5173/auth/login?verified=true&email=roddhambhanuprakash%40gmail.com",
+      "expiresInMinutes": 30
+    },
+    "attempts": 1,
+    "maxRetries": 3,
+    "createdAt": "2026-08-06T13:53:54.838Z",
+    "lastAttemptAt": "2026-08-06T13:53:54.838Z",
+    "messageId": "<b10a4244-e83d-da75-6ad0-0550bcf84a1e@gmail.com>",
+    "status": "sent",
+    "updatedAt": "2026-08-06T13:53:58.793Z"
+  },
+  {
+    "id": "xW4JtdD5g8l0HG0DVm6t",
+    "eventType": "REGISTRATION_PENDING",
+    "recipientEmail": "shaivikagroups@gmail.com",
+    "subject": "🚀 Welcome to KaizenQ LMS, Shaivika End to End Real Test!",
+    "attempts": 1,
+    "maxRetries": 3,
+    "provider": "nodemailer",
+    "payload": {
+      "studentName": "Shaivika End to End Real Test",
+      "email": "shaivikagroups@gmail.com",
+      "verificationLink": "https://shaivika-lms-ai.firebaseapp.com/__/auth/action?mode=verifyEmail&oobCode=InpgtPzEPTosxZGHtrPXhQP5namsIYw-FxQjwMu-aAAAAAGfseKEEg&apiKey=AIzaSyCKPJ4klGTGxdgTxC3Q93YiaTZixlI0vE0&lang=en",
+      "githubUrl": "https://github.com/octocat",
+      "status": "Pending Approval"
+    },
+    "createdAt": "2026-07-30T07:17:19.659Z",
+    "lastAttemptAt": "2026-07-30T07:17:19.659Z",
+    "error": "Invalid login: 535-5.7.8 Username and Password not accepted. For more information, go to\n535 5.7.8  https://support.google.com/mail/?p=BadCredentials 5a478bee46e88-31504e1ff81sm18339303eec.31 - gsmtp",
+    "status": "failed",
+    "updatedAt": "2026-07-30T07:17:21.970Z"
+  }
+]

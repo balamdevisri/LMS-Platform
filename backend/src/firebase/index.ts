@@ -44,14 +44,14 @@ if (!admin.apps.length) {
     } catch (err: any) {
       console.warn('⚠️ Firebase Admin Cert Initialization Notice:', err?.message || err);
     }
-  } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+  } else {
     try {
       admin.initializeApp({
-        credential: admin.credential.applicationDefault(),
         projectId: env.FIREBASE_PROJECT_ID || 'shaivika-lms-ai',
       });
+      console.log('🎉 Firebase Admin SDK initialized with project ID default (shaivika-lms-ai)!');
     } catch (e: any) {
-      console.warn('⚠️ Firebase Application Default Initialization Notice:', e?.message || e);
+      console.warn('⚠️ Firebase Admin Default Initialization Notice:', e?.message || e);
     }
   }
 }

@@ -1,56 +1,55 @@
 import nodemailer from 'nodemailer';
-import { IEmailProvider, SendEmailOptions } from './EmailProvider.interface';
-import logger from '../../../config/logger';
+import { IEmailProvider } from '../IEmailProvider';
+import { env } from '../../../config/env';
 
 export class NodemailerProvider implements IEmailProvider {
   private transporter: nodemailer.Transporter;
 
-  constructor(config: {
-    host: string;
-    port: number;
-    secure: boolean;
-    auth: {
-      user: string;
-      pass: string;
-    };
-  }) {
+  constructor() {
     this.transporter = nodemailer.createTransport({
-      ...config,
-      connectionTimeout: 10000,
-      greetingTimeout: 5000,
+      host: env.SMTP_HOST,
+      port: parseInt(env.SMTP_PORT, 10),
+      secure: env.SMTP_SECURE === 'true',
+      auth: {
+        user: env.SMTP_USER || env.SMTP_EMAIL,
+        pass: env.SMTP_PASS || env.SMTP_PASSWORD,
+      },
     });
   }
 
-  public async verify(): Promise<boolean> {
+  async send(options: {
+    to: string;
+    subject: string;
+    html: string;
+    text?: string;
+    attachments?: Array<{
+      filename: string;
+      content: any;
+      contentType?: string;
+    }>;
+  }): Promise<{ success: boolean; messageId?: string; error?: string }> {
     try {
-      await this.transporter.verify();
-      return true;
+      const info = await this.transporter.sendMail({
+        from: env.SMTP_FROM,
+        to: options.to,
+        subject: options.subject,
+        html: options.html,
+        text: options.text || '',
+        attachments: options.attachments || [],
+      });
+      return { success: true, messageId: info.messageId };
     } catch (err: any) {
-      logger.error(`[NodemailerProvider] SMTP verify failed: ${err?.message || err}`);
-      return false;
+      return { success: false, error: err?.message || String(err) };
     }
   }
 
-  public async send(options: SendEmailOptions): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  async verify(): Promise<boolean> {
     try {
-      const mailOptions = {
-        from: options.from,
-        to: options.to,
-        subject: options.subject,
-        text: options.text || options.html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
-        html: options.html,
-      };
-
-      const info = await this.transporter.sendMail(mailOptions);
-      return {
-        success: true,
-        messageId: info.messageId,
-      };
-    } catch (err: any) {
-      return {
-        success: false,
-        error: err?.message || String(err),
-      };
+      await this.transporter.verify();
+      return true;
+    } catch (err) {
+      console.error('[NodemailerProvider] Verify failed:', err);
+      return false;
     }
   }
 }

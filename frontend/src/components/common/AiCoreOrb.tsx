@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Bot, Code2, Layers, Shield, BarChart3, GraduationCap } from 'lucide-react';
-import { KaizenQSymbol } from '../brand/KaizenQSymbol';
 
 // Define the 6 Floating Feature Cards configuration
 interface FeatureCardProps {
@@ -91,7 +90,7 @@ export const AiCoreOrb: React.FC = React.memo(() => {
       {/* ----------------- 1. BACKGROUND EFFECTS ----------------- */}
       
       {/* Soft Radial Ambient Glow */}
-      <div className="absolute w-[600px] h-[600px] rounded-full bg-[radial-gradient(circle_at_center,rgba(37,99,235,0.09)_0%,transparent_65%)] pointer-events-none z-0" />
+      <div className="absolute w-150 h-150 rounded-full bg-[radial-gradient(circle_at_center,rgba(37,99,235,0.09)_0%,transparent_65%)] pointer-events-none z-0" />
       
       {/* Expanding Circular Wave Ripples */}
       {!isLowPerformance && [0, 1.8, 3.6].map((delay, idx) => (
@@ -108,7 +107,7 @@ export const AiCoreOrb: React.FC = React.memo(() => {
             ease: 'easeOut',
             delay,
           }}
-          className="absolute w-[360px] h-[360px] rounded-full border border-blue-400/10 dark:border-blue-500/5 pointer-events-none z-0"
+          className="absolute w-90 h-90 rounded-full border border-blue-400/10 dark:border-blue-500/5 pointer-events-none z-0"
         />
       ))}
       
@@ -118,13 +117,13 @@ export const AiCoreOrb: React.FC = React.memo(() => {
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 60, repeat: Infinity, ease: 'linear' }}
-            className="relative w-[500px] h-[500px]"
+            className="relative w-125 h-125"
           >
             {[0, 45, 90, 135].map((rot) => (
               <div
                 key={rot}
                 style={{ transform: `rotate(${rot}deg)` }}
-                className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[2px] bg-gradient-to-t from-transparent via-blue-400 to-transparent"
+                className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-0.5 bg-linear-to-t from-transparent via-blue-400 to-transparent"
               />
             ))}
           </motion.div>
@@ -145,7 +144,7 @@ export const AiCoreOrb: React.FC = React.memo(() => {
       
       {/* ----------------- 2. CONNECTION LINES (SVG) ----------------- */}
       {!isLowPerformance && (
-        <svg className="absolute w-[580px] h-[580px] pointer-events-none z-10 overflow-visible" viewBox="0 0 580 580">
+        <svg className="absolute w-145 h-145 pointer-events-none z-10 overflow-visible" viewBox="0 0 580 580">
           <defs>
             <linearGradient id="glowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#2563EB" stopOpacity="0.25" />
@@ -197,7 +196,7 @@ export const AiCoreOrb: React.FC = React.memo(() => {
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
-            className="absolute w-[360px] h-[360px] pointer-events-none z-10"
+            className="absolute w-90 h-90 pointer-events-none z-10"
           >
             <svg viewBox="0 0 360 360" className="w-full h-full opacity-35">
               <circle cx="180" cy="180" r="170" fill="none" stroke="rgba(37,99,235,0.4)" strokeWidth="1.5" strokeDasharray="6 12" />
@@ -208,7 +207,7 @@ export const AiCoreOrb: React.FC = React.memo(() => {
           <motion.div
             animate={{ rotate: -360 }}
             transition={{ duration: 26, repeat: Infinity, ease: 'linear' }}
-            className="absolute w-[400px] h-[400px] pointer-events-none z-10"
+            className="absolute w-100 h-100 pointer-events-none z-10"
           >
             <svg viewBox="0 0 400 400" className="w-full h-full opacity-25">
               <circle cx="200" cy="200" r="190" fill="none" stroke="rgba(139,92,246,0.4)" strokeWidth="1" />
@@ -221,7 +220,7 @@ export const AiCoreOrb: React.FC = React.memo(() => {
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 38, repeat: Infinity, ease: 'linear' }}
-            className="absolute w-[440px] h-[440px] pointer-events-none z-10"
+            className="absolute w-110 h-110 pointer-events-none z-10"
           >
             <svg viewBox="0 0 440 440" className="w-full h-full opacity-30">
               <circle cx="220" cy="220" r="210" fill="none" stroke="rgba(37,99,235,0.3)" strokeWidth="2.0" strokeDasharray="24 16" />
@@ -232,7 +231,7 @@ export const AiCoreOrb: React.FC = React.memo(() => {
           <motion.div
             animate={{ rotate: -360 }}
             transition={{ duration: 48, repeat: Infinity, ease: 'linear' }}
-            className="absolute w-[480px] h-[480px] pointer-events-none z-10"
+            className="absolute w-120 h-120 pointer-events-none z-10"
           >
             <svg viewBox="0 0 480 480" className="w-full h-full opacity-20">
               <circle cx="240" cy="240" r="230" fill="none" stroke="rgba(37,99,235,0.4)" strokeWidth="1" strokeDasharray="3 15" />
@@ -243,7 +242,7 @@ export const AiCoreOrb: React.FC = React.memo(() => {
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 58, repeat: Infinity, ease: 'linear' }}
-            className="absolute w-[520px] h-[520px] pointer-events-none z-10"
+            className="absolute w-130 h-130 pointer-events-none z-10"
           >
             <svg viewBox="0 0 520 520" className="w-full h-full opacity-15">
               <circle cx="260" cy="260" r="250" fill="none" stroke="rgba(139,92,246,0.35)" strokeWidth="1.5" strokeDasharray="80 15 20 15" />
@@ -259,7 +258,7 @@ export const AiCoreOrb: React.FC = React.memo(() => {
       
       {/* ----------------- 4. DRIP-FLOATING PARTICLES ----------------- */}
       {!isLowPerformance && (
-        <div className="absolute w-[500px] h-[500px] pointer-events-none z-10">
+        <div className="absolute w-125 h-125 pointer-events-none z-10">
           {particles.map((pt) => (
             <motion.div
               key={pt.id}
@@ -298,17 +297,63 @@ export const AiCoreOrb: React.FC = React.memo(() => {
           ease: 'easeInOut',
         }}
         style={{ width: '320px', height: '320px' }}
-        className="relative rounded-full bg-white/92 dark:bg-slate-955/92 backdrop-blur-2xl border border-white/50 dark:border-white/10 shadow-[0_0_50px_rgba(37,99,235,0.22),_0_0_100px_rgba(139,92,246,0.18)] flex items-center justify-center z-20 group cursor-pointer"
+        className="relative rounded-full bg-white/92 dark:bg-slate-955/92 backdrop-blur-2xl border border-white/50 dark:border-white/10 shadow-[0_0_50px_rgba(37,99,235,0.22),0_0_100px_rgba(139,92,246,0.18)] flex items-center justify-center z-20 group cursor-pointer"
       >
         {/* Multi-layered Spherical Glass Glow Inner Core */}
-        <div className="absolute inset-4 rounded-full bg-gradient-to-tr from-blue-500/10 via-sky-400/5 to-purple-500/15 border border-white/30 dark:border-white/5 shadow-inner pointer-events-none" />
+        <div className="absolute inset-4 rounded-full bg-linear-to-tr from-blue-500/10 via-sky-400/5 to-purple-500/15 border border-white/30 dark:border-white/5 shadow-inner pointer-events-none" />
         
         {/* Glow Spherical Center overlay */}
         <div className="absolute w-[80%] h-[80%] rounded-full bg-[radial-gradient(circle_at_40%_40%,rgba(255,255,255,0.45)_0%,rgba(37,99,235,0.1)_60%,transparent_100%)] pointer-events-none" />
         
-        {/* Branding Logo symbol */}
-        <div className="relative z-10 flex items-center justify-center transition-transform duration-500 group-hover:scale-106">
-          <KaizenQSymbol size={135} theme="glass" showGlow={true} animateNodes={true} />
+        {/* Branding Logo symbol — Replaced robot with official Kaizen Q emblem symbol */}
+        <div className="relative z-10 flex items-center justify-center transition-transform duration-500 group-hover:scale-105">
+          <svg viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-28 h-28 drop-shadow-[0_0_25px_rgba(56,189,248,0.6)]">
+            <defs>
+              <linearGradient id="orb_kq_grad" x1="0" y1="0" x2="160" y2="160" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#38BDF8" />
+                <stop offset="50%" stopColor="#2563EB" />
+                <stop offset="100%" stopColor="#1D4ED8" />
+              </linearGradient>
+              <linearGradient id="orb_kq_arrow" x1="0" y1="160" x2="0" y2="0" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#2563EB" />
+                <stop offset="100%" stopColor="#38BDF8" />
+              </linearGradient>
+              <filter id="orb_glow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="3" result="blur" />
+                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+              </filter>
+            </defs>
+
+            <g filter="url(#orb_glow)">
+              {/* Left AI Node Connections */}
+              <g opacity="0.95">
+                <line x1="10" y1="50" x2="38" y2="50" stroke="url(#orb_kq_grad)" strokeWidth="4" strokeLinecap="round" />
+                <circle cx="9" cy="50" r="4" fill="#38BDF8" />
+                <polygon points="34,45 44,50 34,55" fill="#2563EB" />
+
+                <line x1="2" y1="80" x2="34" y2="80" stroke="url(#orb_kq_grad)" strokeWidth="4" strokeLinecap="round" />
+                <circle cx="2" cy="80" r="4" fill="#38BDF8" />
+                <polygon points="30,75 40,80 30,85" fill="#2563EB" />
+
+                <line x1="14" y1="110" x2="38" y2="110" stroke="url(#orb_kq_grad)" strokeWidth="4" strokeLinecap="round" />
+                <circle cx="13" cy="110" r="4" fill="#38BDF8" />
+                <polygon points="34,105 44,110 34,115" fill="#2563EB" />
+              </g>
+
+              {/* Outer Q Ring */}
+              <circle cx="92" cy="80" r="52" fill="none" stroke="url(#orb_kq_grad)" strokeWidth="14" strokeLinecap="round" />
+
+              {/* Inner K Stem & Arms */}
+              <line x1="68" y1="44" x2="68" y2="116" stroke="url(#orb_kq_grad)" strokeWidth="13" strokeLinecap="round" />
+              <path d="M 68 80 L 112 44" fill="none" stroke="url(#orb_kq_grad)" strokeWidth="13" strokeLinecap="round" />
+              <path d="M 68 80 L 122 116 L 138 132" fill="none" stroke="url(#orb_kq_grad)" strokeWidth="13" strokeLinecap="round" />
+
+              {/* Ascending Arrow */}
+              <g transform="translate(98, 70)">
+                <path d="M 0 16 L 0 0 M -5 5 L 0 -1 L 5 5" fill="none" stroke="url(#orb_kq_arrow)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+              </g>
+            </g>
+          </svg>
         </div>
       </motion.div>
 

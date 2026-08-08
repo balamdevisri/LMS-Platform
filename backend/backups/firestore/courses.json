@@ -1,0 +1,466 @@
+[
+  {
+    "id": "5Km8arPOxsXwWh9RV10A",
+    "title": "AI Fundamentals",
+    "slug": "ai-fundamentals",
+    "description": "Explore the principles of Artificial Intelligence, including Machine Learning, Deep Learning, Natural Language Processing, and Computer Vision.",
+    "shortDescription": "Your gateway to the world of Artificial Intelligence.",
+    "category": "Artificial Intelligence",
+    "subcategory": "AI Core",
+    "level": "Beginner",
+    "thumbnail": "https://images.unsplash.com/photo-1677442136019-21780efad99a?auto=format&fit=crop&w=600&q=80",
+    "bannerImage": "https://images.unsplash.com/photo-1677442136019-21780efad99a?auto=format&fit=crop&w=1200&q=80",
+    "duration": "12 hours",
+    "price": 0,
+    "currency": "INR",
+    "status": "published",
+    "language": "Hindi",
+    "instructor": {
+      "uid": "instructor-3",
+      "name": "Priya Sharma"
+    },
+    "lessonsCount": 10,
+    "modulesCount": 3,
+    "studentsEnrolled": 1200,
+    "rating": 4.8,
+    "totalRatings": 320,
+    "tags": {
+      "0": "ai",
+      "1": "machine-learning",
+      "2": "nlp",
+      "3": "data-science"
+    },
+    "prerequisites": {
+      "0": "Basic math, no coding background required"
+    },
+    "learningOutcomes": {
+      "0": "Understand AI terminologies",
+      "1": "Identify use cases for AI",
+      "2": "Analyze ethical aspects of AI"
+    },
+    "certificate": true,
+    "featured": true,
+    "createdBy": "seeder",
+    "createdAt": {
+      "_seconds": 1785289036,
+      "_nanoseconds": 932000000
+    },
+    "updatedAt": {
+      "_seconds": 1785289036,
+      "_nanoseconds": 932000000
+    }
+  },
+  {
+    "id": "EHlvc9v4FlTZGQn8pmun",
+    "title": "Python Programming",
+    "slug": "python-programming",
+    "description": "Comprehensive guide to Python. Learn data structures, OOP, file handling, libraries like Pandas & NumPy, and script automation from scratch.",
+    "shortDescription": "Learn Python programming language from the ground up.",
+    "category": "Programming",
+    "subcategory": "Python",
+    "level": "Beginner",
+    "thumbnail": "https://images.unsplash.com/photo-1526379095098-d400fd0bf935?auto=format&fit=crop&w=600&q=80",
+    "bannerImage": "https://images.unsplash.com/photo-1526379095098-d400fd0bf935?auto=format&fit=crop&w=1200&q=80",
+    "duration": "16 hours",
+    "price": 399,
+    "currency": "INR",
+    "status": "draft",
+    "language": "English",
+    "instructor": {
+      "uid": "instructor-1",
+      "name": "Shaivika AI Team"
+    },
+    "lessonsCount": 20,
+    "modulesCount": 4,
+    "studentsEnrolled": 0,
+    "rating": 0,
+    "totalRatings": 0,
+    "tags": {
+      "0": "python",
+      "1": "programming",
+      "2": "basics",
+      "3": "data-structures"
+    },
+    "prerequisites": {
+      "0": "Basic math skills"
+    },
+    "learningOutcomes": {
+      "0": "Write standard Python scripts",
+      "1": "Understand Object-Oriented programming",
+      "2": "Build basic data pipelines"
+    },
+    "certificate": true,
+    "featured": false,
+    "createdBy": "seeder",
+    "createdAt": {
+      "_seconds": 1785289040,
+      "_nanoseconds": 19000000
+    },
+    "updatedAt": {
+      "_seconds": 1785289040,
+      "_nanoseconds": 19000000
+    }
+  },
+  {
+    "id": "LrOH8UY83iPSDBWCNT0x",
+    "title": "React from Zero to Hero",
+    "slug": "react-from-zero-to-hero",
+    "description": "Dive deep into React.js including Hooks, Context API, Redux Toolkit, React Router, Custom Hooks, and API integrations with state of the art performance.",
+    "shortDescription": "Build modern dynamic web applications with React.",
+    "category": "Web Development",
+    "subcategory": "Frontend Development",
+    "level": "Intermediate",
+    "thumbnail": "https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&w=600&q=80",
+    "bannerImage": "https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&w=1200&q=80",
+    "duration": "24 hours",
+    "price": 499,
+    "currency": "INR",
+    "status": "published",
+    "language": "Telugu",
+    "instructor": {
+      "uid": "instructor-2",
+      "name": "Anil Kumar"
+    },
+    "lessonsCount": 32,
+    "modulesCount": 6,
+    "studentsEnrolled": 890,
+    "rating": 4.7,
+    "totalRatings": 112,
+    "tags": {
+      "0": "react",
+      "1": "javascript",
+      "2": "frontend",
+      "3": "web-dev"
+    },
+    "prerequisites": {
+      "0": "HTML, CSS, and basic JavaScript"
+    },
+    "learningOutcomes": {
+      "0": "Build reusable UI components",
+      "1": "Manage state with Context/Redux",
+      "2": "Consume RESTful APIs"
+    },
+    "certificate": true,
+    "featured": false,
+    "createdBy": "seeder",
+    "createdAt": {
+      "_seconds": 1785289033,
+      "_nanoseconds": 752000000
+    },
+    "updatedAt": {
+      "_seconds": 1785289033,
+      "_nanoseconds": 752000000
+    }
+  },
+  {
+    "id": "RGCcSwnxvBXP6ozYj1ca",
+    "title": "Node.js Backend Development",
+    "slug": "nodejs-backend-development",
+    "description": "Learn to build scalable and robust backend architectures using Node.js, Express, and Firestore database. Covers REST APIs, Authentication, Middleware, and Testing.",
+    "shortDescription": "Build fast backend APIs with Node.js and Express.",
+    "category": "Web Development",
+    "subcategory": "Backend Development",
+    "level": "Intermediate",
+    "thumbnail": "https://images.unsplash.com/photo-1547082299-de196ea013d6?auto=format&fit=crop&w=600&q=80",
+    "bannerImage": "https://images.unsplash.com/photo-1547082299-de196ea013d6?auto=format&fit=crop&w=1200&q=80",
+    "duration": "18 hours",
+    "price": 599,
+    "currency": "INR",
+    "status": "published",
+    "language": "English",
+    "instructor": {
+      "uid": "instructor-1",
+      "name": "Shaivika AI Team"
+    },
+    "lessonsCount": 22,
+    "modulesCount": 5,
+    "studentsEnrolled": 540,
+    "rating": 4.6,
+    "totalRatings": 67,
+    "tags": {
+      "0": "node",
+      "1": "express",
+      "2": "backend",
+      "3": "api"
+    },
+    "prerequisites": {
+      "0": "Intermediate JavaScript"
+    },
+    "learningOutcomes": {
+      "0": "Develop secure RESTful services",
+      "1": "Implement JWT/Firebase Auth",
+      "2": "Connect to databases"
+    },
+    "certificate": true,
+    "featured": false,
+    "createdBy": "seeder",
+    "createdAt": {
+      "_seconds": 1785289035,
+      "_nanoseconds": 281000000
+    },
+    "updatedAt": {
+      "_seconds": 1785289035,
+      "_nanoseconds": 281000000
+    }
+  },
+  {
+    "id": "database-management-system",
+    "title": "Database Management System (DBMS): Beginner to Advanced",
+    "slug": "database-management-system",
+    "description": "Learn Database Management System from fundamentals to advanced concepts including SQL, normalization, transactions, database design, optimization, and real-world projects.",
+    "shortDescription": "Learn Database Management System from fundamentals to advanced concepts including SQL, normalization, transactions, database design, optimization, and real-world projects.",
+    "category": "Database",
+    "subcategory": "DBMS",
+    "level": "all_levels",
+    "thumbnail": "/assets/images/dbms_course_thumbnail.png",
+    "bannerImage": "/assets/images/dbms_course_thumbnail.png",
+    "duration": "25 Hours",
+    "price": 0,
+    "currency": "INR",
+    "status": "published",
+    "language": "English",
+    "instructor": {
+      "uid": "instructor-kaizen-q",
+      "name": "Kaizen-Q Academy"
+    },
+    "lessonsCount": 46,
+    "modulesCount": 6,
+    "studentsEnrolled": 0,
+    "rating": 5,
+    "totalRatings": 120,
+    "tags": {
+      "0": "database",
+      "1": "dbms",
+      "2": "sql",
+      "3": "normalization",
+      "4": "acid"
+    },
+    "prerequisites": {
+      "0": "Basic computer knowledge"
+    },
+    "learningOutcomes": {
+      "0": "Understand relational database design and normalization rules",
+      "1": "Write efficient SQL queries including joins, aggregations, and subqueries",
+      "2": "Handle database transactions and ACID properties",
+      "3": "Build real-world database projects from scratch"
+    },
+    "certificate": true,
+    "featured": true,
+    "createdBy": "seeder",
+    "createdAt": {
+      "_seconds": 1785687044,
+      "_nanoseconds": 559000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026955,
+      "_nanoseconds": 324000000
+    }
+  },
+  {
+    "id": "git-github-mastery-course-id",
+    "title": "Git & GitHub Mastery",
+    "slug": "git-github-mastery",
+    "description": "Learn Git & GitHub from beginner to professional, including version control, branching, pull requests, GitHub Actions, CI/CD, Codespaces, and Copilot.",
+    "shortDescription": "Master version control, repository management, and CI/CD pipelines.",
+    "category": "Development Tools",
+    "subcategory": "Git",
+    "level": "Beginner to Advanced",
+    "thumbnail": "https://images.unsplash.com/photo-1618401471353-b98aedd07871?auto=format&fit=crop&w=1200&q=80",
+    "bannerImage": "https://images.unsplash.com/photo-1618401471353-b98aedd07871?auto=format&fit=crop&w=1200&q=80",
+    "duration": "20 Hours",
+    "price": 0,
+    "currency": "INR",
+    "status": "published",
+    "language": "English",
+    "instructor": {
+      "uid": "instructor-kaizen-q",
+      "name": "Kaizen Q Team"
+    },
+    "lessonsCount": 66,
+    "modulesCount": 6,
+    "studentsEnrolled": 0,
+    "rating": 5,
+    "totalRatings": 180,
+    "tags": {
+      "0": "git",
+      "1": "github",
+      "2": "ci-cd",
+      "3": "devops",
+      "4": "version-control"
+    },
+    "prerequisites": {
+      "0": "Basic computer knowledge"
+    },
+    "learningOutcomes": {
+      "0": "Create, track and manage repositories locally and on GitHub",
+      "1": "Coordinate branches and execute pull requests and code reviews",
+      "2": "Solve complex merge conflicts and perform rebasing",
+      "3": "Write custom GitHub Actions pipelines for automated testing & deployment"
+    },
+    "certificate": true,
+    "featured": true,
+    "createdBy": "seeder",
+    "createdAt": {
+      "_seconds": 1785288962,
+      "_nanoseconds": 897000000
+    },
+    "updatedAt": {
+      "_seconds": 1786026887,
+      "_nanoseconds": 361000000
+    }
+  },
+  {
+    "id": "sAd7povfYpghiX8Yu0kF",
+    "title": "Prompt Engineering",
+    "slug": "prompt-engineering",
+    "description": "Master the art of writing highly effective prompts for Large Language Models like GPT-4, Gemini, and Claude. Covers zero-shot, few-shot, chain-of-thought, and system prompts.",
+    "shortDescription": "Unlock the full potential of Generative AI.",
+    "category": "Artificial Intelligence",
+    "subcategory": "Generative AI",
+    "level": "Beginner",
+    "thumbnail": "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=600&q=80",
+    "bannerImage": "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1200&q=80",
+    "duration": "6 hours",
+    "price": 199,
+    "currency": "INR",
+    "status": "published",
+    "language": "English",
+    "instructor": {
+      "uid": "instructor-1",
+      "name": "Shaivika AI Team"
+    },
+    "lessonsCount": 8,
+    "modulesCount": 2,
+    "studentsEnrolled": 2500,
+    "rating": 4.9,
+    "totalRatings": 610,
+    "tags": {
+      "0": "prompt-engineering",
+      "1": "chatgpt",
+      "2": "gemini",
+      "3": "gen-ai"
+    },
+    "prerequisites": {
+      "0": "None"
+    },
+    "learningOutcomes": {
+      "0": "Design precise instructions for LLMs",
+      "1": "Reduce model hallucinations",
+      "2": "Automate workflows with prompts"
+    },
+    "certificate": true,
+    "featured": true,
+    "createdBy": "seeder",
+    "createdAt": {
+      "_seconds": 1785289038,
+      "_nanoseconds": 489000000
+    },
+    "updatedAt": {
+      "_seconds": 1785289038,
+      "_nanoseconds": 489000000
+    }
+  },
+  {
+    "id": "teFmKyYTrOkOYsHnaAaX",
+    "title": "Docker & Kubernetes",
+    "slug": "docker-kubernetes",
+    "description": "Learn containerization with Docker and container orchestration with Kubernetes. Deploy and scale microservices apps in production environments.",
+    "shortDescription": "Master containerization and cluster orchestration.",
+    "category": "DevOps",
+    "subcategory": "Containers",
+    "level": "Advanced",
+    "thumbnail": "https://images.unsplash.com/photo-1607799279861-4dd421887fb3?auto=format&fit=crop&w=600&q=80",
+    "bannerImage": "https://images.unsplash.com/photo-1607799279861-4dd421887fb3?auto=format&fit=crop&w=1200&q=80",
+    "duration": "15 hours",
+    "price": 699,
+    "currency": "INR",
+    "status": "published",
+    "language": "English",
+    "instructor": {
+      "uid": "instructor-1",
+      "name": "Shaivika AI Team"
+    },
+    "lessonsCount": 18,
+    "modulesCount": 4,
+    "studentsEnrolled": 150,
+    "rating": 4.9,
+    "totalRatings": 18,
+    "tags": {
+      "0": "docker",
+      "1": "kubernetes",
+      "2": "containers",
+      "3": "devops",
+      "4": "microservices"
+    },
+    "prerequisites": {
+      "0": "Basic Linux command line knowledge"
+    },
+    "learningOutcomes": {
+      "0": "Write Dockerfiles and compose files",
+      "1": "Deploy multi-container apps on K8s",
+      "2": "Manage cluster resources & scaling"
+    },
+    "certificate": true,
+    "featured": false,
+    "createdBy": "seeder",
+    "createdAt": {
+      "_seconds": 1785289041,
+      "_nanoseconds": 627000000
+    },
+    "updatedAt": {
+      "_seconds": 1785289041,
+      "_nanoseconds": 627000000
+    }
+  },
+  {
+    "id": "wvwUw4G790FPgiZOrsGz",
+    "title": "Linux Essentials",
+    "slug": "linux-essentials",
+    "description": "Learn the fundamentals of Linux operating system, command line interface, filesystem structure, and shell scripting.",
+    "shortDescription": "Master the command line and basic Linux administration.",
+    "category": "Linux",
+    "subcategory": "Administration",
+    "level": "Beginner",
+    "thumbnail": "https://images.unsplash.com/photo-1629654297299-c8506221ca97?auto=format&fit=crop&w=600&q=80",
+    "bannerImage": "https://images.unsplash.com/photo-1629654297299-c8506221ca97?auto=format&fit=crop&w=1200&q=80",
+    "duration": "10 hours",
+    "price": 0,
+    "currency": "INR",
+    "status": "published",
+    "language": "English",
+    "instructor": {
+      "uid": "instructor-1",
+      "name": "Shaivika AI Team"
+    },
+    "lessonsCount": 12,
+    "modulesCount": 3,
+    "studentsEnrolled": 420,
+    "rating": 4.8,
+    "totalRatings": 85,
+    "tags": {
+      "0": "linux",
+      "1": "bash",
+      "2": "cli",
+      "3": "sysadmin"
+    },
+    "prerequisites": {
+      "0": "None"
+    },
+    "learningOutcomes": {
+      "0": "Understand Linux directory structure",
+      "1": "Confidently run shell commands",
+      "2": "Write basic bash scripts"
+    },
+    "certificate": true,
+    "featured": true,
+    "createdBy": "seeder",
+    "createdAt": {
+      "_seconds": 1785288961,
+      "_nanoseconds": 317000000
+    },
+    "updatedAt": {
+      "_seconds": 1785288961,
+      "_nanoseconds": 317000000
+    }
+  }
+]

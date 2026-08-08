@@ -172,6 +172,57 @@ export const AdminCourseDetails: React.FC = () => {
     }
   }, [course]);
 
+  const startQuizSimulation = () => {
+    setQuizSelectedAnswers({});
+    setQuizSubmitted(false);
+    setQuizTimeRemaining((activeUnit?.quizTimer || 10) * 60);
+    setQuizTimerActive(true);
+  };
+
+  // Quiz Simulation Timer effects
+  useEffect(() => {
+    let interval: any = null;
+    if (activeTab === 'preview' && activeUnit?.type === 'Quiz' && quizTimerActive && quizTimeRemaining > 0 && !quizSubmitted) {
+      interval = setInterval(() => {
+        setQuizTimeRemaining(prev => {
+          if (prev <= 1) {
+            setQuizSubmitted(true);
+            setQuizTimerActive(false);
+
+            // Save score to localStorage for Student Dashboard
+            const totalQuizMarks = activeUnit.quizQuestions?.reduce((acc: number, q: any) => acc + (q.marks || 5), 0) || 0;
+            const scoredMarks = activeUnit.quizQuestions?.reduce((acc: number, q: any) => {
+              return acc + (quizSelectedAnswers[q.id] === q.correctAnswerIndex ? (q.marks || 5) : 0);
+            }, 0) || 0;
+            const percentage = totalQuizMarks > 0 ? Math.round((scoredMarks / totalQuizMarks) * 100) : 0;
+            
+            localStorage.setItem(`lms_quiz_score_${activeUnit.id}`, JSON.stringify({
+              score: scoredMarks,
+              total: totalQuizMarks,
+              percentage,
+              date: new Date().toLocaleDateString('en-US')
+            }));
+
+            toast.error('Time is up! Quiz submitted automatically.');
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [activeTab, activeUnit, quizTimerActive, quizTimeRemaining, quizSubmitted, quizSelectedAnswers]);
+
+  useEffect(() => {
+    if (activeTab === 'preview' && activeUnit?.type === 'Quiz') {
+      startQuizSimulation();
+    } else {
+      setQuizTimerActive(false);
+    }
+  }, [activeTab, activeUnit?.id]);
+
   if (!course) {
     return (
       <div className="space-y-8 text-slate-900 font-['Sora'] max-w-7xl mx-auto pb-12 text-center py-20">
@@ -531,56 +582,7 @@ export const AdminCourseDetails: React.FC = () => {
     });
   };
 
-  // Quiz Simulation Timer effects
-  useEffect(() => {
-    let interval: any = null;
-    if (activeTab === 'preview' && activeUnit?.type === 'Quiz' && quizTimerActive && quizTimeRemaining > 0 && !quizSubmitted) {
-      interval = setInterval(() => {
-        setQuizTimeRemaining(prev => {
-          if (prev <= 1) {
-            setQuizSubmitted(true);
-            setQuizTimerActive(false);
 
-            // Save score to localStorage for Student Dashboard
-            const totalQuizMarks = activeUnit.quizQuestions?.reduce((acc: number, q: any) => acc + (q.marks || 5), 0) || 0;
-            const scoredMarks = activeUnit.quizQuestions?.reduce((acc: number, q: any) => {
-              return acc + (quizSelectedAnswers[q.id] === q.correctAnswerIndex ? (q.marks || 5) : 0);
-            }, 0) || 0;
-            const percentage = totalQuizMarks > 0 ? Math.round((scoredMarks / totalQuizMarks) * 100) : 0;
-            
-            localStorage.setItem(`lms_quiz_score_${activeUnit.id}`, JSON.stringify({
-              score: scoredMarks,
-              total: totalQuizMarks,
-              percentage,
-              date: new Date().toLocaleDateString('en-US')
-            }));
-
-            toast.error('Time is up! Quiz submitted automatically.');
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [activeTab, activeUnit, quizTimerActive, quizTimeRemaining, quizSubmitted, quizSelectedAnswers]);
-
-  useEffect(() => {
-    if (activeTab === 'preview' && activeUnit?.type === 'Quiz') {
-      startQuizSimulation();
-    } else {
-      setQuizTimerActive(false);
-    }
-  }, [activeTab, activeUnit?.id]);
-
-  const startQuizSimulation = () => {
-    setQuizSelectedAnswers({});
-    setQuizSubmitted(false);
-    setQuizTimeRemaining((activeUnit?.quizTimer || 10) * 60);
-    setQuizTimerActive(true);
-  };
 
   const formatQuizTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);

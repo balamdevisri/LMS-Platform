@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { GitLabSandboxService } from '../services/sandbox/GitLabSandboxService';
 import { SecurityValidator } from '../services/sandbox/SecurityValidator';
+import { verifyFirebaseToken, requireRole } from '../middleware/auth.middleware';
 
 const router = Router();
 const sandboxService = GitLabSandboxService.getInstance();
@@ -8,7 +9,7 @@ const sandboxService = GitLabSandboxService.getInstance();
 /**
  * Execute Git command in isolated student sandbox.
  */
-router.post('/git/execute', async (req: Request, res: Response) => {
+router.post('/git/execute', verifyFirebaseToken as any, async (req: Request, res: Response) => {
   const { studentId, command, sessionId } = req.body;
 
   if (!studentId || typeof command !== 'string') {
@@ -23,7 +24,7 @@ router.post('/git/execute', async (req: Request, res: Response) => {
 /**
  * Get current structured Git repository state.
  */
-router.post('/git/state', async (req: Request, res: Response) => {
+router.post('/git/state', verifyFirebaseToken as any, async (req: Request, res: Response) => {
   const { studentId, sessionId } = req.body;
 
   if (!studentId) {
@@ -38,7 +39,7 @@ router.post('/git/state', async (req: Request, res: Response) => {
 /**
  * Initialize / start a new student sandbox workspace session.
  */
-router.post('/session/start', (req: Request, res: Response) => {
+router.post('/session/start', verifyFirebaseToken as any, (req: Request, res: Response) => {
   const { studentId, sessionId } = req.body;
 
   if (!studentId) {
@@ -52,7 +53,7 @@ router.post('/session/start', (req: Request, res: Response) => {
 /**
  * Destroy & cleanup student sandbox workspace session.
  */
-router.post('/session/destroy', (req: Request, res: Response) => {
+router.post('/session/destroy', verifyFirebaseToken as any, (req: Request, res: Response) => {
   const { sessionId } = req.body;
 
   if (sessionId) {
@@ -64,7 +65,7 @@ router.post('/session/destroy', (req: Request, res: Response) => {
 /**
  * Get security audit logs (Admin Inspection).
  */
-router.get('/audit-logs', (_req: Request, res: Response) => {
+router.get('/audit-logs', verifyFirebaseToken as any, requireRole('admin') as any, (_req: Request, res: Response) => {
   const logs = SecurityValidator.getAuditLogs();
   return res.json({ logs, count: logs.length });
 });

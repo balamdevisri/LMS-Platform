@@ -123,8 +123,8 @@ export const Login: React.FC = () => {
       <div className="space-y-2 text-center lg:text-left">
         <h2 className="font-heading font-extrabold text-2xl text-slate-900 dark:text-white">
           Sign In to{' '}
-          <span className="bg-gradient-to-r from-[#2563EB] to-[#3B82F6] bg-clip-text text-transparent">
-            Shaivika AI
+          <span className="bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-400 bg-clip-text text-transparent">
+            KaizenQ LMS
           </span>
         </h2>
         <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">Enter your email and password to access your learning portal.</p>

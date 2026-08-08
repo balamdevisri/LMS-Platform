@@ -9,6 +9,7 @@ import { EmailEventType } from '../types/emailTypes';
 import { env } from '../config/env';
 import { z } from 'zod';
 import { EmailController } from '../controllers/emailController';
+import { verifyFirebaseToken, requireRole } from '../middleware/auth.middleware';
 
 const router = Router();
 const emailController = new EmailController();
@@ -85,7 +86,7 @@ router.post('/send', async (req: Request, res: Response) => {
 /**
  * POST /api/email/retry
  */
-router.post('/retry', async (req: Request, res: Response) => {
+router.post('/retry', verifyFirebaseToken as any, requireRole('admin') as any, async (req: Request, res: Response) => {
   try {
     const maxRetries = parseInt(req.body.maxRetries as string, 10) || 3;
     const result = await emailService.retryFailedEmails(maxRetries);
@@ -105,17 +106,17 @@ router.post('/retry', async (req: Request, res: Response) => {
 /**
  * GET /api/email/logs
  */
-router.get('/logs', (req, res, next) => emailController.getLogs(req, res, next));
+router.get('/logs', verifyFirebaseToken as any, requireRole('admin') as any, (req, res, next) => emailController.getLogs(req, res, next));
 
 /**
  * POST /api/email/resend
  */
-router.post('/resend', (req, res, next) => emailController.resendEmail(req, res, next));
+router.post('/resend', verifyFirebaseToken as any, requireRole('admin') as any, (req, res, next) => emailController.resendEmail(req, res, next));
 
 /**
  * POST /api/email/test
  */
-router.post('/test', async (req: Request, res: Response) => {
+router.post('/test', verifyFirebaseToken as any, requireRole('admin') as any, async (req: Request, res: Response) => {
   try {
     const targetEmail = req.body.email || env.SMTP_EMAIL || 'kaizenqlms@gmail.com';
     const result = await emailService.sendEventEmail(

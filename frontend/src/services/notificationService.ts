@@ -7,6 +7,8 @@ import {
   deleteDoc,
   getDocs,
   onSnapshot,
+  query,
+  where,
 } from 'firebase/firestore';
 
 export interface NotificationItem {
@@ -116,55 +118,106 @@ class NotificationService {
     const initialData = this.getLocalNotifications();
     callback(initialData);
 
-    let unsubscribeFirestore = () => {};
+    const unsubscribers: (() => void)[] = [];
+
+    if (!userId) {
+      console.log('[Firestore Audit] Skipped notifications listener: No authenticated userId.');
+      return () => {
+        this.listeners.delete(callback);
+      };
+    }
 
     if (db) {
       try {
         const notifRef = collection(db, 'notifications');
-        unsubscribeFirestore = onSnapshot(
-          notifRef,
-          (snapshot) => {
-            const fetched: NotificationItem[] = [];
-            const deletedIds = this.getDeletedIds();
+        const deletedIds = this.getDeletedIds();
 
-            snapshot.forEach((docSnap) => {
-              const data = docSnap.data();
-              const recipient = data.recipientId;
-              const role = data.recipientRole || 'all';
+        // Check if user is admin
+        const isAdminUser = userId === 'admin_system' || (userId && (userId.toLowerCase().startsWith('admin') || userId.includes('admin')));
 
-              if (!deletedIds.has(docSnap.id) && (role === 'all' || role === 'student' || (userId && recipient === userId))) {
-                fetched.push({
-                  id: docSnap.id,
-                  title: data.title || 'Platform Alert',
-                  desc: data.desc || '',
-                  time: data.createdAt ? this.formatTimeAgo(data.createdAt) : 'Recently',
-                  read: Boolean(data.read),
-                  type: data.type || 'info',
-                  createdAt: data.createdAt || new Date().toISOString(),
-                  link: data.link,
-                  recipientId: data.recipientId,
-                  recipientRole: data.recipientRole,
-                });
-              }
-            });
+        console.log(`[Firestore Audit] Collection: notifications | Authenticated UID: ${userId} | Subscribing...`);
 
-            if (fetched.length > 0) {
-              fetched.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-              this.saveLocalNotifications(fetched);
+        // Global map to hold and merge notifications from all query snapshot channels
+        const notificationCacheMap = new Map<string, NotificationItem>();
+
+        const handleSnapshot = (snapshot: any, sourceLabel: string) => {
+          console.log(`[Firestore Audit] Received update from: ${sourceLabel} | Count: ${snapshot.size}`);
+          
+          snapshot.forEach((docSnap: any) => {
+            const data = docSnap.data();
+            if (!deletedIds.has(docSnap.id)) {
+              notificationCacheMap.set(docSnap.id, {
+                id: docSnap.id,
+                title: data.title || 'Platform Alert',
+                desc: data.desc || '',
+                time: data.createdAt ? this.formatTimeAgo(data.createdAt) : 'Recently',
+                read: Boolean(data.read),
+                type: data.type || 'info',
+                createdAt: data.createdAt || new Date().toISOString(),
+                link: data.link,
+                recipientId: data.recipientId,
+                recipientRole: data.recipientRole,
+              });
             }
-          },
-          (error) => {
-            console.warn('Firestore notification snapshot notice:', error);
-          }
-        );
-      } catch (e) {
-        console.warn('Notification subscription notice:', e);
+          });
+
+          // Sort and save
+          const mergedList = Array.from(notificationCacheMap.values());
+          mergedList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          this.saveLocalNotifications(mergedList);
+        };
+
+        if (isAdminUser || !userId) {
+          // Admin can listen to everything
+          const unsub = onSnapshot(
+            notifRef,
+            (snap) => handleSnapshot(snap, 'admin_all_notifications'),
+            (error) => {
+              console.error(`[Firestore Permission Audit] Collection: notifications | Authenticated UID: ${userId} | Error: ${error.message}`);
+              callback(this.getLocalNotifications());
+            }
+          );
+          unsubscribers.push(unsub);
+        } else {
+          // Constrained role-based queries matching Firestore rules
+          const qUser = query(notifRef, where('recipientId', '==', userId));
+          const qAll = query(notifRef, where('recipientRole', '==', 'all'));
+          const qStudent = query(notifRef, where('recipientRole', '==', 'student'));
+
+          const unsubUser = onSnapshot(
+            qUser,
+            (snap) => handleSnapshot(snap, `user_${userId}_notifications`),
+            (error) => {
+              console.error(`[Firestore Permission Audit] Query: recipientId==${userId} | Authenticated UID: ${userId} | Error: ${error.message}`);
+            }
+          );
+
+          const unsubAll = onSnapshot(
+            qAll,
+            (snap) => handleSnapshot(snap, 'global_all_notifications'),
+            (error) => {
+              console.error(`[Firestore Permission Audit] Query: recipientRole==all | Authenticated UID: ${userId} | Error: ${error.message}`);
+            }
+          );
+
+          const unsubStudent = onSnapshot(
+            qStudent,
+            (snap) => handleSnapshot(snap, 'global_student_notifications'),
+            (error) => {
+              console.error(`[Firestore Permission Audit] Query: recipientRole==student | Authenticated UID: ${userId} | Error: ${error.message}`);
+            }
+          );
+
+          unsubscribers.push(unsubUser, unsubAll, unsubStudent);
+        }
+      } catch (e: any) {
+        console.error(`[Firestore Audit] Subscription error on notifications: ${e.message || e}`);
       }
     }
 
     return () => {
       this.listeners.delete(callback);
-      unsubscribeFirestore();
+      unsubscribers.forEach((unsub) => unsub());
     };
   }
 

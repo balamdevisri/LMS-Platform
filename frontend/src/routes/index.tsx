@@ -5,6 +5,7 @@ import { AuthLayout } from '@/layouts/AuthLayout';
 import { DashboardLayout } from '@/layouts/DashboardLayout';
 import { StudentRoute } from '@/components/auth/StudentRoute';
 import { AdminRoute } from '@/components/auth/AdminRoute';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
 // Helper to lazy load named exports and wrap them in a Suspense boundary
 const lazyLoad = (importFn: () => Promise<any>, name: string) => {
@@ -12,7 +13,7 @@ const lazyLoad = (importFn: () => Promise<any>, name: string) => {
   const SuspenseWrapper = (props: any) => (
     <Suspense fallback={
       <div className="flex items-center justify-center min-h-[400px] w-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
       </div>
     }>
       <LazyComponent {...props} />
@@ -45,7 +46,26 @@ const AdminUsers = lazyLoad(() => import('@/pages/admin/AdminUsers'), 'AdminUser
 const AdminUserProfile = lazyLoad(() => import('@/pages/admin/AdminUserProfile'), 'AdminUserProfile');
 const AdminCourseDetails = lazyLoad(() => import('@/pages/admin/AdminCourseDetails'), 'AdminCourseDetails');
 const AdminContentManagement = lazyLoad(() => import('@/pages/admin/AdminContentManagement'), 'AdminContentManagement');
+const LiveClassroomDashboard = lazyLoad(() => import('@/pages/liveClassroom/LiveClassroomDashboard'), 'LiveClassroomDashboard');
+const AdminLiveClassroom = lazyLoad(() => import('@/pages/liveClassroom/AdminLiveClassroom'), 'AdminLiveClassroom');
+const LiveClassroomScreen = lazyLoad(() => import('@/pages/liveClassroom/LiveClassroomScreen'), 'LiveClassroomScreen');
+const MentorAnalytics = lazyLoad(() => import('@/pages/liveClassroom/MentorAnalytics'), 'MentorAnalytics');
+const VerifyCertificate = lazyLoad(() => import('@/pages/certificates/VerifyCertificate'), 'VerifyCertificate');
 
+// ─── Simple placeholder pages for coming-soon admin sections ─────────────────
+const PlaceholderPage = ({ title, subtitle }: { title: string; subtitle: string }) => (
+  <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 py-16 text-center">
+    <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-800/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-xl">
+      📊
+    </div>
+    <h1 className="text-2xl font-extrabold text-slate-900 dark:text-zinc-100 tracking-tight">{title}</h1>
+    <p className="text-sm text-slate-500 dark:text-zinc-400 max-w-sm">{subtitle}</p>
+    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-800/50 text-amber-700 dark:text-amber-300 text-xs font-bold">
+      Coming Soon
+    </span>
+  </div>
+);
+// ─────────────────────────────────────────────────────────────────────────────
 
 const router = createBrowserRouter([
   {
@@ -55,7 +75,8 @@ const router = createBrowserRouter([
       { index: true, element: <LandingPage /> },
       { path: 'courses', element: <CoursesList /> },
       { path: 'course/:slug', element: <CourseView /> },
-      { path: 'courses/:courseId', element: <CourseView /> },
+      { path: 'verify-certificate', element: <VerifyCertificate /> },
+      { path: 'verify-certificate/:verificationId', element: <VerifyCertificate /> },
       { path: 'unauthorized', element: <Unauthorized /> },
     ],
   },
@@ -71,7 +92,19 @@ const router = createBrowserRouter([
       { path: 'verify-email', element: <VerifyEmail /> },
     ],
   },
-  // Student Protected Routes (/dashboard, /courses, /profile)
+  // Shared Authenticated Routes (Profile, etc.)
+  {
+    path: '/',
+    element: (
+      <ProtectedRoute>
+        <DashboardLayout />
+      </ProtectedRoute>
+    ),
+    children: [
+      { path: 'profile', element: <Profile /> },
+    ],
+  },
+  // Student Protected Routes
   {
     path: '/',
     element: (
@@ -82,14 +115,33 @@ const router = createBrowserRouter([
     children: [
       { path: 'dashboard', element: <Dashboard /> },
       { path: 'dashboard/practice-lab', element: <PracticeLabPage /> },
-      { path: 'dashboard/sandbox', element: <PracticeLabPage /> },
       { path: 'dashboard/courses', element: <CoursesList /> },
       { path: 'dashboard/course/:slug', element: <CourseView /> },
-      { path: 'dashboard/courses/:courseId', element: <CourseView /> },
-      { path: 'profile', element: <Profile /> },
+      { path: 'dashboard/live-classroom', element: <LiveClassroomDashboard /> },
     ],
   },
-  // Admin Protected Routes (/admin/dashboard, /admin/users, /admin/users/:id, /admin/courses, /admin/students, /admin/instructors)
+  // Instructor & Admin Shared Management Routes
+  {
+    path: '/admin',
+    element: (
+      <AdminRoute allowInstructor={true}>
+        <DashboardLayout />
+      </AdminRoute>
+    ),
+    children: [
+      { path: 'courses', element: <Courses /> },
+      { path: 'courses/create', element: <AdminCourseCreate /> },
+      { path: 'courses/:id/edit', element: <AdminCourseEdit /> },
+      { path: 'courses/edit/:id', element: <AdminCourseEdit /> },
+      { path: 'courses/:courseId', element: <AdminCourseDetails /> },
+      { path: 'students', element: <AdminStudents /> },
+      { path: 'content', element: <AdminContentManagement /> },
+      { path: 'content-management', element: <AdminContentManagement /> },
+      { path: 'live-classroom', element: <LiveClassroomDashboard /> },
+      { path: 'live-classroom/mentor-analytics', element: <MentorAnalytics /> },
+    ],
+  },
+  // Strict Admin Only Protected Routes
   {
     path: '/admin',
     element: (
@@ -99,22 +151,39 @@ const router = createBrowserRouter([
     ),
     children: [
       { path: 'dashboard', element: <AdminDashboard /> },
-      { path: 'courses', element: <Courses /> },
-      { path: 'courses/create', element: <AdminCourseCreate /> },
-      { path: 'courses/:id/edit', element: <AdminCourseEdit /> },
-      { path: 'courses/edit/:id', element: <AdminCourseEdit /> },
-      { path: 'courses/:courseId', element: <AdminCourseDetails /> },
+      { path: 'live-classroom', element: <AdminLiveClassroom /> },
+      { path: 'live-classroom/studio', element: <LiveClassroomDashboard /> },
       { path: 'users', element: <AdminUsers /> },
       { path: 'users/:id', element: <AdminUserProfile /> },
-      { path: 'students', element: <AdminStudents /> },
       { path: 'instructors', element: <AdminInstructors /> },
-      { path: 'content', element: <AdminContentManagement /> },
-      { path: 'content-management', element: <AdminContentManagement /> },
-      { path: 'analytics', element: <div className="p-8 bg-white border border-sky-100 rounded-3xl shadow-xs"><h1 className="font-heading font-extrabold text-2xl text-slate-900">Analytics</h1><p className="text-slate-500 mt-2">Kaizen Q analytics and reporting features are coming soon.</p></div> },
-      { path: 'settings', element: <div className="p-8 bg-white border border-sky-100 rounded-3xl shadow-xs"><h1 className="font-heading font-extrabold text-2xl text-slate-900">Settings</h1><p className="text-slate-500 mt-2">Kaizen Q administrative and configuration settings are coming soon.</p></div> },
+      {
+        path: 'analytics',
+        element: <PlaceholderPage title="Analytics" subtitle="Platform analytics, student progress reports, and engagement metrics are coming soon." />,
+      },
+      {
+        path: 'settings',
+        element: <PlaceholderPage title="Settings" subtitle="Administrative configuration, platform settings, and preferences are coming soon." />,
+      },
     ],
   },
-  // Fallback 404 / Unauthorized redirect
+  // Full-screen Protected Live Classroom screen
+  {
+    path: '/live-classroom/room/:classId',
+    element: (
+      <ProtectedRoute>
+        <LiveClassroomScreen />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/live-classroom/:classId',
+    element: (
+      <ProtectedRoute>
+        <LiveClassroomScreen />
+      </ProtectedRoute>
+    ),
+  },
+  // Fallback 404
   {
     path: '*',
     element: <Unauthorized />,

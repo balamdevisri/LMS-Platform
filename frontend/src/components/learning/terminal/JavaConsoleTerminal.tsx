@@ -11,11 +11,11 @@ export const JavaConsoleTerminal: React.FC<JavaConsoleTerminalProps> = ({ onComm
   const [code, setCode] = useState(`public class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello, Java World!");\n        \n        int sum = 0;\n        for (int i = 1; i <= 5; i++) {\n            sum += i;\n        }\n        System.out.println("Sum of 1 to 5 is: " + sum);\n    }\n}`);
   const [consoleLogs, setConsoleLogs] = useState<string[]>(['Java Console Workspace initialized.', 'Write code in Main.java and click Compile & Run.']);
   const [isCompiling, setIsCompiling] = useState(false);
-  const consoleEndRef = useRef<HTMLDivElement>(null);
+  const consoleContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (consoleEndRef.current) {
-      consoleEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (consoleContainerRef.current) {
+      consoleContainerRef.current.scrollTop = consoleContainerRef.current.scrollHeight;
     }
   }, [consoleLogs]);
 
@@ -137,13 +137,12 @@ export const JavaConsoleTerminal: React.FC<JavaConsoleTerminalProps> = ({ onComm
           </button>
         </div>
 
-        <div className="flex-1 p-4 overflow-y-auto font-mono text-xs space-y-1.5 text-slate-300">
+        <div ref={consoleContainerRef} className="flex-1 p-4 overflow-y-auto font-mono text-xs space-y-1.5 text-slate-300">
           {consoleLogs.map((log, idx) => (
             <div key={idx} className={log.startsWith('$') ? 'text-cyan-400 font-bold' : log.includes('error') ? 'text-red-400 bg-red-950/20 px-1 py-0.5 rounded' : log.includes('[Compilation') ? 'text-emerald-400 font-bold' : 'text-slate-300'}>
               {log}
             </div>
           ))}
-          <div ref={consoleEndRef} />
         </div>
       </div>
     </div>

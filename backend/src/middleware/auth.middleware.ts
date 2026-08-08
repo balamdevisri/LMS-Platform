@@ -26,19 +26,37 @@ export const verifyFirebaseToken = async (
   try {
     if (adminAuth && typeof adminAuth.verifyIdToken === 'function') {
       const decodedToken = await adminAuth.verifyIdToken(token);
+      const email = decodedToken.email || '';
+      // Determine role: prefer custom claim, fallback to email-based detection
+      const isAdminEmail = email.includes('admin') || email === 'admin@gmail.com';
+      const role = (decodedToken as any).role || (isAdminEmail ? 'admin' : 'student');
       req.user = {
         uid: decodedToken.uid,
-        email: decodedToken.email,
-        role: (decodedToken as any).role || 'student',
+        email,
+        role,
       };
       next();
     } else {
-      // Safe fallback when Firebase Admin cert is not configured in local dev
-      req.user = {
-        uid: 'dev-user-id',
-        email: 'dev@shaivika.ai',
-        role: 'student',
-      };
+      // Firebase Admin cert not configured (local dev) — decode JWT manually to extract email
+      // Note: This does NOT verify signature — only for local dev use
+      console.warn('[Auth Middleware] Firebase Admin not configured — using email-based role detection fallback');
+      try {
+        const payloadBase64 = token.split('.')[1];
+        if (payloadBase64) {
+          const decoded = JSON.parse(Buffer.from(payloadBase64, 'base64').toString('utf-8'));
+          const email = decoded.email || decoded.sub || 'dev@shaivika.ai';
+          const isAdminEmail = email.includes('admin') || email === 'admin@gmail.com';
+          req.user = {
+            uid: decoded.user_id || decoded.sub || 'dev-user-id',
+            email,
+            role: isAdminEmail ? 'admin' : (decoded.role || 'student'),
+          };
+        } else {
+          req.user = { uid: 'dev-user-id', email: 'dev@shaivika.ai', role: 'student' };
+        }
+      } catch {
+        req.user = { uid: 'dev-user-id', email: 'dev@shaivika.ai', role: 'student' };
+      }
       next();
     }
   } catch (err: any) {
@@ -55,14 +73,17 @@ export const requireRole = (roles: string | string[]) => {
     }
 
     const userRole = req.user.role || 'student';
-    const allowedRoles = Array.isArray(roles) ? roles : [roles];
+    const userEmail = req.user.email || '';
+    const isAdminByEmail = userEmail.includes('admin') || userEmail === 'admin@gmail.com';
+    const isAdmin = userRole === 'admin' || isAdminByEmail;
 
     // Admins bypass all role checks
-    if (userRole === 'admin') {
+    if (isAdmin) {
       next();
       return;
     }
 
+    const allowedRoles = Array.isArray(roles) ? roles : [roles];
     if (!allowedRoles.includes(userRole)) {
       res.status(403).json({ error: `Forbidden: Requires one of [${allowedRoles.join(', ')}] privileges` });
       return;

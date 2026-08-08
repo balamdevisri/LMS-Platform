@@ -1,46 +1,48 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useSearchParams, Link, useNavigate } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import {
   BookOpen,
   ArrowLeft,
-  Code2,
   Clock,
   Award,
   FileCheck,
   CheckCircle2,
   PlayCircle,
   ChevronRight,
-  Sparkles,
-  BarChart3,
-  Search,
-  Bookmark,
   Activity,
-  Info,
   Bot,
-  Brain,
   Zap,
+  FolderSearch,
+  RefreshCw,
+  Download,
+  ExternalLink,
+  Users,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCourses } from '@/contexts/CourseContext';
 import { CoursePlayerModal } from '../../components/courses/CoursePlayerModal';
-import { DiscussionCenter } from '@/components/courses/DiscussionCenter';
-import { discussionService } from '@/services/discussionService';
 import { AssignmentPortal } from '@/components/courses/AssignmentPortal';
 import { AIAssistantPanel } from '@/components/ai/AIAssistantPanel';
-import { AIQuizPortal } from '../../components/courses/AIQuizPortal';
-import { PracticeLab } from '../../components/courses/PracticeLab';
 import { CertificateService } from '@/services/achievementService';
 import type { Certificate } from '@/services/achievementService';
 import { CertificatePreviewModal } from '../../components/courses/CertificatePreviewModal';
 import { AchievementsDashboard } from '../../components/courses/AchievementsDashboard';
-import { LeaderboardView } from '../../components/courses/LeaderboardView';
-import { ShieldAlert } from 'lucide-react';
 import { courseService } from '@/services/courseService';
 import type { XPClaimRecord } from '@/services/courseService';
 import type { ICourse } from '../../../../shared/types/course';
 import { courseTimeService } from '@/services/courseTimeService';
 import { useCourseTimeTracker } from '@/hooks/useCourseTimeTracker';
+import { mockAIProvider } from '@/services/aiProvider';
+import { studentService, type StudentUser } from '@/services/studentService';
+
+import { AnalyticsDashboard } from '../../components/courses/AnalyticsDashboard';
+import { LeaderboardView } from '../../components/courses/LeaderboardView';
+import { ResumeBuilder } from '../../components/courses/ResumeBuilder';
+import { CareerRoadmap } from '../../components/courses/CareerRoadmap';
+import { PracticeHub } from '../../components/courses/PracticeHub';
+import { InterviewPrep } from '../../components/courses/InterviewPrep';
+import { StudentLiveClassroomSection } from '../../components/liveClassroom/StudentLiveClassroomSection';
 
 export const Dashboard: React.FC = () => {
   const { user, userProfile } = useAuth();
@@ -48,19 +50,35 @@ export const Dashboard: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTab = searchParams.get('tab') || 'overview';
 
-  const navigate = useNavigate();
-
   // Dynamic Courses State
   const [enrolledCourses, setEnrolledCourses] = useState<ICourse[]>([]);
   const [loadingCourses, setLoadingCourses] = useState(true);
+
+  // Instructor Student Roster State
+  const [allStudents, setAllStudents] = useState<StudentUser[]>([]);
+
+  useEffect(() => {
+    if (userProfile?.role === 'instructor') {
+      const unsub = studentService.subscribeToStudents((data) => {
+        setAllStudents(data);
+      });
+      return () => unsub();
+    }
+  }, [userProfile?.role]);
 
   // XP & Claims State
   const [totalXP, setTotalXP] = useState(0);
   const [xpClaims, setXpClaims] = useState<XPClaimRecord[]>([]);
 
+  // AI Course Search & Weakness Analyzer States
+  const [aiSearchQuery, setAiSearchQuery] = useState('');
+  const [aiSearchResults, setAiSearchResults] = useState<ICourse[]>([]);
+  const [isAiSearching, setIsAiSearching] = useState(false);
+  const [weakTopics, setWeakTopics] = useState<any[]>([]);
+
   // Completed courses check (only 100% completed courses unlock certificates)
   const completedCourses = enrolledCourses.filter((course) => {
-    const checkpoint = courseService.getCourseCheckpoint(course.id, 'default_student');
+    const checkpoint = courseService.getCourseCheckpoint(course.id, user?.uid || 'default_student');
     return checkpoint && checkpoint.progressPercent >= 100;
   });
   const completedCoursesCount = completedCourses.length;
@@ -105,6 +123,37 @@ export const Dashboard: React.FC = () => {
     loadDashboardData();
   }, [loadDashboardData]);
 
+  const handleAiSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!aiSearchQuery.trim()) return;
+    setIsAiSearching(true);
+    setTimeout(() => {
+      const q = aiSearchQuery.toLowerCase();
+      const matches = enrolledCourses.filter(c => 
+        (c.title || '').toLowerCase().includes(q) || 
+        (c.category || '').toLowerCase().includes(q) ||
+        (c.skills && c.skills.some(s => (s || '').toLowerCase().includes(q)))
+      );
+      setAiSearchResults(matches);
+      setIsAiSearching(false);
+      if (matches.length > 0) {
+        toast.success(`AI Search found ${matches.length} matching course tracks!`);
+      } else {
+        toast.info("AI Search couldn't find direct matches. Try looking for 'Linux', 'Git', or 'SQL'!");
+      }
+    }, 600);
+  };
+
+  useEffect(() => {
+    const loadWeakness = async () => {
+      try {
+        const res = await mockAIProvider.getWeakTopicAnalysis(activeUserId);
+        setWeakTopics(res);
+      } catch (err) {}
+    };
+    if (activeUserId) loadWeakness();
+  }, [activeUserId]);
+
   // Active learning player state
   const [activePlayerCourse, setActivePlayerCourse] = useState<any | null>(null);
   const [playerInitialSubtopicId, setPlayerInitialSubtopicId] = useState<string | undefined>(undefined);
@@ -119,7 +168,7 @@ export const Dashboard: React.FC = () => {
   } | null>(null);
 
   const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
-  const [isQuizPortalOpen, setIsQuizPortalOpen] = useState(false);
+
   const [aiLessonContext, setAiLessonContext] = useState<{
     courseId: string;
     courseTitle: string;
@@ -158,82 +207,17 @@ export const Dashboard: React.FC = () => {
     };
   }, [courses]);
 
-  // Filters & sorting for Learning Hub
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'in-progress' | 'completed' | 'recent'>('all');
-  const [selectedSort, setSelectedSort] = useState<'recent-opened' | 'recent-updated' | 'alpha' | 'high-progress' | 'low-progress'>('recent-opened');
-
   // Interactive Activity Chart State
   const [chartTimeframe, setChartTimeframe] = useState<'7d' | '30d'>('7d');
   const [hoveredDayIndex, setHoveredDayIndex] = useState<number | null>(3);
 
-  // Bookmarks & Activities
-  const [savedLessons, setSavedLessons] = useState<any[]>([]);
-  const [recentActivities, setRecentActivities] = useState<any[]>([]);
-  const [, setTotalUnreadDiscussions] = useState(0);
   const [selectedCourseId, setSelectedCourseId] = useState<string>('');
 
-  const updateUnreadCount = useCallback(() => {
-    let count = 0;
-    courses.forEach((c) => {
-      count += discussionService.getUnreadCount(String(c.id), userProfile?.uid || user?.uid || 'default_student');
-    });
-    setTotalUnreadDiscussions(count);
-  }, [courses, userProfile?.uid, user?.uid]);
-
   useEffect(() => {
-    const allBookmarks: any[] = [];
-    courses.forEach((c) => {
-      const cached = localStorage.getItem(`shaivika_bookmarks_${c.id}`);
-      if (cached) {
-        try {
-          const list = JSON.parse(cached);
-          list.forEach((bm: any) => {
-            allBookmarks.push({
-              ...bm,
-              course: c,
-            });
-          });
-        } catch (e) {}
-      }
-    });
-    allBookmarks.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    setSavedLessons(allBookmarks);
-
-    const cachedAct = localStorage.getItem('shaivika_user_activities');
-    if (cachedAct) {
-      try {
-        setRecentActivities(JSON.parse(cachedAct));
-      } catch (e) {}
-    }
-
     if (courses.length > 0 && !selectedCourseId) {
       setSelectedCourseId(String(courses[0].id));
     }
-    updateUnreadCount();
-  }, [courses, activePlayerCourse, userProfile, user, updateUnreadCount]);
-
-  const getCourseCheckpoint = (courseId: string) => {
-    const data = localStorage.getItem(`shaivika_user_checkpoint_${courseId}_default_student`);
-    if (data) {
-      try {
-        return JSON.parse(data);
-      } catch (e) {}
-    }
-    return null;
-  };
-
-  const handleLaunchPlayer = (
-    course: any,
-    subtopicId?: string,
-    notesOpen = false,
-    tab?: 'notes' | 'bookmarks'
-  ) => {
-    setPlayerInitialSubtopicId(subtopicId);
-    setPlayerInitialNotesOpen(notesOpen);
-    setPlayerInitialTab(tab);
-    setActivePlayerCourse(course);
-  };
+  }, [courses, activePlayerCourse, userProfile, user]);
 
   // Helper to parse duration string (e.g. "15 mins", "2 hours") to decimal hours
   const parseDurationToHours = (durationStr: string): number => {
@@ -264,41 +248,104 @@ export const Dashboard: React.FC = () => {
     let totalAssignments = 0;
     let completedAssignments = 0;
 
-    // Load completed units for this course from localStorage
+    // Load completed units from legacy localStorage
     let completedIds: Record<string, boolean> = {};
     try {
       const stored = localStorage.getItem(`lms_completed_units_${course.id}`);
       if (stored) completedIds = JSON.parse(stored);
     } catch {}
 
+    // Load completed lesson IDs from InCourseLearningView
+    let completedLessons: (string | number)[] = [];
+    try {
+      const savedCompletedStr = localStorage.getItem(`shaivika_completed_${course.id}`);
+      if (savedCompletedStr) completedLessons = JSON.parse(savedCompletedStr);
+    } catch {}
+
+    // Load checkpoint completed subtopics from CoursePlayerModal
+    const checkpoint = courseService.getCourseCheckpoint(String(course.id), activeUserId);
+    const completedSubtopics = checkpoint?.completedSubtopics || [];
+
     if (course.modules) {
-      course.modules.forEach((m) => {
-        m.topics.forEach((t) => {
-          t.learningUnits.forEach((u) => {
+      course.modules.forEach((m: any) => {
+        // Support m.lessons structure (InCourseLearningView)
+        if (m.lessons) {
+          m.lessons.forEach((l: any) => {
             totalUnits++;
-            const hours = parseDurationToHours(u.duration);
+            const hours = parseDurationToHours(l.duration || '30 mins');
             totalDurationHours += hours;
 
-            if (u.type === 'Video') totalVideos++;
-            else if (u.type === 'Reading') totalReadings++;
-            else if (u.type === 'Quiz') totalQuizzes++;
-            else if (u.type === 'Assignment') totalAssignments++;
+            const type = l.type || 'Video';
+            if (type === 'Video') totalVideos++;
+            else if (type === 'Reading') totalReadings++;
+            else if (type === 'Quiz') totalQuizzes++;
+            else if (type === 'Assignment') totalAssignments++;
 
-            if (completedIds[u.id]) {
+            const isDone =
+              completedIds[String(l.id)] ||
+              completedLessons.some((cId) => String(cId) === String(l.id)) ||
+              completedSubtopics.some((sId) => String(sId) === String(l.id)) ||
+              (checkpoint && checkpoint.progressPercent >= 100);
+
+            if (isDone) {
               completedUnits++;
               completedDurationHours += hours;
-              if (u.type === 'Video') completedVideos++;
-              else if (u.type === 'Reading') completedReadings++;
-              else if (u.type === 'Quiz') completedQuizzes++;
-              else if (u.type === 'Assignment') completedAssignments++;
+              if (type === 'Video') completedVideos++;
+              else if (type === 'Reading') completedReadings++;
+              else if (type === 'Quiz') completedQuizzes++;
+              else if (type === 'Assignment') completedAssignments++;
             }
           });
-        });
+        }
+
+        // Support topics/learningUnits structure (Legacy / alternate)
+        if (m.topics) {
+          m.topics.forEach((t: any) => {
+            if (t.learningUnits) {
+              t.learningUnits.forEach((u: any) => {
+                totalUnits++;
+                const hours = parseDurationToHours(u.duration);
+                totalDurationHours += hours;
+
+                if (u.type === 'Video') totalVideos++;
+                else if (u.type === 'Reading') totalReadings++;
+                else if (u.type === 'Quiz') totalQuizzes++;
+                else if (u.type === 'Assignment') totalAssignments++;
+
+                const isDone =
+                  completedIds[String(u.id)] ||
+                  completedLessons.some((cId) => String(cId) === String(u.id)) ||
+                  completedSubtopics.some((sId) => String(sId) === String(u.id)) ||
+                  (checkpoint && checkpoint.progressPercent >= 100);
+
+                if (isDone) {
+                  completedUnits++;
+                  completedDurationHours += hours;
+                  if (u.type === 'Video') completedVideos++;
+                  else if (u.type === 'Reading') completedReadings++;
+                  else if (u.type === 'Quiz') completedQuizzes++;
+                  else if (u.type === 'Assignment') completedAssignments++;
+                }
+              });
+            }
+          });
+        }
       });
     }
 
-    const percentage = totalUnits > 0 ? Math.round((completedUnits / totalUnits) * 100) : 0;
-    
+    let percentage = totalUnits > 0 ? Math.round((completedUnits / totalUnits) * 100) : 0;
+    if (checkpoint && checkpoint.progressPercent >= 100) {
+      percentage = 100;
+    }
+    if (percentage === 100) {
+      completedUnits = totalUnits;
+      completedDurationHours = totalDurationHours;
+      completedVideos = totalVideos;
+      completedReadings = totalReadings;
+      completedQuizzes = totalQuizzes;
+      completedAssignments = totalAssignments;
+    }
+
     return {
       course,
       totalUnits,
@@ -319,9 +366,6 @@ export const Dashboard: React.FC = () => {
 
   // Analytics Metrics
   const liveHoursCompleted = coursesProgress.reduce((acc, c) => acc + c.completedDurationHours, 0);
-  const totalCompletedUnitsCount = coursesProgress.reduce((acc, c) => acc + c.completedUnits, 0);
-  const totalGlobalUnitsCount = coursesProgress.reduce((acc, c) => acc + c.totalUnits, 0);
-
   const totalActiveLearningHours = Number(Math.max(realtimeSec / 3600, liveHoursCompleted).toFixed(1));
 
   // Dynamic study time calculation per day from real student course active tracking
@@ -363,6 +407,65 @@ export const Dashboard: React.FC = () => {
       userProfile?.uid || user?.uid || 'default_student'
     );
   }, [coursesProgress, studentName, userProfile, user]);
+
+  // Synchronize all saved certificates from local storage to Google Sheets backend registry
+  React.useEffect(() => {
+    const uid = userProfile?.uid || user?.uid || 'default_student';
+    
+    // Collect certificates from both active user and default student keys
+    const certsToSync: Certificate[] = [];
+    
+    const activeCerts = certificateService.getCertificates(uid);
+    if (Array.isArray(activeCerts)) certsToSync.push(...activeCerts);
+    
+    if (uid !== 'default_student') {
+      const defaultCerts = certificateService.getCertificates('default_student');
+      if (Array.isArray(defaultCerts)) {
+        defaultCerts.forEach((dc) => {
+          if (!certsToSync.some((c) => c.verificationId === dc.verificationId)) {
+            certsToSync.push(dc);
+          }
+        });
+      }
+    }
+
+    if (certsToSync.length === 0) return;
+
+    const studentEmail = user?.email || userProfile?.email || 'shaivikagroups@gmail.com';
+    const studentId = uid;
+
+    certsToSync.forEach((cert) => {
+      const syncKey = `shaivika_cert_synced_${cert.verificationId}`;
+      if (localStorage.getItem(syncKey) === 'true') return;
+
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/complete-and-deliver`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentId,
+          studentName,
+          studentEmail,
+          courseId: cert.courseId,
+          courseTitle: cert.courseTitle,
+          completionPercentage: 100,
+          instructorName: cert.instructorName || 'Shaivika Groups Board',
+          courseDuration: cert.courseDuration || '24 Hours',
+          modulesCount: cert.modulesCount || 8,
+          verificationId: cert.verificationId,
+          forceRegenerate: true
+        }),
+      })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.success) {
+          localStorage.setItem(syncKey, 'true');
+        }
+      })
+      .catch((err) => {
+        console.warn('Certificate registry sync error:', err);
+      });
+    });
+  }, [earnedCerts, user, userProfile, studentName, certificateService]);
 
   // Active courses (progress > 0 and < 100)
   let activeLearningCourses = coursesProgress.filter((c) => c.percentage > 0 && c.percentage < 100);
@@ -432,19 +535,21 @@ export const Dashboard: React.FC = () => {
 
   const tabLabelMap: Record<string, string> = {
     overview: 'Overview Dashboard',
-    'continue-learning': 'Continue Learning Hub',
-    assignments: 'Quiz Scores & Gradebook',
-    certificates: 'Unlocked Credentials',
+    'live-classroom': 'Enterprise Live Classroom Sessions',
+    assignments: 'Quiz Results & Gradebook',
+    certificates: 'Certificates',
     achievements: 'Achievements & Badges',
-    leaderboard: 'Cohort Leaderboard',
+    'ai-tutor': 'AI Tutor',
     analytics: 'Learning Analytics',
-    discussions: 'Discussion Center',
-    'ai-quizzes': 'AI Assessment Center',
-    'practice-lab': 'Shaivika AI Practice Sandbox',
+    leaderboard: 'Cohort Leaderboard',
+    'resume-builder': 'Resume Builder',
+    'career-roadmap': 'Career Roadmap',
+    'practice-hub': 'Practice Hub',
+    'interview-prep': 'Interview Prep',
   };
 
   return (
-    <div className="space-y-8 text-slate-900 font-['Sora'] max-w-7xl mx-auto pb-12 animate-in fade-in duration-300">
+    <div className="space-y-8 text-slate-900 font-['Sora'] max-w-7xl mx-auto pt-2 sm:pt-4 pb-12 animate-in fade-in duration-300">
       
       {/* Top Header Banner & Dedicated Page Breadcrumb Navigation */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
@@ -485,20 +590,12 @@ export const Dashboard: React.FC = () => {
             <button
               type="button"
               onClick={() => setSearchParams({ tab: 'overview' })}
-              className="px-4 py-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-slate-300 dark:border-zinc-700 text-slate-700 dark:text-zinc-200 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-slate-50 dark:hover:bg-zinc-800 font-bold text-xs shadow-3xs flex items-center gap-2 cursor-pointer transition-all"
+              className="px-4 py-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-slate-300 dark:border-zinc-700 text-slate-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-50 dark:hover:bg-zinc-800 font-bold text-xs shadow-sm flex items-center gap-2 cursor-pointer transition-all"
             >
-              <ArrowLeft className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-              <span>Back to Main Menu</span>
+              <ArrowLeft className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              <span>Back to Dashboard</span>
             </button>
           )}
-
-          <Link
-            to="/admin/courses"
-            className="btn-blue-primary text-xs py-2.5 px-4 shadow-md shadow-purple-500/10 flex items-center gap-1.5 font-bold cursor-pointer"
-          >
-            <BookOpen className="w-4 h-4" />
-            <span>Browse Syllabus Editor</span>
-          </Link>
         </div>
       </div>
 
@@ -574,6 +671,180 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
 
+          {/* AI-Powered Semantic Search & Insights Section (Students Only) */}
+          {userProfile?.role !== 'instructor' && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              {/* AI Insights & Weakness Widget */}
+              <div className="lg:col-span-8 bg-white dark:bg-zinc-900 border border-sky-100 dark:border-zinc-800 rounded-3xl p-6 shadow-xs space-y-4">
+                <h3 className="font-heading font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                  <Bot className="w-5 h-5 text-purple-650 animate-pulse" />
+                  <span>AI Tutor Insights & Revisions</span>
+                </h3>
+                
+                {weakTopics.length > 0 ? (
+                  <div className="space-y-3">
+                    <div className="p-3 bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900 rounded-2xl text-xs text-rose-800 dark:text-rose-455 font-bold leading-normal">
+                      ⚠️ AI Analyzed logs: Revisit these areas to strengthen performance metrics.
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {weakTopics.slice(0, 2).map((wt, i) => (
+                        <div key={i} className="p-4 bg-slate-50 dark:bg-zinc-800/40 border border-slate-200 dark:border-zinc-800 rounded-2xl space-y-1.5 hover:border-purple-300 transition-all">
+                          <div className="flex justify-between items-center">
+                            <span className="font-bold text-xs text-slate-800 dark:text-zinc-200">{wt.topic}</span>
+                            <span className="text-[10px] font-bold text-rose-600 bg-rose-50 dark:bg-rose-950/30 px-2 py-0.5 rounded border border-rose-100 dark:border-rose-900 font-mono">
+                              Score: {wt.score}%
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-500 dark:text-zinc-400 leading-normal font-medium">{wt.struggleReason}</p>
+                          <div className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 pt-1.5 flex items-center gap-1">
+                            <Zap className="w-3.5 h-3.5 text-emerald-500" />
+                            <span>Action: {wt.remedyAction}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-400 italic font-medium">Keep reading and taking quizzes to compile custom weak topic alerts.</p>
+                )}
+              </div>
+
+              {/* AI Semantic Search Box */}
+              <div className="lg:col-span-4 bg-white dark:bg-zinc-900 border border-sky-100 dark:border-zinc-800 rounded-3xl p-6 shadow-xs space-y-4">
+                <h3 className="font-heading font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                  <FolderSearch className="w-5 h-5 text-indigo-500" />
+                  <span>AI Semantic Course Search</span>
+                </h3>
+                <form onSubmit={handleAiSearch} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={aiSearchQuery}
+                    onChange={(e) => setAiSearchQuery(e.target.value)}
+                    placeholder="e.g. Learn how to manage users and access rights..."
+                    className="flex-1 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl p-2.5 text-xs text-slate-900 dark:text-zinc-100 focus:outline-hidden focus:border-purple-600"
+                  />
+                  <button type="submit" className="bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all cursor-pointer">
+                    Search
+                  </button>
+                </form>
+
+                {isAiSearching && (
+                  <div className="flex items-center gap-1.5 text-xs text-slate-400 animate-pulse font-medium">
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>AI reasoning matches...</span>
+                  </div>
+                )}
+
+                {aiSearchResults.length > 0 && (
+                  <div className="space-y-2">
+                    <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest block">AI Recommended Matches</span>
+                    {aiSearchResults.map(match => (
+                      <Link
+                        key={match.id}
+                        to={`/course/${match.slug || match.id}`}
+                        className="block p-2.5 bg-sky-50/50 dark:bg-zinc-800/80 border border-sky-100 dark:border-zinc-700 rounded-xl hover:border-sky-300 text-xs font-bold text-sky-800 dark:text-sky-400 transition-all truncate"
+                      >
+                        {match.title}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Instructor Mode: Student Roster & Profile Cards Widget */}
+          {userProfile?.role === 'instructor' && (
+            <div className="bg-white dark:bg-zinc-900 border border-sky-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm space-y-5 font-['Sora']">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-zinc-800">
+                <div>
+                  <h3 className="font-heading font-extrabold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                    <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    <span>Enrolled Students & Learner Profiles</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5 font-medium">
+                    Real-time student roster, profile pictures, academic progress, and learning telemetry.
+                  </p>
+                </div>
+                <Link
+                  to="/admin/students"
+                  className="px-4 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 font-bold text-xs flex items-center gap-1.5 transition-all w-fit cursor-pointer"
+                >
+                  <span>View Full Roster ({allStudents.length})</span>
+                  <ChevronRight className="w-4 h-4" />
+                </Link>
+              </div>
+
+              {allStudents.length === 0 ? (
+                <p className="text-xs text-slate-400 italic py-6 text-center">Loading enrolled students telemetry...</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {allStudents.slice(0, 6).map((student) => {
+                    const isGithub = student.provider === 'github.com' || Boolean(student.photoURL?.includes('github')) || student.githubUsername;
+                    return (
+                      <div
+                        key={student.id || student.uid}
+                        className="p-4 rounded-2xl border border-sky-100 dark:border-zinc-800 bg-slate-50/70 dark:bg-zinc-800/50 space-y-3 hover:border-blue-300 dark:hover:border-blue-600 transition-all group"
+                      >
+                        <div className="flex items-center gap-3">
+                          {/* Student Profile Image */}
+                          <div className="relative shrink-0">
+                            {student.photoURL ? (
+                              <img
+                                src={student.photoURL}
+                                alt={student.name}
+                                className="w-12 h-12 rounded-full object-cover border-2 border-blue-400 shadow-md shadow-blue-500/10 group-hover:scale-105 transition-transform"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 rounded-full bg-linear-to-r from-blue-500 to-indigo-600 text-white flex items-center justify-center font-extrabold text-base shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
+                                {student.name ? student.name.charAt(0).toUpperCase() : 'S'}
+                              </div>
+                            )}
+                            {isGithub ? (
+                              <span className="absolute -bottom-1 -right-1 text-xs" title="GitHub Account">🐱</span>
+                            ) : (
+                              <span className="absolute -bottom-1 -right-1 text-xs" title="Email Verified Student">✉️</span>
+                            )}
+                          </div>
+
+                          <div className="min-w-0 flex-1 space-y-0.5">
+                            <div className="flex items-center justify-between gap-1">
+                              <h4 className="font-bold text-xs text-slate-900 dark:text-zinc-100 truncate group-hover:text-blue-600">
+                                {student.name}
+                              </h4>
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shrink-0">
+                                {student.learningScore || 85}%
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-500 dark:text-zinc-400 truncate">{student.email}</p>
+                            <p className="text-[10px] text-slate-400 dark:text-zinc-500 font-medium">
+                              {student.branch || 'AI Foundations'} • {student.year || '1st Year'}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="space-y-1 pt-1 border-t border-slate-200/60 dark:border-zinc-700/60">
+                          <div className="flex justify-between text-[10px] font-semibold text-slate-600 dark:text-zinc-400">
+                            <span>Learning Telemetry</span>
+                            <span className="text-blue-600 dark:text-blue-400 font-mono font-bold">{student.learningScore || 85}% Score</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-slate-200 dark:bg-zinc-700 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-linear-to-r from-blue-500 to-indigo-600 rounded-full"
+                              style={{ width: `${student.learningScore || 85}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+
           {/* DYNAMIC: Currently Enrolled Tracks (Only displayed when student is enrolled in courses) */}
           {loadingCourses ? (
             <div className="space-y-4">
@@ -605,9 +876,17 @@ export const Dashboard: React.FC = () => {
                       const savedCompletedStr = localStorage.getItem(`shaivika_completed_${course.id}`);
                       if (savedCompletedStr) {
                         const completedIds: any[] = JSON.parse(savedCompletedStr);
-                        const isGit = String(course.id).includes('git') || String(course.slug).includes('git');
-                        const totalLessons = isGit ? 31 : 20;
-                        if (completedIds && completedIds.length > 0) {
+                        let totalLessons = 0;
+                        if (course.modules) {
+                          course.modules.forEach((m: any) => {
+                            if (m.lessons) totalLessons += m.lessons.length;
+                          });
+                        }
+                        if (totalLessons === 0) {
+                          const isGit = String(course.id).includes('git') || String(course.slug).includes('git');
+                          totalLessons = isGit ? 31 : 20;
+                        }
+                        if (completedIds && completedIds.length > 0 && totalLessons > 0) {
                           dynamicProgress = Math.min(100, Math.round((completedIds.length / totalLessons) * 100));
                         }
                       }
@@ -834,378 +1113,7 @@ export const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {/* ------------------- CONTINUE LEARNING HUB TAB ------------------- */}
-      {currentTab === 'continue-learning' && (() => {
-        // Enriched courses list
-        const enrichedCourses = courses.map((course) => {
-          let totalUnits = 0;
-          let completedUnits = 0;
-          let completedIds: Record<string, boolean> = {};
-          try {
-            const stored = localStorage.getItem(`lms_completed_units_${course.id}`);
-            if (stored) completedIds = JSON.parse(stored);
-          } catch {}
 
-          if (course.modules) {
-            course.modules.forEach((m) => {
-              m.topics.forEach((t) => {
-                t.learningUnits.forEach((u) => {
-                  totalUnits++;
-                  if (completedIds[u.id]) {
-                    completedUnits++;
-                  }
-                });
-              });
-            });
-          }
-
-          const percentage = totalUnits > 0 ? Math.round((completedUnits / totalUnits) * 100) : 0;
-          const checkpoint = getCourseCheckpoint(String(course.id));
-
-          const totalDurationStr = course.duration || '20 hrs';
-          const numMatch = totalDurationStr.match(/([\d.]+)/);
-          const totalHours = numMatch ? parseFloat(numMatch[1]) : 20;
-          const remainingPercentage = 100 - (checkpoint ? checkpoint.progressPercent : percentage);
-          const estimatedRemainingHours = Math.max(0, Math.round((remainingPercentage * totalHours) / 100));
-
-          return {
-            course,
-            percentage: checkpoint ? checkpoint.progressPercent : percentage,
-            lastUpdated: checkpoint ? checkpoint.lastUpdated : null,
-            lastSubtopicTitle: checkpoint ? checkpoint.lastSubtopicTitle : '',
-            checkpoint,
-            totalUnits,
-            completedUnits,
-            estimatedRemainingHours,
-          };
-        });
-
-        // Search & Filters logic
-        const filteredCourses = enrichedCourses.filter((item) => {
-          const q = searchQuery.toLowerCase().trim();
-          if (q) {
-            const matchesTitle = item.course.title.toLowerCase().includes(q);
-            const matchesInstructor = item.course.instructor.toLowerCase().includes(q);
-            const matchesLesson = item.course.modules?.some(m =>
-              m.topics.some(t =>
-                t.learningUnits.some(u => u.title.toLowerCase().includes(q))
-              )
-            ) || false;
-
-            if (!matchesTitle && !matchesInstructor && !matchesLesson) {
-              return false;
-            }
-          }
-
-          if (selectedFilter === 'in-progress') {
-            return item.percentage > 0 && item.percentage < 100;
-          }
-          if (selectedFilter === 'completed') {
-            return item.percentage === 100;
-          }
-          if (selectedFilter === 'recent') {
-            return item.lastUpdated !== null;
-          }
-          return true;
-        });
-
-        // Sorting logic
-        const sortedCourses = [...filteredCourses].sort((a, b) => {
-          if (selectedSort === 'recent-opened' || selectedSort === 'recent-updated') {
-            const timeA = a.lastUpdated ? new Date(a.lastUpdated).getTime() : 0;
-            const timeB = b.lastUpdated ? new Date(b.lastUpdated).getTime() : 0;
-            return timeB - timeA;
-          }
-          if (selectedSort === 'alpha') {
-            return a.course.title.localeCompare(b.course.title);
-          }
-          if (selectedSort === 'high-progress') {
-            return b.percentage - a.percentage;
-          }
-          if (selectedSort === 'low-progress') {
-            return a.percentage - b.percentage;
-          }
-          return 0;
-        });
-
-        const handleResumeCourse = (item: any) => {
-          if (item.percentage === 100) {
-            navigate(`/course/${item.course.slug}`);
-          } else {
-            handleLaunchPlayer(item.course);
-          }
-        };
-
-        return (
-          <div className="space-y-6 animate-in fade-in duration-300">
-            {/* Search and Filters */}
-            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 bg-white p-4.5 rounded-3xl border border-sky-100/85 shadow-2xs">
-              <div className="relative flex-1">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search Courses by Name, Instructor, or Lesson..."
-                  className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-sky-100 bg-white/70 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 transition-all"
-                />
-              </div>
-              
-              <div className="flex flex-wrap items-center gap-3">
-                <select
-                  value={selectedFilter}
-                  onChange={(e) => setSelectedFilter(e.target.value as any)}
-                  className="px-3.5 py-2.5 rounded-xl border border-sky-100 bg-white text-xs font-bold text-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-500/20"
-                >
-                  <option value="all">All Enrolled Courses</option>
-                  <option value="in-progress">In Progress</option>
-                  <option value="completed">Completed</option>
-                  <option value="recent">Recently Opened</option>
-                </select>
-
-                <select
-                  value={selectedSort}
-                  onChange={(e) => setSelectedSort(e.target.value as any)}
-                  className="px-3.5 py-2.5 rounded-xl border border-sky-100 bg-white text-xs font-bold text-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-500/20"
-                >
-                  <option value="recent-opened">Sort: Recently Opened</option>
-                  <option value="recent-updated">Sort: Recently Updated</option>
-                  <option value="alpha">Sort: Alphabetical</option>
-                  <option value="high-progress">Sort: Highest Progress</option>
-                  <option value="low-progress">Sort: Lowest Progress</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Main Three-Column Dashboard Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-              {/* Column 1: Continue Learning Courses list */}
-              <div className="md:col-span-12 lg:col-span-6 space-y-6">
-                <h3 className="font-heading font-extrabold text-base text-slate-900 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-sky-500 animate-pulse" />
-                  <span>Continue Learning</span>
-                </h3>
-                
-                {sortedCourses.length === 0 ? (
-                  <div className="p-8 text-center rounded-3xl border border-sky-100 bg-white/70 space-y-3">
-                    <div className="w-12 h-12 rounded-2xl bg-sky-50 border border-sky-100 flex items-center justify-center mx-auto">
-                      <Info className="w-6 h-6 text-slate-400" />
-                    </div>
-                    <p className="text-xs text-slate-500 font-medium">No courses available.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {sortedCourses.map((item) => (
-                      <div
-                        key={item.course.id}
-                        className="p-5.5 rounded-3xl border border-sky-100/80 bg-white hover:border-sky-300 transition-all duration-300 shadow-sm hover:shadow-md space-y-4 group font-['Sora'] text-slate-900"
-                      >
-                        <div className="flex gap-4">
-                          <img
-                            src={item.course.thumbnail || 'https://images.unsplash.com/photo-1618401471353-b98aedd07871?auto=format&fit=crop&w=150&q=80'}
-                            alt={item.course.title}
-                            className="w-16 h-16 rounded-2xl object-cover border border-sky-100/60 shrink-0 shadow-3xs"
-                          />
-                          <div className="min-w-0 flex-1 space-y-1">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="px-2 py-0.5 rounded-md bg-sky-50 border border-sky-200 text-sky-800 text-[9px] font-bold uppercase tracking-wider font-mono">
-                                {item.course.category}
-                              </span>
-                              {item.lastUpdated && (
-                                <span className="text-[9px] text-slate-400 font-bold font-sans">
-                                  Active: {new Date(item.lastUpdated).toLocaleDateString()}
-                                </span>
-                              )}
-                            </div>
-                            <h4 className="font-heading font-extrabold text-sm sm:text-base text-slate-900 group-hover:text-sky-600 transition-colors line-clamp-1">
-                              {item.course.title}
-                            </h4>
-                            <p className="text-[11px] text-slate-500 font-semibold">
-                              Instructor: {item.course.instructor}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Progress Bar */}
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between text-[11px] font-bold text-slate-600">
-                            <div className="flex items-center gap-1.5">
-                              <span>Course Progress</span>
-                              <span className="text-[9px] font-bold text-slate-400 font-mono">
-                                ({item.completedUnits} / {item.totalUnits} Lessons)
-                              </span>
-                            </div>
-                            <span className="text-sky-600 font-mono">{item.percentage}%</span>
-                          </div>
-                          <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200/50">
-                            <div
-                              className="h-full bg-linear-to-r from-sky-500 to-indigo-600 transition-all duration-500"
-                              style={{ width: `${item.percentage}%` }}
-                            />
-                          </div>
-                        </div>
-
-                        <div className="flex flex-wrap items-center justify-between gap-3 text-[10px] font-bold text-slate-400 pt-1 border-t border-slate-100">
-                          <span>⏱ Remaining: ~{item.estimatedRemainingHours} hrs</span>
-                          {item.lastSubtopicTitle && (
-                            <span className="truncate max-w-64">
-                              Last visit: <span className="text-slate-600">{item.lastSubtopicTitle}</span>
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Course Card Action Buttons */}
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 pt-2">
-                          <button
-                            onClick={() => handleResumeCourse(item)}
-                            className="py-2.5 px-3 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-[11px] font-extrabold cursor-pointer transition-all flex items-center justify-center gap-1.5 shadow-sm col-span-2"
-                          >
-                            <PlayCircle className="w-4 h-4" />
-                            <span>{item.percentage === 100 ? 'Course Overview' : 'Resume Learning'}</span>
-                          </button>
-                          <button
-                            onClick={() => handleLaunchPlayer(item.course, '1.1.1')}
-                            className="py-2.5 px-3 rounded-xl border border-sky-100 bg-sky-50/50 hover:bg-sky-50 text-sky-800 text-[10px] font-extrabold cursor-pointer transition-all flex items-center justify-center gap-1"
-                          >
-                            Curriculum
-                          </button>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => handleLaunchPlayer(item.course, undefined, true, 'notes')}
-                              className="flex-1 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-[10px] font-extrabold cursor-pointer transition-all flex items-center justify-center"
-                              title="View Notes"
-                            >
-                              Notes
-                            </button>
-                            <button
-                              onClick={() => handleLaunchPlayer(item.course, undefined, true, 'bookmarks')}
-                              className="flex-1 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-[10px] font-extrabold cursor-pointer transition-all flex items-center justify-center"
-                              title="View Bookmarks"
-                            >
-                              Saved
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Column 2: Saved Lessons */}
-              <div className="md:col-span-6 lg:col-span-3 space-y-6">
-                <h3 className="font-heading font-extrabold text-base text-slate-900 flex items-center gap-2">
-                  <Bookmark className="w-4 h-4 text-amber-500" />
-                  <span>Saved Lessons</span>
-                </h3>
-
-                {savedLessons.length === 0 ? (
-                  <div className="p-8 text-center rounded-3xl border border-slate-100 bg-white/70 space-y-2">
-                    <Bookmark className="w-6 h-6 text-slate-300 mx-auto" />
-                    <p className="text-xs text-slate-400 italic">No saved lessons yet.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3.5">
-                    {savedLessons.map((bm) => (
-                      <div
-                        key={bm.subtopicId}
-                        className="p-4 rounded-2xl border border-sky-100 bg-white shadow-3xs flex flex-col justify-between space-y-2.5 hover:shadow-md transition-all duration-300 font-['Sora'] text-slate-900"
-                      >
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[8px] font-extrabold uppercase text-sky-700 bg-sky-50 border border-sky-100 px-1.5 py-0.5 rounded-md">
-                              {bm.lessonType}
-                            </span>
-                            <span className="text-[8px] font-bold text-slate-400 font-sans">
-                              {new Date(bm.createdAt).toLocaleDateString()}
-                            </span>
-                          </div>
-                          <h4 className="font-heading font-bold text-xs text-slate-900 truncate" title={bm.subtopicTitle}>
-                            {bm.subtopicTitle}
-                          </h4>
-                          <span className="text-[9px] font-medium text-slate-400 block truncate">
-                            {bm.moduleTitle}
-                          </span>
-                          <span className="text-[9px] font-semibold text-slate-500 block truncate">
-                            Course: {bm.course.title}
-                          </span>
-                        </div>
-
-                        <button
-                          onClick={() => handleLaunchPlayer(bm.course, bm.subtopicId)}
-                          className="w-full py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 text-[10px] font-extrabold cursor-pointer transition-all flex items-center justify-center gap-1 border border-sky-100"
-                        >
-                          Quick Open
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Column 3: Recent Activity */}
-              <div className="md:col-span-6 lg:col-span-3 space-y-6">
-                <h3 className="font-heading font-extrabold text-base text-slate-900 flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4 text-indigo-500" />
-                  <span>Recent Activity</span>
-                </h3>
-
-                {recentActivities.length === 0 ? (
-                  <div className="p-8 text-center rounded-3xl border border-slate-100 bg-white/70 space-y-2">
-                    <Activity className="w-6 h-6 text-slate-300 mx-auto" />
-                    <p className="text-xs text-slate-400 italic">No recent learning activity.</p>
-                  </div>
-                ) : (
-                  <div className="relative border-l border-slate-150 pl-4 ml-2.5 space-y-5">
-                    {recentActivities.slice(0, 10).map((act) => {
-                      let actIcon = <PlayCircle className="w-3.5 h-3.5" />;
-                      let actColor = 'text-blue-500 bg-blue-50 border-blue-100';
-
-                      if (act.type === 'completed') {
-                        actIcon = <CheckCircle2 className="w-3.5 h-3.5" />;
-                        actColor = 'text-emerald-600 bg-emerald-50 border-emerald-100';
-                      } else if (act.type === 'quiz') {
-                        actIcon = <Award className="w-3.5 h-3.5" />;
-                        actColor = 'text-purple-600 bg-purple-50 border-purple-100';
-                      } else if (act.type === 'assignment') {
-                        actIcon = <FileCheck className="w-3.5 h-3.5" />;
-                        actColor = 'text-amber-600 bg-amber-50 border-amber-100';
-                      } else if (act.type === 'note') {
-                        actIcon = <BookOpen className="w-3.5 h-3.5" />;
-                        actColor = 'text-sky-500 bg-sky-50 border-sky-100';
-                      } else if (act.type === 'bookmark') {
-                        actIcon = <Bookmark className="w-3.5 h-3.5" />;
-                        actColor = 'text-pink-500 bg-pink-50 border-pink-100';
-                      }
-
-                      return (
-                        <div key={act.id} className="relative font-['Sora'] text-slate-900 space-y-1">
-                          {/* Timeline Bullet Marker */}
-                          <div className={`absolute -left-6.75 top-0.5 w-6 h-6 rounded-full border flex items-center justify-center ${actColor} shadow-3xs`}>
-                            {actIcon}
-                          </div>
-
-                          <div className="pl-1 min-w-0">
-                            <p className="text-xs font-bold text-slate-800 leading-tight">
-                              {act.title}
-                            </p>
-                            <span className="text-[9px] font-semibold text-slate-400 block truncate">
-                              Course: {act.courseTitle}
-                            </span>
-                            <span className="text-[8px] font-medium text-slate-400 font-sans block pt-0.5">
-                              {new Date(act.timestamp).toLocaleString()}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        );
-      })()}
 
       {/* ------------------- 2. QUIZZES & GRADEBOOK TAB ------------------- */}
       {currentTab === 'assignments' && (
@@ -1303,24 +1211,52 @@ export const Dashboard: React.FC = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     {earnedCerts.map((cert) => (
                       <div key={cert.id} className="p-5 bg-white border border-sky-100 rounded-2xl shadow-3xs flex flex-col justify-between space-y-4">
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                           <span className="text-[9px] text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded font-mono font-bold uppercase tracking-wider block w-fit">
                             Verified Graduate Pass
                           </span>
                           <h5 className="font-heading font-bold text-sm text-slate-900 truncate" title={cert.courseTitle}>
                             {cert.courseTitle}
                           </h5>
-                          <span className="text-[10px] text-slate-400 block font-medium">Instructor: {cert.instructorName}</span>
-                          <span className="text-[10px] text-slate-400 block font-medium">Issued: {cert.completionDate}</span>
+                          <div className="space-y-1 text-[11px] font-medium text-slate-500">
+                            <div className="flex items-center justify-between">
+                              <span>Certificate ID:</span>
+                              <span className="font-mono text-slate-900 font-bold bg-slate-100 px-1 rounded">{cert.verificationId}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span>Issue Date:</span>
+                              <span className="text-slate-900 font-semibold">{cert.completionDate}</span>
+                            </div>
+                          </div>
                         </div>
 
-                        <button
-                          onClick={() => setActivePreviewCert(cert)}
-                          className="w-full bg-slate-900 hover:bg-slate-850 text-white font-heading font-extrabold text-[11px] py-2.5 px-4 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
-                        >
-                          <Award className="w-4 h-4 text-cyan-400" />
-                          <span>View Verified Credential</span>
-                        </button>
+                        <div className="grid grid-cols-1 gap-2 pt-2">
+                          <button
+                            onClick={() => setActivePreviewCert(cert)}
+                            className="w-full bg-slate-900 hover:bg-slate-850 text-white font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
+                          >
+                            <Award className="w-4 h-4 text-cyan-400" />
+                            <span>View Certificate</span>
+                          </button>
+
+                          <a
+                            href={`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/download?certificateId=${cert.verificationId}&studentId=${cert.studentId}&studentName=${encodeURIComponent(cert.studentName)}&courseTitle=${encodeURIComponent(cert.courseTitle)}&completionDate=${encodeURIComponent(cert.completionDate)}`}
+                            className="w-full bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                          >
+                            <Download className="w-4 h-4 text-emerald-500" />
+                            <span>Download PDF</span>
+                          </a>
+
+                          <a
+                            href={`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/verify/${cert.verificationId}?studentId=${cert.studentId}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="w-full bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer text-center"
+                          >
+                            <ExternalLink className="w-4 h-4 text-sky-500" />
+                            <span>Verify Credential</span>
+                          </a>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1361,7 +1297,7 @@ export const Dashboard: React.FC = () => {
                     Renewal & Expiration Ranks
                   </h4>
                   <div className="p-4 bg-slate-50 border border-slate-250 rounded-2xl flex items-start gap-2.5 text-[10px] leading-relaxed text-slate-500 font-semibold select-none">
-                    <ShieldAlert className="w-4.5 h-4.5 text-slate-400 shrink-0" />
+                    <Award className="w-4.5 h-4.5 text-slate-400 shrink-0" />
                     <div>
                       <span>No Expired Certifications</span>
                       <p className="mt-0.5 text-[9px] text-slate-400">All Kaizen Q credentials remain indefinitely valid. Future enterprise renewal status will display here.</p>
@@ -1376,146 +1312,7 @@ export const Dashboard: React.FC = () => {
           </div>
         );
       })()}
-      {/* ------------------- 5. ANALYTICS TAB ------------------- */}
-      {currentTab === 'analytics' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in duration-300">
-          <div className="p-6 rounded-3xl border border-sky-100 bg-white space-y-4 shadow-3xs">
-            <h3 className="font-heading font-bold text-base text-slate-900 flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-blue-600" />
-              <span>Skill Competency Radar</span>
-            </h3>
-            
-            <div className="space-y-4">
-              {coursesProgress.length === 0 ? (
-                <p className="text-xs text-slate-400 italic">No course analytics logged.</p>
-              ) : (
-                coursesProgress.map((item, idx) => (
-                  <div key={idx} className="space-y-1.5">
-                    <div className="flex justify-between text-xs font-bold text-slate-700">
-                      <span>{item.course.title}</span>
-                      <span className="text-blue-600 font-mono">{item.percentage}%</span>
-                    </div>
-                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200/50">
-                      <div
-                        className="h-full bg-blue-600 rounded-full transition-all duration-500"
-                        style={{ width: `${item.percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
 
-          <div className="p-6 rounded-3xl border border-sky-100 bg-white space-y-4 shadow-3xs flex flex-col justify-between">
-            <div className="space-y-2">
-              <h3 className="font-heading font-bold text-base text-slate-900 flex items-center gap-1.5">
-                <Sparkles className="w-5 h-5 text-amber-500 animate-pulse" />
-                <span>Verified Milestones</span>
-              </h3>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                Academic progress audits indicate that you have completed <strong className="text-slate-800 font-semibold">{totalCompletedUnitsCount} learning items</strong> out of the total <strong className="text-slate-800 font-semibold">{totalGlobalUnitsCount} syllabus units</strong>.
-              </p>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-indigo-50/20 border border-indigo-100 flex items-center gap-3">
-              <CheckCircle2 className="w-6 h-6 text-indigo-600 shrink-0" />
-              <div className="space-y-0.5">
-                <span className="text-xs font-extrabold text-indigo-900">Academic Standing Status</span>
-                <span className="text-[10px] text-indigo-700 font-bold block">Excellent (Top 10% of learner cohort)</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ------------------- 6. DISCUSSION CENTER TAB ------------------- */}
-      {currentTab === 'discussions' && (
-        <div className="space-y-6 animate-in fade-in duration-300">
-          <div className="bg-white border border-sky-200/60 p-5 rounded-3xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h3 className="font-heading font-extrabold text-base text-slate-900">Discussion Center & Doubt Resolution</h3>
-              <p className="text-xs text-slate-500 mt-0.5 font-medium">Browse discussion channels, clear your doubts, and collaborate with peers.</p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-600 whitespace-nowrap">Select Course:</span>
-              <select
-                value={selectedCourseId}
-                onChange={(e) => setSelectedCourseId(e.target.value)}
-                className="bg-slate-50 hover:bg-slate-100 py-2.5 px-4 rounded-xl text-xs font-bold border border-slate-200 focus:ring-2 focus:ring-sky-500/30 outline-none transition-all cursor-pointer"
-              >
-                {courses.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.title}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {selectedCourseId && (
-            <DiscussionCenter
-              courseId={selectedCourseId}
-              onUnreadCountChange={updateUnreadCount}
-            />
-          )}
-        </div>
-      )}
-
-      {/* ------------------- 7. AI QUIZZES CENTER TAB ------------------- */}
-      {currentTab === 'ai-quizzes' && (
-        <div className="space-y-6 animate-in fade-in duration-300">
-          <AIQuizPortal
-            courseId={aiLessonContext?.courseId || defaultAiContext.courseId}
-            courseTitle={aiLessonContext?.courseTitle || defaultAiContext.courseTitle}
-            lessonId={aiLessonContext?.id || defaultAiContext.id}
-            lessonTitle={aiLessonContext?.title || defaultAiContext.title}
-            lessonContent={aiLessonContext?.content || defaultAiContext.content}
-          />
-        </div>
-      )}
-
-      {/* ------------------- 8. PRACTICE LAB SANDBOX TAB ------------------- */}
-      {currentTab === 'practice-lab' && (
-        <div className="space-y-4 animate-in fade-in duration-300">
-          {/* Professional Header Banner */}
-          <div className="bg-linear-to-r from-slate-900 via-slate-850 to-indigo-950 rounded-3xl p-5 border border-slate-800 shadow-xl text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2.5">
-                <span className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
-                  <Code2 className="w-5 h-5" />
-                </span>
-                <h2 className="font-heading font-extrabold text-xl text-white">Shaivika AI Cloud Practice Sandbox</h2>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wider">
-                  Live Execution Engine
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 max-w-2xl">
-                Multi-language interactive coding environment with AI code reviewer, instant test runner, and built-in syntax checker.
-              </p>
-            </div>
-            <div className="flex items-center gap-3 shrink-0">
-              <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl px-3 py-2 text-center">
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Engine</div>
-                <div className="text-xs font-bold text-emerald-400 font-mono">JS / TS / Python</div>
-              </div>
-              <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl px-3 py-2 text-center">
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Status</div>
-                <div className="text-xs font-bold text-sky-400 font-mono">Ready • 0ms</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Full Viewport Practice Lab IDE Container */}
-          <div className="bg-slate-950 border border-slate-850 rounded-3xl overflow-hidden shadow-2xl h-[calc(100vh-220px)] min-h-180 p-2">
-            <PracticeLab
-              standalone={true}
-              courseId={selectedCourseId || '1'}
-            />
-          </div>
-        </div>
-      )}
 
       {/* ------------------- 9. ACHIEVEMENTS & BADGES TAB ------------------- */}
       {currentTab === 'achievements' && (
@@ -1525,6 +1322,36 @@ export const Dashboard: React.FC = () => {
       {/* ------------------- 10. LEADERBOARD TAB ------------------- */}
       {currentTab === 'leaderboard' && (
         <LeaderboardView />
+      )}
+
+      {/* ------------------- 11. ANALYTICS TAB ------------------- */}
+      {currentTab === 'analytics' && (
+        <AnalyticsDashboard />
+      )}
+
+      {/* ------------------- 12. RESUME BUILDER TAB ------------------- */}
+      {currentTab === 'resume-builder' && (
+        <ResumeBuilder />
+      )}
+
+      {/* ------------------- 13. CAREER ROADMAP TAB ------------------- */}
+      {currentTab === 'career-roadmap' && (
+        <CareerRoadmap />
+      )}
+
+      {/* ------------------- 14. PRACTICE HUB TAB ------------------- */}
+      {currentTab === 'practice-hub' && (
+        <PracticeHub />
+      )}
+
+      {/* ------------------- 15. INTERVIEW PREP TAB ------------------- */}
+      {currentTab === 'interview-prep' && (
+        <InterviewPrep />
+      )}
+
+      {/* ------------------- 16. LIVE CLASSROOM TAB ------------------- */}
+      {currentTab === 'live-classroom' && (
+        <StudentLiveClassroomSection />
       )}
 
       {/* ----------------- CERTIFICATE PREVIEW MODAL ----------------- */}
@@ -1566,56 +1393,25 @@ export const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {/* ----------------- UNIFIED FLOATING AI SUITE DOCK ----------------- */}
-      {currentTab !== 'ai-quizzes' && (!isAiPanelOpen || !isQuizPortalOpen) && (
-        <div className="fixed bottom-6 right-6 z-40 flex items-center gap-2 p-1.5 rounded-full bg-slate-950/90 border border-slate-800 shadow-2xl backdrop-blur-xl transition-all duration-300 font-['Sora'] select-none">
-          {/* AI Learning Assistant Button */}
-          {!isAiPanelOpen && (
-            <button
-              onClick={() => {
-                if (!aiLessonContext) {
-                  setAiLessonContext(defaultAiContext);
-                }
-                setIsAiPanelOpen(true);
-                toast.success('AI Tutor panel activated!');
-              }}
-              className="group flex items-center gap-2.5 px-3.5 py-2.5 rounded-full bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-500/30 hover:border-emerald-400 transition-all cursor-pointer shadow-xs hover:scale-105 active:scale-95"
-              title="Open AI Learning Assistant"
-            >
-              <div className="relative flex items-center justify-center">
-                <Bot className="w-5 h-5 text-emerald-400 group-hover:rotate-12 transition-transform" />
-                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-400 rounded-full animate-ping" />
-              </div>
-              <span className="text-xs font-extrabold tracking-wide">AI Tutor</span>
-            </button>
-          )}
-
-          {/* Vertical Separator Divider */}
-          {!isAiPanelOpen && !isQuizPortalOpen && (
-            <div className="w-px h-6 bg-slate-800 my-auto" />
-          )}
-
-          {/* AI Quiz Generator Button */}
-          {!isQuizPortalOpen && (
-            <button
-              onClick={() => {
-                if (!aiLessonContext) {
-                  setAiLessonContext(defaultAiContext);
-                }
-                setIsQuizPortalOpen(true);
-                toast.success('AI Quiz Generator panel activated!');
-              }}
-              className="group flex items-center gap-2.5 px-3.5 py-2.5 rounded-full bg-purple-950/40 hover:bg-purple-900/60 text-purple-300 border border-purple-500/30 hover:border-purple-400 transition-all cursor-pointer shadow-xs hover:scale-105 active:scale-95"
-              title="Open AI Quiz Generator"
-            >
-              <div className="relative flex items-center justify-center">
-                <Brain className="w-5 h-5 text-purple-400 group-hover:scale-110 transition-transform" />
-                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-purple-400 rounded-full animate-ping" />
-              </div>
-              <span className="text-xs font-extrabold tracking-wide">AI Quiz</span>
-            </button>
-          )}
-        </div>
+      {/* AI Tutor floating dock — single button, clean enterprise style */}
+      {!isAiPanelOpen && (
+        <button
+          onClick={() => {
+            if (!aiLessonContext) {
+              setAiLessonContext(defaultAiContext);
+            }
+            setIsAiPanelOpen(true);
+            toast.success('AI Tutor activated');
+          }}
+          className="fixed bottom-6 right-6 z-40 group flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-slate-900 dark:bg-zinc-800 hover:bg-indigo-600 dark:hover:bg-indigo-600 text-white border border-slate-700 dark:border-zinc-600 hover:border-indigo-500 transition-all duration-200 cursor-pointer shadow-xl hover:shadow-indigo-500/20 hover:scale-105 active:scale-95 select-none"
+          title="Open AI Tutor"
+        >
+          <div className="relative flex items-center justify-center">
+            <Bot className="w-4.5 h-4.5 text-indigo-300 group-hover:text-white transition-colors" />
+            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-indigo-400 rounded-full animate-ping" />
+          </div>
+          <span className="text-xs font-bold tracking-wide">AI Tutor</span>
+        </button>
       )}
 
       {isAiPanelOpen && (
@@ -1640,18 +1436,7 @@ export const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {isQuizPortalOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 font-['Sora']">
-          <AIQuizPortal
-            courseId={aiLessonContext?.courseId || defaultAiContext.courseId}
-            courseTitle={aiLessonContext?.courseTitle || defaultAiContext.courseTitle}
-            lessonId={aiLessonContext?.id || defaultAiContext.id}
-            lessonTitle={aiLessonContext?.title || defaultAiContext.title}
-            lessonContent={aiLessonContext?.content || defaultAiContext.content}
-            onClose={() => setIsQuizPortalOpen(false)}
-          />
-        </div>
-      )}
+
 
     </div>
   );

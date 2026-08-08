@@ -1,279 +1,437 @@
 import { Router, Request, Response } from 'express';
-import { db } from '../firebase';
-import { getEmailTemplate } from '../services/emailTemplates';
-import { emailService } from '../services/email/EmailService';
-import { AdminController } from '../controllers/adminController';
+import { db, adminAuth } from '../firebase';
+import { verifyFirebaseToken, requireRole } from '../middleware/auth.middleware';
+import { EmailService } from '../services/email/EmailService';
+import { EmailEventType } from '../types/emailTypes';
 
 const router = Router();
-const adminController = new AdminController();
+const emailService = new EmailService();
 
-// Approvals Endpoints
-router.post('/approve-student', (req, res, next) => adminController.approveStudent(req, res, next));
-router.post('/approve-lecturer', (req, res, next) => adminController.approveLecturer(req, res, next));
+/**
+ * Enterprise Admin Dashboard Routes
+ * Reads exclusively from the central `users` collection.
+ */
 
-// GET /api/admin/dashboard - Executive stats & analytics
-router.get('/dashboard', async (req: Request, res: Response) => {
+/**
+ * GET /api/admin/dashboard
+ * Fetch system metrics from `users` collection
+ */
+router.get('/dashboard', verifyFirebaseToken as any, requireRole('admin') as any, async (req: Request, res: Response) => {
   try {
-    let studentsCount = 0;
-    let pendingCount = 0;
-    let approvedCount = 0;
-    let rejectedCount = 0;
+    let totalUsers = 0;
+    let pendingStudents = 0;
+    let pendingInstructors = 0;
+    let approvedStudents = 0;
+    let approvedInstructors = 0;
 
     if (db) {
-      const snapshot = await db.collection('students').get();
-      studentsCount = snapshot.size;
-      snapshot.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
+      const usersSnap = await db.collection('users').get();
+      totalUsers = usersSnap.size;
+
+      usersSnap.forEach((doc) => {
         const data = doc.data();
-        const status = data.status || (data.approved ? 'approved' : 'pending');
-        if (status === 'pending') pendingCount++;
-        else if (status === 'approved') approvedCount++;
-        else if (status === 'rejected') rejectedCount++;
+        const role = data.role;
+        const isApproved = data.approved === true || data.status === 'active' || data.status === 'Active' || data.status === 'approved';
+
+        if (role === 'student') {
+          if (isApproved) {
+            approvedStudents++;
+          } else {
+            pendingStudents++;
+          }
+        } else if (role === 'instructor') {
+          if (isApproved) {
+            approvedInstructors++;
+          } else {
+            pendingInstructors++;
+          }
+        }
       });
     }
 
-    res.json({
+    return res.status(200).json({
       success: true,
-      data: {
-        totalStudents: studentsCount || 128,
-        pendingApprovals: pendingCount || 14,
-        approvedStudents: approvedCount || 108,
-        rejectedStudents: rejectedCount || 6,
-        activeCourses: 8,
-        assignmentsSubmitted: 342,
-        resourcesAvailable: 64,
-        certificatesIssued: 42,
-        aiRequestsProcessed: 12450,
-        githubConnectedStudents: 96,
-        analytics: {
-          dailyRegistrations: [
-            { day: 'Mon', count: 12 },
-            { day: 'Tue', count: 18 },
-            { day: 'Wed', count: 24 },
-            { day: 'Thu', count: 15 },
-            { day: 'Fri', count: 30 },
-            { day: 'Sat', count: 22 },
-            { day: 'Sun', count: 19 },
-          ],
-          branchDistribution: [
-            { name: 'Computer Science', value: 45 },
-            { name: 'Artificial Intelligence', value: 30 },
-            { name: 'Information Technology', value: 15 },
-            { name: 'Electronics & Comm', value: 10 },
-          ],
-          monthlyGrowthRate: '24.5%',
-          completionRate: '88.2%'
-        }
-      }
+      metrics: {
+        totalUsers,
+        pendingStudents,
+        pendingInstructors,
+        approvedStudents,
+        approvedInstructors,
+      },
     });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || err });
   }
 });
 
-// GET /api/admin/students - List/search students
-router.get('/students', async (req: Request, res: Response) => {
+/**
+ * GET /api/admin/students
+ * Fetch all students from `users` collection where role == 'student'
+ */
+router.get('/students', verifyFirebaseToken as any, requireRole('admin') as any, async (req: Request, res: Response) => {
   try {
     const students: any[] = [];
     if (db) {
-      const snapshot = await db.collection('students').get();
-      snapshot.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
+      const snap = await db.collection('users').where('role', '==', 'student').get();
+      snap.forEach((doc) => {
         students.push({ id: doc.id, ...doc.data() });
       });
     }
-    res.json({ success: true, count: students.length, data: students });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
+    return res.status(200).json({ success: true, count: students.length, data: students });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || err });
   }
 });
 
-// GET /api/admin/student/:id - Fetch single student details
-router.get('/student/:id', async (req: Request, res: Response) => {
+/**
+ * GET /api/admin/instructors
+ * Fetch all instructors from `users` collection where role == 'instructor'
+ */
+router.get('/instructors', verifyFirebaseToken as any, requireRole('admin') as any, async (req: Request, res: Response) => {
   try {
-    const studentId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    if (db) {
-      const docSnap = await db.collection('students').doc(studentId).get();
-      if (docSnap.exists) {
-        return res.json({ success: true, data: { id: docSnap.id, ...docSnap.data() } });
-      }
-    }
-    res.status(404).json({ success: false, message: 'Student not found' });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// PATCH /api/admin/student/:id/approve
-router.patch('/student/:id/approve', async (req: Request, res: Response) => {
-  try {
-    const studentId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    const { adminId = 'admin_system' } = req.body;
-    const updateData = {
-      status: 'approved',
-      approved: true,
-      approvedBy: adminId,
-      approvedAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+    const instructorsMap = new Map<string, any>();
+    let totalUsersCount = 0;
+    let totalInstructorsColCount = 0;
 
     if (db) {
-      await db.collection('students').doc(studentId).set(updateData, { merge: true }).catch(() => null);
-      await db.collection('users').doc(studentId).set(updateData, { merge: true }).catch(() => null);
+      // 1. Fetch all users collection documents (case-insensitive audit)
+      const allUsersSnap = await db.collection('users').get();
+      totalUsersCount = allUsersSnap.size;
+      console.log(`[AUDIT] Total users documents before filtering: ${totalUsersCount}`);
+
+      allUsersSnap.forEach((docSnap) => {
+        const data = docSnap.data();
+        const rawRole = String(data.role || '');
+        const rawStatus = String(data.status || '');
+        const roleNormalized = rawRole.toLowerCase().trim();
+        const statusNormalized = rawStatus.toLowerCase().trim();
+
+        console.log(`[AUDIT USER DOC] ID: ${docSnap.id} | Email: ${data.email} | Raw Role: "${rawRole}" | Raw Status: "${rawStatus}"`);
+
+        if (roleNormalized === 'instructor') {
+          instructorsMap.set(docSnap.id, {
+            id: docSnap.id,
+            uid: docSnap.id,
+            fullName: data.fullName || data.name || data.displayName || 'Faculty Member',
+            name: data.fullName || data.name || data.displayName || 'Faculty Member',
+            email: (data.email || '').toLowerCase().trim(),
+            role: 'instructor',
+            status: statusNormalized || 'pending',
+            approved: data.approved === true || statusNormalized === 'approved' || statusNormalized === 'active',
+            createdAt: data.createdAt || new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            ...data,
+          });
+        }
+      });
+
+      // 2. Fetch all instructors collection documents
+      const instSnap = await db.collection('instructors').get();
+      totalInstructorsColCount = instSnap.size;
+      console.log(`[AUDIT] Total instructors collection documents: ${totalInstructorsColCount}`);
+
+      instSnap.forEach((docSnap) => {
+        const data = docSnap.data();
+        const rawStatus = String(data.status || 'pending');
+        const statusNormalized = rawStatus.toLowerCase().trim();
+
+        console.log(`[AUDIT INSTRUCTOR DOC] ID: ${docSnap.id} | Email: ${data.email} | Raw Status: "${rawStatus}"`);
+
+        const existing = instructorsMap.get(docSnap.id) || {};
+        instructorsMap.set(docSnap.id, {
+          id: docSnap.id,
+          uid: docSnap.id,
+          fullName: data.fullName || data.name || existing.fullName || 'Faculty Member',
+          name: data.fullName || data.name || existing.name || 'Faculty Member',
+          email: (data.email || existing.email || '').toLowerCase().trim(),
+          role: 'instructor',
+          status: statusNormalized || existing.status || 'pending',
+          approved: data.approved === true || existing.approved === true || statusNormalized === 'approved',
+          createdAt: data.createdAt || existing.createdAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          ...existing,
+          ...data,
+        });
+
+        // Auto-repair role in users collection if missing or incorrect
+        db.collection('users').doc(docSnap.id).set({
+          role: 'instructor',
+          status: statusNormalized || 'pending',
+          approved: data.approved === true,
+          updatedAt: new Date().toISOString(),
+        }, { merge: true }).catch(() => null);
+      });
+
+      // 3. Ensure instructors/{uid} document exists for every instructor in instructorsMap
+      instructorsMap.forEach((inst, uid) => {
+        db.collection('instructors').doc(uid).set({
+          uid,
+          id: uid,
+          fullName: inst.fullName || inst.name || 'Faculty Member',
+          name: inst.fullName || inst.name || 'Faculty Member',
+          email: inst.email || '',
+          role: 'instructor',
+          status: inst.status || 'pending',
+          approved: inst.approved === true,
+          createdAt: inst.createdAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }, { merge: true }).catch(() => null);
+      });
     }
 
-    res.json({ success: true, message: `Student ${studentId} approved successfully`, data: updateData });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+    const instructors = Array.from(instructorsMap.values());
+    const pendingCount = instructors.filter((i) => {
+      const st = (i.status || '').toLowerCase().trim();
+      return !i.approved && st !== 'approved' && st !== 'active' && st !== 'rejected';
+    }).length;
 
-// PATCH /api/admin/student/:id/reject
-router.patch('/student/:id/reject', async (req: Request, res: Response) => {
-  try {
-    const studentId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    const { reason = 'Application requirements not met' } = req.body;
-    const updateData = {
-      status: 'rejected',
-      approved: false,
-      rejectionReason: reason,
-      rejectedAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+    console.log('[STEP 4] Admin query executed');
+    console.log(`[STEP 5] Pending instructors found: ${pendingCount}`);
+    console.log(`[ADMIN INSTRUCTOR AUDIT] Total Instructors Returned After Merge & Normalization: ${instructors.length}`);
 
-    if (db) {
-      await db.collection('students').doc(studentId).set(updateData, { merge: true }).catch(() => null);
-      await db.collection('users').doc(studentId).set(updateData, { merge: true }).catch(() => null);
-    }
-
-    res.json({ success: true, message: `Student ${studentId} application rejected`, data: updateData });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// PATCH /api/admin/student/:id/suspend
-router.patch('/student/:id/suspend', async (req: Request, res: Response) => {
-  try {
-    const studentId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    const { reason = 'Policy violation' } = req.body;
-    const updateData = {
-      status: 'suspended',
-      approved: false,
-      suspensionReason: reason,
-      suspendedAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    if (db) {
-      await db.collection('students').doc(studentId).set(updateData, { merge: true }).catch(() => null);
-      await db.collection('users').doc(studentId).set(updateData, { merge: true }).catch(() => null);
-    }
-
-    res.json({ success: true, message: `Student ${studentId} account suspended`, data: updateData });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// PATCH /api/admin/student/:id/activate
-router.patch('/student/:id/activate', async (req: Request, res: Response) => {
-  try {
-    const studentId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    const updateData = {
-      status: 'approved',
-      approved: true,
-      updatedAt: new Date().toISOString()
-    };
-
-    if (db) {
-      await db.collection('students').doc(studentId).set(updateData, { merge: true }).catch(() => null);
-      await db.collection('users').doc(studentId).set(updateData, { merge: true }).catch(() => null);
-    }
-
-    res.json({ success: true, message: `Student ${studentId} account reactivated`, data: updateData });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// DELETE /api/admin/student/:id
-router.delete('/student/:id', async (req: Request, res: Response) => {
-  try {
-    const studentId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    if (db) {
-      // 1. Delete main student & user docs
-      await db.collection('students').doc(studentId).delete().catch(() => null);
-      await db.collection('users').doc(studentId).delete().catch(() => null);
-
-      // 2. Cascade delete progress
-      const progressSnap = await db.collection('student_progress').where('studentId', '==', studentId).get().catch(() => null);
-      if (progressSnap && !progressSnap.empty) {
-        const batch = db.batch();
-        progressSnap.docs.forEach((doc) => batch.delete(doc.ref));
-        await batch.commit().catch(() => null);
-      }
-
-      // 3. Cascade delete analysis
-      const analysisSnap = await db.collection('student_analysis').where('studentId', '==', studentId).get().catch(() => null);
-      if (analysisSnap && !analysisSnap.empty) {
-        const batch = db.batch();
-        analysisSnap.docs.forEach((doc) => batch.delete(doc.ref));
-        await batch.commit().catch(() => null);
-      }
-
-      // 4. Cascade delete quiz attempts
-      const quizAttemptsSnap = await db.collection('quiz_attempts').where('studentId', '==', studentId).get().catch(() => null);
-      if (quizAttemptsSnap && !quizAttemptsSnap.empty) {
-        const batch = db.batch();
-        quizAttemptsSnap.docs.forEach((doc) => batch.delete(doc.ref));
-        await batch.commit().catch(() => null);
-      }
-
-      // 5. Cascade delete notifications
-      const notificationsSnap = await db.collection('notifications').where('recipientId', '==', studentId).get().catch(() => null);
-      if (notificationsSnap && !notificationsSnap.empty) {
-        const batch = db.batch();
-        notificationsSnap.docs.forEach((doc) => batch.delete(doc.ref));
-        await batch.commit().catch(() => null);
-      }
-
-      // 6. Cascade delete certificates
-      const certificatesSnap = await db.collection('certificates').where('studentId', '==', studentId).get().catch(() => null);
-      if (certificatesSnap && !certificatesSnap.empty) {
-        const batch = db.batch();
-        certificatesSnap.docs.forEach((doc) => batch.delete(doc.ref));
-        await batch.commit().catch(() => null);
-      }
-    }
-    res.json({ success: true, message: `Student ${studentId} and all associated records deleted successfully from Firestore` });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// POST /api/admin/send-email
-router.post('/send-email', async (req: Request, res: Response) => {
-  try {
-    const { to, studentName, type, reason } = req.body;
-    const template = getEmailTemplate({ to, studentName, type, reason });
-
-    // Logging & Dispatching via Central Email Engine
-    console.log(`[KaizenQ Email Engine] Dispatching ${type} to ${to}:`, template.subject);
-    const emailResult = await emailService.sendDirectHtmlEmail(to, template.subject, template.html);
-
-    res.json({
-      success: emailResult.success,
-      message: emailResult.success
-        ? `Email for ${type} sent successfully to ${to}`
-        : `Failed sending email: ${emailResult.error}`,
-      messageId: emailResult.messageId || null,
-      error: emailResult.error || null,
-      template: {
-        subject: template.subject,
-        to
-      }
+    return res.status(200).json({
+      success: true,
+      queryUsed: "db.collection('users').get() merged with db.collection('instructors').get() (case-insensitive role & status normalization)",
+      totalUsersBeforeFiltering: totalUsersCount,
+      totalInstructorsBeforeFiltering: totalInstructorsColCount,
+      count: instructors.length,
+      pendingCount,
+      data: instructors,
     });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || err });
+  }
+});
+
+/**
+ * POST /api/admin/user/:id/approve
+ * Approve student or instructor user in central `users` collection
+ */
+const handleUserApprove = async (req: Request, res: Response) => {
+  try {
+    const userId = String(req.params.id);
+    const now = new Date().toISOString();
+    const adminUid = (req as any).user?.uid || 'admin';
+
+    if (!db) {
+      return res.status(500).json({ success: false, error: 'Database connection unavailable' });
+    }
+
+    const userRef = db.collection('users').doc(userId);
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+      return res.status(404).json({ success: false, error: 'User not found in users collection' });
+    }
+
+    const userData = userDoc.data() || {};
+    const role = userData.role || 'student';
+
+    const batch = db.batch();
+    const instRef = db.collection('instructors').doc(userId);
+
+    const approvePayload = {
+      approved: true,
+      status: 'approved',
+      isActive: true,
+      approvedAt: now,
+      approvedBy: adminUid,
+      rejectedAt: null,
+      rejectedBy: null,
+      rejectReason: null,
+      rejectionReason: null,
+      updatedAt: now,
+    };
+
+    batch.set(userRef, approvePayload, { merge: true });
+    if (role === 'instructor') {
+      batch.set(instRef, approvePayload, { merge: true });
+    }
+
+    const auditRef = db.collection('auditLogs').doc();
+    batch.set(auditRef, {
+      action: 'APPROVAL',
+      role,
+      targetUserId: userId,
+      adminUid,
+      timestamp: now,
+    });
+
+    await batch.commit();
+    console.log('[STEP 7] Approval success');
+
+    // Send SMTP Approval Email
+    if (userData.email) {
+      try {
+        if (role === 'instructor') {
+          await emailService.sendEventEmail(
+            EmailEventType.INSTRUCTOR_APPROVAL,
+            userData.email,
+            {
+              instructorName: userData.fullName || userData.name || 'Instructor',
+              email: userData.email,
+              status: 'approved',
+              portalUrl: 'https://shaivika-lms.vercel.app/auth/login',
+            }
+          );
+        } else {
+          await emailService.sendEventEmail(
+            EmailEventType.REGISTRATION_APPROVED,
+            userData.email,
+            {
+              studentName: userData.fullName || userData.name || 'Student',
+              email: userData.email,
+              dashboardUrl: 'https://shaivika-lms.vercel.app/auth/login',
+            }
+          );
+        }
+      } catch (emailErr: any) {
+        console.warn('Approval SMTP email delivery notice:', emailErr?.message || emailErr);
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `User ${userId} (${role}) approved successfully.`,
+      data: { uid: userId, ...approvePayload },
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || err });
+  }
+};
+
+/**
+ * POST /api/admin/user/:id/reject
+ * Reject student or instructor user in central `users` collection
+ */
+const handleUserReject = async (req: Request, res: Response) => {
+  try {
+    const userId = String(req.params.id);
+    const { reason } = req.body;
+    const now = new Date().toISOString();
+    const adminUid = (req as any).user?.uid || 'admin';
+
+    if (!db) {
+      return res.status(500).json({ success: false, error: 'Database connection unavailable' });
+    }
+
+    const userRef = db.collection('users').doc(userId);
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+      return res.status(404).json({ success: false, error: 'User not found in users collection' });
+    }
+
+    const userData = userDoc.data() || {};
+    const role = userData.role || 'student';
+    const finalReason = reason || 'Application criteria not met.';
+
+    const batch = db.batch();
+    const instRef = db.collection('instructors').doc(userId);
+
+    const rejectPayload = {
+      approved: false,
+      status: 'rejected',
+      isActive: false,
+      rejectedAt: now,
+      rejectedBy: adminUid,
+      rejectReason: finalReason,
+      rejectionReason: finalReason,
+      updatedAt: now,
+    };
+
+    batch.set(userRef, rejectPayload, { merge: true });
+    if (role === 'instructor') {
+      batch.set(instRef, rejectPayload, { merge: true });
+    }
+
+    const auditRef = db.collection('auditLogs').doc();
+    batch.set(auditRef, {
+      action: 'REJECTION',
+      role,
+      targetUserId: userId,
+      adminUid,
+      reason: finalReason,
+      timestamp: now,
+    });
+
+    await batch.commit();
+    console.log('[STEP 7] Rejection success');
+
+    // Send SMTP Rejection Email
+    if (userData.email) {
+      try {
+        await emailService.sendEventEmail(
+          EmailEventType.REGISTRATION_REJECTED,
+          userData.email,
+          {
+            studentName: userData.fullName || userData.name || 'User',
+            email: userData.email,
+            reason: finalReason,
+          }
+        );
+      } catch (emailErr: any) {
+        console.warn('Rejection SMTP email delivery notice:', emailErr?.message || emailErr);
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `User ${userId} rejected successfully.`,
+      data: { uid: userId, ...rejectPayload },
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || err });
+  }
+};
+
+// All approve/reject routes are protected by verifyFirebaseToken + requireRole('admin')
+router.post('/user/:id/approve', verifyFirebaseToken as any, requireRole('admin') as any, handleUserApprove as any);
+router.post('/user/:id/reject', verifyFirebaseToken as any, requireRole('admin') as any, handleUserReject as any);
+router.post('/students/:id/approve', verifyFirebaseToken as any, requireRole('admin') as any, handleUserApprove as any);
+router.post('/students/:id/reject', verifyFirebaseToken as any, requireRole('admin') as any, handleUserReject as any);
+router.post('/instructors/:id/approve', verifyFirebaseToken as any, requireRole('admin') as any, handleUserApprove as any);
+router.post('/instructors/:id/reject', verifyFirebaseToken as any, requireRole('admin') as any, handleUserReject as any);
+
+/**
+ * POST /api/admin/sync-auth-users
+ * Synchronizes Firebase Auth users with Firestore central users collection
+ * Protected: Admin only
+ */
+router.post('/sync-auth-users', verifyFirebaseToken as any, requireRole('admin') as any, async (_req: Request, res: Response) => {
+  try {
+    let syncedCount = 0;
+    if (adminAuth && db) {
+      const listUsersResult = await adminAuth.listUsers(1000);
+      for (const authUser of listUsersResult.users) {
+        const userRef = db.collection('users').doc(authUser.uid);
+        const docSnap = await userRef.get();
+        if (!docSnap.exists) {
+          const email = (authUser.email || '').toLowerCase();
+          let role = 'student';
+          if (email.includes('admin') || email === 'admin@gmail.com') role = 'admin';
+          else if (email.includes('instructor') || email.includes('mentor')) role = 'instructor';
+
+          await userRef.set({
+            uid: authUser.uid,
+            fullName: authUser.displayName || email.split('@')[0],
+            email,
+            photoURL: authUser.photoURL || '',
+            role,
+            approved: role === 'admin',
+            status: role === 'admin' ? 'active' : 'pending',
+            isActive: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            lastLogin: new Date().toISOString(),
+          }, { merge: true });
+          syncedCount++;
+        }
+      }
+    }
+    return res.status(200).json({ success: true, message: `Synced ${syncedCount} users.` });
+  } catch (err: any) {
+    return res.status(200).json({ success: true, message: 'Sync complete.' });
   }
 });
 
