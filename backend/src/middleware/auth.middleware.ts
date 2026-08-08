@@ -47,15 +47,24 @@ export const verifyFirebaseToken = async (
   }
 };
 
-export const requireRole = (role: 'student' | 'admin') => {
+export const requireRole = (roles: string | string[]) => {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
     if (!req.user) {
       res.status(401).json({ error: 'Unauthorized: User authentication required' });
       return;
     }
 
-    if (req.user.role !== role && req.user.role !== 'admin') {
-      res.status(403).json({ error: `Forbidden: Requires ${role} privileges` });
+    const userRole = req.user.role || 'student';
+    const allowedRoles = Array.isArray(roles) ? roles : [roles];
+
+    // Admins bypass all role checks
+    if (userRole === 'admin') {
+      next();
+      return;
+    }
+
+    if (!allowedRoles.includes(userRole)) {
+      res.status(403).json({ error: `Forbidden: Requires one of [${allowedRoles.join(', ')}] privileges` });
       return;
     }
 

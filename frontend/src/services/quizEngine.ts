@@ -528,6 +528,48 @@ class MockQuizEngine implements QuizGenerator, QuizEvaluator {
         topic: 'Git Status',
         estTime: '30s'
       });
+    } else if (courseLower.includes('kubernetes') || courseLower.includes('k8s')) {
+      generated.push({
+        id: `k8s_q_mcq_${Date.now()}`,
+        type: 'mcq',
+        difficulty: 'Easy',
+        question: `Which Kubernetes object is the smallest deployable unit that represents a single instance of a running process?`,
+        options: ['Pod', 'Deployment', 'Service', 'ReplicaSet'],
+        answer: 'Pod',
+        explanation: 'A Pod is the basic execution unit of a Kubernetes application, encapsulating one or more containers.',
+        topic: 'Kubernetes Objects',
+        estTime: '30s'
+      });
+      generated.push({
+        id: `k8s_q_code_${Date.now()}`,
+        type: 'code',
+        difficulty: 'Medium',
+        question: `Write the kubectl command to retrieve a list of all Pods in the default namespace.`,
+        answer: 'kubectl get pods',
+        explanation: 'The get action retrieves resource lists, and pods specifies the Pod resource type.',
+        topic: 'Kubectl CLI',
+        estTime: '45s'
+      });
+      generated.push({
+        id: `k8s_q_tf_${Date.now()}`,
+        type: 'tf',
+        difficulty: 'Easy',
+        question: `True or False: A ClusterIP Service makes a Pod accessible from outside the Kubernetes cluster.`,
+        answer: 'False',
+        explanation: 'ClusterIP exposes the Service on a cluster-internal IP, making it only reachable from within the cluster.',
+        topic: 'Kubernetes Networking',
+        estTime: '30s'
+      });
+      generated.push({
+        id: `k8s_q_blank_${Date.now()}`,
+        type: 'blank',
+        difficulty: 'Medium',
+        question: `The command-line tool used to install and manage Kubernetes applications via charts is ________.`,
+        answer: 'helm',
+        explanation: 'Helm is the package manager for Kubernetes, using package definitions called charts.',
+        topic: 'Kubernetes Package Management',
+        estTime: '30s'
+      });
     } else {
       // Linux default
       generated.push({

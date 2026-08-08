@@ -5,12 +5,14 @@ interface LinuxLabStatusBarProps {
   isNightMode: boolean;
   currentPathDisplay: string;
   gitBranch: string;
+  isKubernetesCourse?: boolean;
 }
 
 export const LinuxLabStatusBar: React.FC<LinuxLabStatusBarProps> = ({
   isNightMode,
   currentPathDisplay,
   gitBranch,
+  isKubernetesCourse = false,
 }) => {
   return (
     <div
@@ -31,6 +33,17 @@ export const LinuxLabStatusBar: React.FC<LinuxLabStatusBarProps> = ({
           <GitBranch className="w-3.5 h-3.5 text-purple-400" />
           <span>{gitBranch}</span>
         </div>
+
+        {isKubernetesCourse && (
+          <div className="flex items-center gap-1.5 text-cyan-400 font-semibold border-l border-slate-700 pl-4">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Kubernetes: Connected</span>
+            <span className="text-slate-500 font-normal">|</span>
+            <span>Cluster: Minikube</span>
+            <span className="text-slate-500 font-normal">|</span>
+            <span>kubectl: Ready</span>
+          </div>
+        )}
       </div>
 
       {/* Right: Server Telemetry */}

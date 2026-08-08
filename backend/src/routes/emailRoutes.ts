@@ -8,8 +8,10 @@ import { emailService } from '../services/email/EmailService';
 import { EmailEventType } from '../types/emailTypes';
 import { env } from '../config/env';
 import { z } from 'zod';
+import { EmailController } from '../controllers/emailController';
 
 const router = Router();
+const emailController = new EmailController();
 
 const sendEmailSchema = z.object({
   eventType: z.nativeEnum(EmailEventType),
@@ -103,22 +105,12 @@ router.post('/retry', async (req: Request, res: Response) => {
 /**
  * GET /api/email/logs
  */
-router.get('/logs', async (req: Request, res: Response) => {
-  try {
-    const limitCount = parseInt(req.query.limit as string, 10) || 50;
-    const logs = await emailService.getEmailLogs(limitCount);
+router.get('/logs', (req, res, next) => emailController.getLogs(req, res, next));
 
-    return res.status(200).json({
-      count: logs.length,
-      logs,
-    });
-  } catch (err: any) {
-    return res.status(500).json({
-      error: 'Failed fetching email logs',
-      message: err?.message || String(err),
-    });
-  }
-});
+/**
+ * POST /api/email/resend
+ */
+router.post('/resend', (req, res, next) => emailController.resendEmail(req, res, next));
 
 /**
  * POST /api/email/test

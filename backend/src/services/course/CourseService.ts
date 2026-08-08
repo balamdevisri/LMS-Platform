@@ -350,6 +350,44 @@ export class CourseService {
           certificate: true,
           featured: true,
           createdBy: 'seeder',
+        },
+        {
+          title: 'Kubernetes Complete Course – Beginner to Advanced',
+          slug: 'kubernetes-complete-course-beginner-to-advanced',
+          description: 'Learn Kubernetes from the fundamentals to production-level deployment through practical, hands-on learning. Understand Kubernetes architecture, Pods, Deployments, Services, Networking, Storage, Security, Scheduling, Helm, CI/CD, and real-world application deployment.',
+          shortDescription: 'Learn Kubernetes from the fundamentals to production-level deployment through practical, hands-on learning.',
+          category: 'DevOps / Cloud / Containers',
+          subcategory: 'Kubernetes',
+          level: 'all_levels',
+          thumbnail: 'https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?auto=format&fit=crop&w=800&q=80',
+          bannerImage: 'https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?auto=format&fit=crop&w=800&q=80',
+          duration: '30 Hours',
+          price: 0,
+          currency: 'INR',
+          status: 'published',
+          language: 'English',
+          instructor: {
+            uid: 'instructor-kaizen-q',
+            name: 'Kaizen-Q Academy',
+          },
+          lessonsCount: 46,
+          modulesCount: 6,
+          studentsEnrolled: 0,
+          rating: 5.0,
+          totalRatings: 100,
+          tags: ['kubernetes', 'k8s', 'devops', 'docker', 'containers', 'helm'],
+          prerequisites: ['Basic Linux commands', 'Basic Docker knowledge', 'Basic networking concepts', 'Basic YAML knowledge'],
+          learningOutcomes: [
+            'Understand Kubernetes architecture and core worker components',
+            'Deploy and scale applications using Pods, ReplicaSets, and Deployments',
+            'Expose applications with ClusterIP, NodePort, LoadBalancer Services and Ingress',
+            'Manage persistent storage with PersistentVolumes and Claims',
+            'Secure clusters using ServiceAccounts, RBAC, and Security Contexts',
+            'Deploy microservices in cloud Kubernetes clusters using CI/CD and Helm'
+          ],
+          certificate: true,
+          featured: true,
+          createdBy: 'seeder',
         }
       ];
 
@@ -357,7 +395,7 @@ export class CourseService {
       for (const courseData of sampleCourses) {
         const existing = await this.collection().where('slug', '==', courseData.slug).limit(1).get();
         if (existing.empty) {
-          const docRef = this.collection().doc(courseData.slug === 'git-github-mastery' ? 'git-github-mastery-course-id' : (courseData.slug === 'database-management-system' ? 'database-management-system' : this.collection().doc().id));
+          const docRef = this.collection().doc(courseData.slug === 'git-github-mastery' ? 'git-github-mastery-course-id' : (courseData.slug === 'database-management-system' ? 'database-management-system' : (courseData.slug === 'kubernetes-complete-course-beginner-to-advanced' ? 'kubernetes-complete-course-beginner-to-advanced' : this.collection().doc().id)));
           const course: Course = {
             ...courseData,
             id: docRef.id,
@@ -371,6 +409,8 @@ export class CourseService {
             await this.seedGitCourseDetails(docRef.id);
           } else if (courseData.slug === 'database-management-system') {
             await this.seedDbmsCourseDetails(docRef.id);
+          } else if (courseData.slug === 'kubernetes-complete-course-beginner-to-advanced') {
+            await this.seedKubernetesCourseDetails(docRef.id);
           }
         } else {
           // If the course exists, update its details to ensure the requested instructor/desc etc. are correct.
@@ -386,6 +426,8 @@ export class CourseService {
             await this.seedGitCourseDetails(courseDoc.id);
           } else if (courseData.slug === 'database-management-system') {
             await this.seedDbmsCourseDetails(courseDoc.id);
+          } else if (courseData.slug === 'kubernetes-complete-course-beginner-to-advanced') {
+            await this.seedKubernetesCourseDetails(courseDoc.id);
           }
         }
       }
@@ -785,6 +827,160 @@ export class CourseService {
       console.log('Successfully seeded DBMS course structure.');
     } catch (error) {
       console.error('Error seeding DBMS course details:', error);
+    }
+  }
+
+  /**
+   * Seeds Modules, Lessons, Quizzes, and Assignments for the Kubernetes Complete Course.
+   */
+  async seedKubernetesCourseDetails(courseId: string): Promise<void> {
+    try {
+      const { modulesCollection, lessonsCollection, quizzesCollection, assignmentsCollection } = await import('../../firebase/collections');
+      
+      console.log('Seeding Kubernetes detailed syllabus collections...');
+
+      const modulesData = [
+        { id: 'k8s-mod-1', title: 'Module 1 — Kubernetes Basics', order: 1, duration: '5 Hours' },
+        { id: 'k8s-mod-2', title: 'Module 2 — Pods & Deployments', order: 2, duration: '6 Hours' },
+        { id: 'k8s-mod-3', title: 'Module 3 — Networking & Services', order: 3, duration: '5 Hours' },
+        { id: 'k8s-mod-4', title: 'Module 4 — Configuration & Storage', order: 4, duration: '6 Hours' },
+        { id: 'k8s-mod-5', title: 'Module 5 — Security & Administration', order: 5, duration: '6 Hours' },
+        { id: 'k8s-mod-6', title: 'Module 6 — Production & DevOps', order: 6, duration: '6 Hours' },
+      ];
+
+      for (const mod of modulesData) {
+        await modulesCollection().doc(mod.id).set(toDocument({
+          ...mod,
+          courseId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }));
+      }
+
+      const lessonsList = [
+        {
+          moduleId: 'k8s-mod-1',
+          lessons: [
+            { id: 'k8s-unit-1-1', title: '1.1 Introduction to Kubernetes', order: 1, duration: '35 mins', type: 'reading', content: '## Introduction to Kubernetes (K8s)\nKubernetes is an open-source container orchestration platform designed to automate application deployment, scaling, and management.' },
+            { id: 'k8s-unit-1-2', title: '1.2 Kubernetes Architecture', order: 2, duration: '45 mins', type: 'reading', content: '## Kubernetes Architecture\nLearn control plane components (API Server, etcd, Scheduler, Controller Manager) and worker node components (Kubelet, Kube-proxy).' },
+            { id: 'k8s-unit-1-3', title: '1.3 Kubernetes Cluster & Components', order: 3, duration: '40 mins', type: 'reading', content: '## Cluster Components\nDeep dive into Kubelet agent, Kube-proxy networking, and container runtime components that power worker nodes.' },
+            { id: 'k8s-unit-1-4', title: '1.4 Kubernetes Objects & YAML', order: 4, duration: '40 mins', type: 'reading', content: '## Objects & YAML\nUnderstand declarative configuration architecture, metadata properties, specs, and status.' },
+            { id: 'k8s-unit-1-5', title: '1.5 Installing Minikube & kubectl', order: 5, duration: '35 mins', type: 'reading', content: '## Installing Minikube & kubectl\nSetting up a local single-node cluster environment and configuring the kubectl command-line tool.' },
+            { id: 'k8s-unit-1-6', title: '1.6 Basic kubectl Commands', order: 6, duration: '45 mins', type: 'reading', content: '## Basic kubectl Commands\nMaster essential CLI syntax including get, describe, create, apply, delete, and logs.' },
+            { id: 'k8s-unit-1-7', title: '1.7 Practice: Create Your First Pod', order: 7, duration: '60 mins', type: 'assignment', content: '## ⚠️ Practice Only\nDeploy containers using YAML manifests and test Pod logs.' }
+          ]
+        },
+        {
+          moduleId: 'k8s-mod-2',
+          lessons: [
+            { id: 'k8s-unit-2-1', title: '2.1 Pods & Pod Lifecycle', order: 1, duration: '45 mins', type: 'reading', content: '## Pod Lifecycle\nLearn pod lifecycle states (Pending, Running, Succeeded, Failed, Unknown) and multi-container Pod layouts.' },
+            { id: 'k8s-unit-2-2', title: '2.2 Labels, Selectors & Namespaces', order: 2, duration: '45 mins', type: 'reading', content: '## Labels, Selectors & Namespaces\nOrganize resources with label selectors and create virtual cluster partitions using namespaces.' },
+            { id: 'k8s-unit-2-3', title: '2.3 ReplicaSets & Deployments', order: 3, duration: '45 mins', type: 'reading', content: '## Deployments & ReplicaSets\nManage replication levels and define declarative updates using deployment workloads.' },
+            { id: 'k8s-unit-2-4', title: '2.4 Scaling Applications', order: 4, duration: '40 mins', type: 'reading', content: '## Scaling Applications\nPerform manual workload scaling using replicas parameter commands.' },
+            { id: 'k8s-unit-2-5', title: '2.5 Rolling Updates & Rollbacks', order: 5, duration: '50 mins', type: 'reading', content: '## Rolling Updates & Rollbacks\nExecute zero-downtime application releases and roll back deployment history.' },
+            { id: 'k8s-unit-2-6', title: '2.6 Jobs & CronJobs', order: 6, duration: '40 mins', type: 'reading', content: '## Jobs & CronJobs\nExecute batch processing scripts and periodic scheduled tasks.' },
+            { id: 'k8s-unit-2-7', title: '2.7 Health Checks & Probes', order: 7, duration: '45 mins', type: 'reading', content: '## Probes\nConfigure liveness, readiness, and startup checks to auto-restart containers.' },
+            { id: 'k8s-unit-2-8', title: '2.8 Practice: Deploy an Application', order: 8, duration: '50 mins', type: 'assignment', content: '## ⚠️ Practice Only\nDeploy, scale, and update replication workloads inside the sandbox environment.' }
+          ]
+        },
+        {
+          moduleId: 'k8s-mod-3',
+          lessons: [
+            { id: 'k8s-unit-3-1', title: '3.1 Kubernetes Networking Basics', order: 1, duration: '40 mins', type: 'reading', content: '## Networking Model\nExplore container communication and IP-per-Pod networking principles.' },
+            { id: 'k8s-unit-3-2', title: '3.2 Services Overview', order: 2, duration: '40 mins', type: 'reading', content: '## Services Overview\nUnderstand Service stable endpoint abstractions and selector discovery.' },
+            { id: 'k8s-unit-3-3', title: '3.3 ClusterIP, NodePort & LoadBalancer', order: 3, duration: '45 mins', type: 'reading', content: '## Service Types\nCompare internal ClusterIP, NodePort routing, and external LoadBalancer bindings.' },
+            { id: 'k8s-unit-3-4', title: '3.4 Service Discovery & DNS', order: 4, duration: '40 mins', type: 'reading', content: '## Service DNS\nLearn cluster internal CoreDNS resolution naming rules.' },
+            { id: 'k8s-unit-3-5', title: '3.5 Ingress & Ingress Controller', order: 5, duration: '50 mins', type: 'reading', content: '## Ingress reverse proxy\nConfigure path-based reverse routing rules using Ingress Controllers.' },
+            { id: 'k8s-unit-3-6', title: '3.6 Network Policies', order: 6, duration: '45 mins', type: 'reading', content: '## Network Policies\nManage internal container connection firewalls using ingress and egress policies.' },
+            { id: 'k8s-unit-3-7', title: '3.7 Practice: Expose an Application', order: 7, duration: '40 mins', type: 'assignment', content: '## ⚠️ Practice Only\nConfigure Services and map Ingress routing rules.' }
+          ]
+        },
+        {
+          moduleId: 'k8s-mod-4',
+          lessons: [
+            { id: 'k8s-unit-4-1', title: '4.1 ConfigMaps', order: 1, duration: '45 mins', type: 'reading', content: '## ConfigMaps\nStore non-sensitive environment configuration files and maps.' },
+            { id: 'k8s-unit-4-2', title: '4.2 Secrets', order: 2, duration: '45 mins', type: 'reading', content: '## Secrets\nSecure sensitive parameters, passwords, and connection hashes.' },
+            { id: 'k8s-unit-4-3', title: '4.3 Environment Variables', order: 3, duration: '40 mins', type: 'reading', content: '## Env Variables\nInject configurations into container environments from ConfigMaps/Secrets.' },
+            { id: 'k8s-unit-4-4', title: '4.4 Kubernetes Volumes', order: 4, duration: '40 mins', type: 'reading', content: '## Volumes\nMount host paths or ephemeral emptyDirs directly to container runtimes.' },
+            { id: 'k8s-unit-4-5', title: '4.5 PersistentVolumes & PVC', order: 5, duration: '50 mins', type: 'reading', content: '## PV & PVC\nProvision persistent storage resources and bind them to container claims.' },
+            { id: 'k8s-unit-4-6', title: '4.6 StorageClasses', order: 6, duration: '45 mins', type: 'reading', content: '## StorageClasses\nConfigure dynamic provisioning parameters to allocate cloud storage.' },
+            { id: 'k8s-unit-4-7', title: '4.7 Resource Requests & Limits', order: 7, duration: '45 mins', type: 'reading', content: '## Resource Limits\nPrevent container resource leaks by setting CPU/Memory requests and bounds.' },
+            { id: 'k8s-unit-4-8', title: '4.8 Practice: Deploy App with Storage', order: 8, duration: '50 mins', type: 'assignment', content: '## ⚠️ Practice Only\nBind PVCs and deploy stateful web apps.' }
+          ]
+        },
+        {
+          moduleId: 'k8s-mod-5',
+          lessons: [
+            { id: 'k8s-unit-5-1', title: '5.1 Kubernetes Security Basics', order: 1, duration: '40 mins', type: 'reading', content: '## Security Basics\nUnderstand cloud native security and restrict access to control interfaces.' },
+            { id: 'k8s-unit-5-2', title: '5.2 Users, ServiceAccounts & RBAC', order: 2, duration: '45 mins', type: 'reading', content: '## ServiceAccounts & RBAC\nSet up workload identities and manage access rules.' },
+            { id: 'k8s-unit-5-3', title: '5.3 Roles & RoleBindings', order: 3, duration: '45 mins', type: 'reading', content: '## Roles & Bindings\nConfigure Role and ClusterRoles verbs permissions and map them.' },
+            { id: 'k8s-unit-5-4', title: '5.4 Security Context & Pod Security', order: 4, duration: '45 mins', type: 'reading', content: '## Security Contexts\nRun container processes as non-root users and set root limits.' },
+            { id: 'k8s-unit-5-5', title: '5.5 Node Scheduling', order: 5, duration: '40 mins', type: 'reading', content: '## Node Scheduling\nControl workload node assignment scopes using selectors.' },
+            { id: 'k8s-unit-5-6', title: '5.6 Taints, Tolerations & Affinity', order: 6, duration: '50 mins', type: 'reading', content: '## Advanced Scheduling\nConfigure node taints, tolerations, and affinity rules.' },
+            { id: 'k8s-unit-5-7', title: '5.7 Troubleshooting Kubernetes', order: 7, duration: '45 mins', type: 'reading', content: '## Troubleshooting\nDiagnose CrashLoopBackOff, ImagePullBackOff, and Pending states.' },
+            { id: 'k8s-unit-5-8', title: '5.8 Practice: Secure & Troubleshoot a Cluster', order: 8, duration: '50 mins', type: 'assignment', content: '## ⚠️ Practice Only\nConfigure ServiceAccounts, RBAC roles, and troubleshoot failed Pod configurations.' }
+          ]
+        },
+        {
+          moduleId: 'k8s-mod-6',
+          lessons: [
+            { id: 'k8s-unit-6-1', title: '6.1 Kubernetes Production Basics', order: 1, duration: '45 mins', type: 'reading', content: '## Production Guidelines\nEstablish multi-master HA control planes and set up anti-affinity replica placements.' },
+            { id: 'k8s-unit-6-2', title: '6.2 Autoscaling', order: 2, duration: '45 mins', type: 'reading', content: '## HPA\nConfigure CPU-based Horizontal Pod Autoscaling triggers.' },
+            { id: 'k8s-unit-6-3', title: '6.3 Monitoring & Logging', order: 3, duration: '40 mins', type: 'reading', content: '## Monitoring & Logging\nIntegrate Prometheus scraper agents, Grafana analytics, and Fluentd aggregate log collectors.' },
+            { id: 'k8s-unit-6-4', title: '6.4 Helm & Helm Charts', order: 4, duration: '45 mins', type: 'reading', content: '## Helm Charts\nLearn the Kubernetes package manager to install templated releases.' },
+            { id: 'k8s-unit-6-5', title: '6.5 Kubernetes with Docker & Git', order: 5, duration: '45 mins', type: 'reading', content: '## Registries & Workflows\nDockerize source files, push image tags to repositories, and deploy to K8s.' },
+            { id: 'k8s-unit-6-6', title: '6.6 CI/CD with Kubernetes', order: 6, duration: '40 mins', type: 'reading', content: '## CI/CD Pipelines\nConfigure Jenkins pipelines and ArgoCD GitOps sync loops.' },
+            { id: 'k8s-unit-6-7', title: '6.7 Cloud Kubernetes — EKS, AKS & GKE', order: 7, duration: '40 mins', type: 'reading', content: '## Cloud Kubernetes\nDeploy workloads to managed cloud clusters (EKS, AKS, GKE).' },
+            { id: 'k8s-unit-6-8', title: '6.8 Final Project: Deploy Full-Stack Application', order: 8, duration: '60 mins', type: 'assignment', content: '## ⚠️ Practice Only\nDeploy a complete full-stack architecture inside the final project lab.' }
+          ]
+        }
+      ];
+
+      for (const group of lessonsList) {
+        for (const les of group.lessons) {
+          await lessonsCollection().doc(les.id).set(toDocument({
+            ...les,
+            moduleId: group.moduleId,
+            courseId,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }));
+        }
+      }
+
+      const quizzesData = [
+        { id: 'k8s-quiz-1', moduleId: 'k8s-mod-1', title: 'Kubernetes Basics Quiz', questions: [] },
+        { id: 'k8s-quiz-2', moduleId: 'k8s-mod-6', title: 'Final Capstone Quiz', questions: [] },
+      ];
+      for (const quiz of quizzesData) {
+        await quizzesCollection().doc(quiz.id).set(toDocument({
+          ...quiz,
+          courseId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }));
+      }
+
+      const assignmentsData = [
+        { id: 'k8s-assign-1', moduleId: 'k8s-mod-1', title: 'Practice: Create Your First Pod (For Practice Only)', description: 'Deploy container pods using YAML manifests.' },
+        { id: 'k8s-assign-2', moduleId: 'k8s-mod-2', title: 'Practice: Deploy an Application (For Practice Only)', description: 'Deploy and scale replica workloads.' },
+        { id: 'k8s-assign-3', moduleId: 'k8s-mod-3', title: 'Practice: Expose an Application (For Practice Only)', description: 'Configure internal services and Ingress rules.' },
+        { id: 'k8s-assign-4', moduleId: 'k8s-mod-4', title: 'Practice: Deploy App with Storage (For Practice Only)', description: 'Bind storage claims to app pods.' },
+        { id: 'k8s-assign-5', moduleId: 'k8s-mod-5', title: 'Practice: Secure & Troubleshoot a Cluster (For Practice Only)', description: 'Configure Role bindings and troubleshoot failed states.' },
+        { id: 'k8s-assign-6', moduleId: 'k8s-mod-6', title: 'Final Project: Deploy Full-Stack Application', description: 'Capstone deployment project.' },
+      ];
+      for (const assign of assignmentsData) {
+        await assignmentsCollection().doc(assign.id).set(toDocument({
+          ...assign,
+          courseId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }));
+      }
+
+      console.log('Successfully seeded Kubernetes course structure.');
+    } catch (error) {
+      console.error('Error seeding Kubernetes course details:', error);
     }
   }
 }

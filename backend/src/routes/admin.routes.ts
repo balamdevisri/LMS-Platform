@@ -1,8 +1,15 @@
 import { Router, Request, Response } from 'express';
 import { db } from '../firebase';
 import { getEmailTemplate } from '../services/emailTemplates';
+import { emailService } from '../services/email/EmailService';
+import { AdminController } from '../controllers/adminController';
 
 const router = Router();
+const adminController = new AdminController();
+
+// Approvals Endpoints
+router.post('/approve-student', (req, res, next) => adminController.approveStudent(req, res, next));
+router.post('/approve-lecturer', (req, res, next) => adminController.approveLecturer(req, res, next));
 
 // GET /api/admin/dashboard - Executive stats & analytics
 router.get('/dashboard', async (req: Request, res: Response) => {
@@ -193,10 +200,51 @@ router.delete('/student/:id', async (req: Request, res: Response) => {
   try {
     const studentId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     if (db) {
+      // 1. Delete main student & user docs
       await db.collection('students').doc(studentId).delete().catch(() => null);
       await db.collection('users').doc(studentId).delete().catch(() => null);
+
+      // 2. Cascade delete progress
+      const progressSnap = await db.collection('student_progress').where('studentId', '==', studentId).get().catch(() => null);
+      if (progressSnap && !progressSnap.empty) {
+        const batch = db.batch();
+        progressSnap.docs.forEach((doc) => batch.delete(doc.ref));
+        await batch.commit().catch(() => null);
+      }
+
+      // 3. Cascade delete analysis
+      const analysisSnap = await db.collection('student_analysis').where('studentId', '==', studentId).get().catch(() => null);
+      if (analysisSnap && !analysisSnap.empty) {
+        const batch = db.batch();
+        analysisSnap.docs.forEach((doc) => batch.delete(doc.ref));
+        await batch.commit().catch(() => null);
+      }
+
+      // 4. Cascade delete quiz attempts
+      const quizAttemptsSnap = await db.collection('quiz_attempts').where('studentId', '==', studentId).get().catch(() => null);
+      if (quizAttemptsSnap && !quizAttemptsSnap.empty) {
+        const batch = db.batch();
+        quizAttemptsSnap.docs.forEach((doc) => batch.delete(doc.ref));
+        await batch.commit().catch(() => null);
+      }
+
+      // 5. Cascade delete notifications
+      const notificationsSnap = await db.collection('notifications').where('recipientId', '==', studentId).get().catch(() => null);
+      if (notificationsSnap && !notificationsSnap.empty) {
+        const batch = db.batch();
+        notificationsSnap.docs.forEach((doc) => batch.delete(doc.ref));
+        await batch.commit().catch(() => null);
+      }
+
+      // 6. Cascade delete certificates
+      const certificatesSnap = await db.collection('certificates').where('studentId', '==', studentId).get().catch(() => null);
+      if (certificatesSnap && !certificatesSnap.empty) {
+        const batch = db.batch();
+        certificatesSnap.docs.forEach((doc) => batch.delete(doc.ref));
+        await batch.commit().catch(() => null);
+      }
     }
-    res.json({ success: true, message: `Student ${studentId} deleted successfully from Firestore` });
+    res.json({ success: true, message: `Student ${studentId} and all associated records deleted successfully from Firestore` });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -208,12 +256,17 @@ router.post('/send-email', async (req: Request, res: Response) => {
     const { to, studentName, type, reason } = req.body;
     const template = getEmailTemplate({ to, studentName, type, reason });
 
-    // Logging/preview output (Nodemailer setup integrated when SMTP credentials configured)
-    console.log(`[KaizenQ Email Engine] Sending ${type} to ${to}:`, template.subject);
+    // Logging & Dispatching via Central Email Engine
+    console.log(`[KaizenQ Email Engine] Dispatching ${type} to ${to}:`, template.subject);
+    const emailResult = await emailService.sendDirectHtmlEmail(to, template.subject, template.html);
 
     res.json({
-      success: true,
-      message: `Email template generated and dispatched to ${to}`,
+      success: emailResult.success,
+      message: emailResult.success
+        ? `Email for ${type} sent successfully to ${to}`
+        : `Failed sending email: ${emailResult.error}`,
+      messageId: emailResult.messageId || null,
+      error: emailResult.error || null,
       template: {
         subject: template.subject,
         to

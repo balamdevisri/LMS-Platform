@@ -12,6 +12,7 @@ import emailRoutes from './emailRoutes';
 import aiLmsRoutes from './aiLmsRoutes';
 import sandboxRoutes from './sandboxRoutes';
 import adminRoutes from './admin.routes';
+import courseRoutesDirect from './course.routes';
 
 const router = Router();
 
@@ -24,6 +25,7 @@ router.use('/auth', studentRoutes);
 router.use('/students', studentRoutes);
 router.use('/users', userRoutes);
 router.use('/courses', courseRoutes);
+router.use('/course', courseRoutesDirect);
 router.use('/lessons', lessonRoutes);
 router.use('/quizzes', quizRoutes);
 router.use('/assignments', assignmentRoutes);
