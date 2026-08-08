@@ -4,6 +4,7 @@ import type { ICourse, CreateCourseDTO, UpdateCourseDTO, CourseFilterOptions, Co
 export type { ICourse };
 import { gitCourseModules } from '@/data/gitCourseFullData';
 import { kubernetesCourseModules } from '@/data/kubernetesCourseFullData';
+import { reactCourseModules } from '@/data/reactCourseFullData';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -360,6 +361,63 @@ const DEFAULT_COURSES: ICourse[] = [
     modules: kubernetesCourseModules,
     createdAt: new Date('2026-08-08').toISOString(),
     updatedAt: new Date('2026-08-08').toISOString(),
+  },
+  {
+    id: 'react-js-complete-course',
+    title: 'React JS Complete Course',
+    slug: 'react-js-complete-course',
+    shortDescription: 'A complete beginner-to-advanced React JS course covering React fundamentals, environment setup, Hooks, Routing, APIs, Redux, and styling.',
+    description: 'A complete beginner-to-advanced React JS course covering React fundamentals, development environment setup, JSX, components, props, state, hooks, events, forms, conditional rendering, routing, API integration, state management, styling, real-time projects, and interview preparation.',
+    thumbnail: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&w=800&q=80',
+    banner: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&w=800&q=80',
+    category: 'Web Development / Frontend Development',
+    level: 'all_levels',
+    duration: '24 Hours',
+    language: 'English',
+    price: 0,
+    instructor: {
+      id: 'inst_kaizenq',
+      name: 'KaizenQ Systems Team',
+      role: 'React Systems Architect & LMS Specialist',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    },
+    skills: ['React JS', 'JavaScript', 'JSX', 'Hooks', 'Redux Toolkit', 'Tailwind CSS'],
+    prerequisites: ['Basic HTML, CSS, and intermediate JavaScript (ES6+) knowledge'],
+    learningOutcomes: [
+      'Understand Component-Based Architecture and the Virtual DOM rendering cycle',
+      'Use JSX expressions, fragments, and conditional rendering operators',
+      'Manage local state with useState and leverage useEffect for lifecycle hooks',
+      'Coordinate routing using BrowserRouter, Routes, Route, and useNavigate',
+      'Perform remote API fetches and integration using Axios',
+      'Implement global state management via the Context API and Redux Toolkit',
+    ],
+    status: 'published',
+    visibility: 'public',
+    featured: true,
+    tags: ['react', 'frontend', 'javascript', 'webdev', 'redux', 'tailwind'],
+    enrollmentCount: 0,
+    rating: 5.0,
+    ratingCount: 0,
+    syllabus: [
+      { id: 'react-mod-1', title: 'Module 1: Introduction to React JS', description: 'What is React, history, features, advantages/disadvantages, React vs JS, ecosystem.', duration: '4 Hours', lessonsCount: 13 },
+      { id: 'react-mod-2', title: 'Module 2: Setting Up React Environment', description: 'Node.js, npm, VS Code, Vite, CRA, folder structure, running projects, errors.', duration: '4 Hours', lessonsCount: 16 },
+      { id: 'react-mod-3', title: 'Module 3: JSX (JavaScript XML)', description: 'JSX syntax, compilation, expressions, rendering, JSX vs HTML, lab.', duration: '4 Hours', lessonsCount: 14 },
+      { id: 'react-mod-4', title: 'Module 4: React Components', description: 'Functional vs Class Components, architecture, rules, composition, lifecycle, lab.', duration: '4 Hours', lessonsCount: 15 },
+      { id: 'react-mod-5', title: 'Module 5: React Props', description: 'Passing data, destructuring, data types, read-only, props vs state, examples, lab.', duration: '4 Hours', lessonsCount: 15 },
+      { id: 'react-mod-6', title: 'Module 6: React State & Hooks', description: 'useState hook, updating state, arrays & objects, re-rendering, best practices.', duration: '4 Hours', lessonsCount: 14 },
+      { id: 'react-mod-7', title: 'Module 7: React Events & Forms', description: 'Event handling, synthetic events, forms, controlled vs uncontrolled, validation.', duration: '4 Hours', lessonsCount: 16 },
+      { id: 'react-mod-8', title: 'Module 8: Lists & Conditional Rendering', description: 'map(), keys, if/else, ternary operator, logical && operator, exercises.', duration: '4 Hours', lessonsCount: 15 },
+      { id: 'react-mod-9', title: 'Module 9: React Hooks', description: 'useState, useEffect, useRef, useMemo, useCallback, custom hooks, practices.', duration: '4 Hours', lessonsCount: 13 },
+      { id: 'react-mod-10', title: 'Module 10: React Router', description: 'BrowserRouter, Routes, Route, Link, useNavigate, parameter routing, route guards.', duration: '4 Hours', lessonsCount: 15 },
+      { id: 'react-mod-11', title: 'Module 11: API Integration', description: 'Fetch, Axios, GET & POST requests, loading/error states, CRUD, architecture.', duration: '4 Hours', lessonsCount: 16 },
+      { id: 'react-mod-12', title: 'Module 12: State Management', description: 'Context API, Redux basics, Redux Toolkit (store, actions, reducers, dispatch).', duration: '4 Hours', lessonsCount: 12 },
+      { id: 'react-mod-13', title: 'Module 13: Styling React', description: 'CSS modules, Inline styles, Bootstrap, Tailwind CSS, Styled Components, responsive.', duration: '4 Hours', lessonsCount: 14 },
+      { id: 'react-mod-14', title: 'Module 14: Real-Time Projects', description: 'Building Todo App, Weather App, Notes App, Student Management, and E-commerce UI.', duration: '4 Hours', lessonsCount: 16 },
+      { id: 'react-mod-15', title: 'Module 15: Interview Preparation', description: 'Interview Q&A, cheat sheets, common errors, capstone ideas, roadmap.', duration: '4 Hours', lessonsCount: 13 },
+    ],
+    modules: reactCourseModules,
+    createdAt: new Date('2026-08-08').toISOString(),
+    updatedAt: new Date('2026-08-08').toISOString(),
   }
 ];
 
@@ -694,6 +752,10 @@ class CourseService {
     if (!result.some((c) => String(c.id) === 'kubernetes-complete-course-beginner-to-advanced' || c.slug === 'kubernetes-complete-course-beginner-to-advanced' || c.title.toLowerCase().includes('kubernetes') || c.title.toLowerCase().includes('k8s'))) {
       const k8sCourse = DEFAULT_COURSES.find((c) => c.id === 'kubernetes-complete-course-beginner-to-advanced') || DEFAULT_COURSES[3];
       if (k8sCourse) result.push(this.normalizeCourseToICourse(k8sCourse));
+    }
+    if (!result.some((c) => String(c.id) === 'react-js-complete-course' || c.slug === 'react-js-complete-course' || c.title.toLowerCase().includes('react js complete'))) {
+      const reactCourse = DEFAULT_COURSES.find((c) => c.id === 'react-js-complete-course') || DEFAULT_COURSES[4];
+      if (reactCourse) result.push(this.normalizeCourseToICourse(reactCourse));
     }
 
     // Apply smart merge for default courses in result

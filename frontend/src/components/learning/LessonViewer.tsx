@@ -66,39 +66,71 @@ interface TabSectionData {
   preview: string;
 }
 
-function getTabSectionData(title: string): TabSectionData {
+function getTabSectionData(title: string, courseId?: string): TabSectionData {
   const t = title.toLowerCase();
-  if (t.includes('linux') || t.includes('kernel') || t.includes('permission') || t.includes('systemd') || t.includes('bash')) {
+  const cId = (courseId || '').toLowerCase();
+  
+  if (cId === 'react-js-complete-course' || t.includes('react')) {
     return {
-      introduction: "Linux systems power 96.4% of the world's top 1 million web servers. Understanding systems administration is critical for building scalable cloud services.",
+      introduction: "React JS is a component-driven frontend library powering modern interactive web applications and scalable user interfaces.",
       useCases: [
-        "Automating log rotations on production web servers.",
-        "Managing system security profiles for developer access in enterprise workspaces.",
-        "Configuring daemon startup scripts via systemd services."
+        "Building dynamic, high-performance single page applications (SPAs).",
+        "Designing reusable UI component libraries using JSX syntax.",
+        "Handling client-side routing and asynchronous state updates dynamically."
       ],
       practices: [
-        "Always use octal permissions instead of recursive wide open chmod 777 settings.",
-        "Secure remote system daemons by configuring SSH key-based authentication and disabling root passwords."
+        "Always specify unique key props when rendering dynamically mapped lists.",
+        "Keep local components focused, lifting state up only when sharing is required."
       ],
       mistakes: [
-        "Running destructive commands (like rm -rf) under root permissions without testing.",
-        "Forgetting to check the system binary logs using journalctl when a daemon fails to start."
+        "Mutating state variables directly instead of using the setter functions (e.g. setState).",
+        "Creating memory leaks by omitting cleanup functions in useEffect hooks."
       ],
       interview: [
-        { q: "What is the difference between a hard link and a soft link in Linux?", a: "A hard link points directly to the inode of the source file, whereas a soft (symbolic) link points to the filename itself. Soft links can cross file system boundaries, while hard links cannot." },
-        { q: "How do you search for files modified in the last 24 hours?", a: "Use the find command: find /path/to/search -mtime -1" }
+        { q: "What is the Virtual DOM and how does React use it?", a: "The Virtual DOM is a lightweight memory representation of the real DOM. React uses it to compute diffs and batch updates, optimizing actual DOM manipulation for speed." },
+        { q: "What are React Hooks and what rules must they follow?", a: "Hooks are functions that let you tap into React state and lifecycles. They must only be called at the top level of functional components and only from React functions." }
       ],
       viva: [
-        { q: "Which directory stores system configuration files?", a: "/etc directory." },
-        { q: "What is the PID of the systemd process?", a: "PID 1." }
+        { q: "Which tool starts a Vite development server?", a: "npm run dev." },
+        { q: "What does JSX stand for?", a: "JavaScript XML." }
       ],
       trouble: [
-        "Check system status: systemctl status <service>",
-        "Inspect authorization logs: tail -n 50 /var/log/auth.log"
+        "Fix infinite re-renders: verify dependency arrays in useEffect hook bindings.",
+        "Fix state lag: access updated values via functional updates: setVal(prev => prev + 1)."
       ],
-      preview: "Next lesson will cover advanced process administration and automation scripts."
+      preview: "Next lesson will dive into JSX expressions, component props, and rendering lifecycles."
     };
-  } else if (t.includes('git') || t.includes('github') || t.includes('branch') || t.includes('action')) {
+  } else if (cId === 'kubernetes-complete-course-beginner-to-advanced' || t.includes('kubernetes') || t.includes('k8s')) {
+    return {
+      introduction: "Kubernetes (K8s) is the industry standard container orchestrator, automating deployment, auto-scaling, and lifecycle operations for microservices.",
+      useCases: [
+        "Scaling web microservices dynamically based on traffic spikes.",
+        "Managing persistent volumes across stateful cloud database containers.",
+        "Executing zero-downtime rolling updates with automatic rollbacks."
+      ],
+      practices: [
+        "Always define CPU and memory resource requests and limits on pods.",
+        "Deploy services securely using ServiceAccounts and explicit RBAC policies."
+      ],
+      mistakes: [
+        "Using the 'latest' tag for container images in production deployment files.",
+        "Storing passwords or credentials in plaintext environment variables instead of Secrets."
+      ],
+      interview: [
+        { q: "What are Pods in Kubernetes?", a: "Pods are the smallest deployable units in Kubernetes, representing a single instance of a running process and containing one or more containers." },
+        { q: "What is the difference between a Service and an Ingress?", a: "A Service provides an internal or external stable network endpoint for Pods, while Ingress manages external HTTP/S routing and SSL termination to services." }
+      ],
+      viva: [
+        { q: "What command gets all running Pods?", a: "kubectl get pods." },
+        { q: "Where does K8s store cluster configuration state?", a: "In etcd." }
+      ],
+      trouble: [
+        "Debug pending pods: run kubectl describe pod <pod-name> to inspect scheduling rules.",
+        "Examine container logs: execute kubectl logs <pod-name> -c <container-name>."
+      ],
+      preview: "Next lesson will explore Pod lifecycle states, replica configuration, and services networking."
+    };
+  } else if (cId === 'git-github-mastery' || t.includes('git') || t.includes('github') || t.includes('branch') || t.includes('action')) {
     return {
       introduction: "Git is the industry standard version control engine. It enables thousands of software developers to work collaboratively on a shared codebase.",
       useCases: [
@@ -128,7 +160,7 @@ function getTabSectionData(title: string): TabSectionData {
       ],
       preview: "Next lesson will explore collaborative branching, pull reviews, and release tags."
     };
-  } else {
+  } else if (cId === 'database-management-system' || t.includes('data') || t.includes('dbms') || t.includes('sql') || t.includes('table')) {
     return {
       introduction: "Database management engines hold the structured core data of modern applications, enforcing relational constraints and transaction boundaries.",
       useCases: [
@@ -157,6 +189,36 @@ function getTabSectionData(title: string): TabSectionData {
         "Deadlock resolution: inspect lock statuses and kill stalling process IDs."
       ],
       preview: "Next lesson will cover advanced indexing strategies and database security hardening."
+    };
+  } else {
+    return {
+      introduction: "Linux systems power 96.4% of the world's top 1 million web servers. Understanding systems administration is critical for building scalable cloud services.",
+      useCases: [
+        "Automating log rotations on production web servers.",
+        "Managing system security profiles for developer access in enterprise workspaces.",
+        "Configuring daemon startup scripts via systemd services."
+      ],
+      practices: [
+        "Always use octal permissions instead of recursive wide open chmod 777 settings.",
+        "Secure remote system daemons by configuring SSH key-based authentication and disabling root passwords."
+      ],
+      mistakes: [
+        "Running destructive commands (like rm -rf) under root permissions without testing.",
+        "Forgetting to check the system binary logs using journalctl when a daemon fails to start."
+      ],
+      interview: [
+        { q: "What is the difference between a hard link and a soft link in Linux?", a: "A hard link points directly to the inode of the source file, whereas a soft (symbolic) link points to the filename itself. Soft links can cross file system boundaries, while hard links cannot." },
+        { q: "How do you search for files modified in the last 24 hours?", a: "Use the find command: find /path/to/search -mtime -1" }
+      ],
+      viva: [
+        { q: "Which directory stores system configuration files?", a: "/etc directory." },
+        { q: "What is the PID of the systemd process?", a: "PID 1." }
+      ],
+      trouble: [
+        "Check system status: systemctl status <service>",
+        "Inspect authorization logs: tail -n 50 /var/log/auth.log"
+      ],
+      preview: "Next lesson will cover advanced process administration and automation scripts."
     };
   }
 }
@@ -938,8 +1000,18 @@ export const LessonViewer: React.FC<LessonViewerProps> = React.memo(({
   const illustrationUrl = useMemo(() => {
     const t = lesson.title.toLowerCase();
     
+    // React JS Complete Course image routing
+    if (_courseId === 'react-js-complete-course') {
+      return '/assets/images/react_logo_frontend.png';
+    }
+
+    // Kubernetes Complete Course image routing
+    if (_courseId === 'kubernetes-complete-course-beginner-to-advanced') {
+      return '/assets/images/k8s_logo_orchestration.png';
+    }
+
     // Database track
-    if (t.includes('data') || t.includes('dbms') || t.includes('sql') || t.includes('table') || t.includes('key') || t.includes('constraint') || t.includes('relation') || t.includes('normalization') || t.includes('transaction')) {
+    if (_courseId === 'database-management-system' || t.includes('data') || t.includes('dbms') || t.includes('sql') || t.includes('table') || t.includes('key') || t.includes('constraint') || t.includes('relation') || t.includes('normalization') || t.includes('transaction')) {
       if (t.includes('normalization') || t.includes('normal form') || t.includes('3nf')) {
         return '/assets/images/dbms_normalization_stages.png';
       }
@@ -953,7 +1025,7 @@ export const LessonViewer: React.FC<LessonViewerProps> = React.memo(({
     }
 
     // Git/GitHub track
-    if (t.includes('git') || t.includes('github') || isGitCourse) {
+    if (_courseId === 'git-github-mastery' || isGitCourse || t.includes('git') || t.includes('github')) {
       if (t.includes('action') || t.includes('ci') || t.includes('cd') || t.includes('workflow') || t.includes('pipeline')) {
         return '/assets/images/github_actions_pipeline.png';
       }
@@ -994,12 +1066,23 @@ export const LessonViewer: React.FC<LessonViewerProps> = React.memo(({
     if (t.includes('storage') || t.includes('mount') || t.includes('disk') || t.includes('partition')) {
       return '/assets/images/topic_storage_mounting.webp';
     }
+
+    // Final default fallback based on course if possible, otherwise generic linux
+    if (_courseId.includes('linux') || _courseId === '1') {
+      return '/assets/images/linux_course_thumbnail.webp';
+    }
+    if (_courseId === 'database-management-system') {
+      return '/assets/images/dbms_relational_tables.png';
+    }
+    if (_courseId === 'git-github-mastery' || isGitCourse) {
+      return '/assets/images/git_data_lifecycle.png';
+    }
     return '/assets/images/linux_course_thumbnail.webp';
-  }, [lesson.title, isGitCourse]);
+  }, [lesson.title, isGitCourse, _courseId]);
 
   const tabData = useMemo(() => {
-    return getTabSectionData(lesson.title);
-  }, [lesson.title]);
+    return getTabSectionData(lesson.title, _courseId);
+  }, [lesson.title, _courseId]);
 
   const tabs = [
     { id: 'theory', label: '📂 Theory & Details', icon: BookOpen },
@@ -1010,9 +1093,13 @@ export const LessonViewer: React.FC<LessonViewerProps> = React.memo(({
 
   // Dynamic Vault resources generation (8-15 high quality references)
   const vaultResources = useMemo(() => {
-    const isLinux = lesson.title.toLowerCase().includes('linux') || lesson.title.toLowerCase().includes('kernel');
-    const isGit = lesson.title.toLowerCase().includes('git') || isGitCourse;
-    const typeLabel = isLinux ? 'Linux' : (isGit ? 'Git' : 'DBMS');
+    const isLinux = lesson.title.toLowerCase().includes('linux') || lesson.title.toLowerCase().includes('kernel') || _courseId.includes('linux') || _courseId === '1';
+    const isGit = lesson.title.toLowerCase().includes('git') || isGitCourse || _courseId.includes('git');
+    const isReact = _courseId === 'react-js-complete-course';
+    const isK8s = _courseId === 'kubernetes-complete-course-beginner-to-advanced';
+    const isDbms = _courseId === 'database-management-system';
+    
+    const typeLabel = isLinux ? 'Linux' : (isGit ? 'Git' : (isReact ? 'React JS' : (isK8s ? 'Kubernetes' : (isDbms ? 'DBMS' : 'Course'))));
 
     return [
       { id: 'res-1', title: `${typeLabel} Beginner PDF Guide`, desc: 'Step-by-step introduction containing visual explanations of core concepts.', format: 'PDF', size: '2.4 MB' },

@@ -87,4 +87,4 @@ process.once('SIGUSR2', () => {
   });
 });
 
-export default server;
+export default server; // Trigger restart
