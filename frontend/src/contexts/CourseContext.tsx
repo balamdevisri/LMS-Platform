@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { db } from '@/firebase';
+import { query, collection, where, getDocs } from 'firebase/firestore';
 import { gitCourseModules } from '@/data/gitCourseFullData';
 import { kubernetesCourseModules } from '@/data/kubernetesCourseFullData';
 import { reactCourseModules } from '@/data/reactCourseFullData';
@@ -105,19 +106,19 @@ const mergeCourseModules = (defModules?: ModuleItem[], cachedModules?: any[]): M
         const cachedUnit = cachedTopic.learningUnits?.find((u: any) => u.id === defUnit.id);
         if (!cachedUnit) return defUnit;
         return {
-          ...cachedUnit,
-          ...defUnit
+          ...defUnit,
+          ...cachedUnit
         };
       });
       return {
-        ...cachedTopic,
         ...defTopic,
+        ...cachedTopic,
         learningUnits: mergedUnits
       };
     });
     return {
-      ...cachedMod,
       ...defMod,
+      ...cachedMod,
       topics: mergedTopics
     };
   });
@@ -873,7 +874,7 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           if (!match) return def;
           // Merge modules to inherit new lesson definitions and content
           const mergedModules = mergeCourseModules(def.modules, match.modules);
-          return enrichCourseMockContent({ ...match, ...def, modules: mergedModules });
+          return enrichCourseMockContent({ ...def, ...match, modules: mergedModules });
         });
 
         // Retain other custom admin courses
@@ -923,6 +924,7 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setCourses(localList);
 
     if (!db) return;
+    let merged = localList;
     try {
       const loadedResult = await courseService.getCourses();
       const loaded = loadedResult.courses;
@@ -941,13 +943,52 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             } as CourseItem;
           });
 
-        const merged = sanitizeCourseList([...localList, ...normalized]);
-        setCourses(merged);
-        localStorage.setItem('shaivika_courses_data', JSON.stringify(merged));
+        merged = sanitizeCourseList([...localList, ...normalized]);
       }
     } catch (err) {
       console.warn('Firestore courses fetch notice in refreshCourses:', err);
     }
+
+    try {
+      const lessonsQuery = query(collection(db, 'lessons'), where('courseId', '==', 'react-js-complete-course'));
+      const lessonsSnap = await getDocs(lessonsQuery);
+      const lessonsMap = new Map<string, string>();
+      lessonsSnap.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data.content) {
+          lessonsMap.set(docSnap.id, data.content);
+        }
+      });
+
+      if (lessonsMap.size > 0) {
+        merged = merged.map((c) => {
+          if (String(c.id) === 'react-js-complete-course') {
+            const nextModules = c.modules?.map((m) => {
+              const nextTopics = m.topics?.map((t) => {
+                const nextUnits = t.learningUnits?.map((u) => {
+                  if (lessonsMap.has(u.id)) {
+                    return {
+                      ...u,
+                      readingContent: lessonsMap.get(u.id),
+                    };
+                  }
+                  return u;
+                });
+                return { ...t, learningUnits: nextUnits };
+              });
+              return { ...m, topics: nextTopics };
+            });
+            return { ...c, modules: nextModules };
+          }
+          return c;
+        });
+      }
+    } catch (e) {
+      console.warn('Failed to fetch/merge React lessons content from Firestore:', e);
+    }
+
+    setCourses(merged);
+    localStorage.setItem('shaivika_courses_data', JSON.stringify(merged));
   }, []);
 
   // Sync with Firestore if available
