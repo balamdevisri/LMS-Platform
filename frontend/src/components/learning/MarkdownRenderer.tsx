@@ -7,11 +7,94 @@ interface MarkdownRendererProps {
   isNightMode?: boolean;
 }
 
+function cleanMarkdownNewlines(text: string): string {
+  if (!text) return '';
+  const lines = text.split('\n');
+  const cleanedLines: string[] = [];
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    
+    if (trimmed === '') {
+      let prevNonEmpty = '';
+      for (let j = cleanedLines.length - 1; j >= 0; j--) {
+        if (cleanedLines[j].trim() !== '') {
+          prevNonEmpty = cleanedLines[j].trim();
+          break;
+        }
+      }
+      
+      let nextNonEmpty = '';
+      for (let j = i + 1; j < lines.length; j++) {
+        if (lines[j].trim() !== '') {
+          nextNonEmpty = lines[j].trim();
+          break;
+        }
+      }
+      
+      const isPrevSingleWord = prevNonEmpty && !prevNonEmpty.includes(' ') && !prevNonEmpty.startsWith('#') && !prevNonEmpty.startsWith('-');
+      const isNextSingleWord = nextNonEmpty && !nextNonEmpty.includes(' ') && !nextNonEmpty.startsWith('#') && !nextNonEmpty.startsWith('-');
+      
+      if (isPrevSingleWord && isNextSingleWord) {
+        continue;
+      }
+      cleanedLines.push(line);
+    } else {
+      cleanedLines.push(line);
+    }
+  }
+  
+  const result: string[] = [];
+  let currentTextLine = '';
+  
+  cleanedLines.forEach((line) => {
+    const trimmed = line.trim();
+    if (trimmed === '') {
+      if (currentTextLine) {
+        result.push(currentTextLine);
+        currentTextLine = '';
+      }
+      result.push('');
+      return;
+    }
+    
+    const isStructural = 
+      trimmed.startsWith('#') ||
+      trimmed.startsWith('- ') ||
+      trimmed.startsWith('* ') ||
+      trimmed.startsWith('> ') ||
+      trimmed.startsWith('```') ||
+      trimmed.startsWith('![') ||
+      trimmed.includes('|');
+      
+    if (isStructural) {
+      if (currentTextLine) {
+        result.push(currentTextLine);
+        currentTextLine = '';
+      }
+      result.push(line);
+    } else {
+      if (currentTextLine) {
+        currentTextLine += ' ' + trimmed;
+      } else {
+        currentTextLine = line;
+      }
+    }
+  });
+  
+  if (currentTextLine) {
+    result.push(currentTextLine);
+  }
+  
+  return result.join('\n');
+}
+
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isNightMode = false }) => {
   if (!content) return null;
 
-  // Split lines to parse markdown blocks
-  const lines = content.split('\n');
+  // Split lines to parse markdown blocks after cleaning newlines
+  const lines = cleanMarkdownNewlines(content).split('\n');
   const elements: React.ReactNode[] = [];
 
   let inCodeBlock = false;
