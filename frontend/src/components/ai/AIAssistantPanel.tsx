@@ -16,8 +16,6 @@ import {
   ChevronRight,
   Minimize2,
   Maximize2,
-  Minus,
-  Plus,
   X,
   CheckCircle2,
   Globe,
