@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, X, Send, Sparkles, User } from 'lucide-react';
+import { Bot, X, Send, Sparkles, User, Maximize2, Minimize2 } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -56,7 +56,7 @@ const generateAIResponse = (userPrompt: string, courseTitle: string, lessonTitle
       return `To create a table in SQL, use the \`CREATE TABLE\` DDL statement. For example:\n\`\`\`sql\nCREATE TABLE employees (\n    emp_id INT PRIMARY KEY,\n    name VARCHAR(50),\n    salary DECIMAL(10,2)\n);\n\`\`\`\nThis sets up the table structure. Try executing this in your SQL Practice Terminal on the left!`;
     }
     if (promptLower.includes('select') || promptLower.includes('query')) {
-      return `To retrieve records from a table, use the \`SELECT\` DML statement. For example:\n\`\`\`sql\nSELECT name, salary FROM employees WHERE salary > 50000;\n\`\`\`\nYou can query specific columns or use \`*\` to query all columns. Try running a SELECT query in the SQL sandbox!`;
+      return `To retrieve records from a table, use the \`SELECT\` DML statement. For example:\n\`\`\`sql\nSELECT name, salary FROM employees WHERE salary > 50000;\n\`\`\`\nYou can query specific columns or use \`*\` to query all columns. Try running a SELECT query in the sandbox!`;
     }
     if (promptLower.includes('index') || promptLower.includes('speed')) {
       return `An index helps the database search records much faster by preventing full-table scans. You create one using:\n\`\`\`sql\nCREATE INDEX idx_emp_name ON employees(name);\n\`\`\`\nHowever, indexes add overhead for writes (INSERT/UPDATE), so only index columns used frequently in WHERE clauses.`;
@@ -123,6 +123,7 @@ export const AITutorDrawer: React.FC<AITutorDrawerProps> = ({
 
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isFull, setIsFull] = useState(false);
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,15 +172,20 @@ export const AITutorDrawer: React.FC<AITutorDrawerProps> = ({
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed top-0 right-0 z-50 h-full w-full sm:w-100 bg-slate-950/95 border-l border-slate-800 shadow-2xl flex flex-col backdrop-blur-2xl font-sans"
+            className={`fixed z-50 bg-slate-950/95 border border-slate-800 shadow-2xl flex flex-col backdrop-blur-2xl font-sans transition-all duration-300 ${
+              isFull
+                ? 'top-0 left-0 w-full h-full border-none rounded-none'
+                : 'top-0 right-0 h-full w-full sm:w-100 border-l border-slate-800'
+            }`}
           >
-            <div className="p-4 border-b border-slate-800 bg-slate-900/80 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-2xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-400">
+            {/* Header */}
+            <div className="p-4 border-b border-slate-800 bg-slate-900/80 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="p-2 rounded-2xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 shrink-0">
                   <Bot className="w-5 h-5 animate-pulse" />
                 </div>
-                <div>
-                  <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                <div className="min-w-0">
+                  <h3 className="text-sm font-bold text-white flex items-center gap-1.5 truncate">
                     SHAIVIKA AI Tutor <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
                   </h3>
                   <p className="text-[11px] text-cyan-400 font-mono truncate max-w-60">
@@ -188,14 +194,32 @@ export const AITutorDrawer: React.FC<AITutorDrawerProps> = ({
                 </div>
               </div>
 
-              <button
-                onClick={onClose}
-                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {/* Full Screen Toggle / Restore to Normal Mode */}
+                <button
+                  onClick={() => setIsFull(!isFull)}
+                  className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all cursor-pointer"
+                  title={isFull ? 'Restore to Normal Mode' : 'Expand to Full Tab'}
+                >
+                  {isFull ? (
+                    <Minimize2 className="w-4 h-4 text-cyan-400 animate-pulse" />
+                  ) : (
+                    <Maximize2 className="w-4 h-4" />
+                  )}
+                </button>
+
+                {/* Close Button */}
+                <button
+                  onClick={onClose}
+                  className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all cursor-pointer"
+                  title="Close AI Tutor"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
+            {/* Chat Messages */}
             <div className="flex-1 p-4 overflow-y-auto space-y-4 font-sans text-xs sm:text-sm bg-slate-950/90 scrollbar-thin scrollbar-thumb-slate-800">
               {messages.map((msg) => (
                 <div
@@ -241,7 +265,8 @@ export const AITutorDrawer: React.FC<AITutorDrawerProps> = ({
               )}
             </div>
 
-            <form onSubmit={handleSend} className="p-4 border-t border-slate-800 bg-slate-900/90 flex gap-2">
+            {/* Input Form */}
+            <form onSubmit={handleSend} className="p-4 border-t border-slate-800 bg-slate-900/90 flex gap-2 shrink-0">
               <input
                 type="text"
                 value={input}

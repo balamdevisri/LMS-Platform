@@ -3068,25 +3068,21 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
 
         {/* RIGHT PANEL: AI LEARNING ASSISTANT MODAL POP-UP */}
         {isAiPanelOpen && (
-          <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 font-['Sora'] animate-in fade-in duration-200">
-            <div className="relative w-full max-w-3xl h-[88vh] max-h-190 rounded-3xl overflow-hidden bg-white shadow-2xl border border-slate-200 flex flex-col animate-in zoom-in-95 duration-200">
-              <AIAssistantPanel
-                courseId={String(course.id)}
-                courseTitle={course.title}
-                moduleId={String(activeModuleIdx + 1)}
-                moduleTitle={syllabus?.[activeModuleIdx]?.title || ''}
-                topicId={currentSubtopic?.id || ''}
-                topicTitle={currentSubtopic?.title || ''}
-                lessonId={currentSubtopic?.id || ''}
-                lessonTitle={currentSubtopic?.title || ''}
-                lessonType={getLessonType(currentSubtopic?.id || '')}
-                lessonContent={currentSubtopic?.content || ''}
-                isOpen={isAiPanelOpen}
-                onClose={() => setIsAiPanelOpen(false)}
-                isModal={true}
-              />
-            </div>
-          </div>
+          <AIAssistantPanel
+            courseId={String(course.id)}
+            courseTitle={course.title}
+            moduleId={String(activeModuleIdx + 1)}
+            moduleTitle={syllabus?.[activeModuleIdx]?.title || ''}
+            topicId={currentSubtopic?.id || ''}
+            topicTitle={currentSubtopic?.title || ''}
+            lessonId={currentSubtopic?.id || ''}
+            lessonTitle={currentSubtopic?.title || ''}
+            lessonType={getLessonType(currentSubtopic?.id || '')}
+            lessonContent={currentSubtopic?.content || ''}
+            isOpen={isAiPanelOpen}
+            onClose={() => setIsAiPanelOpen(false)}
+            isModal={true}
+          />
         )}
       </div>
 
