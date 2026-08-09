@@ -1,25 +1,5 @@
-import type { ModuleItem } from '../contexts/CourseContext';
-
-export const gitCourseModules: ModuleItem[] = [
-  {
-    id: 'git-mod-1',
-    title: 'Module 1: Introduction to Version Control, Git & GitHub',
-    description: 'Introduction to Version Control, Git & GitHub',
-    duration: '1 Hour',
-    topics: [
-      {
-        id: 'git-topic-1',
-        title: 'Topic 1: Module 1 Content',
-        description: 'Module 1 Content',
-        estimatedDuration: '45 mins',
-        learningUnits: [
-          {
-            id: 'git-unit-1-notes',
-            title: 'Module 1 - Complete Notes',
-            description: 'Module 1: Introduction to Version Control, Git & GitHub Complete Notes.',
-            duration: '45 mins',
-            type: 'Reading',
-            readingContent: `
+export const gitSyllabusNotes: Record<number, string> = {
+  1: `
 # Module 1: Introduction to Version
 
 Control, Git & GitHub
@@ -288,31 +268,8 @@ Answer:
 Git offers distributed development, faster performance, offline access, strong branching and
 \`\`\`
 
-merging capabilities, and better collaboration, making it the preferred choice for modern software development. Practical Lab Task 1 Research three popular Version Control Systems (Git, SVN, Mercurial) and compare their features. Task 2 Draw the architecture of Git. Task 3 List five advantages of using Git in software development. Task 4 Write five differences between Git and GitHub. Task 5 Describe a real-world software development workflow using Git and GitHub.`
-          }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'git-mod-2',
-    title: 'Module 2: Installing Git and Initial Configuration',
-    description: 'Installing Git and Initial Configuration',
-    duration: '1 Hour',
-    topics: [
-      {
-        id: 'git-topic-2',
-        title: 'Topic 2: Module 2 Content',
-        description: 'Module 2 Content',
-        estimatedDuration: '45 mins',
-        learningUnits: [
-          {
-            id: 'git-unit-2-notes',
-            title: 'Module 2 - Complete Notes',
-            description: 'Module 2: Installing Git and Initial Configuration Complete Notes.',
-            duration: '45 mins',
-            type: 'Reading',
-            readingContent: `
+merging capabilities, and better collaboration, making it the preferred choice for modern software development. Practical Lab Task 1 Research three popular Version Control Systems (Git, SVN, Mercurial) and compare their features. Task 2 Draw the architecture of Git. Task 3 List five advantages of using Git in software development. Task 4 Write five differences between Git and GitHub. Task 5 Describe a real-world software development workflow using Git and GitHub.`,
+  2: `
 # Module 2: Installing Git and Initial
 
 Configuration
@@ -643,31 +600,8 @@ If Git is installed correctly, it displays the installed version. Practical Lab 
 git --version
 \`\`\`
 
-Task 3 Configure your Git username and email. Task 4 Create a folder named GitPractice and initialize it as a Git repository. Task 5 Use git config --list to verify your configuration.`
-          }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'git-mod-3',
-    title: 'Module 3: Git Repository Fundamentals',
-    description: 'Git Repository Fundamentals',
-    duration: '1 Hour',
-    topics: [
-      {
-        id: 'git-topic-3',
-        title: 'Topic 3: Module 3 Content',
-        description: 'Module 3 Content',
-        estimatedDuration: '45 mins',
-        learningUnits: [
-          {
-            id: 'git-unit-3-notes',
-            title: 'Module 3 - Complete Notes',
-            description: 'Module 3: Git Repository Fundamentals Complete Notes.',
-            duration: '45 mins',
-            type: 'Reading',
-            readingContent: `
+Task 3 Configure your Git username and email. Task 4 Create a folder named GitPractice and initialize it as a Git repository. Task 5 Use git config --list to verify your configuration.`,
+  3: `
 # Module 3: Git Repository Fundamentals
 
 ### Learning Objectives
@@ -886,31 +820,8 @@ Git stores data as objects:
 - Tree → Directory structure
 - Commit → Snapshot and metadata
 - Tag → Named reference to important commits
-Practical Lab Task 1 Initialize a new Git repository using git init. Task 2 Locate and inspect the hidden .git directory. Task 3 Create three files and observe their state using git status. Task 4 Draw the Git workflow showing the Working Directory, Staging Area, Local Repository, and Remote Repository. Task 5 Explain the purpose of the four Git objects (Blob, Tree, Commit, Tag) with examples.`
-          }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'git-mod-4',
-    title: 'Module 4: Basic Git Commands',
-    description: 'Basic Git Commands',
-    duration: '1 Hour',
-    topics: [
-      {
-        id: 'git-topic-4',
-        title: 'Topic 4: Module 4 Content',
-        description: 'Module 4 Content',
-        estimatedDuration: '45 mins',
-        learningUnits: [
-          {
-            id: 'git-unit-4-notes',
-            title: 'Module 4 - Complete Notes',
-            description: 'Module 4: Basic Git Commands Complete Notes.',
-            duration: '45 mins',
-            type: 'Reading',
-            readingContent: `
+Practical Lab Task 1 Initialize a new Git repository using git init. Task 2 Locate and inspect the hidden .git directory. Task 3 Create three files and observe their state using git status. Task 4 Draw the Git workflow showing the Working Directory, Staging Area, Local Repository, and Remote Repository. Task 5 Explain the purpose of the four Git objects (Blob, Tree, Commit, Tag) with examples.`,
+  4: `
 # Module 4: Basic Git Commands
 
 ### Learning Objectives
@@ -1201,31 +1112,8 @@ Task 4 Commit the changes with the message: Initial project setup Task 5 View th
 \`\`\`bash
 git log --oneline
 \`\`\`
-`
-          }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'git-mod-5',
-    title: 'Module 5: Branching and Merging',
-    description: 'Branching and Merging',
-    duration: '1 Hour',
-    topics: [
-      {
-        id: 'git-topic-5',
-        title: 'Topic 5: Module 5 Content',
-        description: 'Module 5 Content',
-        estimatedDuration: '45 mins',
-        learningUnits: [
-          {
-            id: 'git-unit-5-notes',
-            title: 'Module 5 - Complete Notes',
-            description: 'Module 5: Branching and Merging Complete Notes.',
-            duration: '45 mins',
-            type: 'Reading',
-            readingContent: `
+`,
+  5: `
 # Module 5: Branching and Merging
 
 ### Learning Objectives
@@ -1526,31 +1414,8 @@ or (modern Git):
 git switch -c feature-name
 \`\`\`
 
-Practical Lab Task 1 Create a new branch named feature/profile. Task 2 Switch to the new branch. Task 3 Make a small file change and commit it. Task 4 Merge the feature/profile branch into the main branch. Task 5 Delete the merged branch and verify it no longer appears in the branch list.`
-          }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'git-mod-6',
-    title: 'Module 6: GitHub Basics',
-    description: 'GitHub Basics',
-    duration: '1 Hour',
-    topics: [
-      {
-        id: 'git-topic-6',
-        title: 'Topic 6: Module 6 Content',
-        description: 'Module 6 Content',
-        estimatedDuration: '45 mins',
-        learningUnits: [
-          {
-            id: 'git-unit-6-notes',
-            title: 'Module 6 - Complete Notes',
-            description: 'Module 6: GitHub Basics Complete Notes.',
-            duration: '45 mins',
-            type: 'Reading',
-            readingContent: `
+Practical Lab Task 1 Create a new branch named feature/profile. Task 2 Switch to the new branch. Task 3 Make a small file change and commit it. Task 4 Merge the feature/profile branch into the main branch. Task 5 Delete the merged branch and verify it no longer appears in the branch list.`,
+  6: `
 # Module 6: GitHub Basics
 
 ### Learning Objectives
@@ -1803,31 +1668,8 @@ Answer: It uploads the local main branch to the remote repository and sets the u
 git push.
 \`\`\`
 
-Practical Lab Task 1 Create a GitHub account. Task 2 Create a new public repository named GitPractice. Task 3 Connect your local repository to GitHub using git remote add origin. Task 4 Push your first commit to GitHub. Task 5 Clone your repository into a different folder and verify that all files are downloaded.`
-          }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'git-mod-7',
-    title: 'Module 7: Remote Repository Management',
-    description: 'Remote Repository Management',
-    duration: '1 Hour',
-    topics: [
-      {
-        id: 'git-topic-7',
-        title: 'Topic 7: Module 7 Content',
-        description: 'Module 7 Content',
-        estimatedDuration: '45 mins',
-        learningUnits: [
-          {
-            id: 'git-unit-7-notes',
-            title: 'Module 7 - Complete Notes',
-            description: 'Module 7: Remote Repository Management Complete Notes.',
-            duration: '45 mins',
-            type: 'Reading',
-            readingContent: `
+Practical Lab Task 1 Create a GitHub account. Task 2 Create a new public repository named GitPractice. Task 3 Connect your local repository to GitHub using git remote add origin. Task 4 Push your first commit to GitHub. Task 5 Clone your repository into a different folder and verify that all files are downloaded.`,
+  7: `
 # Module 7: Remote Repository
 
 Management
@@ -2095,31 +1937,8 @@ Answer: Yes. A Git repository can have multiple remotes, such as an origin for y
 git remote -v
 \`\`\`
 
-Task 3 Push your local repository to GitHub. Task 4 Use git fetch to retrieve updates without merging them. Task 5 Configure an upstream branch and test simple git push and git pull commands.`
-          }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'git-mod-8',
-    title: 'Module 8: Git Collaboration',
-    description: 'Git Collaboration',
-    duration: '1 Hour',
-    topics: [
-      {
-        id: 'git-topic-8',
-        title: 'Topic 8: Module 8 Content',
-        description: 'Module 8 Content',
-        estimatedDuration: '45 mins',
-        learningUnits: [
-          {
-            id: 'git-unit-8-notes',
-            title: 'Module 8 - Complete Notes',
-            description: 'Module 8: Git Collaboration Complete Notes.',
-            duration: '45 mins',
-            type: 'Reading',
-            readingContent: `
+Task 3 Push your local repository to GitHub. Task 4 Use git fetch to retrieve updates without merging them. Task 5 Configure an upstream branch and test simple git push and git pull commands.`,
+  8: `
 # Module 8: Git Collaboration
 
 ### Learning Objectives
@@ -2359,31 +2178,8 @@ Answer: The three common merge strategies are:
 - Merge Commit
 - Squash Merge
 - Rebase and Merge
-Each strategy has different effects on the project's commit history. Practical Lab Task 1 Clone a GitHub repository. Task 2 Create a feature branch named feature/profile. Task 3 Make changes, commit them, and push the branch to GitHub. Task 4 Create a Pull Request from feature/profile to main. Task 5 Review the Pull Request, merge it, and delete the feature branch.`
-          }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'git-mod-9',
-    title: 'Module 9: Advanced Git Commands',
-    description: 'Advanced Git Commands',
-    duration: '1 Hour',
-    topics: [
-      {
-        id: 'git-topic-9',
-        title: 'Topic 9: Module 9 Content',
-        description: 'Module 9 Content',
-        estimatedDuration: '45 mins',
-        learningUnits: [
-          {
-            id: 'git-unit-9-notes',
-            title: 'Module 9 - Complete Notes',
-            description: 'Module 9: Advanced Git Commands Complete Notes.',
-            duration: '45 mins',
-            type: 'Reading',
-            readingContent: `
+Each strategy has different effects on the project's commit history. Practical Lab Task 1 Clone a GitHub repository. Task 2 Create a feature branch named feature/profile. Task 3 Make changes, commit them, and push the branch to GitHub. Task 4 Create a Pull Request from feature/profile to main. Task 5 Review the Pull Request, merge it, and delete the feature branch.`,
+  9: `
 # Module 9: Advanced Git Commands
 
 ### Learning Objectives
@@ -2684,31 +2480,8 @@ another branch.
 
 ### 5. What is a Git Tag?
 
-Answer: A Git Tag is a reference used to mark important points in a repository's history, such as software releases (e.g., v1.0, v2.0). Practical Lab Task 1 Create a temporary change and save it using git stash. Task 2 Restore the saved work using git stash pop. Task 3 Create an annotated tag named v1.0. Task 4 Use git cherry-pick to apply a commit from another branch. Task 5 Compare the output of git merge and git rebase using a sample repository.`
-          }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'git-mod-10',
-    title: 'Module 10: Git Internals',
-    description: 'Git Internals',
-    duration: '1 Hour',
-    topics: [
-      {
-        id: 'git-topic-10',
-        title: 'Topic 10: Module 10 Content',
-        description: 'Module 10 Content',
-        estimatedDuration: '45 mins',
-        learningUnits: [
-          {
-            id: 'git-unit-10-notes',
-            title: 'Module 10 - Complete Notes',
-            description: 'Module 10: Git Internals Complete Notes.',
-            duration: '45 mins',
-            type: 'Reading',
-            readingContent: `
+Answer: A Git Tag is a reference used to mark important points in a repository's history, such as software releases (e.g., v1.0, v2.0). Practical Lab Task 1 Create a temporary change and save it using git stash. Task 2 Restore the saved work using git stash pop. Task 3 Create an annotated tag named v1.0. Task 4 Use git cherry-pick to apply a commit from another branch. Task 5 Compare the output of git merge and git rebase using a sample repository.`,
+  10: `
 # Module 10: Git Internals
 
 ### Learning Objectives
@@ -2915,31 +2688,8 @@ Answer: The Git Index (Staging Area) is a temporary storage area where selected 
 Answer:
 - A Blob stores the contents of a file.
 - A Tree stores the directory structure and references to Blob and other Tree objects.
-Practical Lab Task 1 Initialize a Git repository and locate the hidden .git directory. Task 2 Create a file, commit it, and observe the repository structure. Task 3 Create an annotated tag named v1.0. Task 4 Draw the relationship between Blob, Tree, and Commit objects. Task 5 Explain the purpose of HEAD, Refs, and the Index in your own words.`
-          }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'git-mod-11',
-    title: 'Module 11: GitHub Features',
-    description: 'GitHub Features',
-    duration: '1 Hour',
-    topics: [
-      {
-        id: 'git-topic-11',
-        title: 'Topic 11: Module 11 Content',
-        description: 'Module 11 Content',
-        estimatedDuration: '45 mins',
-        learningUnits: [
-          {
-            id: 'git-unit-11-notes',
-            title: 'Module 11 - Complete Notes',
-            description: 'Module 11: GitHub Features Complete Notes.',
-            duration: '45 mins',
-            type: 'Reading',
-            readingContent: `
+Practical Lab Task 1 Initialize a Git repository and locate the hidden .git directory. Task 2 Create a file, commit it, and observe the repository structure. Task 3 Create an annotated tag named v1.0. Task 4 Draw the relationship between Blob, Tree, and Commit objects. Task 5 Explain the purpose of HEAD, Refs, and the Index in your own words.`,
+  11: `
 # Module 11: GitHub Features
 
 ### Learning Objectives
@@ -3139,31 +2889,8 @@ Task 3 Create a GitHub Project board with the columns:
 - In Progress
 - Review
 - Done
-Task 4 Create a Wiki page named Installation Guide . Task 5 Create a release named v1.0.0 with release notes`
-          }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'git-mod-12',
-    title: 'Module 12: Git Best Practices',
-    description: 'Git Best Practices',
-    duration: '1 Hour',
-    topics: [
-      {
-        id: 'git-topic-12',
-        title: 'Topic 12: Module 12 Content',
-        description: 'Module 12 Content',
-        estimatedDuration: '45 mins',
-        learningUnits: [
-          {
-            id: 'git-unit-12-notes',
-            title: 'Module 12 - Complete Notes',
-            description: 'Module 12: Git Best Practices Complete Notes.',
-            duration: '45 mins',
-            type: 'Reading',
-            readingContent: `
+Task 4 Create a Wiki page named Installation Guide . Task 5 Create a release named v1.0.0 with release notes`,
+  12: `
 # Module 12: Git Best Practices
 
 ### Learning Objectives
@@ -3344,31 +3071,8 @@ Answer: A README file provides essential information about a project, including 
 
 ### 5. What are branch protection rules?
 
-Answer: Branch protection rules are GitHub settings that prevent direct changes to important branches and require actions such as Pull Requests, code reviews, and successful status checks before merging. Practical Lab Task 1 Create a .gitignore file for a Node.js project. Task 2 Write five meaningful commit messages for different project updates. Task 3 Create feature, bugfix, and release branches using professional naming conventions. Task 4 Prepare a professional README.md for one of your GitHub projects. Task 5 Enable branch protection rules for the main branch in a GitHub repository (if you have repository admin access).`
-          }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'git-mod-13',
-    title: 'Module 13: Real-World Git Workflow',
-    description: 'Real-World Git Workflow',
-    duration: '1 Hour',
-    topics: [
-      {
-        id: 'git-topic-13',
-        title: 'Topic 13: Module 13 Content',
-        description: 'Module 13 Content',
-        estimatedDuration: '45 mins',
-        learningUnits: [
-          {
-            id: 'git-unit-13-notes',
-            title: 'Module 13 - Complete Notes',
-            description: 'Module 13: Real-World Git Workflow Complete Notes.',
-            duration: '45 mins',
-            type: 'Reading',
-            readingContent: `
+Answer: Branch protection rules are GitHub settings that prevent direct changes to important branches and require actions such as Pull Requests, code reviews, and successful status checks before merging. Practical Lab Task 1 Create a .gitignore file for a Node.js project. Task 2 Write five meaningful commit messages for different project updates. Task 3 Create feature, bugfix, and release branches using professional naming conventions. Task 4 Prepare a professional README.md for one of your GitHub projects. Task 5 Enable branch protection rules for the main branch in a GitHub repository (if you have repository admin access).`,
+  13: `
 # Module 13: Real-World Git Workflows
 
 ### Learning Objectives
@@ -3567,31 +3271,8 @@ long-term maintenance because it provides structured branching for features, rel
 
 ### 5. What is the Forking Workflow?
 
-Answer: The Forking Workflow is commonly used in open-source development, where contributors create their own copy (fork) of a repository, make changes independently, and submit them through Pull Requests. Practical Lab Task 1 Create a feature branch using the Feature Branch Workflow. Task 2 Simulate a GitHub Flow by creating a Pull Request from a feature branch. Task 3 Design a Git Flow branch structure for a banking application. Task 4 Fork an open-source repository on GitHub and clone it locally. Task 5 Make a documentation improvement in your fork and create a Pull Request.`
-          }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'git-mod-14',
-    title: 'Module 14: Git & GitHub Projects',
-    description: 'Git & GitHub Projects',
-    duration: '1 Hour',
-    topics: [
-      {
-        id: 'git-topic-14',
-        title: 'Topic 14: Module 14 Content',
-        description: 'Module 14 Content',
-        estimatedDuration: '45 mins',
-        learningUnits: [
-          {
-            id: 'git-unit-14-notes',
-            title: 'Module 14 - Complete Notes',
-            description: 'Module 14: Git & GitHub Projects Complete Notes.',
-            duration: '45 mins',
-            type: 'Reading',
-            readingContent: `
+Answer: The Forking Workflow is commonly used in open-source development, where contributors create their own copy (fork) of a repository, make changes independently, and submit them through Pull Requests. Practical Lab Task 1 Create a feature branch using the Feature Branch Workflow. Task 2 Simulate a GitHub Flow by creating a Pull Request from a feature branch. Task 3 Design a Git Flow branch structure for a banking application. Task 4 Fork an open-source repository on GitHub and clone it locally. Task 5 Make a documentation improvement in your fork and create a Pull Request.`,
+  14: `
 # Module 14: Git & GitHub Projects
 
 ### Learning Objectives
@@ -3799,31 +3480,8 @@ Answer: Open-source contributions improve coding skills, provide real-world coll
 
 ### 5. What makes a GitHub repository attractive to recruiters?
 
-Answer: Recruiters look for clean code, meaningful commit history, clear documentation, active maintenance, proper project organization, and evidence of practical problem-solving. Practical Lab Task 1 Create a new GitHub repository named Portfolio-Projects . Task 2 Upload one of your existing projects with a complete README.md. Task 3 Add a .gitignore file and a suitable LICENSE. Task 4 Add screenshots and usage instructions to the repository. Task 5 Fork an open-source project, make a small documentation improvement, and submit a Pull Request.`
-          }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'git-mod-15',
-    title: 'Module 15: Git & GitHub Interview Preparation',
-    description: 'Git & GitHub Interview Preparation',
-    duration: '1 Hour',
-    topics: [
-      {
-        id: 'git-topic-15',
-        title: 'Topic 15: Module 15 Content',
-        description: 'Module 15 Content',
-        estimatedDuration: '45 mins',
-        learningUnits: [
-          {
-            id: 'git-unit-15-notes',
-            title: 'Module 15 - Complete Notes',
-            description: 'Module 15: Git & GitHub Interview Preparation Complete Notes.',
-            duration: '45 mins',
-            type: 'Reading',
-            readingContent: `
+Answer: Recruiters look for clean code, meaningful commit history, clear documentation, active maintenance, proper project organization, and evidence of practical problem-solving. Practical Lab Task 1 Create a new GitHub repository named Portfolio-Projects . Task 2 Upload one of your existing projects with a complete README.md. Task 3 Add a .gitignore file and a suitable LICENSE. Task 4 Add screenshots and usage instructions to the repository. Task 5 Fork an open-source project, make a small documentation improvement, and submit a Pull Request.`,
+  15: `
 # Module 15: Git & GitHub Interview
 
 Preparation & Career Guidance
@@ -4075,9 +3733,4 @@ Practical Lab Task 1 Create a new GitHub repository and upload a sample project.
 - Pinned repositories.
 - README files.
 - Portfolio projects.`
-          }
-        ]
-      }
-    ]
-  }
-];
+};

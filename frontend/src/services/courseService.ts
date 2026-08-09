@@ -112,12 +112,21 @@ const DEFAULT_COURSES: ICourse[] = [
     rating: 5.0,
     ratingCount: 180,
     syllabus: [
-      { id: 'git-mod-1', title: 'Module 1: Version Control & Git Basics', description: 'Version Control and local Git commit cycle.', duration: '3 hours', lessonsCount: 4 },
-      { id: 'git-mod-2', title: 'Module 2: GitHub Foundations', description: 'Cloud hosting, branching, and pull requests.', duration: '3 hours', lessonsCount: 4 },
-      { id: 'git-mod-3', title: 'Module 3: Advanced Git', description: 'Interactive rebasing, stashing, and reflog.', duration: '4 hours', lessonsCount: 4 },
-      { id: 'git-mod-4', title: 'Module 4: Repository Management', description: 'PR reviews, branch protection, and tagging.', duration: '3 hours', lessonsCount: 4 },
-      { id: 'git-mod-5', title: 'Module 5: GitHub Actions', description: 'Automating tests, security, and CD.', duration: '4 hours', lessonsCount: 4 },
-      { id: 'git-mod-6', title: 'Module 6: Modern GitHub Ecosystem', description: 'Codespaces, Copilot, and projects.', duration: '3 hours', lessonsCount: 4 }
+      { id: 'git-mod-1', title: 'Module 1: Introduction to Version Control, Git & GitHub', description: 'Introduction to Version Control, Git & GitHub', duration: '1 Hour', lessonsCount: 1 },
+      { id: 'git-mod-2', title: 'Module 2: Installing Git and Initial Configuration', description: 'Installing Git and Initial Configuration', duration: '1 Hour', lessonsCount: 1 },
+      { id: 'git-mod-3', title: 'Module 3: Git Repository Fundamentals', description: 'Git Repository Fundamentals', duration: '1 Hour', lessonsCount: 1 },
+      { id: 'git-mod-4', title: 'Module 4: Basic Git Commands', description: 'Basic Git Commands', duration: '1 Hour', lessonsCount: 1 },
+      { id: 'git-mod-5', title: 'Module 5: Branching and Merging', description: 'Branching and Merging', duration: '1 Hour', lessonsCount: 1 },
+      { id: 'git-mod-6', title: 'Module 6: GitHub Basics', description: 'GitHub Basics', duration: '1 Hour', lessonsCount: 1 },
+      { id: 'git-mod-7', title: 'Module 7: Remote Repository Management', description: 'Remote Repository Management', duration: '1 Hour', lessonsCount: 1 },
+      { id: 'git-mod-8', title: 'Module 8: Git Collaboration', description: 'Git Collaboration', duration: '1 Hour', lessonsCount: 1 },
+      { id: 'git-mod-9', title: 'Module 9: Advanced Git Commands', description: 'Advanced Git Commands', duration: '1 Hour', lessonsCount: 1 },
+      { id: 'git-mod-10', title: 'Module 10: Git Internals', description: 'Git Internals', duration: '1 Hour', lessonsCount: 1 },
+      { id: 'git-mod-11', title: 'Module 11: GitHub Features', description: 'GitHub Features', duration: '1 Hour', lessonsCount: 1 },
+      { id: 'git-mod-12', title: 'Module 12: Git Best Practices', description: 'Git Best Practices', duration: '1 Hour', lessonsCount: 1 },
+      { id: 'git-mod-13', title: 'Module 13: Real-World Git Workflow', description: 'Real-World Git Workflow', duration: '1 Hour', lessonsCount: 1 },
+      { id: 'git-mod-14', title: 'Module 14: Git & GitHub Projects', description: 'Git & GitHub Projects', duration: '1 Hour', lessonsCount: 1 },
+      { id: 'git-mod-15', title: 'Module 15: Git & GitHub Interview Preparation', description: 'Git & GitHub Interview Preparation', duration: '1 Hour', lessonsCount: 1 }
     ],
     modules: gitCourseModules,
     createdAt: new Date('2026-01-20').toISOString(),
@@ -508,12 +517,21 @@ function normalizeCourseToICourse(c: any): ICourse {
     });
   } else if (c.title === 'Git & GitHub Mastery') {
     syllabusArray = [
-      { id: 'git-mod-1', title: 'Module 1: Version Control & Git Basics', description: 'Version Control and local Git commit cycle.', duration: '3 hours', lessonsCount: 4 },
-      { id: 'git-mod-2', title: 'Module 2: GitHub Foundations', description: 'Cloud hosting, branching, and pull requests.', duration: '3 hours', lessonsCount: 4 },
-      { id: 'git-mod-3', title: 'Module 3: Advanced Git', description: 'Interactive rebasing, stashing, and reflog.', duration: '4 hours', lessonsCount: 4 },
-      { id: 'git-mod-4', title: 'Module 4: Repository Management', description: 'PR reviews, branch protection, and tagging.', duration: '3 hours', lessonsCount: 4 },
-      { id: 'git-mod-5', title: 'Module 5: GitHub Actions', description: 'Automating tests, security, and CD.', duration: '4 hours', lessonsCount: 4 },
-      { id: 'git-mod-6', title: 'Module 6: Modern GitHub Ecosystem', description: 'Codespaces, Copilot, and projects.', duration: '3 hours', lessonsCount: 4 }
+      { id: 'git-mod-1', title: 'Module 1: Introduction to Version Control, Git & GitHub', description: 'Introduction to Version Control, Git & GitHub', duration: '1 Hour', lessonsCount: 1 },
+      { id: 'git-mod-2', title: 'Module 2: Installing Git and Initial Configuration', description: 'Installing Git and Initial Configuration', duration: '1 Hour', lessonsCount: 1 },
+      { id: 'git-mod-3', title: 'Module 3: Git Repository Fundamentals', description: 'Git Repository Fundamentals', duration: '1 Hour', lessonsCount: 1 },
+      { id: 'git-mod-4', title: 'Module 4: Basic Git Commands', description: 'Basic Git Commands', duration: '1 Hour', lessonsCount: 1 },
+      { id: 'git-mod-5', title: 'Module 5: Branching and Merging', description: 'Branching and Merging', duration: '1 Hour', lessonsCount: 1 },
+      { id: 'git-mod-6', title: 'Module 6: GitHub Basics', description: 'GitHub Basics', duration: '1 Hour', lessonsCount: 1 },
+      { id: 'git-mod-7', title: 'Module 7: Remote Repository Management', description: 'Remote Repository Management', duration: '1 Hour', lessonsCount: 1 },
+      { id: 'git-mod-8', title: 'Module 8: Git Collaboration', description: 'Git Collaboration', duration: '1 Hour', lessonsCount: 1 },
+      { id: 'git-mod-9', title: 'Module 9: Advanced Git Commands', description: 'Advanced Git Commands', duration: '1 Hour', lessonsCount: 1 },
+      { id: 'git-mod-10', title: 'Module 10: Git Internals', description: 'Git Internals', duration: '1 Hour', lessonsCount: 1 },
+      { id: 'git-mod-11', title: 'Module 11: GitHub Features', description: 'GitHub Features', duration: '1 Hour', lessonsCount: 1 },
+      { id: 'git-mod-12', title: 'Module 12: Git Best Practices', description: 'Git Best Practices', duration: '1 Hour', lessonsCount: 1 },
+      { id: 'git-mod-13', title: 'Module 13: Real-World Git Workflow', description: 'Real-World Git Workflow', duration: '1 Hour', lessonsCount: 1 },
+      { id: 'git-mod-14', title: 'Module 14: Git & GitHub Projects', description: 'Git & GitHub Projects', duration: '1 Hour', lessonsCount: 1 },
+      { id: 'git-mod-15', title: 'Module 15: Git & GitHub Interview Preparation', description: 'Git & GitHub Interview Preparation', duration: '1 Hour', lessonsCount: 1 }
     ];
   } else {
     syllabusArray = [
