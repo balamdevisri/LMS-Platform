@@ -14,14 +14,11 @@ service cloud.firestore {
 
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-      return isAuthenticated() && request.auth.uid == userId;
     }
 
     function isAdmin() {
       return isAuthenticated() && (
         getUserData().role == 'admin' || 
-        request.auth.token.role == 'admin' ||
-        request.auth.token.admin == true
         request.auth.token.role == 'admin' || 
         request.auth.token.admin == true ||
         exists(/databases/$(database)/documents/admins/$(request.auth.uid))
@@ -31,8 +28,6 @@ service cloud.firestore {
     function isInstructor() {
       return isAuthenticated() && (
         getUserData().role == 'instructor' || 
-        request.auth.token.role == 'instructor' ||
-        request.auth.token.role == 'admin'
         request.auth.token.role == 'instructor' || 
         request.auth.token.role == 'admin' ||
         isAdmin()

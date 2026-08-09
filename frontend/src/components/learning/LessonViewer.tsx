@@ -1009,11 +1009,62 @@ export const LessonViewer: React.FC<LessonViewerProps> = React.memo(({
     
     // React JS Complete Course image routing
     if (_courseId === 'react-js-complete-course') {
+      if (t.includes('jsx') || t.includes('xml')) {
+        return 'https://images.unsplash.com/photo-1581291518633-83b4ebd1d83e?auto=format&fit=crop&w=800&q=80';
+      }
+      if (t.includes('component')) {
+        return 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80';
+      }
+      if (t.includes('prop')) {
+        return 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80';
+      }
+      if (t.includes('state') || t.includes('hook') || t.includes('useeffect') || t.includes('usestate')) {
+        return 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?auto=format&fit=crop&w=800&q=80';
+      }
+      if (t.includes('event') || t.includes('form')) {
+        return 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=800&q=80';
+      }
+      if (t.includes('router') || t.includes('route') || t.includes('navigate')) {
+        return 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=800&q=80';
+      }
+      if (t.includes('api') || t.includes('axios') || t.includes('fetch')) {
+        return 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=800&q=80';
+      }
+      if (t.includes('redux') || t.includes('context')) {
+        return 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=800&q=80';
+      }
+      if (t.includes('style') || t.includes('css') || t.includes('tailwind') || t.includes('bootstrap')) {
+        return 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?auto=format&fit=crop&w=800&q=80';
+      }
+      if (t.includes('project') || t.includes('todo') || t.includes('weather')) {
+        return 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80';
+      }
       return '/assets/images/react_logo_frontend.png';
     }
 
     // Kubernetes Complete Course image routing
     if (_courseId === 'kubernetes-complete-course-beginner-to-advanced') {
+      if (t.includes('architecture') || t.includes('plane') || t.includes('node') || t.includes('master') || t.includes('cluster')) {
+        return 'https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?auto=format&fit=crop&w=800&q=80';
+      }
+      if (t.includes('service') || t.includes('network') || t.includes('ingress') || t.includes('port')) {
+        return 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=800&q=80';
+      }
+      if (t.includes('storage') || t.includes('volume') || t.includes('pv') || t.includes('pvc')) {
+        return 'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?auto=format&fit=crop&w=800&q=80';
+      }
+      if (t.includes('security') || t.includes('rbac') || t.includes('secret') || t.includes('auth')) {
+        return 'https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=800&q=80';
+      }
+      if (t.includes('monitor') || t.includes('log') || t.includes('prometheus') || t.includes('grafana') || t.includes('elk')) {
+        return 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80';
+      }
+      if (t.includes('helm') || t.includes('chart') || t.includes('package')) {
+        return 'https://images.unsplash.com/photo-1618401471353-b98afee0b2eb?auto=format&fit=crop&w=800&q=80';
+      }
+      if (t.includes('ci') || t.includes('cd') || t.includes('pipeline') || t.includes('argocd') || t.includes('jenkins')) {
+        return 'https://images.unsplash.com/photo-1607799279861-4dd421887fb3?auto=format&fit=crop&w=800&q=80';
+      }
       return '/assets/images/k8s_logo_orchestration.png';
     }
 

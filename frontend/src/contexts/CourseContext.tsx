@@ -655,17 +655,26 @@ const initialDefaultCoursesRaw: CourseItem[] = [
     category: 'DevOps / Cloud / Containers',
     level: 'Beginner to Advanced',
     badge: 'New Track',
-    tracks: '6 Modules (30 Hours)',
+    tracks: '15 Modules (30 Hours)',
     status: 'Published',
     thumbnail: 'https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?auto=format&fit=crop&w=800&q=80',
     description: 'Learn Kubernetes from the fundamentals to production-level deployment through practical, hands-on learning. Understand Kubernetes architecture, Pods, Deployments, Services, Networking, Storage, Security, Scheduling, Helm, CI/CD, and real-world application deployment.',
     syllabus: [
-      'Module 1 — Kubernetes Basics',
-      'Module 2 — Pods & Deployments',
-      'Module 3 — Networking & Services',
-      'Module 4 — Configuration & Storage',
-      'Module 5 — Security & Administration',
-      'Module 6 — Production & DevOps'
+      'Module 1: Introduction to Kubernetes',
+      'Module 2: Kubernetes Architecture',
+      'Module 3: Installing Kubernetes',
+      'Module 4: Basic Kubernetes Objects & Pods',
+      'Module 5: Services & Networking',
+      'Module 6: Kubernetes Storage',
+      'Module 7: Configuration Management',
+      'Module 8: Advanced Workloads',
+      'Module 9: Kubernetes Security',
+      'Module 10: Monitoring & Logging',
+      'Module 11: Helm — Package Manager',
+      'Module 12: CI/CD with Kubernetes',
+      'Module 13: Troubleshooting Kubernetes',
+      'Module 14: Real-World Projects',
+      'Module 15: Interview Preparation & Cheat Sheet'
     ],
     createdAt: new Date('2026-08-08').toISOString(),
     modules: kubernetesCourseModules
@@ -826,7 +835,7 @@ const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
     map.set('react-js-complete-course', initialDefaultCourses.find(item => item.id === 'react-js-complete-course') || initialDefaultCourses[4]);
   }
 
-  return Array.from(map.values());
+  return Array.from(map.values()).filter(item => !String(item.title || '').toLowerCase().includes('untitled'));
 };
 
 const CourseContext = createContext<CourseContextType | undefined>(undefined);
@@ -837,17 +846,19 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (localSaved) {
       try {
         const parsed = JSON.parse(localSaved) as CourseItem[];
-        const normalizedParsed = parsed.map((c: any) => {
-          const statusVal = c.status && c.status.toLowerCase() === 'published' ? 'Published' : 'Draft';
-          const instructorName = typeof c.instructor === 'object' && c.instructor !== null
-            ? (c.instructor.name || 'Kaizen Q Team')
-            : (c.instructor || 'Kaizen Q Team');
-          return {
-            ...c,
-            status: statusVal,
-            instructor: instructorName,
-          } as CourseItem;
-        });
+        const normalizedParsed = parsed
+          .filter((c: any) => !String(c.title || '').toLowerCase().includes('untitled'))
+          .map((c: any) => {
+            const statusVal = c.status && c.status.toLowerCase() === 'published' ? 'Published' : 'Draft';
+            const instructorName = typeof c.instructor === 'object' && c.instructor !== null
+              ? (c.instructor.name || 'Kaizen Q Team')
+              : (c.instructor || 'Kaizen Q Team');
+            return {
+              ...c,
+              status: statusVal,
+              instructor: instructorName,
+            } as CourseItem;
+          });
 
         // Auto-heal missing default modules or missing content fields
         const merged = initialDefaultCourses.map((def) => {
@@ -861,11 +872,13 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         // Retain other custom admin courses
         normalizedParsed.forEach((p) => {
           if (!merged.find((m) => String(m.id) === String(p.id))) {
-            merged.push(enrichCourseMockContent(p));
+            if (!String(p.title || '').toLowerCase().includes('untitled')) {
+              merged.push(enrichCourseMockContent(p));
+            }
           }
         });
 
-        return merged;
+        return merged.filter((item) => !String(item.title || '').toLowerCase().includes('untitled'));
       } catch (e) {
         console.warn('LocalStorage courses parse warning:', e);
       }
@@ -880,17 +893,19 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       try {
         const parsed = JSON.parse(localSaved);
         if (Array.isArray(parsed)) {
-          const mapped = parsed.map((c: any) => {
-            const statusVal = c.status && c.status.toLowerCase() === 'published' ? 'Published' : 'Draft';
-            const instructorName = typeof c.instructor === 'object' && c.instructor !== null
-              ? (c.instructor.name || 'Kaizen Q Team')
-              : (c.instructor || 'Kaizen Q Team');
-            return {
-              ...c,
-              status: statusVal,
-              instructor: instructorName,
-            } as CourseItem;
-          });
+          const mapped = parsed
+            .filter((c: any) => !String(c.title || '').toLowerCase().includes('untitled'))
+            .map((c: any) => {
+              const statusVal = c.status && c.status.toLowerCase() === 'published' ? 'Published' : 'Draft';
+              const instructorName = typeof c.instructor === 'object' && c.instructor !== null
+                ? (c.instructor.name || 'Kaizen Q Team')
+                : (c.instructor || 'Kaizen Q Team');
+              return {
+                ...c,
+                status: statusVal,
+                instructor: instructorName,
+              } as CourseItem;
+            });
           localList = sanitizeCourseList(mapped);
         }
       } catch (e) {
@@ -905,17 +920,19 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const loadedResult = await courseService.getCourses();
       const loaded = loadedResult.courses;
       if (loaded && loaded.length > 0) {
-        const normalized = loaded.map((c: any) => {
-          const statusVal = c.status && c.status.toLowerCase() === 'published' ? 'Published' : 'Draft';
-          const instructorName = typeof c.instructor === 'object' && c.instructor !== null
-            ? (c.instructor.name || 'Kaizen Q Team')
-            : (c.instructor || 'Kaizen Q Team');
-          return {
-            ...c,
-            status: statusVal,
-            instructor: instructorName,
-          } as CourseItem;
-        });
+        const normalized = loaded
+          .filter((c: any) => !String(c.title || '').toLowerCase().includes('untitled'))
+          .map((c: any) => {
+            const statusVal = c.status && c.status.toLowerCase() === 'published' ? 'Published' : 'Draft';
+            const instructorName = typeof c.instructor === 'object' && c.instructor !== null
+              ? (c.instructor.name || 'Kaizen Q Team')
+              : (c.instructor || 'Kaizen Q Team');
+            return {
+              ...c,
+              status: statusVal,
+              instructor: instructorName,
+            } as CourseItem;
+          });
 
         const merged = sanitizeCourseList([...localList, ...normalized]);
         setCourses(merged);

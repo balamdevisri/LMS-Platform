@@ -340,6 +340,69 @@ export const AdminLiveClassroom: React.FC = () => {
     }
   };
 
+  /**
+   * Dynamic function to create, activate LIVE state, and instantly launch the Admin Live Control Panel
+   */
+  const handleInstantLaunchLiveControlPanel = async () => {
+    try {
+      const activeCourse = courses[0] || { id: 'course_linux_101', title: 'Linux Kernel & System Architecture' };
+      const selectedInst = instructorsList[0] || { id: 'inst_kaizen', name: userProfile?.name || 'Admin Master Instructor' };
+
+      const roomId = `kaizenq-live-room-${Date.now().toString().slice(-6)}`;
+      const newLiveClass = await liveClassService.createLiveClass({
+        title: `🔴 Admin Live Masterclass Control Session (${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`,
+        description: 'Real-time broadcast session with interactive whiteboard, AI code playground, polls, and live video control panel.',
+        courseId: String(activeCourse.id),
+        courseName: activeCourse.title,
+        moduleId: 'mod_live_1',
+        moduleTitle: 'Module 1: Real-Time Live Architecture',
+        lessonId: 'les_live_1',
+        lessonTitle: 'Lesson 1.1: Live Stream & Control Panel',
+        instructorId: selectedInst.id,
+        instructorName: selectedInst.name,
+        branch: 'CSE',
+        semester: 'Sem 5',
+        year: '3rd Year',
+        section: 'Sec A',
+        meetingProvider: 'jitsi',
+        meetingRoomId: roomId,
+        meetingUrl: `https://meet.jit.si/${roomId}`,
+        startTime: new Date().toISOString(),
+        endTime: new Date(Date.now() + 2 * 3600 * 1000).toISOString(),
+        duration: 120,
+        status: 'Live',
+        isRecordingEnabled: true,
+        isQuizEnabled: true,
+        isPollEnabled: true,
+        isChatEnabled: true,
+        isAttendanceEnabled: true,
+        resourceDownloadEnabled: true,
+        certificateEligible: true,
+        maxParticipants: 250,
+        tags: ['Live', 'Control Panel', 'Admin', 'Broadcast'],
+        difficulty: 'Advanced',
+        createdBy: userProfile?.uid || 'admin_sys',
+      });
+
+      toast.success('🚀 Created & Launched Live Control Panel Room!');
+      navigate(`/live-classroom/room/${newLiveClass.id}`);
+    } catch (e) {
+      toast.error('Failed to launch live control panel room.');
+    }
+  };
+
+  const handleEnterControlPanel = async (c: LiveClass) => {
+    if (c.status !== 'Live' && c.status !== 'Completed') {
+      try {
+        await liveClassService.startLiveClass(c.id);
+        toast.success(`🔴 Live Session "${c.title}" is active! Notifications sent.`);
+      } catch (e) {
+        console.warn('Auto start live session notice:', e);
+      }
+    }
+    navigate(`/live-classroom/room/${c.id}`);
+  };
+
   return (
     <div className="space-y-6 text-slate-900 font-['Sora'] max-w-7xl mx-auto pb-12 animate-in fade-in duration-300">
       
@@ -366,11 +429,19 @@ export const AdminLiveClassroom: React.FC = () => {
 
         <div className="flex items-center gap-3 flex-wrap">
           <button
+            onClick={handleInstantLaunchLiveControlPanel}
+            className="px-5 py-3 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-lg shadow-rose-500/20 flex items-center gap-2 transition-all cursor-pointer animate-pulse"
+          >
+            <Radio className="w-4 h-4" />
+            <span>🔴 Launch Live Control Panel</span>
+          </button>
+
+          <button
             onClick={openCreateModal}
             className="btn-blue-primary text-xs py-3 px-5 shadow-lg shadow-sky-500/20 flex items-center gap-2 font-bold cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>Create Live Class</span>
+            <span>Schedule Live Class</span>
           </button>
         </div>
       </div>
@@ -576,11 +647,11 @@ export const AdminLiveClassroom: React.FC = () => {
                       )}
 
                       <button
-                        onClick={() => navigate(`/live-classroom/room/${c.id}`)}
+                        onClick={() => handleEnterControlPanel(c)}
                         className="px-3 py-1.5 rounded-xl bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 font-bold text-xs flex items-center gap-1 cursor-pointer"
                       >
                         <ExternalLink className="w-3.5 h-3.5" />
-                        <span>Join</span>
+                        <span>Enter Control Panel</span>
                       </button>
                     </div>
 

@@ -70,7 +70,14 @@ export const setupLiveClassroomSockets = (io: SocketServer) => {
     }) => {
       const roomName = `class_${data.classId}`;
       try {
-        const savedMessage = await liveClassroomService.saveChatMessage(data);
+        const savedMessage = await liveClassroomService.saveChatMessage({
+          classId: data.classId,
+          userId: data.userId,
+          userName: data.userName,
+          userRole: (data.role as any) || 'student',
+          message: data.message,
+          createdAt: new Date().toISOString(),
+        });
         // Broadcast message to everyone in the class
         liveNS.to(roomName).emit('chat_received', savedMessage);
       } catch (err: any) {
@@ -109,13 +116,10 @@ export const setupLiveClassroomSockets = (io: SocketServer) => {
         
         // Broadcast quiz popup to every student in the classroom room
         liveNS.to(roomName).emit('quiz_published', {
-          id: publishedQuiz.id || publishedQuiz._id?.toString(),
+          id: (publishedQuiz as any).id,
           classId: publishedQuiz.classId,
-          question: publishedQuiz.question,
-          questionType: publishedQuiz.questionType,
-          options: publishedQuiz.options,
-          marks: publishedQuiz.marks,
-          timerSeconds: publishedQuiz.timerSeconds,
+          title: (publishedQuiz as any).title,
+          options: (publishedQuiz as any).options,
         });
         
         logger.info(`[SOCKET] Quiz broadcasted for room: ${roomName}`);
@@ -143,12 +147,12 @@ export const setupLiveClassroomSockets = (io: SocketServer) => {
         // Send leaderboard update
         const responses = await liveClassroomService.getQuizResponses(data.quizId);
         const sortedResponses = responses
-          .sort((a, b) => {
+          .sort((a: any, b: any) => {
             if (a.isCorrect && !b.isCorrect) return -1;
             if (!a.isCorrect && b.isCorrect) return 1;
-            return a.timeTakenSeconds - b.timeTakenSeconds;
+            return (a.timeTakenSeconds || 0) - (b.timeTakenSeconds || 0);
           })
-          .map((r, index) => ({
+          .map((r: any, index: number) => ({
             rank: index + 1,
             studentName: r.userName,
             timeTaken: `${r.timeTakenSeconds}s`,
@@ -171,19 +175,20 @@ export const setupLiveClassroomSockets = (io: SocketServer) => {
     }) => {
       const roomName = `class_${data.classId}`;
       try {
-        const pollPayload = {
+        const poll = await liveClassroomService.createPoll({
           classId: data.classId,
-          question: data.question,
-          options: data.options.map(opt => ({ optionText: opt, votes: [] }))
-        };
-        const poll = await liveClassroomService.submitPollVote(
-          `poll_${Date.now()}`, 0, 'dummy' // initialize
-        ).catch(() => pollPayload); // fallback
+          title: data.question,
+          options: (data.options || []).map((text) => ({ text, votesCount: 0, voters: [] })),
+          status: 'open',
+          createdBy: 'instructor',
+          createdAt: new Date().toISOString(),
+        });
 
         liveNS.to(roomName).emit('poll_published', {
-          id: poll.id || `poll_${Date.now()}`,
-          question: poll.question,
-          options: poll.options.map((opt: any) => opt.optionText)
+          id: poll.id,
+          classId: poll.classId,
+          question: poll.title,
+          options: poll.options.map((opt) => opt.text)
         });
       } catch (err: any) {
         logger.error(`[SOCKET] Poll broadcast failed: ${err.message}`);
@@ -199,13 +204,13 @@ export const setupLiveClassroomSockets = (io: SocketServer) => {
     }) => {
       const roomName = `class_${data.classId}`;
       try {
-        const updatedPoll = await liveClassroomService.submitPollVote(data.pollId, data.optionIndex, data.userId);
+        const updatedPoll = await liveClassroomService.submitPollVote(data.classId, data.pollId, data.optionIndex, data.userId);
         if (updatedPoll) {
           // Emit updated vote counts
-          const voteData = updatedPoll.options.map((opt: any, index: number) => ({
+          const voteData = updatedPoll.options.map((opt, index) => ({
             optionIndex: index,
-            optionText: opt.optionText,
-            votesCount: opt.votes.length
+            optionText: opt.text,
+            votesCount: opt.votesCount
           }));
           liveNS.to(roomName).emit('poll_update', voteData);
         }
@@ -233,7 +238,6 @@ export const setupLiveClassroomSockets = (io: SocketServer) => {
     // Lock/Unlock classroom
     socket.on('toggle_lock', async (data: { classId: string; locked: boolean }) => {
       const roomName = `class_${data.classId}`;
-      await liveClassroomService.updateLiveClass(data.classId, { locked: data.locked }).catch(() => null);
       liveNS.to(roomName).emit('lock_toggled', { locked: data.locked });
     });
 
@@ -249,20 +253,12 @@ export const setupLiveClassroomSockets = (io: SocketServer) => {
         activeParticipants.delete(socket.id);
 
         // Record attendance report in db
-        const leaveTime = new Date();
-        const durationSeconds = Math.round((leaveTime.getTime() - session.joinTime.getTime()) / 1000);
-        
         await liveClassroomService.recordAttendance({
           classId: session.classId,
           userId: session.userId,
           name: session.name,
           joinTime: session.joinTime,
-          leaveTime,
-          durationSeconds,
-          lateEntry: false, // can compute based on class scheduledTime
-          earlyExit: true,
-          attendancePercentage: Math.min(100, Math.round((durationSeconds / 3600) * 100)) // based on 1 hr class
-        }).catch((err) => console.warn('Attendance register notice:', err));
+        }).catch((err: any) => console.warn('Attendance register notice:', err));
 
         // Notify room of departure
         liveNS.to(roomName).emit('user_left', {

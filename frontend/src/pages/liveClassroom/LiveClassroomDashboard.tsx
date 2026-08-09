@@ -42,10 +42,11 @@ export const LiveClassroomDashboard: React.FC = () => {
     const unsubscribe = liveClassService.subscribeLiveClasses((data) => {
       // Filter classes assigned to instructor or show all if admin
       if (userProfile?.role === 'instructor') {
+        const instName = (userProfile.name || userProfile.fullName || '').toLowerCase();
         const assigned = data.filter(
-          (c) => c.instructorId === userProfile.uid || c.instructorName.includes(userProfile.name || '')
+          (c) => c.instructorId === userProfile.uid || (instName && (c.instructorName || '').toLowerCase().includes(instName))
         );
-        setClasses(assigned.length > 0 ? assigned : data);
+        setClasses(assigned);
       } else {
         setClasses(data);
       }
@@ -291,78 +292,94 @@ export const LiveClassroomDashboard: React.FC = () => {
                     {c.isChatMuted && <span className="px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200">🔇 Chat Muted</span>}
                   </div>
 
-                  {/* Instructor Controls Toolbar */}
-                  <div className="space-y-2 pt-3 border-t border-slate-100">
-                    <div className="flex items-center justify-between gap-2">
-                      {isLiveNow ? (
-                        <button
-                          onClick={() => handleEndClass(c.id)}
-                          className="flex-1 py-2 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
-                        >
-                          <StopCircle className="w-4 h-4" />
-                          <span>End Session</span>
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleStartClass(c.id)}
-                          className="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
-                        >
-                          <Play className="w-4 h-4" />
-                          <span>Start Live</span>
-                        </button>
-                      )}
+                  {/* Action Bar (Instructor vs Student) */}
+                  <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-zinc-800">
+                    {userProfile?.role === 'admin' || userProfile?.role === 'instructor' ? (
+                      <>
+                        <div className="flex items-center justify-between gap-2">
+                          {isLiveNow ? (
+                            <button
+                              onClick={() => handleEndClass(c.id)}
+                              className="flex-1 py-2 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                            >
+                              <StopCircle className="w-4 h-4" />
+                              <span>End Session</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleStartClass(c.id)}
+                              className="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                            >
+                              <Play className="w-4 h-4" />
+                              <span>Start Live</span>
+                            </button>
+                          )}
 
+                          <button
+                            onClick={() => navigate(`/live-classroom/room/${c.id}`)}
+                            className="py-2 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-md"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            <span>Launch Room</span>
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-4 gap-1 pt-1">
+                          <button
+                            onClick={() => setUploadNotesModal(c)}
+                            className="p-2 rounded-xl bg-slate-50 dark:bg-zinc-800 hover:bg-sky-50 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700 text-[10px] font-bold flex flex-col items-center gap-1 cursor-pointer"
+                            title="Upload Notes"
+                          >
+                            <FileText className="w-3.5 h-3.5 text-blue-600" />
+                            <span>Notes</span>
+                          </button>
+
+                          <button
+                            onClick={() => setUploadRecordingModal(c)}
+                            className="p-2 rounded-xl bg-slate-50 dark:bg-zinc-800 hover:bg-purple-50 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700 text-[10px] font-bold flex flex-col items-center gap-1 cursor-pointer"
+                            title="Attach Recording"
+                          >
+                            <Upload className="w-3.5 h-3.5 text-purple-600" />
+                            <span>Recording</span>
+                          </button>
+
+                          <button
+                            onClick={() => handleToggleMuteChat(c)}
+                            className={`p-2 rounded-xl border text-[10px] font-bold flex flex-col items-center gap-1 cursor-pointer ${
+                              c.isChatMuted
+                                ? 'bg-rose-50 border-rose-200 text-rose-700'
+                                : 'bg-slate-50 dark:bg-zinc-800 hover:bg-emerald-50 border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300'
+                            }`}
+                            title={c.isChatMuted ? 'Unmute Chat' : 'Mute Chat'}
+                          >
+                            {c.isChatMuted ? <VolumeX className="w-3.5 h-3.5 text-rose-600" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-600" />}
+                            <span>{c.isChatMuted ? 'Unmute' : 'Mute Chat'}</span>
+                          </button>
+
+                          <button
+                            onClick={() => handleOpenAttendance(c)}
+                            className="p-2 rounded-xl bg-slate-50 dark:bg-zinc-800 hover:bg-emerald-50 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700 text-[10px] font-bold flex flex-col items-center gap-1 cursor-pointer"
+                            title="Attendance Log"
+                          >
+                            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Log</span>
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      /* Student Direct 1-Click Join Button */
                       <button
                         onClick={() => navigate(`/live-classroom/room/${c.id}`)}
-                        className="py-2 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-md"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                        <span>Launch Room</span>
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-4 gap-1 pt-1">
-                      <button
-                        onClick={() => setUploadNotesModal(c)}
-                        className="p-2 rounded-xl bg-slate-50 hover:bg-sky-50 text-slate-700 border border-slate-200 text-[10px] font-bold flex flex-col items-center gap-1 cursor-pointer"
-                        title="Upload Notes"
-                      >
-                        <FileText className="w-3.5 h-3.5 text-blue-600" />
-                        <span>Notes</span>
-                      </button>
-
-                      <button
-                        onClick={() => setUploadRecordingModal(c)}
-                        className="p-2 rounded-xl bg-slate-50 hover:bg-purple-50 text-slate-700 border border-slate-200 text-[10px] font-bold flex flex-col items-center gap-1 cursor-pointer"
-                        title="Attach Recording"
-                      >
-                        <Upload className="w-3.5 h-3.5 text-purple-600" />
-                        <span>Recording</span>
-                      </button>
-
-                      <button
-                        onClick={() => handleToggleMuteChat(c)}
-                        className={`p-2 rounded-xl border text-[10px] font-bold flex flex-col items-center gap-1 cursor-pointer ${
-                          c.isChatMuted
-                            ? 'bg-rose-50 border-rose-200 text-rose-700'
-                            : 'bg-slate-50 hover:bg-emerald-50 border-slate-200 text-slate-700'
+                        className={`w-full py-3 px-4 rounded-2xl font-extrabold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all ${
+                          isLiveNow
+                            ? 'bg-rose-600 hover:bg-rose-700 text-white animate-bounce shadow-rose-600/30'
+                            : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/30'
                         }`}
-                        title={c.isChatMuted ? 'Unmute Chat' : 'Mute Chat'}
                       >
-                        {c.isChatMuted ? <VolumeX className="w-3.5 h-3.5 text-rose-600" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-600" />}
-                        <span>{c.isChatMuted ? 'Unmute' : 'Mute Chat'}</span>
+                        <Play className="w-4 h-4 fill-current" />
+                        <span>{isLiveNow ? '🔴 JOIN LIVE ROOM NOW' : 'ENTER CLASSROOM'}</span>
                       </button>
-
-                      <button
-                        onClick={() => handleOpenAttendance(c)}
-                        className="p-2 rounded-xl bg-slate-50 hover:bg-emerald-50 text-slate-700 border border-slate-200 text-[10px] font-bold flex flex-col items-center gap-1 cursor-pointer"
-                        title="Attendance Log"
-                      >
-                        <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>Roster</span>
-                      </button>
-                    </div>
-
+                    )}
                   </div>
                 </div>
 

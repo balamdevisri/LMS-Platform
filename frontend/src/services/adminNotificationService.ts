@@ -12,46 +12,7 @@ export interface AdminNotification {
   link?: string;
 }
 
-const STORAGE_KEY = 'shaivika_admin_notifications_v1';
-
-const INITIAL_NOTIFICATIONS: AdminNotification[] = [
-  {
-    id: 'notif_1',
-    type: 'NEW_STUDENT',
-    title: 'New Student Application',
-    message: 'Vikram Sharma registered and completed email verification.',
-    timestamp: '2 mins ago',
-    read: false,
-    link: '/admin/students?status=pending',
-  },
-  {
-    id: 'notif_2',
-    type: 'ASSIGNMENT_SUBMITTED',
-    title: 'Assignment Submission',
-    message: 'Ananya Rao submitted Linux Shell Scripting Lab #3.',
-    timestamp: '15 mins ago',
-    read: false,
-    link: '/admin/courses',
-  },
-  {
-    id: 'notif_3',
-    type: 'APPROVAL',
-    title: 'Student Approved',
-    message: 'Rahul Verma account was approved by Admin.',
-    timestamp: '1 hour ago',
-    read: true,
-    link: '/admin/students?status=approved',
-  },
-  {
-    id: 'notif_4',
-    type: 'QUIZ_COMPLETED',
-    title: 'AI Quiz Passed',
-    message: 'Neha Gupta scored 95% on System Architecture Mastery.',
-    timestamp: '2 hours ago',
-    read: true,
-    link: '/admin/courses',
-  }
-];
+const STORAGE_KEY = 'shaivika_admin_notifications_v2';
 
 class AdminNotificationService {
   private listeners: Array<(notifs: AdminNotification[]) => void> = [];
@@ -97,12 +58,10 @@ class AdminNotificationService {
                 });
               });
 
-              // Merge with local storage notifications
+              // Merge Firestore notifications with locally created real-time actions
               const local = this.getLocalNotifications();
               const mergedMap = new Map<string, AdminNotification>();
               
-              // Load initial mock notifications so the dashboard doesn't look empty
-              INITIAL_NOTIFICATIONS.forEach(n => mergedMap.set(n.id, n));
               local.forEach(n => mergedMap.set(n.id, n));
               firestoreNotifs.forEach(n => mergedMap.set(n.id, n));
 
@@ -163,9 +122,7 @@ class AdminNotificationService {
   }
 
   getNotifications(): AdminNotification[] {
-    const local = this.getLocalNotifications();
-    if (local.length > 0) return local;
-    return INITIAL_NOTIFICATIONS;
+    return this.getLocalNotifications();
   }
 
   saveNotifications(notifs: AdminNotification[]) {

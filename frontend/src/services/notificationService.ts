@@ -24,42 +24,8 @@ export interface NotificationItem {
   recipientRole?: 'student' | 'admin' | 'all';
 }
 
-const LOCAL_STORAGE_KEY = 'shaivika_realtime_notifications_v1';
+const LOCAL_STORAGE_KEY = 'shaivika_realtime_notifications_v2';
 const DELETED_NOTIFS_KEY = 'shaivika_deleted_notifications_v1';
-
-const DEFAULT_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: 'notif_1',
-    title: 'Linux Lab Workstation Ready',
-    desc: 'Ubuntu 24.04 LTS Terminal Environment initialized & connected.',
-    time: 'Just now',
-    read: false,
-    type: 'success',
-    createdAt: new Date().toISOString(),
-    link: '/dashboard',
-    recipientRole: 'all',
-  },
-  {
-    id: 'notif_2',
-    title: 'AI Quiz Released',
-    desc: 'Module 4: Linux Virtual Filesystem Architecture score: 98/100',
-    time: '15m ago',
-    read: false,
-    type: 'info',
-    createdAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-    recipientRole: 'all',
-  },
-  {
-    id: 'notif_3',
-    title: 'Certificate Issued',
-    desc: 'Fullstack Systems Engineering Certificate earned & ready for download.',
-    time: '1d ago',
-    read: true,
-    type: 'certificate',
-    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-    recipientRole: 'all',
-  },
-];
 
 class NotificationService {
   private listeners: Set<(items: NotificationItem[]) => void> = new Set();
@@ -91,7 +57,7 @@ class NotificationService {
     } catch (e) {
       console.warn('Failed to parse local notifications cache:', e);
     }
-    return DEFAULT_NOTIFICATIONS;
+    return [];
   }
 
   private saveLocalNotifications(items: NotificationItem[]): void {

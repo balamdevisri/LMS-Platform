@@ -601,6 +601,7 @@ const isRemovedMockCourse = (c: any): boolean => {
   ];
 
   if (removedSlugs.includes(slug) || removedSlugs.includes(id)) return true;
+  if (title.includes('untitled')) return true;
   if (title.includes('react') && title.includes('zero')) return true;
   if (title.includes('node.js') || title.includes('nodejs') || title.includes('backend development')) return true;
   if (title.includes('ai fundamentals') || desc.includes('gateway to the world of artificial intelligence')) return true;

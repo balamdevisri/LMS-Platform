@@ -44,3 +44,4 @@ export const progressCollection = () => getCollection('progress');
 export const certificatesCollection = () => getCollection('certificates');
 export const emailLogsCollection = () => getCollection('email_logs');
 export const assignmentSubmissionsCollection = () => getCollection('assignment_submissions');
+export const liveClassesCollection = () => getCollection('liveClasses');

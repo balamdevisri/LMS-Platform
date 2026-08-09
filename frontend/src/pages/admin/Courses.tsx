@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BookOpen, Plus, Sparkles, BookCheck, FileEdit, Users } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 import { useCourses } from '@/contexts/CourseContext';
 import { studentService } from '@/services/studentService';
 import CourseStatsCard from '@/components/admin/courses/CourseStatsCard';
@@ -12,6 +13,7 @@ import EmptyCourses from '@/components/admin/courses/EmptyCourses';
 
 export const Courses: React.FC = () => {
   const navigate = useNavigate();
+  const { userProfile } = useAuth();
   const { courses, toggleCourseStatus, deleteCourse, refreshCourses } = useCourses();
   const [realStudentsCount, setRealStudentsCount] = useState<number>(0);
 
@@ -53,6 +55,15 @@ export const Courses: React.FC = () => {
 
   // Filter & Sort Logic
   const filteredCourses = courses.filter((course) => {
+    // If logged in as Instructor, ONLY show courses assigned to this instructor
+    if (userProfile?.role === 'instructor') {
+      const instName = (userProfile.name || userProfile.fullName || '').toLowerCase();
+      const instUid = userProfile.uid;
+      const courseInst = (course.instructor || '').toLowerCase();
+      const isAssigned = (course as any).instructorId === instUid || (instName && courseInst.includes(instName));
+      if (!isAssigned) return false;
+    }
+
     const title = (course.title || '').toLowerCase();
     const instructor = (course.instructor || '').toLowerCase();
     const category = (course.category || '').toLowerCase();

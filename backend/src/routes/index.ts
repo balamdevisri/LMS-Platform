@@ -41,5 +41,6 @@ router.use('/sandbox', sandboxRoutes);
 router.use('/admin', adminRoutes);
 router.use('/certificates', certificateRoutes);
 router.use('/live-classroom', liveClassroomRoutes);
+router.use('/live-classes', liveClassroomRoutes);
 
 export default router;

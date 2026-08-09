@@ -523,7 +523,7 @@ export const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
           <button
             onClick={onClose}
             title="Minimize Panel"
-            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-850 dark:hover:bg-zinc-900 transition-colors cursor-pointer"
+            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 dark:hover:bg-zinc-900 transition-colors cursor-pointer"
           >
             <Minimize2 className="w-4 h-4" />
           </button>
@@ -584,35 +584,35 @@ export const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
                 <div className="flex flex-wrap gap-1.5">
                   <button
                     onClick={() => handleSendMessage('Explain this topic in simple Telugu language.', 'Explain in Telugu')}
-                    className="px-2.5 py-1 bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/40 dark:hover:bg-sky-950 text-sky-850 dark:text-sky-400 border border-sky-200 dark:border-sky-900 text-[10px] font-bold rounded-lg cursor-pointer transition-all flex items-center gap-1"
+                    className="px-2.5 py-1 bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/40 dark:hover:bg-sky-950 text-sky-800 dark:text-sky-400 border border-sky-200 dark:border-sky-900 text-[10px] font-bold rounded-lg cursor-pointer transition-all flex items-center gap-1"
                   >
                     <Globe className="w-3 h-3 text-sky-500" />
                     <span>Explain in Telugu</span>
                   </button>
                   <button
                     onClick={() => handleSendMessage('Provide a detailed conceptual analysis in English.', 'Explain in English')}
-                    className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-950 text-indigo-850 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900 text-[10px] font-bold rounded-lg cursor-pointer transition-all flex items-center gap-1"
+                    className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-950 text-indigo-800 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900 text-[10px] font-bold rounded-lg cursor-pointer transition-all flex items-center gap-1"
                   >
                     <Globe className="w-3 h-3 text-indigo-500" />
                     <span>Explain in English</span>
                   </button>
                   <button
                     onClick={() => handleSendMessage('Explain this to me as if I am a beginner with simple analogies.', 'Beginner Mode')}
-                    className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-950 text-emerald-850 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900 text-[10px] font-bold rounded-lg cursor-pointer transition-all flex items-center gap-1"
+                    className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-950 text-emerald-800 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900 text-[10px] font-bold rounded-lg cursor-pointer transition-all flex items-center gap-1"
                   >
                     <Lightbulb className="w-3 h-3 text-emerald-500" />
                     <span>Beginner Mode</span>
                   </button>
                   <button
                     onClick={() => handleSendMessage('Break down the advanced mechanics, systems, and low-level code parameters.', 'Advanced Mode')}
-                    className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/40 dark:hover:bg-purple-950 text-purple-850 dark:text-purple-400 border border-purple-200 dark:border-purple-900 text-[10px] font-bold rounded-lg cursor-pointer transition-all flex items-center gap-1"
+                    className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/40 dark:hover:bg-purple-950 text-purple-800 dark:text-purple-400 border border-purple-200 dark:border-purple-900 text-[10px] font-bold rounded-lg cursor-pointer transition-all flex items-center gap-1"
                   >
                     <Gauge className="w-3 h-3 text-purple-500" />
                     <span>Advanced Mode</span>
                   </button>
                   <button
                     onClick={() => handleSendMessage('Give me 3 production use cases and real-world system examples.', 'Show Examples')}
-                    className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-950 text-amber-850 dark:text-amber-400 border border-amber-200 dark:border-amber-900 text-[10px] font-bold rounded-lg cursor-pointer transition-all flex items-center gap-1"
+                    className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-950 text-amber-800 dark:text-amber-400 border border-amber-200 dark:border-amber-900 text-[10px] font-bold rounded-lg cursor-pointer transition-all flex items-center gap-1"
                   >
                     <Zap className="w-3 h-3 text-amber-500" />
                     <span>Show Examples</span>
@@ -647,7 +647,7 @@ export const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
                         className={`rounded-2xl p-3 text-xs sm:text-sm whitespace-pre-line leading-relaxed shadow-3xs ${
                           msg.sender === 'user'
                             ? 'bg-slate-900 dark:bg-zinc-800 text-white rounded-tr-none font-medium'
-                            : 'bg-white dark:bg-zinc-900 border border-slate-250 dark:border-zinc-800 text-slate-850 dark:text-zinc-200 rounded-tl-none'
+                            : 'bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-slate-800 dark:text-zinc-200 rounded-tl-none'
                         }`}
                       >
                         {msg.text}
@@ -870,7 +870,7 @@ export const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
                   onClick={() => setActiveQuizType(type.id as any)}
                   className={`py-1.5 rounded-lg text-center cursor-pointer transition-all ${
                     activeQuizType === type.id
-                      ? 'bg-white dark:bg-zinc-800 text-emerald-700 dark:text-emerald-450 shadow-3xs'
+                      ? 'bg-white dark:bg-zinc-800 text-emerald-700 dark:text-emerald-400 shadow-3xs'
                       : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
@@ -897,7 +897,7 @@ export const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
                       </span>
                     </div>
 
-                    <p className="text-xs font-bold text-slate-850 dark:text-zinc-200 leading-normal">
+                    <p className="text-xs font-bold text-slate-800 dark:text-zinc-200 leading-normal">
                       {q.question}
                     </p>
 
@@ -997,7 +997,7 @@ export const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
                     {revealedQuizAnswers[q.id] && (
                       <div className="p-3 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900 rounded-xl text-xs space-y-1">
                         <p className="font-bold text-emerald-800 dark:text-emerald-400 font-mono">Correct Answer: {q.answer}</p>
-                        <p className="text-[11px] text-slate-650 dark:text-zinc-400 leading-relaxed font-medium">
+                        <p className="text-[11px] text-slate-600 dark:text-zinc-400 leading-relaxed font-medium">
                           {q.explanation}
                         </p>
                       </div>
@@ -1146,17 +1146,17 @@ export const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
                         Show Expert Sample Answer
                       </button>
                     ) : (
-                      <div className="p-3 bg-slate-55 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl space-y-1.5">
+                      <div className="p-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl space-y-1.5">
                         <div className="flex items-center justify-between text-[9px] font-extrabold text-slate-400 dark:text-zinc-500 uppercase">
                           <span>Expert Answer</span>
                           <button
                             onClick={() => setRevealedQuizAnswers(prev => ({ ...prev, [q.id]: false }))}
-                            className="text-slate-400 hover:text-slate-650"
+                            className="text-slate-400 hover:text-slate-600"
                           >
                             Hide
                           </button>
                         </div>
-                        <p className="text-xs text-slate-705 dark:text-zinc-350 leading-relaxed font-medium">
+                        <p className="text-xs text-slate-700 dark:text-zinc-300 leading-relaxed font-medium">
                           {q.sampleAnswer}
                         </p>
                       </div>

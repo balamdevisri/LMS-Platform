@@ -2,11 +2,15 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Search, GraduationCap, Mail, Plus, CheckCircle2, X, Loader2, Edit, Trash2, ShieldAlert, Radio, FileText, Calendar, UserCheck, AlertTriangle, Eye, Phone, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCourses } from '@/contexts/CourseContext';
 import { instructorService, type InstructorUser } from '@/services/instructorService';
+import { liveClassService, type LiveClass } from '@/services/liveClassService';
 
 export const AdminInstructors: React.FC = () => {
   const { userProfile } = useAuth();
+  const { courses } = useCourses();
   const [instructors, setInstructors] = useState<InstructorUser[]>([]);
+  const [allLiveClasses, setAllLiveClasses] = useState<LiveClass[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'pending' | 'approved' | 'rejected'>('pending');
   const [loading, setLoading] = useState(true);
@@ -26,14 +30,20 @@ export const AdminInstructors: React.FC = () => {
   const [newInstructorEmail, setNewInstructorEmail] = useState('');
   const [newInstructorSpecialty, setNewInstructorSpecialty] = useState('Linux & System Architecture');
 
-  // Real-Time Subscription
+  // Real-Time Subscriptions
   useEffect(() => {
     setLoading(true);
-    const unsubscribe = instructorService.subscribeToInstructors((data) => {
+    const unsubscribeInst = instructorService.subscribeToInstructors((data) => {
       setInstructors(data);
       setLoading(false);
     });
-    return () => unsubscribe();
+    const unsubscribeLive = liveClassService.subscribeLiveClasses((data) => {
+      setAllLiveClasses(data);
+    });
+    return () => {
+      unsubscribeInst();
+      unsubscribeLive();
+    };
   }, []);
 
   // Manual refresh — forces fresh getDocs + REST API call
@@ -568,6 +578,66 @@ export const AdminInstructors: React.FC = () => {
                     </span>
                   ))}
                 </div>
+              </div>
+
+              {/* Assigned Courses Breakdown */}
+              <div className="space-y-2 pt-2 border-t border-sky-100">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Assigned Courses & Tracks</span>
+                {(() => {
+                  const assignedC = courses.filter((c) => 
+                    (c as any).instructorId === viewingInstructor.id || 
+                    (c.instructor && c.instructor.toLowerCase().includes(viewingInstructor.name.toLowerCase()))
+                  );
+                  if (assignedC.length === 0) {
+                    return <p className="text-xs text-slate-400 italic">No courses currently assigned to this instructor.</p>;
+                  }
+                  return (
+                    <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                      {assignedC.map((c) => (
+                        <div key={c.id} className="p-2.5 bg-slate-50 border border-sky-100 rounded-xl flex items-center justify-between text-xs">
+                          <div className="min-w-0 pr-2">
+                            <p className="font-bold text-slate-900 truncate">{c.title}</p>
+                            <p className="text-[10px] text-slate-500 font-medium">{c.category} • {c.duration}</p>
+                          </div>
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200 shrink-0">
+                            {c.status || 'Published'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Assigned Live Broadcasts Breakdown */}
+              <div className="space-y-2 pt-2 border-t border-sky-100">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Assigned Live Classroom Broadcasts</span>
+                {(() => {
+                  const assignedLC = allLiveClasses.filter((lc) => 
+                    lc.instructorId === viewingInstructor.id || 
+                    (lc.instructorName && lc.instructorName.toLowerCase().includes(viewingInstructor.name.toLowerCase()))
+                  );
+                  if (assignedLC.length === 0) {
+                    return <p className="text-xs text-slate-400 italic">No live broadcasts currently assigned.</p>;
+                  }
+                  return (
+                    <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                      {assignedLC.map((lc) => (
+                        <div key={lc.id} className="p-2.5 bg-slate-50 border border-sky-100 rounded-xl flex items-center justify-between text-xs">
+                          <div className="min-w-0 pr-2">
+                            <p className="font-bold text-slate-900 truncate">{lc.title}</p>
+                            <p className="text-[10px] text-slate-500 font-medium">{lc.courseName} • {new Date(lc.startTime).toLocaleString()}</p>
+                          </div>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shrink-0 ${
+                            lc.status === 'Live' ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-blue-50 text-blue-700 border-blue-200'
+                          }`}>
+                            {lc.status}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Approval/Rejection Auditing Records */}

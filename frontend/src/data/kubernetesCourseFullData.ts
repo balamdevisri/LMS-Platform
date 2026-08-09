@@ -1,12 +1,12 @@
 import type { ModuleItem, LearningUnitItem } from '../contexts/CourseContext';
 
-// Helper to create a standard lesson
+// Helper to create a standard lesson unit
 const createLesson = (
   id: string,
   title: string,
   desc: string,
   duration: string,
-  type: 'Video' | 'Reading' | 'Assignment',
+  type: 'Video' | 'Reading' | 'Assignment' | 'Quiz',
   readingContent: string,
   commands?: Array<{ command: string; description: string }>
 ): LearningUnitItem => ({
@@ -39,133 +39,385 @@ const createLesson = (
 });
 
 export const kubernetesCourseModules: ModuleItem[] = [
+  /* ==========================================================================
+     MODULE 1: INTRODUCTION TO KUBERNETES
+     ========================================================================== */
   {
     id: 'k8s-mod-1',
-    title: 'Module 1 — Kubernetes Basics',
-    description: 'Learn container orchestration fundamentals, Kubernetes architecture components, YAML objects, cluster setup using Minikube, and basic kubectl operations.',
-    duration: '5 Hours',
+    title: 'Module 1: Introduction to Kubernetes',
+    description: 'Learn container orchestration fundamentals, why Kubernetes is used, Docker vs Kubernetes comparisons, and real-life scenarios.',
+    duration: '2.5 Hours',
     topics: [
       {
         id: 'k8s-topic-1',
-        title: 'Kubernetes Core Fundamentals',
-        description: 'Os-independent container orchestrator architecture and local setup environment.',
-        estimatedDuration: '300 mins',
+        title: 'Kubernetes Core Concepts & History',
+        description: 'Understand container orchestration, K8s origin, advantages, and real-world use cases.',
+        estimatedDuration: '150 mins',
         learningUnits: [
           createLesson(
             'k8s-unit-1-1',
-            '1.1 Introduction to Kubernetes',
-            'Understand what Kubernetes (K8s) is, why it is used, and container orchestration advantages.',
-            '35 mins',
+            '1.1 What is Kubernetes?',
+            'Learn the definition of Kubernetes (K8s) and container orchestration.',
+            '20 mins',
             'Reading',
-            `## Introduction to Kubernetes (K8s)
-Kubernetes is an open-source container orchestration platform originally designed by Google. It automates container deployment, scaling, load balancing, and storage provisioning.
+            `# 1.1 What is Kubernetes?
 
-### Core Orchestration Challenges Solved:
-1. **High Availability**: Automated health checks and self-healing restarts.
-2. **Horizontal Scaling**: Adding/removing replicas instantly.
-3. **Load Balancing**: Routing traffic efficiently to active instances.
-4. **Service Discovery**: DNS naming conventions for internal routing.
+### Definition
+**Kubernetes (K8s)** is an open-source container orchestration platform used to deploy, manage, scale, and monitor containerized applications automatically.
 
-### Real-World Use Case:
-Imagine running hundreds of Docker containers. Manually tracking down failures, updating images without downtime, and balancing traffic is impossible. Kubernetes automates these operations.`
+> **Simple ga cheppali ante:**
+> Kubernetes is a tool that manages Docker containers automatically.
+
+---
+
+### Easy Explanation
+Imagine a company running 100 Docker containers simultaneously.
+
+**Common Problems without Orchestration:**
+- A container crashes unexpectedly.
+- User traffic spikes suddenly.
+- Some containers stop unexpectedly.
+- Deploying a new application version requires manual updates across every server.
+
+*Ivanni manually manage cheyyadam chala kashtam.* **Kubernetes ee panulanni automatic ga chestundi.**
+
+---
+
+### Real-Life Example 🏨
+Think about a manager in a hotel.
+
+**Hotel Staff:**
+- Chef
+- Waiter
+- Cleaner
+- Cashier
+
+**Manager Responsibilities:**
+- Assigns work to staff members.
+- Arranges immediate replacements if staff is absent.
+- Hires extra staff when customer count increases.
+
+*Alage Kubernetes kuda containers ni manage chestundi.*
+
+---
+
+### Why is Kubernetes Called K8s?
+In the word **"Kubernetes"**:
+- Starts with **K**
+- Followed by **8 letters** ("ubernete")
+- Ends with **s**
+
+Hence, the short form is **K8s**.`
           ),
           createLesson(
             'k8s-unit-1-2',
-            '1.2 Kubernetes Architecture',
-            'Deep dive into Control Plane and Worker Node components.',
-            '45 mins',
+            '1.2 Why Kubernetes & Main Responsibilities',
+            'Understand the core responsibilities and advantages of K8s in production.',
+            '25 mins',
             'Reading',
-            `## Kubernetes Architecture Deep Dive
-A Kubernetes cluster consists of two main parts: the **Control Plane** (Master Node) and the **Worker Nodes**.
+            `# 1.2 Why Kubernetes & Main Responsibilities
 
-### Control Plane Components:
-- **API Server (\`kube-apiserver\`)**: The entry gateway. All configuration queries and CLI requests go here.
-- **etcd**: Consistent, highly available key-value store holding the cluster state database.
-- **Scheduler (\`kube-scheduler\`)**: Decides which Worker Node will host newly created Pods based on resource needs.
-- **Controller Manager (\`kube-controller-manager\`)**: Runs control loops that regulate cluster state (e.g. node, replica, endpoint controllers).`
+### Main Responsibilities of Kubernetes
+1. **Deploy Applications**: Automated deployment across cluster nodes.
+2. **Manage Containers**: Ensures specified container count is running.
+3. **Restart Failed Containers**: Automatically self-heals crashed instances.
+4. **Scale Applications**: Dynamically scales up or down based on CPU/Memory load.
+5. **Load Balancing**: Distributes incoming network traffic evenly.
+6. **Automatic Updates**: Zero-downtime rolling updates.
+7. **Monitor Application Health**: Continuous health check probes.
+
+---
+
+### Real-World Example Scenario 🛒
+Suppose an Online Shopping Website is hosting a major festival sale.
+
+**Suddenly:** 10,000 users open the website at once.
+
+- **Without Kubernetes:** Website becomes slow, server crashes, orders fail.
+- **With Kubernetes:**
+  - Automatically creates extra containers.
+  - Divides user load across containers.
+  - Website runs smoothly without downtime!
+
+---
+
+### Key Advantages & Disadvantages
+
+**Advantages:**
+- Open Source & Free to use.
+- Automatic Scaling & Self-Healing.
+- High Availability & Easy Cloud Support (AWS EKS, GCP GKE, Azure AKS).
+
+**Disadvantages:**
+- Beginners ki konchem difficult.
+- Setup and initial configuration require learning curve.
+- Overkill for simple single-container websites.`
           ),
           createLesson(
             'k8s-unit-1-3',
-            '1.3 Kubernetes Cluster & Components',
-            'Understand Kubelet, Kube-proxy, and Container Runtime.',
-            '40 mins',
+            '1.3 Key Terminology & Interview Q&A',
+            'Master foundational K8s vocabulary and interview preparation.',
+            '30 mins',
             'Reading',
-            `## Worker Node Components
-Worker Nodes host the application containers. Each node runs three essential services:
+            `# 1.3 Key Terminology & Interview Q&A
 
-### Node Components:
-1. **Kubelet**: An agent that runs on every node in the cluster. It ensures containers are running inside their respective Pods according to Spec configurations.
-2. **Kube-proxy**: A network proxy running on each node, maintaining network rules to allow connection routing to Pods.
-3. **Container Runtime**: Software that runs containers (e.g. Docker, \`containerd\`, \`CRI-O\`).`
-          ),
-          createLesson(
-            'k8s-unit-1-4',
-            '1.4 Kubernetes Objects & YAML',
-            'Understand declarative configurations, metadata, specs, and status.',
-            '40 mins',
-            'Reading',
-            `## Kubernetes Declarative Objects & YAML
-Kubernetes uses a declarative approach where you describe your *Desired State* in a YAML manifest, and K8s matches the *Actual State* to it.
+### Important Keywords Table
+| Term | Meaning |
+| :--- | :--- |
+| **Container** | Application package (e.g. Docker container) |
+| **Cluster** | Group of physical or virtual machines working together |
+| **Pod** | Smallest deployable unit in Kubernetes |
+| **Node** | A single machine (Worker or Master) inside the cluster |
+| **Deployment** | Manages Pod creation, scaling, and updates |
 
-### Core YAML Struct:
-- **apiVersion**: API schema version used (e.g. \`v1\`, \`apps/v1\`).
-- **kind**: Object type (e.g. \`Pod\`, \`Deployment\`, \`Service\`).
-- **metadata**: Identifier properties (e.g. \`name\`, \`labels\`, \`namespace\`).
-- **spec**: Desired configuration settings.
-- **status**: Current cluster telemetry populated by control controllers.`
-          ),
+---
+
+### Interview Questions & Answers
+
+**Q1: What is Kubernetes?**
+*Answer:* Kubernetes is an open-source container orchestration platform used to deploy, manage, scale, and monitor containerized applications automatically.
+
+**Q2: Why is Kubernetes called K8s?**
+*Answer:* Because there are 8 letters between 'K' and 's' in the word "Kubernetes".`
+          )
+        ]
+      }
+    ]
+  },
+
+  /* ==========================================================================
+     MODULE 2: KUBERNETES ARCHITECTURE
+     ========================================================================== */
+  {
+    id: 'k8s-mod-2',
+    title: 'Module 2: Kubernetes Architecture',
+    description: 'Deep dive into Master Node (Control Plane) components, Worker Node components, and request workflow.',
+    duration: '3 Hours',
+    topics: [
+      {
+        id: 'k8s-topic-2',
+        title: 'Cluster Components & Architecture Workflow',
+        description: 'Control plane breakdown: API Server, etcd, Scheduler, Controller Manager, Kubelet, and Kube-Proxy.',
+        estimatedDuration: '180 mins',
+        learningUnits: [
           createLesson(
-            'k8s-unit-1-5',
-            '1.5 Installing Minikube & kubectl',
-            'Setting up local single-node cluster environment.',
+            'k8s-unit-2-1',
+            '2.1 Control Plane (Master Node) Components',
+            'Learn about the brain of Kubernetes: API Server, etcd, Scheduler, and Controller Manager.',
             '35 mins',
             'Reading',
-            `## Installing Minikube & Kubectl
-**Minikube** runs a local, single-node Kubernetes cluster inside a virtual machine or container runtime, ideal for development.
+            `# 2.1 Control Plane (Master Node) Components
 
-**Kubectl** is the command-line CLI interface tool used to query and control Kubernetes clusters.
+The **Control Plane** acts as the brain of the Kubernetes cluster. It manages cluster state and receives all user requests.
 
-### Installation Quick-start:
-- On Linux/macOS: Install VirtualBox/Docker, download Minikube binary, and run:
-\`\`\`bash
-minikube start --driver=docker
-\`\`\`
-- Verify access:
-\`\`\`bash
-kubectl get nodes
-\`\`\``
+---
+
+### 1. API Server (kube-apiserver)
+- **Role**: The entry point of Kubernetes.
+- All requests (via \`kubectl\` or REST APIs) go directly to the API Server.
+- Validates requests, authenticates users, and updates cluster state.
+
+### 2. etcd Database
+- **Role**: Highly available distributed key-value database.
+- Stores complete state and configuration details of the cluster.
+- *Without etcd, Kubernetes cannot remember cluster state.*
+
+### 3. Scheduler (kube-scheduler)
+- **Role**: Decides which Worker Node should execute newly created Pods.
+- Evaluates CPU/RAM requirements, node capacity, and affinity rules.
+
+### 4. Controller Manager (kube-controller-manager)
+- **Role**: Maintains desired cluster state.
+- Monitors node health, restarts failed Pods, and executes self-healing.`
           ),
           createLesson(
-            'k8s-unit-1-6',
-            '1.6 Basic kubectl Commands',
-            'Learn get, describe, create, apply, delete, and logs commands.',
-            '45 mins',
+            'k8s-unit-2-2',
+            '2.2 Worker Node Components & Workflow',
+            'Explore Kubelet, Kube-Proxy, Container Runtime, and request workflow step-by-step.',
+            '35 mins',
             'Reading',
-            `## Basic Kubectl CLI Commands
-Interact with your cluster using these essential commands:
+            `# 2.2 Worker Node Components & Workflow
 
-- **kubectl get**: List resources (e.g. \`kubectl get pods\`).
-- **kubectl describe**: View detailed resource specifications and event timelines.
-- **kubectl create / apply**: Instantiate manifests (create is imperative, apply is declarative).
-- **kubectl delete**: Destroy resource objects.
-- **kubectl logs**: Print console output stream logs from container stdout.`
+**Worker Nodes** are machines where application containers actually run.
+
+---
+
+### Worker Node Components
+
+1. **Kubelet**:
+   - Agent running on every Worker Node.
+   - Communicates with the API Server and ensures containers inside Pods are running healthy.
+2. **Kube-Proxy**:
+   - Network proxy that manages IP routing and load balances traffic across Pods.
+3. **Container Runtime**:
+   - Software responsible for running containers (e.g. \`containerd\`, \`CRI-O\`).
+
+---
+
+### Complete Request Workflow
+1. Developer executes \`kubectl apply -f deployment.yaml\`.
+2. **API Server** receives and authenticates the request.
+3. **etcd** saves the new deployment specification.
+4. **Scheduler** selects the best available Worker Node.
+5. **Kubelet** on that Worker Node receives instructions and triggers **Container Runtime** to pull the image and launch Pods.
+6. **Kube-Proxy** configures networking rules for external traffic.`
+          )
+        ]
+      }
+    ]
+  },
+
+  /* ==========================================================================
+     MODULE 3: INSTALLING KUBERNETES
+     ========================================================================== */
+  {
+    id: 'k8s-mod-3',
+    title: 'Module 3: Installing Kubernetes',
+    description: 'Set up your local development environment using Docker, kubectl, Minikube, and Kubernetes Dashboard.',
+    duration: '2 Hours',
+    topics: [
+      {
+        id: 'k8s-topic-3',
+        title: 'Local Environment Setup & Minikube',
+        description: 'Prerequisites, Docker Desktop installation, kubectl CLI, and starting Minikube clusters.',
+        estimatedDuration: '120 mins',
+        learningUnits: [
+          createLesson(
+            'k8s-unit-3-1',
+            '3.1 Prerequisites & Minikube Installation',
+            'Install Docker, kubectl, and launch a local single-node Minikube cluster.',
+            '30 mins',
+            'Reading',
+            `# 3.1 Prerequisites & Minikube Installation
+
+To practice Kubernetes locally, we use **Minikube** — a lightweight single-node Kubernetes distribution.
+
+---
+
+### Software Tools Required
+1. **Docker**: Container runtime to run containers.
+2. **kubectl**: Command-line interface to interact with Kubernetes.
+3. **Minikube**: Creates a single-node cluster on your local machine.
+
+---
+
+### Verification Commands
+\`\`\`bash
+# Check Docker version
+docker --version
+
+# Check kubectl version
+kubectl version --client
+
+# Start Minikube cluster
+minikube start
+
+# Check cluster status
+minikube status
+\`\`\``,
+            [
+              { command: 'docker --version', description: 'Verify Docker installation' },
+              { command: 'kubectl version --client', description: 'Check kubectl client version' },
+              { command: 'minikube start', description: 'Launch local Minikube Kubernetes cluster' },
+              { command: 'minikube status', description: 'Check status of Control Plane and Kubelet' }
+            ]
           ),
           createLesson(
-            'k8s-unit-1-7',
-            '1.7 Practice: Create Your First Pod',
-            '⚠️ Practice Only - Deploy a container pod using a YAML manifest.',
-            '60 mins',
-            'Assignment',
-            `## ⚠️ Practice Only
-**Important Notice**: The practice terminal provided below is a simulated environment for learning and experimentation only. No real hosting charges will apply.
+            'k8s-unit-3-2',
+            '3.2 Verifying Installation & Useful Commands',
+            'Test your cluster using kubectl cluster-info, get nodes, and deploy your first Nginx application.',
+            '30 mins',
+            'Reading',
+            `# 3.2 Verifying Installation & Useful Commands
 
-### Lab Objectives:
-1. Create a pod definition file named \`pod.yaml\`.
-2. Apply the manifest and verify that it is running successfully.
-3. Fetch the logs of the pod and delete the container.
+Once Minikube is started, verify that the cluster is operational.
 
-### Step-by-Step Instructions:
-1. Write the YAML representation in the virtual workspace:
+\`\`\`bash
+# View cluster info
+kubectl cluster-info
+
+# View nodes in cluster
+kubectl get nodes
+
+# Launch first Nginx deployment
+kubectl create deployment nginx-demo --image=nginx
+
+# Inspect running pods
+kubectl get pods
+
+# Expose Nginx deployment
+kubectl expose deployment nginx-demo --type=NodePort --port=80
+\`\`\``,
+            [
+              { command: 'kubectl cluster-info', description: 'Display Control Plane master endpoints' },
+              { command: 'kubectl get nodes', description: 'List all nodes in cluster' },
+              { command: 'kubectl create deployment nginx-demo --image=nginx', description: 'Deploy Nginx web server' },
+              { command: 'kubectl get pods', description: 'List running Pods' }
+            ]
+          )
+        ]
+      }
+    ]
+  },
+
+  /* ==========================================================================
+     MODULE 4: BASIC KUBERNETES OBJECTS & PODS
+     ========================================================================== */
+  {
+    id: 'k8s-mod-4',
+    title: 'Module 4: Basic Kubernetes Objects & Pods',
+    description: 'Learn about Pods (the smallest deployable unit), Deployments, ReplicaSets, Namespaces, Labels, Selectors, and Annotations.',
+    duration: '3.5 Hours',
+    topics: [
+      {
+        id: 'k8s-topic-4',
+        title: 'Pods, ReplicaSets & Deployments',
+        description: 'Understand Pod lifecycle, YAML manifests, multi-container sidecars, Labels, and Selectors.',
+        estimatedDuration: '210 mins',
+        learningUnits: [
+          createLesson(
+            'k8s-unit-4-1',
+            '4.1 Introduction to Pods',
+            'Understand what a Pod is, why K8s uses Pods instead of bare containers, and single vs multi-container Pods.',
+            '35 mins',
+            'Reading',
+            `# 4.1 Introduction to Pods
+
+A **Pod** is the smallest deployable unit in Kubernetes.
+
+> **In simple words:**
+> A Pod is a wrapper that contains one or more containers.
+
+---
+
+### Real-Time Example 📦
+Imagine ordering food online.
+- The food is placed inside a **delivery box**.
+- The delivery person carries the **box**, not raw food directly.
+
+**Analogy:**
+- Container = Food
+- Pod = Delivery Box
+- Kubernetes = Delivery Person
+
+---
+
+### Pod Components & Shared Resources
+Containers inside the same Pod share:
+- **Shared Network**: Same IP address and port space (communicate via \`localhost\`).
+- **Shared Storage**: Mounted Volumes to exchange files.`
+          ),
+          createLesson(
+            'k8s-unit-4-2',
+            '4.2 Writing Pod & Deployment YAML Manifests',
+            'Learn imperative commands vs declarative YAML manifests for Pods and Deployments.',
+            '40 mins',
+            'Reading',
+            `# 4.2 Writing Pod & Deployment YAML Manifests
+
+Kubernetes recommends defining objects declaratively using **YAML files**.
+
+### Sample Pod YAML (\`pod.yaml\`)
 \`\`\`yaml
 apiVersion: v1
 kind: Pod
@@ -175,714 +427,656 @@ metadata:
     app: web
 spec:
   containers:
-  - name: web-container
+  - name: nginx-container
     image: nginx:latest
     ports:
     - containerPort: 80
 \`\`\`
-2. Deploy the pod: \`kubectl apply -f pod.yaml\`
-3. Verify status: \`kubectl get pods\`
-4. View container logs: \`kubectl logs nginx-pod\`
-5. Destroy: \`kubectl delete pod nginx-pod\``,
+
+---
+
+### Applying & Managing YAML Files
+\`\`\`bash
+# Apply YAML configuration
+kubectl apply -f pod.yaml
+
+# View Pod details
+kubectl describe pod nginx-pod
+
+# View Pod logs
+kubectl logs nginx-pod
+
+# Delete Pod
+kubectl delete -f pod.yaml
+\`\`\``,
             [
-              { command: 'kubectl apply -f pod.yaml', description: 'Deploy the pod configuration manifest' },
-              { command: 'kubectl get pods', description: 'Check the status of running Pods' },
-              { command: 'kubectl logs nginx-pod', description: 'View logs generated by nginx container' },
-              { command: 'kubectl delete pod nginx-pod', description: 'Clean up resource by deleting the pod' }
+              { command: 'kubectl apply -f pod.yaml', description: 'Create/update Pod from YAML file' },
+              { command: 'kubectl describe pod nginx-pod', description: 'Inspect events and detailed state of Pod' },
+              { command: 'kubectl logs nginx-pod', description: 'View stdout logs from Pod container' },
+              { command: 'kubectl delete pod nginx-pod', description: 'Delete Pod instance' }
             ]
           )
         ]
       }
     ]
   },
-  {
-    id: 'k8s-mod-2',
-    title: 'Module 2 — Pods & Deployments',
-    description: 'Master pod life cycles, labels/selectors, deployments, scaling, rolling updates, cron jobs, and health check probes.',
-    duration: '6 Hours',
-    topics: [
-      {
-        id: 'k8s-topic-2',
-        title: 'Workloads & Replica Scheduling',
-        description: 'Deployments, replica controllers, and container lifecycle health checks.',
-        estimatedDuration: '360 mins',
-        learningUnits: [
-          createLesson(
-            'k8s-unit-2-1',
-            '2.1 Pods & Pod Lifecycle',
-            'Explore the pod lifecycle states, containers networking sharing, and multi-container Pod layouts.',
-            '45 mins',
-            'Reading',
-            `## Pod Lifecycle & States
-A Pod is a collection of one or more co-located containers sharing storage and network IP spaces.
 
-### Pod Lifecycle States:
-- **Pending**: Scheduler is assigning nodes, or downloading images.
-- **Running**: Pod is bound to a node; at least one container is running or starting.
-- **Succeeded**: All containers completed successfully (terminated with 0 status code).
-- **Failed**: All containers terminated, and at least one container failed.
-- **Unknown**: Master cannot check node status.`
-          ),
-          createLesson(
-            'k8s-unit-2-2',
-            '2.2 Labels, Selectors & Namespaces',
-            'Organize cluster components with labels and group them using logical namespaces.',
-            '45 mins',
-            'Reading',
-            `## Labels, Selectors & Namespaces
-- **Labels**: Key-value metadata attached to K8s objects (e.g. \`environment: production\`, \`tier: backend\`).
-- **Selectors**: Queries used to filter resources based on labels. Used by Services and Deployments to find their targets.
-- **Namespaces**: Virtual partitions inside a cluster to isolate team projects (e.g. \`kube-system\`, \`development\`, \`production\`).`
-          ),
-          createLesson(
-            'k8s-unit-2-3',
-            '2.3 ReplicaSets & Deployments',
-            'Learn to manage replicas and declarative container deployments.',
-            '45 mins',
-            'Reading',
-            `## Deployments & ReplicaSets
-- **ReplicaSet**: Ensures a specified number of Pod replicas are running at any given time.
-- **Deployment**: Higher-level controller that manages ReplicaSets, enabling declarative rollouts, updates, and rollbacks.
-
-### Deployment Manifest Example:
-\`\`\`yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: nginx-deployment
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: web
-  template:
-    metadata:
-      labels:
-        app: web
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:1.21
-\`\`\``
-          ),
-          createLesson(
-            'k8s-unit-2-4',
-            '2.4 Scaling Applications',
-            'Scale deployments manually or automatically using replicas.',
-            '40 mins',
-            'Reading',
-            `## Scaling Kubernetes Workloads
-Kubernetes makes scaling workloads extremely easy. You can update replication counts in two ways:
-
-### 1. Imperative Scaling
-Scale instantly using the command-line interface:
-\`\`\`bash
-kubectl scale deployment nginx-deployment --replicas=5
-\`\`\`
-
-### 2. Declarative Scaling
-Update the \`replicas\` field in your YAML file and run:
-\`\`\`bash
-kubectl apply -f deployment.yaml
-\`\`\``
-          ),
-          createLesson(
-            'k8s-unit-2-5',
-            '2.5 Rolling Updates & Rollbacks',
-            'Perform zero-downtime updates and roll back failing releases.',
-            '50 mins',
-            'Reading',
-            `## Rolling Updates & Rollbacks
-Deployments enable zero-downtime updates by replacing old Pods with new ones sequentially.
-
-### Rollout Command Sequence:
-- Check current rollout history:
-\`\`\`bash
-kubectl rollout history deployment/nginx-deployment
-\`\`\`
-- Apply code update (updates container image):
-\`\`\`bash
-kubectl set image deployment/nginx-deployment nginx=nginx:1.25.3
-\`\`\`
-- Check rollout status:
-\`\`\`bash
-kubectl rollout status deployment/nginx-deployment
-\`\`\`
-- Undo/Rollback deployment:
-\`\`\`bash
-kubectl rollout undo deployment/nginx-deployment
-\`\`\``
-          ),
-          createLesson(
-            'k8s-unit-2-6',
-            '2.6 Jobs & CronJobs',
-            'Run batch jobs and scheduled tasks in your cluster.',
-            '40 mins',
-            'Reading',
-            `## Jobs & CronJobs
-For ephemeral, finite tasks rather than long-running daemons, Kubernetes provides:
-
-- **Jobs**: Creates one or more Pods and ensures they successfully terminate (e.g. running data migration scripts).
-- **CronJobs**: Runs jobs periodically according to a cron-format scheduling schedule (e.g. \`*/5 * * * *\` for backups).`
-          ),
-          createLesson(
-            'k8s-unit-2-7',
-            '2.7 Health Checks & Probes',
-            'Configure liveness, readiness, and startup probes.',
-            '45 mins',
-            'Reading',
-            `## Kubernetes Probes
-Probes are health checks run periodically by Kubelet to verify container status.
-
-### Three Probe Types:
-1. **Liveness Probe**: Determines if container needs to be restarted (self-healing).
-2. **Readiness Probe**: Determines if container is ready to receive network traffic.
-3. **Startup Probe**: Disables other probes during initial container startup routines.`
-          ),
-          createLesson(
-            'k8s-unit-2-8',
-            '2.8 Practice: Deploy an Application',
-            '⚠️ Practice Only - Deploy, scale, update, and roll back an application.',
-            '50 mins',
-            'Assignment',
-            `## ⚠️ Practice Only
-**Important Notice**: The practice terminal provided below is a simulated environment for learning and experimentation only. No real hosting charges will apply.
-
-### Lab Objectives:
-1. Create a deployment manifest.
-2. Deploy the workload to the cluster.
-3. Scale the deployment, update the image, and revert it using rollbacks.
-
-### Step-by-Step Instructions:
-1. Apply the deployment manifest: \`kubectl apply -f deployment.yaml\`
-2. Scale the replicas to 5 instances: \`kubectl scale deployment nginx-deployment --replicas=5\`
-3. Check the progress: \`kubectl rollout status deployment nginx-deployment\`
-4. Roll back to the previous deployment revision: \`kubectl rollout undo deployment nginx-deployment\``,
-            [
-              { command: 'kubectl apply -f deployment.yaml', description: 'Deploy the application deployment manifest' },
-              { command: 'kubectl scale deployment nginx-deployment --replicas=5', description: 'Scale deployment replicas to 5' },
-              { command: 'kubectl rollout status deployment nginx-deployment', description: 'Monitor the update rollout status' },
-              { command: 'kubectl rollout undo deployment nginx-deployment', description: 'Roll back to the previous deployment state' }
-            ]
-          )
-        ]
-      }
-    ]
-  },
-  {
-    id: 'k8s-mod-3',
-    title: 'Module 3 — Networking & Services',
-    description: 'Learn pod-to-pod networking, service abstractions (ClusterIP, NodePort, LoadBalancer), DNS routing, Ingress config, and Network Policies.',
-    duration: '5 Hours',
-    topics: [
-      {
-        id: 'k8s-topic-3',
-        title: 'Cluster Networking & Ingress Rules',
-        description: 'Internal DNS resolution, service abstraction scopes, and Ingress routing controllers.',
-        estimatedDuration: '300 mins',
-        learningUnits: [
-          createLesson(
-            'k8s-unit-3-1',
-            '3.1 Kubernetes Networking Basics',
-            'Understand how Pods communicate with each other inside the cluster.',
-            '40 mins',
-            'Reading',
-            `## Kubernetes Networking Model
-Kubernetes enforces a "IP-per-Pod" networking architecture.
-
-### Crucial Networking Principles:
-1. **Pod-to-Pod**: Every Pod gets a unique cluster-wide IP. They can communicate directly with other Pods on any node without NAT.
-2. **Container-to-Container**: Containers in the same Pod share the network IP/port space (accessed via \`localhost\`).
-3. **Internal Subnet**: Orchestrated using Container Network Interfaces (CNI) like Flannel, Calico, or Cilium.`
-          ),
-          createLesson(
-            'k8s-unit-3-2',
-            '3.2 Services Overview',
-            'Why Services are required and how selector matching enables discovery.',
-            '40 mins',
-            'Reading',
-            `## Introduction to Services
-Pods are dynamic and ephemeral; they get replaced and their IPs change constantly. A **Service** is a stable endpoint abstraction.
-
-### Features:
-- Provides a stable cluster-internal IP and port.
-- Automatically load-balances traffic across matching Pods.
-- Discovers target Pods dynamically using label selectors.`
-          ),
-          createLesson(
-            'k8s-unit-3-3',
-            '3.3 ClusterIP, NodePort & LoadBalancer',
-            'Compare the three main service scopes and when to use each.',
-            '45 mins',
-            'Reading',
-            `## Kubernetes Service Types
-Services are exposed using different visibility scopes:
-
-- **ClusterIP (Default)**: Exposes the Service on a cluster-internal IP. Accessible only within the cluster.
-- **NodePort**: Exposes the Service on each Node's IP at a static port (in the range 30000-32767).
-- **LoadBalancer**: Exposes the Service externally using a cloud provider's external load balancer, automatically routing to NodePorts.`
-          ),
-          createLesson(
-            'k8s-unit-3-4',
-            '3.4 Service Discovery & DNS',
-            'Learn how internal cluster DNS maps names to Service IPs.',
-            '40 mins',
-            'Reading',
-            `## Service Discovery & DNS Routing
-Kubernetes runs a CoreDNS service in the cluster to map Service names to cluster IPs.
-
-### DNS Naming Convention:
-Any Service in a namespace gets a host naming record:
-\`\`\`text
-<service-name>.<namespace>.svc.cluster.local
-\`\`\`
-For instance, a frontend Pod can access a backend database Service by calling the host \`db-service\` (if in the same namespace) or \`db-service.database.svc.cluster.local\` (if in a namespace named \`database\`).`
-          ),
-          createLesson(
-            'k8s-unit-3-5',
-            '3.5 Ingress & Ingress Controller',
-            'Expose multiple HTTP/HTTPS routes using a single Ingress gateway.',
-            '50 mins',
-            'Reading',
-            `## Ingress & Ingress Controllers
-While a LoadBalancer creates an external IP per Service (costly), an **Ingress** acts as a single gateway/reverse proxy.
-
-### Features:
-- Evaluates routing rules to forward traffic based on Host headers or HTTP paths (e.g. \`example.com/api\` -> \`api-svc\`).
-- Manages SSL/TLS decryption certificates.
-- Powered by an **Ingress Controller** (usually Nginx, Traefik, or HAProxy).`
-          ),
-          createLesson(
-            'k8s-unit-3-6',
-            '3.6 Network Policies',
-            'Control traffic flow between Pods using declarative rules.',
-            '45 mins',
-            'Reading',
-            `## Network Policies (Security)
-By default, all network traffic is allowed between all Pods in a cluster. **NetworkPolicies** behave like host firewalls for Pods.
-
-### Rules:
-- Specify **Ingress** (incoming traffic) and **Egress** (outgoing traffic) permissions.
-- Filter traffic sources using podSelectors, namespaceSelectors, or IP blocks.
-- Require support from your CNI provider (e.g. Calico, Cilium).`
-          ),
-          createLesson(
-            'k8s-unit-3-7',
-            '3.7 Practice: Expose an Application',
-            '⚠️ Practice Only - Expose an application using a Service and Ingress.',
-            '40 mins',
-            'Assignment',
-            `## ⚠️ Practice Only
-**Important Notice**: The practice terminal provided below is a simulated environment for learning and experimentation only. No real hosting charges will apply.
-
-### Lab Objectives:
-1. Create a service to expose an application internally.
-2. Apply the service definition and verify DNS accessibility.
-3. Configure a simple path-based Ingress rule.
-
-### Step-by-Step Instructions:
-1. Apply the service manifest: \`kubectl apply -f service.yaml\`
-2. Check the services registry list: \`kubectl get services\`
-3. Apply the ingress routing rules manifest: \`kubectl apply -f ingress.yaml\``,
-            [
-              { command: 'kubectl apply -f service.yaml', description: 'Expose the deployment via a Service endpoint' },
-              { command: 'kubectl get services', description: 'List services to verify internal IPs and ports' },
-              { command: 'kubectl apply -f ingress.yaml', description: 'Apply Ingress routing rule configurations' }
-            ]
-          )
-        ]
-      }
-    ]
-  },
-  {
-    id: 'k8s-mod-4',
-    title: 'Module 4 — Configuration & Storage',
-    description: 'Learn ConfigMaps, Secrets, persistent volumes (PV, PVC), storage classes, dynamic provisioning, and resource requests/limits.',
-    duration: '6 Hours',
-    topics: [
-      {
-        id: 'k8s-topic-4',
-        title: 'Cluster Storage & Environment Configs',
-        description: 'Persistent volumes, Dynamic provisioning storage classes, and container resource limits.',
-        estimatedDuration: '360 mins',
-        learningUnits: [
-          createLesson(
-            'k8s-unit-4-1',
-            '4.1 ConfigMaps',
-            'Store non-sensitive configuration data in key-value format.',
-            '45 mins',
-            'Reading',
-            `## ConfigMaps
-**ConfigMaps** allow you to separate environment configuration files/properties from container images.
-
-### Mounting ConfigMaps:
-- As environment variables in container specifications.
-- As files mounted on folders inside the container using volumes.`
-          ),
-          createLesson(
-            'k8s-unit-4-2',
-            '4.2 Secrets',
-            'Manage sensitive credentials (API keys, certificates, password strings).',
-            '45 mins',
-            'Reading',
-            `## Kubernetes Secrets
-**Secrets** store sensitive variables (like db passwords, token hashes). They are base64-encoded and mounted securely (usually in memory memory storage \`tmpfs\`).
-
-> ⚠️ **Warning**: Base64 encoding is *not* encryption. Always secure etcd at rest and restrict access via RBAC permissions.`
-          ),
-          createLesson(
-            'k8s-unit-4-3',
-            '4.3 Environment Variables',
-            'Inject ConfigMaps and Secrets into container variables.',
-            '40 mins',
-            'Reading',
-            `## Environment Variables Injection
-Inject configurations into containers using the \`valueFrom\` spec parameter:
-
-\`\`\`yaml
-env:
-  - name: DB_HOST
-    valueFrom:
-      configMapKeyRef:
-        name: db-config
-        key: host
-  - name: DB_PASS
-    valueFrom:
-      secretKeyRef:
-        name: db-secret
-        key: password
-\`\`\``
-          ),
-          createLesson(
-            'k8s-unit-4-4',
-            '4.4 Kubernetes Volumes',
-            'Attach ephemeral storage or host folders directly to containers.',
-            '40 mins',
-            'Reading',
-            `## Kubernetes Ephemeral Volumes
-By default, container filesystems are ephemeral. If a container crashes, changes are lost.
-
-### Basic Volume Mounts:
-- **emptyDir**: Ephemeral directory created on pod startup, deleted on pod removal.
-- **hostPath**: Mounts a directory from the Worker Node's local disk (used for host logging daemons).`
-          ),
-          createLesson(
-            'k8s-unit-4-5',
-            '4.5 PersistentVolumes & PVC',
-            'Provision network storage volumes and mount them using claims.',
-            '50 mins',
-            'Reading',
-            `## Persistent Volumes & Claims
-To preserve database records, Kubernetes splits storage management into:
-
-- **PersistentVolume (PV)**: The physical network storage disk allocated by an administrator.
-- **PersistentVolumeClaim (PVC)**: A request for storage by a user, which binds to a matching PV.`
-          ),
-          createLesson(
-            'k8s-unit-4-6',
-            '4.6 StorageClasses',
-            'Dynamically provision volumes on cloud networks.',
-            '45 mins',
-            'Reading',
-            `## StorageClasses & Dynamic Provisioning
-Rather than manually creating PVs, you can use a **StorageClass** to dynamically provision storage disks (AWS EBS, GCP PD) on-demand when a PVC is applied.`
-          ),
-          createLesson(
-            'k8s-unit-4-7',
-            '4.7 Resource Requests & Limits',
-            'Configure CPU and Memory limits to protect nodes.',
-            '45 mins',
-            'Reading',
-            `## Resource Requests & Limits
-Prevent container resource exhaustion (Noisy Neighbor issue) by declaring resource bounds:
-
-- **Requests**: Minimum CPU/Memory reserved on a node to schedule the Pod.
-- **Limits**: Maximum CPU/Memory the container is allowed to consume. Exceeding memory limits leads to Out Of Memory (OOM) eviction.`
-          ),
-          createLesson(
-            'k8s-unit-4-8',
-            '4.8 Practice: Deploy App with Storage',
-            '⚠️ Practice Only - Deploy a stateful application with a persistent volume claim.',
-            '50 mins',
-            'Assignment',
-            `## ⚠️ Practice Only
-**Important Notice**: The practice terminal provided below is a simulated environment for learning and experimentation only. No real hosting charges will apply.
-
-### Lab Objectives:
-1. Apply a PVC configuration.
-2. Mount the volume on a web server pod.
-3. Verify directory persistence.
-
-### Step-by-Step Instructions:
-1. Deploy the PVC manifest: \`kubectl apply -f pvc.yaml\`
-2. Check storage status: \`kubectl get pvc\`
-3. Deploy the application: \`kubectl apply -f deployment-storage.yaml\``,
-            [
-              { command: 'kubectl apply -f pvc.yaml', description: 'Create a PersistentVolumeClaim request' },
-              { command: 'kubectl get pvc', description: 'Verify state of storage claims' },
-              { command: 'kubectl apply -f deployment-storage.yaml', description: 'Deploy application with PVC volume mount' }
-            ]
-          )
-        ]
-      }
-    ]
-  },
+  /* ==========================================================================
+     MODULE 5: SERVICES & NETWORKING
+     ========================================================================== */
   {
     id: 'k8s-mod-5',
-    title: 'Module 5 — Security & Administration',
-    description: 'Master ServiceAccounts, Role-Based Access Control (RBAC), security contexts, scheduling nodes (Selector, Taints, Tolerations, Affinity), and troubleshooting failed deployments.',
-    duration: '6 Hours',
+    title: 'Module 5: Services & Networking',
+    description: 'Expose Pods reliably using ClusterIP, NodePort, LoadBalancer, ExternalName, Ingress Controllers, and Network Policies.',
+    duration: '3 Hours',
     topics: [
       {
         id: 'k8s-topic-5',
-        title: 'Cluster RBAC & Scheduling Control',
-        description: 'Privilege roles, pod security contexts, and node selector scheduling parameters.',
-        estimatedDuration: '360 mins',
+        title: 'Kubernetes Service Types & Networking',
+        description: 'Understand ephemeral Pod IPs vs stable Service endpoints, ClusterIP, NodePort, and LoadBalancer.',
+        estimatedDuration: '180 mins',
         learningUnits: [
           createLesson(
             'k8s-unit-5-1',
-            '5.1 Kubernetes Security Basics',
-            'Core security guidelines: securing etcd, API endpoints, and network traffic.',
-            '40 mins',
+            '5.1 What is a Kubernetes Service?',
+            'Learn why Services are required, stable IP addresses, and ClusterIP default configuration.',
+            '35 mins',
             'Reading',
-            `## Kubernetes Security Basics
-Secure your cluster using the **4C's of Cloud Native Security**:
-1. **Cloud**: Infrastructure security provider parameters.
-2. **Cluster**: Restricting access to API servers.
-3. **Container**: Isolating process user scopes.
-4. **Code**: Scanning image repositories for vulnerabilities.`
+            `# 5.1 What is a Kubernetes Service?
+
+A **Service** is an abstraction object that defines a logical set of Pods and a policy by which to access them (stable IP address & DNS entry).
+
+---
+
+### Why Do We Need Services?
+Pods are **ephemeral** (temporary). When a Pod crashes and restarts:
+- A new Pod gets a **new IP address**.
+- Without a Service, clients using the old IP address will fail!
+
+A **Service** provides a permanent IP address and load balances traffic automatically across matching Pods.
+
+---
+
+### 4 Types of Kubernetes Services
+1. **ClusterIP** *(Default)*: Accessible only inside the cluster (e.g. Backend microservices, databases).
+2. **NodePort**: Exposes the service on each Node's IP at a static port (30000-32767).
+3. **LoadBalancer**: Provisions an external Cloud Load Balancer (AWS ELB, GCP LB) with a public IP.
+4. **ExternalName**: Maps service to an external DNS CNAME.`
           ),
           createLesson(
             'k8s-unit-5-2',
-            '5.2 Users, ServiceAccounts & RBAC',
-            'Enable API authorization scopes for users and container workloads.',
-            '45 mins',
+            '5.2 Service YAML & Useful Commands',
+            'Create NodePort and ClusterIP services using YAML manifests.',
+            '35 mins',
             'Reading',
-            `## Identities & Authorization
-- **Users**: Humans executing kubectl operations (authenticated externally).
-- **ServiceAccounts**: Identities assigned to Pods to communicate with the internal API Server.
-- **RBAC (Role-Based Access Control)**: Enforces permissions based on user role assignments.`
-          ),
-          createLesson(
-            'k8s-unit-5-3',
-            '5.3 Roles & RoleBindings',
-            'Configure Roles, ClusterRoles, and associate them using Bindings.',
-            '45 mins',
-            'Reading',
-            `## Roles, ClusterRoles, & Bindings
-Kubernetes defines permissions in RBAC manifests:
+            `# 5.2 Service YAML & Useful Commands
 
-- **Role**: Defines namespaced apiGroup verb actions (e.g. read pods in \`default\`).
-- **ClusterRole**: Defines cluster-wide permissions (e.g. view nodes across namespaces).
-- **RoleBinding**: Grants Role permissions to a user/ServiceAccount.
-- **ClusterRoleBinding**: Grants ClusterRole permissions cluster-wide.`
-          ),
-          createLesson(
-            'k8s-unit-5-4',
-            '5.4 Security Context & Pod Security',
-            'Limit container permissions and run containers securely.',
-            '45 mins',
-            'Reading',
-            `## Container Security Contexts
-Protect host operating systems by configuring container privileges in YAML:
-
+### Sample Service YAML (\`service.yaml\`)
 \`\`\`yaml
-securityContext:
-  runAsNonRoot: true
-  runAsUser: 1000
-  readOnlyRootFilesystem: true
-  allowPrivilegeEscalation: false
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+spec:
+  type: NodePort
+  selector:
+    app: web
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+      nodePort: 30080
 \`\`\`
-This prevents containers from escalating to host root execution rights.`
-          ),
-          createLesson(
-            'k8s-unit-5-5',
-            '5.5 Node Scheduling',
-            'Control scheduler placement decisions using simple node selectors.',
-            '40 mins',
-            'Reading',
-            `## Node Scheduling
-By default, the Scheduler assigns Pods to nodes arbitrarily. You can force placement using:
 
-- **nodeSelector**: Simple key-value selector matching labels assigned to Nodes (e.g. \`disktype: ssd\`).`
-          ),
-          createLesson(
-            'k8s-unit-5-6',
-            '5.6 Taints, Tolerations & Affinity',
-            'Configure taints, tolerations, node affinity, and pod affinity.',
-            '50 mins',
-            'Reading',
-            `## Advanced Scheduling Features
-For complex scheduling demands:
+---
 
-- **Taints**: Restrict nodes from hosting Pods unless the Pod has matching **Tolerations** (used to reserve nodes for GPU workloads).
-- **Node Affinity**: Rules specifying soft or hard label constraints (mandatory vs optional).`
-          ),
-          createLesson(
-            'k8s-unit-5-7',
-            '5.7 Troubleshooting Kubernetes',
-            'Learn to debug crash loops, failed schedules, and broken services.',
-            '45 mins',
-            'Reading',
-            `## Troubleshooting Failures
-Use these standard commands to debug broken cluster states:
+### Service Commands
+\`\`\`bash
+# Create Service
+kubectl apply -f service.yaml
 
-1. **CrashLoopBackOff**: Run \`kubectl logs <pod>\` and \`kubectl describe pod <pod>\` to check application errors.
-2. **ImagePullBackOff**: Verify image tags and credentials registry paths.
-3. **Pending**: Check resources quota restrictions via scheduler logs.`
-          ),
-          createLesson(
-            'k8s-unit-5-8',
-            '5.8 Practice: Secure & Troubleshoot a Cluster',
-            '⚠️ Practice Only - Configure RBAC roles and debug cluster logs.',
-            '50 mins',
-            'Assignment',
-            `## ⚠️ Practice Only
-**Important Notice**: The practice terminal provided below is a simulated environment for learning and experimentation only. No real hosting charges will apply.
+# List all Services
+kubectl get services
 
-### Lab Objectives:
-1. Create a ServiceAccount and map an RBAC Role to it.
-2. Diagnose a failed Pod configuration using logs and description files.
+# Inspect Service Endpoints
+kubectl get endpoints nginx-service
 
-### Step-by-Step Instructions:
-1. Deploy the ServiceAccount manifest: \`kubectl apply -f serviceaccount.yaml\`
-2. Apply the RBAC Role specifications: \`kubectl apply -f rbac.yaml\`
-3. Inspect a failed pod: \`kubectl describe pod failed-pod\``,
+# Delete Service
+kubectl delete service nginx-service
+\`\`\``,
             [
-              { command: 'kubectl apply -f serviceaccount.yaml', description: 'Create a cluster ServiceAccount identity' },
-              { command: 'kubectl apply -f rbac.yaml', description: 'Apply Role and Binding RBAC configurations' },
-              { command: 'kubectl describe pod failed-pod', description: 'Inspect failed Pod events to diagnose errors' }
+              { command: 'kubectl apply -f service.yaml', description: 'Create Service from manifest' },
+              { command: 'kubectl get services', description: 'List active services and cluster IPs' },
+              { command: 'kubectl get endpoints', description: 'List target Pod IP addresses mapped to service' }
             ]
           )
         ]
       }
     ]
   },
+
+  /* ==========================================================================
+     MODULE 6: KUBERNETES STORAGE
+     ========================================================================== */
   {
     id: 'k8s-mod-6',
-    title: 'Module 6 — Production & DevOps',
-    description: 'Learn production guidelines, Horizontal Pod Autoscaler (HPA), Helm package management, CI/CD pipelines, managed cloud engines, and deploy a full-stack project.',
-    duration: '6 Hours',
+    title: 'Module 6: Kubernetes Storage',
+    description: 'Master persistent storage, Volumes (emptyDir, hostPath), Persistent Volumes (PV), Persistent Volume Claims (PVC), and StorageClasses.',
+    duration: '3 Hours',
     topics: [
       {
         id: 'k8s-topic-6',
-        title: 'Production CI/CD Pipelines & Helm Packages',
-        description: 'Autoscalers, Helm packages, container builds, and deployment capstone projects.',
-        estimatedDuration: '360 mins',
+        title: 'Volumes, PV, PVC & StorageClasses',
+        description: 'Learn temporary vs persistent storage models for databases and stateful applications.',
+        estimatedDuration: '180 mins',
         learningUnits: [
           createLesson(
             'k8s-unit-6-1',
-            '6.1 Kubernetes Production Basics',
-            'Production architecture, high availability control loops, and security guidelines.',
-            '45 mins',
-            'Reading',
-            `## Production Kubernetes Best Practices
-Transitioning cluster deployments from development sandbox configs to high-availability environments requires:
-
-- **Control Plane Redundancy**: Multi-master Control Plane configs across multiple zones.
-- **Resource Constraints**: Define requests and limits on all containers.
-- **Pod Anti-Affinity**: Distribute replica Pods across distinct nodes to prevent hardware failures from creating outages.`
-          ),
-          createLesson(
-            'k8s-unit-6-2',
-            '6.2 Autoscaling',
-            'Configure Horizontal Pod Autoscalers (HPA) to scale replicas on-demand.',
-            '45 mins',
-            'Reading',
-            `## Horizontal Pod Autoscaler (HPA)
-The **HPA** monitors container metrics (CPU utilization, custom API rates) and automatically scales replicas between min and max parameters.`
-          ),
-          createLesson(
-            'k8s-unit-6-3',
-            '6.3 Monitoring & Logging',
-            'Integrate metrics collectors and log aggregation systems.',
+            '6.1 Volumes, Persistent Volumes (PV) & PVCs',
+            'Understand how PVs separate physical storage setup from application PVC claims.',
             '40 mins',
             'Reading',
-            `## Cluster Observability
-Monitoring cluster states requires:
+            `# 6.1 Volumes, Persistent Volumes (PV) & PVCs
 
-- **Metrics Collection**: Using **Prometheus** to scrap node/pod performance metrics, and **Grafana** for dashboard analytics.
-- **Log Aggregation**: Collecting container stdout streams using agents (Fluentd, Promtail) sending data to centralized storage (ElasticSearch, Loki).`
-          ),
-          createLesson(
-            'k8s-unit-6-4',
-            '6.4 Helm & Helm Charts',
-            'Learn Helm package managers and install charts.',
-            '45 mins',
-            'Reading',
-            `## Kubernetes Package Management with Helm
-**Helm** acts as a package manager for Kubernetes. Instead of applying raw manifests, Helm bundles configurations into reusable **Charts**.
+Applications like MySQL or PostgreSQL generate data that must persist even if Pods crash or restart.
 
-### Key Commands:
-- Add chart repository: \`helm repo add\`
-- Search charts: \`helm search repo\`
-- Install release: \`helm install my-release <chart-name>\`
-- List active releases: \`helm list\``
-          ),
+---
+
+### Storage Concepts Overview
+- **Volume**: Storage area attached to a Pod lifecycle (e.g. \`emptyDir\`, \`hostPath\`).
+- **Persistent Volume (PV)**: Cluster-level physical storage resource provisioned by an administrator or storage class.
+- **Persistent Volume Claim (PVC)**: A request for storage submitted by a user/Pod.
+
+---
+
+### Storage Analogy 🏠
+- **House** = Persistent Volume (PV)
+- **Tenant** = Pod
+- **Rental Request** = Persistent Volume Claim (PVC)
+
+Even if a tenant leaves, the house still exists!`
+          )
+        ]
+      }
+    ]
+  },
+
+  /* ==========================================================================
+     MODULE 7: CONFIGURATION MANAGEMENT
+     ========================================================================== */
+  {
+    id: 'k8s-mod-7',
+    title: 'Module 7: Configuration Management',
+    description: 'Decouple environment configuration and credentials from container code using ConfigMaps and Secrets.',
+    duration: '2.5 Hours',
+    topics: [
+      {
+        id: 'k8s-topic-7',
+        title: 'ConfigMaps & Secrets',
+        description: 'Pass environment variables, application properties, API keys, and certificates securely.',
+        estimatedDuration: '150 mins',
+        learningUnits: [
           createLesson(
-            'k8s-unit-6-5',
-            '6.5 Kubernetes with Docker & Git',
-            'Integrate version control, container images, and container registries.',
-            '45 mins',
+            'k8s-unit-7-1',
+            '7.1 ConfigMaps vs Secrets',
+            'Store non-sensitive configurations in ConfigMaps and sensitive credentials in Secrets.',
+            '35 mins',
             'Reading',
-            `## Container Registries & Git Workflows
-Before deploying code to K8s:
-1. Commit code to a Git repository.
-2. Run a build pipeline to build the container image: \`docker build -t app:latest .\`
-3. Push image tags to a Registry (Docker Hub, AWS ECR, Github Registry).
-4. Reference the secure image registry URI inside your K8s Deployment manifests.`
-          ),
+            `# 7.1 ConfigMaps vs Secrets
+
+Kubernetes separates configuration from source code so applications can run seamlessly across Dev, Staging, and Production environments without rebuilding container images.
+
+---
+
+### Comparison Table
+| Feature | ConfigMap | Secret |
+| :--- | :--- | :--- |
+| **Purpose** | Non-sensitive data (URLs, Ports, Env names) | Sensitive data (Passwords, API Keys, SSL Certs) |
+| **Encoding** | Plain text | Base64 encoded / encrypted at rest |
+| **Security** | Standard RBAC | Restricted RBAC & encryption |
+
+---
+
+### ConfigMap YAML Example
+\`\`\`yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  APP_ENV: production
+  PORT: "8080"
+\`\`\`
+
+### Secret YAML Example
+\`\`\`yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-secret
+type: Opaque
+stringData:
+  username: admin
+  password: SuperSecretPassword123
+\`\`\``
+          )
+        ]
+      }
+    ]
+  },
+
+  /* ==========================================================================
+     MODULE 8: ADVANCED WORKLOADS
+     ========================================================================== */
+  {
+    id: 'k8s-mod-8',
+    title: 'Module 8: Advanced Workloads',
+    description: 'Explore specialized workload resources: StatefulSets, DaemonSets, Jobs, CronJobs, and Horizontal Pod Autoscaler (HPA).',
+    duration: '3 Hours',
+    topics: [
+      {
+        id: 'k8s-topic-8',
+        title: 'StatefulSets, DaemonSets & HPA',
+        description: 'Run databases with StatefulSets, node agents with DaemonSets, scheduled backups with CronJobs, and autoscale with HPA.',
+        estimatedDuration: '180 mins',
+        learningUnits: [
           createLesson(
-            'k8s-unit-6-6',
-            '6.6 CI/CD with Kubernetes',
-            'Automate builds and deployments using pipeline orchestrators.',
+            'k8s-unit-8-1',
+            '8.1 Advanced Workload Types Overview',
+            'Learn when to use StatefulSet, DaemonSet, Job, CronJob, and Horizontal Pod Autoscaler.',
             '40 mins',
             'Reading',
-            `## CI/CD Deployment Pipelines
-Automate your DevOps cycle with tools like Jenkins, GitHub Actions, or GitLab CI:
+            `# 8.1 Advanced Workload Types Overview
 
-- **CI**: Build Docker containers, validate YAML files, and test codebase dependencies.
-- **CD**: Deploy changes declaratively. Modern GitOps workflows use **ArgoCD** or **Flux** to watch Git commits and sync changes to K8s automatically.`
-          ),
+Not all workloads are identical. Kubernetes provides tailored controllers for specific operational demands.
+
+---
+
+### 1. StatefulSet
+- Used for stateful applications requiring **stable network identities** and **ordered deployment** (e.g., MySQL Master-Slave, Kafka, MongoDB).
+
+### 2. DaemonSet
+- Ensures **one instance of a Pod runs on EVERY Worker Node** in the cluster (e.g. Logging agents like Fluentd, monitoring tools like Prometheus Node Exporter).
+
+### 3. Job & CronJob
+- **Job**: Executes a batch task to completion once (e.g. Database migration, report generation).
+- **CronJob**: Runs scheduled recurring tasks automatically (e.g. Daily midnight backups).
+
+### 4. Horizontal Pod Autoscaler (HPA)
+- Automatically increases or decreases Pod replica count based on CPU or Memory utilization.`
+          )
+        ]
+      }
+    ]
+  },
+
+  /* ==========================================================================
+     MODULE 9: KUBERNETES SECURITY
+     ========================================================================== */
+  {
+    id: 'k8s-mod-9',
+    title: 'Module 9: Kubernetes Security',
+    description: 'Harden cluster security using RBAC (Role, ClusterRole, RoleBinding), Service Accounts, Authentication, and Pod Security Standards.',
+    duration: '3 Hours',
+    topics: [
+      {
+        id: 'k8s-topic-9',
+        title: 'RBAC, Authentication & Service Accounts',
+        description: 'Implement Role-Based Access Control to enforce principle of least privilege across teams.',
+        estimatedDuration: '180 mins',
+        learningUnits: [
           createLesson(
-            'k8s-unit-6-7',
-            '6.7 Cloud Kubernetes — EKS, AKS & GKE',
-            'Deploy to cloud-managed engines (Amazon EKS, Azure AKS, Google GKE).',
+            'k8s-unit-9-1',
+            '9.1 Authentication, Authorization & RBAC',
+            'Learn how Kubernetes authenticates users, checks RBAC permissions, and grants namespace access.',
+            '35 mins',
+            'Reading',
+            `# 9.1 Authentication, Authorization & RBAC
+
+Security in Kubernetes follows two distinct steps:
+1. **Authentication (Who are you?)**: Verifies user or service identity.
+2. **Authorization (What are you allowed to do?)**: Checks if the identity has permission to perform an action.
+
+---
+
+### Components of Role-Based Access Control (RBAC)
+- **Role**: Defines permissions (read, write, delete) within a single **Namespace**.
+- **ClusterRole**: Defines permissions across the **entire Cluster**.
+- **RoleBinding**: Grants a Role to a user or Service Account within a namespace.
+- **ClusterRoleBinding**: Grants a ClusterRole cluster-wide.`
+          )
+        ]
+      }
+    ]
+  },
+
+  /* ==========================================================================
+     MODULE 10: MONITORING & LOGGING
+     ========================================================================== */
+  {
+    id: 'k8s-mod-10',
+    title: 'Module 10: Monitoring & Logging',
+    description: 'Implement cluster observability using Metrics Server, Prometheus, Grafana, and the ELK Stack.',
+    duration: '2.5 Hours',
+    topics: [
+      {
+        id: 'k8s-topic-10',
+        title: 'Observability & Telemetry Tools',
+        description: 'Track CPU/RAM metrics with Prometheus/Grafana and aggregate logs using ELK (Elasticsearch, Logstash, Kibana).',
+        estimatedDuration: '150 mins',
+        learningUnits: [
+          createLesson(
+            'k8s-unit-10-1',
+            '10.1 Monitoring & Logging Infrastructure',
+            'Collect node/pod performance metrics and centralize container logs.',
+            '35 mins',
+            'Reading',
+            `# 10.1 Monitoring & Logging Infrastructure
+
+Observability allows DevOps teams to monitor health and troubleshoot failures quickly.
+
+---
+
+### Monitoring vs Logging
+- **Monitoring**: Continuously tracks numerical metrics (CPU usage, RAM, network traffic, Pod status).
+- **Logging**: Collects textual application event messages to debug errors.
+
+---
+
+### Popular Observability Stack
+- **Metrics Server**: Lightweight metric provider for HPA.
+- **Prometheus**: Time-series database that scrapes metrics.
+- **Grafana**: Visual dashboard builder for charts.
+- **ELK Stack**:
+  - **E**lasticsearch (Storage & indexing)
+  - **L**ogstash (Log collector & parser)
+  - **K**ibana (Log analytics dashboard)`
+          )
+        ]
+      }
+    ]
+  },
+
+  /* ==========================================================================
+     MODULE 11: HELM — PACKAGE MANAGER
+     ========================================================================== */
+  {
+    id: 'k8s-mod-11',
+    title: 'Module 11: Helm — Kubernetes Package Manager',
+    description: 'Package, install, upgrade, and rollback complex Kubernetes applications using Helm Charts.',
+    duration: '2.5 Hours',
+    topics: [
+      {
+        id: 'k8s-topic-11',
+        title: 'Helm Charts & Release Management',
+        description: 'Simplify deployments using Helm commands: search, install, upgrade, and rollback.',
+        estimatedDuration: '150 mins',
+        learningUnits: [
+          createLesson(
+            'k8s-unit-11-1',
+            '11.1 Introduction to Helm & Helm Charts',
+            'Learn why Helm is used, chart directory structure, values.yaml, and release rollbacks.',
+            '35 mins',
+            'Reading',
+            `# 11.1 Introduction to Helm & Helm Charts
+
+**Helm** is the official package manager for Kubernetes.
+
+> **Analogy:**
+> Just like \`npm\` installs JavaScript packages, **Helm** installs pre-configured Kubernetes applications called **Helm Charts**.
+
+---
+
+### Essential Helm Commands
+\`\`\`bash
+# Verify Helm installation
+helm version
+
+# Search chart repositories
+helm search hub nginx
+
+# Install a chart release
+helm install my-release bitnami/nginx
+
+# List deployed releases
+helm list
+
+# Rollback to previous release revision
+helm rollback my-release 1
+
+# Uninstall release
+helm uninstall my-release
+\`\`\``,
+            [
+              { command: 'helm version', description: 'Verify Helm CLI version' },
+              { command: 'helm list', description: 'List active Helm chart releases' },
+              { command: 'helm install my-app bitnami/nginx', description: 'Install Nginx Helm chart' }
+            ]
+          )
+        ]
+      }
+    ]
+  },
+
+  /* ==========================================================================
+     MODULE 12: CI/CD WITH KUBERNETES
+     ========================================================================== */
+  {
+    id: 'k8s-mod-12',
+    title: 'Module 12: CI/CD with Kubernetes',
+    description: 'Automate build and deployment pipelines using Jenkins, GitHub Actions, ArgoCD, Rolling Updates, and Rollbacks.',
+    duration: '3 Hours',
+    topics: [
+      {
+        id: 'k8s-topic-12',
+        title: 'CI/CD Pipelines & GitOps',
+        description: 'Continuous Integration with GitHub Actions and GitOps continuous deployment using ArgoCD.',
+        estimatedDuration: '180 mins',
+        learningUnits: [
+          createLesson(
+            'k8s-unit-12-1',
+            '12.1 Automated Pipelines & Zero-Downtime Rolling Updates',
+            'Build automated software pipelines and deploy updates with zero downtime.',
             '40 mins',
             'Reading',
-            `## Managed Cloud Kubernetes Services
-Most enterprises use cloud provider engines that manage Control Plane nodes, backups, and security patches for you:
+            `# 12.1 Automated Pipelines & Zero-Downtime Rolling Updates
 
-- **Amazon EKS** (Elastic Kubernetes Service)
-- **Azure AKS** (Azure Kubernetes Service)
-- **Google GKE** (Google Kubernetes Engine - the most mature and integrated engine)`
-          ),
+Modern software teams release code continuously using **CI/CD** pipelines.
+
+---
+
+### CI/CD Pipeline Steps
+1. Developer pushes code to **GitHub**.
+2. **GitHub Actions / Jenkins** builds the application and executes automated unit tests.
+3. Docker image is built and pushed to **Docker Hub**.
+4. **Kubernetes** receives updated image tags and performs a **Rolling Update**.
+
+---
+
+### Rolling Updates vs Rollbacks
+- **Rolling Update**: Replaces old Pods with new version Pods incrementally so users experience **zero downtime**.
+- **Rollback**: Restores the previous stable deployment version immediately if errors occur in the new release.`
+          )
+        ]
+      }
+    ]
+  },
+
+  /* ==========================================================================
+     MODULE 13: TROUBLESHOOTING KUBERNETES
+     ========================================================================== */
+  {
+    id: 'k8s-mod-13',
+    title: 'Module 13: Troubleshooting Kubernetes',
+    description: 'Diagnose and resolve common cluster errors: CrashLoopBackOff, ImagePullBackOff, Pending pods, and networking issues.',
+    duration: '3 Hours',
+    topics: [
+      {
+        id: 'k8s-topic-13',
+        title: 'Debugging Commands & Diagnostic Workflows',
+        description: 'Master troubleshooting tools: kubectl get, describe, logs, top, and event analysis.',
+        estimatedDuration: '180 mins',
+        learningUnits: [
           createLesson(
-            'k8s-unit-6-8',
-            '6.8 Final Project: Deploy Full-Stack Application',
-            '⚠️ Practice Only - Dockerize and deploy a complete full-stack web application.',
+            'k8s-unit-13-1',
+            '13.1 Debugging Pod Failures & Common Errors',
+            'Identify causes of CrashLoopBackOff, ImagePullBackOff, and ErrImagePull.',
+            '40 mins',
+            'Reading',
+            `# 13.1 Debugging Pod Failures & Common Errors
+
+When an application fails to start or crashes in production, follow this 4-step diagnostic workflow:
+
+---
+
+### 4-Step Troubleshooting Workflow
+1. **Check Pod Status**: \`kubectl get pods\`
+2. **Describe Pod Events**: \`kubectl describe pod <pod-name>\`
+3. **Inspect Application Logs**: \`kubectl logs <pod-name>\`
+4. **Check Node Resource Usage**: \`kubectl top nodes\`
+
+---
+
+### Common Pod Error Statuses
+- **CrashLoopBackOff**: Container starts, fails due to application runtime error, and continuously restarts.
+- **ImagePullBackOff / ErrImagePull**: Docker image name is misspelled, tag does not exist, or registry credentials are invalid.
+- **Pending**: Insufficient CPU/RAM resources available on Worker Nodes.`
+          )
+        ]
+      }
+    ]
+  },
+
+  /* ==========================================================================
+     MODULE 14: REAL-WORLD PROJECTS
+     ========================================================================== */
+  {
+    id: 'k8s-mod-14',
+    title: 'Module 14: Real-World Kubernetes Projects',
+    description: 'Hands-on production projects: Deploy Nginx, React Frontend, Node.js API, MongoDB, and MySQL with StatefulSets.',
+    duration: '4 Hours',
+    topics: [
+      {
+        id: 'k8s-topic-14',
+        title: 'Full-Stack Microservices Deployment',
+        description: 'Deploy real-world multi-tier applications with frontend, backend, database, and ingress endpoints.',
+        estimatedDuration: '240 mins',
+        learningUnits: [
+          createLesson(
+            'k8s-unit-14-1',
+            '14.1 Deploying Full-Stack Microservices Stack',
+            'Deploy Nginx, React, Node.js, and MySQL database using K8s manifests.',
             '60 mins',
             'Assignment',
-            `## ⚠️ Practice Only
-**Important Notice**: The practice terminal provided below is a simulated environment for learning and experimentation only. No real hosting charges will apply.
+            `# 14.1 Deploying Full-Stack Microservices Stack
 
-### Final Capstone Goals:
-1. Build container images for a web backend.
-2. Define ConfigMaps and Secrets.
-3. Configure persistent storage mounts and ingress routing.
-4. Deploy the entire stack and verify execution.
+### Hands-on Capstone Goal
+In this hands-on project, you will deploy a multi-tier microservices architecture consisting of:
+1. **React Frontend**: Served via Nginx Web Server (\`Deployment\` + \`NodePort Service\`).
+2. **Node.js REST API**: Backend API handling business logic (\`Deployment\` + \`ClusterIP Service\`).
+3. **MySQL Database**: Stateful storage layer (\`StatefulSet\` + \`PersistentVolumeClaim\` + \`Secret\`).
 
-### Step-by-Step Instructions:
-1. Dockerize the project: \`docker build -t frontend:latest ./frontend\`
-2. Deploy Secrets credentials: \`kubectl apply -f secret.yaml\`
-3. Deploy the full-stack architecture: \`kubectl apply -f fullstack-app.yaml\`
-4. Verify all components are online: \`kubectl get all\``,
+---
+
+### Step-by-Step Execution Commands:
+\`\`\`bash
+# 1. Deploy database secret credentials
+kubectl apply -f mysql-secret.yaml
+
+# 2. Deploy MySQL StatefulSet with PVC
+kubectl apply -f mysql-statefulset.yaml
+
+# 3. Deploy Node.js backend API
+kubectl apply -f backend-deployment.yaml
+
+# 4. Deploy React frontend
+kubectl apply -f frontend-deployment.yaml
+
+# 5. Verify all components
+kubectl get all
+\`\`\``,
             [
-              { command: 'docker build -t frontend:latest ./frontend', description: 'Dockerize frontend web service files' },
-              { command: 'kubectl apply -f secret.yaml', description: 'Deploy credentials configurations securely' },
-              { command: 'kubectl apply -f fullstack-app.yaml', description: 'Apply the complete microservices deployment stack' },
-              { command: 'kubectl get all', description: 'Verify that all Pods, Services, and Deployments are online' }
+              { command: 'kubectl apply -f mysql-secret.yaml', description: 'Deploy database password credentials' },
+              { command: 'kubectl apply -f mysql-statefulset.yaml', description: 'Launch MySQL database with storage' },
+              { command: 'kubectl apply -f backend-deployment.yaml', description: 'Deploy Node.js REST API service' },
+              { command: 'kubectl apply -f frontend-deployment.yaml', description: 'Deploy React web application' },
+              { command: 'kubectl get all', description: 'Verify all pods, services, and deployments' }
             ]
+          )
+        ]
+      }
+    ]
+  },
+
+  /* ==========================================================================
+     MODULE 15: INTERVIEW PREPARATION & CHEAT SHEET
+     ========================================================================== */
+  {
+    id: 'k8s-mod-15',
+    title: 'Module 15: Interview Preparation & Cheat Sheet',
+    description: 'Comprehensive interview preparation: Theory round, scenario questions, best practices, and complete kubectl cheat sheet.',
+    duration: '3 Hours',
+    topics: [
+      {
+        id: 'k8s-topic-15',
+        title: 'Top Interview Questions & Kubectl Cheat Sheet',
+        description: 'Revise key concepts, scenario questions, and daily kubectl reference cheat sheet.',
+        estimatedDuration: '180 mins',
+        learningUnits: [
+          createLesson(
+            'k8s-unit-15-1',
+            '15.1 Top Interview Q&A & Scenario Questions',
+            'Master top interview questions and scenario-based troubleshooting answers.',
+            '45 mins',
+            'Reading',
+            `# 15.1 Top Interview Q&A & Scenario Questions
+
+### Top Interview Questions
+
+**Q1: What is the difference between a Pod and a Deployment?**
+*Answer:* A Pod is the smallest deployable unit running containers. A Deployment is a controller that manages Pod replicas, automated scaling, rolling updates, and self-healing.
+
+**Q2: What is the role of etcd?**
+*Answer:* etcd is a distributed key-value database that stores the complete cluster state and configuration data.
+
+**Q3: How does a Service communicate with Pods?**
+*Answer:* A Service matches Pods using **Labels** and **Selectors** defined in the manifest.
+
+---
+
+### Real-Time Scenario Question 💡
+**Interviewer:** *"Your Pod is in CrashLoopBackOff state. What steps will you take to fix it?"*
+
+**Expected Structured Answer:**
+1. Execute \`kubectl get pods\` to confirm Pod status and restart count.
+2. Run \`kubectl describe pod <pod-name>\` to review events (OOMKilled, volume mount failure).
+3. Run \`kubectl logs <pod-name>\` to read application runtime tracebacks.
+4. Correct configuration/image error in manifest and re-apply.`
+          ),
+          createLesson(
+            'k8s-unit-15-2',
+            '15.2 Ultimate Kubectl Cheat Sheet',
+            'Essential kubectl CLI commands for cluster administration and daily operations.',
+            '45 mins',
+            'Reading',
+            `# 15.2 Ultimate Kubectl Cheat Sheet
+
+### Essential Operations Reference
+
+| Task | Command |
+| :--- | :--- |
+| **View Nodes** | \`kubectl get nodes\` |
+| **View Pods** | \`kubectl get pods\` |
+| **View Services** | \`kubectl get svc\` |
+| **View Deployments** | \`kubectl get deployments\` |
+| **View All Resources** | \`kubectl get all\` |
+| **Describe Resource** | \`kubectl describe pod <pod-name>\` |
+| **View Logs** | \`kubectl logs <pod-name>\` |
+| **Live Stream Logs** | \`kubectl logs -f <pod-name>\` |
+| **Execute Shell in Pod** | \`kubectl exec -it <pod-name> -- /bin/bash\` |
+| **Apply Manifest** | \`kubectl apply -f manifest.yaml\` |
+| **Delete Manifest** | \`kubectl delete -f manifest.yaml\` |
+| **Resource CPU/RAM Usage** | \`kubectl top nodes\` / \`kubectl top pods\` |`
           )
         ]
       }

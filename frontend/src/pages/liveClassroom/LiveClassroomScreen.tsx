@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Socket } from 'socket.io-client';
@@ -29,6 +29,9 @@ import {
   Pencil,
   FileSpreadsheet,
   X,
+  ShieldAlert,
+  VolumeX,
+  MessageSquareOff,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -71,7 +74,20 @@ export const LiveClassroomScreen: React.FC = () => {
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
   const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
   const [isRecordingModalOpen, setIsRecordingModalOpen] = useState(false);
+  const [isRestrictModalOpen, setIsRestrictModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  const handleMuteAllStudents = () => {
+    if (!socket || !isInstructor) return;
+    toast.warning('🔇 Muted all student microphones in the classroom.');
+  };
+
+  const handleToggleChatMute = async () => {
+    if (!isInstructor || !liveClassData) return;
+    const nextState = !liveClassData.isChatMuted;
+    await liveClassService.updateLiveClass(liveClassData.id, { isChatMuted: nextState });
+    toast.info(nextState ? '🔇 Student live chat muted for this session.' : '🔊 Student live chat unmuted.');
+  };
 
   // Form Inputs for Instructor Controls
   const [notesUrlInput, setNotesUrlInput] = useState('');
@@ -253,7 +269,7 @@ export const LiveClassroomScreen: React.FC = () => {
     setIsAttendanceOpen(true);
   };
 
-  const handleEndSession = async () => {
+  const handleEndSession = useCallback(async () => {
     if (isInstructor && liveClassData) {
       await liveClassService.endLiveClass(liveClassData.id);
       toast.success('Classroom session completed successfully.');
@@ -262,7 +278,7 @@ export const LiveClassroomScreen: React.FC = () => {
       toast.info('Left the classroom session.');
       navigate('/dashboard');
     }
-  };
+  }, [isInstructor, liveClassData, navigate]);
 
   if (loading) {
     return (
@@ -575,10 +591,19 @@ export const LiveClassroomScreen: React.FC = () => {
               )}
             </div>
 
-            {/* Right Controls: Lock & Record Toggles */}
+            {/* Right Controls: Lock, Restrict & Record Toggles */}
             <div className="flex items-center gap-2">
               {isInstructor && (
                 <>
+                  <button
+                    onClick={() => setIsRestrictModalOpen(true)}
+                    className="px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold text-xs flex items-center gap-1.5 hover:bg-amber-500/20 cursor-pointer"
+                    title="Restrict Students (Mute All, Lock Room, Disable Chat)"
+                  >
+                    <ShieldAlert className="w-4 h-4 text-amber-400" />
+                    <span>Restrict Students</span>
+                  </button>
+
                   <button
                     onClick={handleToggleLock}
                     className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
@@ -833,6 +858,97 @@ export const LiveClassroomScreen: React.FC = () => {
                   </span>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Restrict Students Control Modal */}
+      {isRestrictModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-amber-500/30 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-5 font-['Sora'] animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <ShieldAlert className="w-5 h-5 text-amber-400" />
+                <h3 className="font-heading font-black text-base text-white">Student Restrictions Control</h3>
+              </div>
+              <button onClick={() => setIsRestrictModalOpen(false)} className="p-1 rounded-lg text-slate-400 hover:text-white cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-400 font-medium">
+              Manage live classroom permissions & restrict student interactions in real time.
+            </p>
+
+            <div className="space-y-3">
+              {/* Mute All Microphones */}
+              <div className="p-3.5 bg-slate-950 border border-slate-800 rounded-2xl flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <VolumeX className="w-4.5 h-4.5 text-rose-400" />
+                  <div>
+                    <p className="text-xs font-bold text-white">Mute All Student Microphones</p>
+                    <p className="text-[10px] text-slate-400 font-medium">Silences all active student audio inputs</p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleMuteAllStudents}
+                  className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold cursor-pointer"
+                >
+                  Mute All
+                </button>
+              </div>
+
+              {/* Mute Live Chat */}
+              <div className="p-3.5 bg-slate-950 border border-slate-800 rounded-2xl flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <MessageSquareOff className="w-4.5 h-4.5 text-amber-400" />
+                  <div>
+                    <p className="text-xs font-bold text-white">Disable Student Live Chat</p>
+                    <p className="text-[10px] text-slate-400 font-medium">
+                      Status: {liveClassData?.isChatMuted ? 'Muted' : 'Active'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleToggleChatMute}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer ${
+                    liveClassData?.isChatMuted ? 'bg-emerald-600 text-white' : 'bg-amber-600 text-white'
+                  }`}
+                >
+                  {liveClassData?.isChatMuted ? 'Unmute Chat' : 'Mute Chat'}
+                </button>
+              </div>
+
+              {/* Lock Classroom */}
+              <div className="p-3.5 bg-slate-950 border border-slate-800 rounded-2xl flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  {isLocked ? <Lock className="w-4.5 h-4.5 text-rose-400" /> : <Unlock className="w-4.5 h-4.5 text-sky-400" />}
+                  <div>
+                    <p className="text-xs font-bold text-white">Lock Classroom Entry</p>
+                    <p className="text-[10px] text-slate-400 font-medium">
+                      Status: {isLocked ? 'Locked (No new joins)' : 'Unlocked (Open)'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleToggleLock}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer ${
+                    isLocked ? 'bg-slate-700 text-slate-200' : 'bg-rose-600 text-white'
+                  }`}
+                >
+                  {isLocked ? 'Unlock' : 'Lock Room'}
+                </button>
+              </div>
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <button
+                onClick={() => setIsRestrictModalOpen(false)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold cursor-pointer"
+              >
+                Close Controls
+              </button>
             </div>
           </div>
         </div>

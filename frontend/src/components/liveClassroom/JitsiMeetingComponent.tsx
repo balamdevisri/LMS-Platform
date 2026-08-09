@@ -27,6 +27,12 @@ export const JitsiMeetingComponent: React.FC<JitsiProps> = ({
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
 
+  const onLeaveRef = useRef(onLeave);
+
+  useEffect(() => {
+    onLeaveRef.current = onLeave;
+  }, [onLeave]);
+
   useEffect(() => {
     const loadJitsiScript = () => {
       if (window.JitsiMeetExternalAPI) {
@@ -50,7 +56,7 @@ export const JitsiMeetingComponent: React.FC<JitsiProps> = ({
     const initJitsi = () => {
       if (!containerRef.current || !window.JitsiMeetExternalAPI) return;
 
-      // Clean existing instance
+      // Clean existing instance only if room changes
       if (apiRef.current) {
         try {
           apiRef.current.dispose();
@@ -88,6 +94,8 @@ export const JitsiMeetingComponent: React.FC<JitsiProps> = ({
             'raisehand',
             'videoquality',
             'filmstrip',
+            'whiteboard',
+            'mute-everyone',
             'invite',
             'tileview',
             'hangup',
@@ -108,11 +116,11 @@ export const JitsiMeetingComponent: React.FC<JitsiProps> = ({
         });
 
         api.addEventListener('readyToClose', () => {
-          if (onLeave) onLeave();
+          if (onLeaveRef.current) onLeaveRef.current();
         });
 
         api.addEventListener('videoConferenceLeft', () => {
-          if (onLeave) onLeave();
+          if (onLeaveRef.current) onLeaveRef.current();
         });
       } catch (err) {
         console.warn('Jitsi Meet initialization notice:', err);
@@ -131,7 +139,7 @@ export const JitsiMeetingComponent: React.FC<JitsiProps> = ({
         apiRef.current = null;
       }
     };
-  }, [roomName, displayName, userEmail, isInstructor, onLeave]);
+  }, [roomName, displayName, userEmail, isInstructor]);
 
   return (
     <div className="w-full h-full min-h-[480px] sm:min-h-[560px] bg-slate-950 relative rounded-3xl overflow-hidden">

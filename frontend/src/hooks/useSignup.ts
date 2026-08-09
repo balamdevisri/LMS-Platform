@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { authService } from '@/services/authService';
 import { firestoreService } from '@/services/firestoreService';
+import { adminNotificationService } from '@/services/adminNotificationService';
 import type { StudentSignupFormData } from '@/types/auth';
 import type { StudentFirestoreDocument } from '@/types/student';
 
@@ -40,6 +41,18 @@ export const useSignup = () => {
       };
 
       await firestoreService.createStudentDocument(studentDoc);
+
+      // Dispatch dynamic real-time notification to Admin & Instructors
+      try {
+        adminNotificationService.addNotification({
+          type: 'NEW_STUDENT',
+          title: 'New Student Application',
+          message: `${fullName.trim()} (${normalizedEmail}) registered and pending verification.`,
+          link: '/admin/students?status=pending',
+        });
+      } catch (e) {
+        console.warn('Failed to post signup notification:', e);
+      }
 
       toast.success('Account created! Verification email sent.');
 

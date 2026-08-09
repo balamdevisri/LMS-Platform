@@ -1,399 +1,647 @@
-import { isMongoConnected } from '../../config/mongo';
-import {
-  LiveClass,
-  Participant,
-  Attendance,
-  LiveQuiz,
-  LiveQuizResponse,
-  LivePoll,
-  LiveChatMessage,
-  LiveNotification,
-  LiveAIReport,
-  ILiveClass,
-  IParticipant,
-  IAttendance,
-  ILiveQuiz,
-  ILiveQuizResponse,
-  ILivePoll,
-  ILiveChatMessage,
-  ILiveAIReport,
-} from '../../models/mongo/liveClassroom.model';
-import { db } from '../../firebase';
+import { db, isFirebaseAdminInitialized } from '../../firebase';
 import logger from '../../config/logger';
 
-// Local In-Memory database fallback store
+export interface ILiveClassData {
+  id: string;
+  classId: string;
+  courseId: string;
+  courseName?: string;
+  instructorId: string;
+  instructorName?: string;
+  title: string;
+  description: string;
+  scheduledAt?: string;
+  startTime: string;
+  endTime?: string;
+  duration: number;
+  status: 'scheduled' | 'live' | 'ended' | 'cancelled' | 'Scheduled' | 'Live' | 'Completed' | 'Cancelled' | 'Draft';
+  meetingProvider?: 'jitsi' | 'google_meet' | 'zoom' | 'teams';
+  meetingRoomId?: string;
+  meetingUrl: string;
+  recordingUrl?: string;
+  notesUrl?: string;
+  maxParticipants?: number;
+  isRecordingEnabled?: boolean;
+  isQuizEnabled?: boolean;
+  isPollEnabled?: boolean;
+  isChatEnabled?: boolean;
+  isAttendanceEnabled?: boolean;
+  resourceDownloadEnabled?: boolean;
+  certificateEligible?: boolean;
+  tags?: string[];
+  difficulty?: 'Beginner' | 'Intermediate' | 'Advanced';
+  createdBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IAttendanceData {
+  id?: string;
+  classId: string;
+  studentId: string;
+  studentName: string;
+  studentEmail: string;
+  joinedAt: string;
+  leftAt?: string;
+  durationMinutes?: number;
+  durationSeconds?: number;
+  status: 'present' | 'late' | 'absent';
+}
+
+export interface IChatMessageData {
+  id?: string;
+  classId: string;
+  userId: string;
+  userName: string;
+  userRole?: 'admin' | 'instructor' | 'student';
+  message: string;
+  createdAt: string;
+}
+
+export interface IQuestionData {
+  id?: string;
+  classId: string;
+  studentId: string;
+  studentName: string;
+  question: string;
+  status: 'pending' | 'answered';
+  answer?: string;
+  createdAt: string;
+  answeredAt?: string;
+}
+
+export interface IPollData {
+  id?: string;
+  classId: string;
+  title: string;
+  options: Array<{
+    text: string;
+    votesCount: number;
+    voters: string[];
+  }>;
+  status: 'open' | 'closed';
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface INoteData {
+  id?: string;
+  classId: string;
+  title: string;
+  content: string;
+  authorId: string;
+  authorName: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface IResourceData {
+  id?: string;
+  classId: string;
+  courseId: string;
+  title: string;
+  fileUrl: string;
+  fileType: string;
+  createdAt: string;
+}
+
+// In-Memory Fallback Store
 const memoryDb = {
-  liveClasses: new Map<string, any>(),
-  participants: new Map<string, any[]>(),
-  attendance: new Map<string, any[]>(),
-  quizzes: new Map<string, any[]>(),
-  quizResponses: new Map<string, any[]>(),
-  polls: new Map<string, any[]>(),
-  chatMessages: new Map<string, any[]>(),
-  notifications: new Map<string, any[]>(),
-  aiReports: new Map<string, any>(),
+  liveClasses: new Map<string, ILiveClassData>(),
+  attendance: new Map<string, IAttendanceData[]>(),
+  chat: new Map<string, IChatMessageData[]>(),
+  questions: new Map<string, IQuestionData[]>(),
+  polls: new Map<string, IPollData[]>(),
+  notes: new Map<string, INoteData[]>(),
+  resources: new Map<string, IResourceData[]>(),
 };
 
-// Seed sample live classes into in-memory store
-const seedMemoryDb = () => {
-  const now = new Date();
-  const sampleClasses = [
-    {
-      id: 'class_linux_kernel_1',
-      title: 'Linux Kernel Monolithic Architecture & Memory Management',
-      courseId: 'course_linux_kernel',
-      courseName: 'Advanced Linux Kernel Engineering',
-      moduleName: 'Module 1: Kernel Core Architecture',
-      instructorId: 'inst_kaizen',
-      instructorName: 'Prof. Manoj Acharya',
-      status: 'running',
-      scheduledTime: new Date(now.getTime() - 30 * 60 * 1000),
-      startTime: new Date(now.getTime() - 30 * 60 * 1000),
-      chatEnabled: true,
-      quizEnabled: true,
-      pollEnabled: true,
-      locked: false,
-    },
-    {
-      id: 'class_linux_sys_2',
-      title: 'Advanced System Calls & Concurrency Primitives',
-      courseId: 'course_linux_systems',
-      courseName: 'Linux Systems & Kernel Administration',
-      moduleName: 'Module 2: Multithreading & POSIX',
-      instructorId: 'inst_kaizen',
-      instructorName: 'Prof. Manoj Acharya',
-      status: 'scheduled',
-      scheduledTime: new Date(now.getTime() + 2 * 60 * 60 * 1000),
-      chatEnabled: true,
-      quizEnabled: true,
-      pollEnabled: true,
-      locked: false,
-    },
-  ];
-  sampleClasses.forEach((c) => memoryDb.liveClasses.set(c.id, c));
+// Seed initial memory store
+const seedMemory = () => {
+  const sample: ILiveClassData = {
+    id: 'class_linux_101_live',
+    classId: 'class_linux_101_live',
+    courseId: 'course_linux_101',
+    courseName: 'Linux Kernel & System Architecture',
+    instructorId: 'inst_kaizen',
+    instructorName: 'Prof. Manoj Acharya',
+    title: 'Linux Kernel Monolithic Architecture & Memory Management',
+    description: 'Deep dive into virtual memory management, page tables, and process schedulers.',
+    startTime: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+    duration: 90,
+    status: 'live',
+    meetingProvider: 'jitsi',
+    meetingRoomId: 'kaizenq-linux-kernel-101',
+    meetingUrl: 'https://meet.jit.si/kaizenq-linux-kernel-101',
+    recordingUrl: '',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  memoryDb.liveClasses.set(sample.id, sample);
 };
-
-seedMemoryDb();
+seedMemory();
 
 export class LiveClassroomRepository {
   // --- 1. Live Class Operations ---
-  public async createLiveClass(data: any): Promise<any> {
-    const classId = data.id || `class_${Date.now()}`;
-    const payload = { ...data, id: classId, status: data.status || 'scheduled' };
 
-    if (isMongoConnected) {
+  public async createLiveClass(data: Partial<ILiveClassData>): Promise<ILiveClassData> {
+    const classId = data.id || data.classId || `class_${Date.now()}`;
+    const now = new Date().toISOString();
+    const payload: ILiveClassData = {
+      id: classId,
+      classId,
+      courseId: data.courseId || 'course_default',
+      courseName: data.courseName || 'Enterprise Technical Track',
+      instructorId: data.instructorId || 'inst_default',
+      instructorName: data.instructorName || 'Lead Instructor',
+      title: data.title || 'Live Classroom Session',
+      description: data.description || '',
+      scheduledAt: data.scheduledAt || data.startTime || now,
+      startTime: data.startTime || now,
+      endTime: data.endTime,
+      duration: data.duration || 60,
+      status: (data.status as any) || 'scheduled',
+      meetingProvider: data.meetingProvider || 'jitsi',
+      meetingRoomId: data.meetingRoomId || `kaizenq-room-${Date.now().toString().slice(-4)}`,
+      meetingUrl: data.meetingUrl || `https://meet.jit.si/kaizenq-room-${Date.now().toString().slice(-4)}`,
+      recordingUrl: data.recordingUrl || '',
+      notesUrl: data.notesUrl || '',
+      maxParticipants: data.maxParticipants || 100,
+      isRecordingEnabled: data.isRecordingEnabled ?? true,
+      isQuizEnabled: data.isQuizEnabled ?? true,
+      isPollEnabled: data.isPollEnabled ?? true,
+      isChatEnabled: data.isChatEnabled ?? true,
+      isAttendanceEnabled: data.isAttendanceEnabled ?? true,
+      resourceDownloadEnabled: data.resourceDownloadEnabled ?? true,
+      certificateEligible: data.certificateEligible ?? true,
+      tags: data.tags || ['Live', 'Engineering'],
+      difficulty: data.difficulty || 'Intermediate',
+      createdBy: data.createdBy || 'admin_sys',
+      createdAt: data.createdAt || now,
+      updatedAt: now,
+    };
+
+    if (isFirebaseAdminInitialized()) {
       try {
-        const doc = new LiveClass(payload);
-        const saved = await doc.save();
-        return saved.toObject();
-      } catch (err: any) {
-        logger.error('[REPO] Failed to create live class in Mongo:', err);
+        await db.collection('liveClasses').doc(classId).set(payload, { merge: true });
+      } catch (err) {
+        logger.error('[REPO] Failed to create liveClass in Firestore:', err);
       }
     }
 
-    // Fallback
     memoryDb.liveClasses.set(classId, payload);
     return payload;
   }
 
-  public async updateLiveClass(id: string, data: any): Promise<any> {
-    if (isMongoConnected) {
+  public async updateLiveClass(id: string, updates: Partial<ILiveClassData>): Promise<ILiveClassData | null> {
+    const now = new Date().toISOString();
+    const patch = { ...updates, updatedAt: now };
+
+    if (isFirebaseAdminInitialized()) {
       try {
-        const updated = await LiveClass.findOneAndUpdate({ id }, data, { new: true });
-        if (updated) return updated.toObject();
-        const updatedById = await LiveClass.findByIdAndUpdate(id, data, { new: true });
-        if (updatedById) return updatedById.toObject();
-      } catch (err: any) {
-        logger.error('[REPO] Failed to update live class in Mongo:', err);
+        await db.collection('liveClasses').doc(id).set(patch, { merge: true });
+      } catch (err) {
+        logger.error('[REPO] Failed to update liveClass in Firestore:', err);
       }
     }
 
-    // Fallback
     const existing = memoryDb.liveClasses.get(id);
     if (existing) {
-      const updatedPayload = { ...existing, ...data };
-      memoryDb.liveClasses.set(id, updatedPayload);
-      return updatedPayload;
+      const updated = { ...existing, ...patch };
+      memoryDb.liveClasses.set(id, updated);
+      return updated;
     }
     return null;
   }
 
-  public async getLiveClassById(id: string): Promise<any> {
-    if (isMongoConnected) {
+  public async getLiveClassById(id: string): Promise<ILiveClassData | null> {
+    if (isFirebaseAdminInitialized()) {
       try {
-        const found = await LiveClass.findOne({ id });
-        if (found) return found.toObject();
-        const foundById = await LiveClass.findById(id);
-        if (foundById) return foundById.toObject();
-      } catch (err: any) {
-        logger.error('[REPO] Failed to fetch live class in Mongo:', err);
+        const snap = await db.collection('liveClasses').doc(id).get();
+        if (snap.exists) {
+          return snap.data() as ILiveClassData;
+        }
+      } catch (err) {
+        logger.error('[REPO] Failed to fetch liveClass from Firestore:', err);
       }
     }
-
-    // Fallback
     return memoryDb.liveClasses.get(id) || null;
   }
 
   public async deleteLiveClass(id: string): Promise<boolean> {
-    if (isMongoConnected) {
+    if (isFirebaseAdminInitialized()) {
       try {
-        const res = await LiveClass.findOneAndDelete({ id });
-        if (res) return true;
-        const resById = await LiveClass.findByIdAndDelete(id);
-        if (resById) return true;
-      } catch (err: any) {
-        logger.error('[REPO] Failed to delete live class in Mongo:', err);
+        await db.collection('liveClasses').doc(id).delete();
+      } catch (err) {
+        logger.error('[REPO] Failed to delete liveClass in Firestore:', err);
       }
     }
-
-    // Fallback
     return memoryDb.liveClasses.delete(id);
   }
 
-  public async getAllLiveClasses(): Promise<any[]> {
-    if (isMongoConnected) {
+  public async getAllLiveClasses(): Promise<ILiveClassData[]> {
+    if (isFirebaseAdminInitialized()) {
       try {
-        const docs = await LiveClass.find().sort({ scheduledTime: 1 });
-        return docs.map(d => d.toObject());
-      } catch (err: any) {
-        logger.error('[REPO] Failed to fetch all live classes in Mongo:', err);
+        const snap = await db.collection('liveClasses').get();
+        if (!snap.empty) {
+          return snap.docs.map((doc) => doc.data() as ILiveClassData);
+        }
+      } catch (err) {
+        logger.error('[REPO] Failed to fetch all liveClasses from Firestore:', err);
       }
     }
-
-    // Fallback
     return Array.from(memoryDb.liveClasses.values());
   }
 
-  // --- 2. Live Quiz Operations ---
-  public async createLiveQuiz(data: any): Promise<any> {
-    const quizId = data.id || `quiz_${Date.now()}`;
-    const payload = { ...data, id: quizId, active: true, publishedAt: new Date() };
+  // --- 2. Attendance Operations ---
 
-    if (isMongoConnected) {
+  public async recordJoinAttendance(classId: string, studentId: string, studentName: string, studentEmail: string): Promise<IAttendanceData> {
+    const now = new Date().toISOString();
+    const docId = `${classId}_${studentId}`;
+
+    const record: IAttendanceData = {
+      id: docId,
+      classId,
+      studentId,
+      studentName,
+      studentEmail,
+      joinedAt: now,
+      status: 'present',
+    };
+
+    if (isFirebaseAdminInitialized()) {
       try {
-        const doc = new LiveQuiz(payload);
-        const saved = await doc.save();
-        return saved.toObject();
-      } catch (err: any) {
-        logger.error('[REPO] Failed to create live quiz in Mongo:', err);
-      }
-    }
-
-    // Fallback
-    const existing = memoryDb.quizzes.get(payload.classId) || [];
-    existing.push(payload);
-    memoryDb.quizzes.set(payload.classId, existing);
-    return payload;
-  }
-
-  public async getActiveQuiz(classId: string): Promise<any> {
-    if (isMongoConnected) {
-      try {
-        const found = await LiveQuiz.findOne({ classId, active: true }).sort({ publishedAt: -1 });
-        if (found) return found.toObject();
-      } catch (err: any) {
-        logger.error('[REPO] Failed to get active quiz in Mongo:', err);
-      }
-    }
-
-    const quizzes = memoryDb.quizzes.get(classId) || [];
-    return quizzes.find(q => q.active) || null;
-  }
-
-  public async submitQuizResponse(data: any): Promise<any> {
-    const responseId = `resp_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-    const payload = { ...data, id: responseId, submittedAt: new Date() };
-
-    if (isMongoConnected) {
-      try {
-        const doc = new LiveQuizResponse(payload);
-        const saved = await doc.save();
-        return saved.toObject();
-      } catch (err: any) {
-        logger.error('[REPO] Failed to save quiz response in Mongo:', err);
-      }
-    }
-
-    // Fallback
-    const existing = memoryDb.quizResponses.get(payload.quizId) || [];
-    existing.push(payload);
-    memoryDb.quizResponses.set(payload.quizId, existing);
-    return payload;
-  }
-
-  public async getQuizResponses(quizId: string): Promise<any[]> {
-    if (isMongoConnected) {
-      try {
-        const docs = await LiveQuizResponse.find({ quizId }).sort({ submittedAt: 1 });
-        return docs.map(d => d.toObject());
-      } catch (err: any) {
-        logger.error('[REPO] Failed to get quiz responses in Mongo:', err);
-      }
-    }
-
-    return memoryDb.quizResponses.get(quizId) || [];
-  }
-
-  // --- 3. Live Poll Operations ---
-  public async createLivePoll(data: any): Promise<any> {
-    const pollId = data.id || `poll_${Date.now()}`;
-    const payload = { ...data, id: pollId, active: true };
-
-    if (isMongoConnected) {
-      try {
-        const doc = new LivePoll(payload);
-        const saved = await doc.save();
-        return saved.toObject();
-      } catch (err: any) {
-        logger.error('[REPO] Failed to create live poll in Mongo:', err);
-      }
-    }
-
-    // Fallback
-    const existing = memoryDb.polls.get(payload.classId) || [];
-    existing.push(payload);
-    memoryDb.polls.set(payload.classId, existing);
-    return payload;
-  }
-
-  public async submitPollVote(pollId: string, optionIndex: number, userId: string): Promise<any> {
-    if (isMongoConnected) {
-      try {
-        const poll = await LivePoll.findById(pollId);
-        if (poll && poll.options[optionIndex]) {
-          // Check if user already voted and remove previous vote
-          poll.options.forEach(opt => {
-            opt.votes = opt.votes.filter(uid => uid !== userId);
-          });
-          poll.options[optionIndex].votes.push(userId);
-          const saved = await poll.save();
-          return saved.toObject();
+        const docRef = db.collection('liveClasses').doc(classId).collection('attendance').doc(studentId);
+        const snap = await docRef.get();
+        if (snap.exists) {
+          // Reconnect logic: preserve original joinedAt
+          const existing = snap.data() as IAttendanceData;
+          record.joinedAt = existing.joinedAt;
         }
-      } catch (err: any) {
-        logger.error('[REPO] Failed to submit poll vote in Mongo:', err);
+        await docRef.set(record, { merge: true });
+      } catch (err) {
+        logger.error('[REPO] Failed to record join attendance in Firestore:', err);
       }
     }
 
-    // Fallback search in memoryDb
-    let foundPoll: any = null;
-    let classIdMatch = '';
-    for (const [classId, list] of memoryDb.polls.entries()) {
-      const match = list.find((p: any) => p.id === pollId || p._id?.toString() === pollId);
-      if (match) {
-        foundPoll = match;
-        classIdMatch = classId;
-        break;
+    const currentList = memoryDb.attendance.get(classId) || [];
+    const idx = currentList.findIndex((a) => a.studentId === studentId);
+    if (idx >= 0) {
+      currentList[idx] = { ...currentList[idx], ...record };
+    } else {
+      currentList.push(record);
+    }
+    memoryDb.attendance.set(classId, currentList);
+    return record;
+  }
+
+  public async recordLeaveAttendance(classId: string, studentId: string): Promise<IAttendanceData | null> {
+    const now = new Date().toISOString();
+
+    let record: IAttendanceData | null = null;
+
+    if (isFirebaseAdminInitialized()) {
+      try {
+        const docRef = db.collection('liveClasses').doc(classId).collection('attendance').doc(studentId);
+        const snap = await docRef.get();
+        if (snap.exists) {
+          const existing = snap.data() as IAttendanceData;
+          const joinedMs = new Date(existing.joinedAt).getTime();
+          const leftMs = new Date(now).getTime();
+          const durationMins = Math.max(1, Math.round((leftMs - joinedMs) / 60000));
+          const durationSecs = Math.max(1, Math.round((leftMs - joinedMs) / 1000));
+
+          record = {
+            ...existing,
+            leftAt: now,
+            durationMinutes: durationMins,
+            durationSeconds: durationSecs,
+          };
+          await docRef.update({
+            leftAt: now,
+            durationMinutes: durationMins,
+            durationSeconds: durationSecs,
+          });
+        }
+      } catch (err) {
+        logger.error('[REPO] Failed to record leave attendance in Firestore:', err);
       }
     }
 
-    if (foundPoll) {
-      foundPoll.options.forEach((opt: any) => {
-        opt.votes = opt.votes.filter((uid: string) => uid !== userId);
-      });
-      if (foundPoll.options[optionIndex]) {
-        foundPoll.options[optionIndex].votes.push(userId);
+    const currentList = memoryDb.attendance.get(classId) || [];
+    const idx = currentList.findIndex((a) => a.studentId === studentId);
+    if (idx >= 0) {
+      const existing = currentList[idx];
+      const joinedMs = new Date(existing.joinedAt).getTime();
+      const leftMs = new Date(now).getTime();
+      const durationMins = Math.max(1, Math.round((leftMs - joinedMs) / 60000));
+      const durationSecs = Math.max(1, Math.round((leftMs - joinedMs) / 1000));
+
+      record = {
+        ...existing,
+        leftAt: now,
+        durationMinutes: durationMins,
+        durationSeconds: durationSecs,
+      };
+      currentList[idx] = record;
+      memoryDb.attendance.set(classId, currentList);
+    }
+
+    return record;
+  }
+
+  public async getAttendanceReport(classId: string): Promise<IAttendanceData[]> {
+    if (isFirebaseAdminInitialized()) {
+      try {
+        const snap = await db.collection('liveClasses').doc(classId).collection('attendance').get();
+        if (!snap.empty) {
+          return snap.docs.map((d) => d.data() as IAttendanceData);
+        }
+      } catch (err) {
+        logger.error('[REPO] Failed to get attendance from Firestore:', err);
       }
-      memoryDb.polls.set(classIdMatch, [...(memoryDb.polls.get(classIdMatch) || [])]);
-      return foundPoll;
+    }
+    return memoryDb.attendance.get(classId) || [];
+  }
+
+  // --- 3. Live Chat Operations ---
+
+  public async saveChatMessage(data: IChatMessageData): Promise<IChatMessageData> {
+    const msgId = data.id || `msg_${Date.now()}`;
+    const payload: IChatMessageData = {
+      ...data,
+      id: msgId,
+      createdAt: data.createdAt || new Date().toISOString(),
+    };
+
+    if (isFirebaseAdminInitialized()) {
+      try {
+        await db.collection('liveClasses').doc(data.classId).collection('chat').doc(msgId).set(payload);
+      } catch (err) {
+        logger.error('[REPO] Failed to save chat in Firestore:', err);
+      }
+    }
+
+    const existing = memoryDb.chat.get(data.classId) || [];
+    existing.push(payload);
+    memoryDb.chat.set(data.classId, existing);
+    return payload;
+  }
+
+  public async getChatMessages(classId: string): Promise<IChatMessageData[]> {
+    if (isFirebaseAdminInitialized()) {
+      try {
+        const snap = await db.collection('liveClasses').doc(classId).collection('chat').orderBy('createdAt', 'asc').get();
+        if (!snap.empty) {
+          return snap.docs.map((d) => d.data() as IChatMessageData);
+        }
+      } catch (err) {
+        logger.error('[REPO] Failed to fetch chat messages from Firestore:', err);
+      }
+    }
+    return memoryDb.chat.get(classId) || [];
+  }
+
+  public async deleteChatMessage(classId: string, messageId: string): Promise<boolean> {
+    if (isFirebaseAdminInitialized()) {
+      try {
+        await db.collection('liveClasses').doc(classId).collection('chat').doc(messageId).delete();
+      } catch (err) {
+        logger.error('[REPO] Failed to delete chat message in Firestore:', err);
+      }
+    }
+    const current = memoryDb.chat.get(classId) || [];
+    memoryDb.chat.set(classId, current.filter((m) => m.id !== messageId));
+    return true;
+  }
+
+  // --- 4. Live Questions Operations ---
+
+  public async createQuestion(data: IQuestionData): Promise<IQuestionData> {
+    const qId = data.id || `q_${Date.now()}`;
+    const payload: IQuestionData = {
+      ...data,
+      id: qId,
+      status: 'pending',
+      createdAt: data.createdAt || new Date().toISOString(),
+    };
+
+    if (isFirebaseAdminInitialized()) {
+      try {
+        await db.collection('liveClasses').doc(data.classId).collection('questions').doc(qId).set(payload);
+      } catch (err) {
+        logger.error('[REPO] Failed to create question in Firestore:', err);
+      }
+    }
+
+    const existing = memoryDb.questions.get(data.classId) || [];
+    existing.push(payload);
+    memoryDb.questions.set(data.classId, existing);
+    return payload;
+  }
+
+  public async updateQuestion(classId: string, questionId: string, updates: Partial<IQuestionData>): Promise<IQuestionData | null> {
+    const patch = { ...updates };
+    if (updates.status === 'answered' && !updates.answeredAt) {
+      patch.answeredAt = new Date().toISOString();
+    }
+
+    if (isFirebaseAdminInitialized()) {
+      try {
+        await db.collection('liveClasses').doc(classId).collection('questions').doc(questionId).update(patch);
+      } catch (err) {
+        logger.error('[REPO] Failed to update question in Firestore:', err);
+      }
+    }
+
+    const current = memoryDb.questions.get(classId) || [];
+    const idx = current.findIndex((q) => q.id === questionId);
+    if (idx >= 0) {
+      const updated = { ...current[idx], ...patch };
+      current[idx] = updated;
+      memoryDb.questions.set(classId, current);
+      return updated;
     }
     return null;
   }
 
-  // --- 4. Live Chat Operations ---
-  public async saveChatMessage(data: any): Promise<any> {
-    const msgId = `msg_${Date.now()}`;
-    const payload = { ...data, id: msgId, createdAt: new Date() };
-
-    if (isMongoConnected) {
+  public async getQuestions(classId: string): Promise<IQuestionData[]> {
+    if (isFirebaseAdminInitialized()) {
       try {
-        const doc = new LiveChatMessage(payload);
-        const saved = await doc.save();
-        return saved.toObject();
-      } catch (err: any) {
-        logger.error('[REPO] Failed to save chat message in Mongo:', err);
+        const snap = await db.collection('liveClasses').doc(classId).collection('questions').orderBy('createdAt', 'asc').get();
+        if (!snap.empty) {
+          return snap.docs.map((d) => d.data() as IQuestionData);
+        }
+      } catch (err) {
+        logger.error('[REPO] Failed to get questions from Firestore:', err);
+      }
+    }
+    return memoryDb.questions.get(classId) || [];
+  }
+
+  // --- 5. Live Polls Operations ---
+
+  public async createPoll(data: IPollData): Promise<IPollData> {
+    const pollId = data.id || `poll_${Date.now()}`;
+    const payload: IPollData = {
+      ...data,
+      id: pollId,
+      status: 'open',
+      createdAt: data.createdAt || new Date().toISOString(),
+    };
+
+    if (isFirebaseAdminInitialized()) {
+      try {
+        await db.collection('liveClasses').doc(data.classId).collection('polls').doc(pollId).set(payload);
+      } catch (err) {
+        logger.error('[REPO] Failed to create poll in Firestore:', err);
       }
     }
 
-    // Fallback
-    const existing = memoryDb.chatMessages.get(payload.classId) || [];
+    const existing = memoryDb.polls.get(data.classId) || [];
     existing.push(payload);
-    memoryDb.chatMessages.set(payload.classId, existing);
+    memoryDb.polls.set(data.classId, existing);
     return payload;
   }
 
-  public async getChatMessages(classId: string): Promise<any[]> {
-    if (isMongoConnected) {
+  public async votePoll(classId: string, pollId: string, optionIndex: number, userId: string): Promise<IPollData | null> {
+    let updatedPoll: IPollData | null = null;
+
+    if (isFirebaseAdminInitialized()) {
       try {
-        const docs = await LiveChatMessage.find({ classId }).sort({ createdAt: 1 });
-        return docs.map(d => d.toObject());
-      } catch (err: any) {
-        logger.error('[REPO] Failed to fetch chat messages in Mongo:', err);
+        const docRef = db.collection('liveClasses').doc(classId).collection('polls').doc(pollId);
+        const snap = await docRef.get();
+        if (snap.exists) {
+          const poll = snap.data() as IPollData;
+          if (poll.status === 'open' && poll.options[optionIndex]) {
+            // Remove previous vote if user voted
+            poll.options.forEach((opt) => {
+              opt.voters = opt.voters.filter((id) => id !== userId);
+              opt.votesCount = opt.voters.length;
+            });
+            // Add new vote
+            poll.options[optionIndex].voters.push(userId);
+            poll.options[optionIndex].votesCount = poll.options[optionIndex].voters.length;
+
+            await docRef.set(poll, { merge: true });
+            updatedPoll = poll;
+          }
+        }
+      } catch (err) {
+        logger.error('[REPO] Failed to submit poll vote in Firestore:', err);
       }
     }
 
-    return memoryDb.chatMessages.get(classId) || [];
+    const currentList = memoryDb.polls.get(classId) || [];
+    const idx = currentList.findIndex((p) => p.id === pollId);
+    if (idx >= 0) {
+      const poll = currentList[idx];
+      if (poll.status === 'open' && poll.options[optionIndex]) {
+        poll.options.forEach((opt) => {
+          opt.voters = opt.voters.filter((id) => id !== userId);
+          opt.votesCount = opt.voters.length;
+        });
+        poll.options[optionIndex].voters.push(userId);
+        poll.options[optionIndex].votesCount = poll.options[optionIndex].voters.length;
+
+        currentList[idx] = poll;
+        memoryDb.polls.set(classId, currentList);
+        updatedPoll = poll;
+      }
+    }
+
+    return updatedPoll;
   }
 
-  // --- 5. Attendance & Participants Operations ---
-  public async recordAttendance(data: any): Promise<any> {
-    if (isMongoConnected) {
+  public async getPolls(classId: string): Promise<IPollData[]> {
+    if (isFirebaseAdminInitialized()) {
       try {
-        const doc = new Attendance(data);
-        const saved = await doc.save();
-        return saved.toObject();
-      } catch (err: any) {
-        logger.error('[REPO] Failed to save attendance in Mongo:', err);
+        const snap = await db.collection('liveClasses').doc(classId).collection('polls').get();
+        if (!snap.empty) {
+          return snap.docs.map((d) => d.data() as IPollData);
+        }
+      } catch (err) {
+        logger.error('[REPO] Failed to get polls from Firestore:', err);
       }
     }
-
-    // Fallback
-    const existing = memoryDb.attendance.get(data.classId) || [];
-    existing.push(data);
-    memoryDb.attendance.set(data.classId, existing);
-    return data;
+    return memoryDb.polls.get(classId) || [];
   }
 
-  public async getAttendanceReport(classId: string): Promise<any[]> {
-    if (isMongoConnected) {
+  // --- 6. Live Notes Operations ---
+
+  public async createNote(data: INoteData): Promise<INoteData> {
+    const noteId = data.id || `note_${Date.now()}`;
+    const payload: INoteData = {
+      ...data,
+      id: noteId,
+      createdAt: data.createdAt || new Date().toISOString(),
+    };
+
+    if (isFirebaseAdminInitialized()) {
       try {
-        const docs = await Attendance.find({ classId });
-        return docs.map(d => d.toObject());
-      } catch (err: any) {
-        logger.error('[REPO] Failed to fetch attendance report in Mongo:', err);
+        await db.collection('liveClasses').doc(data.classId).collection('notes').doc(noteId).set(payload);
+      } catch (err) {
+        logger.error('[REPO] Failed to save note in Firestore:', err);
       }
     }
 
-    return memoryDb.attendance.get(classId) || [];
+    const existing = memoryDb.notes.get(data.classId) || [];
+    existing.push(payload);
+    memoryDb.notes.set(data.classId, existing);
+    return payload;
   }
 
-  // --- 6. AI Insights Reports ---
-  public async saveAIReport(data: any): Promise<any> {
-    if (isMongoConnected) {
+  public async getNotes(classId: string): Promise<INoteData[]> {
+    if (isFirebaseAdminInitialized()) {
       try {
-        const doc = new LiveAIReport(data);
-        const saved = await doc.save();
-        return saved.toObject();
-      } catch (err: any) {
-        logger.error('[REPO] Failed to save AI report in Mongo:', err);
+        const snap = await db.collection('liveClasses').doc(classId).collection('notes').get();
+        if (!snap.empty) {
+          return snap.docs.map((d) => d.data() as INoteData);
+        }
+      } catch (err) {
+        logger.error('[REPO] Failed to get notes from Firestore:', err);
       }
     }
-
-    // Fallback
-    memoryDb.aiReports.set(data.classId, data);
-    return data;
+    return memoryDb.notes.get(classId) || [];
   }
 
-  public async getAIReport(classId: string): Promise<any> {
-    if (isMongoConnected) {
+  // --- 7. Resource Operations ---
+
+  public async createResource(data: IResourceData): Promise<IResourceData> {
+    const resId = data.id || `res_${Date.now()}`;
+    const payload: IResourceData = {
+      ...data,
+      id: resId,
+      createdAt: data.createdAt || new Date().toISOString(),
+    };
+
+    if (isFirebaseAdminInitialized()) {
       try {
-        const found = await LiveAIReport.findOne({ classId }).sort({ createdAt: -1 });
-        if (found) return found.toObject();
-      } catch (err: any) {
-        logger.error('[REPO] Failed to fetch AI report in Mongo:', err);
+        await db.collection('liveClasses').doc(data.classId).collection('resources').doc(resId).set(payload);
+      } catch (err) {
+        logger.error('[REPO] Failed to save resource in Firestore:', err);
       }
     }
 
-    return memoryDb.aiReports.get(classId) || null;
+    const existing = memoryDb.resources.get(data.classId) || [];
+    existing.push(payload);
+    memoryDb.resources.set(data.classId, existing);
+    return payload;
+  }
+
+  public async getResources(classId: string): Promise<IResourceData[]> {
+    if (isFirebaseAdminInitialized()) {
+      try {
+        const snap = await db.collection('liveClasses').doc(classId).collection('resources').get();
+        if (!snap.empty) {
+          return snap.docs.map((d) => d.data() as IResourceData);
+        }
+      } catch (err) {
+        logger.error('[REPO] Failed to get resources from Firestore:', err);
+      }
+    }
+    return memoryDb.resources.get(classId) || [];
   }
 }
+
 export const liveClassroomRepository = new LiveClassroomRepository();
