@@ -176,43 +176,33 @@ html.dark ::-webkit-scrollbar-thumb {
   background: #2563EB;
 }
 
-/* Global Dark Mode High-Contrast Rules */
+/* Global Dark Mode High-Contrast Rules (Fallback for elements without explicit dark: classes) */
 html.dark body {
-  color: #F8FAFC !important;
+  color: #F8FAFC;
 }
 
-html.dark h1,
-html.dark h2,
-html.dark h3,
-html.dark h4,
-html.dark h5,
-html.dark h6 {
-  color: #FFFFFF !important;
+html.dark :where(h1, h2, h3, h4, h5, h6) {
+  color: #FFFFFF;
 }
 
-html.dark .text-slate-900,
-html.dark .text-slate-800,
-html.dark .text-slate-700 {
-  color: #F8FAFC !important;
+html.dark :where(.text-slate-900, .text-slate-800, .text-slate-700):not([class*="dark:text-"]) {
+  color: #F8FAFC;
 }
 
-html.dark .text-slate-600,
-html.dark .text-slate-500 {
-  color: #CBD5E1 !important;
+html.dark :where(.text-slate-600, .text-slate-500):not([class*="dark:text-"]) {
+  color: #CBD5E1;
 }
 
-html.dark .bg-white {
-  background-color: #0E1325 !important;
+html.dark :where(.bg-white):not([class*="dark:bg-"]) {
+  background-color: #0E1325;
 }
 
-html.dark .bg-slate-50 {
-  background-color: #090B16 !important;
+html.dark :where(.bg-slate-50):not([class*="dark:bg-"]) {
+  background-color: #090B16;
 }
 
-html.dark .border-slate-200,
-html.dark .border-slate-100,
-html.dark .border-sky-100 {
-  border-color: #1E294B !important;
+html.dark :where(.border-slate-200, .border-slate-100, .border-sky-100):not([class*="dark:border-"]) {
+  border-color: #1E294B;
 }
 
 /* Premium Buttons & Interactive Elements */
