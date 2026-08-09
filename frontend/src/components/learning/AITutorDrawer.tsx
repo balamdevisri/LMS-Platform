@@ -116,7 +116,7 @@ export const AITutorDrawer: React.FC<AITutorDrawerProps> = ({
     {
       id: '1',
       sender: 'ai',
-      text: `Hello! I am your SHAIVIKA AI Tutor. I can help explain concepts in **"${lessonTitle}"**, debug commands, or write custom practice code for you! What would you like assistance with?`,
+      text: `Hello! I am your KaizenQ AI Tutor. I can help explain concepts in **"${lessonTitle}"**, debug commands, or write custom practice code for you! What would you like assistance with?`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
   ]);

@@ -144,7 +144,7 @@ export const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
       }
     } else {
       // Default welcome context
-      let welcomeText = `Hello! I am your Shaivika AI Learning Assistant. 🧠\n\nI have loaded the syllabus context for "**${lessonTitle}**" (${lessonType.toUpperCase()} lesson).\n\nAsk me anything about this topic, translate explanations, or explore custom summaries, quiz modules, and revision logs!`;
+      let welcomeText = `Hello! I am your KaizenQ AI Learning Assistant. 🧠\n\nI have loaded the syllabus context for "**${lessonTitle}**" (${lessonType.toUpperCase()} lesson).\n\nAsk me anything about this topic, translate explanations, or explore custom summaries, quiz modules, and revision logs!`;
       if (hasChallenge) {
         welcomeText += `\n\n💻 **Practice Lab Challenge Enabled**: This topic contains a coding challenge! Try asking me:\n- *"Explain my code"*\n- *"Find bugs in my solution"*\n- *"Suggest optimizations"*\n- *"Explain space complexity"*`;
       }
