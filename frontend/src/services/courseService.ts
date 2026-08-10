@@ -5,6 +5,7 @@ export type { ICourse };
 import { gitCourseModules } from '@/data/gitCourseFullData';
 import { kubernetesCourseModules } from '@/data/kubernetesCourseFullData';
 import { reactCourseModules } from '@/data/reactCourseFullData';
+import { cCourseModules } from '@/data/cCourseFullData';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -427,6 +428,61 @@ const DEFAULT_COURSES: ICourse[] = [
     modules: reactCourseModules,
     createdAt: new Date('2026-08-08').toISOString(),
     updatedAt: new Date('2026-08-08').toISOString(),
+  },
+  {
+    id: 'c-programming-course-id',
+    title: 'C Programming',
+    slug: 'c-programming',
+    shortDescription: 'Complete C Programming course covering fundamentals, programming concepts, advanced C, data structures, practical programs, interview preparation, and final revision.',
+    description: 'Complete C Programming course covering fundamentals, programming concepts, advanced C, data structures, practical programs, interview preparation, and final revision.',
+    thumbnail: 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=800&q=80',
+    banner: 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=800&q=80',
+    category: 'Programming',
+    level: 'all_levels',
+    duration: '35 Hours',
+    language: 'English',
+    price: 0,
+    instructor: {
+      id: 'inst_kaizen',
+      name: 'Kaizen Q Team',
+      role: 'Senior Technical Instructor',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    },
+    skills: ['C Programming', 'Pointers', 'Dynamic Memory', 'File Handling', 'Data Structures', 'Preprocessors'],
+    prerequisites: ['Basic computer knowledge'],
+    learningOutcomes: [
+      'Understand C fundamentals, compiler mechanics, variables and data types',
+      'Master control flow, loops, functions and recursion in C',
+      'Harness pointers, arrays, strings and dynamic memory allocation',
+      'Implement data structures like lists, stacks, and queues, and manage files'
+    ],
+    status: 'published',
+    visibility: 'public',
+    featured: true,
+    tags: ['c', 'programming', 'basics', 'pointers', 'data-structures'],
+    enrollmentCount: 180,
+    rating: 5.0,
+    ratingCount: 180,
+    syllabus: [
+      { id: 'c-mod-1', title: 'Module 1: Introduction to C Programming', description: 'History of C, Features, Applications, C program structure, Compilation process, First C program.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'c-mod-2', title: 'Module 2: Variables, Constants & Data Types', description: 'Variables, Constants, int, float, char, double, Type conversion.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'c-mod-3', title: 'Module 3: Operators & Expressions', description: 'Arithmetic, Relational, Logical, Assignment, Increment/Decrement, Bitwise operators.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'c-mod-4', title: 'Module 4: Input, Output & Decision-Making Statements', description: 'printf(), scanf(), if, if-else, Nested conditions.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'c-mod-5', title: 'Module 5: Loops & Iteration', description: 'for, while, do-while, Nested loops, break, continue.', duration: '3 Hours', lessonsCount: 1 },
+      { id: 'c-mod-6', title: 'Module 6: Functions', description: 'Function declaration, Definition, Calling, Parameters, Return values, Recursion.', duration: '3 Hours', lessonsCount: 1 },
+      { id: 'c-mod-7', title: 'Module 7: Arrays', description: 'One-dimensional arrays, Two-dimensional arrays, Array traversal, Searching, Sorting.', duration: '3 Hours', lessonsCount: 1 },
+      { id: 'c-mod-8', title: 'Module 8: Strings', description: 'Character arrays, String input/output, String functions, String manipulation.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'c-mod-9', title: 'Module 9: Pointers', description: 'Addresses, Pointer variables, Dereferencing, Pointer arithmetic, Pointers and arrays.', duration: '3 Hours', lessonsCount: 1 },
+      { id: 'c-mod-10', title: 'Module 10: Structures, Unions & Enumerations', description: 'struct, Nested structures, Array of structures, union, enum.', duration: '3 Hours', lessonsCount: 1 },
+      { id: 'c-mod-11', title: 'Module 11: Dynamic Memory Allocation', description: 'Stack vs Heap, malloc(), calloc(), realloc(), free.', duration: '3 Hours', lessonsCount: 1 },
+      { id: 'c-mod-12', title: 'Module 12: File Handling', description: 'File pointers, fopen(), fclose(), fprintf(), fscanf(), Reading/writing files.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'c-mod-13', title: 'Module 13: Preprocessor & Advanced C', description: '#include, #define, Macros, Conditional compilation, Command-line arguments, Storage classes.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'c-mod-14', title: 'Module 14: Data Structures & C Projects', description: 'Linked Lists, Stacks, Queues, Searching, Sorting, Real-world C projects.', duration: '3 Hours', lessonsCount: 1 },
+      { id: 'c-mod-15', title: 'Module 15: Advanced C Concepts & Final Revision', description: 'Important interview questions, Coding problems, Output-based questions, Debugging, Common mistakes.', duration: '3 Hours', lessonsCount: 1 }
+    ],
+    modules: cCourseModules,
+    createdAt: new Date('2026-08-10').toISOString(),
+    updatedAt: new Date('2026-08-10').toISOString(),
   }
 ];
 
@@ -548,6 +604,7 @@ function normalizeCourseToICourse(c: any): ICourse {
   const getSmartThumbnail = (title?: string, category?: string) => {
     const t = (title || '').toLowerCase();
     const cat = (category || '').toLowerCase();
+    if (t.includes('c programming') || t.includes('c language') || t === 'c') return 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=800&q=80';
     if (t.includes('linux') || cat.includes('linux')) return '/assets/images/linux_course_thumbnail.webp';
     if (t.includes('git') || cat.includes('git') || t.includes('github')) return '/assets/images/github_course_banner.webp';
     if (t.includes('ai') || cat.includes('ai') || t.includes('machine learning') || t.includes('llm')) return 'https://images.unsplash.com/photo-1677442136019-21780efad99a?auto=format&fit=crop&w=800&q=80';

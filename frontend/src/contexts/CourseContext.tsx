@@ -4,6 +4,7 @@ import { query, collection, where, getDocs } from 'firebase/firestore';
 import { gitCourseModules } from '@/data/gitCourseFullData';
 import { kubernetesCourseModules } from '@/data/kubernetesCourseFullData';
 import { reactCourseModules } from '@/data/reactCourseFullData';
+import { cCourseModules } from '@/data/cCourseFullData';
 import { courseService } from '@/services/courseService';
 
 export type LearningUnitType = 'Video' | 'Reading' | 'Quiz' | 'Assignment';
@@ -724,6 +725,44 @@ const initialDefaultCoursesRaw: CourseItem[] = [
     ],
     createdAt: new Date('2026-08-08').toISOString(),
     modules: reactCourseModules
+  },
+  {
+    id: 'c-programming-course-id',
+    title: 'C Programming',
+    subtitle: '💻 C Programming',
+    instructor: 'Kaizen Q Team',
+    role: 'Senior Technical Instructor',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    rating: 5.0,
+    reviews: 180,
+    students: '0',
+    duration: '35 Hours',
+    category: 'Programming',
+    level: 'All Levels',
+    badge: 'Standard Track',
+    tracks: '15 Modules (35 Hours)',
+    status: 'Published',
+    thumbnail: 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=800&q=80',
+    description: 'Complete C Programming course covering fundamentals, programming concepts, advanced C, data structures, practical programs, interview preparation, and final revision.',
+    syllabus: [
+      'Module 1: Introduction to C Programming',
+      'Module 2: Variables, Constants & Data Types',
+      'Module 3: Operators & Expressions',
+      'Module 4: Input, Output & Decision-Making Statements',
+      'Module 5: Loops & Iteration',
+      'Module 6: Functions',
+      'Module 7: Arrays',
+      'Module 8: Strings',
+      'Module 9: Pointers',
+      'Module 10: Structures, Unions & Enumerations',
+      'Module 11: Dynamic Memory Allocation',
+      'Module 12: File Handling',
+      'Module 13: Preprocessor & Advanced C',
+      'Module 14: Data Structures & C Projects',
+      'Module 15: Advanced C Concepts & Final Revision',
+    ],
+    createdAt: new Date('2026-08-10').toISOString(),
+    modules: cCourseModules
   }
 ];
 
@@ -822,6 +861,23 @@ const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
         modules: mergeCourseModules(defaultReactCourse.modules, c.modules),
       };
       map.set(key, updatedItem);
+    } else if (
+      title.includes('c programming') ||
+      title.includes('c language') ||
+      String(c.id) === 'c-programming-course-id'
+    ) {
+      const key = 'c-programming-course-id';
+      const defaultCCourse = initialDefaultCourses.find(item => item.id === 'c-programming-course-id') || c;
+      const updatedItem: CourseItem = {
+        ...defaultCCourse,
+        ...c,
+        id: 'c-programming-course-id',
+        title: 'C Programming',
+        subtitle: '💻 C Programming',
+        thumbnail: c.thumbnail || 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=800&q=80',
+        modules: mergeCourseModules(defaultCCourse.modules, c.modules),
+      };
+      map.set(key, updatedItem);
     } else {
       map.set(String(c.id), c);
     }
@@ -841,6 +897,9 @@ const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
   }
   if (!map.has('react-js-complete-course')) {
     map.set('react-js-complete-course', initialDefaultCourses.find(item => item.id === 'react-js-complete-course') || initialDefaultCourses[4]);
+  }
+  if (!map.has('c-programming-course-id')) {
+    map.set('c-programming-course-id', initialDefaultCourses.find(item => item.id === 'c-programming-course-id') || initialDefaultCourses[5]);
   }
 
   return Array.from(map.values()).filter(item => !String(item.title || '').toLowerCase().includes('untitled'));

@@ -6,6 +6,7 @@ import { fromDocument, handleFirestoreError, toDocument } from '../../utils/fire
 import * as admin from 'firebase-admin';
 import { db } from '../../firebase';
 import { LiveClass } from '../../models/mongo/liveClassroom.model';
+import { cSyllabusNotes } from './cSyllabusData';
 
 /**
  * Formats Zod validation errors into a human-readable comma-separated string.
@@ -511,6 +512,42 @@ export class CourseService {
           certificate: true,
           featured: true,
           createdBy: 'seeder',
+        },
+        {
+          title: 'C Programming',
+          slug: 'c-programming',
+          description: 'Complete C Programming course covering fundamentals, programming concepts, advanced C, data structures, practical programs, interview preparation, and final revision.',
+          shortDescription: 'Complete C Programming course covering fundamentals, programming concepts, and advanced C.',
+          category: 'Programming',
+          subcategory: 'C',
+          level: 'all_levels',
+          thumbnail: 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=800&q=80',
+          bannerImage: 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=800&q=80',
+          duration: '35 Hours',
+          price: 0,
+          currency: 'INR',
+          status: 'published',
+          language: 'English',
+          instructor: {
+            uid: 'instructor-kaizen-q',
+            name: 'Kaizen Q Team',
+          },
+          lessonsCount: 15,
+          modulesCount: 15,
+          studentsEnrolled: 0,
+          rating: 5.0,
+          totalRatings: 180,
+          tags: ['c', 'programming', 'basics', 'pointers', 'data-structures'],
+          prerequisites: ['Basic computer knowledge'],
+          learningOutcomes: [
+            'Understand C fundamentals, compiler mechanics, variables and data types',
+            'Master control flow, loops, functions and recursion in C',
+            'Harness pointers, arrays, strings and dynamic memory allocation',
+            'Implement data structures like lists, stacks, and queues, and manage files'
+          ],
+          certificate: true,
+          featured: true,
+          createdBy: 'seeder',
         }
       ];
 
@@ -518,7 +555,7 @@ export class CourseService {
       for (const courseData of sampleCourses) {
         const existing = await this.collection().where('slug', '==', courseData.slug).limit(1).get();
         if (existing.empty) {
-          const docRef = this.collection().doc(courseData.slug === 'git-github-mastery' ? 'git-github-mastery-course-id' : (courseData.slug === 'database-management-system' ? 'database-management-system' : (courseData.slug === 'kubernetes-complete-course-beginner-to-advanced' ? 'kubernetes-complete-course-beginner-to-advanced' : (courseData.slug === 'react-js-complete-course' ? 'react-js-complete-course' : this.collection().doc().id))));
+          const docRef = this.collection().doc(courseData.slug === 'git-github-mastery' ? 'git-github-mastery-course-id' : (courseData.slug === 'database-management-system' ? 'database-management-system' : (courseData.slug === 'kubernetes-complete-course-beginner-to-advanced' ? 'kubernetes-complete-course-beginner-to-advanced' : (courseData.slug === 'react-js-complete-course' ? 'react-js-complete-course' : (courseData.slug === 'c-programming' ? 'c-programming-course-id' : this.collection().doc().id)))));
           const course: Course = {
             ...courseData,
             id: docRef.id,
@@ -538,6 +575,8 @@ export class CourseService {
             await this.seedReactCourseDetails(docRef.id);
           } else if (courseData.slug === 'react-js-complete-course') {
             await this.seedReactCourseDetails(docRef.id);
+          } else if (courseData.slug === 'c-programming') {
+            await this.seedCCourseDetails(docRef.id);
           }
         } else {
           // If the course exists, update its details to ensure the requested instructor/desc etc. are correct.
@@ -559,6 +598,8 @@ export class CourseService {
             await this.seedReactCourseDetails(courseDoc.id);
           } else if (courseData.slug === 'react-js-complete-course') {
             await this.seedReactCourseDetails(courseDoc.id);
+          } else if (courseData.slug === 'c-programming') {
+            await this.seedCCourseDetails(courseDoc.id);
           }
         }
       }
@@ -6374,6 +6415,112 @@ Deploy a React application on Vercel or Netlify.`
       console.log('Successfully seeded React JS course structure.');
     } catch (error) {
       console.error('Error seeding React JS course details:', error);
+    }
+  }
+
+  /**
+   * Seeds Modules, Lessons, Quizzes, and Assignments for the C Programming course.
+   */
+  async seedCCourseDetails(courseId: string): Promise<void> {
+    try {
+      const { modulesCollection, lessonsCollection, quizzesCollection, assignmentsCollection, coursesCollection } = await import('../../firebase/collections');
+      
+      console.log('Seeding C Programming detailed syllabus collections...');
+
+      const modulesData = [
+        { id: 'c-mod-1', title: 'Module 1: Introduction to C Programming', order: 1, duration: '2 Hours' },
+        { id: 'c-mod-2', title: 'Module 2: Variables, Constants & Data Types', order: 2, duration: '2 Hours' },
+        { id: 'c-mod-3', title: 'Module 3: Operators & Expressions', order: 3, duration: '2 Hours' },
+        { id: 'c-mod-4', title: 'Module 4: Input, Output & Decision-Making Statements', order: 4, duration: '2 Hours' },
+        { id: 'c-mod-5', title: 'Module 5: Loops & Iteration', order: 5, duration: '3 Hours' },
+        { id: 'c-mod-6', title: 'Module 6: Functions', order: 6, duration: '3 Hours' },
+        { id: 'c-mod-7', title: 'Module 7: Arrays', order: 7, duration: '3 Hours' },
+        { id: 'c-mod-8', title: 'Module 8: Strings', order: 8, duration: '2 Hours' },
+        { id: 'c-mod-9', title: 'Module 9: Pointers', order: 9, duration: '3 Hours' },
+        { id: 'c-mod-10', title: 'Module 10: Structures, Unions & Enumerations', order: 10, duration: '3 Hours' },
+        { id: 'c-mod-11', title: 'Module 11: Dynamic Memory Allocation', order: 11, duration: '3 Hours' },
+        { id: 'c-mod-12', title: 'Module 12: File Handling', order: 12, duration: '2 Hours' },
+        { id: 'c-mod-13', title: 'Module 13: Preprocessor & Advanced C', order: 13, duration: '2 Hours' },
+        { id: 'c-mod-14', title: 'Module 14: Data Structures & C Projects', order: 14, duration: '3 Hours' },
+        { id: 'c-mod-15', title: 'Module 15: Advanced C Concepts & Final Revision', order: 15, duration: '3 Hours' },
+      ];
+
+      for (const mod of modulesData) {
+        await modulesCollection().doc(mod.id).set(toDocument({
+          id: mod.id,
+          title: mod.title,
+          order: mod.order,
+          duration: mod.duration,
+          courseId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }));
+      }
+
+      // Create exactly 1 reading unit per module
+      const modulesForCourseDoc: any[] = [];
+      const { cSyllabusNotes } = await import('./cSyllabusData');
+
+      for (const mod of modulesData) {
+        const lessonId = `c-unit-${mod.order}-notes`;
+        const lessonTitle = `Module ${mod.order} - Complete Notes`;
+        const lessonDesc = `${mod.title} Complete Notes.`;
+        const lessonContent = cSyllabusNotes[mod.order] || `### ${lessonTitle}\n\nContent for ${mod.title} will be added later.`;
+        
+        // Write to lessons collection in Firestore
+        await lessonsCollection().doc(lessonId).set(toDocument({
+          id: lessonId,
+          title: lessonTitle,
+          description: lessonDesc,
+          order: 1,
+          duration: '45 mins',
+          type: 'reading',
+          readingTime: '45 mins',
+          content: lessonContent,
+          courseId,
+          moduleId: mod.id,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }));
+
+        // Build nested structure
+        modulesForCourseDoc.push({
+          id: mod.id,
+          title: mod.title,
+          description: mod.title,
+          duration: mod.duration,
+          topics: [
+            {
+              id: `c-topic-${mod.order}`,
+              title: `Topic ${mod.order}: Module ${mod.order} Content`,
+              description: `Module ${mod.order} Content`,
+              estimatedDuration: '45 mins',
+              learningUnits: [
+                {
+                  id: lessonId,
+                  title: lessonTitle,
+                  description: lessonDesc,
+                  duration: '45 mins',
+                  type: 'Reading',
+                  readingContent: lessonContent
+                }
+              ]
+            }
+          ]
+        });
+      }
+
+      // Save nested structure directly to course document
+      await coursesCollection().doc(courseId).update({
+        modules: modulesForCourseDoc,
+        modulesCount: 15,
+        lessonsCount: 15,
+        updatedAt: new Date()
+      });
+
+      console.log('Successfully seeded C Programming course structure with 15 modules.');
+    } catch (error) {
+      console.error('Error seeding C Programming course details:', error);
     }
   }
 }
