@@ -1145,6 +1145,12 @@ export const LessonViewer: React.FC<LessonViewerProps> = React.memo(({
       return '/assets/images/c_course_thumbnail.png';
     }
 
+    // Python track
+    const isPython = _courseId === 'python-through-oops-course-id' || _courseId.toLowerCase().includes('python');
+    if (isPython) {
+      return '/assets/images/python_course_thumbnail.png';
+    }
+
     // Final default fallback based on course if possible, otherwise generic fallback
     if (_courseId.includes('linux') || _courseId === '1') {
       return '/assets/images/linux_course_thumbnail.webp';
@@ -1157,6 +1163,9 @@ export const LessonViewer: React.FC<LessonViewerProps> = React.memo(({
     }
     if (_courseId === 'c-programming-course-id') {
       return '/assets/images/c_course_thumbnail.png';
+    }
+    if (_courseId === 'python-through-oops-course-id') {
+      return '/assets/images/python_course_thumbnail.png';
     }
     return '/assets/images/react_logo_frontend.png';
   }, [lesson.title, isGitCourse, _courseId]);

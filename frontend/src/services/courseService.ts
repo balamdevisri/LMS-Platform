@@ -6,6 +6,7 @@ import { gitCourseModules } from '@/data/gitCourseFullData';
 import { kubernetesCourseModules } from '@/data/kubernetesCourseFullData';
 import { reactCourseModules } from '@/data/reactCourseFullData';
 import { cCourseModules } from '@/data/cCourseFullData';
+import { pythonCourseModules } from '@/data/pythonCourseFullData';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -483,6 +484,61 @@ const DEFAULT_COURSES: ICourse[] = [
     modules: cCourseModules,
     createdAt: new Date('2026-08-10').toISOString(),
     updatedAt: new Date('2026-08-10').toISOString(),
+  },
+  {
+    id: 'python-through-oops-course-id',
+    title: 'Python Through OOPs',
+    slug: 'python-through-oops',
+    shortDescription: 'Complete Python Through OOPs course covering Python fundamentals, control flow, functions, intermediate concepts, and object-oriented programming.',
+    description: 'Complete Python Through OOPs course covering Python fundamentals, control flow, functions, intermediate concepts, object-oriented programming, and practical application.',
+    thumbnail: '/assets/images/python_course_thumbnail.png',
+    banner: '/assets/images/python_course_thumbnail.png',
+    category: 'Programming',
+    level: 'all_levels',
+    duration: '35 Hours',
+    language: 'English',
+    price: 0,
+    instructor: {
+      id: 'inst_kaizen',
+      name: 'Kaizen Q Team',
+      role: 'Senior Technical Instructor',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    },
+    skills: ['Python', 'OOP', 'Classes', 'Inheritance', 'Polymorphism', 'Exception Handling', 'File Handling'],
+    prerequisites: ['Basic computer knowledge'],
+    learningOutcomes: [
+      'Understand Python fundamentals, variables, and data types',
+      'Master control flow, conditional statements, and loops in Python',
+      'Harness functions, modules, packages, and exception handling',
+      'Implement object-oriented programming concept pillars (encapsulation, inheritance, polymorphism, abstraction) and projects'
+    ],
+    status: 'published',
+    visibility: 'public',
+    featured: true,
+    tags: ['python', 'programming', 'basics', 'oop', 'object-oriented'],
+    enrollmentCount: 180,
+    rating: 5.0,
+    ratingCount: 180,
+    syllabus: [
+      { id: 'python-mod-1', title: 'Module 1: Introduction to Python', description: 'Python features, history, environment setup, syntax, comments, keywords, case-sensitivity, and indentation.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'python-mod-2', title: 'Module 2: Variables & Data Types', description: 'Variables assignment, identifiers rules, dynamic typing, numeric/text/boolean types, and mutability vs immutability.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'python-mod-3', title: 'Module 3: Operators', description: 'Arithmetic, comparison, assignment, logical short-circuit, bitwise, membership, identity, and precedence rules.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'python-mod-4', title: 'Module 4: Input, Output & Basic Programs', description: 'Input casting, print sep/end formatting, f-strings, swapping, digit extracting, and time/interest scripts.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'python-mod-5', title: 'Module 5: Conditional Statements', description: 'If-elif-else branches, nesting, conditional expressions (ternary), truthy/falsy objects, and range/ATM checks.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'python-mod-6', title: 'Module 6: Loops', description: 'For, while loops, range step sequences, loop-else blocks, break/continue, pattern printing, and prime checkers.', duration: '3 Hours', lessonsCount: 1 },
+      { id: 'python-mod-7', title: 'Module 7: Strings', description: 'String index positive/negative, slicing, immutability, built-in string methods, checks, and formatting.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'python-mod-8', title: 'Module 8: Python Collections', description: 'Lists, tuples, sets, dictionaries definitions, methods, differences, list comprehensions, and nested collections.', duration: '3 Hours', lessonsCount: 1 },
+      { id: 'python-mod-9', title: 'Module 9: Functions', description: 'Defining functions, parameters vs arguments, return value, default params, *args, **kwargs, scope, recursion, and lambdas.', duration: '3 Hours', lessonsCount: 1 },
+      { id: 'python-mod-10', title: 'Module 10: Modules, Packages & Exception Handling', description: 'Modules import syntax, packages directory structures, try-except-else-finally blocks, raise exceptions, and asserts.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'python-mod-11', title: 'Module 11: File Handling', description: 'File streams open modes, read, readline, write, append, with context managers, seek/tell pointers, and CSV.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'python-mod-12', title: 'Module 12: OOP Fundamentals', description: 'Classes, object instances, __init__ constructor, self parameter, instance vs class attributes, methods, and dunders.', duration: '3 Hours', lessonsCount: 1 },
+      { id: 'python-mod-13', title: 'Module 13: Four Pillars of OOP', description: 'Encapsulation, inheritance, polymorphism, abstraction, access qualifiers, getters/setters, super(), and abstract base classes.', duration: '3 Hours', lessonsCount: 1 },
+      { id: 'python-mod-14', title: 'Module 14: Advanced OOP in Python', description: 'Inheritance types, MRO search order algorithm, Diamond problem, class methods, static methods, and operator overloading.', duration: '3 Hours', lessonsCount: 1 },
+      { id: 'python-mod-15', title: 'Module 15: Intermediate Python & OOP Project', description: 'Iterators, generators, decorators, map/filter/reduce lambdas, zip/enumerate, type hints, and student management project.', duration: '3 Hours', lessonsCount: 1 }
+    ],
+    modules: pythonCourseModules,
+    createdAt: new Date('2026-08-11').toISOString(),
+    updatedAt: new Date('2026-08-11').toISOString(),
   }
 ];
 
@@ -610,7 +666,7 @@ function normalizeCourseToICourse(c: any): ICourse {
     if (t.includes('ai') || cat.includes('ai') || t.includes('machine learning') || t.includes('llm')) return 'https://images.unsplash.com/photo-1677442136019-21780efad99a?auto=format&fit=crop&w=800&q=80';
     if (t.includes('devops') || cat.includes('devops') || t.includes('cloud') || t.includes('docker')) return 'https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?auto=format&fit=crop&w=800&q=80';
     if (t.includes('react') || t.includes('web') || t.includes('javascript') || t.includes('frontend')) return 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&w=800&q=80';
-    if (t.includes('python') || t.includes('data')) return 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=800&q=80';
+    if (t.includes('python') || t.includes('oop')) return '/assets/images/python_course_thumbnail.png';
     return 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=800&q=80';
   };
 
@@ -624,6 +680,10 @@ function normalizeCourseToICourse(c: any): ICourse {
 
   if (String(c.id) === 'c-programming-course-id' || courseTitle.toLowerCase().includes('c programming')) {
     courseThumbnail = '/assets/images/c_course_thumbnail.png';
+  }
+
+  if (String(c.id) === 'python-through-oops-course-id' || courseTitle.toLowerCase().includes('python')) {
+    courseThumbnail = '/assets/images/python_course_thumbnail.png';
   }
 
   const slug = c.slug || c.title?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || `course-${c.id}`;
