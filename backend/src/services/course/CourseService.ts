@@ -548,6 +548,42 @@ export class CourseService {
           certificate: true,
           featured: true,
           createdBy: 'seeder',
+        },
+        {
+          title: 'Python Through OOPs',
+          slug: 'python-through-oops',
+          description: 'Complete Python Through OOPs course covering Python fundamentals, control flow, functions, intermediate concepts, object-oriented programming, and practical application.',
+          shortDescription: 'Complete Python Through OOPs course covering Python fundamentals, control flow, functions, intermediate concepts, and object-oriented programming.',
+          category: 'Programming',
+          subcategory: 'Python',
+          level: 'all_levels',
+          thumbnail: '/assets/images/python_course_thumbnail.png',
+          bannerImage: '/assets/images/python_course_thumbnail.png',
+          duration: '35 Hours',
+          price: 0,
+          currency: 'INR',
+          status: 'published',
+          language: 'English',
+          instructor: {
+            uid: 'instructor-kaizen-q',
+            name: 'Kaizen Q Team',
+          },
+          lessonsCount: 15,
+          modulesCount: 15,
+          studentsEnrolled: 0,
+          rating: 5.0,
+          totalRatings: 180,
+          tags: ['python', 'programming', 'basics', 'oop', 'object-oriented'],
+          prerequisites: ['Basic computer knowledge'],
+          learningOutcomes: [
+            'Understand Python fundamentals, variables, and data types',
+            'Master control flow, conditional statements, and loops in Python',
+            'Harness functions, modules, packages, and exception handling',
+            'Implement object-oriented programming concept pillars (encapsulation, inheritance, polymorphism, abstraction) and projects'
+          ],
+          certificate: true,
+          featured: true,
+          createdBy: 'seeder',
         }
       ];
 
@@ -555,7 +591,7 @@ export class CourseService {
       for (const courseData of sampleCourses) {
         const existing = await this.collection().where('slug', '==', courseData.slug).limit(1).get();
         if (existing.empty) {
-          const docRef = this.collection().doc(courseData.slug === 'git-github-mastery' ? 'git-github-mastery-course-id' : (courseData.slug === 'database-management-system' ? 'database-management-system' : (courseData.slug === 'kubernetes-complete-course-beginner-to-advanced' ? 'kubernetes-complete-course-beginner-to-advanced' : (courseData.slug === 'react-js-complete-course' ? 'react-js-complete-course' : (courseData.slug === 'c-programming' ? 'c-programming-course-id' : this.collection().doc().id)))));
+          const docRef = this.collection().doc(courseData.slug === 'git-github-mastery' ? 'git-github-mastery-course-id' : (courseData.slug === 'database-management-system' ? 'database-management-system' : (courseData.slug === 'kubernetes-complete-course-beginner-to-advanced' ? 'kubernetes-complete-course-beginner-to-advanced' : (courseData.slug === 'react-js-complete-course' ? 'react-js-complete-course' : (courseData.slug === 'c-programming' ? 'c-programming-course-id' : (courseData.slug === 'python-through-oops' ? 'python-through-oops-course-id' : this.collection().doc().id))))));
           const course: Course = {
             ...courseData,
             id: docRef.id,
@@ -577,6 +613,8 @@ export class CourseService {
             await this.seedReactCourseDetails(docRef.id);
           } else if (courseData.slug === 'c-programming') {
             await this.seedCCourseDetails(docRef.id);
+          } else if (courseData.slug === 'python-through-oops') {
+            await this.seedPythonCourseDetails(docRef.id);
           }
         } else {
           // If the course exists, update its details to ensure the requested instructor/desc etc. are correct.
@@ -600,6 +638,8 @@ export class CourseService {
             await this.seedReactCourseDetails(courseDoc.id);
           } else if (courseData.slug === 'c-programming') {
             await this.seedCCourseDetails(courseDoc.id);
+          } else if (courseData.slug === 'python-through-oops') {
+            await this.seedPythonCourseDetails(courseDoc.id);
           }
         }
       }
@@ -6521,6 +6561,112 @@ Deploy a React application on Vercel or Netlify.`
       console.log('Successfully seeded C Programming course structure with 15 modules.');
     } catch (error) {
       console.error('Error seeding C Programming course details:', error);
+    }
+  }
+
+  /**
+   * Seeds Modules, Lessons, Quizzes, and Assignments for the Python Through OOPs course.
+   */
+  async seedPythonCourseDetails(courseId: string): Promise<void> {
+    try {
+      const { modulesCollection, lessonsCollection, quizzesCollection, assignmentsCollection, coursesCollection } = await import('../../firebase/collections');
+      
+      console.log('Seeding Python Through OOPs detailed syllabus collections...');
+
+      const modulesData = [
+        { id: 'python-mod-1', title: 'Module 1: Introduction to Python', order: 1, duration: '2 Hours' },
+        { id: 'python-mod-2', title: 'Module 2: Variables & Data Types', order: 2, duration: '2 Hours' },
+        { id: 'python-mod-3', title: 'Module 3: Operators', order: 3, duration: '2 Hours' },
+        { id: 'python-mod-4', title: 'Module 4: Input, Output & Basic Programs', order: 4, duration: '2 Hours' },
+        { id: 'python-mod-5', title: 'Module 5: Conditional Statements', order: 5, duration: '2 Hours' },
+        { id: 'python-mod-6', title: 'Module 6: Loops', order: 6, duration: '3 Hours' },
+        { id: 'python-mod-7', title: 'Module 7: Strings', order: 7, duration: '2 Hours' },
+        { id: 'python-mod-8', title: 'Module 8: Python Collections', order: 8, duration: '3 Hours' },
+        { id: 'python-mod-9', title: 'Module 9: Functions', order: 9, duration: '3 Hours' },
+        { id: 'python-mod-10', title: 'Module 10: Modules, Packages & Exception Handling', order: 10, duration: '2 Hours' },
+        { id: 'python-mod-11', title: 'Module 11: File Handling', order: 11, duration: '2 Hours' },
+        { id: 'python-mod-12', title: 'Module 12: OOP Fundamentals', order: 12, duration: '3 Hours' },
+        { id: 'python-mod-13', title: 'Module 13: Four Pillars of OOP', order: 13, duration: '3 Hours' },
+        { id: 'python-mod-14', title: 'Module 14: Advanced OOP in Python', order: 14, duration: '3 Hours' },
+        { id: 'python-mod-15', title: 'Module 15: Intermediate Python & OOP Project', order: 15, duration: '3 Hours' },
+      ];
+
+      for (const mod of modulesData) {
+        await modulesCollection().doc(mod.id).set(toDocument({
+          id: mod.id,
+          title: mod.title,
+          order: mod.order,
+          duration: mod.duration,
+          courseId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }));
+      }
+
+      // Create exactly 1 reading unit per module
+      const modulesForCourseDoc: any[] = [];
+      const { pythonSyllabusNotes } = await import('./pythonSyllabusData');
+
+      for (const mod of modulesData) {
+        const lessonId = `python-unit-${mod.order}-notes`;
+        const lessonTitle = `Module ${mod.order} - Complete Notes`;
+        const lessonDesc = `${mod.title} Complete Notes.`;
+        const lessonContent = pythonSyllabusNotes[mod.order] || `### ${lessonTitle}\n\nContent for ${mod.title} will be added later.`;
+        
+        // Write to lessons collection in Firestore
+        await lessonsCollection().doc(lessonId).set(toDocument({
+          id: lessonId,
+          title: lessonTitle,
+          description: lessonDesc,
+          order: 1,
+          duration: '45 mins',
+          type: 'reading',
+          readingTime: '45 mins',
+          content: lessonContent,
+          courseId,
+          moduleId: mod.id,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }));
+
+        // Build nested structure
+        modulesForCourseDoc.push({
+          id: mod.id,
+          title: mod.title,
+          description: mod.title,
+          duration: mod.duration,
+          topics: [
+            {
+              id: `python-topic-${mod.order}`,
+              title: `Topic ${mod.order}: Module ${mod.order} Content`,
+              description: `Module ${mod.order} Content`,
+              estimatedDuration: '45 mins',
+              learningUnits: [
+                {
+                  id: lessonId,
+                  title: lessonTitle,
+                  description: lessonDesc,
+                  duration: '45 mins',
+                  type: 'Reading',
+                  readingContent: lessonContent
+                }
+              ]
+            }
+          ]
+        });
+      }
+
+      // Save nested structure directly to course document
+      await coursesCollection().doc(courseId).update({
+        modules: modulesForCourseDoc,
+        modulesCount: 15,
+        lessonsCount: 15,
+        updatedAt: new Date()
+      });
+
+      console.log('Successfully seeded Python Through OOPs course structure with 15 modules.');
+    } catch (error) {
+      console.error('Error seeding Python Through OOPs course details:', error);
     }
   }
 }

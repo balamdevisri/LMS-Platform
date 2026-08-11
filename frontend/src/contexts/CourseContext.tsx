@@ -5,6 +5,7 @@ import { gitCourseModules } from '@/data/gitCourseFullData';
 import { kubernetesCourseModules } from '@/data/kubernetesCourseFullData';
 import { reactCourseModules } from '@/data/reactCourseFullData';
 import { cCourseModules } from '@/data/cCourseFullData';
+import { pythonCourseModules } from '@/data/pythonCourseFullData';
 import { courseService } from '@/services/courseService';
 
 export type LearningUnitType = 'Video' | 'Reading' | 'Quiz' | 'Assignment';
@@ -763,6 +764,44 @@ const initialDefaultCoursesRaw: CourseItem[] = [
     ],
     createdAt: new Date('2026-08-10').toISOString(),
     modules: cCourseModules
+  },
+  {
+    id: 'python-through-oops-course-id',
+    title: 'Python Through OOPs',
+    subtitle: '💻 Python Through OOPs',
+    instructor: 'Kaizen Q Team',
+    role: 'Senior Technical Instructor',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    rating: 5.0,
+    reviews: 180,
+    students: '0',
+    duration: '35 Hours',
+    category: 'Programming',
+    level: 'All Levels',
+    badge: 'Standard Track',
+    tracks: '15 Modules (35 Hours)',
+    status: 'Published',
+    thumbnail: '/assets/images/python_course_thumbnail.png',
+    description: 'Complete Python Through OOPs course covering Python fundamentals, control flow, functions, intermediate concepts, object-oriented programming, and practical application.',
+    syllabus: [
+      'Module 1: Introduction to Python',
+      'Module 2: Variables & Data Types',
+      'Module 3: Operators',
+      'Module 4: Input, Output & Basic Programs',
+      'Module 5: Conditional Statements',
+      'Module 6: Loops',
+      'Module 7: Strings',
+      'Module 8: Python Collections',
+      'Module 9: Functions',
+      'Module 10: Modules, Packages & Exception Handling',
+      'Module 11: File Handling',
+      'Module 12: OOP Fundamentals',
+      'Module 13: Four Pillars of OOP',
+      'Module 14: Advanced OOP in Python',
+      'Module 15: Intermediate Python & OOP Project',
+    ],
+    createdAt: new Date('2026-08-11').toISOString(),
+    modules: pythonCourseModules
   }
 ];
 
@@ -878,6 +917,23 @@ const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
         modules: mergeCourseModules(defaultCCourse.modules, c.modules),
       };
       map.set(key, updatedItem);
+    } else if (
+      title.includes('python through oops') ||
+      title.includes('python') ||
+      String(c.id) === 'python-through-oops-course-id'
+    ) {
+      const key = 'python-through-oops-course-id';
+      const defaultPythonCourse = initialDefaultCourses.find(item => item.id === 'python-through-oops-course-id') || c;
+      const updatedItem: CourseItem = {
+        ...defaultPythonCourse,
+        ...c,
+        id: 'python-through-oops-course-id',
+        title: 'Python Through OOPs',
+        subtitle: '💻 Python Through OOPs',
+        thumbnail: '/assets/images/python_course_thumbnail.png',
+        modules: mergeCourseModules(defaultPythonCourse.modules, c.modules),
+      };
+      map.set(key, updatedItem);
     } else {
       map.set(String(c.id), c);
     }
@@ -900,6 +956,9 @@ const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
   }
   if (!map.has('c-programming-course-id')) {
     map.set('c-programming-course-id', initialDefaultCourses.find(item => item.id === 'c-programming-course-id') || initialDefaultCourses[5]);
+  }
+  if (!map.has('python-through-oops-course-id')) {
+    map.set('python-through-oops-course-id', initialDefaultCourses.find(item => item.id === 'python-through-oops-course-id') || initialDefaultCourses[6]);
   }
 
   return Array.from(map.values()).filter(item => !String(item.title || '').toLowerCase().includes('untitled'));
