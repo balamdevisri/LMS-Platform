@@ -435,8 +435,8 @@ const DEFAULT_COURSES: ICourse[] = [
     slug: 'c-programming',
     shortDescription: 'Complete C Programming course covering fundamentals, programming concepts, advanced C, data structures, practical programs, interview preparation, and final revision.',
     description: 'Complete C Programming course covering fundamentals, programming concepts, advanced C, data structures, practical programs, interview preparation, and final revision.',
-    thumbnail: 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=800&q=80',
-    banner: 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=800&q=80',
+    thumbnail: '/assets/images/c_course_thumbnail.png',
+    banner: '/assets/images/c_course_thumbnail.png',
     category: 'Programming',
     level: 'all_levels',
     duration: '35 Hours',
@@ -604,7 +604,7 @@ function normalizeCourseToICourse(c: any): ICourse {
   const getSmartThumbnail = (title?: string, category?: string) => {
     const t = (title || '').toLowerCase();
     const cat = (category || '').toLowerCase();
-    if (t.includes('c programming') || t.includes('c language') || t === 'c') return 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=800&q=80';
+    if (t.includes('c programming') || t.includes('c language') || t === 'c') return '/assets/images/c_course_thumbnail.png';
     if (t.includes('linux') || cat.includes('linux')) return '/assets/images/linux_course_thumbnail.webp';
     if (t.includes('git') || cat.includes('git') || t.includes('github')) return '/assets/images/github_course_banner.webp';
     if (t.includes('ai') || cat.includes('ai') || t.includes('machine learning') || t.includes('llm')) return 'https://images.unsplash.com/photo-1677442136019-21780efad99a?auto=format&fit=crop&w=800&q=80';
@@ -616,11 +616,15 @@ function normalizeCourseToICourse(c: any): ICourse {
 
   const courseTitle = c.title || 'Untitled Technical Course';
   const courseCategory = c.category || 'Linux & Systems';
-  const courseThumbnail = (c.thumbnail && typeof c.thumbnail === 'string' && c.thumbnail.trim() !== '' && !c.thumbnail.includes('placeholder'))
+  let courseThumbnail = (c.thumbnail && typeof c.thumbnail === 'string' && c.thumbnail.trim() !== '' && !c.thumbnail.includes('placeholder'))
     ? c.thumbnail
     : (c.banner && typeof c.banner === 'string' && c.banner.trim() !== '' && !c.banner.includes('placeholder'))
     ? c.banner
     : getSmartThumbnail(courseTitle, courseCategory);
+
+  if (String(c.id) === 'c-programming-course-id' || courseTitle.toLowerCase().includes('c programming')) {
+    courseThumbnail = '/assets/images/c_course_thumbnail.png';
+  }
 
   const slug = c.slug || c.title?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || `course-${c.id}`;
 
