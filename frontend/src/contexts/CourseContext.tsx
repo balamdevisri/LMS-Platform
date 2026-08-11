@@ -742,7 +742,7 @@ const initialDefaultCoursesRaw: CourseItem[] = [
     badge: 'Standard Track',
     tracks: '15 Modules (35 Hours)',
     status: 'Published',
-    thumbnail: 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=800&q=80',
+    thumbnail: '/assets/images/c_course_thumbnail.png',
     description: 'Complete C Programming course covering fundamentals, programming concepts, advanced C, data structures, practical programs, interview preparation, and final revision.',
     syllabus: [
       'Module 1: Introduction to C Programming',
@@ -874,7 +874,7 @@ const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
         id: 'c-programming-course-id',
         title: 'C Programming',
         subtitle: '💻 C Programming',
-        thumbnail: c.thumbnail || 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=800&q=80',
+        thumbnail: '/assets/images/c_course_thumbnail.png',
         modules: mergeCourseModules(defaultCCourse.modules, c.modules),
       };
       map.set(key, updatedItem);

@@ -1130,6 +1130,21 @@ export const LessonViewer: React.FC<LessonViewerProps> = React.memo(({
       }
     }
 
+    // C Programming track
+    const isC = _courseId === 'c-programming-course-id' || _courseId.toLowerCase().includes('c-programming') || _courseId.toLowerCase().includes('c programming');
+    if (isC) {
+      if (t.includes('pointer') || t.includes('address') || t.includes('memory') || t.includes('allocation')) {
+        return '/assets/images/c_course_thumbnail.png';
+      }
+      if (t.includes('loop') || t.includes('iteration') || t.includes('recursion') || t.includes('function')) {
+        return 'https://images.unsplash.com/photo-1504639725590-34d0984388bd?auto=format&fit=crop&w=800&q=80';
+      }
+      if (t.includes('structure') || t.includes('union') || t.includes('array') || t.includes('string')) {
+        return 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80';
+      }
+      return '/assets/images/c_course_thumbnail.png';
+    }
+
     // Final default fallback based on course if possible, otherwise generic fallback
     if (_courseId.includes('linux') || _courseId === '1') {
       return '/assets/images/linux_course_thumbnail.webp';
@@ -1139,6 +1154,9 @@ export const LessonViewer: React.FC<LessonViewerProps> = React.memo(({
     }
     if (_courseId === 'git-github-mastery' || isGitCourse) {
       return '/assets/images/git_data_lifecycle.png';
+    }
+    if (_courseId === 'c-programming-course-id') {
+      return '/assets/images/c_course_thumbnail.png';
     }
     return '/assets/images/react_logo_frontend.png';
   }, [lesson.title, isGitCourse, _courseId]);
