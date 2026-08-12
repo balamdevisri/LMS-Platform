@@ -138,6 +138,8 @@ const router = createBrowserRouter([
       { path: 'content', element: <AdminContentManagement /> },
       { path: 'content-management', element: <AdminContentManagement /> },
       { path: 'live-classroom', element: <LiveClassroomDashboard /> },
+      { path: 'live-control-panel', element: <AdminLiveClassroom /> },
+      { path: 'live-classroom/control-panel', element: <AdminLiveClassroom /> },
       { path: 'live-classroom/mentor-analytics', element: <MentorAnalytics /> },
     ],
   },
@@ -151,7 +153,8 @@ const router = createBrowserRouter([
     ),
     children: [
       { path: 'dashboard', element: <AdminDashboard /> },
-      { path: 'live-classroom', element: <AdminLiveClassroom /> },
+      { path: 'live-classroom/control-panel', element: <AdminLiveClassroom /> },
+      { path: 'live-control-panel', element: <AdminLiveClassroom /> },
       { path: 'live-classroom/studio', element: <LiveClassroomDashboard /> },
       { path: 'users', element: <AdminUsers /> },
       { path: 'users/:id', element: <AdminUserProfile /> },

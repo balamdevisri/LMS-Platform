@@ -16,6 +16,10 @@ export interface LiveClass {
   instructorId: string;
   instructorName: string;
   instructorAvatar?: string;
+  assignedBy?: string;
+  assignedAt?: string;
+  startedAt?: string;
+  endedAt?: string;
   branch?: string;
   semester?: string;
   year?: string;
@@ -29,7 +33,7 @@ export interface LiveClass {
   startTime: string; // ISO String
   endTime: string;   // ISO String
   duration: number;  // Minutes
-  status: 'Draft' | 'Scheduled' | 'Live' | 'Completed' | 'Cancelled';
+  status: 'draft' | 'scheduled' | 'live' | 'completed' | 'cancelled' | 'Draft' | 'Scheduled' | 'Live' | 'Completed' | 'Cancelled';
   isRecordingEnabled: boolean;
   isQuizEnabled: boolean;
   isPollEnabled: boolean;
@@ -47,6 +51,16 @@ export interface LiveClass {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export function normalizeLiveClassStatus(status: string): 'draft' | 'scheduled' | 'live' | 'completed' | 'cancelled' {
+  const s = (status || '').toLowerCase();
+  if (s === 'live') return 'live';
+  if (s === 'scheduled') return 'scheduled';
+  if (s === 'completed') return 'completed';
+  if (s === 'cancelled') return 'cancelled';
+  if (s === 'draft') return 'draft';
+  return 'scheduled';
 }
 
 export interface AttendanceRecord {
@@ -455,25 +469,47 @@ class LiveClassService {
     });
   }
 
-  async startLiveClass(id: string): Promise<void> {
+  async startLiveClass(id: string, currentUserId?: string): Promise<void> {
+    const target = this.getLiveClassesSync().find((c) => c.id === id || c.classId === id);
+    if (!target) throw new Error('Live class not found');
+
+    if (currentUserId && target.instructorId && target.instructorId !== currentUserId && target.createdBy !== currentUserId) {
+      throw new Error('Unauthorized: Only the assigned instructor can start this live class.');
+    }
+
+    const currentStatus = normalizeLiveClassStatus(target.status);
+    if (currentStatus === 'completed' || currentStatus === 'cancelled') {
+      throw new Error(`Cannot start class. Current status is ${currentStatus}.`);
+    }
+
+    const nowISO = new Date().toISOString();
     await this.updateLiveClass(id, {
-      status: 'Live',
-      startTime: new Date().toISOString()
+      status: 'live',
+      startedAt: nowISO,
+      updatedAt: nowISO,
     });
 
-    const target = this.getLiveClassesSync().find((c) => c.id === id);
     adminNotificationService.addNotification({
       type: 'NEW_STUDENT',
-      title: `🔴 LIVE NOW: ${target?.title || 'Classroom Session'}`,
+      title: `🔴 LIVE NOW: ${target.title}`,
       message: `Session is active! Click to join video classroom stream.`,
       link: `/live-classroom/room/${id}`
     });
   }
 
-  async endLiveClass(id: string): Promise<void> {
+  async endLiveClass(id: string, currentUserId?: string): Promise<void> {
+    const target = this.getLiveClassesSync().find((c) => c.id === id || c.classId === id);
+    if (!target) throw new Error('Live class not found');
+
+    if (currentUserId && target.instructorId && target.instructorId !== currentUserId && target.createdBy !== currentUserId) {
+      throw new Error('Unauthorized: Only the assigned instructor can end this live class.');
+    }
+
+    const nowISO = new Date().toISOString();
     await this.updateLiveClass(id, {
-      status: 'Completed',
-      endTime: new Date().toISOString()
+      status: 'completed',
+      endedAt: nowISO,
+      updatedAt: nowISO,
     });
   }
 

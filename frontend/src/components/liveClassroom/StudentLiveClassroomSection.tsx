@@ -5,8 +5,10 @@ import {
   Radio,
   Play,
   FileText,
+  Clock,
 } from 'lucide-react';
-import { liveClassService, type LiveClass } from '@/services/liveClassService';
+import { toast } from 'sonner';
+import { liveClassService, normalizeLiveClassStatus, type LiveClass } from '@/services/liveClassService';
 
 export const StudentLiveClassroomSection: React.FC = () => {
   const navigate = useNavigate();
@@ -42,25 +44,25 @@ export const StudentLiveClassroomSection: React.FC = () => {
 
   const filteredClasses = useMemo(() => {
     if (activeFilter === 'today') {
-      return classes.filter((c) => isToday(c.startTime) || c.status === 'Live');
+      return classes.filter((c) => isToday(c.startTime) || normalizeLiveClassStatus(c.status) === 'live');
     }
     if (activeFilter === 'upcoming') {
-      return classes.filter((c) => new Date(c.startTime).getTime() > nowMs && c.status !== 'Completed');
+      return classes.filter((c) => new Date(c.startTime).getTime() > nowMs && normalizeLiveClassStatus(c.status) !== 'completed');
     }
     if (activeFilter === 'completed') {
-      return classes.filter((c) => c.status === 'Completed');
+      return classes.filter((c) => normalizeLiveClassStatus(c.status) === 'completed');
     }
     if (activeFilter === 'missed') {
-      return classes.filter((c) => new Date(c.endTime).getTime() < nowMs && c.status !== 'Completed');
+      return classes.filter((c) => new Date(c.endTime).getTime() < nowMs && normalizeLiveClassStatus(c.status) !== 'completed');
     }
     return classes;
   }, [classes, activeFilter, nowMs]);
 
   // Counts
-  const todayCount = useMemo(() => classes.filter((c) => isToday(c.startTime) || c.status === 'Live').length, [classes]);
-  const upcomingCount = useMemo(() => classes.filter((c) => new Date(c.startTime).getTime() > nowMs && c.status !== 'Completed').length, [classes]);
-  const completedCount = useMemo(() => classes.filter((c) => c.status === 'Completed').length, [classes]);
-  const missedCount = useMemo(() => classes.filter((c) => new Date(c.endTime).getTime() < nowMs && c.status !== 'Completed').length, [classes]);
+  const todayCount = useMemo(() => classes.filter((c) => isToday(c.startTime) || normalizeLiveClassStatus(c.status) === 'live').length, [classes]);
+  const upcomingCount = useMemo(() => classes.filter((c) => new Date(c.startTime).getTime() > nowMs && normalizeLiveClassStatus(c.status) !== 'completed').length, [classes]);
+  const completedCount = useMemo(() => classes.filter((c) => normalizeLiveClassStatus(c.status) === 'completed').length, [classes]);
+  const missedCount = useMemo(() => classes.filter((c) => new Date(c.endTime).getTime() < nowMs && normalizeLiveClassStatus(c.status) !== 'completed').length, [classes]);
 
   // Countdown Calculator Helper
   const getCountdown = (targetISO: string) => {
@@ -73,6 +75,15 @@ export const StudentLiveClassroomSection: React.FC = () => {
     const secs = Math.floor((diff % (1000 * 60)) / 1000);
 
     return { days, hours, mins, secs, isPast: false };
+  };
+
+  const handleJoinLive = (c: LiveClass) => {
+    const normStatus = normalizeLiveClassStatus(c.status);
+    if (normStatus !== 'live') {
+      toast.error('This class has not started yet. Waiting for instructor to start the live classroom.');
+      return;
+    }
+    navigate(`/live-classroom/room/${c.id}`);
   };
 
   return (
@@ -157,7 +168,10 @@ export const StudentLiveClassroomSection: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredClasses.map((c) => {
-            const isLiveNow = c.status === 'Live';
+            const normStatus = normalizeLiveClassStatus(c.status);
+            const isLiveNow = normStatus === 'live';
+            const isCompleted = normStatus === 'completed';
+            const isScheduled = normStatus === 'scheduled' || normStatus === 'draft';
             const cd = getCountdown(c.startTime);
 
             return (
@@ -187,12 +201,12 @@ export const StudentLiveClassroomSection: React.FC = () => {
                       className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
                         isLiveNow
                           ? 'bg-rose-600 text-white animate-pulse'
-                          : c.status === 'Scheduled'
-                          ? 'bg-blue-600 text-white'
+                          : isScheduled
+                          ? 'bg-amber-600 text-white'
                           : 'bg-slate-700 text-slate-200'
                       }`}
                     >
-                      {isLiveNow ? '🔴 LIVE NOW' : c.status}
+                      {isLiveNow ? '🔴 LIVE NOW' : isScheduled ? '🕐 NOT STARTED' : '✓ COMPLETED'}
                     </span>
                   </div>
 
@@ -260,15 +274,32 @@ export const StudentLiveClassroomSection: React.FC = () => {
                     )}
 
                     <button
-                      onClick={() => navigate(`/live-classroom/room/${c.id}`)}
-                      className={`flex-1 py-2 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-md transition-all ${
+                      onClick={() => handleJoinLive(c)}
+                      disabled={isScheduled}
+                      className={`flex-1 py-2 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
                         isLiveNow
-                          ? 'bg-rose-600 hover:bg-rose-700 text-white animate-bounce'
-                          : 'bg-blue-600 hover:bg-blue-700 text-white'
+                          ? 'bg-rose-600 hover:bg-rose-700 text-white cursor-pointer shadow-md shadow-rose-600/30 animate-pulse'
+                          : isCompleted
+                          ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
+                          : 'bg-slate-100 dark:bg-zinc-800/80 text-slate-400 dark:text-zinc-500 border border-slate-200 dark:border-zinc-700 cursor-not-allowed opacity-80'
                       }`}
                     >
-                      <Play className="w-3.5 h-3.5 fill-current" />
-                      <span>{isLiveNow ? 'Join Live Room' : 'View Classroom'}</span>
+                      {isLiveNow ? (
+                        <>
+                          <Play className="w-3.5 h-3.5 fill-current text-white" />
+                          <span>JOIN LIVE</span>
+                        </>
+                      ) : isCompleted ? (
+                        <>
+                          <Play className="w-3.5 h-3.5 fill-current text-white" />
+                          <span>View Session</span>
+                        </>
+                      ) : (
+                        <>
+                          <Clock className="w-3.5 h-3.5 text-slate-400" />
+                          <span>Waiting for instructor</span>
+                        </>
+                      )}
                     </button>
                   </div>
 

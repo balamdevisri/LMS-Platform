@@ -21,7 +21,7 @@ import {
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCourses } from '@/contexts/CourseContext';
-import { liveClassService, type LiveClass, type AttendanceRecord } from '@/services/liveClassService';
+import { liveClassService, normalizeLiveClassStatus, type LiveClass, type AttendanceRecord } from '@/services/liveClassService';
 import { instructorService } from '@/services/instructorService';
 
 export const AdminLiveClassroom: React.FC = () => {
@@ -119,7 +119,8 @@ export const AdminLiveClassroom: React.FC = () => {
     let result = [...classes];
 
     if (activeTab !== 'all') {
-      result = result.filter((c) => c.status === activeTab);
+      const targetNorm = normalizeLiveClassStatus(activeTab);
+      result = result.filter((c) => normalizeLiveClassStatus(c.status) === targetNorm);
     }
 
     if (instructorFilter !== 'ALL') {
@@ -144,11 +145,11 @@ export const AdminLiveClassroom: React.FC = () => {
   const tabCounts = useMemo(() => {
     return {
       all: classes.length,
-      Live: classes.filter((c) => c.status === 'Live').length,
-      Scheduled: classes.filter((c) => c.status === 'Scheduled').length,
-      Completed: classes.filter((c) => c.status === 'Completed').length,
-      Cancelled: classes.filter((c) => c.status === 'Cancelled').length,
-      Draft: classes.filter((c) => c.status === 'Draft').length,
+      Live: classes.filter((c) => normalizeLiveClassStatus(c.status) === 'live').length,
+      Scheduled: classes.filter((c) => normalizeLiveClassStatus(c.status) === 'scheduled').length,
+      Completed: classes.filter((c) => normalizeLiveClassStatus(c.status) === 'completed').length,
+      Cancelled: classes.filter((c) => normalizeLiveClassStatus(c.status) === 'cancelled').length,
+      Draft: classes.filter((c) => normalizeLiveClassStatus(c.status) === 'draft').length,
     };
   }, [classes]);
 

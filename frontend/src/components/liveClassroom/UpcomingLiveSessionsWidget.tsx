@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Video, Radio, Play, ArrowRight, X } from 'lucide-react';
-import { liveClassService, type LiveClass } from '@/services/liveClassService';
+import { toast } from 'sonner';
+import { liveClassService, normalizeLiveClassStatus, type LiveClass } from '@/services/liveClassService';
 
 export const UpcomingLiveSessionsWidget: React.FC = () => {
   const navigate = useNavigate();
@@ -15,7 +16,10 @@ export const UpcomingLiveSessionsWidget: React.FC = () => {
   useEffect(() => {
     const unsubscribe = liveClassService.subscribeLiveClasses((data) => {
       // Filter out completed/cancelled sessions automatically
-      const active = data.filter((c) => c.status === 'Live' || c.status === 'Scheduled');
+      const active = data.filter((c) => {
+        const norm = normalizeLiveClassStatus(c.status);
+        return norm === 'live' || norm === 'scheduled';
+      });
       setClasses(active);
     });
 
@@ -39,6 +43,15 @@ export const UpcomingLiveSessionsWidget: React.FC = () => {
     const secs = Math.floor((diff % (1000 * 60)) / 1000);
 
     return { days, hours, mins, secs, isPast: false };
+  };
+
+  const handleJoinLive = (c: LiveClass) => {
+    const normStatus = normalizeLiveClassStatus(c.status);
+    if (normStatus !== 'live') {
+      toast.error('This class has not started yet. Waiting for instructor to start.');
+      return;
+    }
+    navigate(`/live-classroom/room/${c.id}`);
   };
 
   if (classes.length === 0) return null;
@@ -73,7 +86,8 @@ export const UpcomingLiveSessionsWidget: React.FC = () => {
       {/* Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {classes.slice(0, 3).map((c) => {
-          const isLiveNow = c.status === 'Live';
+          const normStatus = normalizeLiveClassStatus(c.status);
+          const isLiveNow = normStatus === 'live';
           const cd = getCountdown(c.startTime);
 
           return (
@@ -103,10 +117,10 @@ export const UpcomingLiveSessionsWidget: React.FC = () => {
 
                   <span
                     className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
-                      isLiveNow ? 'bg-rose-600 text-white animate-pulse' : 'bg-blue-600 text-white'
+                      isLiveNow ? 'bg-rose-600 text-white animate-pulse' : 'bg-amber-600 text-white'
                     }`}
                   >
-                    {isLiveNow ? '🔴 LIVE NOW' : 'SCHEDULED'}
+                    {isLiveNow ? '🔴 LIVE NOW' : '🕐 NOT STARTED'}
                   </span>
                 </div>
 
@@ -155,15 +169,16 @@ export const UpcomingLiveSessionsWidget: React.FC = () => {
                   </button>
 
                   <button
-                    onClick={() => navigate(`/live-classroom/room/${c.id}`)}
-                    className={`py-2 px-4 rounded-xl font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-md transition-all ${
+                    onClick={() => handleJoinLive(c)}
+                    disabled={!isLiveNow}
+                    className={`py-2 px-4 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-md transition-all ${
                       isLiveNow
-                        ? 'bg-rose-600 hover:bg-rose-700 text-white animate-bounce'
-                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                        ? 'bg-rose-600 hover:bg-rose-700 text-white cursor-pointer animate-pulse'
+                        : 'bg-slate-100 dark:bg-zinc-800/80 text-slate-400 dark:text-zinc-500 border border-slate-200 dark:border-zinc-700 cursor-not-allowed opacity-80'
                     }`}
                   >
                     <Play className="w-3.5 h-3.5 fill-current" />
-                    <span>{isLiveNow ? 'Join Live Stream' : 'Join Classroom'}</span>
+                    <span>{isLiveNow ? 'Join Live Stream' : 'Waiting for instructor'}</span>
                   </button>
                 </div>
 

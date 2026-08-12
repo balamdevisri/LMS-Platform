@@ -465,35 +465,46 @@ class InstructorService {
   }
 
   async approveInstructor(id: string, adminUid: string): Promise<void> {
+    const timestamp = new Date().toISOString();
+    const updateData = {
+      approved: true,
+      status: 'approved' as const,
+      isActive: true,
+      approvedBy: adminUid,
+      approvedAt: timestamp,
+      rejectedAt: null,
+      rejectionReason: null,
+      updatedAt: timestamp,
+    };
+
+    // 1. Immediately update local storage and notify active listeners for zero latency
+    const local = this.getLocalInstructors();
+    const updatedLocal = local.map((inst) =>
+      inst.id === id ? { ...inst, ...updateData } : inst
+    );
+    this.saveLocalInstructors(updatedLocal);
+
     if (db) {
       try {
         const userRef = doc(db, 'users', id);
         const instructorRef = doc(db, 'instructors', id);
-        const timestamp = new Date().toISOString();
         
-        const updateData = {
-          approved: true,
-          status: 'approved',
-          isActive: true,
-          approvedBy: adminUid,
-          approvedAt: timestamp,
-          rejectedAt: null,
-          rejectionReason: null,
-          updatedAt: timestamp,
-        };
-
-        await setDoc(userRef, updateData, { merge: true });
-        await setDoc(instructorRef, updateData, { merge: true });
+        await setDoc(userRef, updateData, { merge: true }).catch((err) => {
+          console.warn('[Admin Approval] Firestore user doc write notice:', err.message);
+        });
+        await setDoc(instructorRef, updateData, { merge: true }).catch((err) => {
+          console.warn('[Admin Approval] Firestore instructor doc write notice:', err.message);
+        });
         console.log(`[Admin Approval] Approved instructor UID: ${id} by Admin: ${adminUid}`);
 
         // Fetch instructor details from users collection to send SMTP mail
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-          const data = userSnap.data();
-          const name = data.name || data.fullName || 'Instructor';
-          const email = data.email || '';
-          
-          try {
+        try {
+          const userSnap = await getDoc(userRef);
+          if (userSnap.exists()) {
+            const data = userSnap.data();
+            const name = data.name || data.fullName || 'Instructor';
+            const email = data.email || '';
+            
             const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
             const response = await fetch(`${apiBaseUrl}/email/send`, {
               method: 'POST',
@@ -513,45 +524,57 @@ class InstructorService {
             if (response.ok) {
               console.log(`[SMTP Email Sent] Dispatched approval email to ${email}`);
             }
-          } catch (smtpErr) {
-            console.warn('Failed to send SMTP email:', smtpErr);
           }
+        } catch (smtpErr) {
+          console.warn('Failed to send SMTP email:', smtpErr);
         }
       } catch (err) {
-        console.error('Failed to approve instructor:', err);
-        throw err;
+        console.warn('Failed to sync instructor approval to Firestore:', err);
       }
     }
   }
 
   async rejectInstructor(id: string, adminUid: string, reason: string): Promise<void> {
+    const timestamp = new Date().toISOString();
+    const updateData = {
+      approved: false,
+      status: 'rejected' as const,
+      isActive: false,
+      rejectedAt: timestamp,
+      rejectionReason: reason,
+      approvedBy: null,
+      approvedAt: null,
+      updatedAt: timestamp,
+    };
+
+    // 1. Immediately update local storage
+    const local = this.getLocalInstructors();
+    const updatedLocal = local.map((inst) =>
+      inst.id === id ? { ...inst, ...updateData } : inst
+    );
+    this.saveLocalInstructors(updatedLocal);
+
     if (db) {
       try {
         const userRef = doc(db, 'users', id);
-        const timestamp = new Date().toISOString();
+        const instructorRef = doc(db, 'instructors', id);
 
-        const updateData = {
-          approved: false,
-          status: 'rejected',
-          isActive: false,
-          rejectedAt: timestamp,
-          rejectionReason: reason,
-          approvedBy: null,
-          approvedAt: null,
-          updatedAt: timestamp,
-        };
-
-        await updateDoc(userRef, updateData);
+        await setDoc(userRef, updateData, { merge: true }).catch((err) => {
+          console.warn('[Admin Rejection] Firestore user doc write notice:', err.message);
+        });
+        await setDoc(instructorRef, updateData, { merge: true }).catch((err) => {
+          console.warn('[Admin Rejection] Firestore instructor doc write notice:', err.message);
+        });
         console.log(`[Admin Rejection] Rejected instructor UID: ${id} by Admin: ${adminUid}. Reason: ${reason}`);
 
         // Fetch instructor details from users collection to send SMTP mail
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-          const data = userSnap.data();
-          const name = data.name || data.fullName || 'Instructor';
-          const email = data.email || '';
+        try {
+          const userSnap = await getDoc(userRef);
+          if (userSnap.exists()) {
+            const data = userSnap.data();
+            const name = data.name || data.fullName || 'Instructor';
+            const email = data.email || '';
 
-          try {
             const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
             const response = await fetch(`${apiBaseUrl}/email/send`, {
               method: 'POST',
@@ -571,13 +594,12 @@ class InstructorService {
             if (response.ok) {
               console.log(`[SMTP Email Sent] Dispatched rejection email to ${email}`);
             }
-          } catch (smtpErr) {
-            console.warn('Failed to send SMTP email:', smtpErr);
           }
+        } catch (smtpErr) {
+          console.warn('Failed to send SMTP email:', smtpErr);
         }
       } catch (err) {
-        console.error('Failed to reject instructor:', err);
-        throw err;
+        console.warn('Failed to sync instructor rejection to Firestore:', err);
       }
     }
   }

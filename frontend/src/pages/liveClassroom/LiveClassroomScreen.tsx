@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { Socket } from 'socket.io-client';
 import { getLiveClassroomSocket } from '@/services/socket';
 import { useAuth } from '@/contexts/AuthContext';
-import { liveClassService, type LiveClass, type AttendanceRecord } from '@/services/liveClassService';
+import { liveClassService, normalizeLiveClassStatus, type LiveClass, type AttendanceRecord } from '@/services/liveClassService';
 import {
   Mic,
   MicOff,
@@ -398,14 +398,35 @@ export const LiveClassroomScreen: React.FC = () => {
           {/* Jitsi Meet Interactive Frame Container */}
           <div className="flex-1 bg-slate-950 relative overflow-hidden flex flex-col items-center justify-center">
             
-            {/* Embedded Jitsi Meeting Component */}
-            <JitsiMeetingComponent
-              roomName={liveClassData?.meetingRoomId || `kaizenq-room-${classId}`}
-              displayName={currentUser.name}
-              userEmail={userProfile?.email}
-              isInstructor={Boolean(isInstructor)}
-              onLeave={handleEndSession}
-            />
+            {/* Embedded Jitsi Meeting Component or Gatekeeping Banner */}
+            {!isInstructor && !isAdmin && normalizeLiveClassStatus(liveClassData?.status || '') !== 'live' ? (
+              <div className="flex flex-col items-center justify-center space-y-4 p-8 text-center bg-slate-950 text-white h-full w-full">
+                <div className="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center">
+                  <Clock className="w-8 h-8 text-amber-400 animate-pulse" />
+                </div>
+                <h3 className="text-xl font-heading font-extrabold">Waiting for Instructor</h3>
+                <p className="text-sm text-slate-400 max-w-md">
+                  This live session has not started yet. The instructor must start the class before students can enter the video room.
+                </p>
+                <div className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono text-slate-300">
+                  Status: <span className="uppercase text-amber-400 font-bold">{liveClassData?.status || 'Scheduled'}</span>
+                </div>
+                <button
+                  onClick={() => navigate('/live-classroom')}
+                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs cursor-pointer shadow-md"
+                >
+                  Return to Schedule
+                </button>
+              </div>
+            ) : (
+              <JitsiMeetingComponent
+                roomName={liveClassData?.meetingRoomId || `kaizenq-room-${classId}`}
+                displayName={currentUser.name}
+                userEmail={userProfile?.email}
+                isInstructor={Boolean(isInstructor)}
+                onLeave={handleEndSession}
+              />
+            )}
 
             {/* Hand Raised Queue Banner (Instructor View) */}
             {isInstructor && raisedHands.length > 0 && (
