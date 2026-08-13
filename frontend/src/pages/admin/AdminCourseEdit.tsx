@@ -45,7 +45,7 @@ export const AdminCourseEdit: React.FC = () => {
       try {
         const course = await courseService.getCourseBySlugOrId(id);
         if (course) {
-          reset(course);
+          reset(course as any);
           setSkillsInput(course.skills || []);
           setOutcomesInput(course.learningOutcomes || []);
         } else {

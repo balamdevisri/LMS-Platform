@@ -31,7 +31,7 @@ export interface InstructorUser {
   approvedBy?: string | null;
   approvedAt?: string | null;
   rejectedAt?: string | null;
-  rejectionReason?: string;
+  rejectionReason?: string | null;
 }
 
 const LOCAL_STORAGE_KEY = 'shaivika_realtime_instructors_v2';

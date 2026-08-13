@@ -431,6 +431,9 @@ export const LiveClassroomDashboard: React.FC = () => {
                             <BarChart3 className="w-3.5 h-3.5 text-amber-600" />
                             <span className="truncate w-full text-center">Quizzes/Polls</span>
                           </button>
+                          <button onClick={() => handleOpenAttendance(c)} className={['p-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[9px] font-bold flex flex-col items-center gap-1 cursor-pointer', 'dark:bg-emerald-900/20 dark:text-emerald-300'].join(' ')} title="Attendance Log Roster">
+                            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" /><span>Attendance</span>
+                          </button>
                           <button onClick={() => setUploadNotesModal(c)} className={['p-1.5 rounded-xl bg-slate-50 hover:bg-sky-50 text-slate-700 border border-slate-200 text-[9px] font-bold flex flex-col items-center gap-1 cursor-pointer', 'dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700'].join(' ')} title="Upload Notes">
                             <FileText className="w-3.5 h-3.5 text-blue-600" /><span>Notes</span>
                           </button>

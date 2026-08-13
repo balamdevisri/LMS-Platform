@@ -1524,7 +1524,7 @@ class CourseService {
           errors.push(`Module ${mod.title} has no lessons.`);
         } else {
           const lessonOrders = new Set<number>();
-          mod.lessons.forEach((les, lIdx) => {
+          mod.lessons.forEach((les: any, lIdx: number) => {
             if (les.order === undefined || les.order === null) {
               errors.push(`Lesson ${lIdx + 1} (${les.title}) in Module ${mod.title} is missing an explicit order.`);
             } else if (lessonOrders.has(les.order)) {

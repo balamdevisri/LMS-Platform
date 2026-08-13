@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Pause, Volume2, VolumeX, Maximize, Sparkles, RotateCcw, CheckCircle2, Video } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Maximize, Sparkles, CheckCircle2 } from 'lucide-react';
 import type { VideoProvider } from '../../../../shared/types/course';
 import { detectVideoProvider } from '../../services/courseNormalizer';
 
