@@ -15,7 +15,7 @@ export interface ILiveClassData {
   endTime?: string;
   duration: number;
   status: 'scheduled' | 'live' | 'ended' | 'cancelled' | 'Scheduled' | 'Live' | 'Completed' | 'Cancelled' | 'Draft';
-  meetingProvider?: 'jitsi' | 'google_meet' | 'zoom' | 'teams';
+  meetingProvider?: 'kaizenq' | 'google_meet' | 'zoom' | 'teams';
   meetingRoomId?: string;
   meetingUrl: string;
   recordingUrl?: string;
@@ -130,9 +130,9 @@ const seedMemory = () => {
     startTime: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
     duration: 90,
     status: 'live',
-    meetingProvider: 'jitsi',
+    meetingProvider: 'kaizenq',
     meetingRoomId: 'kaizenq-linux-kernel-101',
-    meetingUrl: 'https://meet.jit.si/kaizenq-linux-kernel-101',
+    meetingUrl: '/live-classroom/room/live_kernel_mem_1',
     recordingUrl: '',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -161,9 +161,9 @@ export class LiveClassroomRepository {
       endTime: data.endTime,
       duration: data.duration || 60,
       status: (data.status as any) || 'scheduled',
-      meetingProvider: data.meetingProvider || 'jitsi',
+      meetingProvider: data.meetingProvider || 'kaizenq',
       meetingRoomId: data.meetingRoomId || `kaizenq-room-${Date.now().toString().slice(-4)}`,
-      meetingUrl: data.meetingUrl || `https://meet.jit.si/kaizenq-room-${Date.now().toString().slice(-4)}`,
+      meetingUrl: data.meetingUrl || `/live-classroom/room/${classId}`,
       recordingUrl: data.recordingUrl || '',
       notesUrl: data.notesUrl || '',
       maxParticipants: data.maxParticipants || 100,

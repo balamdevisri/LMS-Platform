@@ -63,7 +63,7 @@ export class LiveClassModel implements LiveClass {
     this.year = data.year;
     this.section = data.section;
     this.allowedStudents = data.allowedStudents;
-    this.meetingProvider = data.meetingProvider || MeetingProvider.JITSI;
+    this.meetingProvider = data.meetingProvider || MeetingProvider.KAIZENQ;
     this.meetingRoomId = data.meetingRoomId;
     this.meetingUrl = data.meetingUrl;
     this.banner = data.banner;

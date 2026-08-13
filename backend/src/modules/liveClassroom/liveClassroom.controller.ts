@@ -2,6 +2,58 @@ import { Request, Response, NextFunction } from 'express';
 import { liveClassroomService } from './liveClassroom.service';
 
 export class LiveClassroomController {
+  // Generate KaizenQ Secure Room Token
+  public async generateRoomToken(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const classId = (req.params.classId || req.body.classId) as string;
+      const { userId, userName, role } = req.body;
+
+      if (!classId || !userId) {
+        res.status(400).json({ success: false, error: 'classId and userId are required' });
+        return;
+      }
+
+      const liveClass = await liveClassroomService.getLiveClassById(classId);
+      if (!liveClass) {
+        res.status(404).json({ success: false, error: 'Live Class session not found' });
+        return;
+      }
+
+      const userRole = role || 'student';
+
+      if (userRole === 'student' && liveClass.status !== 'live') {
+        res.status(403).json({ success: false, error: `Classroom is not currently live (Status: ${liveClass.status})` });
+        return;
+      }
+
+      const roomId = `kaizenq-room-${classId}`;
+      const expiresAt = Date.now() + 1000 * 60 * 60 * 4;
+
+      const permissions = {
+        canPublishAudio: true,
+        canPublishVideo: true,
+        canShareScreen: userRole === 'instructor' || userRole === 'admin',
+        canKickParticipants: userRole === 'instructor' || userRole === 'admin',
+        canMuteOthers: userRole === 'instructor' || userRole === 'admin',
+        canEndClass: userRole === 'instructor' || userRole === 'admin',
+      };
+
+      const tokenData = {
+        token: `kq_token_${roomId}_${userId}_${Date.now()}`,
+        userId,
+        classId,
+        roomId,
+        role: userRole,
+        permissions,
+        expiresAt,
+      };
+
+      res.json({ success: true, data: tokenData });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   // Live Class CRUD & Management
   public async getAllClasses(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {

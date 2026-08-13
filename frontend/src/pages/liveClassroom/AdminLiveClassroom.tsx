@@ -57,7 +57,7 @@ export const AdminLiveClassroom: React.FC = () => {
   const [formDate, setFormDate] = useState(new Date().toISOString().split('T')[0]);
   const [formStartTime, setFormStartTime] = useState('10:00');
   const [formEndTime, setFormEndTime] = useState('11:30');
-  const [formProvider, setFormProvider] = useState<'jitsi' | 'google_meet' | 'zoom' | 'teams'>('jitsi');
+  const [formProvider, setFormProvider] = useState<'kaizenq' | 'google_meet' | 'zoom' | 'teams'>('kaizenq');
   const [formMeetingUrl, setFormMeetingUrl] = useState('');
   const [formMaxParticipants, setFormMaxParticipants] = useState(100);
   const [formBanner, setFormBanner] = useState('');
@@ -170,7 +170,7 @@ export const AdminLiveClassroom: React.FC = () => {
     setFormDate(new Date().toISOString().split('T')[0]);
     setFormStartTime(new Date().toTimeString().substring(0, 5));
     setFormEndTime(new Date(Date.now() + 2 * 3600 * 1000).toTimeString().substring(0, 5));
-    setFormProvider('jitsi');
+    setFormProvider('kaizenq');
     setFormMeetingUrl('');
     setFormMaxParticipants(250);
     setFormBanner('https://images.unsplash.com/photo-1629654297299-c8506221ca97?w=1200&q=80');
@@ -900,7 +900,7 @@ export const AdminLiveClassroom: React.FC = () => {
                     onChange={(e) => setFormProvider(e.target.value as any)}
                     className="w-full bg-slate-50 border border-sky-200 rounded-xl p-2.5 text-xs focus:outline-hidden"
                   >
-                    <option value="jitsi">Jitsi Meet (Interactive Embedded Default)</option>
+                    <option value="kaizenq">KaizenQ Live Classroom (Native Private WebRTC)</option>
                     <option value="google_meet">Google Meet</option>
                     <option value="zoom">Zoom Education</option>
                     <option value="teams">Microsoft Teams</option>
@@ -913,7 +913,7 @@ export const AdminLiveClassroom: React.FC = () => {
                     type="url"
                     value={formMeetingUrl}
                     onChange={(e) => setFormMeetingUrl(e.target.value)}
-                    placeholder="Leave empty to auto-generate Jitsi room URL"
+                    placeholder="Leave empty to auto-generate KaizenQ room URL"
                     className="w-full bg-slate-50 border border-sky-200 rounded-xl p-2.5 text-xs focus:outline-hidden font-mono"
                   />
                 </div>

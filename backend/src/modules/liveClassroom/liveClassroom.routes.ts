@@ -16,6 +16,8 @@ router.post('/:classId/start', (req, res, next) => liveClassroomController.start
 router.post('/:classId/end', (req, res, next) => liveClassroomController.endClass(req, res, next));
 router.post('/:classId/join', (req, res, next) => liveClassroomController.joinClass(req, res, next));
 router.post('/:classId/leave', (req, res, next) => liveClassroomController.leaveClass(req, res, next));
+router.post('/:classId/token', (req, res, next) => liveClassroomController.generateRoomToken(req, res, next));
+router.post('/token', (req, res, next) => liveClassroomController.generateRoomToken(req, res, next));
 
 // --- 3. ATTENDANCE ---
 router.get('/:classId/attendance', (req, res, next) => liveClassroomController.getAttendanceReport(req, res, next));

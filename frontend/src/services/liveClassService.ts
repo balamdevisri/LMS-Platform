@@ -1,7 +1,8 @@
 import { db } from '@/firebase';
 import { collection, onSnapshot, query, doc, setDoc, updateDoc, deleteDoc, where } from 'firebase/firestore';
 import { adminNotificationService } from './adminNotificationService';
-import { generateSecureRoomId } from '@/config/jitsiConfig';
+
+const generateSecureRoomId = (classId?: string) => `kaizenq-room-${classId || Date.now()}`;
 
 export interface LiveClass {
   id: string;
@@ -26,7 +27,7 @@ export interface LiveClass {
   year?: string;
   section?: string;
   allowedStudents?: string[];
-  meetingProvider: 'jitsi' | 'google_meet' | 'zoom' | 'teams';
+  meetingProvider: 'kaizenq' | 'google_meet' | 'zoom' | 'teams';
   meetingRoomId: string;
   meetingUrl: string;
   banner?: string;
@@ -180,9 +181,9 @@ const INITIAL_CLASSES: LiveClass[] = [
     semester: 'Sem 5',
     year: '3rd Year',
     section: 'Sec A',
-    meetingProvider: 'jitsi',
+    meetingProvider: 'kaizenq',
     meetingRoomId: 'kaizenq-linux-kernel-batch-01',
-    meetingUrl: 'https://meet.jit.si/kaizenq-linux-kernel-batch-01',
+    meetingUrl: '/live-classroom/room/live_kernel_mem_1',
     banner: 'https://images.unsplash.com/photo-1629654297299-c8506221ca97?w=1200&q=80',
     thumbnail: 'https://images.unsplash.com/photo-1629654297299-c8506221ca97?w=400&q=80',
     startTime: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
@@ -222,9 +223,9 @@ const INITIAL_CLASSES: LiveClass[] = [
     semester: 'Sem 3',
     year: '2nd Year',
     section: 'Sec B',
-    meetingProvider: 'jitsi',
+    meetingProvider: 'kaizenq',
     meetingRoomId: 'kaizenq-git-mastery-batch-02',
-    meetingUrl: 'https://meet.jit.si/kaizenq-git-mastery-batch-02',
+    meetingUrl: '/live-classroom/room/live_git_conflict_2',
     banner: 'https://images.unsplash.com/photo-1556075798-4825dfaaf498?w=1200&q=80',
     thumbnail: 'https://images.unsplash.com/photo-1556075798-4825dfaaf498?w=400&q=80',
     startTime: new Date(Date.now() + 3 * 3600 * 1000).toISOString(),
@@ -263,9 +264,9 @@ const INITIAL_CLASSES: LiveClass[] = [
     semester: 'Sem 7',
     year: '4th Year',
     section: 'Sec C',
-    meetingProvider: 'jitsi',
+    meetingProvider: 'kaizenq',
     meetingRoomId: 'kaizenq-ebpf-observability-batch-03',
-    meetingUrl: 'https://meet.jit.si/kaizenq-ebpf-observability-batch-03',
+    meetingUrl: '/live-classroom/room/live_ebpf_perf_3',
     banner: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1200&q=80',
     thumbnail: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&q=80',
     startTime: new Date(Date.now() - 26 * 3600 * 1000).toISOString(),
@@ -381,13 +382,13 @@ class LiveClassService {
     const id = `live_class_${Date.now()}`;
     const courseSlug = (data.courseName || 'batch').toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
     const roomId = data.meetingRoomId || `kaizenq-${courseSlug}-${Date.now().toString().slice(-4)}`;
-    const meetingUrl = data.meetingUrl || `https://meet.jit.si/${roomId}`;
+    const meetingUrl = data.meetingUrl || `/live-classroom/room/${id}`;
 
     const newClass: LiveClass = {
       ...data,
       id,
       classId: id,
-      meetingProvider: data.meetingProvider || 'jitsi',
+      meetingProvider: data.meetingProvider || 'kaizenq',
       meetingRoomId: roomId,
       meetingUrl: meetingUrl,
       createdAt: new Date().toISOString(),

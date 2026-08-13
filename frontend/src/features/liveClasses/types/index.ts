@@ -7,9 +7,9 @@ export const LiveStatus = {
   Cancelled: 'Cancelled' as const,
 };
 
-export type MeetingProvider = 'JITSI' | 'GOOGLE_MEET' | 'ZOOM' | 'TEAMS';
+export type MeetingProvider = 'KAIZENQ' | 'GOOGLE_MEET' | 'ZOOM' | 'TEAMS';
 export const MeetingProvider = {
-  JITSI: 'JITSI' as const,
+  KAIZENQ: 'KAIZENQ' as const,
   GOOGLE_MEET: 'GOOGLE_MEET' as const,
   ZOOM: 'ZOOM' as const,
   TEAMS: 'TEAMS' as const,

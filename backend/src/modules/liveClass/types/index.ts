@@ -7,7 +7,7 @@ export enum LiveStatus {
 }
 
 export enum MeetingProvider {
-  JITSI = 'JITSI',
+  KAIZENQ = 'KAIZENQ',
   GOOGLE_MEET = 'GOOGLE_MEET',
   ZOOM = 'ZOOM',
   TEAMS = 'TEAMS'

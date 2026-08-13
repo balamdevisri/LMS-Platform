@@ -6,12 +6,12 @@ export class LiveClassService {
     const classId = `live_class_${Date.now()}`;
     const courseSlug = (data.courseName || 'batch').toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
     const roomId = data.meetingRoomId || `kaizenq-${courseSlug}-${Date.now().toString().slice(-4)}`;
-    const meetingUrl = data.meetingUrl || `https://meet.jit.si/${roomId}`;
+    const meetingUrl = data.meetingUrl || `/live-classroom/room/${classId}`;
 
     const newClass: LiveClass = {
       ...data,
       classId,
-      meetingProvider: data.meetingProvider || MeetingProvider.JITSI,
+      meetingProvider: data.meetingProvider || MeetingProvider.KAIZENQ,
       meetingRoomId: roomId,
       meetingUrl,
       createdAt: new Date().toISOString(),

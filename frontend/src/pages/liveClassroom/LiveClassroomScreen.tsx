@@ -43,7 +43,7 @@ import { LiveQuizWidget } from '@/components/liveClassroom/LiveQuizWidget';
 import { LeaderboardWidget } from '@/components/liveClassroom/LeaderboardWidget';
 import { AIInsightsWidget } from '@/components/liveClassroom/AIInsightsWidget';
 import { InteractiveWhiteboard } from '@/components/liveClassroom/InteractiveWhiteboard';
-import { JitsiClassroom } from '@/components/live-class/JitsiClassroom';
+import { KaizenQClassroom } from '@/components/live-class/KaizenQClassroom';
 import { LiveQuestionsWidget } from '@/components/liveClassroom/LiveQuestionsWidget';
 import { LiveNotesEditor } from '@/components/liveClassroom/LiveNotesEditor';
 import { MultiformatResourceManager } from '@/components/liveClassroom/MultiformatResourceManager';
@@ -63,13 +63,7 @@ export const LiveClassroomScreen: React.FC = () => {
     return 'KaizenQ Learner';
   }, [userProfile, user]);
 
-  const resolvedAvatar = useMemo(() => {
-    return userProfile?.photoURL || user?.photoURL || undefined;
-  }, [userProfile, user]);
 
-  const resolvedEmail = useMemo(() => {
-    return userProfile?.email || user?.email || undefined;
-  }, [userProfile, user]);
 
   useEffect(() => {
     if (user) {
@@ -215,9 +209,9 @@ export const LiveClassroomScreen: React.FC = () => {
           instructorId: 'inst_1',
           instructorName: 'Prof. Manoj Acharya',
           instructorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-          meetingProvider: 'jitsi',
+          meetingProvider: 'kaizenq',
           meetingRoomId: `kaizenq-linux-kernel-batch-${classId}`,
-          meetingUrl: `https://meet.jit.si/kaizenq-linux-kernel-batch-${classId}`,
+          meetingUrl: `/live-classroom/room/${classId}`,
           startTime: new Date().toISOString(),
           endTime: new Date(Date.now() + 90 * 60000).toISOString(),
           duration: 90,
@@ -534,14 +528,16 @@ export const LiveClassroomScreen: React.FC = () => {
                 )}
               </div>
             ) : (
-              <JitsiClassroom
-                roomName={liveClassData?.meetingRoomId || `kaizenq-room-${classId}`}
-                displayName={resolvedDisplayName}
-                email={resolvedEmail}
-                avatarUrl={resolvedAvatar}
+              <KaizenQClassroom
+                classId={classId!}
+                userId={user?.uid || userProfile?.uid || 'guest'}
+                userName={resolvedDisplayName}
                 role={isInstructor ? 'instructor' : 'student'}
-                onReady={(api) => { jitsiApiRef.current = api; }}
-                onConferenceLeft={handleEndSession}
+                isWhiteboardOpen={isWhiteboardOpen}
+                onToggleWhiteboard={() => setIsWhiteboardOpen((prev) => !prev)}
+                activeSidebarTab={activeTab}
+                onToggleSidebarTab={(tab) => setActiveTab((prev) => (prev === tab ? ('' as any) : (tab as any)))}
+                onLeaveOrEndClass={isInstructor ? handleEndSession : () => navigate('/live-classroom')}
               />
             )}
 
