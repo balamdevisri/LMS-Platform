@@ -39,6 +39,7 @@ export const AdminLiveClassroom: React.FC = () => {
 
   // Modals & Drawers
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
   const [editingClass, setEditingClass] = useState<LiveClass | null>(null);
   const [attendanceClass, setAttendanceClass] = useState<LiveClass | null>(null);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
@@ -114,6 +115,11 @@ export const AdminLiveClassroom: React.FC = () => {
     return selectedModule?.topics || [];
   }, [selectedModule]);
 
+  // Active Live Classes list for Real-Time Hero Banner
+  const activeLiveClasses = useMemo(() => {
+    return classes.filter((c) => normalizeLiveClassStatus(c.status) === 'live');
+  }, [classes]);
+
   // Filtered dataset
   const filteredClasses = useMemo(() => {
     let result = [...classes];
@@ -153,25 +159,25 @@ export const AdminLiveClassroom: React.FC = () => {
     };
   }, [classes]);
 
-  const openCreateModal = () => {
+  const openCreateModal = (initialStatus: 'Scheduled' | 'Live' = 'Scheduled') => {
     setEditingClass(null);
     setFormCourseId(courses[0]?.id ? String(courses[0].id) : 'course_linux_kernel');
     setFormModuleId('');
     setFormLessonId('');
     setFormInstructorId(instructorsList[0]?.id || 'inst_kaizen');
-    setFormTitle('');
-    setFormDescription('');
+    setFormTitle(initialStatus === 'Live' ? '🔴 Live Masterclass Session' : '');
+    setFormDescription(initialStatus === 'Live' ? 'Real-time broadcast session with interactive whiteboard, AI code playground, polls, and live video control panel.' : '');
     setFormDate(new Date().toISOString().split('T')[0]);
-    setFormStartTime('10:00');
-    setFormEndTime('11:30');
+    setFormStartTime(new Date().toTimeString().substring(0, 5));
+    setFormEndTime(new Date(Date.now() + 2 * 3600 * 1000).toTimeString().substring(0, 5));
     setFormProvider('jitsi');
     setFormMeetingUrl('');
-    setFormMaxParticipants(100);
+    setFormMaxParticipants(250);
     setFormBanner('https://images.unsplash.com/photo-1629654297299-c8506221ca97?w=1200&q=80');
     setFormThumbnail('https://images.unsplash.com/photo-1629654297299-c8506221ca97?w=400&q=80');
-    setFormTags('Linux, Kernel, Systems');
+    setFormTags('Live, Control Panel, Admin, Interactive');
     setFormDifficulty('Intermediate');
-    setFormStatus('Scheduled');
+    setFormStatus(initialStatus);
     setFormBranch('CSE');
     setFormSemester('Sem 5');
     setFormYear('3rd Year');
@@ -212,7 +218,9 @@ export const AdminLiveClassroom: React.FC = () => {
     setFormThumbnail(c.thumbnail || '');
     setFormTags((c.tags || []).join(', '));
     setFormDifficulty(c.difficulty || 'Intermediate');
-    setFormStatus(c.status);
+    const normStatus = normalizeLiveClassStatus(c.status);
+    const capitalizedStatus = (normStatus.charAt(0).toUpperCase() + normStatus.slice(1)) as 'Draft' | 'Scheduled' | 'Live' | 'Completed' | 'Cancelled';
+    setFormStatus(capitalizedStatus);
 
     setIsRecordingEnabled(c.isRecordingEnabled);
     setIsQuizEnabled(c.isQuizEnabled);
@@ -290,8 +298,11 @@ export const AdminLiveClassroom: React.FC = () => {
         await liveClassService.updateLiveClass(editingClass.id, payload);
         toast.success(`Live session "${formTitle}" updated!`);
       } else {
-        await liveClassService.createLiveClass(payload);
-        toast.success(`🎉 Live Class "${formTitle}" published & dispatches real-time alerts!`);
+        const createdClass = await liveClassService.createLiveClass(payload);
+        toast.success(`🎉 Live Class "${formTitle}" published!`);
+        if (formStatus === 'Live' && createdClass?.id) {
+          navigate(`/live-classroom/room/${createdClass.id}`);
+        }
       }
 
       setIsCreateModalOpen(false);
@@ -301,35 +312,49 @@ export const AdminLiveClassroom: React.FC = () => {
   };
 
   const handleDeleteClass = async (id: string, title: string) => {
-    if (confirm(`Are you sure you want to delete "${title}"?`)) {
+    if (!window.confirm(`Are you sure you want to delete the live class "${title}"?`)) return;
+    try {
       await liveClassService.deleteLiveClass(id);
-      toast.info(`Deleted live class "${title}".`);
+      toast.success(`Deleted live class "${title}".`);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete live class.');
     }
   };
 
   const handleDuplicateClass = async (id: string) => {
     try {
       const cloned = await liveClassService.duplicateLiveClass(id);
-      toast.success(`Duplicated session as draft: "${cloned.title}"!`);
-    } catch (e) {
-      toast.error('Failed to duplicate live class.');
+      if (cloned) {
+        toast.success(`Duplicated session as "${cloned.title}"!`);
+      }
+    } catch (err) {
+      toast.error('Failed to duplicate session.');
     }
   };
 
   const handleStartClass = async (id: string) => {
-    await liveClassService.startLiveClass(id);
-    toast.success('🔴 Class status set to LIVE! Real-time notifications dispatched.');
+    try {
+      await liveClassService.startLiveClass(id, userProfile?.uid, userProfile?.role);
+      toast.success('Live class session started successfully!');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to start live class.');
+    }
   };
 
   const handleEndClass = async (id: string) => {
-    await liveClassService.endLiveClass(id);
-    toast.info('Session ended and status updated to Completed.');
+    try {
+      await liveClassService.endLiveClass(id, userProfile?.uid, userProfile?.role);
+      toast.info('Session ended and status updated to Completed.');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to end live class.');
+    }
   };
 
   const handleOpenAttendance = (c: LiveClass) => {
     setAttendanceClass(c);
     const records = liveClassService.getAttendanceRecords(c.id);
     setAttendanceRecords(records);
+    setIsAttendanceModalOpen(true);
   };
 
   const handleExportAttendance = (c: LiveClass) => {
@@ -342,54 +367,11 @@ export const AdminLiveClassroom: React.FC = () => {
   };
 
   /**
-   * Dynamic function to create, activate LIVE state, and instantly launch the Admin Live Control Panel
+   * Opens the Create & Launch Live Control Panel modal with instructor assignment
    */
-  const handleInstantLaunchLiveControlPanel = async () => {
-    try {
-      const activeCourse = courses[0] || { id: 'course_linux_101', title: 'Linux Kernel & System Architecture' };
-      const selectedInst = instructorsList[0] || { id: 'inst_kaizen', name: userProfile?.name || 'Admin Master Instructor' };
-
-      const roomId = `kaizenq-live-room-${Date.now().toString().slice(-6)}`;
-      const newLiveClass = await liveClassService.createLiveClass({
-        title: `🔴 Admin Live Masterclass Control Session (${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`,
-        description: 'Real-time broadcast session with interactive whiteboard, AI code playground, polls, and live video control panel.',
-        courseId: String(activeCourse.id),
-        courseName: activeCourse.title,
-        moduleId: 'mod_live_1',
-        moduleTitle: 'Module 1: Real-Time Live Architecture',
-        lessonId: 'les_live_1',
-        lessonTitle: 'Lesson 1.1: Live Stream & Control Panel',
-        instructorId: selectedInst.id,
-        instructorName: selectedInst.name,
-        branch: 'CSE',
-        semester: 'Sem 5',
-        year: '3rd Year',
-        section: 'Sec A',
-        meetingProvider: 'jitsi',
-        meetingRoomId: roomId,
-        meetingUrl: `https://meet.jit.si/${roomId}`,
-        startTime: new Date().toISOString(),
-        endTime: new Date(Date.now() + 2 * 3600 * 1000).toISOString(),
-        duration: 120,
-        status: 'Live',
-        isRecordingEnabled: true,
-        isQuizEnabled: true,
-        isPollEnabled: true,
-        isChatEnabled: true,
-        isAttendanceEnabled: true,
-        resourceDownloadEnabled: true,
-        certificateEligible: true,
-        maxParticipants: 250,
-        tags: ['Live', 'Control Panel', 'Admin', 'Broadcast'],
-        difficulty: 'Advanced',
-        createdBy: userProfile?.uid || 'admin_sys',
-      });
-
-      toast.success('🚀 Created & Launched Live Control Panel Room!');
-      navigate(`/live-classroom/room/${newLiveClass.id}`);
-    } catch (e) {
-      toast.error('Failed to launch live control panel room.');
-    }
+  const handleInstantLaunchLiveControlPanel = () => {
+    openCreateModal('Live');
+    toast.info('Select instructor and session details to launch Live Control Panel.');
   };
 
   const handleEnterControlPanel = async (c: LiveClass) => {
@@ -438,7 +420,7 @@ export const AdminLiveClassroom: React.FC = () => {
           </button>
 
           <button
-            onClick={openCreateModal}
+            onClick={() => openCreateModal()}
             className="btn-blue-primary text-xs py-3 px-5 shadow-lg shadow-sky-500/20 flex items-center gap-2 font-bold cursor-pointer"
           >
             <Plus className="w-4 h-4" />
@@ -446,6 +428,61 @@ export const AdminLiveClassroom: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* ACTIVE REAL-TIME LIVE CONTROL ROOM BANNER */}
+      {activeLiveClasses.length > 0 && (
+        <div className="bg-slate-900 border border-rose-500/30 rounded-3xl p-6 shadow-2xl text-white font-['Sora'] relative overflow-hidden space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+              </span>
+              <h3 className="font-heading font-extrabold text-sm uppercase tracking-wider text-rose-400">
+                Active Broadcast Sessions ({activeLiveClasses.length})
+              </h3>
+            </div>
+            <span className="text-xs font-mono text-slate-400">Firestore Real-time Sync Active</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {activeLiveClasses.map((ac) => (
+              <div key={ac.id} className="bg-slate-950/80 border border-rose-500/20 rounded-2xl p-4 flex flex-col justify-between space-y-3">
+                <div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-extrabold text-[10px] uppercase border border-rose-500/30">
+                      🔴 LIVE NOW
+                    </span>
+                    <span className="text-xs font-bold text-slate-400">{ac.courseName}</span>
+                  </div>
+                  <h4 className="font-heading font-extrabold text-base text-white mt-1.5 line-clamp-1">{ac.title}</h4>
+                  <p className="text-xs text-slate-400 mt-1 flex items-center gap-2">
+                    <Users className="w-3.5 h-3.5 text-sky-400" />
+                    <span>Assigned Lead: <strong className="text-slate-200">{ac.instructorName}</strong></span>
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 pt-2 border-t border-slate-800 flex-wrap">
+                  <button
+                    onClick={() => handleEnterControlPanel(ac)}
+                    className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-md shadow-rose-600/30 flex items-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <Radio className="w-3.5 h-3.5" />
+                    <span>Launch Control Room</span>
+                  </button>
+                  <button
+                    onClick={() => handleEndClass(ac.id)}
+                    className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-rose-400 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <StopCircle className="w-3.5 h-3.5" />
+                    <span>End Session</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Top Filter Tabs & Search Bar */}
       <div className="bg-white/90 border border-sky-200/80 rounded-3xl p-5 shadow-sm space-y-4">
@@ -524,7 +561,7 @@ export const AdminLiveClassroom: React.FC = () => {
           <p className="text-xs text-slate-500 max-w-sm mx-auto font-medium">
             No live classroom sessions match your selected filter tab or search query.
           </p>
-          <button onClick={openCreateModal} className="btn-blue-primary text-xs py-2 px-4 font-bold inline-flex items-center gap-1.5">
+          <button onClick={() => openCreateModal()} className="btn-blue-primary text-xs py-2 px-4 font-bold inline-flex items-center gap-1.5">
             <Plus className="w-4 h-4" />
             <span>Create First Session</span>
           </button>
@@ -969,7 +1006,7 @@ export const AdminLiveClassroom: React.FC = () => {
       )}
 
       {/* ATTENDANCE ROSTER DRAWER */}
-      {attendanceClass && (
+      {isAttendanceModalOpen && attendanceClass && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex justify-end">
           <div className="bg-white max-w-xl w-full h-full p-6 shadow-2xl overflow-y-auto space-y-5 font-['Sora'] border-l border-sky-100 animate-in slide-in-from-right duration-300">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
@@ -980,7 +1017,13 @@ export const AdminLiveClassroom: React.FC = () => {
                   <p className="text-[11px] text-slate-500 truncate max-w-xs">{attendanceClass.title}</p>
                 </div>
               </div>
-              <button onClick={() => setAttendanceClass(null)} className="p-1 rounded-lg hover:bg-slate-100 text-slate-400">
+              <button
+                onClick={() => {
+                  setIsAttendanceModalOpen(false);
+                  setAttendanceClass(null);
+                }}
+                className="p-1 rounded-lg hover:bg-slate-100 text-slate-400"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>

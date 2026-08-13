@@ -2,14 +2,18 @@ import React, { useRef, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Pencil, Eraser, RotateCcw, Download, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { Socket } from 'socket.io-client';
 
 interface WhiteboardProps {
   onClose: () => void;
   isInstructor: boolean;
+  socket?: Socket | null;
+  classId?: string;
 }
 
-export const InteractiveWhiteboard: React.FC<WhiteboardProps> = ({ onClose, isInstructor }) => {
+export const InteractiveWhiteboard: React.FC<WhiteboardProps> = ({ onClose, isInstructor, socket, classId }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const lastPosRef = useRef<{ x: number; y: number } | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [color, setColor] = useState('#3b82f6'); // Default Blue
   const [lineWidth, setLineWidth] = useState(4);
@@ -34,6 +38,54 @@ export const InteractiveWhiteboard: React.FC<WhiteboardProps> = ({ onClose, isIn
     ctx.lineJoin = 'round';
   }, []);
 
+  // Listen for real-time remote whiteboard drawing events
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleDrawEvent = (data: { x: number; y: number; prevX?: number; prevY?: number; color: string; lineWidth: number; tool: string }) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      ctx.beginPath();
+      if (data.prevX !== undefined && data.prevY !== undefined) {
+        ctx.moveTo(data.prevX, data.prevY);
+      } else {
+        ctx.moveTo(data.x, data.y);
+      }
+
+      if (data.tool === 'eraser') {
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = data.lineWidth * 4;
+      } else {
+        ctx.strokeStyle = data.color;
+        ctx.lineWidth = data.lineWidth;
+      }
+
+      ctx.lineTo(data.x, data.y);
+      ctx.stroke();
+    };
+
+    const handleClearEvent = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      const rect = canvas.getBoundingClientRect();
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, rect.width, rect.height);
+    };
+
+    socket.on('whiteboard_draw_event', handleDrawEvent);
+    socket.on('whiteboard_clear_event', handleClearEvent);
+
+    return () => {
+      socket.off('whiteboard_draw_event', handleDrawEvent);
+      socket.off('whiteboard_clear_event', handleClearEvent);
+    };
+  }, [socket]);
+
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!isInstructor) {
       toast.info('Student View: Only lead mentor can draw on the main board.');
@@ -53,6 +105,7 @@ export const InteractiveWhiteboard: React.FC<WhiteboardProps> = ({ onClose, isIn
 
     ctx.beginPath();
     ctx.moveTo(x, y);
+    lastPosRef.current = { x, y };
     setIsDrawing(true);
   };
 
@@ -80,10 +133,26 @@ export const InteractiveWhiteboard: React.FC<WhiteboardProps> = ({ onClose, isIn
 
     ctx.lineTo(x, y);
     ctx.stroke();
+
+    if (socket && classId) {
+      socket.emit('whiteboard_draw', {
+        classId,
+        x,
+        y,
+        prevX: lastPosRef.current?.x,
+        prevY: lastPosRef.current?.y,
+        color,
+        lineWidth,
+        tool,
+      });
+    }
+
+    lastPosRef.current = { x, y };
   };
 
   const stopDrawing = () => {
     setIsDrawing(false);
+    lastPosRef.current = null;
   };
 
   const clearCanvas = () => {
@@ -94,6 +163,11 @@ export const InteractiveWhiteboard: React.FC<WhiteboardProps> = ({ onClose, isIn
     const rect = canvas.getBoundingClientRect();
     ctx.fillStyle = '#0f172a';
     ctx.fillRect(0, 0, rect.width, rect.height);
+
+    if (socket && classId && isInstructor) {
+      socket.emit('whiteboard_clear', { classId });
+    }
+
     toast.info('Whiteboard cleared');
   };
 

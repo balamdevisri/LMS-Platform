@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Socket } from 'socket.io-client';
 import { getLiveClassroomSocket } from '@/services/socket';
 import { useAuth } from '@/contexts/AuthContext';
-import { liveClassService, normalizeLiveClassStatus, type LiveClass, type AttendanceRecord } from '@/services/liveClassService';
+import { liveClassService, type LiveClass, type AttendanceRecord } from '@/services/liveClassService';
 import {
   Mic,
   MicOff,
@@ -30,6 +30,7 @@ import {
   FileSpreadsheet,
   X,
   ShieldAlert,
+  ShieldCheck,
   VolumeX,
   MessageSquareOff,
 } from 'lucide-react';
@@ -42,19 +43,62 @@ import { LiveQuizWidget } from '@/components/liveClassroom/LiveQuizWidget';
 import { LeaderboardWidget } from '@/components/liveClassroom/LeaderboardWidget';
 import { AIInsightsWidget } from '@/components/liveClassroom/AIInsightsWidget';
 import { InteractiveWhiteboard } from '@/components/liveClassroom/InteractiveWhiteboard';
-import { JitsiMeetingComponent } from '@/components/liveClassroom/JitsiMeetingComponent';
+import { JitsiClassroom } from '@/components/live-class/JitsiClassroom';
 import { LiveQuestionsWidget } from '@/components/liveClassroom/LiveQuestionsWidget';
 import { LiveNotesEditor } from '@/components/liveClassroom/LiveNotesEditor';
 import { MultiformatResourceManager } from '@/components/liveClassroom/MultiformatResourceManager';
 
+import { liveClassAuthorizationService } from '@/services/liveClassAuthorizationService';
+
 export const LiveClassroomScreen: React.FC = () => {
   const { classId } = useParams<{ classId: string }>();
   const navigate = useNavigate();
-  const { userProfile } = useAuth();
+  const { user, userProfile, loading: authLoading } = useAuth();
+
+  const resolvedDisplayName = useMemo(() => {
+    if (userProfile?.fullName) return userProfile.fullName;
+    if (userProfile?.name) return userProfile.name;
+    if (user?.displayName) return user.displayName;
+    if (user?.email) return user.email.split('@')[0];
+    return 'KaizenQ Learner';
+  }, [userProfile, user]);
+
+  const resolvedAvatar = useMemo(() => {
+    return userProfile?.photoURL || user?.photoURL || undefined;
+  }, [userProfile, user]);
+
+  const resolvedEmail = useMemo(() => {
+    return userProfile?.email || user?.email || undefined;
+  }, [userProfile, user]);
+
+  useEffect(() => {
+    if (user) {
+      console.log(`[KAIZENQ AUTH] User authenticated: ${user.uid}`);
+      console.log(`[KAIZENQ AUTH] Role resolved: ${userProfile?.role || 'student'}`);
+      console.log(`[JITSI IDENTITY] Identity prepared: ${resolvedDisplayName}`);
+    }
+  }, [user, userProfile, resolvedDisplayName]);
 
   const [socket, setSocket] = useState<Socket | null>(null);
   const [liveClassData, setLiveClassData] = useState<LiveClass | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const authCheck = useMemo(() => {
+    const res = liveClassAuthorizationService.authorizeLiveClassAccess(
+      classId || '',
+      userProfile
+        ? { uid: userProfile.uid, role: userProfile.role, email: userProfile.email }
+        : user
+        ? { uid: user.uid, email: user.email || undefined }
+        : null,
+      liveClassData
+    );
+    return {
+      authorized: res.allowed,
+      code: res.reason,
+      reason: res.message,
+    };
+  }, [classId, userProfile, user, liveClassData]);
 
   // Classroom Hardware & Feature States
   const [onlineCount, setOnlineCount] = useState(1);
@@ -94,7 +138,48 @@ export const LiveClassroomScreen: React.FC = () => {
   const [recordingUrlInput, setRecordingUrlInput] = useState('');
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
 
+  const jitsiApiRef = useRef<any>(null);
+
   const isInstructor = userProfile?.role === 'instructor' || userProfile?.role === 'admin';
+
+  const handleToggleMic = () => {
+    setMicOn((prev) => {
+      const next = !prev;
+      if (jitsiApiRef.current) {
+        try {
+          jitsiApiRef.current.executeCommand('toggleAudio');
+        } catch (e) {}
+      }
+      toast.info(next ? '🎙️ Microphone unmuted' : '🔇 Microphone muted');
+      return next;
+    });
+  };
+
+  const handleToggleCam = () => {
+    setCamOn((prev) => {
+      const next = !prev;
+      if (jitsiApiRef.current) {
+        try {
+          jitsiApiRef.current.executeCommand('toggleVideo');
+        } catch (e) {}
+      }
+      toast.info(next ? '📹 Camera turned on' : '📷 Camera turned off');
+      return next;
+    });
+  };
+
+  const handleToggleScreenShare = () => {
+    setIsScreenSharing((prev) => {
+      const next = !prev;
+      if (jitsiApiRef.current) {
+        try {
+          jitsiApiRef.current.executeCommand('toggleShareScreen');
+        } catch (e) {}
+      }
+      toast.info(next ? '🖥️ Screen sharing started' : '⏹️ Screen sharing stopped');
+      return next;
+    });
+  };
 
   // Format Elapsed Duration (HH:MM:SS)
   const formatTime = (totalSeconds: number) => {
@@ -215,13 +300,30 @@ export const LiveClassroomScreen: React.FC = () => {
       toast.info(data.locked ? '🔒 Classroom is now locked by mentor.' : '🔓 Classroom is now unlocked.');
     });
 
+    socketInstance.on('whiteboard_toggled', (data: { isOpen: boolean }) => {
+      setIsWhiteboardOpen(data.isOpen);
+      if (data.isOpen) {
+        toast.info('🎨 Lead Mentor opened the Interactive Whiteboard.');
+      } else {
+        toast.info('🎨 Lead Mentor closed the Whiteboard.');
+      }
+    });
+
     return () => {
       socketInstance.disconnect();
       socketInstance.off('participants_update');
       socketInstance.off('hand_raised');
       socketInstance.off('lock_toggled');
+      socketInstance.off('whiteboard_toggled');
     };
   }, [classId, userProfile, isInstructor]);
+
+  const handleToggleWhiteboard = (open: boolean) => {
+    setIsWhiteboardOpen(open);
+    if (isInstructor && socket) {
+      socket.emit('toggle_whiteboard', { classId, isOpen: open });
+    }
+  };
 
   const handleToggleLock = () => {
     if (!socket || !isInstructor) return;
@@ -269,11 +371,11 @@ export const LiveClassroomScreen: React.FC = () => {
     setIsAttendanceOpen(true);
   };
 
-  const handleEndSession = useCallback(async () => {
+  const [isEndConfirmModalOpen, setIsEndConfirmModalOpen] = useState(false);
+
+  const handleEndSession = useCallback(() => {
     if (isInstructor && liveClassData) {
-      await liveClassService.endLiveClass(liveClassData.id);
-      toast.success('Classroom session completed successfully.');
-      navigate('/admin/live-classroom');
+      setIsEndConfirmModalOpen(true);
     } else {
       toast.info('Left the classroom session.');
       navigate('/dashboard');
@@ -399,32 +501,47 @@ export const LiveClassroomScreen: React.FC = () => {
           <div className="flex-1 bg-slate-950 relative overflow-hidden flex flex-col items-center justify-center">
             
             {/* Embedded Jitsi Meeting Component or Gatekeeping Banner */}
-            {!isInstructor && !isAdmin && normalizeLiveClassStatus(liveClassData?.status || '') !== 'live' ? (
-              <div className="flex flex-col items-center justify-center space-y-4 p-8 text-center bg-slate-950 text-white h-full w-full">
-                <div className="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center">
-                  <Clock className="w-8 h-8 text-amber-400 animate-pulse" />
+            {authLoading ? (
+              <div className="flex flex-col items-center justify-center space-y-4 p-8 text-center bg-slate-950 text-white h-full w-full min-h-125">
+                <div className="w-12 h-12 border-4 border-sky-400 border-t-transparent rounded-full animate-spin" />
+                <h3 className="text-lg font-heading font-extrabold text-slate-200">Preparing your classroom...</h3>
+                <p className="text-xs text-slate-400">Authenticating user identity and verifying session status...</p>
+              </div>
+            ) : !authCheck.authorized ? (
+              <div className="flex flex-col items-center justify-center space-y-4 p-8 text-center bg-slate-950 text-white h-full w-full min-h-125">
+                <div className="w-16 h-16 rounded-full bg-rose-500/10 border border-rose-500/30 flex items-center justify-center">
+                  <ShieldCheck className="w-8 h-8 text-rose-400" />
                 </div>
-                <h3 className="text-xl font-heading font-extrabold">Waiting for Instructor</h3>
+                <h3 className="text-xl font-heading font-extrabold text-white">Access Denied</h3>
                 <p className="text-sm text-slate-400 max-w-md">
-                  This live session has not started yet. The instructor must start the class before students can enter the video room.
+                  {authCheck.reason || 'You are not authorized to join this live class.'}
                 </p>
-                <div className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono text-slate-300">
-                  Status: <span className="uppercase text-amber-400 font-bold">{liveClassData?.status || 'Scheduled'}</span>
-                </div>
-                <button
-                  onClick={() => navigate('/live-classroom')}
-                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs cursor-pointer shadow-md"
-                >
-                  Return to Schedule
-                </button>
+
+                {authCheck.code === 'UNAUTHENTICATED' ? (
+                  <button
+                    onClick={() => navigate('/auth/login')}
+                    className="px-6 py-3 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs cursor-pointer shadow-lg shadow-sky-500/20 mt-2"
+                  >
+                    Login to KaizenQ
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => navigate('/live-classroom')}
+                    className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs cursor-pointer shadow-md mt-2"
+                  >
+                    Return to Live Sessions Schedule
+                  </button>
+                )}
               </div>
             ) : (
-              <JitsiMeetingComponent
+              <JitsiClassroom
                 roomName={liveClassData?.meetingRoomId || `kaizenq-room-${classId}`}
-                displayName={currentUser.name}
-                userEmail={userProfile?.email}
-                isInstructor={Boolean(isInstructor)}
-                onLeave={handleEndSession}
+                displayName={resolvedDisplayName}
+                email={resolvedEmail}
+                avatarUrl={resolvedAvatar}
+                role={isInstructor ? 'instructor' : 'student'}
+                onReady={(api) => { jitsiApiRef.current = api; }}
+                onConferenceLeft={handleEndSession}
               />
             )}
 
@@ -487,7 +604,7 @@ export const LiveClassroomScreen: React.FC = () => {
             {/* Left Controls: Hardware Toggles */}
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setMicOn(!micOn)}
+                onClick={handleToggleMic}
                 className={`p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
                   micOn ? 'bg-sky-500/20 border-sky-400 text-sky-300' : 'bg-rose-500/20 border-rose-500 text-rose-400'
                 }`}
@@ -497,7 +614,7 @@ export const LiveClassroomScreen: React.FC = () => {
               </button>
 
               <button
-                onClick={() => setCamOn(!camOn)}
+                onClick={handleToggleCam}
                 className={`p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
                   camOn ? 'bg-sky-500/20 border-sky-400 text-sky-300' : 'bg-rose-500/20 border-rose-500 text-rose-400'
                 }`}
@@ -507,7 +624,7 @@ export const LiveClassroomScreen: React.FC = () => {
               </button>
 
               <button
-                onClick={() => setIsScreenSharing(!isScreenSharing)}
+                onClick={handleToggleScreenShare}
                 className={`p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
                   isScreenSharing ? 'bg-indigo-500/20 border-indigo-400 text-indigo-300' : 'bg-slate-800 border-slate-700 text-slate-300'
                 }`}
@@ -518,8 +635,10 @@ export const LiveClassroomScreen: React.FC = () => {
 
               {/* Whiteboard Trigger Button */}
               <button
-                onClick={() => setIsWhiteboardOpen(true)}
-                className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sky-300 font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+                onClick={() => handleToggleWhiteboard(!isWhiteboardOpen)}
+                className={`p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  isWhiteboardOpen ? 'bg-sky-500/20 border-sky-400 text-sky-300' : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-sky-300'
+                }`}
                 title="Open Interactive Whiteboard"
               >
                 <Pencil className="w-4.5 h-4.5 text-sky-400" />
@@ -779,7 +898,9 @@ export const LiveClassroomScreen: React.FC = () => {
       {isWhiteboardOpen && (
         <InteractiveWhiteboard
           isInstructor={Boolean(isInstructor)}
-          onClose={() => setIsWhiteboardOpen(false)}
+          socket={socket}
+          classId={classId || ''}
+          onClose={() => handleToggleWhiteboard(false)}
         />
       )}
 
@@ -969,6 +1090,56 @@ export const LiveClassroomScreen: React.FC = () => {
                 className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold cursor-pointer"
               >
                 Close Controls
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Instructor End Class Confirmation Modal */}
+      {isEndConfirmModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl text-white">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0">
+                <LogOut className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-heading font-extrabold text-white">End Live Class?</h3>
+                <p className="text-xs text-slate-400">Are you sure you want to end this live session?</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-300 bg-slate-950/60 p-3.5 rounded-2xl border border-slate-800 leading-relaxed">
+              This action will update the class status to <strong className="text-rose-400 font-mono font-bold uppercase">COMPLETED</strong>, end the video media stream for all participants, and notify all enrolled students.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                onClick={() => setIsEndConfirmModalOpen(false)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  setIsEndConfirmModalOpen(false);
+                  if (isInstructor && liveClassData && userProfile) {
+                    try {
+                      await liveClassService.endLiveClass(liveClassData.id, userProfile.uid, userProfile.role);
+                      toast.success('Classroom session completed successfully.');
+                      navigate('/admin/live-classroom');
+                    } catch (err: any) {
+                      toast.error(err.message || 'Failed to end live class.');
+                    }
+                  } else {
+                    toast.info('Left classroom session.');
+                    navigate('/dashboard');
+                  }
+                }}
+                className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs cursor-pointer shadow-lg shadow-rose-600/20"
+              >
+                Confirm End Class
               </button>
             </div>
           </div>

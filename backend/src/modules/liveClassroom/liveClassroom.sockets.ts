@@ -241,6 +241,24 @@ export const setupLiveClassroomSockets = (io: SocketServer) => {
       liveNS.to(roomName).emit('lock_toggled', { locked: data.locked });
     });
 
+    // Whiteboard Toggle Sync
+    socket.on('toggle_whiteboard', (data: { classId: string; isOpen: boolean }) => {
+      const roomName = `class_${data.classId}`;
+      liveNS.to(roomName).emit('whiteboard_toggled', { isOpen: data.isOpen });
+    });
+
+    // Whiteboard Live Drawing Sync
+    socket.on('whiteboard_draw', (data: { classId: string; x: number; y: number; prevX?: number; prevY?: number; color: string; lineWidth: number; tool: string }) => {
+      const roomName = `class_${data.classId}`;
+      socket.to(roomName).emit('whiteboard_draw_event', data);
+    });
+
+    // Whiteboard Clear Sync
+    socket.on('whiteboard_clear', (data: { classId: string }) => {
+      const roomName = `class_${data.classId}`;
+      liveNS.to(roomName).emit('whiteboard_clear_event');
+    });
+
     // Handle Disconnect
     socket.on('disconnect', async () => {
       logger.info(`[SOCKET] Client disconnected: ${socket.id}`);

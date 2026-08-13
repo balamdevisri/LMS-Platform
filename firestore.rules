@@ -196,9 +196,11 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (
         isAdmin() || 
         resource.data.recipientId == request.auth.uid || 
-        resource.data.recipientRole == 'all'
+        resource.data.recipientRole == 'all' ||
+        resource.data.recipientRole == 'student'
       );
-      allow write: if isAdmin();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
     }
 
     // 23. Email Logs
@@ -221,7 +223,7 @@ service cloud.firestore {
     match /liveClasses/{classId} {
       allow read: if isAuthenticated();
       allow create, delete: if isAdmin();
-      allow update: if isAdmin() || isAssignedInstructor(resource.data);
+      allow update: if isAdmin() || (isAssignedInstructor(resource.data) && request.resource.data.instructorId == resource.data.instructorId && request.resource.data.courseId == resource.data.courseId && request.resource.data.createdBy == resource.data.createdBy);
 
       // 25.1 Subcollection: attendance
       match /attendance/{attendanceId} {
@@ -234,14 +236,15 @@ service cloud.firestore {
       match /chat/{messageId} {
         allow read: if isAuthenticated();
         allow create: if isAuthenticated() && request.resource.data.senderId == request.auth.uid;
-        allow update, delete: if isAdmin() || isInstructor() || (isAuthenticated() && resource.data.senderId == request.auth.uid);
+        allow update: if isAdmin() || isAssignedInstructor(get(/databases/$(database)/documents/liveClasses/$(classId)).data) || (isAuthenticated() && resource.data.senderId == request.auth.uid && request.resource.data.senderId == resource.data.senderId && request.resource.data.senderName == resource.data.senderName && request.resource.data.senderRole == resource.data.senderRole);
+        allow delete: if isAdmin() || isAssignedInstructor(get(/databases/$(database)/documents/liveClasses/$(classId)).data);
       }
 
       // 25.3 Subcollection: questions
       match /questions/{questionId} {
         allow read: if isAuthenticated();
         allow create: if isAuthenticated() && request.resource.data.studentId == request.auth.uid;
-        allow update, delete: if isAdmin() || isInstructor();
+        allow update, delete: if isAdmin() || isAssignedInstructor(get(/databases/$(database)/documents/liveClasses/$(classId)).data);
       }
 
       // 25.4 Subcollection: notes

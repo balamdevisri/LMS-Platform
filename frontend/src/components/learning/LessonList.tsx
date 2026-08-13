@@ -61,7 +61,9 @@ export const LessonList: React.FC<LessonListProps> = ({
             onClick={() => handleLessonClick(lesson.id)}
             className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-left text-xs cursor-pointer ${
               !isUnlocked
-                ? 'opacity-60 bg-slate-100/40 dark:bg-slate-900/40 cursor-not-allowed'
+                ? isNightMode
+                  ? 'opacity-60 bg-slate-900/40 cursor-not-allowed'
+                  : 'opacity-60 bg-slate-100/40 cursor-not-allowed'
                 : isSelected
                 ? isNightMode
                   ? 'bg-slate-900 border border-cyan-500/60 text-cyan-300 font-bold shadow-xs'

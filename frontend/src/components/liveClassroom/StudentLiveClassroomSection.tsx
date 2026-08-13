@@ -8,10 +8,13 @@ import {
   Clock,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import { liveClassAuthorizationService } from '@/services/liveClassAuthorizationService';
 import { liveClassService, normalizeLiveClassStatus, type LiveClass } from '@/services/liveClassService';
 
 export const StudentLiveClassroomSection: React.FC = () => {
   const navigate = useNavigate();
+  const { user, userProfile } = useAuth();
   const [classes, setClasses] = useState<LiveClass[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<'today' | 'upcoming' | 'completed' | 'missed'>('today');
@@ -79,10 +82,31 @@ export const StudentLiveClassroomSection: React.FC = () => {
 
   const handleJoinLive = (c: LiveClass) => {
     const normStatus = normalizeLiveClassStatus(c.status);
-    if (normStatus !== 'live') {
-      toast.error('This class has not started yet. Waiting for instructor to start the live classroom.');
+    if (normStatus === 'scheduled') {
+      toast.info('🕐 NOT STARTED: Waiting for instructor to start the live classroom.');
       return;
     }
+
+    if (normStatus === 'completed' || normStatus === 'cancelled') {
+      toast.info(normStatus === 'completed' ? '✓ CLASS COMPLETED: This live session has ended.' : '✕ CANCELLED: This live session was cancelled.');
+      return;
+    }
+
+    const authRes = liveClassAuthorizationService.authorizeLiveClassAccess(
+      c.id,
+      userProfile
+        ? { uid: userProfile.uid, role: userProfile.role, email: userProfile.email }
+        : user
+        ? { uid: user.uid, email: user.email || undefined }
+        : null,
+      c
+    );
+
+    if (!authRes.allowed) {
+      toast.error(authRes.message || 'You are not authorized to join this live class.');
+      return;
+    }
+
     navigate(`/live-classroom/room/${c.id}`);
   };
 

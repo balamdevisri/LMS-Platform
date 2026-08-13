@@ -1,6 +1,7 @@
 import { auth, db } from '@/firebase';
-import { doc, setDoc, updateDoc, deleteDoc, collection, getDocs } from 'firebase/firestore';
-import type { ICourse, CreateCourseDTO, UpdateCourseDTO, CourseFilterOptions, CoursePaginationResult, CourseLevel, CourseStatus } from '../../../shared/types/course';
+import { doc, setDoc, updateDoc, deleteDoc, collection, getDocs, getDoc } from 'firebase/firestore';
+import type { ICourse, CreateCourseDTO, UpdateCourseDTO, CourseFilterOptions, CoursePaginationResult, CourseLevel, CourseStatus, IVideoProgress } from '../../../shared/types/course';
+import { normalizeCourseData, auditCourseData } from './courseNormalizer';
 export type { ICourse };
 import { gitCourseModules } from '@/data/gitCourseFullData';
 import { kubernetesCourseModules } from '@/data/kubernetesCourseFullData';
@@ -1474,6 +1475,137 @@ class CourseService {
     localStorage.setItem(key, String(!current));
     return { bookmarked: !current };
   }
+
+  normalizeCourse(rawCourse: any): ICourse {
+    return normalizeCourseData(rawCourse);
+  }
+
+  auditCourse(rawCourse: any) {
+    return auditCourseData(rawCourse);
+  }
+
+  validateCourseForPublishing(course: ICourse): { isValid: boolean; errors: string[] } {
+    const errors: string[] = [];
+
+    if (!course.title || course.title.trim().length === 0) {
+      errors.push('Course title is required.');
+    }
+    if (!course.description || course.description.trim().length === 0) {
+      errors.push('Course description is required.');
+    }
+    if (!course.thumbnail) {
+      errors.push('Course thumbnail is required.');
+    }
+    if (!course.difficulty) {
+      errors.push('Course difficulty is required.');
+    }
+    if (!course.duration) {
+      errors.push('Course duration is required.');
+    }
+    if (!course.skills || course.skills.length === 0) {
+      errors.push('At least one skill point is required.');
+    }
+    if (!course.learningOutcomes || course.learningOutcomes.length === 0) {
+      errors.push('At least one measurable learning outcome is required.');
+    }
+    if (!course.modules || course.modules.length === 0) {
+      errors.push('At least one module must exist in the course.');
+    } else {
+      const moduleOrders = new Set<number>();
+      course.modules.forEach((mod, mIdx) => {
+        if (mod.order === undefined || mod.order === null) {
+          errors.push(`Module ${mIdx + 1} (${mod.title}) is missing an explicit numeric order.`);
+        } else if (moduleOrders.has(mod.order)) {
+          errors.push(`Duplicate module order index ${mod.order} detected.`);
+        }
+        moduleOrders.add(mod.order);
+
+        if (!mod.lessons || mod.lessons.length === 0) {
+          errors.push(`Module ${mod.title} has no lessons.`);
+        } else {
+          const lessonOrders = new Set<number>();
+          mod.lessons.forEach((les, lIdx) => {
+            if (les.order === undefined || les.order === null) {
+              errors.push(`Lesson ${lIdx + 1} (${les.title}) in Module ${mod.title} is missing an explicit order.`);
+            } else if (lessonOrders.has(les.order)) {
+              errors.push(`Duplicate lesson order ${les.order} in Module ${mod.title}.`);
+            }
+            lessonOrders.add(les.order);
+
+            if (les.type === 'video' && (!les.video || !les.video.videoUrl)) {
+              errors.push(`Video lesson "${les.title}" must have a valid video URL.`);
+            }
+          });
+        }
+      });
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+    };
+  }
+
+  async saveVideoProgress(
+    userId: string,
+    courseId: string,
+    lessonId: string,
+    videoId: string,
+    progress: { watchTime: number; duration: number; percentage: number; lastPosition: number; completed: boolean }
+  ): Promise<void> {
+    const key = `shaivika_vidprog_${userId}_${courseId}_${lessonId}`;
+    const record: IVideoProgress = {
+      studentId: userId,
+      courseId,
+      moduleId: '',
+      lessonId,
+      videoId,
+      watchTime: progress.watchTime,
+      duration: progress.duration,
+      percentage: progress.percentage,
+      lastPosition: progress.lastPosition,
+      completed: progress.completed,
+      updatedAt: new Date().toISOString(),
+    };
+
+    localStorage.setItem(key, JSON.stringify(record));
+
+    try {
+      if (db) {
+        const docRef = doc(db, 'users', userId, 'videoProgress', `${courseId}_${lessonId}`);
+        await setDoc(docRef, record, { merge: true });
+      }
+    } catch (err) {
+      console.warn('[CourseService] Firestore video progress save warning:', err);
+    }
+  }
+
+  async getVideoProgress(userId: string, courseId: string, lessonId: string): Promise<IVideoProgress | null> {
+    const key = `shaivika_vidprog_${userId}_${courseId}_${lessonId}`;
+    const cached = localStorage.getItem(key);
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch (e) {}
+    }
+
+    try {
+      if (db) {
+        const docRef = doc(db, 'users', userId, 'videoProgress', `${courseId}_${lessonId}`);
+        const snap = await getDoc(docRef);
+        if (snap.exists()) {
+          const data = snap.data() as IVideoProgress;
+          localStorage.setItem(key, JSON.stringify(data));
+          return data;
+        }
+      }
+    } catch (err) {
+      console.warn('[CourseService] Firestore video progress fetch warning:', err);
+    }
+
+    return null;
+  }
 }
 
 export const courseService = new CourseService();
+

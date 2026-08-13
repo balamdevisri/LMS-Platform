@@ -16,7 +16,6 @@ import {
   ExternalLink,
   HelpCircle,
   BarChart3,
-  CheckSquare,
   Sparkles,
   Send,
   Trash2,
@@ -188,10 +187,20 @@ export const LiveClassroomDashboard: React.FC = () => {
 
   const handleEndClass = async (id: string) => {
     try {
-      await liveClassService.endLiveClass(id, userProfile?.uid);
+      await liveClassService.endLiveClass(id, userProfile?.uid, userProfile?.role);
       toast.info('Session ended and status updated to Completed.');
     } catch (err: any) {
       toast.error(err.message || 'Failed to end live class');
+    }
+  };
+
+  const handleDeleteClass = async (id: string, title: string) => {
+    if (!window.confirm(`Are you sure you want to remove the live class "${title}"?`)) return;
+    try {
+      await liveClassService.deleteLiveClass(id);
+      toast.success(`Removed live class "${title}".`);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to remove live class.');
     }
   };
 
@@ -400,7 +409,7 @@ export const LiveClassroomDashboard: React.FC = () => {
                     {c.recordingUrl && <span className="px-2 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200">🎥 Recording Available</span>}
                     {c.isChatMuted && <span className="px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200">🔇 Chat Muted</span>}
                   </div>
-                  <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-zinc-800">
+                  <div className={['space-y-2 pt-3 border-t border-slate-100', 'dark:border-zinc-800'].join(' ')}>
                     {userProfile?.role === 'admin' || userProfile?.role === 'instructor' ? (
                       <>
                         <div className="flex items-center justify-between gap-2">
@@ -418,22 +427,22 @@ export const LiveClassroomDashboard: React.FC = () => {
                           </button>
                         </div>
                         <div className="grid grid-cols-5 gap-1 pt-1">
-                          <button onClick={() => setQuizPollClass(c)} className="p-1.5 rounded-xl bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 text-amber-800 dark:text-amber-300 border border-amber-200 text-[9px] font-bold flex flex-col items-center gap-1 cursor-pointer" title="Quizzes & Polls Manager">
+                          <button onClick={() => setQuizPollClass(c)} className={['p-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-[9px] font-bold flex flex-col items-center gap-1 cursor-pointer', 'dark:bg-amber-900/20 dark:text-amber-300'].join(' ')} title="Quizzes & Polls Manager">
                             <BarChart3 className="w-3.5 h-3.5 text-amber-600" />
                             <span className="truncate w-full text-center">Quizzes/Polls</span>
                           </button>
-                          <button onClick={() => setUploadNotesModal(c)} className="p-1.5 rounded-xl bg-slate-50 dark:bg-zinc-800 hover:bg-sky-50 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700 text-[9px] font-bold flex flex-col items-center gap-1 cursor-pointer" title="Upload Notes">
+                          <button onClick={() => setUploadNotesModal(c)} className={['p-1.5 rounded-xl bg-slate-50 hover:bg-sky-50 text-slate-700 border border-slate-200 text-[9px] font-bold flex flex-col items-center gap-1 cursor-pointer', 'dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700'].join(' ')} title="Upload Notes">
                             <FileText className="w-3.5 h-3.5 text-blue-600" /><span>Notes</span>
                           </button>
-                          <button onClick={() => setUploadRecordingModal(c)} className="p-1.5 rounded-xl bg-slate-50 dark:bg-zinc-800 hover:bg-purple-50 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700 text-[9px] font-bold flex flex-col items-center gap-1 cursor-pointer" title="Attach Recording">
+                          <button onClick={() => setUploadRecordingModal(c)} className={['p-1.5 rounded-xl bg-slate-50 hover:bg-purple-50 text-slate-700 border border-slate-200 text-[9px] font-bold flex flex-col items-center gap-1 cursor-pointer', 'dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700'].join(' ')} title="Attach Recording">
                             <Upload className="w-3.5 h-3.5 text-purple-600" /><span>Recording</span>
                           </button>
-                          <button onClick={() => handleToggleMuteChat(c)} className={`p-1.5 rounded-xl border text-[9px] font-bold flex flex-col items-center gap-1 cursor-pointer ${c.isChatMuted ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-slate-50 dark:bg-zinc-800 hover:bg-emerald-50 border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300'}`} title={c.isChatMuted ? 'Unmute Chat' : 'Mute Chat'}>
+                          <button onClick={() => handleToggleMuteChat(c)} className={`p-1.5 rounded-xl border text-[9px] font-bold flex flex-col items-center gap-1 cursor-pointer ${c.isChatMuted ? 'bg-rose-50 border-rose-200 text-rose-700' : ['bg-slate-50 hover:bg-emerald-50 border-slate-200 text-slate-700', 'dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-300'].join(' ')}`} title={c.isChatMuted ? 'Unmute Chat' : 'Mute Chat'}>
                             {c.isChatMuted ? <VolumeX className="w-3.5 h-3.5 text-rose-600" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-600" />}
                             <span>{c.isChatMuted ? 'Unmute' : 'Mute Chat'}</span>
                           </button>
-                          <button onClick={() => handleOpenAttendance(c)} className="p-1.5 rounded-xl bg-slate-50 dark:bg-zinc-800 hover:bg-emerald-50 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700 text-[9px] font-bold flex flex-col items-center gap-1 cursor-pointer" title="Attendance Log">
-                            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" /><span>Log</span>
+                          <button onClick={() => handleDeleteClass(c.id, c.title)} className="p-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[9px] font-bold flex flex-col items-center gap-1 cursor-pointer dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900" title="Delete Session">
+                            <Trash2 className="w-3.5 h-3.5 text-rose-600" /><span>Delete</span>
                           </button>
                         </div>
                       </>

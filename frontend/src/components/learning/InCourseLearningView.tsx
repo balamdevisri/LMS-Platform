@@ -28,7 +28,7 @@ const SidebarSkeleton = () => (
 );
 
 const QuizPortalSkeleton = () => (
-  <div className="w-full min-h-[300px] bg-slate-950/60 rounded-3xl p-6 border border-slate-800 animate-pulse space-y-4">
+  <div className="w-full min-h-75 bg-slate-950/60 rounded-3xl p-6 border border-slate-800 animate-pulse space-y-4">
     <div className="h-6 w-48 bg-slate-900 rounded-lg" />
     <div className="h-4 w-full bg-slate-900 rounded-md" />
     <div className="h-20 bg-slate-900 rounded-xl" />
@@ -811,7 +811,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         }}
       />
       {/* Scroll Progress Bar */}
-      <div className="sticky top-0 z-50 w-full h-[3px] bg-slate-800/10">
+      <div className="sticky top-0 z-50 w-full h-0.75 bg-slate-800/10">
         <div
           className={`h-full transition-all duration-75 ${
             isNightMode ? 'bg-linear-to-r from-cyan-400 to-blue-500' : 'bg-linear-to-r from-sky-500 to-indigo-600'

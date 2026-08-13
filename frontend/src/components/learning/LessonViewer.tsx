@@ -1309,7 +1309,7 @@ export const LessonViewer: React.FC<LessonViewerProps> = React.memo(({
       </div>
 
       {/* 3. Dynamic Tab Content Panels with Framer Motion transitions */}
-      <div className="min-h-[400px]">
+      <div className="min-h-100">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -1349,7 +1349,7 @@ export const LessonViewer: React.FC<LessonViewerProps> = React.memo(({
                     <img 
                       src={illustrationUrl} 
                       alt={`${lesson.title} Architectural Visual`}
-                      className="w-full h-auto max-h-[320px] object-cover hover:scale-101 transition-transform duration-500"
+                      className="w-full h-auto max-h-80 object-cover hover:scale-101 transition-transform duration-500"
                     />
                     <div className={`p-4 border-t text-center text-xs font-semibold ${
                       isNightMode ? 'border-slate-800 text-slate-400' : 'border-sky-100 text-slate-650'

@@ -228,44 +228,51 @@ export const CourseDetailsPage: React.FC<CourseDetailsProps> = ({
           <div className="p-6 sm:p-8 rounded-3xl bg-white border border-sky-100 shadow-md shadow-sky-500/5 space-y-4">
             <h2 className="text-xl font-heading font-extrabold text-slate-900 flex items-center gap-2">
               <CheckCircle2 className="w-6 h-6 text-sky-600" />
-              What You'll Learn
+              Learning Outcomes (Measurable)
             </h2>
-            <ul className="space-y-3">
+            <ol className="space-y-3">
               {course.outcomes.map((item, idx) => (
-                <li key={idx} className="flex items-start gap-3 text-sm text-slate-700 leading-relaxed">
-                  <CheckCircle2 className="w-4 h-4 text-sky-500 shrink-0 mt-1" />
+                <li key={idx} className="flex items-start gap-3 text-sm text-slate-700 leading-relaxed font-sans">
+                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-sky-100 text-sky-700 font-mono font-bold text-xs shrink-0 mt-0.5">
+                    {idx + 1}
+                  </span>
                   <span>{item}</span>
                 </li>
               ))}
-            </ul>
+            </ol>
           </div>
 
-          <div className="p-6 sm:p-8 rounded-3xl bg-white border border-sky-100 shadow-md shadow-sky-500/5 space-y-4">
-            <h2 className="text-xl font-heading font-extrabold text-slate-900 flex items-center gap-2">
-              <Award className="w-6 h-6 text-sky-600" />
-              Skills You'll Master
-            </h2>
-            <div className="flex flex-wrap gap-2.5 pt-2">
-              {skills.map((skill, idx) => (
-                <span
-                  key={idx}
-                  className="px-4 py-2 rounded-xl bg-sky-50 border border-sky-100 text-xs font-mono font-bold text-sky-700 shadow-xs"
-                >
-                  {skill}
-                </span>
-              ))}
+          <div className="p-6 sm:p-8 rounded-3xl bg-white border border-sky-100 shadow-md shadow-sky-500/5 space-y-6">
+            <div>
+              <h2 className="text-xl font-heading font-extrabold text-slate-900 flex items-center gap-2 mb-3">
+                <Award className="w-6 h-6 text-sky-600" />
+                Skills You Will Learn
+              </h2>
+              <ol className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {skills.map((skill, idx) => (
+                  <li
+                    key={idx}
+                    className="p-2.5 rounded-xl bg-sky-50/70 border border-sky-100 text-xs font-mono font-bold text-sky-800 flex items-center gap-2"
+                  >
+                    <span className="w-5 h-5 rounded-md bg-sky-200/80 text-sky-900 flex items-center justify-center text-[10px]">
+                      {idx + 1}
+                    </span>
+                    <span className="truncate">{skill}</span>
+                  </li>
+                ))}
+              </ol>
             </div>
 
             <div className="pt-4 border-t border-sky-100">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Prerequisites</h3>
-              <ul className="space-y-2">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Prerequisites</h3>
+              <ol className="space-y-2">
                 {prerequisites.map((pre, idx) => (
-                  <li key={idx} className="text-xs text-slate-600 flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-sky-500 inline-block" />
+                  <li key={idx} className="text-xs text-slate-700 flex items-center gap-2">
+                    <span className="font-mono font-bold text-sky-600">{idx + 1}.</span>
                     <span>{pre}</span>
                   </li>
                 ))}
-              </ul>
+              </ol>
             </div>
           </div>
         </section>

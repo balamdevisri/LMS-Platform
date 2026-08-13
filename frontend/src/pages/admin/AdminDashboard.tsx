@@ -416,7 +416,7 @@ export const AdminDashboard: React.FC = () => {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   onClick={() => setIsNotifOpen(false)}
-                  className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-[99998]"
+                  className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-99998"
                 />
 
                 <motion.div
@@ -424,19 +424,19 @@ export const AdminDashboard: React.FC = () => {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -10, scale: 0.96 }}
                   transition={{ duration: 0.2 }}
-                  className="fixed top-16 right-4 sm:right-8 w-80 sm:w-96 bg-white dark:bg-zinc-900 border border-sky-200 dark:border-zinc-800 rounded-3xl shadow-2xl p-4 sm:p-5 z-[99999] flex flex-col space-y-3 font-['Sora'] max-h-[85vh]"
+                  className={['fixed top-16 right-4 sm:right-8 w-80 sm:w-96 bg-white border border-sky-200 rounded-3xl shadow-2xl p-4 sm:p-5 z-99999 flex flex-col space-y-3 font-[\'Sora\'] max-h-[85vh]', 'dark:bg-zinc-900 dark:border-zinc-800'].join(' ')}
                 >
                   {/* Header */}
-                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 pb-3">
+                  <div className={['flex items-center justify-between border-b border-slate-100 pb-3', 'dark:border-zinc-800'].join(' ')}>
                     <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-xl bg-sky-50 dark:bg-sky-950/50 text-sky-600 dark:text-sky-400">
+                      <div className={['p-1.5 rounded-xl bg-sky-50 text-sky-600', 'dark:bg-sky-950/50 dark:text-sky-400'].join(' ')}>
                         <Bell className="w-4 h-4" />
                       </div>
                       <div>
-                        <h4 className="font-heading font-extrabold text-sm text-slate-900 dark:text-zinc-100">
+                        <h4 className={['font-heading font-extrabold text-sm text-slate-900', 'dark:text-zinc-100'].join(' ')}>
                           System Notifications
                         </h4>
-                        <p className="text-[10px] text-slate-500 dark:text-zinc-400">
+                        <p className={['text-[10px] text-slate-500', 'dark:text-zinc-400'].join(' ')}>
                           {unreadNotifsCount} unread update{unreadNotifsCount !== 1 ? 's' : ''}
                         </p>
                       </div>
@@ -451,13 +451,13 @@ export const AdminDashboard: React.FC = () => {
 
                   {/* Filter & Action Toolbar */}
                   <div className="flex items-center justify-between gap-2 pb-1">
-                    <div className="flex items-center gap-1 bg-slate-100 dark:bg-zinc-800/80 p-1 rounded-xl">
+                    <div className={['flex items-center gap-1 bg-slate-100 p-1 rounded-xl', 'dark:bg-zinc-800/80'].join(' ')}>
                       <button
                         onClick={() => setNotifFilter('all')}
                         className={`py-1 px-3 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
                           notifFilter === 'all'
-                            ? 'bg-white dark:bg-zinc-900 text-sky-600 dark:text-sky-400 shadow-xs'
-                            : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100'
+                            ? ['bg-white text-sky-600 shadow-xs', 'dark:bg-zinc-900 dark:text-sky-400'].join(' ')
+                            : ['text-slate-500 hover:text-slate-900', 'dark:text-zinc-400 dark:hover:text-zinc-100'].join(' ')
                         }`}
                       >
                         All ({notifications.length})
@@ -466,8 +466,8 @@ export const AdminDashboard: React.FC = () => {
                         onClick={() => setNotifFilter('unread')}
                         className={`py-1 px-3 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
                           notifFilter === 'unread'
-                            ? 'bg-white dark:bg-zinc-900 text-sky-600 dark:text-sky-400 shadow-xs'
-                            : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100'
+                            ? ['bg-white text-sky-600 shadow-xs', 'dark:bg-zinc-900 dark:text-sky-400'].join(' ')
+                            : ['text-slate-500 hover:text-slate-900', 'dark:text-zinc-400 dark:hover:text-zinc-100'].join(' ')
                         }`}
                       >
                         Unread ({unreadNotifsCount})
@@ -478,7 +478,7 @@ export const AdminDashboard: React.FC = () => {
                       {unreadNotifsCount > 0 && (
                         <button
                           onClick={handleMarkAllNotifsRead}
-                          className="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline flex items-center gap-1 cursor-pointer"
+                          className={['text-[11px] font-bold text-sky-600 hover:underline flex items-center gap-1 cursor-pointer', 'dark:text-sky-400'].join(' ')}
                           title="Mark all read"
                         >
                           <CheckCheck className="w-3.5 h-3.5" />
@@ -498,10 +498,10 @@ export const AdminDashboard: React.FC = () => {
                   </div>
 
                   {/* Scrollable Notification Items */}
-                  <div className="space-y-2 overflow-y-auto flex-1 pr-1 max-h-80 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-zinc-800">
+                  <div className={['space-y-2 overflow-y-auto flex-1 pr-1 max-h-80 scrollbar-thin scrollbar-thumb-slate-200', 'dark:scrollbar-thumb-zinc-800'].join(' ')}>
                     {filteredNotifications.length === 0 ? (
                       <div className="py-10 text-center space-y-2">
-                        <Bell className="w-8 h-8 text-slate-300 dark:text-zinc-700 mx-auto" />
+                        <Bell className={['w-8 h-8 text-slate-300 mx-auto', 'dark:text-zinc-700'].join(' ')} />
                         <p className="text-xs text-slate-400 font-medium">
                           {notifFilter === 'unread' ? 'No unread notifications.' : 'No notifications in system.'}
                         </p>
@@ -512,8 +512,8 @@ export const AdminDashboard: React.FC = () => {
                           key={n.id}
                           className={`p-3 rounded-2xl border transition-all text-xs space-y-1.5 ${
                             n.read
-                              ? 'bg-slate-50/70 dark:bg-zinc-800/40 border-slate-200/60 dark:border-zinc-800 text-slate-600 dark:text-zinc-400'
-                              : 'bg-sky-50/70 dark:bg-sky-950/30 border-sky-200 dark:border-sky-800/50 text-slate-900 dark:text-zinc-100 font-medium'
+                              ? ['bg-slate-50/70 border-slate-200/60 text-slate-600', 'dark:bg-zinc-800/40 dark:border-zinc-800 dark:text-zinc-400'].join(' ')
+                              : ['bg-sky-50/70 border-sky-200 text-slate-900 font-medium', 'dark:bg-sky-950/30 dark:border-sky-800/50 dark:text-zinc-100'].join(' ')
                           }`}
                         >
                           <div className="flex items-center justify-between font-bold gap-2">
@@ -546,7 +546,7 @@ export const AdminDashboard: React.FC = () => {
 
                           <p
                             onClick={() => handleNotifClick(n)}
-                            className="text-[11px] leading-relaxed text-slate-600 dark:text-zinc-400 cursor-pointer"
+                            className={['text-[11px] leading-relaxed text-slate-600 cursor-pointer', 'dark:text-zinc-400'].join(' ')}
                           >
                             {n.message}
                           </p>
@@ -554,7 +554,7 @@ export const AdminDashboard: React.FC = () => {
                           {n.link && (
                             <div
                               onClick={() => handleNotifClick(n)}
-                              className="text-[10px] text-sky-600 dark:text-sky-400 font-bold flex items-center gap-1 pt-0.5 cursor-pointer hover:underline"
+                              className={['text-[10px] text-sky-600 font-bold flex items-center gap-1 pt-0.5 cursor-pointer hover:underline', 'dark:text-sky-400'].join(' ')}
                             >
                               <span>Take Action</span>
                               <ExternalLink className="w-3 h-3" />

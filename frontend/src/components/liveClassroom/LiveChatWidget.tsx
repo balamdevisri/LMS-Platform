@@ -161,7 +161,7 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
   const pinnedMessages = messages.filter((m) => m.pinned);
 
   return (
-    <div className="flex flex-col h-[500px] bg-slate-900/60 border border-sky-500/15 rounded-2xl overflow-hidden font-['Sora']">
+    <div className="flex flex-col h-125 bg-slate-900/60 border border-sky-500/15 rounded-2xl overflow-hidden font-['Sora']">
       
       {/* Pinned Messages Header (if any) */}
       {pinnedMessages.length > 0 && (
@@ -220,7 +220,7 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
                     </div>
 
                     {/* Chat Bubble */}
-                    <div className={`p-3 rounded-2xl text-xs relative ${
+                    <div className={`p-3 rounded-2xl text-xs relative group ${
                       isMe 
                         ? 'bg-sky-600 text-white rounded-tr-xs' 
                         : 'bg-slate-800 text-slate-200 rounded-tl-xs border border-slate-700/50'
@@ -228,7 +228,7 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
                       <p className="leading-relaxed whitespace-pre-wrap">{m.message}</p>
 
                       {/* Message Hover Actions */}
-                      <div className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-1 bg-slate-900 border border-sky-500/20 px-2 py-1 rounded-lg opacity-0 hover:opacity-100 focus-within:opacity-100 transition-opacity z-10 ${
+                      <div className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-1 bg-slate-900 border border-sky-500/20 px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity z-10 ${
                         isMe ? '-left-20' : '-right-20'
                       }`}>
                         <button 
@@ -293,7 +293,7 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
           onChange={handleInputChange}
           onKeyDown={(e) => { if (e.key === 'Enter') handleSend(); }}
           placeholder={isMuted ? 'You are muted by the instructor' : 'Send message...'}
-          className="flex-1 bg-slate-800 border border-slate-700/60 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500/55 disabled:opacity-50"
+          className="flex-1 bg-slate-800 border border-slate-700/60 rounded-xl px-4 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-500 disabled:opacity-50"
         />
 
         {isInstructor && (

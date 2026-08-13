@@ -1,6 +1,7 @@
 import { db } from '@/firebase';
 import { collection, onSnapshot, query, doc, setDoc, updateDoc, deleteDoc, where } from 'firebase/firestore';
 import { adminNotificationService } from './adminNotificationService';
+import { generateSecureRoomId } from '@/config/jitsiConfig';
 
 export interface LiveClass {
   id: string;
@@ -304,8 +305,16 @@ class LiveClassService {
   }
 
   getLiveClassesSync(): LiveClass[] {
-    const local = this.getLocalClasses();
-    if (local.length > 0) return local;
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved !== null) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.warn('Failed to parse live classes from localStorage:', e);
+      }
+    }
+    // Seed INITIAL_CLASSES once if storage key does not exist yet
+    this.saveClasses(INITIAL_CLASSES);
     return INITIAL_CLASSES;
   }
 
@@ -337,7 +346,6 @@ class LiveClassService {
 
             const local = this.getLocalClasses();
             const map = new Map<string, LiveClass>();
-            INITIAL_CLASSES.forEach((c) => map.set(c.id, c));
             local.forEach((c) => map.set(c.id, c));
             fsClasses.forEach((c) => map.set(c.id || c.classId, c));
 
@@ -469,22 +477,114 @@ class LiveClassService {
     });
   }
 
-  async startLiveClass(id: string, currentUserId?: string): Promise<void> {
+  async ensureMeetingRoomId(liveClass: LiveClass): Promise<string> {
+    if (liveClass.meetingRoomId && liveClass.meetingRoomId.trim().length > 0) {
+      return liveClass.meetingRoomId;
+    }
+
+    const newRoomId = generateSecureRoomId(liveClass.courseName || liveClass.title);
+    const meetingUrl = `https://meet.jit.si/${newRoomId}`;
+
+    await this.updateLiveClass(liveClass.id, {
+      meetingRoomId: newRoomId,
+      meetingUrl: meetingUrl,
+    });
+
+    return newRoomId;
+  }
+
+  authorizeStudentAccess(
+    userProfile: { uid: string; role?: string; email?: string } | null,
+    liveClass: LiveClass | null
+  ): { authorized: boolean; code?: string; reason?: string } {
+    if (!userProfile || !userProfile.uid) {
+      return {
+        authorized: false,
+        code: 'UNAUTHENTICATED',
+        reason: 'Please login to KaizenQ to join the live classroom session.',
+      };
+    }
+
+    if (!liveClass) {
+      return {
+        authorized: false,
+        code: 'CLASS_NOT_FOUND',
+        reason: 'The specified live classroom session was not found.',
+      };
+    }
+
+    const role = userProfile.role || 'student';
+    const isAssignedInstructor =
+      liveClass.instructorId === userProfile.uid ||
+      liveClass.createdBy === userProfile.uid ||
+      role === 'admin';
+
+    // 1. Assigned Instructor Check
+    if (role === 'instructor' && !isAssignedInstructor) {
+      return {
+        authorized: false,
+        code: 'NOT_ASSIGNED_INSTRUCTOR',
+        reason: 'You are not assigned as the instructor for this live class.',
+      };
+    }
+
+    // 2. Student Authorization & Status Check
+    if (!isAssignedInstructor) {
+      const status = normalizeLiveClassStatus(liveClass.status);
+      if (status === 'scheduled') {
+        return {
+          authorized: false,
+          code: 'CLASS_NOT_STARTED',
+          reason: 'Live class has not started yet. The instructor must start the session before students can enter.',
+        };
+      }
+      if (status === 'completed' || status === 'cancelled') {
+        return {
+          authorized: false,
+          code: 'CLASS_ENDED',
+          reason: 'This live session has ended or been cancelled.',
+        };
+      }
+      if (status !== 'live') {
+        return {
+          authorized: false,
+          code: 'CLASS_NOT_LIVE',
+          reason: 'You are not authorized to join this live class.',
+        };
+      }
+
+      // 3. Student Enrollment & Allowed Students Check
+      if (liveClass.allowedStudents && liveClass.allowedStudents.length > 0) {
+        const isAllowed =
+          liveClass.allowedStudents.includes(userProfile.uid) ||
+          (userProfile.email && liveClass.allowedStudents.includes(userProfile.email));
+        if (!isAllowed) {
+          return {
+            authorized: false,
+            code: 'NOT_ENROLLED',
+            reason: 'You are not authorized to join this live class.',
+          };
+        }
+      }
+    }
+
+    return { authorized: true };
+  }
+
+  async startLiveClass(id: string, currentUserId?: string, userRole?: string): Promise<void> {
     const target = this.getLiveClassesSync().find((c) => c.id === id || c.classId === id);
     if (!target) throw new Error('Live class not found');
 
-    if (currentUserId && target.instructorId && target.instructorId !== currentUserId && target.createdBy !== currentUserId) {
-      throw new Error('Unauthorized: Only the assigned instructor can start this live class.');
-    }
+    const isAdmin = userRole === 'admin';
+    const isAssignedInstructor = currentUserId && (target.instructorId === currentUserId || target.createdBy === currentUserId);
 
-    const currentStatus = normalizeLiveClassStatus(target.status);
-    if (currentStatus === 'completed' || currentStatus === 'cancelled') {
-      throw new Error(`Cannot start class. Current status is ${currentStatus}.`);
+    if (currentUserId && !isAdmin && !isAssignedInstructor) {
+      throw new Error('Unauthorized: Only the assigned instructor or Admin can start this live class.');
     }
 
     const nowISO = new Date().toISOString();
     await this.updateLiveClass(id, {
-      status: 'live',
+      status: 'Live',
       startedAt: nowISO,
       updatedAt: nowISO,
     });
@@ -495,14 +595,40 @@ class LiveClassService {
       message: `Session is active! Click to join video classroom stream.`,
       link: `/live-classroom/room/${id}`
     });
+
+    if (db) {
+      try {
+        const notifRef = doc(collection(db, 'notifications'));
+        await setDoc(notifRef, {
+          id: notifRef.id,
+          recipientRole: 'student',
+          classId: id,
+          title: '🔴 LIVE NOW',
+          message: `${target.title} - Instructor has started the live class.`,
+          type: 'live_class',
+          createdAt: nowISO,
+          read: false,
+        });
+      } catch (err) {
+        console.warn('[LiveClassService] Firestore notification dispatch notice:', err);
+      }
+    }
   }
 
-  async endLiveClass(id: string, currentUserId?: string): Promise<void> {
+  async endLiveClass(id: string, currentUserId?: string, userRole?: string): Promise<void> {
     const target = this.getLiveClassesSync().find((c) => c.id === id || c.classId === id);
     if (!target) throw new Error('Live class not found');
 
-    if (currentUserId && target.instructorId && target.instructorId !== currentUserId && target.createdBy !== currentUserId) {
-      throw new Error('Unauthorized: Only the assigned instructor can end this live class.');
+    const isAdmin = userRole === 'admin';
+    const isAssignedInstructor = currentUserId && (target.instructorId === currentUserId || target.createdBy === currentUserId);
+
+    if (currentUserId && !isAdmin && !isAssignedInstructor) {
+      throw new Error('Unauthorized: Only the assigned instructor or Admin can end this live class.');
+    }
+
+    const currentStatus = normalizeLiveClassStatus(target.status);
+    if (currentStatus === 'completed') {
+      throw new Error('Class has already ended.');
     }
 
     const nowISO = new Date().toISOString();
@@ -511,6 +637,24 @@ class LiveClassService {
       endedAt: nowISO,
       updatedAt: nowISO,
     });
+
+    if (db) {
+      try {
+        const notifRef = doc(collection(db, 'notifications'));
+        await setDoc(notifRef, {
+          id: notifRef.id,
+          recipientRole: 'student',
+          classId: id,
+          title: '✓ CLASS COMPLETED',
+          message: `${target.title} - The live class session has ended.`,
+          type: 'live_class_ended',
+          createdAt: nowISO,
+          read: false,
+        });
+      } catch (err) {
+        console.warn('[LiveClassService] Firestore end notification notice:', err);
+      }
+    }
   }
 
   // Attendance Logger & Report

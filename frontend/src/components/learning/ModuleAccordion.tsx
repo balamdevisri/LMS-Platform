@@ -75,7 +75,9 @@ export const ModuleAccordion: React.FC<ModuleAccordionProps> = ({
           <div
             className={`p-2 rounded-xl border shrink-0 ${
               !isUnlocked
-                ? 'bg-slate-200/80 border-slate-300 text-slate-500 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-500'
+                ? isNightMode
+                  ? 'bg-slate-900 border-slate-800 text-slate-500'
+                  : 'bg-slate-200/80 border-slate-300 text-slate-500'
                 : isFullyCompleted
                 ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
                 : isOpen
@@ -102,7 +104,11 @@ export const ModuleAccordion: React.FC<ModuleAccordionProps> = ({
                 {module.title}
               </h3>
               {!isUnlocked && (
-                <span className="px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 text-[10px] font-bold border border-amber-300 dark:border-amber-800/80 shrink-0">
+                <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border shrink-0 ${
+                  isNightMode
+                    ? 'bg-amber-950/80 text-amber-300 border-amber-800/80'
+                    : 'bg-amber-100 text-amber-800 border-amber-300'
+                }`}>
                   🔒 Locked
                 </span>
               )}
@@ -110,7 +116,7 @@ export const ModuleAccordion: React.FC<ModuleAccordionProps> = ({
             <div className={`flex items-center gap-2 text-[11px] font-mono mt-0.5 ${isNightMode ? 'text-slate-400' : 'text-slate-500'}`}>
               <span>{module.lessons.length} lessons</span>
               <span>•</span>
-              <span className={`font-semibold ${!isUnlocked ? 'text-amber-600 dark:text-amber-400' : isNightMode ? 'text-cyan-300' : 'text-sky-600'}`}>
+              <span className={`font-semibold ${!isUnlocked ? (isNightMode ? 'text-amber-400' : 'text-amber-600') : isNightMode ? 'text-cyan-300' : 'text-sky-600'}`}>
                 {!isUnlocked ? 'Requires Prerequisite' : `${completedCount}/${module.lessons.length} completed`}
               </span>
             </div>

@@ -9,12 +9,6 @@ interface JitsiProps {
   onLeave?: () => void;
 }
 
-declare global {
-  interface Window {
-    JitsiMeetExternalAPI: any;
-  }
-}
-
 export const JitsiMeetingComponent: React.FC<JitsiProps> = ({
   roomName,
   displayName,
@@ -35,7 +29,7 @@ export const JitsiMeetingComponent: React.FC<JitsiProps> = ({
 
   useEffect(() => {
     const loadJitsiScript = () => {
-      if (window.JitsiMeetExternalAPI) {
+      if ((window as any).JitsiMeetExternalAPI) {
         initJitsi();
         return;
       }
@@ -54,7 +48,7 @@ export const JitsiMeetingComponent: React.FC<JitsiProps> = ({
     };
 
     const initJitsi = () => {
-      if (!containerRef.current || !window.JitsiMeetExternalAPI) return;
+      if (!containerRef.current || !(window as any).JitsiMeetExternalAPI) return;
 
       // Clean existing instance only if room changes
       if (apiRef.current) {
@@ -83,23 +77,35 @@ export const JitsiMeetingComponent: React.FC<JitsiProps> = ({
           enableClosePage: false,
         },
         interfaceConfigOverwrite: {
-          TOOLBAR_BUTTONS: [
-            'microphone',
-            'camera',
-            'closedcaptions',
-            'desktop',
-            'fullscreen',
-            'furl',
-            'chat',
-            'raisehand',
-            'videoquality',
-            'filmstrip',
-            'whiteboard',
-            'mute-everyone',
-            'invite',
-            'tileview',
-            'hangup',
-          ],
+          TOOLBAR_BUTTONS: isInstructor
+            ? [
+                'microphone',
+                'camera',
+                'closedcaptions',
+                'desktop',
+                'fullscreen',
+                'chat',
+                'raisehand',
+                'videoquality',
+                'filmstrip',
+                'whiteboard',
+                'mute-everyone',
+                'tileview',
+                'hangup',
+              ]
+            : [
+                'microphone',
+                'camera',
+                'closedcaptions',
+                'desktop',
+                'fullscreen',
+                'chat',
+                'raisehand',
+                'videoquality',
+                'filmstrip',
+                'tileview',
+                'hangup',
+              ],
           SHOW_JITSI_WATERMARK: false,
           SHOW_WATERMARK_FOR_GUESTS: false,
           DEFAULT_BACKGROUND: '#090d16',
@@ -107,7 +113,7 @@ export const JitsiMeetingComponent: React.FC<JitsiProps> = ({
       };
 
       try {
-        const api = new window.JitsiMeetExternalAPI('meet.jit.si', options);
+        const api = new (window as any).JitsiMeetExternalAPI('meet.jit.si', options);
         apiRef.current = api;
         setLoading(false);
 
