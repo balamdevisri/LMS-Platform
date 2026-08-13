@@ -6,6 +6,7 @@ import { kubernetesCourseModules } from '@/data/kubernetesCourseFullData';
 import { reactCourseModules } from '@/data/reactCourseFullData';
 import { cCourseModules } from '@/data/cCourseFullData';
 import { pythonCourseModules } from '@/data/pythonCourseFullData';
+import { javaCourseModules } from '@/data/javaCourseFullData';
 import { courseService } from '@/services/courseService';
 
 export type LearningUnitType = 'Video' | 'Reading' | 'Quiz' | 'Assignment';
@@ -802,6 +803,53 @@ const initialDefaultCoursesRaw: CourseItem[] = [
     ],
     createdAt: new Date('2026-08-11').toISOString(),
     modules: pythonCourseModules
+  },
+  {
+    id: 'java-through-oops-course-id',
+    title: 'Java Through OOPs',
+    subtitle: '💻 Java Through OOPs',
+    instructor: 'Kaizen Q Team',
+    role: 'Senior Technical Instructor',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    rating: 5.0,
+    reviews: 180,
+    students: '0',
+    duration: '35 Hours',
+    category: 'Programming',
+    level: 'All Levels',
+    badge: 'Standard Track',
+    tracks: '24 Modules (35 Hours)',
+    status: 'Published',
+    thumbnail: '/assets/images/java_course_thumbnail.png',
+    description: 'Complete Java Through OOPs course covering Java fundamentals, core Java, OOPs main section, intermediate Java, and practice & interview preparation.',
+    syllabus: [
+      'Module 1 — Introduction to Java',
+      'Module 2 — Variables & Data Types',
+      'Module 3 — Operators',
+      'Module 4 — Input & Output',
+      'Module 5 — Conditional Statements',
+      'Module 6 — Loops',
+      'Module 7 — Arrays',
+      'Module 8 — Strings',
+      'Module 9 — Methods',
+      'Module 10 — Exception Handling',
+      'Module 11 — Packages & Access Modifiers',
+      'Module 12 — Classes & Objects',
+      'Module 13 — Encapsulation',
+      'Module 14 — Inheritance',
+      'Module 15 — Polymorphism',
+      'Module 16 — Abstraction',
+      'Module 17 — Interfaces',
+      'Module 18 — Collections Framework',
+      'Module 19 — Wrapper Classes & Generics',
+      'Module 20 — File Handling',
+      'Module 21 — Important Java Concepts',
+      'Module 22 — Java Coding Problems',
+      'Module 23 — OOP Mini Project',
+      'Module 24 — Java & OOP Interview Questions'
+    ],
+    createdAt: new Date('2026-08-11').toISOString(),
+    modules: javaCourseModules
   }
 ];
 
@@ -934,6 +982,23 @@ const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
         modules: mergeCourseModules(defaultPythonCourse.modules, c.modules),
       };
       map.set(key, updatedItem);
+    } else if (
+      title.includes('java through oops') ||
+      title.includes('java') ||
+      String(c.id) === 'java-through-oops-course-id'
+    ) {
+      const key = 'java-through-oops-course-id';
+      const defaultJavaCourse = initialDefaultCourses.find(item => item.id === 'java-through-oops-course-id') || c;
+      const updatedItem: CourseItem = {
+        ...defaultJavaCourse,
+        ...c,
+        id: 'java-through-oops-course-id',
+        title: 'Java Through OOPs',
+        subtitle: '💻 Java Through OOPs',
+        thumbnail: '/assets/images/java_course_thumbnail.png',
+        modules: mergeCourseModules(defaultJavaCourse.modules, c.modules),
+      };
+      map.set(key, updatedItem);
     } else {
       map.set(String(c.id), c);
     }
@@ -959,6 +1024,9 @@ const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
   }
   if (!map.has('python-through-oops-course-id')) {
     map.set('python-through-oops-course-id', initialDefaultCourses.find(item => item.id === 'python-through-oops-course-id') || initialDefaultCourses[6]);
+  }
+  if (!map.has('java-through-oops-course-id')) {
+    map.set('java-through-oops-course-id', initialDefaultCourses.find(item => item.id === 'java-through-oops-course-id') || initialDefaultCourses[7]);
   }
 
   return Array.from(map.values()).filter(item => !String(item.title || '').toLowerCase().includes('untitled'));

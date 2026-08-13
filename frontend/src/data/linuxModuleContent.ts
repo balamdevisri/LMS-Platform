@@ -29,8 +29,8 @@ UNIX: Developed in 1969 at AT&T Bell Labs, UNIX was a proprietary, multi-user, m
 The GNU Project & Linux: In 1983, Richard Stallman launched the GNU Project to build a free, UNIX-like OS. By 1991, GNU had almost all tools ready except the kernel. Linus Torvalds, a Finnish student, wrote a free kernel and released it as Linux. Combining GNU utilities with Torvalds' kernel resulted in the complete OS: GNU/Linux.
 
 Open-Source Philosophy & The GPL:
-• Free Software: Refers to freedom of modification, redistribution, and access to source code, not necessarily zero cost.
-• GNU General Public License (GPL): A copyleft license guaranteeing that anyone who modifies and redistributes GPL-licensed software must keep the source code open and freely accessible under the same license.`,
+- Free Software: Refers to freedom of modification, redistribution, and access to source code, not necessarily zero cost.
+- GNU General Public License (GPL): A copyleft license guaranteeing that anyone who modifies and redistributes GPL-licensed software must keep the source code open and freely accessible under the same license.`,
       },
       {
         id: '1.1.2',
@@ -96,7 +96,8 @@ User Space: The memory region allocated for regular user applications, web serve
 
 Loadable Kernel Modules (LKMs): Rather than requiring a full kernel recompile whenever hardware changes, Linux uses LKMs—code fragments that can be dynamically inserted (insmod/modprobe) or removed (rmmod) from kernel memory at runtime.
 
-Example: Plugging in a USB device loads its driver module dynamically without restarting the server.`,
+📝 **Example**
+> Plugging in a USB device loads its driver module dynamically without restarting the server.`,
       },
       {
         id: '1.2.3',
@@ -120,14 +121,15 @@ Example: Plugging in a USB device loads its driver module dynamically without re
         content: `Terminal Emulator: A graphical interface app (e.g., Alacritty, iTerm2, GNOME Terminal) that displays text output and captures keyboard input.
 
 Shell: The actual command interpreter running inside the terminal that accepts text commands, parses them, and calls kernel execution routines.
-• Bash (Bourne-Again Shell): The universal Linux standard CLI interface.
-• Zsh (Z Shell): Advanced shell featuring extended autocompletion, theme support (Oh-My-Zsh), and interactive plugins; default on macOS.`,
+- Bash (Bourne-Again Shell): The universal Linux standard CLI interface.
+- Zsh (Z Shell): Advanced shell featuring extended autocompletion, theme support (Oh-My-Zsh), and interactive plugins; default on macOS.`,
       },
       {
         id: '1.3.2',
         title: '1.3.2 Directory Navigation: Absolute vs. Relative Pathing',
         content: `Absolute Path: Defines a file location starting explicitly from the root directory (/).
-Example: cd /home/ubuntu/projects
+📝 **Example**
+> cd /home/ubuntu/projects
 
 Relative Path: Defines a location starting from your current working directory (.).
 Example (if inside /home/ubuntu): cd projects
@@ -255,9 +257,9 @@ Command Mode (Save/Quit): Press : from Normal mode:
         title: '1.5.1 Standard Streams',
         content: `Every process launched in a Linux shell automatically opens three default integer data streams:
 
-• stdin (Standard Input - File Descriptor 0): Data fed into the command (typically keyboard input).
-• stdout (Standard Output - File Descriptor 1): Successful execution output from the process.
-• stderr (Standard Error - File Descriptor 2): Error messages generated if the process fails.`,
+- stdin (Standard Input - File Descriptor 0): Data fed into the command (typically keyboard input).
+- stdout (Standard Output - File Descriptor 1): Successful execution output from the process.
+- stderr (Standard Error - File Descriptor 2): Error messages generated if the process fails.`,
         asciiDiagram: `[ Input Device: Keyboard ] ---> STDIN (File Descriptor 0) 
                                       |
                                   [ PROCESS ]

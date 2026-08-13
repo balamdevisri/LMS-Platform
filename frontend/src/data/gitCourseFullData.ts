@@ -82,7 +82,7 @@ Version Control provides many advantages.
 
 There are three major types of Version Control Systems.
 
-### 1. Local Version Control System (LVCS)
+### Version Control Architectures\n\n![Git Data Lifecycle](/assets/images/git_data_lifecycle.png)\n\n### 1. Local Version Control System (LVCS)
 
 In Local Version Control, changes are stored only on a single computer. Architecture Developer │ ▼ Local Repository │ ▼ Version History
 
@@ -926,7 +926,7 @@ After completing this module, you will be able to:
 - Learn the Git command workflow.
 - Apply Git commands in real-world development.
 
-## 4.1 Introduction
+### GitHub Collaboration Flow\n\n![GitHub Flow](/assets/images/git_github_flow.png)\n\n## 4.1 Introduction
 
 \`\`\`bash
 Git commands are used to manage and track changes in a repository. Every Git project
@@ -1239,7 +1239,7 @@ After completing this module, you will be able to:
 - Learn professional branching strategies.
 - Apply branching in real-world software development.
 
-## 5.1 Introduction
+### Git Branching and Merging Mechanics\n\n![Git Branching & Merging](/assets/images/git_branching_merging.webp)\n\n## 5.1 Introduction
 
 In software development, multiple developers often work on different features simultaneously. For example:
 - Developer A works on the Login page.
@@ -3178,7 +3178,7 @@ After completing this module, you will be able to:
 - Learn security best practices.
 - Apply Git standards used in enterprise software development.
 
-## 12.1 Introduction
+### GitHub Actions CI/CD Pipeline Workflow\n\n![GitHub Actions Pipeline](/assets/images/github_actions_pipeline.png)\n\n## 12.1 Introduction
 
 Writing code is only one part of software development. Professional developers also follow coding and version control standards to ensure projects remain organized, secure, and easy to maintain.
 

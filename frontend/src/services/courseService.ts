@@ -7,6 +7,7 @@ import { kubernetesCourseModules } from '@/data/kubernetesCourseFullData';
 import { reactCourseModules } from '@/data/reactCourseFullData';
 import { cCourseModules } from '@/data/cCourseFullData';
 import { pythonCourseModules } from '@/data/pythonCourseFullData';
+import { javaCourseModules } from '@/data/javaCourseFullData';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -539,6 +540,70 @@ const DEFAULT_COURSES: ICourse[] = [
     modules: pythonCourseModules,
     createdAt: new Date('2026-08-11').toISOString(),
     updatedAt: new Date('2026-08-11').toISOString(),
+  },
+  {
+    id: 'java-through-oops-course-id',
+    title: 'Java Through OOPs',
+    slug: 'java-through-oops',
+    shortDescription: 'Complete Java Through OOPs course covering Java fundamentals, core Java, OOPs main section, intermediate Java, and practice & interview preparation.',
+    description: 'Complete Java Through OOPs course covering Java fundamentals, core Java, OOPs main section, intermediate Java, and practice & interview preparation.',
+    thumbnail: '/assets/images/java_course_thumbnail.png',
+    banner: '/assets/images/java_course_thumbnail.png',
+    category: 'Programming',
+    level: 'all_levels',
+    duration: '35 Hours',
+    language: 'English',
+    price: 0,
+    instructor: {
+      id: 'inst_kaizen',
+      name: 'Kaizen Q Team',
+      role: 'Senior Technical Instructor',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    },
+    skills: ['Java', 'OOP', 'Classes', 'Inheritance', 'Polymorphism', 'Interfaces', 'Collections', 'Exceptions'],
+    prerequisites: ['Basic computer knowledge'],
+    learningOutcomes: [
+      'Understand Java fundamentals, JVM/JRE/JDK differences, variables and data types',
+      'Master core Java, loops, methods, arrays, strings and exception handling',
+      'Implement Object-Oriented Programming pillars (encapsulation, inheritance, polymorphism, abstraction) and interfaces',
+      'Harness Collections framework, wrapper classes, generics, file handling and build projects'
+    ],
+    status: 'published',
+    visibility: 'public',
+    featured: true,
+    tags: ['java', 'programming', 'basics', 'oop', 'object-oriented'],
+    enrollmentCount: 180,
+    rating: 5.0,
+    ratingCount: 180,
+    syllabus: [
+      { id: 'java-mod-1', title: 'Module 1 — Introduction to Java', description: 'What is Java, features, JDK vs JRE vs JVM, compilation flow, syntax, and hello world.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'java-mod-2', title: 'Module 2 — Variables & Data Types', description: 'Primitive and reference variables, type casting (widening and narrowing), final constants, and naming conventions.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'java-mod-3', title: 'Module 3 — Operators', description: 'Arithmetic, relational, logical, assignment, unary, ternary, bitwise operators, and expressions precedence.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'java-mod-4', title: 'Module 4 — Input & Output', description: 'System.out printing methods, printf format specifiers, reading keyboard input with Scanner class.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'java-mod-5', title: 'Module 5 — Conditional Statements', description: 'Control flow branches: if-else ladders, nested evaluations, switch statements, and fall-through checks.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'java-mod-6', title: 'Module 6 — Loops', description: 'Count-controlled and condition-controlled loops (for, while, do-while), loop controls, and pattern logic.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'java-mod-7', title: 'Module 7 — Arrays', description: 'Single and multi-dimensional array indices, array length properties, search queries, and bubble sorting.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'java-mod-8', title: 'Module 8 — Strings', description: 'String pool memory references, string immutability characteristics, character extraction, checks, and StringBuilder.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'java-mod-9', title: 'Module 9 — Methods', description: 'Designing reusable modular methods, parameters configuration, method overloading, and recursion functions.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'java-mod-10', title: 'Module 10 — Exception Handling', description: 'Exceptions vs severe errors, try-catch-finally architectures, custom exception classes, and throwable trees.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'java-mod-11', title: 'Module 11 — Packages & Access Modifiers', description: 'Class path packaging, package importing conventions, and scope protection keywords.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'java-mod-12', title: 'Module 12 — Classes & Objects', description: 'Object instantiations, memory heap allocations, constructor functions, variables, and this reference.', duration: '3 Hours', lessonsCount: 1 },
+      { id: 'java-mod-13', title: 'Module 13 — Encapsulation', description: 'Restricting direct updates of class variables, public access helpers, and setting up input validators.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'java-mod-14', title: 'Module 14 — Inheritance', description: 'Extending attributes and methods, single vs hierarchical inheritance, parent variables mapping, and super constructor calls.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'java-mod-15', title: 'Module 15 — Polymorphism', description: 'Different shapes: compile-time overloading, dynamic runtime overriding, upcasting class instances, and dynamic method dispatch.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'java-mod-16', title: 'Module 16 — Abstraction', description: 'Abstract templates, abstract method rules, concrete subclasses structures, and class instantiation blocks.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'java-mod-17', title: 'Module 17 — Interfaces', description: 'Interface contracts, keyword interface, implementing multiple parent interfaces, final variables, and default methods.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'java-mod-18', title: 'Module 18 — Collections Framework', description: 'Standard collections framework structure: dynamic ArrayList, LinkedList, unique HashSet, and HashMap.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'java-mod-19', title: 'Module 19 — Wrapper Classes & Generics', description: 'Primitives wrapper objects (Integer, Character), auto-conversion boxing/unboxing, generic class variables, and wildcards.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'java-mod-20', title: 'Module 20 — File Handling', description: 'Disk data reader and writer streams, line buffering, and try-with-resources safe stream locks.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'java-mod-21', title: 'Module 21 — Important Java Concepts', description: 'Static modifiers, final keywords, super pointer scopes, Object parent methods (toString, equals, hashCode).', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'java-mod-22', title: 'Module 22 — Java Coding Problems', description: 'Practical logical programs: even/odd, factorials, array loops search, bubble sort code blocks, and palindromes.', duration: '3 Hours', lessonsCount: 1 },
+      { id: 'java-mod-23', title: 'Module 23 — OOP Mini Project', description: 'Polymorphic transaction application. Creating Payment interface and UPI/Card implementations.', duration: '3 Hours', lessonsCount: 1 },
+      { id: 'java-mod-24', title: 'Module 24 — Java & OOP Interview Questions', description: 'Interview preps. Essential questions on structural differences, static methods limitations, and checked exceptions.', duration: '3 Hours', lessonsCount: 1 }
+    ],
+    modules: javaCourseModules,
+    createdAt: new Date('2026-08-11').toISOString(),
+    updatedAt: new Date('2026-08-11').toISOString(),
   }
 ];
 
@@ -666,7 +731,8 @@ function normalizeCourseToICourse(c: any): ICourse {
     if (t.includes('ai') || cat.includes('ai') || t.includes('machine learning') || t.includes('llm')) return 'https://images.unsplash.com/photo-1677442136019-21780efad99a?auto=format&fit=crop&w=800&q=80';
     if (t.includes('devops') || cat.includes('devops') || t.includes('cloud') || t.includes('docker')) return 'https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?auto=format&fit=crop&w=800&q=80';
     if (t.includes('react') || t.includes('web') || t.includes('javascript') || t.includes('frontend')) return 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&w=800&q=80';
-    if (t.includes('python') || t.includes('oop')) return '/assets/images/python_course_thumbnail.png';
+    if (t.includes('java-through-oops') || t.includes('java') || t.includes('oop')) return '/assets/images/java_course_thumbnail.png';
+    if (t.includes('python')) return '/assets/images/python_course_thumbnail.png';
     return 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=800&q=80';
   };
 
@@ -684,6 +750,10 @@ function normalizeCourseToICourse(c: any): ICourse {
 
   if (String(c.id) === 'python-through-oops-course-id' || courseTitle.toLowerCase().includes('python')) {
     courseThumbnail = '/assets/images/python_course_thumbnail.png';
+  }
+
+  if (String(c.id) === 'java-through-oops-course-id' || courseTitle.toLowerCase().includes('java')) {
+    courseThumbnail = '/assets/images/java_course_thumbnail.png';
   }
 
   const slug = c.slug || c.title?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || `course-${c.id}`;
