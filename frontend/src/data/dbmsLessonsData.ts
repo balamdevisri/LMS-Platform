@@ -35,7 +35,7 @@ In computing systems, data is represented in binary format and structured inside
 
 A database is an organized, systematic, and structured collection of data stored electronically in a computer system. It is designed to support the storage, retrieval, modification, and management of data in an efficient manner.
 
-#### 1. Structure and Purpose
+### Relational Model Tables & Schema Structure\n\n![Relational Model Tables](/assets/images/dbms_relational_tables.png)\n\n#### 1. Structure and Purpose
 Databases allow users to catalog massive amounts of records and attributes. The primary purpose is to retrieve requested data collections quickly and securely.
 - **Relational Databases**: Structure data using tables, rows, and columns.
 - **Tables**: Contain tuples or records representing entities.
@@ -56,7 +56,7 @@ Databases allow users to catalog massive amounts of records and attributes. The 
 
 A Database Management System (DBMS) is software that manages databases, allowing users to store, retrieve, update, and organize information efficiently while ensuring data integrity.
 
-#### 1. What is a Database Management System?
+### Database Engine Architecture\n\n![DBMS Engine Architecture](/assets/images/dbms_architecture_engine.png)\n\n#### 1. What is a Database Management System?
 A DBMS serves as an interface between the database and its end-users or programs, allowing users to retrieve, update, and manage how the information is organized and optimized.
 
 #### 2. Key Operations of a DBMS

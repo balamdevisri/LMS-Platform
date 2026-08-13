@@ -24,7 +24,7 @@ export const MODULE_2_FULL_CURRICULUM: LessonDetail[] = [
         id: '2.1.2',
         title: '2.1.2 Virtual File Systems: /proc and /dev',
         content: `• /proc (Process Filesystem): Virtual filesystem residing in RAM. Holds real-time kernel & process information (e.g., /proc/cpuinfo, /proc/meminfo).
-• /dev (Device Files): Contains file representations of physical hardware devices (e.g., /dev/sda for storage disk, /dev/null for data disposal).`,
+- /dev (Device Files): Contains file representations of physical hardware devices (e.g., /dev/sda for storage disk, /dev/null for data disposal).`,
         terminalCommand: 'ls -l /dev',
       },
     ],
@@ -38,9 +38,9 @@ export const MODULE_2_FULL_CURRICULUM: LessonDetail[] = [
         title: '2.2.1 User Accounts Hierarchy',
         content: `Linux categorizes users into 3 strict security tiers:
 
-• Root User (UID 0): Superuser with unrestricted execution privileges.
-• System Accounts (UID 1–999): Non-human accounts used by background services (e.g., nginx, mysql).
-• Regular Users (UID 1000+): Human accounts restricted to their own home directory (~).`,
+- Root User (UID 0): Superuser with unrestricted execution privileges.
+- System Accounts (UID 1–999): Non-human accounts used by background services (e.g., nginx, mysql).
+- Regular Users (UID 1000+): Human accounts restricted to their own home directory (~).`,
       },
       {
         id: '2.2.2',
@@ -74,13 +74,13 @@ cat /etc/group`,
         content: `Permissions are divided into three targets: User (Owner), Group, and Others.
 
 Octal Matrix:
-• Read (r) = 4
-• Write (w) = 2
-• Execute (x) = 1
+- Read (r) = 4
+- Write (w) = 2
+- Execute (x) = 1
 
 Permission Syntax Examples:
-• chmod 755 file -> Owner: rwx (7), Group: r-x (5), Others: r-x (5)
-• chmod 644 file -> Owner: rw- (6), Group: r-- (4), Others: r-- (4)`,
+- chmod 755 file -> Owner: rwx (7), Group: r-x (5), Others: r-x (5)
+- chmod 644 file -> Owner: rw- (6), Group: r-- (4), Others: r-- (4)`,
         codeSnippet: `# Grant read, write, execute to owner; read, execute to group/others
 chmod 755 script.sh
 
@@ -113,9 +113,9 @@ sudo chown -R alice:developers /var/www/app`,
         title: '2.4.1 Special Permissions (SUID, SGID, Sticky Bit)',
         content: `Special Permissions Matrix:
 
-• SUID (Octal 4000 / u+s): Runs an executable with the permissions of the file owner (e.g., /usr/bin/passwd).
-• SGID (Octal 2000 / g+s): New files created in a directory automatically inherit the parent group ownership.
-• Sticky Bit (Octal 1000 / +t): Prevents users from deleting files owned by others in shared folders (e.g., /tmp).`,
+- SUID (Octal 4000 / u+s): Runs an executable with the permissions of the file owner (e.g., /usr/bin/passwd).
+- SGID (Octal 2000 / g+s): New files created in a directory automatically inherit the parent group ownership.
+- Sticky Bit (Octal 1000 / +t): Prevents users from deleting files owned by others in shared folders (e.g., /tmp).`,
         codeSnippet: `# Add SUID bit to binary
 chmod u+s /usr/local/bin/custom_tool
 

@@ -11,10 +11,10 @@ export const MODULE_3_FULL_CURRICULUM: LessonDetail[] = [
         content: `A process is an active instance of a running program in memory.
 
 Key Identifiers & Types:
-• PID (Process ID): Unique numerical identifier assigned to every running process.
-• PPID (Parent Process ID): The PID of the parent process that spawned it.
-• Foreground Process: Runs directly in the shell, blocking user input until complete.
-• Background Process: Runs independently in the background, freeing the shell interface (started by appending &).`,
+- PID (Process ID): Unique numerical identifier assigned to every running process.
+- PPID (Parent Process ID): The PID of the parent process that spawned it.
+- Foreground Process: Runs directly in the shell, blocking user input until complete.
+- Background Process: Runs independently in the background, freeing the shell interface (started by appending &).`,
       },
       {
         id: '3.1.2',
@@ -197,9 +197,9 @@ sudo journalctl -u nginx.service -f`,
         id: '3.4.2',
         title: '3.4.2 Cron Schedules & Management Commands',
         content: `Common Cron Expressions:
-• 0 2 * * * -> Every day at 2:00 AM
-• */15 * * * * -> Every 15 minutes
-• 0 0 * * 1 -> Every Monday at midnight
+- 0 2 * * * -> Every day at 2:00 AM
+- */15 * * * * -> Every 15 minutes
+- 0 0 * * 1 -> Every Monday at midnight
 
 Management Commands:
 crontab -e -> Edit current user's crontab file

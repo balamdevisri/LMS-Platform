@@ -584,6 +584,42 @@ export class CourseService {
           certificate: true,
           featured: true,
           createdBy: 'seeder',
+        },
+        {
+          title: 'Java Through OOPs',
+          slug: 'java-through-oops',
+          description: 'Complete Java Through OOPs course covering Java fundamentals, core Java, OOPs main section, intermediate Java, and practice & interview preparation.',
+          shortDescription: 'Complete Java Through OOPs course covering Java fundamentals, core Java, OOPs main section, intermediate Java, and practice & interview preparation.',
+          category: 'Programming',
+          subcategory: 'Java',
+          level: 'all_levels',
+          thumbnail: '/assets/images/java_course_thumbnail.png',
+          bannerImage: '/assets/images/java_course_thumbnail.png',
+          duration: '35 Hours',
+          price: 0,
+          currency: 'INR',
+          status: 'published',
+          language: 'English',
+          instructor: {
+            uid: 'instructor-kaizen-q',
+            name: 'Kaizen Q Team',
+          },
+          lessonsCount: 24,
+          modulesCount: 24,
+          studentsEnrolled: 0,
+          rating: 5.0,
+          totalRatings: 180,
+          tags: ['java', 'programming', 'basics', 'oop', 'object-oriented'],
+          prerequisites: ['Basic computer knowledge'],
+          learningOutcomes: [
+            'Understand Java fundamentals, JVM/JRE/JDK differences, variables and data types',
+            'Master core Java, loops, methods, arrays, strings and exception handling',
+            'Implement Object-Oriented Programming pillars (encapsulation, inheritance, polymorphism, abstraction) and interfaces',
+            'Harness Collections framework, wrapper classes, generics, file handling and build projects'
+          ],
+          certificate: true,
+          featured: true,
+          createdBy: 'seeder',
         }
       ];
 
@@ -591,7 +627,7 @@ export class CourseService {
       for (const courseData of sampleCourses) {
         const existing = await this.collection().where('slug', '==', courseData.slug).limit(1).get();
         if (existing.empty) {
-          const docRef = this.collection().doc(courseData.slug === 'git-github-mastery' ? 'git-github-mastery-course-id' : (courseData.slug === 'database-management-system' ? 'database-management-system' : (courseData.slug === 'kubernetes-complete-course-beginner-to-advanced' ? 'kubernetes-complete-course-beginner-to-advanced' : (courseData.slug === 'react-js-complete-course' ? 'react-js-complete-course' : (courseData.slug === 'c-programming' ? 'c-programming-course-id' : (courseData.slug === 'python-through-oops' ? 'python-through-oops-course-id' : this.collection().doc().id))))));
+          const docRef = this.collection().doc(courseData.slug === 'git-github-mastery' ? 'git-github-mastery-course-id' : (courseData.slug === 'database-management-system' ? 'database-management-system' : (courseData.slug === 'kubernetes-complete-course-beginner-to-advanced' ? 'kubernetes-complete-course-beginner-to-advanced' : (courseData.slug === 'react-js-complete-course' ? 'react-js-complete-course' : (courseData.slug === 'c-programming' ? 'c-programming-course-id' : (courseData.slug === 'python-through-oops' ? 'python-through-oops-course-id' : (courseData.slug === 'java-through-oops' ? 'java-through-oops-course-id' : this.collection().doc().id)))))));
           const course: Course = {
             ...courseData,
             id: docRef.id,
@@ -615,6 +651,8 @@ export class CourseService {
             await this.seedCCourseDetails(docRef.id);
           } else if (courseData.slug === 'python-through-oops') {
             await this.seedPythonCourseDetails(docRef.id);
+          } else if (courseData.slug === 'java-through-oops') {
+            await this.seedJavaCourseDetails(docRef.id);
           }
         } else {
           // If the course exists, update its details to ensure the requested instructor/desc etc. are correct.
@@ -640,6 +678,8 @@ export class CourseService {
             await this.seedCCourseDetails(courseDoc.id);
           } else if (courseData.slug === 'python-through-oops') {
             await this.seedPythonCourseDetails(courseDoc.id);
+          } else if (courseData.slug === 'java-through-oops') {
+            await this.seedJavaCourseDetails(courseDoc.id);
           }
         }
       }
@@ -6667,6 +6707,121 @@ Deploy a React application on Vercel or Netlify.`
       console.log('Successfully seeded Python Through OOPs course structure with 15 modules.');
     } catch (error) {
       console.error('Error seeding Python Through OOPs course details:', error);
+    }
+  }
+
+  /**
+   * Seeds Modules, Lessons, Quizzes, and Assignments for the Java Through OOPs course.
+   */
+  async seedJavaCourseDetails(courseId: string): Promise<void> {
+    try {
+      const { modulesCollection, lessonsCollection, quizzesCollection, assignmentsCollection, coursesCollection } = await import('../../firebase/collections');
+      
+      console.log('Seeding Java Through OOPs detailed syllabus collections...');
+
+      const modulesData = [
+        { id: 'java-mod-1', title: 'Module 1 — Introduction to Java', order: 1, duration: '2 Hours' },
+        { id: 'java-mod-2', title: 'Module 2 — Variables & Data Types', order: 2, duration: '2 Hours' },
+        { id: 'java-mod-3', title: 'Module 3 — Operators', order: 3, duration: '2 Hours' },
+        { id: 'java-mod-4', title: 'Module 4 — Input & Output', order: 4, duration: '2 Hours' },
+        { id: 'java-mod-5', title: 'Module 5 — Conditional Statements', order: 5, duration: '2 Hours' },
+        { id: 'java-mod-6', title: 'Module 6 — Loops', order: 6, duration: '2 Hours' },
+        { id: 'java-mod-7', title: 'Module 7 — Arrays', order: 7, duration: '2 Hours' },
+        { id: 'java-mod-8', title: 'Module 8 — Strings', order: 8, duration: '2 Hours' },
+        { id: 'java-mod-9', title: 'Module 9 — Methods', order: 9, duration: '2 Hours' },
+        { id: 'java-mod-10', title: 'Module 10 — Exception Handling', order: 10, duration: '2 Hours' },
+        { id: 'java-mod-11', title: 'Module 11 — Packages & Access Modifiers', order: 11, duration: '2 Hours' },
+        { id: 'java-mod-12', title: 'Module 12 — Classes & Objects', order: 12, duration: '3 Hours' },
+        { id: 'java-mod-13', title: 'Module 13 — Encapsulation', order: 13, duration: '2 Hours' },
+        { id: 'java-mod-14', title: 'Module 14 — Inheritance', order: 14, duration: '2 Hours' },
+        { id: 'java-mod-15', title: 'Module 15 — Polymorphism', order: 15, duration: '2 Hours' },
+        { id: 'java-mod-16', title: 'Module 16 — Abstraction', order: 16, duration: '2 Hours' },
+        { id: 'java-mod-17', title: 'Module 17 — Interfaces', order: 17, duration: '2 Hours' },
+        { id: 'java-mod-18', title: 'Module 18 — Collections Framework', order: 18, duration: '2 Hours' },
+        { id: 'java-mod-19', title: 'Module 19 — Wrapper Classes & Generics', order: 19, duration: '2 Hours' },
+        { id: 'java-mod-20', title: 'Module 20 — File Handling', order: 20, duration: '2 Hours' },
+        { id: 'java-mod-21', title: 'Module 21 — Important Java Concepts', order: 21, duration: '2 Hours' },
+        { id: 'java-mod-22', title: 'Module 22 — Java Coding Problems', order: 22, duration: '3 Hours' },
+        { id: 'java-mod-23', title: 'Module 23 — OOP Mini Project', order: 23, duration: '3 Hours' },
+        { id: 'java-mod-24', title: 'Module 24 — Java & OOP Interview Questions', order: 24, duration: '3 Hours' },
+      ];
+
+      for (const mod of modulesData) {
+        await modulesCollection().doc(mod.id).set(toDocument({
+          id: mod.id,
+          title: mod.title,
+          order: mod.order,
+          duration: mod.duration,
+          courseId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }));
+      }
+
+      // Create exactly 1 reading unit per module
+      const modulesForCourseDoc: any[] = [];
+      const { javaSyllabusNotes } = await import('./javaSyllabusData');
+
+      for (const mod of modulesData) {
+        const lessonId = `java-unit-${mod.order}-notes`;
+        const lessonTitle = `Module ${mod.order} - Complete Notes`;
+        const lessonDesc = `${mod.title} Complete Notes.`;
+        const lessonContent = javaSyllabusNotes[mod.order] || `### ${lessonTitle}\n\nContent for ${mod.title} will be added later.`;
+        
+        // Write to lessons collection in Firestore
+        await lessonsCollection().doc(lessonId).set(toDocument({
+          id: lessonId,
+          title: lessonTitle,
+          description: lessonDesc,
+          order: 1,
+          duration: '45 mins',
+          type: 'reading',
+          readingTime: '45 mins',
+          content: lessonContent,
+          courseId,
+          moduleId: mod.id,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }));
+
+        // Build nested structure
+        modulesForCourseDoc.push({
+          id: mod.id,
+          title: mod.title,
+          description: mod.title,
+          duration: mod.duration,
+          topics: [
+            {
+              id: `java-topic-${mod.order}`,
+              title: `Topic ${mod.order}: Module ${mod.order} Content`,
+              description: `Module ${mod.order} Content`,
+              estimatedDuration: '45 mins',
+              learningUnits: [
+                {
+                  id: lessonId,
+                  title: lessonTitle,
+                  description: lessonDesc,
+                  duration: '45 mins',
+                  type: 'Reading',
+                  readingContent: lessonContent
+                }
+              ]
+            }
+          ]
+        });
+      }
+
+      // Save nested structure directly to course document
+      await coursesCollection().doc(courseId).update({
+        modules: modulesForCourseDoc,
+        modulesCount: 24,
+        lessonsCount: 24,
+        updatedAt: new Date()
+      });
+
+      console.log('Successfully seeded Java Through OOPs course structure with 24 modules.');
+    } catch (error) {
+      console.error('Error seeding Java Through OOPs course details:', error);
     }
   }
 }
