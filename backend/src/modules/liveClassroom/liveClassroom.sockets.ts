@@ -229,10 +229,43 @@ export const setupLiveClassroomSockets = (io: SocketServer) => {
       });
     });
 
-    // Mute/Mute student chat
+    // Mute/Unmute student audio track (Instructor moderation)
     socket.on('mute_student', (data: { classId: string; userId: string; isMuted: boolean }) => {
       const roomName = `class_${data.classId}`;
+      logger.info(`[SOCKET] Instructor muted student ${data.userId} in room ${roomName}`);
       liveNS.to(roomName).emit('student_muted', { userId: data.userId, isMuted: data.isMuted });
+    });
+
+    // Kick/Remove participant (Instructor moderation)
+    socket.on('kick_participant', (data: { classId: string; userId: string }) => {
+      const roomName = `class_${data.classId}`;
+      logger.info(`[SOCKET] Instructor kicking participant ${data.userId} from room ${roomName}`);
+      
+      // Find target socket
+      for (const [sId, participant] of activeParticipants.entries()) {
+        if (participant.classId === data.classId && participant.userId === data.userId) {
+          const targetSocket = liveNS.sockets.get(sId);
+          if (targetSocket) {
+            targetSocket.emit('kicked', { message: 'You have been removed from this live class by the instructor.' });
+            targetSocket.leave(roomName);
+            targetSocket.disconnect(true);
+          }
+          activeParticipants.delete(sId);
+          
+          liveNS.to(roomName).emit('user_left', {
+            userId: participant.userId,
+            name: participant.name,
+            role: participant.role,
+          });
+
+          const roster = Array.from(activeParticipants.values()).filter(p => p.classId === data.classId);
+          liveNS.to(roomName).emit('participants_update', {
+            count: roster.length,
+            users: roster.map(r => ({ userId: r.userId, name: r.name, role: r.role }))
+          });
+          break;
+        }
+      }
     });
 
     // Lock/Unlock classroom
