@@ -210,6 +210,21 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
 
   const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = useState(false);
 
+  const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('shaivika_right_sidebar_collapsed');
+      return saved !== null ? JSON.parse(saved) : false;
+    } catch (e) {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('shaivika_right_sidebar_collapsed', JSON.stringify(isRightSidebarCollapsed));
+    } catch (e) {}
+  }, [isRightSidebarCollapsed]);
+
   const isGitCourse = courseTitle.toLowerCase().includes('git');
 
   const allLessons = useMemo(() => {
@@ -971,22 +986,41 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
           </div>
         </main>
 
-        <Suspense fallback={<SidebarSkeleton />}>
-          <RightSidebar
-            lessonId={selectedLessonId}
-            lessonTitle={activeLessonFull.title}
-            isCompleted={isCompleted}
-            isBookmarked={isBookmarked}
-            resources={activeLessonFull.resources}
-            downloads={(activeLessonFull as any).downloads}
-            onToggleComplete={handleToggleComplete}
-            onNextLesson={handleNextLesson}
-            onToggleBookmark={handleToggleBookmark}
-            completedCount={validCompletedCount}
-            totalLessons={allLessons.length}
-            isNightMode={isNightMode}
-          />
-        </Suspense>
+        {/* Docked Right Sidebar or Floating Expand Button */}
+        {isRightSidebarCollapsed ? (
+          <div className="hidden xl:block shrink-0">
+            <button
+              onClick={() => setIsRightSidebarCollapsed(false)}
+              className={`flex items-center gap-2 px-3.5 py-2.5 rounded-2xl border shadow-lg sticky top-28 z-30 cursor-pointer active:scale-95 transition-all ${
+                isNightMode
+                  ? 'bg-slate-900/95 border-slate-700 text-cyan-400 hover:bg-slate-800'
+                  : 'bg-white/95 border-sky-200 text-sky-700 hover:bg-sky-50'
+              }`}
+              title="Show / Expand Lesson Controls, Notes & Progress Side Panel"
+            >
+              <ChevronLeft className="w-5 h-5" />
+              <span className="text-xs font-extrabold tracking-wide">Lesson Panel</span>
+            </button>
+          </div>
+        ) : (
+          <Suspense fallback={<SidebarSkeleton />}>
+            <RightSidebar
+              lessonId={selectedLessonId}
+              lessonTitle={activeLessonFull.title}
+              isCompleted={isCompleted}
+              isBookmarked={isBookmarked}
+              resources={activeLessonFull.resources}
+              downloads={(activeLessonFull as any).downloads}
+              onToggleComplete={handleToggleComplete}
+              onNextLesson={handleNextLesson}
+              onToggleBookmark={handleToggleBookmark}
+              completedCount={validCompletedCount}
+              totalLessons={allLessons.length}
+              isNightMode={isNightMode}
+              onCollapse={() => setIsRightSidebarCollapsed(true)}
+            />
+          </Suspense>
+        )}
       </div>
 
       {/* Floating AI Learning Assistant Trigger Button */}

@@ -39,6 +39,7 @@ interface RightSidebarProps {
   completedCount: number;
   totalLessons: number;
   isNightMode?: boolean;
+  onCollapse?: () => void;
 }
 
 export const RightSidebar: React.FC<RightSidebarProps> = ({
@@ -53,6 +54,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   completedCount,
   totalLessons,
   isNightMode = false,
+  onCollapse,
 }) => {
   const [noteText, setNoteText] = useState('');
   const [isSavingNote, setIsSavingNote] = useState(false);
@@ -119,19 +121,34 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
             <Award className="w-4 h-4" />
             <span>Lesson Control</span>
           </div>
-          <button
-            onClick={onToggleBookmark}
-            className={`p-2 rounded-xl border transition-all cursor-pointer ${
-              isBookmarked
-                ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
-                : isNightMode
-                ? 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
-                : 'bg-sky-50/60 border-sky-100 text-slate-500 hover:text-slate-900'
-            }`}
-            title={isBookmarked ? 'Remove Bookmark' : 'Bookmark Lesson'}
-          >
-            <Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-amber-400' : ''}`} />
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={onToggleBookmark}
+              className={`p-2 rounded-xl border transition-all cursor-pointer ${
+                isBookmarked
+                  ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
+                  : isNightMode
+                  ? 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
+                  : 'bg-sky-50/60 border-sky-100 text-slate-500 hover:text-slate-900'
+              }`}
+              title={isBookmarked ? 'Remove Bookmark' : 'Bookmark Lesson'}
+            >
+              <Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-amber-400' : ''}`} />
+            </button>
+            {onCollapse && (
+              <button
+                onClick={onCollapse}
+                className={`p-2 rounded-xl border transition-all cursor-pointer shadow-xs active:scale-95 ${
+                  isNightMode
+                    ? 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700'
+                    : 'bg-sky-50/60 border-sky-100 text-slate-500 hover:text-slate-900 hover:bg-sky-100'
+                }`}
+                title="Minimize Right Panel (Hide Lesson Controls, Notes & Progress)"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
 
         <button
