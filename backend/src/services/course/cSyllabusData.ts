@@ -33,11 +33,21 @@ C is also considered a foundational programming language because many modern
 languages and systems are influenced by its design.
 #### 1.3 History of C
 C was developed by Dennis Ritchie at Bell Labs in the early 1970s.
-It evolved from earlier programming languages such as: BCPL
-   ↓
-B
-   ↓
-C C became especially important because it was used extensively in the development of the UNIX operating system .
+It evolved from earlier programming languages such as: \`\`\`text
+┌─────────────┐
+│    BCPL     │
+└─────────────┘
+       │
+       ▼
+┌─────────────┐
+│      B      │
+└─────────────┘
+       │
+       ▼
+┌─────────────┐
+│      C      │
+└─────────────┘
+\`\`\` C became especially important because it was used extensively in the development of the UNIX operating system .
 #### 1.4 Why Learn C?
 Learning C provides a strong understanding of fundamental programming concepts.
 It helps you understand:
@@ -55,46 +65,62 @@ It helps you understand:
 C is particularly valuable for understanding how programs interact with computer
 memory and hardware .
 #### 1.5 Features of C
-1. Procedural
-C follows a procedural programming approach where programs are organized into functions
-and sequences of operations.
-2. Fast
-C programs can execute efficiently because C provides relatively low-level control over
-system resources.
-3. Portable
-C programs can generally be compiled for different platforms with appropriate modifications
-and compiler support.
-4. Structured
-Programs can be divided into smaller functions and logical blocks.
-5. Low-Level Access
-C provides features such as pointers that allow programmers to work directly with memory
-addresses.
-6. Extensible
-Program functionality can be extended through functions, libraries, and reusable modules.
+- **1. Procedural**: C follows a procedural programming approach where programs are organized into functions and sequences of operations.
+- **2. Fast**: C programs can execute efficiently because C provides relatively low-level control over system resources.
+- **3. Portable**: C programs can generally be compiled for different platforms with appropriate modifications and compiler support.
+- **4. Structured**: Programs can be divided into smaller functions and logical blocks.
+- **5. Low-Level Access**: C provides features such as pointers that allow programmers to work directly with memory addresses.
+- **6. Extensible**: Program functionality can be extended through functions, libraries, and reusable modules.
 #### 1.6 Applications of C
 
 
-C is used in many areas of computing. Operating Systems Parts of operating systems and system software are commonly implemented in C. Embedded Systems C is widely used in:
-- Microcontrollers
-- Automotive systems
-- IoT devices
-- Industrial controllers
-Compilers C has been used to implement many compilers and language tools. Networking C is used in network software and performance-sensitive applications. Database Systems C is used in the implementation of several database systems and database components. Game Development C and C-based technologies are used in performance-critical game and graphics systems.
+C is used in many areas of computing:
+- **Operating Systems**: Parts of operating systems and system software are commonly implemented in C.
+- **Embedded Systems**: C is widely used in:
+  - Microcontrollers
+  - Automotive systems
+  - IoT devices
+  - Industrial controllers
+- **Compilers**: C has been used to implement many compilers and language tools.
+- **Networking**: C is used in network software and performance-sensitive applications.
+- **Database Systems**: C is used in the implementation of several database systems and database components.
+- **Game Development**: C and C-based technologies are used in performance-critical game and graphics systems.
 #### 1.7 C Program Development Process
-A C program normally goes through several stages: Source Code
-   ↓
-Preprocessing
-   ↓
-Compilation
-   ↓
-Assembly
-   ↓
-Linking
-
-
-Executable File
-   ↓
-Execution Let's understand each stage. Step 1: Source Code The programmer writes C code in a source file. Example:
+A C program normally goes through several stages: \`\`\`text
+┌─────────────────┐
+│   Source Code   │
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Preprocessing  │
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│   Compilation   │
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│    Assembly     │
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│     Linking     │
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│ Executable File │
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│    Execution    │
+└─────────────────┘
+\`\`\` Let's understand each stage. Step 1: Source Code The programmer writes C code in a source file. Example:
 \`\`\`c
 #include <stdio.h>
 
@@ -117,25 +143,56 @@ Step 5: Linking The linker combines the required object code and libraries to cr
 ![C Compilation Process](/assets/images/c_compilation_process.png)
 
 
-START
-   ↓
-Write C Program
-   ↓
-Save as .c
-   ↓
-Preprocessing
-   ↓
-Compilation
-   ↓
-Assembly
-   ↓
-Linking
-   ↓
-Executable File
-   ↓
-Execution
-   ↓
-END
+\`\`\`text
+┌─────────────────┐
+│      START      │
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│ Write C Program │
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│   Save as .c    │
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Preprocessing  │
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│   Compilation   │
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│    Assembly     │
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│     Linking     │
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│ Executable File │
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│    Execution    │
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│       END       │
+└─────────────────┘
+\`\`\`
 Easy Understanding Think of it like this: You write → C processes → compiler translates → linker creates executable → computer runs it.
 
 
@@ -179,19 +236,41 @@ return 0; return 0;
 Returns the value 0 from main, conventionally indicating successful termination.
 Closing Brace } Marks the end of the function body.
 #### 1.11 Basic Structure of a C Program
-A typical C program can contain: Documentation / Comments
-   ↓
-Preprocessor Directives
-   ↓
-Global Declarations
-   ↓
-main() Function
-   ↓
-Local Declarations
-   ↓
-Statements
-   ↓
-User-Defined Functions Example:
+A typical C program can contain: \`\`\`text
+┌───────────────────────────┐
+│ Documentation / Comments  │
+└───────────────────────────┘
+              │
+              ▼
+┌───────────────────────────┐
+│  Preprocessor Directives  │
+└───────────────────────────┘
+              │
+              ▼
+┌───────────────────────────┐
+│    Global Declarations    │
+└───────────────────────────┘
+              │
+              ▼
+┌───────────────────────────┐
+│      main() Function      │
+└───────────────────────────┘
+              │
+              ▼
+┌───────────────────────────┐
+│    Local Declarations     │
+└───────────────────────────┘
+              │
+              ▼
+┌───────────────────────────┐
+│        Statements         │
+└───────────────────────────┘
+              │
+              ▼
+┌───────────────────────────┐
+│  User-Defined Functions   │
+└───────────────────────────┘
+\`\`\` Example:
 \`\`\`c
 #include <stdio.h>
 
@@ -254,16 +333,16 @@ Here:
 
 
 int → keyword age → identifier
-Identifier Rules An identifier:
+**Identifier Rules**: An identifier:
 - Can contain letters.
 - Can contain digits.
-- Can contain underscore _.
+- Can contain underscore \`_\`.
 - Cannot start with a digit.
 - Cannot be a keyword.
 - Is case-sensitive.
 Valid: age student_name marks1 _total Invalid: 1student student-name float
 #### 1.18 Case Sensitivity
-C is case-sensitive . These are different identifiers: age Age AGE Similarly:
+C is case-sensitive . These are different identifiers: \`age\`, \`Age\`, \`AGE\` Similarly:
 printf()
 is different from: Printf()
 
@@ -293,18 +372,32 @@ int main() {
     return 0;
 }
 \`\`\`
-Flowchart: ┌─────────┐ │ START │
-
-
+Flowchart:
+\`\`\`text
+┌─────────┐
+│  START  │
 └────┬────┘
-   ↓
-┌───────────────────┐ │ Execute main() │ └────────┬──────────┘
-   ↓
-┌───────────────────┐ │ Print Welcome │ └────────┬──────────┘
-   ↓
-┌───────────────────┐ │ return 0 │ └────────┬──────────┘
-   ↓
-┌─────────┐ │ END │ └─────────┘
+     │
+     ▼
+┌───────────────────┐
+│  Execute main()   │
+└────────┬──────────┘
+         │
+         ▼
+┌───────────────────┐
+│   Print Welcome   │
+└────────┬──────────┘
+         │
+         ▼
+┌───────────────────┐
+│     return 0      │
+└────────┬──────────┘
+         │
+         ▼
+┌─────────┐
+│   END   │
+└─────────┘
+\`\`\`
 Flow Explanation
 1. Program starts.
 2. Execution enters main().
@@ -315,31 +408,72 @@ Flow Explanation
 Program: Add Two Numbers #include <stdio.h> int main() { int a = 10; int b = 20; int sum; sum = a + b; printf("Sum = %d", sum); return 0; }
 
 
-Output: Sum = 30 Flowchart START
-   ↓
-Read a = 10
-   ↓
-Read b = 20
-   ↓
-sum = a + b
-   ↓
-Print sum
-   ↓
-END
+Output: Sum = 30 Flowchart \`\`\`text
+┌─────────────┐
+│    START    │
+└─────────────┘
+       │
+       ▼
+┌─────────────┐
+│ Read a = 10 │
+└─────────────┘
+       │
+       ▼
+┌─────────────┐
+│ Read b = 20 │
+└─────────────┘
+       │
+       ▼
+┌─────────────┐
+│ sum = a + b │
+└─────────────┘
+       │
+       ▼
+┌─────────────┐
+│  Print sum  │
+└─────────────┘
+       │
+       ▼
+┌─────────────┐
+│     END     │
+└─────────────┘
+\`\`\`
 #### 1.22 C Compilation Flow
-For a source file named: program.c The conceptual process is: program.c
-   ↓
-Preprocessor
-   ↓
-Compiler
-   ↓
-Assembler
-   ↓
-Object File
-   ↓
-Linker
-   ↓
-Executable The exact intermediate files and implementation details can vary by compiler and platform.
+For a source file named: program.c The conceptual process is: \`\`\`text
+┌───────────────┐
+│   program.c   │
+└───────────────┘
+        │
+        ▼
+┌───────────────┐
+│ Preprocessor  │
+└───────────────┘
+        │
+        ▼
+┌───────────────┐
+│   Compiler    │
+└───────────────┘
+        │
+        ▼
+┌───────────────┐
+│   Assembler   │
+└───────────────┘
+        │
+        ▼
+┌───────────────┐
+│  Object File  │
+└───────────────┘
+        │
+        ▼
+┌───────────────┐
+│    Linker     │
+└───────────────┘
+        │
+        ▼
+┌───────────────┐
+│  Executable   │
+└───────────────┘
+\`\`\` The exact intermediate files and implementation details can vary by compiler and platform.
 #### 1.23 Advantages of C
 
 
@@ -408,37 +542,31 @@ int main() {
 - Keep functions focused on clear responsibilities.
 - Compile frequently while developing.
 #### 1.28 Interview Questions
-1. Who developed C?
-Answer: C was developed by Dennis Ritchie at Bell Labs in the early 1970s.
-2. Why is C called a middle-level language?
-Answer: C combines high-level programming constructs with low-level capabilities such as direct memory manipulation, so it is often described as a middle-level language.
-3. What is the purpose of main()?
-Answer: main() is the entry point for execution in a hosted C program.
-4. What is stdio.h?
-Answer: stdio.h is a standard C header that declares functions and types used for standard input and output, including
+- **Q1. Who developed C?**
+  **Answer**: C was developed by Dennis Ritchie at Bell Labs in the early 1970s.
+- **Q2. Why is C called a middle-level language?**
+  **Answer**: C combines high-level programming constructs with low-level capabilities such as direct memory manipulation, so it is often described as a middle-level language.
+- **Q3. What is the purpose of main()?**
+  **Answer**: main() is the entry point for execution in a hosted C program.
+- **Q4. What is stdio.h?**
+  **Answer**: stdio.h is a standard C header that declares functions and types used for standard input and output, including
 printf() and scanf().
-5. Why is C case-sensitive?
-`,
+- **Q- **Q5. Why is C case-sensitive?****`,
   2: `
 
 
-Answer: C treats uppercase and lowercase letters as different characters, so identifiers such as age, Age, and AGE are distinct.
+  **Answer**: C treats uppercase and lowercase letters as different characters, so identifiers such as \`age\`, \`Age\`, and \`AGE\` are distinct.
 6. What is a compiler?
 Answer: A compiler translates source code written in a programming language into a lower-level representation that can ultimately be executed by a computer.
 #### 1.29 Practical Lab
-Task 1
-Write a C program to print: Hello, C Programming!
-Task 2
-Write a program to print your:
+- **Task 1**: Write a C program to print: Hello, C Programming!
+- **Task 2**: Write a program to print your:
 - Name
 - College
 - Branch
-Task 3
-Write a program to add two numbers.
-Task 4
-Write a program to calculate the area of a rectangle.
-Task 5
-Draw the flowchart for a program that calculates the sum of two numbers.
+- **Task 3**: Write a program to add two numbers.
+- **Task 4**: Write a program to calculate the area of a rectangle.
+- **Task 5**: Draw the flowchart for a program that calculates the sum of two numbers.
 ### Module 2: Variables, Constants & Data
 Types
 
@@ -607,21 +735,55 @@ Strings are stored as arrays of characters and are covered in detail in the Stri
 The const qualifier can be used when an object should not be modified through that
 identifier after initialization. Example: const int MAX = 100; Attempting to modify it: MAX = 200; is not allowed. Example #include <stdio.h> int main() { const float PI = 3.14159f; printf("%f", PI); return 0; }
 #### 2.23 Variable Declaration Flowchart
-START
-   ↓
-Choose Data Type
-   ↓
-Choose Variable
-   ↓
-Declare Variable
-   ↓
-Initialize Value? ↙ ↘ YES NO
-   ↓
-Assign Initial Variable Value Ready ↘ ↙
-   ↓
-Continue
-   ↓
-END
+\`\`\`text
+                  ┌────────────────────┐
+                  │       START        │
+                  └─────────┬──────────┘
+                            │
+                            ▼
+                  ┌────────────────────┐
+                  │  Choose Data Type  │
+                  └─────────┬──────────┘
+                            │
+                            ▼
+                  ┌────────────────────┐
+                  │  Choose Variable   │
+                  └─────────┬──────────┘
+                            │
+                            ▼
+                  ┌────────────────────┐
+                  │  Declare Variable  │
+                  └─────────┬──────────┘
+                            │
+                            ▼
+                  ┌────────────────────┐
+                  │ Initialize Value?  │
+                  └──────┬──────────┬──┘
+                         │          │
+                     YES │          │ NO
+                         ▼          ▼
+             ┌───────────────┐      │
+             │Assign Initial │      │
+             │     Value     │      │
+             └───────┬───────┘      │
+                     │              │
+                     └──────┬───────┘
+                            │
+                            ▼
+                  ┌────────────────────┐
+                  │   Variable Ready   │
+                  └─────────┬──────────┘
+                            │
+                            ▼
+                  ┌────────────────────┐
+                  │      Continue      │
+                  └─────────┬──────────┘
+                            │
+                            ▼
+                  ┌────────────────────┐
+                  │        END         │
+                  └────────────────────┘
+\`\`\`
 
 
 #### 2.24 Memory Concept
@@ -756,22 +918,22 @@ int main() {
 Here, age is a local variable whose scope is limited to the block in which it is declared.
 Scope and storage duration will be studied in greater detail later.
 #### 2.34 Common Errors
-Error 1: Using an Undeclared Variable
+- **Error 1**: Using an Undeclared Variable
 Incorrect: age = 20; Correct:
 int age; age = 20;
-Error 2: Assigning a Character Incorrectly
+- **Error 2**: Assigning a Character Incorrectly
 Incorrect:
 char grade = "A";
 Correct:
 char grade = 'A';
-Error 3: Confusing %d and %f
+- **Error 3**: Confusing %d and %f
 For an int:
 int age = 20; printf("%d", age);
 
 
 For a float:
 float marks = 85.5f; printf("%f", marks);
-Error 4: Unexpected Integer Division int a = 5; int b = 2; float result = a / b;
+- **Error 4**: Unexpected Integer Division int a = 5; int b = 2; float result = a / b;
 The result is 2.0, not 2.5, because a / b is evaluated as integer division.
 Use:
 float result = (float)a / b;
@@ -802,35 +964,29 @@ int main() {
 \`\`\`
 Program 2: Calculate Area #include <stdio.h> int main() { float length = 10.5f; float width = 5.0f; float area = length * width; printf("Area = %.2f", area); return 0; }
 #### 2.37 Interview Questions
-1. What is a variable?
-A variable is a named object used to store a value that can change during program
+- **Q1. What is a variable?**
+  **Answer**: A variable is a named object used to store a value that can change during program
 execution.
-2. What is a constant?
-A constant is a value that does not change as part of the program's intended computation.
-3. What is the difference between float and double?
-
-
-Both represent floating-point values, but double generally provides greater precision than float.
-4. What is type casting?
-Type casting is an explicit conversion of an expression to a specified type using the cast
+- **Q2. What is a constant?**
+  **Answer**: A constant is a value that does not change as part of the program's intended computation.
+- **Q3. What is the difference between float and double?**
+  **Answer**: Both represent floating-point values, but double generally provides greater precision than float.
+- **Q4. What is type casting?**
+  **Answer**: Type casting is an explicit conversion of an expression to a specified type using the cast
 syntax. Example: (float)a
-5. What is sizeof?
-sizeof is an operator that determines the size in bytes of a type or object.
-6. What is the difference between char and a string?
-char represents a single character, while a string is a sequence of characters stored in a
-character array and terminated by a null character.
-#### 2.38 Practical Lab
-Task 1
-Create variables to store:
+- **Q5. What is sizeof?**
+  **Answer**: sizeof is an operator that determines the size in bytes of a type or object.
+- **Q6. What is the difference between char and a string?**
+  **Answer**: char represents a single character, while a string is a sequence of characters stored in a
+character array and terminated by a null character.#### 2.38 Practical Lab
+- **Task 1**: Create variables to store:
 - Student name
 - Age
 - Percentage
 - Grade
 Display all values.
-Task 2
-Write a program to calculate the area of a circle.
-Task 3
-Write a program to convert Celsius to Fahrenheit.
+- **Task 2**: Write a program to calculate the area of a circle.
+- **Task 3**: Write a program to convert Celsius to Fahrenheit.
 Task 4
 `,
   3: `
@@ -904,15 +1060,31 @@ Result: 1 Example 10 ÷ 3 Quotient = 3
 
 Remainder = 1
 #### 3.6 Arithmetic Expression Flowchart
-Example: result = a + b; Flowchart: START
-   ↓
-Read A and B
-   ↓
-result = A + B
-   ↓
-Display Result
-   ↓
-END
+Example: result = a + b; Flowchart: \`\`\`text
+┌─────────────────┐
+│      START      │
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Read A and B   │
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│ result = A + B  │
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│ Display Result  │
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│       END       │
+└─────────────────┘
+\`\`\`
 #### 3.7 Relational Operators
 Relational operators compare two values. Operator Meaning < Less than > Greater than <= Less than or equal >= Greater than or equal == Equal to != Not equal to The result of a comparison is an int value: 0 for false and 1 for true .
 
@@ -925,15 +1097,35 @@ This is one of the most common beginner mistakes. Assignment a = 10; Means: Stor
 
 == → Equality comparison
 #### 3.9 Relational Decision Flowchart
-START
-   ↓
-Read A and B
-   ↓
-A > B ? ↙ ↘ YES NO
-   ↓
-Print A is Print B is Greater Greater/Equal ↘ ↙
-   ↓
-END
+\`\`\`text
+                  ┌────────────────────┐
+                  │       START        │
+                  └─────────┬──────────┘
+                            │
+                            ▼
+                  ┌────────────────────┐
+                  │    Read A and B    │
+                  └─────────┬──────────┘
+                            │
+                            ▼
+                  ┌────────────────────┐
+                  │      A > B ?       │
+                  └──────┬──────────┬──┘
+                         │          │
+                     YES │          │ NO
+                         ▼          ▼
+             ┌───────────────┐  ┌───────────────────────┐
+             │  Print A is   │  │ Print B is Greater or │
+             │    Greater    │  │         Equal         │
+             └───────┬───────┘  └──────────┬────────────┘
+                     │                     │
+                     └──────────┬──────────┘
+                                │
+                                ▼
+                  ┌────────────────────┐
+                  │        END         │
+                  └────────────────────┘
+\`\`\`
 #### 3.10 Logical Operators
 Logical operators combine or modify conditions. Operator Name && Logical AND \` ! Logical NOT In C, logical operators produce 0 or 1.
 #### 3.11 Logical AND &&
@@ -1081,17 +1273,39 @@ If the condition is true: Eligible
 
 Otherwise: Not Eligible
 #### 3.29 Conditional Operator Flowchart
-START
-   ↓
-Check Condition
-   ↓
-Condition True? ↙ ↘ YES NO
-   ↓
-Expression 1 Expression 2 ↘ ↙
-   ↓
-Result
-   ↓
-END
+\`\`\`text
+                  ┌────────────────────┐
+                  │       START        │
+                  └─────────┬──────────┘
+                            │
+                            ▼
+                  ┌────────────────────┐
+                  │  Check Condition   │
+                  └─────────┬──────────┘
+                            │
+                            ▼
+                  ┌────────────────────┐
+                  │  Condition True?   │
+                  └──────┬──────────┬──┘
+                         │          │
+                     YES │          │ NO
+                         ▼          ▼
+             ┌───────────────┐  ┌───────────────┐
+             │ Expression 1  │  │ Expression 2  │
+             └───────┬───────┘  └───────┬───────┘
+                     │                     │
+                     └──────────┬──────────┘
+                                │
+                                ▼
+                  ┌────────────────────┐
+                  │       Result       │
+                  └─────────┬──────────┘
+                            │
+                            ▼
+                  ┌────────────────────┐
+                  │        END         │
+                  └────────────────────┘
+\`\`\`
 #### 3.30 sizeof Operator
 sizeof determines the size in bytes of a type or object. Example:
 \`\`\`c
@@ -1248,41 +1462,31 @@ Mistake 4: Confusing | and || | → Bitwise OR || → Logical OR
 - Be careful with signed bitwise operations.
 - Avoid unnecessarily complicated expressions.
 #### 3.44 Interview Questions
-1. What is an operator?
-An operator is a symbol that instructs the compiler to perform an operation on one or more
+- **Q1. What is an operator?**
+  **Answer**: An operator is a symbol that instructs the compiler to perform an operation on one or more
 operands.
-2. What is the difference between = and ==?
-= performs assignment, while == tests equality.
-3. What is the modulus operator?
-% produces the remainder of integer division.
-4. What is the difference between ++x and x++?
-++x increments before the value is used in the surrounding expression; x++ uses the old
+- **Q2. What is the difference between = and ==?**
+  **Answer**: = performs assignment, while == tests equality.
+- **Q3. What is the modulus operator?**
+  **Answer**: % produces the remainder of integer division.
+- **Q4. What is the difference between ++x and x++?**
+  **Answer**: ++x increments before the value is used in the surrounding expression; x++ uses the old
 value first and then increments.
-5. What is operator precedence?
-Operator precedence determines which operators bind more strongly when an expression
+- **Q5. What is operator precedence?**
+  **Answer**: Operator precedence determines which operators bind more strongly when an expression
 contains multiple operators.
-6. What is short-circuit evaluation?
-It is the behavior where && or || may skip evaluating the right operand when the result is
+- **Q6. What is short-circuit evaluation?**
+  **Answer**: It is the behavior where && or || may skip evaluating the right operand when the result is
 already determined by the left operand.
-7. What are bitwise operators?
-Bitwise operators manipulate the individual bits of integer operands.
-
-
-#### 3.45 Practical Lab
-Task 1
-Write a program to perform addition, subtraction, multiplication, division, and modulus.
-Task 2
-Write a program to check whether a number is positive, negative, or zero.
-Task 3
-Write a program to find the largest of three numbers.
-Task 4
-Write a program to check whether a student is eligible based on age and marks using &&.
-Task 5
-Write a program demonstrating prefix and postfix increment.
-Task 6
-Write a program demonstrating &, |, and ^.
-Task 7
-Write a program using the conditional operator to find the larger of two numbers.
+- **Q7. What are bitwise operators?**
+  **Answer**: Bitwise operators manipulate the individual bits of integer operands.#### 3.45 Practical Lab
+- **Task 1**: Write a program to perform addition, subtraction, multiplication, division, and modulus.
+- **Task 2**: Write a program to check whether a number is positive, negative, or zero.
+- **Task 3**: Write a program to find the largest of three numbers.
+- **Task 4**: Write a program to check whether a student is eligible based on age and marks using &&.
+- **Task 5**: Write a program demonstrating prefix and postfix increment.
+- **Task 6**: Write a program demonstrating &, |, and ^.
+- **Task 7**: Write a program using the conditional operator to find the larger of two numbers.
 #### 3.46 Module Summary
 In this module, you learned:
 - Operators
@@ -1550,17 +1754,34 @@ Eligible
 ![C Decision Making](/assets/images/c_decision_making.png)
 
 
-START
-   ↓
-Read Age
-   ↓
-Age >= 18? ↙ ↘ YES NO
-   ↓
-Print Eligible │
-   ↓
-│ └─────┬─────┘
-   ↓
-END
+\`\`\`text
+                  ┌────────────────────┐
+                  │       START        │
+                  └─────────┬──────────┘
+                            │
+                            ▼
+                  ┌────────────────────┐
+                  │      Read Age      │
+                  └─────────┬──────────┘
+                            │
+                            ▼
+                  ┌────────────────────┐
+                  │    Age >= 18?      │
+                  └──────┬──────────┬──┘
+                         │          │
+                     YES │          │ NO
+                         ▼          │
+             ┌───────────────┐      │
+             │Print Eligible │      │
+             └───────┬───────┘      │
+                     │              │
+                     └──────┬───────┘
+                            │
+                            ▼
+                  ┌────────────────────┐
+                  │        END         │
+                  └────────────────────┘
+\`\`\`
 If the condition is false, the if body is skipped.
 
 
@@ -1628,19 +1849,39 @@ int main(void) {
 
 }
 #### 4.19 Else-If Flowchart
-START
-   ↓
-Read Marks
-   ↓
-Marks >= 90? ↙ ↘ YES NO
-   ↓
-Grade A Marks >= 75? ↙ ↘ YES NO
-   ↓
-Grade B Marks >= 60? ↙ ↘ YES NO
-   ↓
-Grade C Marks >= 40? ↙ ↘ YES NO
-   ↓
-Grade D Fail
+\`\`\`text
+                  ┌────────────────────┐
+                  │       START        │
+                  └─────────┬──────────┘
+                            │
+                            ▼
+                  ┌────────────────────┐
+                  │     Read Marks     │
+                  └─────────┬──────────┘
+                            │
+                            ▼
+                  ┌────────────────────┐
+                  │    Marks >= 90?    ├──YES──► [ Grade A ]
+                  └─────────┬──────────┘
+                            │ NO
+                            ▼
+                  ┌────────────────────┐
+                  │    Marks >= 75?    ├──YES──► [ Grade B ]
+                  └─────────┬──────────┘
+                            │ NO
+                            ▼
+                  ┌────────────────────┐
+                  │    Marks >= 60?    ├──YES──► [ Grade C ]
+                  └─────────┬──────────┘
+                            │ NO
+                            ▼
+                  ┌────────────────────┐
+                  │    Marks >= 40?    ├──YES──► [ Grade D ]
+                  └─────────┬──────────┘
+                            │ NO
+                            ▼
+                       [  Fail  ]
+\`\`\`
 #### 4.20 Nested if
 An if statement inside another if statement is called a nested if.
 Example:
@@ -1659,17 +1900,40 @@ int main(void) {
 
 scanf("%d", &has_id); if (age >= 18) { if (has_id) { printf("Entry allowed"); } else { printf("ID required"); } } else { printf("Entry not allowed"); } return 0; }
 #### 4.21 Nested if Flowchart
-START
-   ↓
-Read Age
-   ↓
-Age >= 18? ↙ ↘ NO YES
-   ↓
-Entry Denied Has ID? ↙ ↘ YES NO
-   ↓
-Entry Allowed ID Required ↘ ↙
-   ↓
-END
+\`\`\`text
+                  ┌────────────────────┐
+                  │       START        │
+                  └─────────┬──────────┘
+                            │
+                            ▼
+                  ┌────────────────────┐
+                  │      Read Age      │
+                  └─────────┬──────────┘
+                            │
+                            ▼
+                  ┌────────────────────┐
+                  │    Age >= 18?      │
+                  └──────┬──────────┬──┘
+                         │          │
+                      NO │          │ YES
+                         ▼          ▼
+             ┌───────────────┐  ┌───────────────┐
+             │ Entry Denied  │  │    Has ID?    │
+             └───────┬───────┘  └──────┬────┬───┘
+                     │                 │    │
+                     │             YES │    │ NO
+                     │                 ▼    ▼
+                     │  ┌───────────────┐  ┌───────────────┐
+                     │  │ Entry Allowed │  │  ID Required  │
+                     │  └───────┬───────┘  └───────┬───────┘
+                     │          │                  │
+                     └──────────┼─────────┬────────┘
+                                          │
+                                          ▼
+                                ┌────────────────────┐
+                                │        END         │
+                                └────────────────────┘
+\`\`\`
 #### 4.22 switch Statement
 
 
@@ -1699,25 +1963,47 @@ int main(void) {
 #### 4.24 Understanding break
 break terminates the nearest enclosing switch or loop. In a switch, it prevents execution from continuing into the next case. Example: case 1: printf("One"); break; Without break, execution can continue into the following case statements. This behavior is called fall-through .
 #### 4.25 switch Flowchart
-START
-   ↓
-Read Choice
-   ↓
-Evaluate
-   ↓
-┌───────────┼───────────┐
-   ↓
-Case 1 Case 2 Case 3
-   ↓
-Add Update Delete
-   ↓
-└───────────┼───────────┘
-   ↓
-Otherwise
-   ↓
-Invalid Choice
-   ↓
-END
+\`\`\`text
+                  ┌────────────────────┐
+                  │       START        │
+                  └─────────┬──────────┘
+                            │
+                            ▼
+                  ┌────────────────────┐
+                  │    Read Choice     │
+                  └─────────┬──────────┘
+                            │
+                            ▼
+                  ┌────────────────────┐
+                  │      Evaluate      │
+                  └─────────┬──────────┘
+                            │
+         ┌──────────────────┼──────────────────┐
+         ▼                  ▼                  ▼
+     [ Case 1 ]         [ Case 2 ]         [ Case 3 ]
+         │                  │                  │
+         ▼                  ▼                  ▼
+     ┌───────┐          ┌───────┐          ┌───────┐
+     │  Add  │          │Update │          │Delete │
+     └───┬───┘          └───┬───┘          └───┬───┘
+         │                  │                  │
+         └──────────────────┼──────────────────┘
+                            │
+                            ▼
+                  ┌────────────────────┐
+                  │     Otherwise      │
+                  └─────────┬──────────┘
+                            │
+                            ▼
+                  ┌────────────────────┐
+                  │   Invalid Choice   │
+                  └─────────┬──────────┘
+                            │
+                            ▼
+                  ┌────────────────────┐
+                  │        END         │
+                  └────────────────────┘
+\`\`\`
 
 
 #### 4.26 if-else vs switch
@@ -1820,21 +2106,44 @@ int main(void) {
 
 default: printf("Invalid operator"); } return 0; }
 #### 4.31 Flowchart: Calculator
-START
-   ↓
-Read A, B, Operator
-   ↓
-Select Operator
-   ↓
-┌───────┬──────┬──────┬───────┐
-   ↓
-+ - * / Other
-   ↓
-Add Subtract Multiply Divide Invalid
-   ↓
-B == 0? ↙ ↘ YES NO
-   ↓
-Error Result
+\`\`\`text
+                  ┌──────────────────────┐
+                  │        START         │
+                  └──────────┬───────────┘
+                            │
+                            ▼
+                  ┌──────────────────────┐
+                  │ Read A, B, Operator  │
+                  └──────────┬───────────┘
+                            │
+                            ▼
+                  ┌──────────────────────┐
+                  │   Select Operator    │
+                  └──────────┬───────────┘
+                            │
+         ┌──────────┬───────┴──┬──────────┬──────────┐
+         ▼          ▼          ▼          ▼          ▼
+       [ + ]      [ - ]      [ * ]      [ / ]     [Other]
+         │          │          │          │          │
+         ▼          ▼          ▼          ▼          ▼
+     ┌───────┐  ┌────────┐ ┌────────┐ ┌───────┐  ┌───────┐
+     │  Add  │  │Subtract│ │Multiply│ │Divide │  │Invalid│
+     └───┬───┘  └───┬────┘ └───┬────┘ └───┬───┘  └───┬───┘
+         │          │          │          │          │
+         │          │          │          ▼          │
+         │          │          │       [B == 0?]     │
+         │          │          │       ↙      ↘      │
+         │          │          │     YES       NO    │
+         │          │          │      ▼        ▼     │
+         │          │          │    Error    Result  │
+         │          │          │      │        │     │
+         └──────────┼──────────┼──────┴────────┼─────┘
+                               │
+                               ▼
+                        ┌───────────────┐
+                        │      END      │
+                        └───────────────┘
+\`\`\`
 #### 4.32 Common Mistakes
 Mistake 1: Using = instead of ==
 Incorrect: if (age = 18) Correct: if (age == 18)
@@ -2404,56 +2713,42 @@ break → Exit loop continue → Skip current iteration
 - Avoid unnecessarily deep nested loops.
 - Use meaningful variable names.
 #### 5.39 Interview Questions
-1. What is a loop?
-A loop repeatedly executes a block of statements according to a controlling condition.
-2. What are the three loops in C?
-- for
+- **Q1. What is a loop?**
+  **Answer**: A loop repeatedly executes a block of statements according to a controlling condition.
+- **Q2. What are the three loops in C?**
+  **Answer**: - for
 - while
 - do-while
-
-
-3. Which loop executes at least once?
-do-while.
-4. What is the difference between while and do-while?
-while checks the condition before executing the body, while do-while executes the body
+- **Q3. Which loop executes at least once?**
+  **Answer**: do-while.
+- **Q4. What is the difference between while and do-while?**
+  **Answer**: while checks the condition before executing the body, while do-while executes the body
 first and checks the condition afterward.
-5. What is a nested loop?
-A loop inside another loop is called a nested loop.
-6. What does break do?
-It terminates the nearest enclosing loop or switch.
-7. What does continue do?
-It skips the remaining statements in the current iteration and proceeds toward the next
+- **Q5. What is a nested loop?**
+  **Answer**: A loop inside another loop is called a nested loop.
+- **Q6. What does break do?**
+  **Answer**: It terminates the nearest enclosing loop or switch.
+- **Q7. What does continue do?**
+  **Answer**: It skips the remaining statements in the current iteration and proceeds toward the next
 iteration of the nearest enclosing loop.
-8. What is an infinite loop?
-An infinite loop is a loop that does not reach its termination condition or has no termination
-path.
-#### 5.40 Practical Lab
-Task 1
-Print numbers from 1 to 100.
-Task 2
-Print all even numbers from 1 to 100.
-Task 3
-Print all odd numbers from 1 to 100.
+- **Q8. What is an infinite loop?**
+  **Answer**: An infinite loop is a loop that does not reach its termination condition or has no termination
+path.#### 5.40 Practical Lab
+- **Task 1**: Print numbers from 1 to 100.
+- **Task 2**: Print all even numbers from 1 to 100.
+- **Task 3**: Print all odd numbers from 1 to 100.
 Task 4
 
 
 Calculate the sum of numbers from 1 to N.
-Task 5
-Calculate the factorial of a number.
-Task 6
-Print the multiplication table of a number.
-Task 7
-Reverse a number.
-Task 8
-Count the digits of a number.
-Task 9
-Check whether a number is a palindrome.
-Task 10
-Print this pattern: * ** *** **** *****
-Task 11
-Print: 1 12 123 1234 12345
-Task 12
-Create a menu-driven program using a do-while loop and switch.
+- **Task 5**: Calculate the factorial of a number.
+- **Task 6**: Print the multiplication table of a number.
+- **Task 7**: Reverse a number.
+- **Task 8**: Count the digits of a number.
+- **Task 9**: Check whether a number is a palindrome.
+- **Task 10**: Print this pattern: * ** *** **** *****
+- **Task 11**: Print: 1 12 123 1234 12345
+- **Task 12**: Create a menu-driven program using a do-while loop and switch.
 Diagram 1 — for Loop
 
 
@@ -2533,7 +2828,19 @@ Imagine a program containing 1,000 lines of code. Without functions: main() │ 
 #### 6.4 Function Architecture
 A typical function-based program looks like: PROGRAM │ ┌───────────┼───────────┐
    ↓
-Function 1 Function 2 Function 3 │ │ │ Task 1 Task 2 Task 3
+\`\`\`text
+┌──────────────────────────────────────────────┐
+│                  MAIN PROGRAM                │
+└──────────────────────┬───────────────────────┘
+                       │
+       ┌───────────────┼───────────────┐
+       ▼               ▼               ▼
+┌─────────────┐ ┌─────────────┐ ┌─────────────┐
+│ Function 1  │ │ Function 2  │ │ Function 3  │
+├─────────────┤ ├─────────────┤ ├─────────────┤
+│   Task 1    │ │   Task 2    │ │   Task 3    │
+└─────────────┘ └─────────────┘ └─────────────┘
+\`\`\`
 #### 6.5 Function Components
 A function generally involves:
 1. Declaration / Prototype
@@ -2596,19 +2903,41 @@ main()
 ![C Functions Architecture](/assets/images/c_functions.png)
 
 
-START
-   ↓
-Execute main()
-   ↓
-Call Function
-   ↓
-Function Executes
-   ↓
-Return Result
-   ↓
-Continue main()
-   ↓
-END
+\`\`\`text
+┌───────────────────┐
+│       START       │
+└───────────────────┘
+          │
+          ▼
+┌───────────────────┐
+│  Execute main()   │
+└───────────────────┘
+          │
+          ▼
+┌───────────────────┐
+│   Call Function   │
+└───────────────────┘
+          │
+          ▼
+┌───────────────────┐
+│ Function Executes │
+└───────────────────┘
+          │
+          ▼
+┌───────────────────┐
+│   Return Result   │
+└───────────────────┘
+          │
+          ▼
+┌───────────────────┐
+│  Continue main()  │
+└───────────────────┘
+          │
+          ▼
+┌───────────────────┐
+│        END        │
+└───────────────────┘
+\`\`\`
 #### 6.10 Example: Simple Function
 \`\`\`c
 #include <stdio.h>
@@ -2798,19 +3127,41 @@ x = 100
    ↓
 a remains 10
 #### 6.26 Call by Value Flowchart
-main()
-   ↓
-a = 10
-   ↓
-call change(a)
-   ↓
-x receives copy
-   ↓
-x = 100
-   ↓
-return
-   ↓
-a is still 10
+\`\`\`text
+┌─────────────────┐
+│     main()      │
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│     a = 10      │
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│ call change(a)  │
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│ x receives copy │
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│     x = 100     │
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│     return      │
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│  a is still 10  │
+└─────────────────┘
+\`\`\`
 
 
 #### 6.27 Modifying Caller Data Using
@@ -3000,55 +3351,42 @@ calculateAverage() is clearer than: fun1()
 
 - Document non-obvious behavior.
 #### 6.42 Interview Questions
-1. What is a function?
-A function is a named block of code designed to perform a specific task.
-2. What are the three important parts of a user-defined function?
-Commonly:
+- **Q1. What is a function?**
+  **Answer**: A function is a named block of code designed to perform a specific task.
+- **Q2. What are the three important parts of a user-defined function?**
+  **Answer**: Commonly:
 - Function declaration/prototype
 - Function definition
 - Function call
-3. What is a function prototype?
-A function prototype declares a function's name, return type, and parameter types before the
+- **Q3. What is a function prototype?**
+  **Answer**: A function prototype declares a function's name, return type, and parameter types before the
 function is used.
-4. What is the difference between a parameter and an argument?
-A parameter appears in the function definition; an argument is the actual value supplied
+- **Q4. What is the difference between a parameter and an argument?**
+  **Answer**: A parameter appears in the function definition; an argument is the actual value supplied
 during the function call.
-5. Does C support call by reference?
-C itself uses pass-by-value. Reference-like modification of caller objects can be achieved by
+- **Q5. Does C support call by reference?**
+  **Answer**: C itself uses pass-by-value. Reference-like modification of caller objects can be achieved by
 passing pointers.
-6. What is recursion?
-Recursion is a technique where a function calls itself to solve a problem through smaller
+- **Q6. What is recursion?**
+  **Answer**: Recursion is a technique where a function calls itself to solve a problem through smaller
 subproblems.
-7. What is the difference between local and global variables?
-Local variables have limited block scope, while variables declared outside functions can
+- **Q7. What is the difference between local and global variables?**
+  **Answer**: Local variables have limited block scope, while variables declared outside functions can
 have file scope and potentially be accessible across multiple functions in that source file.
-8. Why are functions important?
-They improve modularity, readability, reuse, testing, debugging, and maintainability.
+- **Q8. Why are functions important?**
+  **Answer**: They improve modularity, readability, reuse, testing, debugging, and maintainability.#### 6.43 Practical Lab
+- **Task 1**: Create a function to add two numbers.
+- **Task 2**: Create a function to calculate the square of a number.
+- **Task 3**: Create a function to find the maximum of three numbers.
+- **Task 4**: Create a function to check whether a number is even or odd.
+- **Task 5**: Create a function to calculate factorial using iteration.
+- **Task 6**: Create a recursive function to calculate factorial.
+- **Task 7**: Create a function to check whether a number is prime.
+- **Task 8**: Create a function to reverse a number.
+- **Task 9**: Create separate functions for: Input Processing Output and build a small calculator.
 
 
-#### 6.43 Practical Lab
-Task 1
-Create a function to add two numbers.
-Task 2
-Create a function to calculate the square of a number.
-Task 3
-Create a function to find the maximum of three numbers.
-Task 4
-Create a function to check whether a number is even or odd.
-Task 5
-Create a function to calculate factorial using iteration.
-Task 6
-Create a recursive function to calculate factorial.
-Task 7
-Create a function to check whether a number is prime.
-Task 8
-Create a function to reverse a number.
-Task 9
-Create separate functions for: Input Processing Output and build a small calculator.
-
-
-Task 10
-Create a menu-driven program using functions and switch. Diagram 1 — Function Execution MAIN PROGRAM
+- **Task 10**: Create a menu-driven program using functions and switch. Diagram 1 — Function Execution MAIN PROGRAM
    ↓
 Function Call
    ↓
@@ -3591,17 +3929,36 @@ Important: Array → Function
    ↓
 Pointer to its first element is passed The function also needs the number of elements separately in the usual 1D-array interface.
 #### 7.36 Array and Function Flow
-main()
-   ↓
-Create Array
-   ↓
-Call display(array)
-   ↓
-Function receives pointer to first element
-   ↓
-Traverse Array
-   ↓
-Return
+\`\`\`text
+┌─────────────────────────────────────────────┐
+│                   main()                    │
+└─────────────────────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────┐
+│                Create Array                 │
+└─────────────────────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────┐
+│             Call display(array)             │
+└─────────────────────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────┐
+│ Function receives pointer to first element  │
+└─────────────────────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────┐
+│               Traverse Array                │
+└─────────────────────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────┐
+│                   Return                    │
+└─────────────────────────────────────────────┘
+\`\`\`
 
 
 #### 7.37 Important: Array Size and Function
@@ -3709,61 +4066,46 @@ when the purpose is student marks.
 of an actual array object in the same scope.
 - Use nested loops carefully with 2D arrays.
 #### 7.46 Interview Questions
-1. What is an array?
-An array is a collection of elements of the same type stored in contiguous memory.
-2. What is the first index of an array?
-The first index is 0.
-3. What is the last valid index of an array of size n? n - 1
-4. What happens when you access an array outside its bounds?
-The behavior is undefined.
-5. What is array traversal?
-Visiting or processing array elements, usually one by one.
-6. What is a two-dimensional array?
-It is an array whose elements are themselves arranged in multiple dimensions, commonly
+- **Q1. What is an array?**
+  **Answer**: An array is a collection of elements of the same type stored in contiguous memory.
+- **Q2. What is the first index of an array?**
+  **Answer**: The first index is 0.
+- **Q3. What is the last valid index of an array of size n?**
+  **Answer**: n - 1
+- **Q4. What happens when you access an array outside its bounds?**
+  **Answer**: The behavior is undefined.
+- **Q5. What is array traversal?**
+  **Answer**: Visiting or processing array elements, usually one by one.
+- **Q6. What is a two-dimensional array?**
+  **Answer**: It is an array whose elements are themselves arranged in multiple dimensions, commonly
 represented as rows and columns.
-
-
-7. How is an array passed to a function?
-For a normal 1D array parameter, the array argument is converted to a pointer to its first
+- **Q7. How is an array passed to a function?**
+  **Answer**: For a normal 1D array parameter, the array argument is converted to a pointer to its first
 element.
-8. Why is the array size usually passed separately to a function?
-Because the function parameter does not retain the original array object's element count.
-9. What is linear search?
-A search technique that examines elements sequentially until the target is found or the array
+- **Q8. Why is the array size usually passed separately to a function?**
+  **Answer**: Because the function parameter does not retain the original array object's element count.
+- **Q9. What is linear search?**
+  **Answer**: A search technique that examines elements sequentially until the target is found or the array
 is exhausted.
-10. What is bubble sort?
-A comparison-based sorting algorithm that repeatedly compares adjacent elements and
-swaps them when necessary.
-#### 7.47 Practical Lab
-Task 1
-Read N numbers into an array and display them.
-Task 2
-Find the sum and average of array elements.
-Task 3
-Find the maximum and minimum elements.
-Task 4
-Count even and odd elements.
-Task 5
-Search for an element using linear search.
-Task 6
-Reverse an array.
+- **Q10. What is bubble sort?**
+  **Answer**: A comparison-based sorting algorithm that repeatedly compares adjacent elements and
+swaps them when necessary.#### 7.47 Practical Lab
+- **Task 1**: Read N numbers into an array and display them.
+- **Task 2**: Find the sum and average of array elements.
+- **Task 3**: Find the maximum and minimum elements.
+- **Task 4**: Count even and odd elements.
+- **Task 5**: Search for an element using linear search.
+- **Task 6**: Reverse an array.
 
 
 Example: Input: 1 2 3 4 5 Output: 5 4 3 2 1
-Task 7
-Sort an array in ascending order.
-Task 8
-Sort an array in descending order.
-Task 9
-Remove duplicate values from an array.
-Task 10
-Perform matrix addition.
-Task 11
-Find the transpose of a matrix.
-Task 12
-Perform matrix multiplication.
-Task 13
-Find the sum of each row and each column. Diagram 1 — Array Traversal START
+- **Task 7**: Sort an array in ascending order.
+- **Task 8**: Sort an array in descending order.
+- **Task 9**: Remove duplicate values from an array.
+- **Task 10**: Perform matrix addition.
+- **Task 11**: Find the transpose of a matrix.
+- **Task 12**: Perform matrix multiplication.
+- **Task 13**: Find the sum of each row and each column. Diagram 1 — Array Traversal START
    ↓
 Initialize i
    ↓
@@ -4031,20 +4373,18 @@ conceptually: Index 0 1 2 3
    ↓
 ┌────┬────┬────┬────┐ │ C │ A │ T │\0 │ └────┴────┴────┴────┘ Therefore: strlen(word) = 3 but the array requires 4 characters of storage .
 #### 8.18 Interview Questions
-1. What is a string in C?
-A character sequence terminated by '\0'.
-2. Which header contains common string functions? #include <string.h>
-3. What does strlen() return?
-
-
-The number of characters before the terminating null character.
-4. Why is '\0' important?
-It marks the end of a C string.
-5. Can we compare strings using ==?
-No. Use strcmp() to compare their contents.
-6. Which function is preferred for reading a line safely?
-fgets().
-#### 8.19 Practical Lab
+- **Q1. What is a string in C?**
+  **Answer**: A character sequence terminated by '\0'.
+- **Q2. Which header contains common string functions?**
+  **Answer**: #include <string.h>
+- **Q3. What does strlen() return?**
+  **Answer**: The number of characters before the terminating null character.
+- **Q4. Why is '\0' important?**
+  **Answer**: It marks the end of a C string.
+- **Q5. Can we compare strings using ==?**
+  **Answer**: No. Use strcmp() to compare their contents.
+- **Q6. Which function is preferred for reading a line safely?**
+  **Answer**: fgets().#### 8.19 Practical Lab
 1. Find the length of a string.
 2. Copy one string into another.
 3. Concatenate two strings.
@@ -4127,11 +4467,18 @@ prints:
 ![C Pointers Memory](/assets/images/c_pointers.png)
 
 
-Variable
-   ↓
-┌─────────┐ │ 100 │ └─────────┘ ↑ │ &x │ ┌─────────┐ │ p │ │ &x │ └─────────┘ │ *p
-   ↓
-100
+\`\`\`text
+Variable x:
+┌───────────┐
+│    100    │  ◄──┐
+└───────────┘     │
+  Address: &x     │ (Dereferenced by *p)
+                  │
+Pointer variable p:│
+┌───────────┐     │
+│    &x     │ ────┘
+└───────────┘
+\`\`\`
 #### 9.8 Changing a Value Through a Pointer
 \`\`\`c
 #include <stdio.h>
@@ -4411,29 +4758,26 @@ Pointers are fundamental to:
 - Low-level programming
 Understanding pointers is therefore essential for becoming strong in C.
 #### 9.33 Interview Questions
-1. What is a pointer?
-A pointer is an object that stores the address of another object.
-2. What does & do?
-It obtains the address of an object.
-3. What does * do with a pointer?
-
-
-It dereferences the pointer to access the pointed-to object.
-4. What is a NULL pointer?
-A null pointer is a pointer value that is guaranteed not to point to any object or function.
-5. What is pointer arithmetic?
-Operations such as incrementing or decrementing a pointer to move between elements of an
+- **Q1. What is a pointer?**
+  **Answer**: A pointer is an object that stores the address of another object.
+- **Q2. What does & do?**
+  **Answer**: It obtains the address of an object.
+- **Q3. What does * do with a pointer?**
+  **Answer**: It dereferences the pointer to access the pointed-to object.
+- **Q4. What is a NULL pointer?**
+  **Answer**: A null pointer is a pointer value that is guaranteed not to point to any object or function.
+- **Q5. What is pointer arithmetic?**
+  **Answer**: Operations such as incrementing or decrementing a pointer to move between elements of an
 array object.
-6. What is a dangling pointer?
-A pointer that refers to an object whose lifetime has ended.
-7. What is a pointer to pointer?
-A pointer that stores the address of another pointer.
+- **Q6. What is a dangling pointer?**
+  **Answer**: A pointer that refers to an object whose lifetime has ended.
+- **Q7. What is a pointer to pointer?**
+  **Answer**: A pointer that stores the address of another pointer.
 int **p;
-8. Why are pointers used in functions?
-They allow functions to access or modify caller-owned objects and support many data
+- **Q8. Why are pointers used in functions?**
+  **Answer**: They allow functions to access or modify caller-owned objects and support many data
 structures
-and dynamic-memory techniques.
-#### 9.34 Practical Lab
+and dynamic-memory techniques.#### 9.34 Practical Lab
 1. Print the address of a variable.
 2. Access a variable through a pointer.
 3. Modify a variable using a pointer.
@@ -4802,60 +5146,48 @@ representation seen through another member.
 #### 10.36 Interview Questions
 
 
-1. What is a structure?
-A structure is a user-defined type that groups related members, potentially of different data
+- **Q1. What is a structure?**
+  **Answer**: A structure is a user-defined type that groups related members, potentially of different data
 types.
-2. What is a union?
-A union is a user-defined type whose members share the same storage.
-3. What is the difference between structure and union?
-Structures allocate separate storage for members, while union members overlap in the same
+- **Q2. What is a union?**
+  **Answer**: A union is a user-defined type whose members share the same storage.
+- **Q3. What is the difference between structure and union?**
+  **Answer**: Structures allocate separate storage for members, while union members overlap in the same
 storage.
-4. What is
-   ↓
+- **Q4. What is**
+  **Answer**: ↓
 ?
 It accesses a structure or union member through a pointer. p
    ↓
 member
-5. What is typedef?
-It creates an alias for an existing type.
-6. What is enum?
-It defines a type containing named integer constants.
-7. Can structures contain other structures?
-Yes. This is called a nested structure.
-8. Can structures be passed to functions?
-Yes.
-9. Can a structure contain an array?
-Yes. Example:
+- **Q5. What is typedef?**
+  **Answer**: It creates an alias for an existing type.
+- **Q6. What is enum?**
+  **Answer**: It defines a type containing named integer constants.
+- **Q7. Can structures contain other structures?**
+  **Answer**: Yes. This is called a nested structure.
+- **Q8. Can structures be passed to functions?**
+  **Answer**: Yes.
+- **Q9. Can a structure contain an array?**
+  **Answer**: Yes. Example:
 struct Student { char name[50]; };
-10. Why are structures important?
-
-
-They allow programs to model complex real-world entities as organized records.
-#### 10.37 Practical Lab
-Task 1
-Create a Student structure with: Name Roll Number Marks
-Task 2
-Create an Employee structure with: ID Name Salary
-Task 3
-Create an array of 5 students and display their details.
-Task 4
-Find the student with the highest marks.
-Task 5
-Create a nested structure containing student and date-of-birth information.
-Task 6
-Create a structure pointer and access members using
+- **Q10. Why are structures important?**
+  **Answer**: They allow programs to model complex real-world entities as organized records.#### 10.37 Practical Lab
+- **Task 1**: Create a Student structure with: Name Roll Number Marks
+- **Task 2**: Create an Employee structure with: ID Name Salary
+- **Task 3**: Create an array of 5 students and display their details.
+- **Task 4**: Find the student with the highest marks.
+- **Task 5**: Create a nested structure containing student and date-of-birth information.
+- **Task 6**: Create a structure pointer and access members using
    ↓
 .
-Task 7
-Create a union containing:
+- **Task 7**: Create a union containing:
 int float char
 and observe shared storage.
 
 
-Task 8
-Create an enum for: MONDAY TUESDAY ... SUNDAY
-Task 9
-Use typedef to create a convenient name for a structure.
+- **Task 8**: Create an enum for: MONDAY TUESDAY ... SUNDAY
+- **Task 9**: Use typedef to create a convenient name for a structure.
 #### 10.38 Quick Revision
 STRUCTURE
    ↓
@@ -5246,44 +5578,35 @@ free()
    ↓
 END
 #### 11.34 Interview Questions
-1. What is dynamic memory allocation?
-It is the process of obtaining and releasing memory at runtime.
-2. Which header provides dynamic memory functions? #include <stdlib.h>
-3. What is malloc()?
-It allocates a specified number of bytes without initializing their contents.
-4. What is calloc()?
-It allocates storage for multiple elements and initializes all allocated bytes to zero.
-5. What is realloc()?
-It changes the size of an existing dynamically allocated block.
-6. What is free()?
-It releases dynamically allocated storage.
-7. What is a memory leak?
-Allocated memory that becomes unreachable without being released.
-8. What is a dangling pointer?
-
-
-A pointer that refers to an object whose lifetime has ended or to storage that has been
+- **Q1. What is dynamic memory allocation?**
+  **Answer**: It is the process of obtaining and releasing memory at runtime.
+- **Q2. Which header provides dynamic memory functions?**
+  **Answer**: #include <stdlib.h>
+- **Q3. What is malloc()?**
+  **Answer**: It allocates a specified number of bytes without initializing their contents.
+- **Q4. What is calloc()?**
+  **Answer**: It allocates storage for multiple elements and initializes all allocated bytes to zero.
+- **Q5. What is realloc()?**
+  **Answer**: It changes the size of an existing dynamically allocated block.
+- **Q6. What is free()?**
+  **Answer**: It releases dynamically allocated storage.
+- **Q7. What is a memory leak?**
+  **Answer**: Allocated memory that becomes unreachable without being released.
+- **Q8. What is a dangling pointer?**
+  **Answer**: A pointer that refers to an object whose lifetime has ended or to storage that has been
 released.
-9. Why should we check malloc() for NULL?
-Because allocation can fail.
-10. Why is sizeof *p useful?
-It derives the allocation element size from the pointer's pointed-to type and reduces type
-duplication.
-#### 11.35 Practical Lab
-Task 1
-Dynamically allocate memory for N integers.
-Task 2
-Read and display dynamically allocated elements.
-Task 3
-Find the sum and average of a dynamic array.
-Task 4
-Find the maximum and minimum.
-Task 5
-Resize an array using realloc().
-Task 6
-Create a dynamically allocated array of structures.
-Task 7
-Allocate memory using calloc() and observe the initial values.
+- **Q9. Why should we check malloc() for NULL?**
+  **Answer**: Because allocation can fail.
+- **Q10. Why is sizeof *p useful?**
+  **Answer**: It derives the allocation element size from the pointer's pointed-to type and reduces type
+duplication.#### 11.35 Practical Lab
+- **Task 1**: Dynamically allocate memory for N integers.
+- **Task 2**: Read and display dynamically allocated elements.
+- **Task 3**: Find the sum and average of a dynamic array.
+- **Task 4**: Find the maximum and minimum.
+- **Task 5**: Resize an array using realloc().
+- **Task 6**: Create a dynamically allocated array of structures.
+- **Task 7**: Allocate memory using calloc() and observe the initial values.
 Task 8
 
 
@@ -5694,34 +6017,31 @@ Function Purpose fopen() Open file fclose() Close file fgetc() Read character fp
 
 fscanf() Read formatted data fprintf() Write formatted data fread() Read binary data fwrite() Write binary data fseek() Change file position ftell() Get file position rewind() Move to beginning perror() Display error description
 #### 12.41 Interview Questions
-1. What is file handling?
-It is the process of reading, writing, and managing persistent data stored in files.
-2. What is FILE *?
-It is a pointer to a FILE object representing a C stream.
-3. Difference between "r" and "w"?
-"r" opens an existing file for reading; "w" opens for writing and truncates an existing file.
-4. Difference between "w" and "a"?
-"w" overwrites/truncates existing content; "a" preserves existing content and writes at the
+- **Q1. What is file handling?**
+  **Answer**: It is the process of reading, writing, and managing persistent data stored in files.
+- **Q2. What is FILE *?**
+  **Answer**: It is a pointer to a FILE object representing a C stream.
+- **Q3. Difference between "r" and "w"?**
+  **Answer**: "r" opens an existing file for reading; "w" opens for writing and truncates an existing file.
+- **Q4. Difference between "w" and "a"?**
+  **Answer**: "w" overwrites/truncates existing content; "a" preserves existing content and writes at the
 end.
-5. What does fclose() do?
-It closes the stream and releases associated resources.
-
-
-6. What is EOF?
-It is a special value used by input functions to indicate that no more input is available.
-7. What is the difference between fgetc() and fgets()?
-fgetc() reads one character; fgets() reads a line/string into a character array with a
+- **Q5. What does fclose() do?**
+  **Answer**: It closes the stream and releases associated resources.
+- **Q6. What is EOF?**
+  **Answer**: It is a special value used by input functions to indicate that no more input is available.
+- **Q7. What is the difference between fgetc() and fgets()?**
+  **Answer**: fgetc() reads one character; fgets() reads a line/string into a character array with a
 specified limit.
-8. What are fread() and fwrite()?
-They perform binary-oriented block input and output.
-9. What is fseek()?
-It changes the current position in a file stream.
-10. Why shouldn't we use while (!feof(fp)) for reading?
-Because EOF is only set after an input operation attempts to read past the available data.
+- **Q8. What are fread() and fwrite()?**
+  **Answer**: They perform binary-oriented block input and output.
+- **Q9. What is fseek()?**
+  **Answer**: It changes the current position in a file stream.
+- **Q10. Why shouldn't we use while (!feof(fp)) for reading?**
+  **Answer**: Because EOF is only set after an input operation attempts to read past the available data.
 The input function's
 return
-value should control the loop.
-#### 12.42 Practical Lab
+value should control the loop.#### 12.42 Practical Lab
 1. Create and write a text file.
 2. Read and display a file.
 3. Append data to a file.
@@ -5995,41 +6315,34 @@ Include header/source content #define Define macro
 
 #undef Remove macro definition #ifdef Test whether macro is defined #ifndef Test whether macro is not defined #if Conditional compilation #elif Additional condition #else Alternative branch #endif End conditional section
 #### 13.30 Interview Questions
-1. What is a preprocessor?
-A tool that processes C source code before compilation.
-2. What is #include?
-A preprocessing directive used to include another file's contents.
-3. What is #define?
-It defines a macro.
-4. What is an include guard?
-A preprocessor technique that prevents a header's contents from being processed multiple
+- **Q1. What is a preprocessor?**
+  **Answer**: A tool that processes C source code before compilation.
+- **Q2. What is #include?**
+  **Answer**: A preprocessing directive used to include another file's contents.
+- **Q3. What is #define?**
+  **Answer**: It defines a macro.
+- **Q4. What is an include guard?**
+  **Answer**: A preprocessor technique that prevents a header's contents from being processed multiple
 times in one translation unit.
-5. What is the difference between #ifdef and #ifndef? #ifdef → macro IS defined #ifndef → macro IS NOT defined
-6. What is conditional compilation?
-Selecting source sections for compilation based on preprocessor conditions.
-7. Why are parentheses important in macros?
-
-
-They help prevent operator-precedence problems during textual substitution.
-8. What is a major danger of function-like macros?
-Arguments can be evaluated multiple times.
-9. What is the difference between a macro and a function?
-A macro is processed by the preprocessor, while a function is handled by the compiler as a
+- **Q5. What is the difference between #ifdef and #ifndef?**
+  **Answer**: #ifdef → macro IS defined #ifndef → macro IS NOT defined
+- **Q6. What is conditional compilation?**
+  **Answer**: Selecting source sections for compilation based on preprocessor conditions.
+- **Q7. Why are parentheses important in macros?**
+  **Answer**: They help prevent operator-precedence problems during textual substitution.
+- **Q8. What is a major danger of function-like macros?**
+  **Answer**: Arguments can be evaluated multiple times.
+- **Q9. What is the difference between a macro and a function?**
+  **Answer**: A macro is processed by the preprocessor, while a function is handled by the compiler as a
 normal callable function.
-10. What happens after preprocessing?
-Conceptually, the compiler processes the resulting translation unit, followed by
-assembly/object generation and linking.
-#### 13.31 Practical Lab
-Task 1
-Create a macro: #define PI 3.14159 and calculate the area of a circle.
-Task 2
-Create a function-like macro for finding the maximum of two values.
-Task 3
-Create a header file containing arithmetic function declarations.
-Task 4
-Create .c and .h files for a calculator.
-Task 5
-Use #ifdef DEBUG to create debug output.
+- **Q10. What happens after preprocessing?**
+  **Answer**: Conceptually, the compiler processes the resulting translation unit, followed by
+assembly/object generation and linking.#### 13.31 Practical Lab
+- **Task 1**: Create a macro: #define PI 3.14159 and calculate the area of a circle.
+- **Task 2**: Create a function-like macro for finding the maximum of two values.
+- **Task 3**: Create a header file containing arithmetic function declarations.
+- **Task 4**: Create .c and .h files for a calculator.
+- **Task 5**: Use #ifdef DEBUG to create debug output.
 Task 6
 `,
   14: `
@@ -6300,48 +6613,38 @@ It doesn't. The compiler decides how to allocate storage.
 
 
 #### 14.37 Interview Questions
-1. What is a storage class?
-A storage-class specifier helps specify properties such as storage duration, scope, and
+- **Q1. What is a storage class?**
+  **Answer**: A storage-class specifier helps specify properties such as storage duration, scope, and
 linkage.
-2. What does static mean for a local variable?
-It gives the object static storage duration while retaining block scope.
-3. What does static mean at file scope?
-It gives the identifier internal linkage.
-4. What is extern?
-It declares an identifier that can refer to a definition with external linkage, often in another
+- **Q2. What does static mean for a local variable?**
+  **Answer**: It gives the object static storage duration while retaining block scope.
+- **Q3. What does static mean at file scope?**
+  **Answer**: It gives the identifier internal linkage.
+- **Q4. What is extern?**
+  **Answer**: It declares an identifier that can refer to a definition with external linkage, often in another
 source file.
-5. What is register?
-It is a storage-class specifier that requests register storage, but the compiler may ignore the
+- **Q5. What is register?**
+  **Answer**: It is a storage-class specifier that requests register storage, but the compiler may ignore the
 request.
-6. What is scope?
-The region of source code where an identifier can be referred to.
-7. What is storage duration?
-The period during program execution for which an object exists.
-8. What is linkage?
-It determines whether declarations of the same identifier can refer to the same entity across
+- **Q6. What is scope?**
+  **Answer**: The region of source code where an identifier can be referred to.
+- **Q7. What is storage duration?**
+  **Answer**: The period during program execution for which an object exists.
+- **Q8. What is linkage?**
+  **Answer**: It determines whether declarations of the same identifier can refer to the same entity across
 scopes or translation units.
-9. Difference between local and static local variables?
-A normal local automatic variable gets a new lifetime on each block entry, while a static local
+- **Q9. Difference between local and static local variables?**
+  **Answer**: A normal local automatic variable gets a new lifetime on each block entry, while a static local
 object persists for the entire program execution.
-
-
-10. Why is static useful in multi-file programs?
-It allows implementation details to remain private to a translation unit.
-#### 14.38 Practical Lab
-Task 1
-Write a program demonstrating a normal local variable.
-Task 2
-Create a static local counter.
-Task 3
-Create a global variable and access it from multiple functions.
-Task 4
-Create a static file-scope variable.
-Task 5
-Create two .c files and use extern to share a variable.
-Task 6
-Create a private static helper function in one source file.
-Task 7
-Experiment with automatic and static initialization.
+- **Q10. Why is static useful in multi-file programs?**
+  **Answer**: It allows implementation details to remain private to a translation unit.#### 14.38 Practical Lab
+- **Task 1**: Write a program demonstrating a normal local variable.
+- **Task 2**: Create a static local counter.
+- **Task 3**: Create a global variable and access it from multiple functions.
+- **Task 4**: Create a static file-scope variable.
+- **Task 5**: Create two .c files and use extern to share a variable.
+- **Task 6**: Create a private static helper function in one source file.
+- **Task 7**: Experiment with automatic and static initialization.
 #### 14.39 Quick Revision
 SCOPE
    ↓
@@ -6400,17 +6703,36 @@ If executed conceptually as: program.exe Hello 123 You might see: Argument count
 ![C Advanced Concepts](/assets/images/c_advanced_concepts.png)
 
 
-START
-   ↓
-Program starts
-   ↓
-Receive argc/argv
-   ↓
-Process arguments
-   ↓
-Execute program
-   ↓
-END
+\`\`\`text
+┌───────────────────┐
+│       START       │
+└───────────────────┘
+          │
+          ▼
+┌───────────────────┐
+│  Program starts   │
+└───────────────────┘
+          │
+          ▼
+┌───────────────────┐
+│ Receive argc/argv │
+└───────────────────┘
+          │
+          ▼
+┌───────────────────┐
+│ Process arguments │
+└───────────────────┘
+          │
+          ▼
+┌───────────────────┐
+│  Execute program  │
+└───────────────────┘
+          │
+          ▼
+┌───────────────────┐
+│        END        │
+└───────────────────┘
+\`\`\`
 
 
 #### 15.5 Function Pointers
@@ -6625,19 +6947,41 @@ Use bounded input functions such as: fgets()
 7. Keep functions focused
 One function should ideally have one clear responsibility.
 #### 15.39 C Programming Architecture
-A professional C project can look like: Project │ ├── include/ │ └── calculator.h │ ├── src/ │ ├── calculator.c │ └── main.c │ └── tests/ └── test_calculator.c Conceptually: Header
-   ↓
-Declarations
-   ↓
-Source files
-   ↓
-Definitions
-   ↓
-Compiler
-   ↓
-Linker
-   ↓
-Executable
+A professional C project can look like: Project │ ├── include/ │ └── calculator.h │ ├── src/ │ ├── calculator.c │ └── main.c │ └── tests/ └── test_calculator.c Conceptually: \`\`\`text
+┌───────────────┐
+│    Header     │
+└───────────────┘
+        │
+        ▼
+┌───────────────┐
+│ Declarations  │
+└───────────────┘
+        │
+        ▼
+┌───────────────┐
+│ Source files  │
+└───────────────┘
+        │
+        ▼
+┌───────────────┐
+│  Definitions  │
+└───────────────┘
+        │
+        ▼
+┌───────────────┐
+│   Compiler    │
+└───────────────┘
+        │
+        ▼
+┌───────────────┐
+│    Linker     │
+└───────────────┘
+        │
+        ▼
+┌───────────────┐
+│  Executable   │
+└───────────────┘
+\`\`\`
 
 
 #### 15.40 Complete C Learning Roadmap
@@ -6680,48 +7024,43 @@ Read/Write
    ↓
 fclose()
 #### 15.43 Top Interview Questions
-Q1. Difference between array and pointer?
-An array is an object containing elements, while a pointer is an object that stores an
+- **Q1. Difference between array and pointer?**
+  **Answer**: An array is an object containing elements, while a pointer is an object that stores an
 address. An array expression often converts to a pointer to its first element, but an array and pointer are not the same type.
-Q2. Why does scanf() use &?
-For ordinary scalar variables, scanf() needs an address where it can store the input.
+- **Q2. Why does scanf() use &?**
+  **Answer**: For ordinary scalar variables, scanf() needs an address where it can store the input.
 scanf("%d", &x);
-
-
-Q3. What is a dangling pointer?
-A pointer that refers to an object or allocated storage whose lifetime has ended.
-Q4. What is a memory leak?
-Allocated memory that is no longer reachable and therefore cannot be released normally.
-Q5. Difference between malloc() and calloc()?
-malloc() allocates uninitialized storage, while calloc() allocates storage for multiple
+- **Q3. What is a dangling pointer?**
+  **Answer**: A pointer that refers to an object or allocated storage whose lifetime has ended.
+- **Q4. What is a memory leak?**
+  **Answer**: Allocated memory that is no longer reachable and therefore cannot be released normally.
+- **Q5. Difference between malloc() and calloc()?**
+  **Answer**: malloc() allocates uninitialized storage, while calloc() allocates storage for multiple
 elements and initializes the allocated bytes to zero.
-Q6. What is realloc()?
-It attempts to resize an existing dynamically allocated memory block.
-Q7. What is a segmentation fault?
-It is a common manifestation of an invalid memory access, but the exact behavior depends
+- **Q6. What is realloc()?**
+  **Answer**: It attempts to resize an existing dynamically allocated memory block.
+- **Q7. What is a segmentation fault?**
+  **Answer**: It is a common manifestation of an invalid memory access, but the exact behavior depends
 on the operating system and implementation. It is not itself the C language definition of the underlying error.
-Q8. What is a structure?
-A user-defined type that groups related members, potentially of different types.
-Q9. What is a union?
-A user-defined type whose members share storage.
-Q10. What is recursion?
-A technique in which a function calls itself, normally with a base case that terminates the
+- **Q8. What is a structure?**
+  **Answer**: A user-defined type that groups related members, potentially of different types.
+- **Q9. What is a union?**
+  **Answer**: A user-defined type whose members share storage.
+- **Q10. What is recursion?**
+  **Answer**: A technique in which a function calls itself, normally with a base case that terminates the
 recursion.
-
-
-Q11. What is a function pointer?
-A pointer that stores the address of a function and can be used to call that function.
-Q12. What is static?
-Its meaning depends on context. At block scope, it gives static storage duration; at file
+- **Q11. What is a function pointer?**
+  **Answer**: A pointer that stores the address of a function and can be used to call that function.
+- **Q12. What is static?**
+  **Answer**: Its meaning depends on context. At block scope, it gives static storage duration; at file
 scope, it gives internal linkage.
-Q13. What is extern?
-A declaration that can refer to an entity with external linkage defined elsewhere.
-Q14. What is volatile?
-It tells the compiler that an object's value may change for reasons not captured by ordinary
+- **Q13. What is extern?**
+  **Answer**: A declaration that can refer to an entity with external linkage defined elsewhere.
+- **Q14. What is volatile?**
+  **Answer**: It tells the compiler that an object's value may change for reasons not captured by ordinary
 program flow.
-Q15. What is const?
-It restricts modification of an object through a particular identifier/expression.
-#### 15.44 Final C Cheat Sheet
+- **Q15. What is const?**
+  **Answer**: It restricts modification of an object through a particular identifier/expression.#### 15.44 Final C Cheat Sheet
 VARIABLE
    ↓
 Stores Data ARRAY
@@ -6764,38 +7103,88 @@ External Linkage Declaration FUNCTION POINTER
    ↓
 Stores Function Address
 #### 15.45 Final C Programming Flow
-C PROGRAM │ ┌─────────────┼─────────────┐
-   ↓
-Variables Functions Data Types │ │ │
-   ↓
-Arrays Pointers Structures │ │ │ └─────────────┼─────────────┘
-   ↓
-Memory Management
-   ↓
-File Handling
-   ↓
-Modular Programming
-   ↓
-Final Program
+\`\`\`text
+                  ┌────────────────────────┐
+                  │       C PROGRAM        │
+                  └───────────┬────────────┘
+                              │
+          ┌───────────────────┼───────────────────┐
+          ▼                   ▼                   ▼
+     Variables            Functions           Data Types
+          │                   │                   │
+          ▼                   ▼                   ▼
+       Arrays             Pointers           Structures
+          │                   │                   │
+          └───────────────────┼───────────────────┘
+                              │
+                              ▼
+                  ┌────────────────────────┐
+                  │   Memory Management    │
+                  └───────────┬────────────┘
+                              │
+                              ▼
+                  ┌────────────────────────┐
+                  │     File Handling      │
+                  └───────────┬────────────┘
+                              │
+                              ▼
+                  ┌────────────────────────┐
+                  │  Modular Programming   │
+                  └───────────┬────────────┘
+                              │
+                              ▼
+                  ┌────────────────────────┐
+                  │     Final Program      │
+                  └────────────────────────┘
+\`\`\`
 🎯 Module 15 Final Takeaway
 If you want to become strong in C for technical interviews , don't just memorize syntax.
-Understand this chain: C Syntax
-   ↓
-Logic
-   ↓
-Memory
-   ↓
-Pointers
+Understand this chain: \`\`\`text
+┌─────────────┐
+│  C Syntax   │
+└─────────────┘
+       │
+       ▼
+┌─────────────┐
+│    Logic    │
+└─────────────┘
+       │
+       ▼
+┌─────────────┐
+│   Memory    │
+└─────────────┘
+       │
+       ▼
+┌─────────────┐
+│  Pointers   │
+└─────────────┘
+\`\`\`
 
 
-Data Structures
-   ↓
-Functions
-   ↓
-Dynamic Memory
-   ↓
-File Handling
-   ↓
-Problem Solving
+\`\`\`text
+┌─────────────────┐
+│ Data Structures │
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│    Functions    │
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│ Dynamic Memory  │
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│  File Handling  │
+└─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│ Problem Solving │
+└─────────────────┘
+\`\`\`
 `,
 };

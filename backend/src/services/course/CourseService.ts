@@ -668,16 +668,12 @@ export class CourseService {
             await this.seedGitCourseDetails(courseDoc.id);
           } else if (courseData.slug === 'database-management-system') {
             await this.seedDbmsCourseDetails(courseDoc.id);
-          } else if (courseData.slug === 'kubernetes-complete-course-beginner-to-advanced') {
-            await this.seedKubernetesCourseDetails(courseDoc.id);
           } else if (courseData.slug === 'react-js-complete-course') {
             await this.seedReactCourseDetails(courseDoc.id);
           } else if (courseData.slug === 'react-js-complete-course') {
             await this.seedReactCourseDetails(courseDoc.id);
           } else if (courseData.slug === 'c-programming') {
             await this.seedCCourseDetails(courseDoc.id);
-          } else if (courseData.slug === 'python-through-oops') {
-            await this.seedPythonCourseDetails(courseDoc.id);
           } else if (courseData.slug === 'java-through-oops') {
             await this.seedJavaCourseDetails(courseDoc.id);
           }
