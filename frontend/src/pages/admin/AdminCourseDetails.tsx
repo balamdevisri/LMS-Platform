@@ -632,49 +632,71 @@ export const AdminCourseDetails: React.FC = () => {
       }
       
       const result: string[] = [];
-      let currentTextLine = '';
+    let currentTextLine = '';
+    let inCodeBlock = false;
+    
+    cleanedLines.forEach((line) => {
+      const trimmed = line.trim();
       
-      cleanedLines.forEach((line) => {
-        const trimmed = line.trim();
-        if (trimmed === '') {
-          if (currentTextLine) {
-            result.push(currentTextLine);
-            currentTextLine = '';
-          }
-          result.push('');
-          return;
+      if (trimmed.startsWith('```')) {
+        if (currentTextLine) {
+          result.push(currentTextLine);
+          currentTextLine = '';
         }
-        
-        const isStructural = 
-          trimmed.startsWith('#') ||
-          trimmed.startsWith('- ') ||
-          trimmed.startsWith('* ') ||
-          trimmed.startsWith('> ') ||
-          trimmed.startsWith('```') ||
-          trimmed.startsWith('![') ||
-          trimmed.includes('|');
-          
-        if (isStructural) {
-          if (currentTextLine) {
-            result.push(currentTextLine);
-            currentTextLine = '';
-          }
-          result.push(line);
-        } else {
-          if (currentTextLine) {
-            currentTextLine += ' ' + trimmed;
-          } else {
-            currentTextLine = line;
-          }
-        }
-      });
-      
-      if (currentTextLine) {
-        result.push(currentTextLine);
+        result.push(line);
+        inCodeBlock = !inCodeBlock;
+        return;
       }
       
-      return result.join('\n');
-    };
+      if (inCodeBlock) {
+        if (currentTextLine) {
+          result.push(currentTextLine);
+          currentTextLine = '';
+        }
+        result.push(line);
+        return;
+      }
+
+      if (trimmed === '') {
+        if (currentTextLine) {
+          result.push(currentTextLine);
+          currentTextLine = '';
+        }
+        result.push('');
+        return;
+      }
+      
+      const isStructural = 
+        trimmed.startsWith('#') ||
+        trimmed.startsWith('- ') ||
+        trimmed.startsWith('* ') ||
+        trimmed.startsWith('> ') ||
+        trimmed.startsWith('![') ||
+        trimmed.includes('|') ||
+        /^\d+\.\s/.test(trimmed) ||
+        /[│┌└─↓├┤┬┴┼]/.test(trimmed);
+        
+      if (isStructural) {
+        if (currentTextLine) {
+          result.push(currentTextLine);
+          currentTextLine = '';
+        }
+        result.push(line);
+      } else {
+        if (currentTextLine) {
+          currentTextLine += ' ' + trimmed;
+        } else {
+          currentTextLine = line;
+        }
+      }
+    });
+    
+    if (currentTextLine) {
+      result.push(currentTextLine);
+    }
+    
+    return result.join('\n');
+  };
 
     let html = cleanMarkdownNewlines(md);
 

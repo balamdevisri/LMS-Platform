@@ -79,33 +79,46 @@ export const CourseDetails: React.FC<CourseDetailsProps> = ({ course, onStartMod
           </h2>
 
           <div className="space-y-3 pt-2">
-            {course.syllabus.map((mod, idx) => (
+            {course.syllabus.map((mod: any, idx: number) => (
               <div
                 key={mod.id || idx}
-                className="p-4 rounded-2xl bg-sky-50/60 border border-sky-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group hover:border-sky-300 transition-all"
+                className="p-4 rounded-2xl bg-sky-50/60 border border-sky-100 flex flex-col sm:flex-row sm:items-center justify-between gap-5 group hover:border-sky-300 transition-all overflow-hidden relative"
               >
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-sky-700 uppercase tracking-wider block">
-                    Module 0{idx + 1}
-                  </span>
-                  <h4 className="font-heading font-bold text-sm text-slate-900">{mod.title}</h4>
-                  {mod.description && <p className="text-xs text-slate-600 font-normal">{mod.description}</p>}
+                {/* Module image / visual */}
+                <div className="hidden sm:flex shrink-0 w-24 h-24 rounded-xl overflow-hidden bg-slate-200 border border-sky-200/50 shadow-sm shadow-sky-900/5">
+                  {mod.image || mod.imageUrl ? (
+                    <img src={mod.image || mod.imageUrl} alt={mod.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-sky-400 to-indigo-500 group-hover:scale-105 transition-transform duration-500">
+                      <Layers className="w-8 h-8 text-white/50" />
+                    </div>
+                  )}
                 </div>
 
-                <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0 border-t sm:border-t-0 border-sky-100 pt-2 sm:pt-0">
-                  <div className="text-left sm:text-right text-xs text-slate-500">
-                    {mod.duration && <span className="block font-medium">{mod.duration}</span>}
-                    {mod.lessonsCount && <span className="text-[11px] text-slate-400">{mod.lessonsCount} lessons</span>}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-sky-700 uppercase tracking-wider block">
+                      Module 0{idx + 1}
+                    </span>
+                    <h4 className="font-heading font-bold text-sm text-slate-900 leading-snug">{mod.title}</h4>
+                    {mod.description && <p className="text-[11px] text-slate-600 font-medium line-clamp-2 leading-relaxed">{mod.description}</p>}
                   </div>
 
-                  {onStartModule && (
-                    <button
-                      onClick={onStartModule}
-                      className="py-2 px-3.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs cursor-pointer"
-                    >
-                      <PlayCircle className="w-3.5 h-3.5" /> Start
-                    </button>
-                  )}
+                  <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0 border-t sm:border-t-0 border-sky-100/80 pt-3 sm:pt-0">
+                    <div className="text-left sm:text-right text-xs text-slate-500">
+                      {mod.duration && <span className="block font-medium">{mod.duration}</span>}
+                      {mod.lessonsCount && <span className="text-[11px] text-slate-400">{mod.lessonsCount} lessons</span>}
+                    </div>
+
+                    {onStartModule && (
+                      <button
+                        onClick={onStartModule}
+                        className="py-2.5 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm shadow-sky-600/20 cursor-pointer hover:-translate-y-0.5 transition-all"
+                      >
+                        <PlayCircle className="w-4 h-4" /> Start
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}

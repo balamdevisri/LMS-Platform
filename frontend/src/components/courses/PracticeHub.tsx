@@ -40,7 +40,7 @@ export const PracticeHub: React.FC = () => {
         <div>
           <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
             <Terminal className="w-6 h-6 text-indigo-500" />
-            <span>Interactive Practice Hub & Labs</span>
+            <span>Interactive Practice Hub & Labs - Real time</span>
           </h2>
           <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
             Write code, complete mini-projects, audit SQL syntax, and verify command scripts.
@@ -52,12 +52,12 @@ export const PracticeHub: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Columns: Coding Exercises */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="flex justify-between items-center">
-            <h3 className="text-sm font-black text-slate-950 dark:text-white uppercase tracking-wider flex items-center gap-2">
+          <div className="flex justify-between items-center bg-indigo-50/50 dark:bg-indigo-950/20 p-4 rounded-2xl border border-indigo-100/50 dark:border-indigo-900/30">
+            <h3 className="text-sm font-extrabold text-indigo-900 dark:text-indigo-100 uppercase tracking-wider flex items-center gap-2.5">
               <Code className="w-5 h-5 text-indigo-500" />
               <span>Interactive Coding Exercises</span>
             </h3>
-            <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500">
+            <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-900/50 px-2.5 py-1 rounded-full border border-indigo-200 dark:border-indigo-800">
               {challenges.length} Active Challenges
             </span>
           </div>
@@ -109,10 +109,12 @@ export const PracticeHub: React.FC = () => {
 
         {/* Right Column: Mini Projects */}
         <div className="space-y-6">
-          <h3 className="text-sm font-black text-slate-950 dark:text-white uppercase tracking-wider flex items-center gap-2">
-            <Cpu className="w-5 h-5 text-emerald-500" />
-            <span>Curriculum Mini Projects</span>
-          </h3>
+          <div className="flex justify-between items-center bg-emerald-50/50 dark:bg-emerald-950/20 p-4 rounded-2xl border border-emerald-100/50 dark:border-emerald-900/30">
+            <h3 className="text-sm font-extrabold text-emerald-900 dark:text-emerald-100 uppercase tracking-wider flex items-center gap-2.5">
+              <Cpu className="w-5 h-5 text-emerald-500" />
+              <span>Curriculum Mini Projects</span>
+            </h3>
+          </div>
 
           <div className="space-y-4">
             {miniProjects.map((p, idx) => (

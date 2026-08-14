@@ -248,58 +248,111 @@ printf("Hello");
 Another example: x = 10; Most C statements end with a semicolon: ; Example:
 int x = 10;
 #### 1.13 Semicolon in C
-The semicolon marks the end of many C statements. Example:
+The semicolon marks the end of many C statements. 
+
+**Example:**
+\`\`\`c
 int age = 20;
-
-
 printf("%d", age);
-Incorrect:
+\`\`\`
+
+**Incorrect:**
+\`\`\`c
 int age = 20
-Correct:
+\`\`\`
+
+**Correct:**
+\`\`\`c
 int age = 20;
+\`\`\`
+
 #### 1.14 Comments in C
-Comments are ignored by the compiler and are used to explain code.
-Single-Line Comment // This is a comment Example: // Print the student's age printf("%d", age); Multi-Line Comment /* This is a multi-line comment */ Comments improve code readability and maintainability.
+Comments are ignored by the compiler and are used to explain code. Comments improve code readability and maintainability.
+
+**Single-Line Comment:**
+\`\`\`c
+// This is a comment
+\`\`\`
+**Example:**
+\`\`\`c
+// Print the student's age
+printf("%d", age);
+\`\`\`
+
+**Multi-Line Comment:**
+\`\`\`c
+/* This is a 
+   multi-line comment */
+\`\`\`
+
 #### 1.15 C Tokens
-A token is the smallest meaningful element recognized by the C compiler.
-Major categories include: C Tokens │ ├── Keywords ├── Identifiers ├── Constants
+A token is the smallest meaningful element recognized by the C compiler. 
 
+Major categories include:
+- **Keywords**: Reserved words (e.g., \`int\`, \`return\`)
+- **Identifiers**: User-defined names (e.g., \`age\`, \`main\`)
+- **Constants**: Fixed values (e.g., \`10\`, \`3.14\`)
+- **String Literals**: Sequences of characters (e.g., \`"Hello"\`)
+- **Operators**: Symbols for operations (e.g., \`+\`, \`-\`)
+- **Punctuators**: Syntactic elements (e.g., \`;\`, \`,\`)
 
-├── String Literals ├── Operators └── Punctuators We will study each category in detail in later modules.
+> [!NOTE]
+> We will study each category in detail in later modules.
+
 #### 1.16 Keywords
 Keywords are reserved words that have predefined meanings in C.
-Examples:
+
+**Examples:**
+\`\`\`c
 int char float if else for while return struct void
-You cannot normally use a keyword as an identifier. Incorrect:
+\`\`\`
+
+You cannot normally use a keyword as an identifier. 
+**Incorrect:**
+\`\`\`c
 int return;
+\`\`\`
+
 #### 1.17 Identifiers
 Identifiers are names given to programming elements such as:
 - Variables
 - Functions
 - Arrays
 - Structures
-Example:
+
+**Example:**
+\`\`\`c
 int age;
+\`\`\`
 Here:
+- \`int\` → keyword
+- \`age\` → identifier
 
-
-int → keyword age → identifier
-Identifier Rules An identifier:
-- Can contain letters.
-- Can contain digits.
-- Can contain underscore _.
+**Identifier Rules:**
+An identifier:
+- Can contain **letters**.
+- Can contain **digits**.
+- Can contain an **underscore** \`_\`.
 - Cannot start with a digit.
 - Cannot be a keyword.
 - Is case-sensitive.
-Valid: age student_name marks1 _total Invalid: 1student student-name float
-#### 1.18 Case Sensitivity
-C is case-sensitive . These are different identifiers: age Age AGE Similarly:
-printf()
-is different from: Printf()
 
+**Valid:** \`age\`, \`student_name\`, \`marks1\`, \`_total\`
+**Invalid:** \`1student\`, \`student-name\`, \`float\`
+
+#### 1.18 Case Sensitivity
+C is case-sensitive. These are different identifiers:
+\`age\`, \`Age\`, \`AGE\`
+
+Similarly:
+\`printf()\` is different from \`Printf()\`
 
 #### 1.19 Standard Input and Output
-C provides standard functions for input and output. Output printf() Input scanf() Example:
+C provides standard functions for input and output.
+- **Output:** \`printf()\`
+- **Input:** \`scanf()\`
+
+**Example:**
 \`\`\`c
 #include <stdio.h>
 
@@ -323,18 +376,29 @@ int main() {
     return 0;
 }
 \`\`\`
-Flowchart: ┌─────────┐ │ START │
-
-
+\`\`\`text
+\`\`\`text
+Flowchart:
+┌─────────┐
+│  START  │
 └────┬────┘
-   ↓
-┌───────────────────┐ │ Execute main() │ └────────┬──────────┘
-   ↓
-┌───────────────────┐ │ Print Welcome │ └────────┬──────────┘
-   ↓
-┌───────────────────┐ │ return 0 │ └────────┬──────────┘
-   ↓
-┌─────────┐ │ END │ └─────────┘
+     ↓
+┌───────────────┐
+│ Execute main()│
+└────────┬──────┘
+     ↓
+┌───────────────┐
+│ Print Welcome │
+└────────┬──────┘
+     ↓
+┌───────────────┐
+│   return 0    │
+└────────┬──────┘
+     ↓
+┌─────────┐
+│   END   │
+\`\`\`\n└─────────┘
+\`\`\`
 Flow Explanation
 1. Program starts.
 2. Execution enters main().
@@ -342,27 +406,50 @@ Flow Explanation
 4. return 0 terminates main.
 5. Program ends.
 #### 1.21 C Program Example
-Program: Add Two Numbers #include <stdio.h> int main() { int a = 10; int b = 20; int sum; sum = a + b; printf("Sum = %d", sum); return 0; }
+Program: Add Two Numbers
+\`\`\`c
+#include <stdio.h>
+int main() {
+    int a = 10;
+    int b = 20;
+    int sum;
+    sum = a + b;
+    printf("Sum = %d", sum);
+    return 0;
+}
+\`\`\`
 
+Output:
+\`\`\`text
+Sum = 30
+\`\`\`
 
-Output: Sum = 30 Flowchart START
-   ↓
+\`\`\`text
+Flowchart
+\`\`\`\n\`\`\`text
+  START
+    ↓
 Read a = 10
-   ↓
+    ↓
 Read b = 20
-   ↓
+    ↓
 sum = a + b
-   ↓
-Print sum
-   ↓
-END
+    ↓
+ Print sum
+    ↓
+   END
+\`\`\`
+
 #### 1.22 C Compilation Flow
-For a source file named: program.c The conceptual process is: program.c
-   ↓
+For a source file named: \`program.c\`
+The conceptual process is:
+\`\`\`text
+program.c
+    ↓
 Preprocessor
-   ↓
+    ↓
 Compiler
-   ↓
+    ↓
 Assembler
    ↓
 Object File
@@ -468,12 +555,13 @@ Write a program to add two numbers.
 Task 4
 Write a program to calculate the area of a rectangle.
 Task 5
+\`\`\`text
 Draw the flowchart for a program that calculates the sum of two numbers.
 ### Module 2: Variables, Constants & Data
 Types
 
 
-#### 2.1 Learning Objectives
+\`\`\`\n#### 2.1 Learning Objectives
 After completing this module, you will be able to:
 - Understand variables and constants.
 - Learn C's fundamental data types.
@@ -484,12 +572,25 @@ After completing this module, you will be able to:
 - Identify signed and unsigned integer types.
 - Write programs using different data types.
 #### 2.2 What is a Variable?
-A variable is a named storage location used to hold a value that can change during program
-execution. Example:
-int age = 20;
+A variable is a named storage location used to hold a value that can change during program execution.
+
+Example: \`int age = 20;\`
+
 Here:
-int → Data type age → Variable name 20 → Initial value
-Conceptually: Variable │ ▼ ┌─────────┐ age → │ 20 │ └─────────┘ If later we write: age = 21; the stored value changes.
+- \`int\` → Data type
+- \`age\` → Variable name
+- \`20\` → Initial value
+
+Conceptually:
+\`\`\`text
+  Variable
+     │
+     ▼
+ ┌─────────┐
+ │   20    │  <-- age
+ └─────────┘
+\`\`\`
+If later we write: \`age = 21;\` the stored value changes.
 
 
 #### 2.3 Why Do We Need Variables?
@@ -536,44 +637,77 @@ Important Rules
 - Cannot be a keyword.
 - C is case-sensitive.
 #### 2.8 Data Types
-A data type specifies what kind of value a variable can represent and helps determine how
-the value is stored and interpreted. C provides several fundamental types. Data Types │ ┌────────────┼─────────────┐
-   ↓
-Integer Floating Character │ Point │
-   ↓
-int float/double char Common fundamental types include:
+A data type specifies what kind of value a variable can represent and helps determine how the value is stored and interpreted. C provides several fundamental types. 
+
+\`\`\`text
+                 Data Types
+                     │
+      ┌──────────────┼──────────────┐
+      ▼              ▼              ▼
+   Integer       Floating       Character 
+      │            Point            │
+      ▼              ▼              ▼
+     int        float/double       char
+\`\`\`
+
+Common fundamental types include:
 - char
 - int
 - float
 - double
 - void
+
 C also provides derived and user-defined types, which we will study later.
+
 #### 2.9 Integer Data Type
-int is used to represent integer values.
+\`int\` is used to represent integer values.
+
 Example:
+\`\`\`c
 int age = 20;
+int marks = 95; 
+int count = 100;
+\`\`\`
+Integer values do not contain a fractional part. (e.g., \`10\`, \`25\`, \`-50\`, \`0\`)
 
-
-int marks = 95; int count = 100;
-Integer values do not contain a fractional part. 10 25 -50 0
 #### 2.10 Character Data Type
-char is used to store a character.
+\`char\` is used to store a character.
+
 Example:
+\`\`\`c
 char grade = 'A';
-Character constants use single quotes . Correct:
+\`\`\`
+Character constants use single quotes. 
+
+Correct:
+\`\`\`c
 char grade = 'A';
+\`\`\`
+
 Incorrect:
+\`\`\`c
 char grade = "A";
-"A" is a string literal, not a character constant.
+\`\`\`
+\`"A"\` is a string literal, not a character constant.
+
 #### 2.11 Floating-Point Data Types
 Floating-point types represent numbers that can contain a fractional part.
-float float temperature = 36.5f;
-double double salary = 45678.75;
-double generally provides greater precision than float.
 
+- \`float\`: \`float temperature = 36.5f;\`
+- \`double\`: \`double salary = 45678.75;\`
+
+\`double\` generally provides greater precision than \`float\`.
 
 #### 2.12 void
-void represents the absence of a value or type. It is commonly used with functions. Example: void display() { printf("Hello"); } Here, void indicates that the function does not return a value.
+\`void\` represents the absence of a value or type. It is commonly used with functions. 
+
+Example: 
+\`\`\`c
+void display() { 
+    printf("Hello"); 
+} 
+\`\`\`
+Here, \`void\` indicates that the function does not return a value.
 #### 2.13 Fundamental Data Types
 Data Type Typical Purpose Example
 char Character data 'A'
@@ -660,18 +794,36 @@ END
 
 
 When a variable is created, the implementation allocates storage for its object.
+
 For example:
+\`\`\`c
 int age = 20;
-Conceptually: Memory ┌──────────────────┐ │ age = 20 │ └──────────────────┘ The exact memory representation depends on the type and implementation. Later, pointers will allow us to examine addresses and manipulate objects more directly.
+\`\`\`
+
+Conceptually: 
+\`\`\`text
+       Memory
+ ┌──────────────────┐ 
+ │     age = 20     │ 
+ └──────────────────┘ 
+\`\`\`
+The exact memory representation depends on the type and implementation. Later, pointers will allow us to examine addresses and manipulate objects more directly.
+
 #### 2.25 Format Specifiers
 Format specifiers tell formatted I/O functions how to interpret or display values.
-Common examples: Data Common printf Specifier
-int %d
-unsigned int %u
-float %f
-double %f in printf
-char %c
-String %s Example:
+
+Common examples: 
+
+| Data Type | Common \`printf\` Specifier |
+|-----------|-------------------------|
+| \`int\` | \`%d\` |
+| \`unsigned int\` | \`%u\` |
+| \`float\` | \`%f\` |
+| \`double\` | \`%f\` (in \`printf\`) |
+| \`char\` | \`%c\` |
+| String | \`%s\` |
+
+Example:
 
 
 \`\`\`c
@@ -703,46 +855,83 @@ inputs.
 
 #### 2.27 Type Conversion
 Type conversion occurs when a value is converted from one data type to another.
-There are two major forms: Type Conversion │ ┌────┴─────┐
-   ↓
-Implicit Explicit
+
+There are two major forms:
+\`\`\`text
+      Type Conversion
+             │
+       ┌─────┴─────┐
+       ▼           ▼
+   Implicit     Explicit
+\`\`\`
+
 #### 2.28 Implicit Type Conversion
 The compiler performs the conversion automatically according to C's conversion rules.
+
 Example:
-int a = 10; double b; b = a;
-The integer value is converted to double. Conceptually:
-int
-   ↓
-double
+\`\`\`c
+int a = 10; 
+double b; 
+b = a;
+\`\`\`
+The integer value is converted to double. 
+
+Conceptually:
+\`\`\`text
+   int
+    │
+    ▼
+  double
+\`\`\`
+
 #### 2.29 Explicit Type Conversion
 The programmer explicitly requests a conversion using a cast.
-Syntax (type) expression Example:
 
+Syntax: \`(type) expression\`
 
-int a = 10; int b = 3; float result = (float)a / b;
+Example:
+\`\`\`c
+int a = 10; 
+int b = 3; 
+float result = (float)a / b;
+\`\`\`
 
 **Output:**
 
 #### 3.333333
 Without the cast:
+\`\`\`c
 float result = a / b;
-the division is performed as integer division before the result is converted to float.
+\`\`\`
+the division is performed as integer division before the result is converted to \`float\`.
+
 #### 2.30 Type Casting Flowchart
-START
-   ↓
-Input Value
-   ↓
-Check Required Type
-   ↓
-Conversion Needed? ↙ ↘ YES NO
-   ↓
-Perform Conversion Continue
-   ↓
-│ └──────┬───────┘
-   ↓
-Use Result
-   ↓
-END
+
+\`\`\`text
+         START
+           │
+           ▼
+      Input Value
+           │
+           ▼
+  Check Required Type
+           │
+           ▼
+  Conversion Needed?
+        ↙     ↘
+      YES       NO
+      │         │
+      ▼         ▼
+   Perform    Continue
+  Conversion    │
+      │         │
+      └────┬────┘
+           ▼
+       Use Result
+           │
+           ▼
+          END
+\`\`\`
 #### 2.31 Example: Student Marks
 \`\`\`c
 #include <stdio.h>
@@ -755,7 +944,9 @@ int main() {
 
 
 float average = (float)marks / subjects; printf("Average = %.2f", average); return 0; }
-Output: Average = 90.00 Flowchart START
+Output: Average = 90.00
+\`\`\`text
+Flowchart START
    ↓
 marks = 450
    ↓
@@ -766,7 +957,7 @@ average = marks / subjects
 Print Average
    ↓
 END
-#### 2.32 Multiple Variable Declaration
+\`\`\`\n#### 2.32 Multiple Variable Declaration
 You can declare multiple variables of the same type in one declaration.
 int a, b, c;
 You can also initialize them:
@@ -934,7 +1125,9 @@ Result: 1 Example 10 ÷ 3 Quotient = 3
 
 Remainder = 1
 #### 3.6 Arithmetic Expression Flowchart
-Example: result = a + b; Flowchart: START
+Example: result = a + b;
+\`\`\`text
+Flowchart: START
    ↓
 Read A and B
    ↓
@@ -943,7 +1136,7 @@ result = A + B
 Display Result
    ↓
 END
-#### 3.7 Relational Operators
+\`\`\`\n#### 3.7 Relational Operators
 Relational operators compare two values. Operator Meaning < Less than > Greater than <= Less than or equal >= Greater than or equal == Equal to != Not equal to The result of a comparison is an int value: 0 for false and 1 for true .
 
 
@@ -1222,6 +1415,7 @@ int main() {
     return 0;
 }
 \`\`\`
+\`\`\`text
 Flowchart START ↓
 
 
@@ -1232,7 +1426,7 @@ Number % 2 == 0? ↙ ↘ YES NO
 Print Even Print Odd ↘ ↙
    ↓
 END
-#### 3.41 Practical Program: Largest of Two
+\`\`\`\n#### 3.41 Practical Program: Largest of Two
 Numbers
 \`\`\`c
 #include <stdio.h>
@@ -1529,6 +1723,7 @@ int main(void) {
 #### 4.12 Input → Processing → Output
 Consider:
 int a, b, sum; scanf("%d %d", &a, &b); sum = a + b; printf("%d", sum);
+\`\`\`text
 Flowchart: ┌─────────┐ │ START │ └────┬────┘ ↓
 
 
@@ -1539,7 +1734,7 @@ Flowchart: ┌─────────┐ │ START │ └────┬─
 ┌──────────────┐ │ Print Result │ └──────┬───────┘
    ↓
 ┌─────────┐ │ END │ └─────────┘
-#### 4.13 Decision-Making Statements
+\`\`\`\n#### 4.13 Decision-Making Statements
 Decision-making allows a program to choose between different paths.
 Condition
    ↓
@@ -1780,6 +1975,7 @@ int main(void) {
     return 0;
 }
 \`\`\`
+\`\`\`text
 Flowchart START
    ↓
 Read Number
@@ -1794,7 +1990,7 @@ YES NO
 Print Negative Print Zero ↘ ↙
    ↓
 END
-#### 4.29 Real-World Example: Login System
+\`\`\`\n#### 4.29 Real-World Example: Login System
 Consider a simple conceptual login system. START
    ↓
 Enter Username
@@ -2161,7 +2357,9 @@ int main(void) {
 }
 \`\`\`
 #### 5.21 Pattern Flow
-Row 1 → * Row 2 → ** Row 3 → *** Row 4 → **** Row 5 → ***** Flowchart: START
+Row 1 → * Row 2 → ** Row 3 → *** Row 4 → **** Row 5 → *****
+\`\`\`text
+Flowchart: START
    ↓
 Row = 1
    ↓
@@ -2175,7 +2373,7 @@ Column <= Row? ↙ ↘ YES NO
 Print * New Line
    ↓
 Column++ Row++ │ │ └──→ Column │ Condition │ └──→ Row Condition
-#### 5.22 break Statement
+\`\`\`\n#### 5.22 break Statement
 break immediately terminates the nearest enclosing loop or switch .
 Example:
 \`\`\`c
@@ -2950,7 +3148,9 @@ int maximum(int a, int b) {
 
 
 { return a; } return b; } int main(void) { int result = maximum(25, 40); printf("Maximum = %d", result); return 0; }
-Output: Maximum = 40 Flowchart START
+Output: Maximum = 40
+\`\`\`text
+Flowchart START
    ↓
 Call maximum(a,b)
    ↓
@@ -2959,7 +3159,7 @@ a > b? ↙ ↘ YES NO
 Return a Return b ↘ ↙ Result
    ↓
 END
-#### 6.37 Practical Program: Check Even
+\`\`\`\n#### 6.37 Practical Program: Check Even
 Number
 \`\`\`c
 #include <stdio.h>

@@ -47,9 +47,30 @@ function cleanMarkdownNewlines(text: string): string {
   
   const result: string[] = [];
   let currentTextLine = '';
+  let inCodeBlock = false;
   
   cleanedLines.forEach((line) => {
     const trimmed = line.trim();
+    
+    if (trimmed.startsWith('```')) {
+      if (currentTextLine) {
+        result.push(currentTextLine);
+        currentTextLine = '';
+      }
+      result.push(line);
+      inCodeBlock = !inCodeBlock;
+      return;
+    }
+    
+    if (inCodeBlock) {
+      if (currentTextLine) {
+        result.push(currentTextLine);
+        currentTextLine = '';
+      }
+      result.push(line);
+      return;
+    }
+
     if (trimmed === '') {
       if (currentTextLine) {
         result.push(currentTextLine);
@@ -64,9 +85,10 @@ function cleanMarkdownNewlines(text: string): string {
       trimmed.startsWith('- ') ||
       trimmed.startsWith('* ') ||
       trimmed.startsWith('> ') ||
-      trimmed.startsWith('```') ||
       trimmed.startsWith('![') ||
-      trimmed.includes('|');
+      trimmed.includes('|') ||
+      /^\d+\.\s/.test(trimmed) ||
+      /[│┌└─↓├┤┬┴┼]/.test(trimmed);
       
     if (isStructural) {
       if (currentTextLine) {
@@ -101,6 +123,9 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
   let codeBuffer: string[] = [];
   let codeLang = 'bash';
 
+  let inTable = false;
+  let tableBuffer: string[] = [];
+
   lines.forEach((line, index) => {
     // Check code block fence
     if (line.trim().startsWith('```')) {
@@ -126,6 +151,20 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
     if (inCodeBlock) {
       codeBuffer.push(line);
       return;
+    }
+
+    // Markdown Table rows
+    if (line.trim().startsWith('|')) {
+      inTable = true;
+      tableBuffer.push(line.trim());
+      return;
+    }
+    
+    // If we were in a table and this line is NOT a table row, render the table
+    if (inTable) {
+      elements.push(renderTable(tableBuffer, index, isNightMode));
+      tableBuffer = [];
+      inTable = false;
     }
 
     // Markdown Images: ![alt](url)
@@ -260,6 +299,10 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
     );
   });
 
+  if (inTable) {
+    elements.push(renderTable(tableBuffer, lines.length, isNightMode));
+  }
+
   return (
     <div className={`markdown-content ${isNightMode ? 'text-slate-100' : 'text-slate-800'}`}>
       {elements}
@@ -313,4 +356,45 @@ function renderInlineStyles(text: string, isNightMode: boolean = false): React.R
     // Clean any remaining stray asterisks from plain text
     return unescaped.replace(/\*/g, '');
   });
+}
+
+// Helper to render standard Markdown tables
+function renderTable(rows: string[], keyPrefix: number, isNightMode: boolean): React.ReactNode {
+  // Parse cell content by splitting on | and trimming spaces
+  const parseRow = (row: string) => 
+    row.split('|')
+       .map(cell => cell.trim())
+       .filter((_, i, arr) => i > 0 && i < arr.length - 1);
+
+  if (rows.length < 2) return null;
+
+  const headers = parseRow(rows[0]);
+  const dataRows = rows.slice(2).map(parseRow);
+
+  return (
+    <div key={`table-${keyPrefix}`} className={`my-6 overflow-x-auto rounded-2xl border shadow-sm ${isNightMode ? 'border-slate-800' : 'border-sky-100'}`}>
+      <table className="w-full text-sm sm:text-base text-left border-collapse">
+        <thead className={`${isNightMode ? 'bg-slate-800/50 text-slate-200' : 'bg-slate-50/80 text-slate-700'}`}>
+          <tr>
+            {headers.map((header, i) => (
+              <th key={i} className={`px-4 py-3 font-semibold border-b ${isNightMode ? 'border-slate-700' : 'border-sky-100'}`}>
+                {renderInlineStyles(header, isNightMode)}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className={`divide-y ${isNightMode ? 'divide-slate-800' : 'divide-slate-100'}`}>
+          {dataRows.map((row, i) => (
+            <tr key={i} className={`transition-colors ${isNightMode ? 'hover:bg-slate-800/30' : 'hover:bg-slate-50/50'}`}>
+              {row.map((cell, j) => (
+                <td key={j} className={`px-4 py-3 ${isNightMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                  {renderInlineStyles(cell, isNightMode)}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }

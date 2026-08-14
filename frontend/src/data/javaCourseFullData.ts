@@ -97,7 +97,9 @@ javac
 
 JDK vs JRE vs JVM ⭐⭐⭐
 Component Main Purpose JVM Executes bytecode JRE Provides runtime environment JDK Provides development tools + runtime Easy memory trick JVM → Run JRE → Run Environment JDK → Develop + Run
-1.11 ### Java Program Execution Flowchart
+1.11 ### Java Program Execution
+\`\`\`text
+Flowchart
 
 ![Java Execution Flow](/assets/images/java_execution_flow.png)
 
@@ -111,7 +113,7 @@ Hello.java ↓ javac Hello.java ↓ Hello.class ↓ Bytecode ↓ java Hello ↓ 
 Execution .class ↓ JVM ↓ Program runs So:
 Compilation → javac Execution → java
 1.13 First Java Program ⭐⭐⭐
-\`\`\`java
+\`\`\`\n\`\`\`java
 class Hello {
     public static void main(String[] args) {
         System.out.println("Hello Java");
@@ -201,9 +203,11 @@ Multi-line /* Calculate student marks */ Documentation comment /** * Calculates 
 1.22 Java Naming Conventions ⭐⭐
 Class → PascalCase Student BankAccount EmployeeDetails Variable → camelCase studentName totalMarks accountBalance Method → camelCase calculateTotal() displayDetails() findMaximum()
 Constant → UPPER_SNAKE_CASE MAX_SIZE PI_VALUE
-1.23 Java Flowchart — From Code to Output START ↓ Write Java program ↓ .java ↓ Java Compiler (javac) ↓ Bytecode .class ↓ JVM ↓ Execute ↓ Output ↓ END
+1.23 Java
+\`\`\`text
+Flowchart — From Code to Output START ↓ Write Java program ↓ .java ↓ Java Compiler (javac) ↓ Bytecode .class ↓ JVM ↓ Execute ↓ Output ↓ END
 1.24 Simple Program Example
-\`\`\`java
+\`\`\`\n\`\`\`java
 class Student {
     public static void main(String[] args) {
         String name = "Prasanna";
@@ -550,7 +554,9 @@ String result = age >= 18 ? "Adult" : "Minor";
 System.out.println(result);
 Output:
 \`\`\`
-Adult Flowchart:
+Adult
+\`\`\`text
+Flowchart:
 age >= 18?
 / \\ YES NO ↓ ↓
 "Adult" "Minor" Equivalent if-else:
@@ -567,7 +573,7 @@ Operator Meaning & Bitwise AND \` \` ^ Bitwise XOR ~ Bitwise complement << Left 
 int a = 5;
 int b = 3;
 
-\`\`\`java
+\`\`\`\n\`\`\`java
 System.out.println(a & b);
 Binary:
 \`\`\`
@@ -820,12 +826,13 @@ if (age >= 18) {
 \`\`\`
 Output:
 Eligible to vote If the condition is false, the block is skipped.
+\`\`\`text
 Flowchart START ↓ Check condition / \\ true false ↓ ↓ Execute Skip block ↓ \\ / \\ / END
 📄 Page 3 — if-else Statement ⭐⭐⭐
 
 When we have two possible outcomes , use if-else.
 Syntax if (condition) { // true block } else { // false block }
-\`\`\`java
+\`\`\`\n\`\`\`java
 Example int marks = 35;
 if (marks >= 40) {
     System.out.println("Pass");
@@ -835,13 +842,15 @@ else {
 }
 \`\`\`
 Output:
-Fail Flowchart START ↓ marks >= 40? / \\ YES NO ↓ ↓
+Fail
+\`\`\`text
+Flowchart START ↓ marks >= 40? / \\ YES NO ↓ ↓
 PASS FAIL \\ / \\ / END
 📄 Page 4 — else-if Ladder ⭐⭐⭐
 Use else-if when there are multiple conditions .
 📝 **Example**
 > Grade calculation.
-\`\`\`java
+\`\`\`\n\`\`\`java
 int marks = 85;
 if (marks >= 90) {
     System.out.println("A+");
@@ -877,6 +886,7 @@ if (age >= 18) {
     }
 }
 \`\`\`
+\`\`\`text
 Flowchart:
 Age >= 18? / \\ NO YES ↓ ↓ END Has ID? / \\ NO YES ↓ ↓ END Allowed Nested if is useful when one condition depends on another.
 
@@ -886,7 +896,7 @@ switch is useful when one expression needs to be compared against several discre
 Syntax switch (expression) { case value1: // code break; case value2: // code break; default: // code }
 📝 **Example**
 > 
-\`\`\`java
+\`\`\`\n\`\`\`java
 int day = 2;
 switch (day) {
     case 1: System.out.println("Monday");
@@ -1046,7 +1056,9 @@ while (i <= 5) {
 }
 \`\`\`
 Output:
-1 2 3 4 5 Flowchart START ↓ Initialize i ↓ Check i <= 5 / \\ YES NO ↓ ↓ Print i END ↓ i++ ↓ Check again Important If you forget the update:
+1 2 3 4 5
+\`\`\`text
+Flowchart START ↓ Initialize i ↓ Check i <= 5 / \\ YES NO ↓ ↓ Print i END ↓ i++ ↓ Check again Important If you forget the update:
 i++;
 the loop may never terminate.
 
@@ -1055,7 +1067,7 @@ A do-while loop executes its body before checking the condition.
 Syntax do { // statements } while (condition);
 📝 **Example**
 > 
-\`\`\`java
+\`\`\`\n\`\`\`java
 int i = 1;
 do {
     System.out.println(i);
@@ -1101,7 +1113,9 @@ System.out.println();
 \`\`\`
 Output:
 * * * * * * * * *
-How it works Outer loop ↓ Row 1 ↓ Inner loop → 3 stars ↓ Row 2 ↓ Inner loop → 3 stars ↓ Row 3 ↓ Inner loop → 3 stars Flowchart Outer Loop ↓ Row starts ↓ Inner Loop ↓ Print elements ↓ Inner loop ends ↓ Next outer loop Nested loops are very important for:
+How it works Outer loop ↓ Row 1 ↓ Inner loop → 3 stars ↓ Row 2 ↓ Inner loop → 3 stars ↓ Row 3 ↓ Inner loop → 3 stars
+\`\`\`text
+Flowchart Outer Loop ↓ Row starts ↓ Inner Loop ↓ Print elements ↓ Inner loop ends ↓ Next outer loop Nested loops are very important for:
 - Patterns ● Matrices ● 2D arrays
 
 📄 Page 8 — break and continue ⭐⭐⭐
@@ -1109,7 +1123,7 @@ How it works Outer loop ↓ Row 1 ↓ Inner loop → 3 stars ↓ Row 2 ↓ Inner
 break Immediately terminates the nearest loop.
 📝 **Example**
 > 
-\`\`\`java
+\`\`\`\n\`\`\`java
 for (int i = 1;
 i <= 10;
 i++) {
@@ -1293,10 +1307,11 @@ class ArrayInput {
     }
 }
 \`\`\`
+\`\`\`text
 Flowchart Enter size ↓ Create array ↓ i = 0 ↓ Take input ↓ Store at numbers[i] ↓ i++ ↓ More elements? / \\ YES NO ↓ ↓ Input Display again
 📄 Page 6 — Sum, Average, Maximum & Minimum ⭐⭐⭐
 
-\`\`\`java
+\`\`\`\n\`\`\`java
 Sum int[] numbers = {
     10, 20, 30, 40
 }
@@ -1513,10 +1528,11 @@ class ArrayInput {
     }
 }
 \`\`\`
+\`\`\`text
 Flowchart Enter size ↓ Create array ↓ i = 0 ↓ Take input ↓ Store at numbers[i] ↓ i++ ↓ More elements? / \\ YES NO ↓ ↓ Input Display again
 📄 Page 6 — Sum, Average, Maximum & Minimum ⭐⭐⭐
 
-\`\`\`java
+\`\`\`\n\`\`\`java
 Sum int[] numbers = {
     10, 20, 30, 40
 }
@@ -2125,11 +2141,13 @@ class Demo {
 }
 \`\`\`
 Output:
-Cannot divide by zero Flowchart START ↓ Execute try ↓ Exception occurs? / \\ NO YES ↓ ↓ Continue catch block \\ / \\ / END
+Cannot divide by zero
+\`\`\`text
+Flowchart START ↓ Execute try ↓ Exception occurs? / \\ NO YES ↓ ↓ Continue catch block \\ / \\ / END
 📄 Page 5 — Multiple catch Blocks A single try block can be followed by multiple catch blocks.
 📝 **Example**
 > 
-\`\`\`java
+\`\`\`\n\`\`\`java
 class Demo {
     public static void main(String[] args) {
         try {
@@ -2346,14 +2364,16 @@ System.out.println( "Cannot divide by zero" );
 }
 }
 } Output:
-Cannot divide by zero Flowchart START ↓
+Cannot divide by zero
+\`\`\`text
+Flowchart START ↓
 try block ↓
 Exception occurs?
 / \\ NO YES ↓ ↓
 Continue catch ↓ ↓
 └──────→───────┘ ↓
 END
-
+\`\`\`\n
 📄 Page 4 — Multiple catch Blocks One try block can have multiple catch blocks.
 \`\`\`java
 class Main {
@@ -2982,11 +3002,13 @@ is accepted.
 But:
 s.setAge(-5);
 produces:
-Invalid age Flowchart setAge(value) ↓ value >= 0? / \\ YES NO ↓ ↓ Store value Reject
+Invalid age
+\`\`\`text
+Flowchart setAge(value) ↓ value >= 0? / \\ YES NO ↓ ↓ Store value Reject
 📄 Page 8 — Real-World Example: Bank Account ⭐⭐⭐
 
 A bank account should not allow arbitrary direct modification of balance.
-\`\`\`java
+\`\`\`\n\`\`\`java
 class BankAccount {
     private double balance;
     public void deposit(double amount) {

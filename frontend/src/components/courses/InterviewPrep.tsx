@@ -73,7 +73,7 @@ export const InterviewPrep: React.FC = () => {
         </div>
 
         {/* Filter categories */}
-        <div className="flex flex-wrap bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl p-0.5 text-[10px] font-bold">
+        <div className="flex flex-wrap bg-slate-100/50 dark:bg-zinc-800/50 border border-slate-200 dark:border-zinc-700/50 rounded-2xl p-1 text-[10px] font-bold gap-1">
           {['all', 'Git & GitHub', 'Linux Admin', 'Database RDBMS', 'HR Behavioral'].map((cat) => (
             <button
               key={cat}
@@ -81,8 +81,10 @@ export const InterviewPrep: React.FC = () => {
                 setActiveCategory(cat as any);
                 setExpandedIndex(null);
               }}
-              className={`px-3 py-1.5 rounded-lg cursor-pointer transition-all ${
-                activeCategory === cat ? 'bg-white dark:bg-zinc-700 text-slate-900 dark:text-white shadow-xs' : 'text-slate-500'
+              className={`px-4 py-2 rounded-xl cursor-pointer transition-all duration-200 ${
+                activeCategory === cat 
+                  ? 'bg-white dark:bg-zinc-700 text-indigo-600 dark:text-indigo-300 shadow-sm border border-slate-200 dark:border-zinc-600' 
+                  : 'text-slate-500 hover:text-slate-700 dark:hover:text-zinc-300 hover:bg-slate-200/50 dark:hover:bg-zinc-700/50 border border-transparent'
               }`}
             >
               {cat === 'all' ? 'All Questions' : cat}
@@ -131,13 +133,18 @@ export const InterviewPrep: React.FC = () => {
         </div>
 
         {/* Right: Mock Prep Checklist */}
-        <div className="p-6 rounded-3xl border border-sky-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xs space-y-6 self-start">
-          <h3 className="text-sm font-black text-slate-950 dark:text-white uppercase tracking-wider flex items-center gap-2">
-            <CheckSquare className="w-5 h-5 text-emerald-500" />
-            <span>Placement Readiness Checks</span>
-          </h3>
+        <div className="p-6 rounded-3xl border border-sky-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xs space-y-6 self-start relative overflow-hidden">
+          {/* Subtle background glow */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-3xl rounded-full pointer-events-none" />
+          
+          <div className="flex justify-between items-center bg-emerald-50/50 dark:bg-emerald-950/20 p-3.5 rounded-2xl border border-emerald-100/50 dark:border-emerald-900/30">
+            <h3 className="text-sm font-extrabold text-emerald-900 dark:text-emerald-100 uppercase tracking-wider flex items-center gap-2.5">
+              <CheckSquare className="w-5 h-5 text-emerald-500" />
+              <span>Placement Readiness Checks</span>
+            </h3>
+          </div>
 
-          <div className="space-y-4">
+          <div className="space-y-4 relative z-10">
             {mockSteps.map((step, i) => (
               <div key={i} className="flex gap-3">
                 <div className="w-5 h-5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-805 flex items-center justify-center shrink-0 mt-0.5 text-[9px] font-black">

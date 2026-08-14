@@ -3454,9 +3454,30 @@ function cleanMarkdownNewlines(text: string): string {
   
   const result: string[] = [];
   let currentTextLine = '';
+  let inCodeBlock = false;
   
   cleanedLines.forEach((line) => {
     const trimmed = line.trim();
+    
+    if (trimmed.startsWith('```')) {
+      if (currentTextLine) {
+        result.push(currentTextLine);
+        currentTextLine = '';
+      }
+      result.push(line);
+      inCodeBlock = !inCodeBlock;
+      return;
+    }
+    
+    if (inCodeBlock) {
+      if (currentTextLine) {
+        result.push(currentTextLine);
+        currentTextLine = '';
+      }
+      result.push(line);
+      return;
+    }
+
     if (trimmed === '') {
       if (currentTextLine) {
         result.push(currentTextLine);
@@ -3471,9 +3492,10 @@ function cleanMarkdownNewlines(text: string): string {
       trimmed.startsWith('- ') ||
       trimmed.startsWith('* ') ||
       trimmed.startsWith('> ') ||
-      trimmed.startsWith('```') ||
       trimmed.startsWith('![') ||
-      trimmed.includes('|');
+      trimmed.includes('|') ||
+      /^\d+\.\s/.test(trimmed) ||
+      /[│┌└─↓├┤┬┴┼]/.test(trimmed);
       
     if (isStructural) {
       if (currentTextLine) {
