@@ -1,4 +1,5 @@
 import { emailLogsCollection, isFirestoreInitialized } from '../../../firebase/collections';
+import { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import { EmailLogRecord, EmailStatus } from '../../../types/emailTypes';
 import logger from '../../../config/logger';
 
@@ -24,6 +25,41 @@ export class EmailAuditLogger {
       }
     }
     return undefined;
+  }
+
+  async logSent(id: string): Promise<void> {
+    if (!isFirestoreInitialized()) return;
+    try {
+      await emailLogsCollection().doc(id).update({
+        status: 'sent',
+        sentAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+    } catch (err: any) {
+      logger.warn('⚠️ EmailAuditLogger: Failed updating sent status in Firestore: ' + (err?.message || err));
+    }
+  }
+
+  async logFailure(id: string, error: any): Promise<void> {
+    if (!isFirestoreInitialized()) return;
+    try {
+      const doc = await emailLogsCollection().doc(id).get();
+      if (doc.exists) {
+        const current = doc.data() as EmailLogRecord;
+        const attempts = (current.attempts || 1) + 1;
+        const status: EmailStatus = attempts >= (current.maxRetries || 3) ? 'failed' : 'pending';
+
+        await emailLogsCollection().doc(id).update({
+          status,
+          attempts,
+          lastError: error?.message || String(error),
+          lastAttemptAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    } catch (err: any) {
+      logger.warn('⚠️ EmailAuditLogger: Failed logging failure in Firestore: ' + (err?.message || err));
+    }
   }
 
   async updateStatus(logId?: string, status?: EmailStatus, messageId?: string, errorMsg?: string): Promise<void> {
@@ -72,7 +108,7 @@ export class EmailAuditLogger {
         .limit(limitCount)
         .get();
 
-      return snapshot.docs.map((doc) => ({
+      return snapshot.docs.map((doc: QueryDocumentSnapshot) => ({
         id: doc.id,
         ...(doc.data() as EmailLogRecord),
       }));
@@ -90,7 +126,7 @@ export class EmailAuditLogger {
         .limit(limitCount)
         .get();
 
-      return snapshot.docs.map((doc) => ({
+      return snapshot.docs.map((doc: QueryDocumentSnapshot) => ({
         id: doc.id,
         ...(doc.data() as EmailLogRecord),
       }));

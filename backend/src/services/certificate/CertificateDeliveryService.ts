@@ -8,6 +8,7 @@ import { pdfCertificateGenerator } from './PDFCertificateGenerator';
 import { qrCodeService } from './QRCodeService';
 import { googleSheetsService } from './GoogleSheetsService';
 import { db } from '../../firebase';
+import { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import {
   isFirestoreInitialized,
   coursesCollection,
@@ -247,7 +248,7 @@ export class CertificateDeliveryService {
         .where('quizId', '==', quiz.id)
         .get();
       
-      const hasPassed = !attemptsSnap.empty && attemptsSnap.docs.some(doc => {
+      const hasPassed = !attemptsSnap.empty && attemptsSnap.docs.some((doc: QueryDocumentSnapshot) => {
         const data = doc.data();
         const passingScore = quiz.quizPassingScore || 60;
         return (data.percentage || 0) >= passingScore;

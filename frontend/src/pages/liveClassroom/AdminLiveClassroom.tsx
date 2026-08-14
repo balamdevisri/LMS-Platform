@@ -23,6 +23,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCourses } from '@/contexts/CourseContext';
 import { liveClassService, normalizeLiveClassStatus, type LiveClass, type AttendanceRecord } from '@/services/liveClassService';
 import { instructorService } from '@/services/instructorService';
+import { extractYouTubeVideoId } from '@/components/liveClass/YouTubePlayer';
 
 export const AdminLiveClassroom: React.FC = () => {
   const { userProfile } = useAuth();
@@ -57,8 +58,9 @@ export const AdminLiveClassroom: React.FC = () => {
   const [formDate, setFormDate] = useState(new Date().toISOString().split('T')[0]);
   const [formStartTime, setFormStartTime] = useState('10:00');
   const [formEndTime, setFormEndTime] = useState('11:30');
-  const [formProvider, setFormProvider] = useState<'kaizenq' | 'google_meet' | 'zoom' | 'teams'>('kaizenq');
+  const [formProvider, setFormProvider] = useState<'kaizenq' | 'google_meet' | 'zoom' | 'teams' | 'youtube'>('youtube');
   const [formMeetingUrl, setFormMeetingUrl] = useState('');
+  const [formYoutubeVideoId, setFormYoutubeVideoId] = useState('');
   const [formMaxParticipants, setFormMaxParticipants] = useState(100);
   const [formBanner, setFormBanner] = useState('');
   const [formThumbnail, setFormThumbnail] = useState('');
@@ -170,8 +172,9 @@ export const AdminLiveClassroom: React.FC = () => {
     setFormDate(new Date().toISOString().split('T')[0]);
     setFormStartTime(new Date().toTimeString().substring(0, 5));
     setFormEndTime(new Date(Date.now() + 2 * 3600 * 1000).toTimeString().substring(0, 5));
-    setFormProvider('kaizenq');
+    setFormProvider('youtube');
     setFormMeetingUrl('');
+    setFormYoutubeVideoId('');
     setFormMaxParticipants(250);
     setFormBanner('https://images.unsplash.com/photo-1629654297299-c8506221ca97?w=1200&q=80');
     setFormThumbnail('https://images.unsplash.com/photo-1629654297299-c8506221ca97?w=400&q=80');
@@ -195,8 +198,8 @@ export const AdminLiveClassroom: React.FC = () => {
   const openEditModal = (c: LiveClass) => {
     setEditingClass(c);
     setFormCourseId(c.courseId);
-    setFormModuleId(c.moduleId);
-    setFormLessonId(c.lessonId);
+    setFormModuleId(c.moduleId || '');
+    setFormLessonId(c.lessonId || '');
     setFormInstructorId(c.instructorId);
     setFormTitle(c.title);
     setFormDescription(c.description);
@@ -212,7 +215,8 @@ export const AdminLiveClassroom: React.FC = () => {
     setFormEndTime(endObj.toTimeString().substring(0, 5));
 
     setFormProvider(c.meetingProvider);
-    setFormMeetingUrl(c.meetingUrl);
+    setFormMeetingUrl(c.meetingUrl || '');
+    setFormYoutubeVideoId(c.youtubeVideoId || '');
     setFormMaxParticipants(c.maxParticipants || 100);
     setFormBanner(c.banner || '');
     setFormThumbnail(c.thumbnail || '');
@@ -222,13 +226,13 @@ export const AdminLiveClassroom: React.FC = () => {
     const capitalizedStatus = (normStatus.charAt(0).toUpperCase() + normStatus.slice(1)) as 'Draft' | 'Scheduled' | 'Live' | 'Completed' | 'Cancelled';
     setFormStatus(capitalizedStatus);
 
-    setIsRecordingEnabled(c.isRecordingEnabled);
-    setIsQuizEnabled(c.isQuizEnabled);
-    setIsPollEnabled(c.isPollEnabled);
-    setIsChatEnabled(c.isChatEnabled);
-    setIsAttendanceEnabled(c.isAttendanceEnabled);
+    setIsRecordingEnabled(Boolean(c.isRecordingEnabled));
+    setIsQuizEnabled(Boolean(c.isQuizEnabled));
+    setIsPollEnabled(Boolean(c.isPollEnabled));
+    setIsChatEnabled(Boolean(c.isChatEnabled));
+    setIsAttendanceEnabled(Boolean(c.isAttendanceEnabled));
     setResourceDownloadEnabled(c.resourceDownloadEnabled !== undefined ? c.resourceDownloadEnabled : true);
-    setCertificateEligible(c.certificateEligible);
+    setCertificateEligible(Boolean(c.certificateEligible));
     setIsCreateModalOpen(true);
   };
 
@@ -255,7 +259,8 @@ export const AdminLiveClassroom: React.FC = () => {
 
       const courseSlug = (courseNameStr || 'batch').toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
       const generatedRoomId = `kaizenq-${courseSlug}-${Date.now().toString().slice(-4)}`;
-      const generatedUrl = formMeetingUrl || `https://meet.jit.si/${generatedRoomId}`;
+      const generatedUrl = formMeetingUrl || `/student/live-class/${editingClass?.id || `live_${Date.now()}`}`;
+      const extractedVideoId = extractYouTubeVideoId(formYoutubeVideoId) || formYoutubeVideoId.trim();
 
       const payload = {
         title: formTitle.trim(),
@@ -268,6 +273,7 @@ export const AdminLiveClassroom: React.FC = () => {
         lessonTitle: lessonNameStr,
         instructorId: formInstructorId || 'inst_sys',
         instructorName,
+        youtubeVideoId: extractedVideoId,
         branch: formBranch,
         semester: formSemester,
         year: formYear,
@@ -891,15 +897,16 @@ export const AdminLiveClassroom: React.FC = () => {
                 </div>
               </div>
 
-              {/* Provider & Meeting URL */}
+              {/* Provider & Meeting URL / YouTube Video ID */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">Meeting Provider</label>
+                  <label className="block text-slate-700 font-bold mb-1">Live Broadcast Provider</label>
                   <select
                     value={formProvider}
                     onChange={(e) => setFormProvider(e.target.value as any)}
-                    className="w-full bg-slate-50 border border-sky-200 rounded-xl p-2.5 text-xs focus:outline-hidden"
+                    className="w-full bg-slate-50 border border-sky-200 rounded-xl p-2.5 text-xs focus:outline-hidden font-semibold"
                   >
+                    <option value="youtube">YouTube Live Stream (Official Player)</option>
                     <option value="kaizenq">KaizenQ Live Classroom (Native Private WebRTC)</option>
                     <option value="google_meet">Google Meet</option>
                     <option value="zoom">Zoom Education</option>
@@ -908,12 +915,14 @@ export const AdminLiveClassroom: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">Meeting Room URL</label>
+                  <label className="block text-slate-700 font-bold mb-1">
+                    YouTube Video ID / Live URL <span className="text-sky-600 font-normal">(e.g. bMknfKXIFA8 or full URL)</span>
+                  </label>
                   <input
-                    type="url"
-                    value={formMeetingUrl}
-                    onChange={(e) => setFormMeetingUrl(e.target.value)}
-                    placeholder="Leave empty to auto-generate KaizenQ room URL"
+                    type="text"
+                    value={formYoutubeVideoId}
+                    onChange={(e) => setFormYoutubeVideoId(e.target.value)}
+                    placeholder="e.g. bMknfKXIFA8 or https://youtube.com/watch?v=..."
                     className="w-full bg-slate-50 border border-sky-200 rounded-xl p-2.5 text-xs focus:outline-hidden font-mono"
                   />
                 </div>

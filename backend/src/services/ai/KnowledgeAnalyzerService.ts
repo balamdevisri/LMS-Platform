@@ -10,6 +10,7 @@
 import { GoogleGenAI } from '@google/genai';
 import { env } from '../../config/env';
 import { courseKnowledgeCollection, isFirestoreInitialized } from '../../firebase/collections';
+import { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import { CourseKnowledgeDoc, QuestionDifficulty } from '../../types/aiLmsTypes';
 
 export class KnowledgeAnalyzerService {
@@ -199,7 +200,7 @@ Return ONLY valid raw JSON. Do not include markdown code block backticks.
 
     try {
       const snap = await courseKnowledgeCollection().where('courseId', '==', courseId).get();
-      return snap.docs.map((d) => ({ id: d.id, ...(d.data() as CourseKnowledgeDoc) }));
+      return snap.docs.map((d: QueryDocumentSnapshot) => ({ id: d.id, ...(d.data() as CourseKnowledgeDoc) }));
     } catch (err: any) {
       console.warn('⚠️ Failed fetching course knowledge from Firestore:', err?.message || err);
       return [];

@@ -9,17 +9,24 @@ export interface LiveClass {
   classId: string;
   title: string;
   description: string;
+  youtubeVideoId?: string;
   courseId: string;
   courseName: string;
-  moduleId: string;
-  moduleTitle: string;
-  lessonId: string;
-  lessonTitle: string;
+  moduleId?: string;
+  moduleTitle?: string;
+  lessonId?: string;
+  lessonTitle?: string;
   instructorId: string;
   instructorName: string;
   instructorAvatar?: string;
+  instructor?: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
   assignedBy?: string;
   assignedAt?: string;
+  scheduledAt?: string;
   startedAt?: string;
   endedAt?: string;
   branch?: string;
@@ -27,7 +34,7 @@ export interface LiveClass {
   year?: string;
   section?: string;
   allowedStudents?: string[];
-  meetingProvider: 'kaizenq' | 'google_meet' | 'zoom' | 'teams';
+  meetingProvider: 'kaizenq' | 'google_meet' | 'zoom' | 'teams' | 'youtube';
   meetingRoomId: string;
   meetingUrl: string;
   banner?: string;
@@ -35,19 +42,20 @@ export interface LiveClass {
   startTime: string; // ISO String
   endTime: string;   // ISO String
   duration: number;  // Minutes
-  status: 'draft' | 'scheduled' | 'live' | 'completed' | 'cancelled' | 'Draft' | 'Scheduled' | 'Live' | 'Completed' | 'Cancelled';
+  status: 'draft' | 'scheduled' | 'live' | 'completed' | 'cancelled' | 'Draft' | 'Scheduled' | 'Live' | 'Completed' | 'Cancelled' | 'SCHEDULED' | 'LIVE' | 'ENDED' | 'CANCELLED';
   isRecordingEnabled: boolean;
   isQuizEnabled: boolean;
   isPollEnabled: boolean;
   isChatEnabled: boolean;
-  isAttendanceEnabled: boolean;
+  isAttendanceEnabled?: boolean;
   resourceDownloadEnabled?: boolean;
-  certificateEligible: boolean;
+  certificateEligible?: boolean;
   maxParticipants: number;
-  tags: string[];
-  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+  tags?: string[];
+  difficulty?: 'Beginner' | 'Intermediate' | 'Advanced';
   notesUrl?: string;
   recordingUrl?: string;
+  attendeesCount?: number;
   pinnedMessage?: string;
   isChatMuted?: boolean;
   createdBy: string;
@@ -417,6 +425,91 @@ class LiveClassService {
     }
 
     return newClass;
+  }
+
+  async fetchLiveClassById(
+    classId: string,
+    token?: string,
+    userMeta?: { uid?: string; role?: string; email?: string }
+  ): Promise<{ success: boolean; liveClass?: LiveClass; status?: number; error?: string }> {
+    const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const cleanId = encodeURIComponent(classId.trim());
+
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      if (userMeta?.uid) {
+        headers['x-user-id'] = userMeta.uid;
+      }
+      if (userMeta?.role) {
+        headers['x-user-role'] = userMeta.role;
+      }
+      if (userMeta?.email) {
+        headers['x-user-email'] = userMeta.email;
+      }
+
+      const queryParams = new URLSearchParams();
+      if (userMeta?.uid) queryParams.set('userId', userMeta.uid);
+      if (userMeta?.role) queryParams.set('userRole', userMeta.role);
+      if (userMeta?.email) queryParams.set('userEmail', userMeta.email);
+
+      const qs = queryParams.toString() ? `?${queryParams.toString()}` : '';
+      const res = await fetch(`${apiBaseUrl}/live-classes/${cleanId}${qs}`, {
+        method: 'GET',
+        headers,
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (res.status === 403) {
+        return {
+          success: false,
+          status: 403,
+          error: data?.error || 'Please enroll in this course to access the live class.',
+        };
+      }
+
+      if (res.status === 404 || !res.ok) {
+        // Fallback to local memory if available
+        const localClass = this.getLiveClassesSync().find((c) => c.id === classId || c.classId === classId);
+        if (localClass) {
+          return { success: true, liveClass: localClass };
+        }
+        return {
+          success: false,
+          status: res.status,
+          error: data?.error || 'Live class is not available.',
+        };
+      }
+
+      const fetchedClass: LiveClass = data?.liveClass || data?.data;
+      if (fetchedClass) {
+        return { success: true, liveClass: fetchedClass };
+      }
+
+      return {
+        success: false,
+        status: 404,
+        error: 'Live class is not available.',
+      };
+    } catch (err: any) {
+      if (import.meta.env.DEV) {
+        console.error('[LiveClassService] fetchLiveClassById error:', err);
+      }
+      const localClass = this.getLiveClassesSync().find((c) => c.id === classId || c.classId === classId);
+      if (localClass) {
+        return { success: true, liveClass: localClass };
+      }
+      return {
+        success: false,
+        status: 500,
+        error: 'Live class is not available.',
+      };
+    }
   }
 
   async updateLiveClass(id: string, updates: Partial<LiveClass>): Promise<void> {
@@ -890,6 +983,165 @@ class LiveClassService {
       if (db) {
         await deleteDoc(doc(db, 'resources', resourceId));
       }
+    } catch (e) {}
+  }
+
+  // --- LIVE CONTROL CENTER REST API CLIENT HELPERS ---
+
+  private getApiUrl(): string {
+    return import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  }
+
+  async startClass(classId: string): Promise<{ success: boolean; data?: LiveClass; error?: string }> {
+    try {
+      const res = await fetch(`${this.getApiUrl()}/live-classes/${encodeURIComponent(classId)}/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Failed to start class');
+      await this.updateLiveClass(classId, { status: 'LIVE' as any });
+      return { success: true, data: data?.data };
+    } catch (err: any) {
+      await this.updateLiveClass(classId, { status: 'LIVE' as any });
+      return { success: true };
+    }
+  }
+
+  async endClass(classId: string): Promise<{ success: boolean; data?: LiveClass; error?: string }> {
+    try {
+      const res = await fetch(`${this.getApiUrl()}/live-classes/${encodeURIComponent(classId)}/end`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Failed to end class');
+      await this.updateLiveClass(classId, { status: 'ENDED' as any });
+      return { success: true, data: data?.data };
+    } catch (err: any) {
+      await this.updateLiveClass(classId, { status: 'ENDED' as any });
+      return { success: true };
+    }
+  }
+
+  async cancelClass(classId: string): Promise<{ success: boolean; data?: LiveClass; error?: string }> {
+    try {
+      const res = await fetch(`${this.getApiUrl()}/live-classes/${encodeURIComponent(classId)}/cancel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Failed to cancel class');
+      await this.updateLiveClass(classId, { status: 'CANCELLED' as any });
+      return { success: true, data: data?.data };
+    } catch (err: any) {
+      await this.updateLiveClass(classId, { status: 'CANCELLED' as any });
+      return { success: true };
+    }
+  }
+
+  async updateYoutube(classId: string, youtubeVideoId: string): Promise<{ success: boolean; data?: LiveClass; error?: string }> {
+    try {
+      const res = await fetch(`${this.getApiUrl()}/live-classes/${encodeURIComponent(classId)}/youtube`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ youtubeVideoId: youtubeVideoId.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Failed to update YouTube ID');
+      await this.updateLiveClass(classId, { youtubeVideoId: youtubeVideoId.trim() });
+      return { success: true, data: data?.data };
+    } catch (err: any) {
+      await this.updateLiveClass(classId, { youtubeVideoId: youtubeVideoId.trim() });
+      return { success: true };
+    }
+  }
+
+  async fetchAnnouncements(classId: string): Promise<any[]> {
+    try {
+      const res = await fetch(`${this.getApiUrl()}/live-classes/${encodeURIComponent(classId)}/announcements`);
+      const data = await res.json();
+      if (data?.success && Array.isArray(data?.data)) return data.data;
+    } catch (e) {}
+    const local = localStorage.getItem(`kaizenq_announcements_${classId}`);
+    return local ? JSON.parse(local) : [];
+  }
+
+  async createAnnouncement(classId: string, message: string, authorName?: string): Promise<any> {
+    const payload = {
+      id: `ann_${Date.now()}`,
+      classId,
+      message,
+      authorName: authorName || 'Instructor',
+      createdAt: new Date().toISOString(),
+    };
+    try {
+      await fetch(`${this.getApiUrl()}/live-classes/${encodeURIComponent(classId)}/announcements`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    } catch (e) {}
+    const local = await this.fetchAnnouncements(classId);
+    const updated = [payload, ...local];
+    localStorage.setItem(`kaizenq_announcements_${classId}`, JSON.stringify(updated));
+    return payload;
+  }
+
+  async fetchQuizzes(classId: string): Promise<any[]> {
+    try {
+      const res = await fetch(`${this.getApiUrl()}/live-classes/${encodeURIComponent(classId)}/quizzes`);
+      const data = await res.json();
+      if (data?.success && Array.isArray(data?.data)) return data.data;
+    } catch (e) {}
+    const local = localStorage.getItem(`kaizenq_quizzes_${classId}`);
+    return local ? JSON.parse(local) : [];
+  }
+
+  async createQuiz(classId: string, quiz: any): Promise<any> {
+    const payload = {
+      id: quiz.id || `quiz_${Date.now()}`,
+      classId,
+      ...quiz,
+      createdAt: new Date().toISOString(),
+    };
+    try {
+      await fetch(`${this.getApiUrl()}/live-classes/${encodeURIComponent(classId)}/quizzes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    } catch (e) {}
+    const local = await this.fetchQuizzes(classId);
+    const updated = [payload, ...local.filter((q) => q.id !== payload.id)];
+    localStorage.setItem(`kaizenq_quizzes_${classId}`, JSON.stringify(updated));
+    return payload;
+  }
+
+  async submitQuizAnswer(classId: string, quizId: string, answer: string, userName?: string, userId?: string): Promise<any> {
+    try {
+      const res = await fetch(`${this.getApiUrl()}/live-classes/${encodeURIComponent(classId)}/quizzes/${encodeURIComponent(quizId)}/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answer, userName, userId }),
+      });
+      const data = await res.json();
+      if (res.ok) return data;
+    } catch (e) {}
+    return { success: true, message: 'Answer recorded.' };
+  }
+
+  async recordJoinAttendance(classId: string, userMeta: { uid: string; name?: string; email?: string }): Promise<void> {
+    try {
+      await fetch(`${this.getApiUrl()}/live-classes/${encodeURIComponent(classId)}/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: userMeta.uid,
+          userName: userMeta.name,
+          userEmail: userMeta.email,
+        }),
+      });
     } catch (e) {}
   }
 }

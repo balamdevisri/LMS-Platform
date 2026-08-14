@@ -169,19 +169,21 @@ export const CourseDetailsPage: React.FC<CourseDetailsProps> = ({
               {isEnrolled ? (
                 <button
                   onClick={onStartLearning}
-                  className="px-8 py-4 rounded-2xl bg-linear-to-r from-sky-500 via-sky-400 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-black text-base flex items-center gap-3 transition-all duration-200 shadow-xl shadow-sky-500/25 hover:scale-105 active:scale-95 cursor-pointer border border-sky-300/40"
+                  className="px-8 py-4 rounded-2xl bg-gradient-to-r from-sky-500 via-sky-400 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-black text-base flex items-center gap-3 transition-all duration-200 shadow-xl shadow-sky-500/25 hover:scale-105 active:scale-95 cursor-pointer border border-sky-300/40"
                 >
                   <PlayCircle className="w-5 h-5" />
-                  <span>Resume Course Track</span>
+                  <span>Continue Course Track</span>
                   <ArrowRight className="w-5 h-5" />
                 </button>
               ) : (
                 <button
                   onClick={onEnroll || onStartLearning}
-                  className="px-8 py-4 rounded-2xl bg-linear-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black text-base flex items-center gap-3 transition-all duration-200 shadow-xl shadow-emerald-500/25 hover:scale-105 active:scale-95 cursor-pointer border border-emerald-300/40"
+                  className="px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black text-base flex items-center gap-3 transition-all duration-200 shadow-xl shadow-emerald-500/25 hover:scale-105 active:scale-95 cursor-pointer border border-emerald-300/40"
                 >
                   <UserPlus className="w-5 h-5" />
-                  <span>Enroll in Course (Free)</span>
+                  <span>
+                    Enroll Now {typeof (course as any).price === 'number' && (course as any).price > 0 ? `— ₹${(course as any).price}` : '(Free)'}
+                  </span>
                   <ArrowRight className="w-5 h-5" />
                 </button>
               )}
@@ -212,9 +214,9 @@ export const CourseDetailsPage: React.FC<CourseDetailsProps> = ({
                   <span className="font-bold text-slate-900 font-mono">{course.students}</span>
                 </div>
                 <div className="p-3 rounded-xl bg-sky-50/60 border border-sky-100">
-                  <span className="text-slate-500 block">Rating</span>
-                  <span className="font-bold text-amber-500 font-mono flex items-center gap-1">
-                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" /> {course.rating} ({course.reviews || 120})
+                  <span className="text-slate-500 block">Live Classroom</span>
+                  <span className="font-bold text-emerald-600 font-mono flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Included
                   </span>
                 </div>
               </div>

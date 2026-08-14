@@ -1,26 +1,42 @@
 import { Router } from 'express';
 import { liveClassroomController } from './liveClassroom.controller';
+import { extractOptionalUser } from '../../middleware/auth.middleware';
 
 const router = Router();
 
 // --- 1. LIVE CLASS CORE CRUD & MANAGEMENT ---
-router.get('/', (req, res, next) => liveClassroomController.getAllClasses(req, res, next));
-router.get('/:classId', (req, res, next) => liveClassroomController.getClassById(req, res, next));
+router.get('/', extractOptionalUser as any, (req, res, next) => liveClassroomController.getAllClasses(req, res, next));
+router.get('/:classId', extractOptionalUser as any, (req, res, next) => liveClassroomController.getClassById(req, res, next));
 router.post('/', (req, res, next) => liveClassroomController.createClass(req, res, next));
 router.patch('/:classId', (req, res, next) => liveClassroomController.updateClass(req, res, next));
 router.put('/:classId', (req, res, next) => liveClassroomController.updateClass(req, res, next));
 router.delete('/:classId', (req, res, next) => liveClassroomController.deleteClass(req, res, next));
 
-// --- 2. STATE TRANSITIONS & AUTHORIZATION ---
+// --- 2. STATE TRANSITIONS & YOUTUBE STREAM ---
 router.post('/:classId/start', (req, res, next) => liveClassroomController.startClass(req, res, next));
 router.post('/:classId/end', (req, res, next) => liveClassroomController.endClass(req, res, next));
-router.post('/:classId/join', (req, res, next) => liveClassroomController.joinClass(req, res, next));
-router.post('/:classId/leave', (req, res, next) => liveClassroomController.leaveClass(req, res, next));
+router.post('/:classId/cancel', (req, res, next) => liveClassroomController.cancelClass(req, res, next));
+router.put('/:classId/youtube', (req, res, next) => liveClassroomController.updateYoutube(req, res, next));
+router.post('/:classId/youtube', (req, res, next) => liveClassroomController.updateYoutube(req, res, next));
+router.post('/:classId/join', extractOptionalUser as any, (req, res, next) => liveClassroomController.joinClass(req, res, next));
+router.post('/:classId/leave', extractOptionalUser as any, (req, res, next) => liveClassroomController.leaveClass(req, res, next));
 router.post('/:classId/token', (req, res, next) => liveClassroomController.generateRoomToken(req, res, next));
 router.post('/token', (req, res, next) => liveClassroomController.generateRoomToken(req, res, next));
 
-// --- 3. ATTENDANCE ---
+// --- 3. ANNOUNCEMENTS ---
+router.get('/:classId/announcements', (req, res, next) => liveClassroomController.getAnnouncements(req, res, next));
+router.post('/:classId/announcements', extractOptionalUser as any, (req, res, next) => liveClassroomController.createAnnouncement(req, res, next));
+router.delete('/:classId/announcements/:annId', (req, res, next) => liveClassroomController.deleteAnnouncement(req, res, next));
+
+// --- 4. ATTENDANCE ---
 router.get('/:classId/attendance', (req, res, next) => liveClassroomController.getAttendanceReport(req, res, next));
+
+// --- 5. QUIZZES ---
+router.get('/:classId/quizzes', (req, res, next) => liveClassroomController.getQuizzes(req, res, next));
+router.post('/:classId/quizzes', (req, res, next) => liveClassroomController.createQuiz(req, res, next));
+router.post('/:classId/quizzes/:quizId/vote', extractOptionalUser as any, (req, res, next) => liveClassroomController.submitQuizAnswer(req, res, next));
+router.post('/:classId/quizzes/:quizId/submit', extractOptionalUser as any, (req, res, next) => liveClassroomController.submitQuizAnswer(req, res, next));
+router.patch('/:classId/quizzes/:quizId/active', (req, res, next) => liveClassroomController.toggleQuizActive(req, res, next));
 
 // --- 4. LIVE CHAT ---
 router.get('/:classId/chat', (req, res, next) => liveClassroomController.getChatMessages(req, res, next));

@@ -3,7 +3,7 @@ import { coursesCollection } from '../../firebase/collections';
 import { Course, CourseValidationSchema } from '../../types/course';
 import { ApiError } from '../../utils/ApiError';
 import { fromDocument, handleFirestoreError, toDocument } from '../../utils/firestore';
-import * as admin from 'firebase-admin';
+import { FieldValue, Query } from 'firebase-admin/firestore';
 import { db } from '../../firebase';
 import { LiveClass } from '../../models/mongo/liveClassroom.model';
 import { cSyllabusNotes } from './cSyllabusData';
@@ -60,7 +60,7 @@ export class CourseService {
         id: docRef.id,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-      };
+      } as Course;
 
       // 4. Save to Firestore
       await docRef.set(toDocument(courseDoc));
@@ -106,12 +106,12 @@ export class CourseService {
         ...existingCourse,
         ...parsedData,
         updatedAt: new Date().toISOString(),
-      };
+      } as Course;
 
       // 5. Update only the changed fields in Firestore
       await docRef.update({
         ...toDocument(parsedData),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
       });
 
       return updatedCourse;
@@ -269,7 +269,7 @@ export class CourseService {
     status?: string;
   }): Promise<Course[]> {
     try {
-      let queryRef: admin.firestore.Query = this.collection();
+      let queryRef: Query = this.collection();
 
       if (filters.category) {
         queryRef = queryRef.where('category', '==', filters.category);

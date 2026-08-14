@@ -13,6 +13,7 @@ import {
   quizAttemptsCollection,
   isFirestoreInitialized,
 } from '../../firebase/collections';
+import { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import {
   LearningSpeed,
   QuizAttemptDoc,
@@ -150,7 +151,7 @@ export class StudentAnalysisService {
         .where('courseId', '==', courseId)
         .get();
 
-      return snap.docs.map((d) => ({ id: d.id, ...(d.data() as QuizAttemptDoc) }));
+      return snap.docs.map((d: QueryDocumentSnapshot) => ({ id: d.id, ...(d.data() as QuizAttemptDoc) }));
     } catch (err: any) {
       console.warn('⚠️ Notice fetching quiz attempts:', err?.message || err);
       return [];

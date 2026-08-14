@@ -51,6 +51,10 @@ const AdminLiveClassroom = lazyLoad(() => import('@/pages/liveClassroom/AdminLiv
 const LiveClassroomScreen = lazyLoad(() => import('@/pages/liveClassroom/LiveClassroomScreen'), 'LiveClassroomScreen');
 const MentorAnalytics = lazyLoad(() => import('@/pages/liveClassroom/MentorAnalytics'), 'MentorAnalytics');
 const VerifyCertificate = lazyLoad(() => import('@/pages/certificates/VerifyCertificate'), 'VerifyCertificate');
+const LiveClassPage = lazyLoad(() => import('@/pages/liveClass/LiveClassPage'), 'LiveClassPage');
+const AdminLiveClassList = lazyLoad(() => import('@/pages/liveClassroom/AdminLiveClassList'), 'AdminLiveClassList');
+const AdminCreateLiveClass = lazyLoad(() => import('@/pages/liveClassroom/AdminCreateLiveClass'), 'AdminCreateLiveClass');
+const AdminLiveControlCenter = lazyLoad(() => import('@/pages/liveClassroom/AdminLiveControlCenter'), 'AdminLiveControlCenter');
 
 // ─── Simple placeholder pages for coming-soon admin sections ─────────────────
 const PlaceholderPage = ({ title, subtitle }: { title: string; subtitle: string }) => (
@@ -118,6 +122,7 @@ const router = createBrowserRouter([
       { path: 'dashboard/courses', element: <CoursesList /> },
       { path: 'dashboard/course/:slug', element: <CourseView /> },
       { path: 'dashboard/live-classroom', element: <LiveClassroomDashboard /> },
+      { path: 'dashboard/live-class/:liveClassId', element: <LiveClassPage /> },
     ],
   },
   // Instructor & Admin Shared Management Routes
@@ -138,6 +143,10 @@ const router = createBrowserRouter([
       { path: 'content', element: <AdminContentManagement /> },
       { path: 'content-management', element: <AdminContentManagement /> },
       { path: 'live-classroom', element: <LiveClassroomDashboard /> },
+      { path: 'live-classes', element: <AdminLiveClassList /> },
+      { path: 'live-classes/create', element: <AdminCreateLiveClass /> },
+      { path: 'live-classes/:id/edit', element: <AdminCreateLiveClass /> },
+      { path: 'live-classes/:id/control', element: <AdminLiveControlCenter /> },
       { path: 'live-control-panel', element: <AdminLiveClassroom /> },
       { path: 'live-classroom/control-panel', element: <AdminLiveClassroom /> },
       { path: 'live-classroom/mentor-analytics', element: <MentorAnalytics /> },
@@ -169,7 +178,23 @@ const router = createBrowserRouter([
       },
     ],
   },
-  // Full-screen Protected Live Classroom screen
+  // Dedicated Full-screen Protected Live Classroom routes
+  {
+    path: '/student/live-class/:liveClassId',
+    element: (
+      <ProtectedRoute>
+        <LiveClassPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/live-class/:liveClassId',
+    element: (
+      <ProtectedRoute>
+        <LiveClassPage />
+      </ProtectedRoute>
+    ),
+  },
   {
     path: '/live-classroom/room/:classId',
     element: (

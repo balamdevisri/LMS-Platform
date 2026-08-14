@@ -17,6 +17,7 @@ import {
   Download,
   ExternalLink,
   Users,
+  Layers,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -915,13 +916,19 @@ export const Dashboard: React.FC = () => {
                         className="glass-card-light p-6 flex flex-col justify-between space-y-4 bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-xs hover:border-purple-300 dark:hover:border-purple-600 transition-all"
                       >
                         <div className="space-y-2">
-                          <div className="flex items-center justify-between">
+                          <div className="flex flex-wrap items-center justify-between gap-1.5">
                             <span className="text-[11px] font-bold text-purple-600 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 px-2.5 py-0.5 rounded-full border border-purple-200 dark:border-purple-800">
                               {course.category}
                             </span>
-                            <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
-                              Saved Checkpoint Active
-                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] font-bold text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/60 px-2 py-0.5 rounded-md border border-sky-200 dark:border-sky-800">
+                                ✓ Paid (Active)
+                              </span>
+                              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                Enrolled
+                              </span>
+                            </div>
                           </div>
 
                           <h4 className="font-heading font-bold text-base text-slate-900 dark:text-white leading-snug">
@@ -980,19 +987,29 @@ export const Dashboard: React.FC = () => {
                           </div>
                           <div className="w-full h-2.5 bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden border border-slate-200 dark:border-zinc-700">
                             <div
-                              className="h-full bg-linear-to-r from-purple-600 to-indigo-500 transition-all duration-500"
+                              className="h-full bg-gradient-to-r from-purple-600 to-indigo-500 transition-all duration-500"
                               style={{ width: `${dynamicProgress}%` }}
                             />
                           </div>
                         </div>
 
-                        <Link
-                          to={`/course/${course.slug || course.id}`}
-                          className="btn-blue-primary text-xs py-2.5 justify-center font-bold flex items-center gap-2"
-                        >
-                          <PlayCircle className="w-4 h-4" />
-                          <span>Resume Course Track (Module {lastModule})</span>
-                        </Link>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                          <Link
+                            to={`/course/${course.slug || course.id}`}
+                            className="btn-blue-primary text-xs py-2.5 justify-center font-bold flex items-center gap-1.5 rounded-xl shadow-sm"
+                          >
+                            <PlayCircle className="w-4 h-4" />
+                            <span>Continue Track</span>
+                          </Link>
+
+                          <Link
+                            to={`/student/live-class/class_react_101_live`}
+                            className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shadow-red-500/15"
+                          >
+                            <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+                            <span>Join Live Class</span>
+                          </Link>
+                        </div>
                       </div>
                     );
                   })}

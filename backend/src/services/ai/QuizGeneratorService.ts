@@ -13,6 +13,7 @@ import {
   quizAttemptsCollection,
   isFirestoreInitialized,
 } from '../../firebase/collections';
+import { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import {
   GeneratedQuizDoc,
   QuestionItem,
@@ -105,7 +106,7 @@ export class QuizGeneratorService {
       try {
         const snap = await questionBankCollection().where('courseId', '==', courseId).get();
         if (!snap.empty) {
-          return snap.docs.map((d) => ({ ...(d.data() as QuestionItem), id: d.id }));
+          return snap.docs.map((d: QueryDocumentSnapshot) => ({ ...(d.data() as QuestionItem), id: d.id }));
         }
       } catch (err: any) {
         console.warn('⚠️ Notice fetching question candidates:', err?.message || err);

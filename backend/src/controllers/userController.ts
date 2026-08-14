@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { db } from '../firebase';
+import { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 
 /**
  * Enterprise User Management Controller
@@ -10,7 +11,7 @@ export const getAllUsers = async (req: Request, res: Response) => {
     const users: any[] = [];
     if (db) {
       const snapshot = await db.collection('users').get();
-      snapshot.forEach((doc) => {
+      snapshot.forEach((doc: QueryDocumentSnapshot) => {
         users.push({ id: doc.id, ...doc.data() });
       });
     }

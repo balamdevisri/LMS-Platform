@@ -1,4 +1,7 @@
-import * as admin from 'firebase-admin';
+import { initializeApp, cert, getApps, App } from 'firebase-admin/app';
+import { getFirestore, Firestore } from 'firebase-admin/firestore';
+import { getAuth, Auth } from 'firebase-admin/auth';
+import { getStorage, Storage } from 'firebase-admin/storage';
 import { env } from '../config/env';
 
 /**
@@ -25,7 +28,7 @@ const sanitizePrivateKey = (keyStr?: string): string | undefined => {
   return str;
 };
 
-if (!admin.apps.length) {
+if (!getApps().length) {
   const cleanPrivateKey = sanitizePrivateKey(env.FIREBASE_PRIVATE_KEY || process.env.FIREBASE_PRIVATE_KEY);
   const isValidPrivateKey = Boolean(
     cleanPrivateKey &&
@@ -34,19 +37,19 @@ if (!admin.apps.length) {
 
   if (env.FIREBASE_PROJECT_ID && env.FIREBASE_CLIENT_EMAIL && isValidPrivateKey) {
     try {
-      const credential = admin.credential.cert({
+      const credential = cert({
         projectId: env.FIREBASE_PROJECT_ID,
         clientEmail: env.FIREBASE_CLIENT_EMAIL,
         privateKey: cleanPrivateKey,
       });
-      admin.initializeApp({ credential });
+      initializeApp({ credential });
       console.log('🎉 Firebase Admin SDK initialized successfully!');
     } catch (err: any) {
       console.warn('⚠️ Firebase Admin Cert Initialization Notice:', err?.message || err);
     }
   } else {
     try {
-      admin.initializeApp({
+      initializeApp({
         projectId: env.FIREBASE_PROJECT_ID || 'shaivika-lms-ai',
       });
       console.log('🎉 Firebase Admin SDK initialized with project ID default (shaivika-lms-ai)!');
@@ -60,7 +63,7 @@ if (!admin.apps.length) {
  * Non-blocking Mock Firestore DB proxy for dev environments
  * NEVER throws an exception so signup flow is NEVER interrupted.
  */
-const createDbMock = (): admin.firestore.Firestore => {
+const createDbMock = (): Firestore => {
   const createChainableMock = (): any => {
     return new Proxy(() => {}, {
       get(_target, _prop) {
@@ -83,7 +86,7 @@ const createDbMock = (): admin.firestore.Firestore => {
   });
 };
 
-export const isFirebaseAdminInitialized = (): boolean => admin.apps.length > 0;
-export const db = admin.apps.length ? admin.firestore() : (createDbMock() as admin.firestore.Firestore);
-export const adminAuth = admin.apps.length ? admin.auth() : ({} as admin.auth.Auth);
-export const storage = admin.apps.length ? admin.storage() : ({} as admin.storage.Storage);
+export const isFirebaseAdminInitialized = (): boolean => getApps().length > 0;
+export const db = getApps().length ? getFirestore() : (createDbMock() as Firestore);
+export const adminAuth = getApps().length ? getAuth() : ({} as Auth);
+export const storage = getApps().length ? getStorage() : ({} as Storage);

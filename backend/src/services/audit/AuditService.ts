@@ -1,4 +1,5 @@
 import { db } from '../../firebase';
+import { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import logger from '../../config/logger';
 
 export interface AuditLogRecord {
@@ -13,15 +14,13 @@ export interface AuditLogRecord {
 }
 
 export class AuditService {
-  async log(record: Omit<AuditLogRecord, 'timestamp'>): Promise<void> {
-    const fullRecord: AuditLogRecord = {
-      ...record,
-      timestamp: new Date().toISOString(),
-    };
-
+  async log(record: AuditLogRecord): Promise<void> {
     if (db) {
       try {
-        await db.collection('audit_logs').add(fullRecord);
+        await db.collection('audit_logs').add({
+          ...record,
+          timestamp: record.timestamp || new Date().toISOString(),
+        });
         logger.info(`[AUDIT LOG] ${record.action} on ${record.resource} by User: ${record.userId}`);
       } catch (err: any) {
         logger.warn(`⚠️ AuditService: Failed to record audit log: ${err?.message || err}`);
@@ -33,7 +32,7 @@ export class AuditService {
     if (!db) return [];
     try {
       const snap = await db.collection('audit_logs').orderBy('timestamp', 'desc').limit(limitCount).get();
-      return snap.docs.map((doc) => doc.data() as AuditLogRecord);
+      return snap.docs.map((doc: QueryDocumentSnapshot) => doc.data() as AuditLogRecord);
     } catch (err: any) {
       logger.error(`⚠️ AuditService: Failed fetching recent audit logs: ${err?.message || err}`);
       return [];
