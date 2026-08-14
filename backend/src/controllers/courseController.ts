@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { db } from '../firebase';
+import { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import { CertificateService } from '../services/pdf/CertificateService';
 import { emailService } from '../services/email/EmailService';
 import { EmailEventType } from '../types/emailTypes';
@@ -88,7 +89,7 @@ export class CourseController {
           .where('courseId', '==', courseId)
           .get();
 
-        const hasPassedQuiz = quizSnap.docs.some((doc) => {
+        const hasPassedQuiz = quizSnap.docs.some((doc: QueryDocumentSnapshot) => {
           const attempt = doc.data();
           return attempt.percentage >= 60;
         });

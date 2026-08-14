@@ -1,4 +1,5 @@
 import { adminAuth, db } from '../../firebase';
+import { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import { GitHubService } from '../../services/github/GitHubService';
 import { EmailService } from '../../services/email/EmailService';
 import { EmailEventType } from '../../types/emailTypes';
@@ -189,7 +190,7 @@ export class StudentService {
         .where('approved', '==', false)
         .get();
 
-      return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      return snap.docs.map((doc: QueryDocumentSnapshot) => ({ id: doc.id, ...doc.data() }));
     } catch (err: any) {
       console.warn('Error fetching pending students from users collection:', err?.message || err);
       return [];

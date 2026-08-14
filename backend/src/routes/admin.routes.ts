@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { db, adminAuth } from '../firebase';
+import { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import { verifyFirebaseToken, requireRole } from '../middleware/auth.middleware';
 import { EmailService } from '../services/email/EmailService';
 import { EmailEventType } from '../types/emailTypes';
@@ -28,7 +29,7 @@ router.get('/dashboard', verifyFirebaseToken as any, requireRole('admin') as any
       const usersSnap = await db.collection('users').get();
       totalUsers = usersSnap.size;
 
-      usersSnap.forEach((doc) => {
+      usersSnap.forEach((doc: QueryDocumentSnapshot) => {
         const data = doc.data();
         const role = data.role;
         const isApproved = data.approved === true || data.status === 'active' || data.status === 'Active' || data.status === 'approved';
@@ -73,7 +74,7 @@ router.get('/students', verifyFirebaseToken as any, requireRole('admin') as any,
     const students: any[] = [];
     if (db) {
       const snap = await db.collection('users').where('role', '==', 'student').get();
-      snap.forEach((doc) => {
+      snap.forEach((doc: QueryDocumentSnapshot) => {
         students.push({ id: doc.id, ...doc.data() });
       });
     }
@@ -99,7 +100,7 @@ router.get('/instructors', verifyFirebaseToken as any, requireRole('admin') as a
       totalUsersCount = allUsersSnap.size;
       console.log(`[AUDIT] Total users documents before filtering: ${totalUsersCount}`);
 
-      allUsersSnap.forEach((docSnap) => {
+      allUsersSnap.forEach((docSnap: QueryDocumentSnapshot) => {
         const data = docSnap.data();
         const rawRole = String(data.role || '');
         const rawStatus = String(data.status || '');
@@ -130,7 +131,7 @@ router.get('/instructors', verifyFirebaseToken as any, requireRole('admin') as a
       totalInstructorsColCount = instSnap.size;
       console.log(`[AUDIT] Total instructors collection documents: ${totalInstructorsColCount}`);
 
-      instSnap.forEach((docSnap) => {
+      instSnap.forEach((docSnap: QueryDocumentSnapshot) => {
         const data = docSnap.data();
         const rawStatus = String(data.status || 'pending');
         const statusNormalized = rawStatus.toLowerCase().trim();

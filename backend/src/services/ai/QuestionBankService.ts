@@ -11,6 +11,7 @@ import { GoogleGenAI } from '@google/genai';
 import crypto from 'crypto';
 import { env } from '../../config/env';
 import { questionBankCollection, isFirestoreInitialized } from '../../firebase/collections';
+import { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import {
   CourseKnowledgeDoc,
   QuestionBankStats,
@@ -303,7 +304,7 @@ Return ONLY valid raw JSON array. Do not wrap in markdown code block.
 
     try {
       const snap = await questionBankCollection().where('courseId', '==', courseId).get();
-      snap.docs.forEach((doc) => {
+      snap.docs.forEach((doc: QueryDocumentSnapshot) => {
         const data = doc.data() as QuestionItem;
         if (data.uniqueHash) hashes.add(data.uniqueHash);
       });

@@ -1,5 +1,6 @@
 import { emailLogsCollection, isFirestoreInitialized } from '../../firebase/collections';
-import { EmailLogRecord, EmailStatus } from '../../types/emailTypes';
+import { QueryDocumentSnapshot } from 'firebase-admin/firestore';
+import { EmailLogRecord, EmailEventType, EmailStatus } from '../../types/emailTypes';
 import logger from '../../config/logger';
 
 export class AuditLogger {
@@ -47,7 +48,7 @@ export class AuditLogger {
         .limit(limitCount)
         .get();
 
-      return snapshot.docs.map((docSnap) => ({
+      return snapshot.docs.map((docSnap: QueryDocumentSnapshot) => ({
         id: docSnap.id,
         ...(docSnap.data() as EmailLogRecord),
       }));
