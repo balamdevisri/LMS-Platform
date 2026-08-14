@@ -676,8 +676,6 @@ export class CourseService {
             await this.seedReactCourseDetails(courseDoc.id);
           } else if (courseData.slug === 'c-programming') {
             await this.seedCCourseDetails(courseDoc.id);
-          } else if (courseData.slug === 'python-through-oops') {
-            await this.seedPythonCourseDetails(courseDoc.id);
           } else if (courseData.slug === 'java-through-oops') {
             await this.seedJavaCourseDetails(courseDoc.id);
           }
