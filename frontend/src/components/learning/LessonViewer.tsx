@@ -1365,7 +1365,7 @@ export const LessonViewer: React.FC<LessonViewerProps> = React.memo(({
                     isNightMode ? 'bg-slate-950 border-slate-800 text-slate-100' : 'bg-white border-sky-100 text-slate-900'
                   }`}
                 >
-                  <MarkdownRenderer content={enrichedContent} isNightMode={isNightMode} />
+                  <MarkdownRenderer content={enrichedContent} isNightMode={isNightMode} courseId={_courseId} />
                 </div>
               </div>
             )}
