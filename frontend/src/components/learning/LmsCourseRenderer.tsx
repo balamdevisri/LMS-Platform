@@ -2,9 +2,10 @@ import React, { useMemo } from 'react';
 import { CodeBlock } from './CodeBlock';
 import { Sparkles, Terminal, CheckCircle2, AlertCircle } from 'lucide-react';
 
-interface PythonCourseRendererProps {
+interface LmsCourseRendererProps {
   content: string;
   isNightMode?: boolean;
+  courseId?: string;
 }
 
 // ---------------------------------------------------------------------
@@ -16,6 +17,7 @@ const TopicVisual: React.FC<{ topicKey: string; isNightMode: boolean }> = ({ top
   const accentColor = isNightMode ? '#a5f3fc' : '#bae6fd';
 
   switch (topicKey) {
+    // --- PYTHON VISUALS ---
     case 'Python Basics':
       return (
         <svg viewBox="0 0 100 40" className="w-full max-h-32 object-contain my-4">
@@ -183,6 +185,117 @@ const TopicVisual: React.FC<{ topicKey: string; isNightMode: boolean }> = ({ top
           <circle cx="85" cy="20" r="3" fill={strokeColor} />
         </svg>
       );
+
+    // --- KUBERNETES VISUALS ---
+    case 'Kubernetes Overview':
+    case 'Helm':
+      return (
+        <svg viewBox="0 0 100 40" className="w-full max-h-32 object-contain my-4">
+          <circle cx="50" cy="20" r="10" fill={fillColor} stroke={strokeColor} strokeWidth="1.5" />
+          <path d="M50 5 L50 35 M35 20 L65 20 M39 9 L61 31 M39 31 L61 9" stroke={strokeColor} strokeWidth="1.5" strokeLinecap="round" fill="none" />
+          <circle cx="50" cy="20" r="4" fill={accentColor} stroke={strokeColor} strokeWidth="1" />
+        </svg>
+      );
+    case 'Architecture':
+    case 'Control Plane':
+    case 'Worker Nodes':
+      return (
+        <svg viewBox="0 0 100 40" className="w-full max-h-32 object-contain my-4">
+          <rect x="5" y="12" width="25" height="16" rx="3" fill={fillColor} stroke={strokeColor} strokeWidth="1.5" />
+          <text x="17.5" y="22" textAnchor="middle" fontSize="6" fontWeight="bold" fill={strokeColor}>Control</text>
+          <path d="M30 20 L45 10 M30 20 L45 30" stroke={strokeColor} strokeWidth="1" strokeDasharray="2,2" fill="none" />
+          <rect x="45" y="4" width="25" height="12" rx="2" fill={accentColor} stroke={strokeColor} strokeWidth="1" />
+          <text x="57.5" y="12" textAnchor="middle" fontSize="5" fontWeight="bold" fill={isNightMode ? '#0f172a' : '#0369a1'}>Node 1</text>
+          <rect x="45" y="24" width="25" height="12" rx="2" fill={accentColor} stroke={strokeColor} strokeWidth="1" />
+          <text x="57.5" y="32" textAnchor="middle" fontSize="5" fontWeight="bold" fill={isNightMode ? '#0f172a' : '#0369a1'}>Node 2</text>
+        </svg>
+      );
+    case 'Pods':
+      return (
+        <svg viewBox="0 0 100 40" className="w-full max-h-32 object-contain my-4">
+          <rect x="25" y="8" width="50" height="24" rx="12" fill={fillColor} stroke={strokeColor} strokeWidth="1.5" />
+          <circle cx="40" cy="20" r="4" fill={accentColor} stroke={strokeColor} strokeWidth="1" />
+          <circle cx="50" cy="20" r="4" fill={accentColor} stroke={strokeColor} strokeWidth="1" />
+          <circle cx="60" cy="20" r="4" fill={accentColor} stroke={strokeColor} strokeWidth="1" />
+          <text x="50" y="38" textAnchor="middle" fontSize="6" fontWeight="bold" fill={strokeColor}>Pod (Containers)</text>
+        </svg>
+      );
+    case 'Services':
+    case 'Networking':
+      return (
+        <svg viewBox="0 0 100 40" className="w-full max-h-32 object-contain my-4">
+          <circle cx="20" cy="20" r="6" fill={fillColor} stroke={strokeColor} strokeWidth="1.5" />
+          <text x="20" y="23" textAnchor="middle" fontSize="8" fontWeight="bold" fill={strokeColor}>S</text>
+          <path d="M26 20 L50 10 M26 20 L50 20 M26 20 L50 30" stroke={strokeColor} strokeWidth="1" fill="none" />
+          <circle cx="56" cy="10" r="4" fill={accentColor} stroke={strokeColor} strokeWidth="1" />
+          <circle cx="56" cy="20" r="4" fill={accentColor} stroke={strokeColor} strokeWidth="1" />
+          <circle cx="56" cy="30" r="4" fill={accentColor} stroke={strokeColor} strokeWidth="1" />
+        </svg>
+      );
+    case 'Deployments':
+    case 'ReplicaSets':
+      return (
+        <svg viewBox="0 0 100 40" className="w-full max-h-32 object-contain my-4">
+          <rect x="20" y="12" width="20" height="16" rx="2" fill={fillColor} stroke={strokeColor} strokeWidth="1.5" />
+          <rect x="25" y="8" width="20" height="16" rx="2" fill={accentColor} stroke={strokeColor} strokeWidth="1.2" />
+          <rect x="30" y="4" width="20" height="16" rx="2" fill={isNightMode ? '#0e7490' : '#bae6fd'} stroke={strokeColor} strokeWidth="1" />
+          <text x="68" y="24" fontSize="8" fontWeight="bold" fill={strokeColor}>Replicas: 3</text>
+        </svg>
+      );
+    case 'ConfigMaps':
+    case 'Secrets':
+      return (
+        <svg viewBox="0 0 100 40" className="w-full max-h-32 object-contain my-4">
+          <rect x="35" y="6" width="30" height="28" rx="4" fill={fillColor} stroke={strokeColor} strokeWidth="1.5" />
+          <line x1="42" y1="14" x2="58" y2="14" stroke={strokeColor} strokeWidth="1.5" />
+          <line x1="42" y1="20" x2="52" y2="20" stroke={strokeColor} strokeWidth="1.5" />
+          <circle cx="50" cy="26" r="3" fill={accentColor} stroke={strokeColor} strokeWidth="1" />
+        </svg>
+      );
+    case 'Namespaces':
+      return (
+        <svg viewBox="0 0 100 40" className="w-full max-h-32 object-contain my-4">
+          <rect x="15" y="6" width="30" height="28" rx="3" fill={fillColor} stroke={strokeColor} strokeWidth="1.5" />
+          <rect x="55" y="6" width="30" height="28" rx="3" fill={accentColor} stroke={strokeColor} strokeWidth="1.5" />
+          <text x="30" y="22" textAnchor="middle" fontSize="6" fontWeight="bold" fill={strokeColor}>ns-1</text>
+          <text x="70" y="22" textAnchor="middle" fontSize="6" fontWeight="bold" fill={isNightMode ? '#0f172a' : '#0369a1'}>ns-2</text>
+        </svg>
+      );
+    case 'Volumes':
+      return (
+        <svg viewBox="0 0 100 40" className="w-full max-h-32 object-contain my-4">
+          <ellipse cx="50" cy="12" rx="15" ry="5" fill={fillColor} stroke={strokeColor} strokeWidth="1.5" />
+          <path d="M35 12 L35 28 A 15 5 0 0 0 65 28 L65 12" fill={fillColor} stroke={strokeColor} strokeWidth="1.5" />
+          <ellipse cx="50" cy="20" rx="15" ry="5" fill={accentColor} stroke={strokeColor} strokeWidth="1" />
+          <ellipse cx="50" cy="28" rx="15" ry="5" fill={accentColor} stroke={strokeColor} strokeWidth="1" />
+        </svg>
+      );
+    case 'Ingress':
+      return (
+        <svg viewBox="0 0 100 40" className="w-full max-h-32 object-contain my-4">
+          <rect x="10" y="10" width="20" height="20" rx="3" fill={fillColor} stroke={strokeColor} strokeWidth="1.5" />
+          <text x="20" y="22" textAnchor="middle" fontSize="6" fontWeight="bold" fill={strokeColor}>Ingress</text>
+          <path d="M30 20 L55 12 M30 20 L55 28" stroke={strokeColor} strokeWidth="1" fill="none" />
+          <rect x="55" y="4" width="30" height="12" rx="2" fill={accentColor} stroke={strokeColor} strokeWidth="1.5" />
+          <rect x="55" y="24" width="30" height="12" rx="2" fill={accentColor} stroke={strokeColor} strokeWidth="1.5" />
+        </svg>
+      );
+    case 'Monitoring':
+      return (
+        <svg viewBox="0 0 100 40" className="w-full max-h-32 object-contain my-4">
+          <rect x="10" y="5" width="80" height="30" rx="4" fill={fillColor} stroke={strokeColor} strokeWidth="1.5" />
+          <path d="M15 28 L30 15 L45 22 L60 8 L75 25 L85 12" fill="none" stroke={strokeColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <circle cx="60" cy="8" r="3" fill={accentColor} stroke={strokeColor} strokeWidth="1" />
+        </svg>
+      );
+    case 'Security':
+      return (
+        <svg viewBox="0 0 100 40" className="w-full max-h-32 object-contain my-4">
+          <path d="M50 5 C60 5 70 8 75 12 C75 24 65 32 50 35 C35 32 25 24 25 12 C30 8 40 5 50 5 Z" fill={fillColor} stroke={strokeColor} strokeWidth="1.5" />
+          <circle cx="50" cy="18" r="4" fill={accentColor} stroke={strokeColor} strokeWidth="1" />
+          <path d="M50 22 L50 28" stroke={strokeColor} strokeWidth="2" strokeLinecap="round" fill="none" />
+        </svg>
+      );
     default:
       return (
         <svg viewBox="0 0 100 40" className="w-full max-h-32 object-contain my-4">
@@ -194,32 +307,50 @@ const TopicVisual: React.FC<{ topicKey: string; isNightMode: boolean }> = ({ top
   }
 };
 
-const getVisualKey = (title: string, desc: string): string => {
+const getVisualKey = (title: string, desc: string, isK8s: boolean): string => {
   const searchStr = `${title} ${desc}`.toLowerCase();
 
-  if (searchStr.includes('project') || searchStr.includes('management project')) return 'OOP Projects';
-  if (searchStr.includes('decorator')) return 'Decorators';
-  if (searchStr.includes('generator')) return 'Generators';
-  if (searchStr.includes('iterator')) return 'Iterators';
-  if (searchStr.includes('abstraction')) return 'Abstraction';
-  if (searchStr.includes('polymorphism') || searchStr.includes('override')) return 'Polymorphism';
-  if (searchStr.includes('inheritance')) return 'Inheritance';
-  if (searchStr.includes('encapsulation') || searchStr.includes('private')) return 'Encapsulation';
-  if (searchStr.includes('class') && !searchStr.includes('subclass')) return 'Classes';
-  if (searchStr.includes('object') || searchStr.includes('instance')) return 'Objects';
-  if (searchStr.includes('file') || searchStr.includes('open(') || searchStr.includes('csv')) return 'File Handling';
-  if (searchStr.includes('exception') || searchStr.includes('try') || searchStr.includes('except')) return 'Exceptions';
-  if (searchStr.includes('function') || searchStr.includes('def ')) return 'Functions';
-  if (searchStr.includes('dictionary') || searchStr.includes('dict') || searchStr.includes('key')) return 'Dictionaries';
-  if (searchStr.includes('list') || searchStr.includes('set') || searchStr.includes('tuple') || searchStr.includes('collection')) return 'Lists';
-  if (searchStr.includes('string') || searchStr.includes('slice') || searchStr.includes('index')) return 'Strings';
-  if (searchStr.includes('loop') || searchStr.includes('for') || searchStr.includes('while')) return 'Loops';
-  if (searchStr.includes('condition') || searchStr.includes('if') || searchStr.includes('else')) return 'Conditions';
-  if (searchStr.includes('operator') || searchStr.includes('arithmetic')) return 'Operators';
-  if (searchStr.includes('type') || searchStr.includes('float') || searchStr.includes('int') || searchStr.includes('bool')) return 'Data Types';
-  if (searchStr.includes('variable') || searchStr.includes('identifier')) return 'Variables';
-  
-  return 'Python Basics';
+  if (isK8s) {
+    if (searchStr.includes('ingress') || searchStr.includes('routing')) return 'Ingress';
+    if (searchStr.includes('service') || searchStr.includes('network') || searchStr.includes('port')) return 'Services';
+    if (searchStr.includes('replicaset') || searchStr.includes('hpa') || searchStr.includes('scale')) return 'ReplicaSets';
+    if (searchStr.includes('deployment') || searchStr.includes('rollout')) return 'Deployments';
+    if (searchStr.includes('secret')) return 'Secrets';
+    if (searchStr.includes('configmap')) return 'ConfigMaps';
+    if (searchStr.includes('volume') || searchStr.includes('pv') || searchStr.includes('storage')) return 'Volumes';
+    if (searchStr.includes('namespace')) return 'Namespaces';
+    if (searchStr.includes('pod') || searchStr.includes('container')) return 'Pods';
+    if (searchStr.includes('control plane') || searchStr.includes('scheduler') || searchStr.includes('etcd')) return 'Control Plane';
+    if (searchStr.includes('worker') || searchStr.includes('kubelet')) return 'Worker Nodes';
+    if (searchStr.includes('architecture')) return 'Architecture';
+    if (searchStr.includes('monitoring') || searchStr.includes('log') || searchStr.includes('prometheus')) return 'Monitoring';
+    if (searchStr.includes('security') || searchStr.includes('rbac') || searchStr.includes('access')) return 'Security';
+    if (searchStr.includes('helm') || searchStr.includes('package')) return 'Helm';
+    return 'Kubernetes Overview';
+  } else {
+    if (searchStr.includes('project') || searchStr.includes('management project')) return 'OOP Projects';
+    if (searchStr.includes('decorator')) return 'Decorators';
+    if (searchStr.includes('generator')) return 'Generators';
+    if (searchStr.includes('iterator')) return 'Iterators';
+    if (searchStr.includes('abstraction')) return 'Abstraction';
+    if (searchStr.includes('polymorphism') || searchStr.includes('override')) return 'Polymorphism';
+    if (searchStr.includes('inheritance')) return 'Inheritance';
+    if (searchStr.includes('encapsulation') || searchStr.includes('private')) return 'Encapsulation';
+    if (searchStr.includes('class') && !searchStr.includes('subclass')) return 'Classes';
+    if (searchStr.includes('object') || searchStr.includes('instance')) return 'Objects';
+    if (searchStr.includes('file') || searchStr.includes('open(') || searchStr.includes('csv')) return 'File Handling';
+    if (searchStr.includes('exception') || searchStr.includes('try') || searchStr.includes('except')) return 'Exceptions';
+    if (searchStr.includes('function') || searchStr.includes('def ')) return 'Functions';
+    if (searchStr.includes('dictionary') || searchStr.includes('dict') || searchStr.includes('key')) return 'Dictionaries';
+    if (searchStr.includes('list') || searchStr.includes('set') || searchStr.includes('tuple') || searchStr.includes('collection')) return 'Lists';
+    if (searchStr.includes('string') || searchStr.includes('slice') || searchStr.includes('index')) return 'Strings';
+    if (searchStr.includes('loop') || searchStr.includes('for') || searchStr.includes('while')) return 'Loops';
+    if (searchStr.includes('condition') || searchStr.includes('if') || searchStr.includes('else')) return 'Conditions';
+    if (searchStr.includes('operator') || searchStr.includes('arithmetic')) return 'Operators';
+    if (searchStr.includes('type') || searchStr.includes('float') || searchStr.includes('int') || searchStr.includes('bool')) return 'Data Types';
+    if (searchStr.includes('variable') || searchStr.includes('identifier')) return 'Variables';
+    return 'Python Basics';
+  }
 };
 
 // ---------------------------------------------------------------------
@@ -289,7 +420,7 @@ const TableRenderer: React.FC<{ lines: string[]; isNightMode: boolean }> = ({ li
   );
 };
 
-const QuestionCard: React.FC<{ question: string; answer: string[]; isNightMode: boolean }> = ({ question, answer, isNightMode }) => {
+const QuestionCard: React.FC<{ question: string; answer: string[]; isNightMode: boolean; isK8s: boolean }> = ({ question, answer, isNightMode, isK8s }) => {
   return (
     <div className={`my-5 p-5 rounded-2xl border shadow-sm ${
       isNightMode ? 'bg-slate-900/60 border-slate-800' : 'bg-sky-50/20 border-sky-100/80'
@@ -304,11 +435,12 @@ const QuestionCard: React.FC<{ question: string; answer: string[]; isNightMode: 
         {answer.map((ans, idx) => {
           const trimmedAns = ans.trim();
           if (!trimmedAns) return null;
+          if (trimmedAns.toLowerCase() === 'answer:') return null;
           
-          if (isPythonCodeLine(trimmedAns)) {
+          if (isCodeLine(trimmedAns, isK8s)) {
             return (
               <div key={idx} className="my-2">
-                <CodeBlock code={trimmedAns} language="python" />
+                <CodeBlock code={trimmedAns} language={isK8s ? 'yaml' : 'python'} />
               </div>
             );
           }
@@ -335,30 +467,44 @@ const QuestionCard: React.FC<{ question: string; answer: string[]; isNightMode: 
 };
 
 // ---------------------------------------------------------------------
-// 📦 HELPER FUNCTIONS FOR PYTHON CONTENT PARSING
+// 📦 HELPER FUNCTIONS FOR PYTHON & KUBERNETES PARSING
 // ---------------------------------------------------------------------
-function isPythonCodeLine(line: string): boolean {
+function isCodeLine(line: string, isK8s: boolean): boolean {
   const trimmed = line.trim();
   if (!trimmed) return false;
   
-  const patterns = [
-    /^\s*(def|class|import|from|return|pass|try|except|finally|raise|assert|yield|print|input)\b/,
-    /^\s*(if|elif|else|for|while)\b.*:$/,
-    /^\s*[a-zA-Z_]\w*\s*(\+|-|\*|\/|%|\*\*|\/\/)?=\s*.+/,
-    /^[a-zA-Z_]\w*\.[a-zA-Z_]\w*\(.*\)$/,
-    /^\s*#\s+.+$/,
-    /^\s*"""\s*$/,
-    /^\s*["'].*["']\s*$/,
-    /^[\[\{]\s*.*[\]\}]$/,
-  ];
-  
-  return patterns.some(regex => regex.test(line));
+  if (isK8s) {
+    const k8sPatterns = [
+      /^\s*(apiVersion|kind|metadata|spec|status|selector|labels|containers|resources|ports|env|volumes|volumeMounts|template|replicas|rules|http|paths|backend|service|port|rules|data|stringData)\s*:/,
+      /^\s*-\s+(name|image|containerPort|hostPath|mountPath|claimName|port|protocol|path|host|value|configMapRef|secretRef)\b/,
+      /^\s*(kubectl|minikube|helm|docker|systemctl|cat|echo|cd|sudo|apt-get|curl|wget)\b/,
+      /^\s*#\s+.+$/,
+      /^\s*"""\s*$/,
+      /^\s*["'].*["']\s*$/,
+      /^[\[\{]\s*.*[\]\}]$/,
+      /:$/,
+    ];
+    return k8sPatterns.some(regex => regex.test(line));
+  } else {
+    const pythonPatterns = [
+      /^\s*(def|class|import|from|return|pass|try|except|finally|raise|assert|yield|print|input)\b/,
+      /^\s*(if|elif|else|for|while)\b.*:$/,
+      /^\s*[a-zA-Z_]\w*\s*(\+|-|\*|\/|%|\*\*|\/\/)?=\s*.+/,
+      /^[a-zA-Z_]\w*\.[a-zA-Z_]\w*\(.*\)$/,
+      /^\s*#\s+.+$/,
+      /^\s*"""\s*$/,
+      /^\s*["'].*["']\s*$/,
+      /^[\[\{]\s*.*[\]\}]$/,
+    ];
+    return pythonPatterns.some(regex => regex.test(line));
+  }
 }
 
-function splitInlineCodeStatements(line: string): string[] {
+function splitInlineCodeStatements(line: string, isK8s: boolean): string[] {
+  if (isK8s) return [line];
   if (line.includes('  ')) {
     const parts = line.split(/\s{2,}/).map(p => p.trim()).filter(Boolean);
-    const allCode = parts.every(part => isPythonCodeLine(part));
+    const allCode = parts.every(part => isCodeLine(part, isK8s));
     if (allCode && parts.length > 1) {
       return parts;
     }
@@ -366,7 +512,6 @@ function splitInlineCodeStatements(line: string): string[] {
   return [line];
 }
 
-// Inline markdown renderer for bold/italic code
 function formatInlineStyles(text: string, isNightMode: boolean): React.ReactNode {
   if (!text) return null;
   const parts = text.split(/(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*)/g);
@@ -391,16 +536,18 @@ function formatInlineStyles(text: string, isNightMode: boolean): React.ReactNode
 }
 
 // ---------------------------------------------------------------------
-// 🚀 MAIN PYTHON COURSE RENDERER COMPONENT
+// 🚀 MAIN LMS COURSE RENDERER COMPONENT
 // ---------------------------------------------------------------------
-export const PythonCourseRenderer: React.FC<PythonCourseRendererProps> = ({ content, isNightMode = false }) => {
+export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, isNightMode = false, courseId }) => {
+  const isK8s = courseId === 'kubernetes-complete-course-beginner-to-advanced';
+
   const blocks = useMemo(() => {
     let cleanContent = content
       .replace(/\r/g, '')
       .trim();
 
-    // Dynamically heal Module 1 to skip Page 5 Table of Contents (TOC) index page
-    if (cleanContent.includes('Module') && cleanContent.includes('15:')) {
+    // Dynamically heal Python Module 1 to skip Page 5 Table of Contents (TOC) index page
+    if (!isK8s && cleanContent.includes('Module') && cleanContent.includes('15:')) {
       const headingMatch = cleanContent.match(/(🐍\s*)?Module\s+1\s*:/i);
       if (headingMatch && headingMatch.index !== undefined) {
         cleanContent = cleanContent.slice(headingMatch.index);
@@ -467,7 +614,7 @@ export const PythonCourseRenderer: React.FC<PythonCourseRendererProps> = ({ cont
             flushTempText();
             continue;
           }
-          const isCode = isPythonCodeLine(trimmedLine);
+          const isCode = isCodeLine(trimmedLine, isK8s);
           const isBullet = trimmedLine.startsWith('●') || trimmedLine.startsWith('•') || trimmedLine.startsWith('-') || trimmedLine.startsWith('*');
           
           if (isCode || isBullet) {
@@ -480,7 +627,7 @@ export const PythonCourseRenderer: React.FC<PythonCourseRendererProps> = ({ cont
         flushTempText();
 
         let finalAnswer = processedAnswer;
-        if (currentQuestion.includes('Q9.') && currentQuestion.includes('type()') && finalAnswer.length === 0) {
+        if (!isK8s && currentQuestion.includes('Q9.') && currentQuestion.includes('type()') && finalAnswer.length === 0) {
           finalAnswer = ["It returns the type/class of an object."];
         }
 
@@ -523,7 +670,7 @@ export const PythonCourseRenderer: React.FC<PythonCourseRendererProps> = ({ cont
             }
           }
 
-          const isNextCode = nextNonEmptyLine && isPythonCodeLine(nextNonEmptyLine);
+          const isNextCode = nextNonEmptyLine && isCodeLine(nextNonEmptyLine, isK8s);
           
           if (currentCodeLines.length > 0 && isNextCode) {
             currentCodeLines.push('');
@@ -533,10 +680,11 @@ export const PythonCourseRenderer: React.FC<PythonCourseRendererProps> = ({ cont
               (nextNonEmptyLine.toLowerCase().includes('module ') && (nextNonEmptyLine.includes(':') || nextNonEmptyLine.includes('—'))) ||
               /^\d+\.\d+\s+/.test(nextNonEmptyLine) ||
               /^\s*Q\d+\.?\s+/.test(nextNonEmptyLine) ||
+              (isK8s && /^\s*(\d+)\.\s+([A-Z].*\?)\s*$/.test(nextNonEmptyLine)) ||
               /↓|→|↙|↘/.test(nextNonEmptyLine) ||
               nextNonEmptyLine.includes('|') ||
               (nextNonEmptyLine.includes('│') && nextNonEmptyLine.length > 5) ||
-              isPythonCodeLine(nextNonEmptyLine) ||
+              isCodeLine(nextNonEmptyLine, isK8s) ||
               nextNonEmptyLine.startsWith('●') || nextNonEmptyLine.startsWith('•') || nextNonEmptyLine.startsWith('- ') || nextNonEmptyLine.startsWith('* ') ||
               nextNonEmptyLine.includes('●') || nextNonEmptyLine.includes('•') ||
               nextNonEmptyLine.toLowerCase().startsWith('mistake ') || nextNonEmptyLine.toLowerCase().startsWith('warning:') || nextNonEmptyLine.toLowerCase().startsWith('note:');
@@ -560,8 +708,9 @@ export const PythonCourseRenderer: React.FC<PythonCourseRendererProps> = ({ cont
       const isHeading = trimmed.startsWith('#') || (trimmed.toLowerCase().includes('module ') && (trimmed.includes(':') || trimmed.includes('—')));
       const isSubheading = /^\d+\.\d+\s+/.test(trimmed);
       const questionMatch = trimmed.match(/^\s*Q(\d+)\.?\s+(.+)$/i);
+      const k8sQuestionMatch = isK8s ? trimmed.match(/^\s*(\d+)\.\s+([A-Z].*\?)\s*$/) : null;
 
-      if (isHeading || isSubheading || questionMatch) {
+      if (isHeading || isSubheading || questionMatch || k8sQuestionMatch) {
         flushAllAccumulators();
 
         if (isHeading) {
@@ -581,6 +730,8 @@ export const PythonCourseRenderer: React.FC<PythonCourseRendererProps> = ({ cont
           } else {
             currentQuestion = `Q${questionMatch[1]}. ${fullQText.trim()}`;
           }
+        } else if (k8sQuestionMatch) {
+          currentQuestion = `Q${k8sQuestionMatch[1]}. ${k8sQuestionMatch[2].trim()}`;
         }
         continue;
       }
@@ -609,8 +760,8 @@ export const PythonCourseRenderer: React.FC<PythonCourseRendererProps> = ({ cont
       }
 
       // Code detection
-      const inlineCodeStatements = splitInlineCodeStatements(trimmed);
-      if (isPythonCodeLine(trimmed) || inlineCodeStatements.length > 1) {
+      const inlineCodeStatements = splitInlineCodeStatements(trimmed, isK8s);
+      if (isCodeLine(trimmed, isK8s) || inlineCodeStatements.length > 1) {
         flushText();
         flushFlowchartBlock();
         flushTableBlock();
@@ -659,13 +810,13 @@ export const PythonCourseRenderer: React.FC<PythonCourseRendererProps> = ({ cont
     flushAllAccumulators();
 
     return parsedBlocks;
-  }, [content]);
+  }, [content, isK8s]);
 
   const topicVisualKey = useMemo(() => {
     const heading = blocks.find(b => b.type === 'heading')?.text || '';
     const subheading = blocks.find(b => b.type === 'subheading')?.text || '';
-    return getVisualKey(heading, subheading + ' ' + content.slice(0, 100));
-  }, [blocks, content]);
+    return getVisualKey(heading, subheading + ' ' + content.slice(0, 100), isK8s);
+  }, [blocks, content, isK8s]);
 
   return (
     <div className="space-y-6">
@@ -712,7 +863,7 @@ export const PythonCourseRenderer: React.FC<PythonCourseRendererProps> = ({ cont
                 <CodeBlock
                   key={idx}
                   code={block.code}
-                  language="python"
+                  language={isK8s ? 'yaml' : 'python'}
                 />
               );
             case 'flowchart':
@@ -738,6 +889,7 @@ export const PythonCourseRenderer: React.FC<PythonCourseRendererProps> = ({ cont
                   question={block.question}
                   answer={block.answer}
                   isNightMode={isNightMode}
+                  isK8s={isK8s}
                 />
               );
             case 'bullet':

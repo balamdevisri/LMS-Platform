@@ -2,7 +2,7 @@ import React from 'react';
 import { CodeBlock } from './CodeBlock';
 import { Sparkles, CheckCircle2, FileText } from 'lucide-react';
 
-import { PythonCourseRenderer } from './PythonCourseRenderer';
+import { LmsCourseRenderer } from './LmsCourseRenderer';
 
 interface MarkdownRendererProps {
   content: string;
@@ -96,8 +96,8 @@ function cleanMarkdownNewlines(text: string): string {
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isNightMode = false, courseId }) => {
   if (!content) return null;
 
-  if (courseId === 'python-through-oops-course-id') {
-    return <PythonCourseRenderer content={content} isNightMode={isNightMode} />;
+  if (courseId === 'python-through-oops-course-id' || courseId === 'kubernetes-complete-course-beginner-to-advanced') {
+    return <LmsCourseRenderer content={content} isNightMode={isNightMode} courseId={courseId} />;
   }
 
   // Split lines to parse markdown blocks after cleaning newlines
