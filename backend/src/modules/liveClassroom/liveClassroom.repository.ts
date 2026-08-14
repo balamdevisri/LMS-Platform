@@ -8,14 +8,18 @@ export interface ILiveClassData {
   courseName?: string;
   instructorId: string;
   instructorName?: string;
+  instructorAvatar?: string;
   title: string;
   description: string;
+  youtubeVideoId?: string;
   scheduledAt?: string;
   startTime: string;
+  startedAt?: string;
   endTime?: string;
+  endedAt?: string;
   duration: number;
-  status: 'scheduled' | 'live' | 'ended' | 'cancelled' | 'Scheduled' | 'Live' | 'Completed' | 'Cancelled' | 'Draft';
-  meetingProvider?: 'kaizenq' | 'google_meet' | 'zoom' | 'teams';
+  status: 'scheduled' | 'live' | 'ended' | 'cancelled' | 'Scheduled' | 'Live' | 'Completed' | 'Cancelled' | 'Draft' | 'SCHEDULED' | 'LIVE' | 'ENDED' | 'CANCELLED';
+  meetingProvider?: 'kaizenq' | 'google_meet' | 'zoom' | 'teams' | 'youtube';
   meetingRoomId?: string;
   meetingUrl: string;
   recordingUrl?: string;
@@ -105,6 +109,35 @@ export interface IResourceData {
   createdAt: string;
 }
 
+export interface IAnnouncementData {
+  id?: string;
+  classId: string;
+  authorId: string;
+  authorName: string;
+  authorRole?: 'admin' | 'instructor';
+  message: string;
+  createdAt: string;
+}
+
+export interface IQuizData {
+  id?: string;
+  classId: string;
+  question: string;
+  options: string[];
+  correctAnswer: string;
+  timerSeconds?: number;
+  points?: number;
+  active: boolean;
+  submissions?: Array<{
+    userId: string;
+    userName: string;
+    answer: string;
+    isCorrect: boolean;
+    submittedAt: string;
+  }>;
+  createdAt: string;
+}
+
 // In-Memory Fallback Store
 const memoryDb = {
   liveClasses: new Map<string, ILiveClassData>(),
@@ -112,32 +145,64 @@ const memoryDb = {
   chat: new Map<string, IChatMessageData[]>(),
   questions: new Map<string, IQuestionData[]>(),
   polls: new Map<string, IPollData[]>(),
+  quizzes: new Map<string, IQuizData[]>(),
   notes: new Map<string, INoteData[]>(),
   resources: new Map<string, IResourceData[]>(),
+  announcements: new Map<string, IAnnouncementData[]>(),
 };
 
 // Seed initial memory store
 const seedMemory = () => {
-  const sample: ILiveClassData = {
+  const sample1: ILiveClassData = {
+    id: 'class_react_101_live',
+    classId: 'class_react_101_live',
+    courseId: 'react-101',
+    courseName: 'React & Next.js AI Masterclass',
+    instructorId: 'inst_kaizen',
+    instructorName: 'Prof. Manoj Acharya',
+    instructorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=256',
+    title: 'React Fundamentals - Live Class 01',
+    description: 'Interactive deep dive into React Component Architecture, State Management, and Next.js App Router hooks.',
+    youtubeVideoId: 'bMknfKXIFA8',
+    scheduledAt: new Date().toISOString(),
+    startTime: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
+    startedAt: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
+    duration: 90,
+    status: 'LIVE',
+    meetingProvider: 'youtube',
+    meetingRoomId: 'kaizenq-react-101-live',
+    meetingUrl: '/student/live-class/class_react_101_live',
+    recordingUrl: '',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  const sample2: ILiveClassData = {
     id: 'class_linux_101_live',
     classId: 'class_linux_101_live',
     courseId: 'course_linux_101',
     courseName: 'Linux Kernel & System Architecture',
     instructorId: 'inst_kaizen',
     instructorName: 'Prof. Manoj Acharya',
+    instructorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=256',
     title: 'Linux Kernel Monolithic Architecture & Memory Management',
     description: 'Deep dive into virtual memory management, page tables, and process schedulers.',
+    youtubeVideoId: 'jfKfPfyJRdk',
+    scheduledAt: new Date().toISOString(),
     startTime: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+    startedAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
     duration: 90,
-    status: 'live',
-    meetingProvider: 'kaizenq',
+    status: 'LIVE',
+    meetingProvider: 'youtube',
     meetingRoomId: 'kaizenq-linux-kernel-101',
-    meetingUrl: '/live-classroom/room/live_kernel_mem_1',
+    meetingUrl: '/student/live-class/class_linux_101_live',
     recordingUrl: '',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
-  memoryDb.liveClasses.set(sample.id, sample);
+
+  memoryDb.liveClasses.set(sample1.id, sample1);
+  memoryDb.liveClasses.set(sample2.id, sample2);
 };
 seedMemory();
 
@@ -154,16 +219,20 @@ export class LiveClassroomRepository {
       courseName: data.courseName || 'Enterprise Technical Track',
       instructorId: data.instructorId || 'inst_default',
       instructorName: data.instructorName || 'Lead Instructor',
+      instructorAvatar: data.instructorAvatar || '',
       title: data.title || 'Live Classroom Session',
       description: data.description || '',
+      youtubeVideoId: data.youtubeVideoId || '',
       scheduledAt: data.scheduledAt || data.startTime || now,
-      startTime: data.startTime || now,
+      startTime: data.startTime || data.scheduledAt || now,
+      startedAt: data.startedAt || (data.status === 'live' || data.status === 'LIVE' ? now : undefined),
       endTime: data.endTime,
+      endedAt: data.endedAt,
       duration: data.duration || 60,
       status: (data.status as any) || 'scheduled',
-      meetingProvider: data.meetingProvider || 'kaizenq',
+      meetingProvider: data.meetingProvider || (data.youtubeVideoId ? 'youtube' : 'kaizenq'),
       meetingRoomId: data.meetingRoomId || `kaizenq-room-${Date.now().toString().slice(-4)}`,
-      meetingUrl: data.meetingUrl || `/live-classroom/room/${classId}`,
+      meetingUrl: data.meetingUrl || `/student/live-class/${classId}`,
       recordingUrl: data.recordingUrl || '',
       notesUrl: data.notesUrl || '',
       maxParticipants: data.maxParticipants || 100,
@@ -641,6 +710,181 @@ export class LiveClassroomRepository {
       }
     }
     return memoryDb.resources.get(classId) || [];
+  }
+
+  // --- 8. Live Announcements ---
+
+  public async createAnnouncement(data: IAnnouncementData): Promise<IAnnouncementData> {
+    const annId = data.id || `ann_${Date.now()}`;
+    const payload: IAnnouncementData = {
+      ...data,
+      id: annId,
+      createdAt: data.createdAt || new Date().toISOString(),
+    };
+
+    if (isFirebaseAdminInitialized()) {
+      try {
+        await db.collection('liveClasses').doc(data.classId).collection('announcements').doc(annId).set(payload);
+      } catch (err) {
+        logger.error('[REPO] Failed to save announcement in Firestore:', err);
+      }
+    }
+
+    const existing = memoryDb.announcements.get(data.classId) || [];
+    existing.unshift(payload);
+    memoryDb.announcements.set(data.classId, existing);
+    return payload;
+  }
+
+  public async getAnnouncements(classId: string): Promise<IAnnouncementData[]> {
+    if (isFirebaseAdminInitialized()) {
+      try {
+        const snap = await db.collection('liveClasses').doc(classId).collection('announcements').orderBy('createdAt', 'desc').get();
+        if (!snap.empty) {
+          return snap.docs.map((d) => d.data() as IAnnouncementData);
+        }
+      } catch (err) {
+        logger.error('[REPO] Failed to get announcements from Firestore:', err);
+      }
+    }
+    return memoryDb.announcements.get(classId) || [];
+  }
+
+  public async deleteAnnouncement(classId: string, annId: string): Promise<boolean> {
+    if (isFirebaseAdminInitialized()) {
+      try {
+        await db.collection('liveClasses').doc(classId).collection('announcements').doc(annId).delete();
+      } catch (err) {
+        logger.error('[REPO] Failed to delete announcement from Firestore:', err);
+      }
+    }
+    const current = memoryDb.announcements.get(classId) || [];
+    const filtered = current.filter((a) => a.id !== annId);
+    memoryDb.announcements.set(classId, filtered);
+    return true;
+  }
+
+  // --- 9. Live Interactive Quizzes ---
+
+  public async createQuiz(data: Partial<IQuizData>): Promise<IQuizData> {
+    const quizId = data.id || `quiz_${Date.now()}`;
+    const payload: IQuizData = {
+      id: quizId,
+      classId: data.classId || '',
+      question: data.question || '',
+      options: data.options || [],
+      correctAnswer: data.correctAnswer || '',
+      timerSeconds: data.timerSeconds || 30,
+      points: data.points || 10,
+      active: data.active ?? true,
+      submissions: data.submissions || [],
+      createdAt: data.createdAt || new Date().toISOString(),
+    };
+
+    if (isFirebaseAdminInitialized()) {
+      try {
+        await db.collection('liveClasses').doc(payload.classId).collection('quizzes').doc(quizId).set(payload);
+      } catch (err) {
+        logger.error('[REPO] Failed to save quiz in Firestore:', err);
+      }
+    }
+
+    const existing = memoryDb.quizzes.get(payload.classId) || [];
+    existing.unshift(payload);
+    memoryDb.quizzes.set(payload.classId, existing);
+    return payload;
+  }
+
+  public async getQuizzes(classId: string): Promise<IQuizData[]> {
+    if (isFirebaseAdminInitialized()) {
+      try {
+        const snap = await db.collection('liveClasses').doc(classId).collection('quizzes').orderBy('createdAt', 'desc').get();
+        if (!snap.empty) {
+          return snap.docs.map((d) => d.data() as IQuizData);
+        }
+      } catch (err) {
+        logger.error('[REPO] Failed to get quizzes from Firestore:', err);
+      }
+    }
+    return memoryDb.quizzes.get(classId) || [];
+  }
+
+  public async submitQuizAnswer(
+    classId: string,
+    quizId: string,
+    submission: { userId: string; userName: string; answer: string }
+  ): Promise<{ success: boolean; isCorrect: boolean; correctAnswer: string; points: number }> {
+    let targetQuiz: IQuizData | undefined;
+    const currentList = memoryDb.quizzes.get(classId) || [];
+    const idx = currentList.findIndex((q) => q.id === quizId);
+
+    if (idx >= 0) {
+      targetQuiz = currentList[idx];
+    } else if (isFirebaseAdminInitialized()) {
+      const snap = await db.collection('liveClasses').doc(classId).collection('quizzes').doc(quizId).get().catch(() => null);
+      if (snap && snap.exists) {
+        targetQuiz = snap.data() as IQuizData;
+      }
+    }
+
+    if (!targetQuiz) {
+      throw new Error('Quiz not found.');
+    }
+
+    const isCorrect = String(targetQuiz.correctAnswer).trim().toLowerCase() === String(submission.answer).trim().toLowerCase();
+    const subRecord = {
+      userId: submission.userId,
+      userName: submission.userName,
+      answer: submission.answer,
+      isCorrect,
+      submittedAt: new Date().toISOString(),
+    };
+
+    targetQuiz.submissions = targetQuiz.submissions || [];
+    targetQuiz.submissions = targetQuiz.submissions.filter((s) => s.userId !== submission.userId);
+    targetQuiz.submissions.push(subRecord);
+
+    if (isFirebaseAdminInitialized()) {
+      try {
+        await db.collection('liveClasses').doc(classId).collection('quizzes').doc(quizId).set(targetQuiz, { merge: true });
+      } catch (err) {
+        logger.error('[REPO] Failed to update quiz submission in Firestore:', err);
+      }
+    }
+
+    if (idx >= 0) {
+      currentList[idx] = targetQuiz;
+      memoryDb.quizzes.set(classId, currentList);
+    }
+
+    return {
+      success: true,
+      isCorrect,
+      correctAnswer: targetQuiz.correctAnswer,
+      points: isCorrect ? (targetQuiz.points || 10) : 0,
+    };
+  }
+
+  public async toggleQuizActive(classId: string, quizId: string, active: boolean): Promise<IQuizData | null> {
+    const currentList = memoryDb.quizzes.get(classId) || [];
+    const idx = currentList.findIndex((q) => q.id === quizId);
+    let updated: IQuizData | null = null;
+
+    if (idx >= 0) {
+      currentList[idx].active = active;
+      updated = currentList[idx];
+      memoryDb.quizzes.set(classId, currentList);
+    }
+
+    if (isFirebaseAdminInitialized()) {
+      try {
+        await db.collection('liveClasses').doc(classId).collection('quizzes').doc(quizId).update({ active });
+      } catch (err) {
+        logger.error('[REPO] Failed to toggle quiz active in Firestore:', err);
+      }
+    }
+
+    return updated;
   }
 }
 

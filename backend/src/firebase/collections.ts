@@ -1,10 +1,10 @@
 import { db, isFirebaseAdminInitialized } from './index';
-import * as admin from 'firebase-admin';
+import { CollectionReference } from 'firebase-admin/firestore';
 
 /**
  * Safely retrieves a Firestore collection reference.
  */
-export const getCollection = (collectionName: string): admin.firestore.CollectionReference => {
+export const getCollection = (collectionName: string): CollectionReference => {
   return db.collection(collectionName);
 };
 

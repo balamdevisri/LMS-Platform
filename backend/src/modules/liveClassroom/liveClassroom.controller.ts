@@ -67,12 +67,31 @@ export class LiveClassroomController {
   public async getClassById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const classId = (req.params.classId || req.params.id) as string;
-      const liveClass = await liveClassroomService.getLiveClassById(classId);
-      if (!liveClass) {
-        res.status(404).json({ success: false, error: 'Live Class session not found' });
+      const user = (req as any).user || {
+        uid: (req.query.userId as string) || (req.headers['x-user-id'] as string) || 'student_guest',
+        role: (req.query.userRole as string) || (req.headers['x-user-role'] as string) || 'student',
+        email: (req.query.userEmail as string) || (req.headers['x-user-email'] as string) || '',
+      };
+
+      const result = await liveClassroomService.getLiveClassForStudent(classId, user);
+
+      if (!result.authorized) {
+        if (result.error === 'Live Class session not found') {
+          res.status(404).json({ success: false, error: result.error });
+          return;
+        }
+        res.status(403).json({
+          success: false,
+          error: result.error || 'Please enroll in this course to access the live class.',
+        });
         return;
       }
-      res.json({ success: true, data: liveClass });
+
+      res.json({
+        success: true,
+        liveClass: result.liveClass,
+        data: result.liveClass,
+      });
     } catch (err) {
       next(err);
     }
@@ -112,7 +131,7 @@ export class LiveClassroomController {
     try {
       const classId = (req.params.classId || req.params.id) as string;
       const liveClass = await liveClassroomService.startLiveClass(classId);
-      res.json({ success: true, message: 'Class set to live status', data: liveClass });
+      res.json({ success: true, message: 'Class set to live status', data: liveClass, liveClass });
     } catch (err: any) {
       res.status(400).json({ success: false, error: err.message });
     }
@@ -122,7 +141,122 @@ export class LiveClassroomController {
     try {
       const classId = (req.params.classId || req.params.id) as string;
       const liveClass = await liveClassroomService.endLiveClass(classId);
-      res.json({ success: true, message: 'Class session ended', data: liveClass });
+      res.json({ success: true, message: 'Class session ended', data: liveClass, liveClass });
+    } catch (err: any) {
+      res.status(400).json({ success: false, error: err.message });
+    }
+  }
+
+  public async cancelClass(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const classId = (req.params.classId || req.params.id) as string;
+      const liveClass = await liveClassroomService.cancelLiveClass(classId);
+      res.json({ success: true, message: 'Class cancelled', data: liveClass, liveClass });
+    } catch (err: any) {
+      res.status(400).json({ success: false, error: err.message });
+    }
+  }
+
+  public async updateYoutube(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const classId = (req.params.classId || req.params.id) as string;
+      const { youtubeVideoId } = req.body;
+      const liveClass = await liveClassroomService.updateYoutubeVideoId(classId, youtubeVideoId);
+      res.json({ success: true, message: 'YouTube stream ID updated', data: liveClass, liveClass });
+    } catch (err: any) {
+      res.status(400).json({ success: false, error: err.message });
+    }
+  }
+
+  // Announcements
+  public async getAnnouncements(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const classId = (req.params.classId || req.params.id) as string;
+      const list = await liveClassroomService.getAnnouncements(classId);
+      res.json({ success: true, data: list });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  public async createAnnouncement(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const classId = (req.params.classId || req.params.id) as string;
+      const user = (req as any).user || {};
+      const { message, authorName } = req.body;
+      if (!message || !message.trim()) {
+        res.status(400).json({ success: false, error: 'Announcement message is required.' });
+        return;
+      }
+      const announcement = await liveClassroomService.createAnnouncement({
+        classId,
+        authorId: user.uid || 'admin_user',
+        authorName: authorName || user.email?.split('@')[0] || 'Instructor / Admin',
+        authorRole: user.role === 'admin' ? 'admin' : 'instructor',
+        message: message.trim(),
+      });
+      res.status(201).json({ success: true, data: announcement });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  public async deleteAnnouncement(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const classId = (req.params.classId || req.params.id) as string;
+      const annId = req.params.annId as string;
+      const result = await liveClassroomService.deleteAnnouncement(classId, annId);
+      res.json({ success: true, deleted: result });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  // Quizzes
+  public async getQuizzes(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const classId = (req.params.classId || req.params.id) as string;
+      const list = await liveClassroomService.getQuizzes(classId);
+      res.json({ success: true, data: list });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  public async createQuiz(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const classId = (req.params.classId || req.params.id) as string;
+      const quiz = await liveClassroomService.createQuiz({ ...req.body, classId });
+      res.status(201).json({ success: true, data: quiz });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  public async submitQuizAnswer(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const classId = (req.params.classId || req.params.id) as string;
+      const quizId = (req.params.quizId || req.body.quizId) as string;
+      const user = (req as any).user || {};
+      const { answer, userName } = req.body;
+      const result = await liveClassroomService.submitQuizAnswer(classId, quizId, {
+        userId: user.uid || req.body.userId || 'student_guest',
+        userName: userName || user.email?.split('@')[0] || 'Student',
+        answer,
+      });
+      res.json({ success: true, data: result });
+    } catch (err: any) {
+      res.status(400).json({ success: false, error: err.message });
+    }
+  }
+
+  public async toggleQuizActive(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const classId = (req.params.classId || req.params.id) as string;
+      const quizId = (req.params.quizId || req.body.quizId) as string;
+      const { active } = req.body;
+      const result = await liveClassroomService.toggleQuizActive(classId, quizId, active);
+      res.json({ success: true, data: result });
     } catch (err: any) {
       res.status(400).json({ success: false, error: err.message });
     }

@@ -104,7 +104,18 @@ export const DashboardLayout: React.FC = () => {
     { name: 'Courses', href: '/admin/courses', icon: BookOpen },
     { name: 'Students', href: '/admin/students', icon: UserCheck },
     { name: 'Instructors', href: '/admin/instructors', icon: GraduationCap },
-    { name: 'Live Classroom', href: '/admin/live-classroom', icon: Video },
+    {
+      name: 'Live Classes',
+      href: '/admin/live-classes',
+      icon: Video,
+      subItems: [
+        { name: 'All Live Classes', href: '/admin/live-classes' },
+        { name: 'Scheduled', href: '/admin/live-classes?tab=scheduled' },
+        { name: 'Live Now', href: '/admin/live-classes?tab=live' },
+        { name: 'Completed', href: '/admin/live-classes?tab=completed' },
+        { name: 'Create Live Class', href: '/admin/live-classes/create' },
+      ],
+    },
     { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
     { name: 'Settings', href: '/admin/settings', icon: Settings },
   ];
@@ -117,7 +128,7 @@ export const DashboardLayout: React.FC = () => {
       items: [
         { name: 'Overview Dashboard', href: '/dashboard', icon: LayoutDashboard },
         { name: 'Course Management', href: '/admin/courses', icon: BookOpen },
-        { name: 'Live Classroom', href: '/admin/live-classroom', icon: Video },
+        { name: 'Live Classes', href: '/admin/live-classes', icon: Video },
         { name: 'Mentor Analytics', href: '/admin/live-classroom/mentor-analytics', icon: BarChart3 },
         { name: 'Student Roster', href: '/admin/students', icon: UserCheck },
       ],
@@ -232,24 +243,58 @@ export const DashboardLayout: React.FC = () => {
 
           <nav className="px-2.5 py-3 overflow-y-auto flex-1 space-y-4 scrollbar-thin scrollbar-thumb-slate-100 dark:scrollbar-thumb-zinc-800">
             {isAdmin ? (
-              <div className="space-y-0.5">
+              <div className="space-y-1">
                 {adminNavItems.map((item) => {
                   const Icon = item.icon;
+                  const isParentActive = location.pathname.startsWith(item.href);
                   const isActive = location.pathname === item.href;
                   return (
-                    <Link
-                      key={item.name}
-                      to={item.href}
-                      onClick={() => setSidebarOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-xs transition-all ${
-                        isActive
-                          ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-                          : 'hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100'
-                      }`}
-                    >
-                      {Icon ? <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400 dark:text-zinc-500'}`} /> : null}
-                      <span>{item.name}</span>
-                    </Link>
+                    <div key={item.name} className="space-y-0.5">
+                      <Link
+                        to={item.href}
+                        onClick={() => setSidebarOpen(false)}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-xs transition-all ${
+                          isActive || (isParentActive && !item.subItems)
+                            ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                            : isParentActive
+                            ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-bold'
+                            : 'hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100'
+                        }`}
+                      >
+                        {Icon ? <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : isParentActive ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-zinc-500'}`} /> : null}
+                        <span className="flex-1">{item.name}</span>
+                        {item.subItems && (
+                          <span className="text-[10px] text-blue-500 font-mono bg-blue-100/60 dark:bg-blue-900/40 px-1.5 py-0.5 rounded">
+                            {item.subItems.length}
+                          </span>
+                        )}
+                      </Link>
+
+                      {/* Sub Navigation Items */}
+                      {item.subItems && isParentActive && (
+                        <div className="pl-7 pr-1 py-1 space-y-0.5 border-l-2 border-blue-200 dark:border-blue-800/60 ml-4 animate-in fade-in duration-200">
+                          {item.subItems.map((sub) => {
+                            const isSubActive =
+                              location.pathname + location.search === sub.href ||
+                              (sub.href === '/admin/live-classes' && location.pathname === '/admin/live-classes' && !location.search);
+                            return (
+                              <Link
+                                key={sub.name}
+                                to={sub.href}
+                                onClick={() => setSidebarOpen(false)}
+                                className={`block px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-colors ${
+                                  isSubActive
+                                    ? 'bg-blue-600 text-white shadow-xs font-bold'
+                                    : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-zinc-800/60'
+                                }`}
+                              >
+                                {sub.name}
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
               </div>

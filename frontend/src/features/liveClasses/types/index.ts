@@ -1,4 +1,4 @@
-export type LiveStatus = 'Draft' | 'Scheduled' | 'Live' | 'Completed' | 'Cancelled';
+export type LiveStatus = 'Draft' | 'Scheduled' | 'Live' | 'Completed' | 'Cancelled' | 'draft' | 'scheduled' | 'live' | 'completed' | 'cancelled' | 'SCHEDULED' | 'LIVE' | 'ENDED' | 'CANCELLED';
 export const LiveStatus = {
   Draft: 'Draft' as const,
   Scheduled: 'Scheduled' as const,
@@ -7,27 +7,35 @@ export const LiveStatus = {
   Cancelled: 'Cancelled' as const,
 };
 
-export type MeetingProvider = 'KAIZENQ' | 'GOOGLE_MEET' | 'ZOOM' | 'TEAMS';
+export type MeetingProvider = 'KAIZENQ' | 'GOOGLE_MEET' | 'ZOOM' | 'TEAMS' | 'YOUTUBE' | 'kaizenq' | 'google_meet' | 'zoom' | 'teams' | 'youtube';
 export const MeetingProvider = {
   KAIZENQ: 'KAIZENQ' as const,
   GOOGLE_MEET: 'GOOGLE_MEET' as const,
   ZOOM: 'ZOOM' as const,
   TEAMS: 'TEAMS' as const,
+  YOUTUBE: 'YOUTUBE' as const,
 };
 
 export interface LiveClass {
+  id?: string;
   classId: string;
   title: string;
   description: string;
+  youtubeVideoId?: string;
   courseId: string;
   courseName: string;
-  moduleId: string;
-  moduleTitle: string;
-  lessonId: string;
-  lessonTitle: string;
+  moduleId?: string;
+  moduleTitle?: string;
+  lessonId?: string;
+  lessonTitle?: string;
   instructorId: string;
   instructorName: string;
   instructorAvatar?: string;
+  instructor?: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
   branch?: string;
   semester?: string;
   year?: string;
@@ -38,8 +46,11 @@ export interface LiveClass {
   meetingUrl: string;
   banner?: string;
   thumbnail?: string;
+  scheduledAt?: string;
   startTime: string; // ISO 8601
-  endTime: string;   // ISO 8601
+  startedAt?: string;
+  endTime?: string;   // ISO 8601
+  endedAt?: string;
   duration: number;  // Minutes
   status: LiveStatus;
   isRecordingEnabled: boolean;

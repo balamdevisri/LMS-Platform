@@ -5,13 +5,17 @@ export interface ILiveClass extends Document {
   title: string;
   courseId: string;
   courseName: string;
-  moduleName: string;
+  moduleName?: string;
   instructorId: string;
   instructorName: string;
-  status: 'scheduled' | 'running' | 'completed';
-  scheduledTime: Date;
+  youtubeVideoId?: string;
+  status: 'scheduled' | 'running' | 'live' | 'completed' | 'ended' | 'cancelled';
+  scheduledTime?: Date;
+  scheduledAt?: Date;
   startTime?: Date;
+  startedAt?: Date;
   endTime?: Date;
+  endedAt?: Date;
   chatEnabled: boolean;
   quizEnabled: boolean;
   pollEnabled: boolean;
@@ -21,14 +25,18 @@ export interface ILiveClass extends Document {
 const LiveClassSchema = new Schema<ILiveClass>({
   title: { type: String, required: true },
   courseId: { type: String, required: true },
-  courseName: { type: String, required: true },
-  moduleName: { type: String, required: true },
+  courseName: { type: String, default: '' },
+  moduleName: { type: String, default: '' },
   instructorId: { type: String, required: true },
   instructorName: { type: String, required: true },
-  status: { type: String, enum: ['scheduled', 'running', 'completed'], default: 'scheduled' },
-  scheduledTime: { type: Date, required: true },
+  youtubeVideoId: { type: String, default: '' },
+  status: { type: String, enum: ['scheduled', 'running', 'live', 'completed', 'ended', 'cancelled'], default: 'scheduled' },
+  scheduledTime: { type: Date },
+  scheduledAt: { type: Date },
   startTime: { type: Date },
+  startedAt: { type: Date },
   endTime: { type: Date },
+  endedAt: { type: Date },
   chatEnabled: { type: Boolean, default: true },
   quizEnabled: { type: Boolean, default: true },
   pollEnabled: { type: Boolean, default: true },

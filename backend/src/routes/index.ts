@@ -15,6 +15,8 @@ import adminRoutes from './admin.routes';
 import courseRoutesDirect from './course.routes';
 import liveClassroomRoutes from '../modules/liveClassroom/liveClassroom.routes';
 import certificateRoutes from './certificateRoutes';
+import paymentRoutes from '../modules/payments/payment.routes';
+import enrollmentRoutes from '../modules/enrollments/enrollment.routes';
 import { verifyFirebaseToken, requireRole } from '../middleware/auth.middleware';
 
 const router = Router();
@@ -40,6 +42,8 @@ router.use('/ai-lms', aiLmsRoutes);
 router.use('/sandbox', sandboxRoutes);
 router.use('/admin', adminRoutes);
 router.use('/certificates', certificateRoutes);
+router.use('/payments', paymentRoutes);
+router.use('/enrollments', enrollmentRoutes);
 router.use('/live-classroom', liveClassroomRoutes);
 router.use('/live-classes', liveClassroomRoutes);
 

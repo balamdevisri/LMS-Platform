@@ -1,4 +1,4 @@
-import * as admin from 'firebase-admin';
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { ApiError } from './ApiError';
 import logger from '../config/logger';
 
@@ -7,9 +7,9 @@ import logger from '../config/logger';
  */
 export const toFirestoreDateTime = (date?: Date): any => {
   if (!date) {
-    return admin.firestore.FieldValue.serverTimestamp();
+    return FieldValue.serverTimestamp();
   }
-  return admin.firestore.Timestamp.fromDate(date);
+  return Timestamp.fromDate(date);
 };
 
 /**
@@ -26,7 +26,7 @@ export const fromFirestoreDateTime = (timestamp: any): Date => {
     return timestamp;
   }
   if (timestamp._seconds !== undefined) {
-    return new admin.firestore.Timestamp(timestamp._seconds, timestamp._nanoseconds || 0).toDate();
+    return new Timestamp(timestamp._seconds, timestamp._nanoseconds || 0).toDate();
   }
   if (typeof timestamp === 'string' || typeof timestamp === 'number') {
     return new Date(timestamp);
@@ -61,7 +61,7 @@ export const toDocument = <T extends Record<string, any>>(data: T): Record<strin
       delete doc[key];
     } else if (val !== null && typeof val === 'object') {
       // Handle nested objects recursively (e.g. instructor)
-      if (!(val instanceof admin.firestore.FieldValue)) {
+      if (!(val instanceof FieldValue)) {
         doc[key] = toDocument(val);
       }
     }

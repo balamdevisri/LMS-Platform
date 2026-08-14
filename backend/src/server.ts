@@ -7,7 +7,7 @@ import http from 'http';
 import { Server as SocketServer } from 'socket.io';
 import { connectMongo } from './config/mongo';
 import { connectRedis } from './config/redis';
-import { setupLiveClassroomSockets } from './modules/liveClassroom/liveClassroom.sockets';
+import { setupSocketServer } from './socket/socket.server';
 
 const PORT = Number(process.env.PORT) || Number(env.PORT) || 5000;
 
@@ -33,7 +33,7 @@ const io = new SocketServer(server, {
   pingTimeout: 60000,
 });
 
-setupLiveClassroomSockets(io);
+setupSocketServer(io);
 
 server.listen(PORT, async () => {
   logger.info(`🚀 KaizenQ AI LMS Backend initialized in [${env.NODE_ENV}] mode.`);

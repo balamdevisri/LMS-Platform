@@ -6,6 +6,7 @@ import { courseService } from '@/services/courseService';
 import { toast } from 'sonner';
 import { CourseDetailsPage } from '@/components/learning/CourseDetailsPage';
 import { InCourseLearningView } from '@/components/learning/InCourseLearningView';
+import { PaymentCheckoutModal } from '@/components/payment/PaymentCheckoutModal';
 
 const mapCourseModulesToPlayerModules = (modules?: any[]): any[] => {
   if (!modules) return [];
@@ -87,6 +88,7 @@ export const CourseView: React.FC = () => {
   });
 
   const [isLearningMode, setIsLearningMode] = useState(() => searchParams.get('mode') === 'learn');
+  const [checkoutModalOpen, setCheckoutModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
@@ -99,28 +101,24 @@ export const CourseView: React.FC = () => {
     }
   }, [targetCourseId, userId]);
 
-  const handleEnroll = async () => {
+  const handleEnrollClick = () => {
     if (!user) {
       toast.warning('🔒 Please sign in as a student to enroll in this course!');
       navigate('/auth/login', { state: { from: location } });
       return;
     }
-    if (!dynamicCourse) return;
-    try {
-      const res = await courseService.enrollCourse(targetCourseId, userId, {
-        email: user.email || undefined,
+    setCheckoutModalOpen(true);
+  };
+
+  const handleEnrollSuccess = (_enrollmentRecord?: any) => {
+    setIsEnrolled(true);
+    // Sync local store
+    if (dynamicCourse) {
+      courseService.enrollCourse(targetCourseId, userId, {
+        email: user?.email || undefined,
         name: studentName,
-        courseTitle: dynamicCourse.title || 'Full Stack Track',
+        courseTitle: dynamicCourse.title || 'Course Track',
       });
-      if (res.success) {
-        toast.success(`🎉 Enrolled in course! Confirmation email sent to your inbox.`);
-        setIsEnrolled(true);
-        setIsLearningMode(true);
-        setSearchParams({ mode: 'learn' });
-        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-      }
-    } catch (e) {
-      toast.error('Failed to enroll in course.');
     }
   };
 
@@ -131,7 +129,7 @@ export const CourseView: React.FC = () => {
       return;
     }
     if (!isEnrolled) {
-      handleEnroll();
+      handleEnrollClick();
       return;
     }
     setIsLearningMode(true);
@@ -283,11 +281,32 @@ export const CourseView: React.FC = () => {
   }
 
   return (
-    <CourseDetailsPage
-      course={activeCourseData}
-      onStartLearning={handleStartLearning}
-      isEnrolled={isEnrolled}
-      onEnroll={handleEnroll}
-    />
+    <>
+      <CourseDetailsPage
+        course={activeCourseData}
+        onStartLearning={handleStartLearning}
+        isEnrolled={isEnrolled}
+        onEnroll={handleEnrollClick}
+      />
+
+      <PaymentCheckoutModal
+        isOpen={checkoutModalOpen}
+        onClose={() => setCheckoutModalOpen(false)}
+        course={{
+          id: targetCourseId,
+          title: activeCourseData.title,
+          price: (dynamicCourse as any)?.price ?? 999,
+          instructor: { name: activeCourseData.instructor },
+          duration: activeCourseData.duration,
+        }}
+        studentInfo={{
+          uid: userId,
+          email: user?.email || undefined,
+          name: studentName,
+        }}
+        onPaymentSuccess={handleEnrollSuccess}
+        onNavigateToLiveClass={() => navigate('/admin/live-classes')}
+      />
+    </>
   );
 };

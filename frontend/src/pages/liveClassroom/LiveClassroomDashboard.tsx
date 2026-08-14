@@ -450,8 +450,8 @@ export const LiveClassroomDashboard: React.FC = () => {
                         </div>
                       </>
                     ) : (
-                      <button onClick={() => navigate(`/live-classroom/room/${c.id}`)} className={`w-full py-3 px-4 rounded-2xl font-extrabold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all ${isLiveNow ? 'bg-rose-600 hover:bg-rose-700 text-white animate-bounce shadow-rose-600/30' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/30'}`}>
-                        <Play className="w-4 h-4 fill-current" /><span>{isLiveNow ? '🔴 JOIN LIVE ROOM NOW' : 'ENTER CLASSROOM'}</span>
+                      <button onClick={() => navigate(`/student/live-class/${c.id || c.classId}`)} className={`w-full py-3 px-4 rounded-2xl font-extrabold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all ${isLiveNow ? 'bg-rose-600 hover:bg-rose-700 text-white animate-bounce shadow-rose-600/30' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/30'}`}>
+                        <Play className="w-4 h-4 fill-current" /><span>{isLiveNow ? '🔴 JOIN LIVE STREAM NOW' : 'ENTER LIVE CLASSROOM'}</span>
                       </button>
                     )}
                   </div>
