@@ -46,51 +46,15 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
       {/* 1. OFFICIAL TECH EMBLEM SYMBOL (LEFT) */}
       <div className={`relative flex items-center justify-center shrink-0 ${symbolClass}`}>
         {/* Glow backdrop */}
-        <div className="absolute inset-0 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-400 opacity-85 blur-[3px] group-hover:blur-[6px] group-hover:opacity-100 transition-all duration-300" />
+        <div className="absolute inset-0 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-400 opacity-60 blur-md group-hover:blur-lg group-hover:opacity-90 transition-all duration-300" />
 
-        {/* Emblem SVG */}
-        <div className="relative w-full h-full rounded-xl bg-slate-950 border border-white/25 flex items-center justify-center overflow-hidden shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform duration-300">
-          <svg viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-4/5 h-4/5">
-            <defs>
-              <linearGradient id="kq_sym_grad" x1="0" y1="0" x2="160" y2="160" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stopColor="#38BDF8" />
-                <stop offset="50%" stopColor="#2563EB" />
-                <stop offset="100%" stopColor="#1D4ED8" />
-              </linearGradient>
-              <linearGradient id="kq_sym_arrow" x1="0" y1="160" x2="0" y2="0" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stopColor="#2563EB" />
-                <stop offset="100%" stopColor="#38BDF8" />
-              </linearGradient>
-            </defs>
-
-            {/* Left AI Node Connections */}
-            <g opacity="0.95">
-              <line x1="10" y1="50" x2="38" y2="50" stroke="url(#kq_sym_grad)" strokeWidth="4" strokeLinecap="round" />
-              <circle cx="9" cy="50" r="4" fill="#38BDF8" />
-              <polygon points="34,45 44,50 34,55" fill="#2563EB" />
-
-              <line x1="2" y1="80" x2="34" y2="80" stroke="url(#kq_sym_grad)" strokeWidth="4" strokeLinecap="round" />
-              <circle cx="2" cy="80" r="4" fill="#38BDF8" />
-              <polygon points="30,75 40,80 30,85" fill="#2563EB" />
-
-              <line x1="14" y1="110" x2="38" y2="110" stroke="url(#kq_sym_grad)" strokeWidth="4" strokeLinecap="round" />
-              <circle cx="13" cy="110" r="4" fill="#38BDF8" />
-              <polygon points="34,105 44,110 34,115" fill="#2563EB" />
-            </g>
-
-            {/* Outer Q Ring */}
-            <circle cx="92" cy="80" r="52" fill="none" stroke="url(#kq_sym_grad)" strokeWidth="14" strokeLinecap="round" />
-
-            {/* Inner K Letter */}
-            <line x1="68" y1="44" x2="68" y2="116" stroke="url(#kq_sym_grad)" strokeWidth="13" strokeLinecap="round" />
-            <path d="M 68 80 L 112 44" fill="none" stroke="url(#kq_sym_grad)" strokeWidth="13" strokeLinecap="round" />
-            <path d="M 68 80 L 122 116 L 138 132" fill="none" stroke="url(#kq_sym_grad)" strokeWidth="13" strokeLinecap="round" />
-
-            {/* Ascending Arrow */}
-            <g transform="translate(98, 70)">
-              <path d="M 0 16 L 0 0 M -5 5 L 0 -1 L 5 5" fill="none" stroke="url(#kq_sym_arrow)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-            </g>
-          </svg>
+        {/* Emblem */}
+        <div className="relative w-full h-full rounded-2xl bg-white/90 dark:bg-slate-950 border border-blue-100 dark:border-white/15 p-1 flex items-center justify-center overflow-hidden shadow-lg shadow-blue-500/15 group-hover:scale-105 transition-transform duration-300">
+          <img
+            src="/brand/kaizenq-logo.png"
+            alt="KaizenQ Logo"
+            className="w-full h-full object-contain drop-shadow-md"
+          />
         </div>
       </div>
 

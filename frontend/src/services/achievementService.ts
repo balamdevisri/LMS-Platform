@@ -49,8 +49,11 @@ export interface StreakState {
 
 export interface LeaderboardEntry {
   rank: number;
+  id?: string;
   name: string;
   avatarUrl?: string;
+  college?: string;
+  branch?: string;
   xp: number;
   badgesCount: number;
   coursesCompleted: number;
@@ -608,7 +611,11 @@ export class LeaderboardService {
       }
 
       cohort.push({
+        id: s.id || s.uid,
         name: isCurrent ? `${s.name || loggedInName}` : (s.name || s.fullName || s.email?.split('@')[0] || 'Student Scholar'),
+        avatarUrl: s.photoURL || s.profilePhoto || undefined,
+        college: s.college,
+        branch: s.branch,
         xp: studentXp,
         badgesCount,
         coursesCompleted,
@@ -619,6 +626,7 @@ export class LeaderboardService {
     // Ensure active logged-in user is included if not in student roster
     if (!currentUserIncluded) {
       cohort.push({
+        id: userId,
         name: loggedInName,
         xp: userXp,
         badgesCount: userBadges,

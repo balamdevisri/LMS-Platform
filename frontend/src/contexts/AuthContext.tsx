@@ -201,7 +201,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           semester: '1st Semester',
           year: '1st Year',
           college: 'Shaivika AI Foundation',
-          phone: '+1 (555) 019-2831',
+          phone: '',
           github: calculatedUsername ? `https://github.com/${calculatedUsername}` : '',
           linkedin: '',
           portfolio: '',

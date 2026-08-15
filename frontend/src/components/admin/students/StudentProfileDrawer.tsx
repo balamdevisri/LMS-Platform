@@ -17,9 +17,11 @@ import {
   Globe,
   Clock,
   KeyRound,
-  Send
+  Send,
+  Trophy
 } from 'lucide-react';
 import type { StudentUser } from '@/services/studentService';
+import { LeaderboardService } from '@/services/achievementService';
 
 interface StudentProfileDrawerProps {
   student: StudentUser | null;
@@ -41,6 +43,13 @@ export const StudentProfileDrawer: React.FC<StudentProfileDrawerProps> = ({
   if (!student) return null;
 
   const isGithub = student.provider === 'github.com' || Boolean(student.photoURL?.includes('github'));
+  const leaderboardService = React.useMemo(() => new LeaderboardService(), []);
+  const studentRank = React.useMemo(() => {
+    const list = leaderboardService.getLeaderboard('global', student.id);
+    const item = list.find((e) => e.id === student.id || e.name === student.name);
+    return item ? item.rank : 1;
+  }, [student.id, student.name, leaderboardService]);
+
   const scoreColor =
     (student.learningScore || 80) >= 90
       ? 'text-emerald-600 bg-emerald-50 border-emerald-200'
@@ -114,6 +123,10 @@ export const StudentProfileDrawer: React.FC<StudentProfileDrawerProps> = ({
 
               {/* Status & Learning Score Badge */}
               <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-2">
+                <span className="px-3 py-1 rounded-full text-xs font-extrabold border bg-amber-50 text-amber-800 border-amber-300 flex items-center gap-1">
+                  <Trophy className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
+                  <span>Cohort Rank #{studentRank}</span>
+                </span>
                 <span className={`px-3 py-1 rounded-full text-xs font-extrabold border ${scoreColor}`}>
                   ⭐ {student.learningScore || 85} Learning Score
                 </span>
@@ -202,7 +215,7 @@ export const StudentProfileDrawer: React.FC<StudentProfileDrawerProps> = ({
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Contact Phone</span>
                 <span className="font-bold text-slate-900 flex items-center gap-1">
                   <Phone className="w-3 h-3 text-sky-500" />
-                  <span>{student.phone || '+1 (555) 019-2831'}</span>
+                  <span>{student.phone || 'Not Provided'}</span>
                 </span>
               </div>
 

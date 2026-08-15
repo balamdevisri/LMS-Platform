@@ -3,7 +3,6 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { BrandLogo } from '@/components/common/BrandLogo';
 import { motion } from 'framer-motion';
 
 export const Login: React.FC = () => {
@@ -115,19 +114,27 @@ export const Login: React.FC = () => {
       className="space-y-6 premium-glass-card p-8 text-slate-900 dark:text-slate-100 font-['Sora']"
     >
       
-      {/* Mobile Brand Logo */}
-      <div className="lg:hidden flex justify-center pb-2">
-        <BrandLogo size="md" showSubtitle={true} />
-      </div>
-
-      <div className="space-y-2 text-center lg:text-left">
-        <h2 className="font-heading font-extrabold text-2xl text-slate-900 dark:text-white">
-          Sign In to{' '}
-          <span className="bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-400 bg-clip-text text-transparent">
-            KaizenQ LMS
-          </span>
-        </h2>
-        <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">Enter your email and password to access your learning portal.</p>
+      {/* Brand Logo & Header */}
+      <div className="flex items-center gap-3.5 pb-1">
+        <div className="relative shrink-0">
+          <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-400 opacity-70 blur-md" />
+          <div className="relative w-12 h-12 rounded-2xl bg-white/90 dark:bg-slate-950 border border-blue-100 dark:border-white/15 p-1 flex items-center justify-center shadow-lg shadow-blue-500/15">
+            <img
+              src="/brand/kaizenq-logo.png"
+              alt="KaizenQ Logo"
+              className="w-full h-full object-contain drop-shadow-md"
+            />
+          </div>
+        </div>
+        <div className="space-y-0.5 text-left">
+          <h2 className="font-heading font-extrabold text-2xl text-slate-900 dark:text-white leading-tight">
+            Sign In to{' '}
+            <span className="bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-400 bg-clip-text text-transparent">
+              KaizenQ LMS
+            </span>
+          </h2>
+          <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">Enter your credentials to access your learning portal.</p>
+        </div>
       </div>
 
       {/* GitHub Authentication Button */}

@@ -132,7 +132,7 @@ class StudentService {
       branch: data.branch || 'AI & Computer Science',
       year: data.year || '1st Year',
       college: data.college || 'Shaivika AI Foundation Institute',
-      phone: data.phone || '+1 (555) 019-2831',
+      phone: data.phone || '',
       github: data.github || (isGithub ? `https://github.com/${data.githubUsername || email.split('@')[0]}` : undefined),
       linkedin: data.linkedin || '',
       portfolio: data.portfolio || '',

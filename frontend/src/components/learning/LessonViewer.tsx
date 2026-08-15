@@ -190,6 +190,40 @@ function getTabSectionData(title: string, courseId?: string): TabSectionData {
       ],
       preview: "Next lesson will cover advanced indexing strategies and database security hardening."
     };
+  } else if (cId === 'c-programming-course-id' || cId.includes('c-prog') || t.includes('c programming') || t.includes('c language') || t.includes('pointer') || t.includes('struct') || t.includes('printf')) {
+    return {
+      introduction: "C is a foundational procedural programming language providing direct memory manipulation, high performance, and deep architectural understanding.",
+      useCases: [
+        "Operating systems development (Linux Kernel, Unix core, Windows HAL).",
+        "Embedded systems, microcontrollers (Arduino, STM32, ARM architecture), and IoT.",
+        "High-performance database storage engines, graphics rendering engines, and compilers."
+      ],
+      practices: [
+        "Always initialize pointer variables to NULL to prevent wild pointer errors.",
+        "Pair every dynamic memory allocation (malloc/calloc) with a corresponding free() call to avoid leaks.",
+        "Validate array index bounds and buffer limits to prevent buffer overflow vulnerabilities."
+      ],
+      mistakes: [
+        "Dereferencing null or unallocated pointers leading to Segmentation Faults (core dumped).",
+        "Forgetting string null terminators ('\\0') causing buffer overruns in strlen/strcpy.",
+        "Confusing pointer values with dereferenced data (e.g., using ptr instead of *ptr)."
+      ],
+      interview: [
+        { q: "What is the difference between malloc() and calloc() in C?", a: "malloc() allocates uninitialized raw memory of specified bytes containing garbage values, whereas calloc() allocates memory for n elements and initializes all bytes to zero." },
+        { q: "What is a segmentation fault in C?", a: "A segmentation fault occurs when a program attempts to access a memory location that it does not have permission to access, such as dereferencing a NULL or out-of-bounds pointer." },
+        { q: "What is the difference between passing by value and passing by reference in C?", a: "Pass by value creates a copy of the argument, so changes inside the function do not affect the caller. Pass by reference passes the variable's memory address using pointers, allowing direct mutation of caller data." }
+      ],
+      viva: [
+        { q: "What is the entry point function for every C program?", a: "int main() function." },
+        { q: "What format specifier is used to print pointer memory addresses in printf?", a: "%p format specifier." },
+        { q: "What is the size of an int pointer on a 64-bit architecture?", a: "8 bytes." }
+      ],
+      trouble: [
+        "Fix Segmentation Fault: Inspect pointer initialization and verify array indices are strictly within 0 to (length - 1).",
+        "Fix Undefined Reference: Ensure required headers like <stdio.h>, <stdlib.h>, or <string.h> are included and function prototypes match."
+      ],
+      preview: "Next lesson will explore advanced pointer mechanics, memory management, and data structures."
+    };
   } else {
     return {
       introduction: "Linux systems power 96.4% of the world's top 1 million web servers. Understanding systems administration is critical for building scalable cloud services.",
@@ -1183,10 +1217,12 @@ export const LessonViewer: React.FC<LessonViewerProps> = React.memo(({
     return getTabSectionData(lesson.title, _courseId);
   }, [lesson.title, _courseId]);
 
+  const isCCourse = _courseId === 'c-programming-course-id' || _courseId.includes('c-prog') || (courseTitle && courseTitle.toLowerCase().includes('c programming')) || (courseTitle && courseTitle.toLowerCase().includes('c language'));
+
   const tabs = [
     { id: 'theory', label: '📂 Theory & Details', icon: BookOpen },
     { id: 'realworld', label: '💡 Real-World & QA', icon: Lightbulb },
-    { id: 'sandbox', label: '🛠️ Practice Sandbox', icon: TerminalIcon },
+    { id: 'sandbox', label: isCCourse ? '🛠️ C GCC Compiler' : '🛠️ Practice Sandbox', icon: TerminalIcon },
     { id: 'resources', label: '📚 Study Vault', icon: FileDown },
   ];
 
@@ -1197,8 +1233,9 @@ export const LessonViewer: React.FC<LessonViewerProps> = React.memo(({
     const isReact = _courseId === 'react-js-complete-course';
     const isK8s = _courseId === 'kubernetes-complete-course-beginner-to-advanced';
     const isDbms = _courseId === 'database-management-system';
+    const isC = isCCourse || _courseId === 'c-programming-course-id' || lesson.title.toLowerCase().includes('c prog');
     
-    const typeLabel = isLinux ? 'Linux' : (isGit ? 'Git' : (isReact ? 'React JS' : (isK8s ? 'Kubernetes' : (isDbms ? 'DBMS' : 'Course'))));
+    const typeLabel = isC ? 'C Programming' : (isLinux ? 'Linux' : (isGit ? 'Git' : (isReact ? 'React JS' : (isK8s ? 'Kubernetes' : (isDbms ? 'DBMS' : 'Course')))));
 
     return [
       { id: 'res-1', title: `${typeLabel} Beginner PDF Guide`, desc: 'Step-by-step introduction containing visual explanations of core concepts.', format: 'PDF', size: '2.4 MB' },
@@ -1367,6 +1404,40 @@ export const LessonViewer: React.FC<LessonViewerProps> = React.memo(({
                 >
                   <MarkdownRenderer content={enrichedContent} isNightMode={isNightMode} courseId={_courseId} />
                 </div>
+
+                {/* Quick C Compiler Practice Launch Card */}
+                {isCCourse && (
+                  <div className={`p-6 rounded-3xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg transition-all ${
+                    isNightMode 
+                      ? 'bg-linear-to-r from-slate-900 via-slate-950 to-cyan-950/40 border-cyan-800/60 text-white' 
+                      : 'bg-linear-to-r from-sky-50 via-white to-cyan-50 border-sky-200 text-slate-900'
+                  }`}>
+                    <div className="flex items-center gap-3.5">
+                      <div className="p-3 rounded-2xl bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 shrink-0">
+                        <TerminalIcon className="w-6 h-6 text-cyan-400" />
+                      </div>
+                      <div>
+                        <h4 className="font-heading font-extrabold text-sm text-cyan-300 flex items-center gap-2">
+                          <span>Practice in C GCC Interactive Compiler</span>
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-cyan-900 text-cyan-200 border border-cyan-700">
+                            GCC 11.4 • C17
+                          </span>
+                        </h4>
+                        <p className="text-xs text-slate-400 mt-0.5 font-medium">
+                          Write code, inspect pointers, test memory allocation, and execute live in the sandbox.
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => setActiveTab('sandbox')}
+                      className="px-4 py-2.5 rounded-xl bg-linear-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-extrabold shadow-lg shadow-cyan-500/20 transition-all flex items-center gap-2 cursor-pointer shrink-0 self-stretch sm:self-auto justify-center"
+                    >
+                      <TerminalIcon className="w-4 h-4" />
+                      <span>Open C Compiler</span>
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 

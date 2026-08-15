@@ -1,16 +1,47 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="100%" height="100%">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%" fill="none">
   <defs>
-    <linearGradient id="favGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#2563EB" />
-      <stop offset="100%" stop-color="#22D3EE" />
+    <linearGradient id="kq_fav_circle" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#00D2FF" />
+      <stop offset="35%" stop-color="#0094FF" />
+      <stop offset="70%" stop-color="#0052D4" />
+      <stop offset="100%" stop-color="#0033B8" />
+    </linearGradient>
+    <linearGradient id="kq_fav_k" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0099FF" />
+      <stop offset="50%" stop-color="#0058E6" />
+      <stop offset="100%" stop-color="#0038B8" />
+    </linearGradient>
+    <linearGradient id="kq_fav_arrow" x1="50%" y1="100%" x2="50%" y2="0%">
+      <stop offset="0%" stop-color="#0072FF" />
+      <stop offset="100%" stop-color="#00D2FF" />
     </linearGradient>
   </defs>
-  <rect width="32" height="32" rx="7" fill="#0B1220" />
-  <g transform="translate(16, 16) scale(0.13) translate(-100, -100)">
-    <circle cx="100" cy="100" r="66" fill="none" stroke="url(#favGrad)" stroke-width="18" stroke-linecap="round" />
-    <line x1="70" y1="56" x2="70" y2="144" stroke="url(#favGrad)" stroke-width="16" stroke-linecap="round" />
-    <path d="M 70 100 L 126 54 M 110 54 L 126 54 L 126 70" fill="none" stroke="url(#favGrad)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" />
-    <path d="M 70 100 L 138 144 M 138 144 L 162 168" fill="none" stroke="url(#favGrad)" stroke-width="16" stroke-linecap="round" />
-    <circle cx="126" cy="54" r="6" fill="#22D3EE" />
+
+  <rect width="500" height="500" rx="100" fill="#0B1220" />
+
+  <g transform="translate(10, 10) scale(0.96)">
+    <!-- Circuit Nodes -->
+    <circle cx="55" cy="210" r="11" stroke="url(#kq_fav_circle)" stroke-width="7" fill="none" />
+    <path d="M 68 210 L 115 210 L 138 200 L 140 216 L 122 216 L 68 210" fill="url(#kq_fav_circle)" />
+    <circle cx="98" cy="240" r="11" stroke="url(#kq_fav_circle)" stroke-width="7" fill="none" />
+    <path d="M 111 240 L 135 240 L 158 230 L 160 248 L 138 248 L 111 240" fill="url(#kq_fav_circle)" />
+    <circle cx="30" cy="270" r="11" stroke="url(#kq_fav_circle)" stroke-width="7" fill="none" />
+    <path d="M 43 270 L 125 270 L 140 258 L 142 278 L 122 278 L 43 270" fill="url(#kq_fav_circle)" />
+    <path d="M 130 270 L 160 255 L 160 288 L 130 270" fill="url(#kq_fav_circle)" />
+    <circle cx="80" cy="302" r="11" stroke="url(#kq_fav_circle)" stroke-width="7" fill="none" />
+    <path d="M 93 302 L 130 302 L 150 292 L 150 310 L 93 302" fill="url(#kq_fav_circle)" />
+
+    <!-- Q Ring -->
+    <path d="M 138 185 A 155 155 0 1 1 330 372" fill="none" stroke="url(#kq_fav_circle)" stroke-width="34" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M 148 318 A 155 155 0 0 1 140 310" fill="none" stroke="url(#kq_fav_circle)" stroke-width="34" stroke-linecap="round" />
+
+    <!-- Letter K -->
+    <path d="M 172 144 L 222 144 L 222 324 L 172 324 Z" fill="url(#kq_fav_k)" />
+    <path d="M 222 232 L 305 144 L 358 144 L 260 250 Z" fill="url(#kq_fav_k)" />
+    <path d="M 235 218 L 382 376 L 472 412 L 428 412 L 298 280 L 222 248 Z" fill="url(#kq_fav_k)" />
+
+    <!-- Upward Arrow & Platform -->
+    <path d="M 334 298 L 382 298 L 440 376 L 392 376 Z" fill="url(#kq_fav_circle)" />
+    <path d="M 324 242 L 344 200 L 364 242 L 350 242 L 350 298 L 338 298 L 338 242 Z" fill="url(#kq_fav_arrow)" />
   </g>
 </svg>

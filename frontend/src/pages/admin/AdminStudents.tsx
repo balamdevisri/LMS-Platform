@@ -22,7 +22,8 @@ import {
   AlertCircle,
   Flag,
   FileText,
-  BarChart3
+  BarChart3,
+  Calendar
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -692,10 +693,9 @@ export const AdminStudents: React.FC = () => {
                   <th className="py-3 px-4">Full Name</th>
                   <th className="py-3 px-4">Email</th>
                   <th className="py-3 px-4">College & Branch</th>
-                  <th className="py-3 px-4">Year</th>
+                  <th className="py-3 px-4">Joined Date</th>
                   <th className="py-3 px-4">GitHub & Portfolio</th>
                   <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">Registered Date</th>
                   <th className="py-3 px-4 text-right">{isInstructor ? 'Reporting Actions' : 'Approval Actions'}</th>
                 </tr>
               </thead>
@@ -754,7 +754,6 @@ export const AdminStudents: React.FC = () => {
                         >
                           {st.name || st.fullName}
                         </div>
-                        <div className="text-[10px] text-slate-400 font-normal">{st.phone || '+1 (555) 019-2831'}</div>
                       </td>
 
                       {/* Email */}
@@ -768,9 +767,12 @@ export const AdminStudents: React.FC = () => {
                         <div className="text-[10px] text-slate-500">{st.branch || 'AI & Computer Science'}</div>
                       </td>
 
-                      {/* Academic Year */}
-                      <td className="py-3 px-4 text-slate-700 font-semibold">
-                        {st.year || '1st Year'}
+                      {/* Joined Date */}
+                      <td className="py-3 px-4 text-slate-700 whitespace-nowrap text-[11px] font-medium">
+                        <div className="flex items-center gap-1.5 text-slate-700">
+                          <Calendar className="w-3.5 h-3.5 text-sky-500 shrink-0" />
+                          <span>{st.joined || (st.createdAt ? new Date(st.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently')}</span>
+                        </div>
                       </td>
 
                       {/* GitHub & Portfolio */}
@@ -803,11 +805,6 @@ export const AdminStudents: React.FC = () => {
                         >
                           {status}
                         </span>
-                      </td>
-
-                      {/* Registered Date */}
-                      <td className="py-3 px-4 text-slate-500 whitespace-nowrap text-[11px]">
-                        {st.joined || 'Recently'}
                       </td>
 
                       {/* Actions */}

@@ -24,6 +24,7 @@ import {
   Terminal,
   HelpCircle,
   Video,
+  Sparkles,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { BrandLogo } from '@/components/common/BrandLogo';
@@ -99,44 +100,66 @@ export const DashboardLayout: React.FC = () => {
   const isAdmin = role === 'admin';
   const isInstructor = role === 'instructor';
 
-  const adminNavItems = [
-    { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
-    { name: 'Courses', href: '/admin/courses', icon: BookOpen },
-    { name: 'Students', href: '/admin/students', icon: UserCheck },
-    { name: 'Instructors', href: '/admin/instructors', icon: GraduationCap },
+  const adminNavSections = [
     {
-      name: 'Live Classes',
-      href: '/admin/live-classes',
-      icon: Video,
-      subItems: [
-        { name: 'All Live Classes', href: '/admin/live-classes' },
-        { name: 'Scheduled', href: '/admin/live-classes?tab=scheduled' },
-        { name: 'Live Now', href: '/admin/live-classes?tab=live' },
-        { name: 'Completed', href: '/admin/live-classes?tab=completed' },
-        { name: 'Create Live Class', href: '/admin/live-classes/create' },
+      title: 'CORE PLATFORM',
+      accent: 'text-indigo-600 dark:text-indigo-400',
+      items: [
+        { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
+        { name: 'Course Catalog', href: '/admin/courses', icon: BookOpen },
+        {
+          name: 'Live Classes',
+          href: '/admin/live-classes',
+          icon: Video,
+          subItems: [
+            { name: 'All Live Classes', href: '/admin/live-classes' },
+            { name: 'Scheduled', href: '/admin/live-classes?tab=scheduled' },
+            { name: 'Live Now', href: '/admin/live-classes?tab=live' },
+            { name: 'Completed', href: '/admin/live-classes?tab=completed' },
+            { name: 'Create Class', href: '/admin/live-classes/create' },
+          ],
+        },
+        { name: 'Platform Analytics', href: '/admin/analytics', icon: BarChart3 },
       ],
     },
-    { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
-    { name: 'Settings', href: '/admin/settings', icon: Settings },
+    {
+      title: 'PEOPLE & USERS',
+      accent: 'text-cyan-600 dark:text-cyan-400',
+      items: [
+        { name: 'Students Roster', href: '/admin/students', icon: UserCheck },
+        { name: 'Instructors Directory', href: '/admin/instructors', icon: GraduationCap },
+      ],
+    },
+    {
+      title: 'SYSTEM & SETTINGS',
+      accent: 'text-slate-500 dark:text-slate-400',
+      items: [
+        { name: 'Platform Settings', href: '/admin/settings', icon: Settings },
+      ],
+    },
   ];
 
   const instructorNavSections = [
     {
-      title: 'TEACHING & MANAGEMENT',
-      accent: 'text-blue-500 dark:text-blue-400',
-      divider: 'bg-blue-100 dark:bg-blue-900/40',
+      title: 'TEACHING & CLASSES',
+      accent: 'text-indigo-600 dark:text-indigo-400',
       items: [
         { name: 'Overview Dashboard', href: '/dashboard', icon: LayoutDashboard },
         { name: 'Course Management', href: '/admin/courses', icon: BookOpen },
-        { name: 'Live Classes', href: '/admin/live-classes', icon: Video },
+        { name: 'Live Classrooms', href: '/admin/live-classes', icon: Video },
+      ],
+    },
+    {
+      title: 'STUDENTS & MENTORSHIP',
+      accent: 'text-cyan-600 dark:text-cyan-400',
+      items: [
         { name: 'Mentor Analytics', href: '/admin/live-classroom/mentor-analytics', icon: BarChart3 },
         { name: 'Student Roster', href: '/admin/students', icon: UserCheck },
       ],
     },
     {
       title: 'ACCOUNT',
-      accent: 'text-slate-400 dark:text-zinc-500',
-      divider: 'bg-slate-100 dark:bg-zinc-800',
+      accent: 'text-slate-500 dark:text-slate-400',
       items: [
         { name: 'My Profile', href: '/profile', icon: UserCheck },
         { name: 'Settings', href: '/dashboard?tab=settings', icon: Settings },
@@ -147,8 +170,7 @@ export const DashboardLayout: React.FC = () => {
   const studentNavSections = [
     {
       title: 'LEARNING',
-      accent: 'text-indigo-500 dark:text-indigo-400',
-      divider: 'bg-indigo-100 dark:bg-indigo-900/40',
+      accent: 'text-indigo-600 dark:text-indigo-400',
       items: [
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
         { name: 'My Courses', href: '/dashboard/courses', icon: BookOpen },
@@ -158,8 +180,7 @@ export const DashboardLayout: React.FC = () => {
     },
     {
       title: 'INTELLIGENCE & PRACTICE',
-      accent: 'text-sky-500 dark:text-sky-450',
-      divider: 'bg-sky-100 dark:bg-sky-900/40',
+      accent: 'text-cyan-600 dark:text-cyan-400',
       items: [
         { name: 'Learning Analytics', href: '/dashboard?tab=analytics', icon: BarChart3 },
         { name: 'Leaderboard', href: '/dashboard?tab=leaderboard', icon: Trophy },
@@ -169,8 +190,7 @@ export const DashboardLayout: React.FC = () => {
     },
     {
       title: 'CAREER DEVELOPMENT',
-      accent: 'text-emerald-600 dark:text-emerald-450',
-      divider: 'bg-emerald-100 dark:bg-emerald-900/40',
+      accent: 'text-emerald-600 dark:text-emerald-400',
       items: [
         { name: 'My Portfolio', href: '/profile', icon: UserCheck, isPremium: true },
         { name: 'Resume Builder', href: '/dashboard?tab=resume-builder', icon: FileText, isPremium: true },
@@ -181,8 +201,7 @@ export const DashboardLayout: React.FC = () => {
     },
     {
       title: 'ACCOUNT',
-      accent: 'text-slate-400 dark:text-zinc-500',
-      divider: 'bg-slate-100 dark:bg-zinc-800',
+      accent: 'text-slate-500 dark:text-slate-400',
       items: [
         { name: 'Settings', href: '/dashboard?tab=settings', icon: Settings },
       ],
@@ -190,19 +209,19 @@ export const DashboardLayout: React.FC = () => {
   ];
 
   const isNavItemActive = (href: string) => {
-    if (href === '/dashboard') {
+    if (href === '/dashboard' || href === '/admin/dashboard') {
       return (
-        location.pathname === '/dashboard' &&
+        location.pathname === href &&
         (location.search === '' || location.search === '?tab=overview')
       );
     }
     if (href.includes('?')) {
-      return location.search === href.substring(href.indexOf('?'));
+      return location.pathname + location.search === href;
     }
     return location.pathname === href;
   };
 
-  const activeNavSections = isInstructor ? instructorNavSections : studentNavSections;
+  const activeNavSections = isAdmin ? adminNavSections : (isInstructor ? instructorNavSections : studentNavSections);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 flex flex-col font-sans selection:bg-indigo-600 selection:text-white transition-colors duration-300">
@@ -214,175 +233,199 @@ export const DashboardLayout: React.FC = () => {
       )}
 
       <aside
-        className={`fixed top-0 left-0 bottom-0 w-60 bg-white dark:bg-zinc-900 z-50 flex flex-col transition-transform duration-300 border-r border-slate-100 dark:border-zinc-800 lg:translate-x-0 ${
+        className={`fixed top-0 left-0 bottom-0 w-64 bg-white/95 dark:bg-slate-950/95 backdrop-blur-2xl z-50 flex flex-col transition-transform duration-300 border-r border-slate-200/80 dark:border-slate-800/80 shadow-2xl shadow-blue-500/5 lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex flex-col h-full min-h-0">
-          <div className="h-14 px-4 flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 shrink-0">
-            <BrandLogo size="sm" showSubtitle={false} className="shrink-0" />
+        <div className="flex flex-col h-full min-h-0 relative overflow-hidden">
+          {/* Ambient Glow in Sidebar Background */}
+          <div className="absolute -top-12 -right-12 w-36 h-36 bg-blue-500/10 dark:bg-blue-500/15 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute top-1/2 -left-12 w-36 h-36 bg-indigo-500/5 dark:bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          {/* Top Brand Bar */}
+          <div className="h-16 px-4 flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 shrink-0 relative z-10">
+            <BrandLogo size="sm" showSubtitle={true} className="shrink-0" />
             <button
               onClick={() => setSidebarOpen(false)}
-              className="lg:hidden text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 cursor-pointer transition-colors"
+              className="lg:hidden text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200 p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-zinc-800 cursor-pointer transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
-          <div className="px-3 py-2 border-b border-slate-100 dark:border-zinc-800 shrink-0">
-            <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-800/50">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-              <span className="text-[10px] font-extrabold text-indigo-700 dark:text-indigo-300 uppercase tracking-widest truncate">
+          {/* Portal Status Badge */}
+          <div className="px-3.5 py-2.5 border-b border-slate-100 dark:border-slate-800/60 shrink-0 relative z-10">
+            <div className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl border shadow-xs ${
+              isAdmin
+                ? 'bg-linear-to-r from-purple-500/10 via-indigo-500/10 to-blue-500/10 border-purple-500/20 dark:border-purple-500/30'
+                : isInstructor
+                ? 'bg-linear-to-r from-cyan-500/10 via-blue-500/10 to-indigo-500/10 border-cyan-500/20 dark:border-cyan-500/30'
+                : 'bg-linear-to-r from-blue-500/10 via-indigo-500/10 to-cyan-500/10 border-blue-500/20 dark:border-blue-500/30'
+            }`}>
+              <span className="relative flex h-2 w-2">
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                  isAdmin ? 'bg-purple-400' : isInstructor ? 'bg-cyan-400' : 'bg-emerald-400'
+                }`} />
+                <span className={`relative inline-flex rounded-full h-2 w-2 ${
+                  isAdmin ? 'bg-purple-500' : isInstructor ? 'bg-cyan-500' : 'bg-emerald-500'
+                }`} />
+              </span>
+              <span className={`text-[10px] font-extrabold uppercase tracking-widest truncate ${
+                isAdmin ? 'text-purple-700 dark:text-purple-300' : isInstructor ? 'text-cyan-700 dark:text-cyan-300' : 'text-blue-700 dark:text-blue-300'
+              }`}>
                 {role.toUpperCase()} PORTAL
               </span>
-              <span className="ml-auto text-[9px] font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800/50 shrink-0">
-                Active
+              <span className={`ml-auto text-[9px] font-black px-2 py-0.5 rounded-md border shrink-0 shadow-xs ${
+                isAdmin
+                  ? 'text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 border-purple-300/60 dark:border-purple-700/60'
+                  : isInstructor
+                  ? 'text-cyan-700 dark:text-cyan-300 bg-cyan-50 dark:bg-cyan-950/60 border-cyan-300/60 dark:border-cyan-700/60'
+                  : 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border-emerald-300/60 dark:border-emerald-700/60'
+              }`}>
+                {isAdmin ? 'ROOT ADMIN' : 'ACTIVE'}
               </span>
             </div>
           </div>
 
-          <nav className="px-2.5 py-3 overflow-y-auto flex-1 space-y-4 scrollbar-thin scrollbar-thumb-slate-100 dark:scrollbar-thumb-zinc-800">
-            {isAdmin ? (
-              <div className="space-y-1">
-                {adminNavItems.map((item) => {
-                  const Icon = item.icon;
-                  const isParentActive = location.pathname.startsWith(item.href);
-                  const isActive = location.pathname === item.href;
-                  return (
-                    <div key={item.name} className="space-y-0.5">
-                      <Link
-                        to={item.href}
-                        onClick={() => setSidebarOpen(false)}
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-xs transition-all ${
-                          isActive || (isParentActive && !item.subItems)
-                            ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-                            : isParentActive
-                            ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-bold'
-                            : 'hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100'
-                        }`}
-                      >
-                        {Icon ? <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : isParentActive ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-zinc-500'}`} /> : null}
-                        <span className="flex-1">{item.name}</span>
-                        {item.subItems && (
-                          <span className="text-[10px] text-blue-500 font-mono bg-blue-100/60 dark:bg-blue-900/40 px-1.5 py-0.5 rounded">
-                            {item.subItems.length}
-                          </span>
-                        )}
-                      </Link>
+          {/* Main Navigation List */}
+          <nav className="px-3 py-3.5 overflow-y-auto flex-1 space-y-5 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800 relative z-10">
+            {activeNavSections.map((section, sIdx) => (
+              <div key={sIdx} className="space-y-1.5">
+                {/* Category Header */}
+                <div className="flex items-center gap-2 px-1.5 pt-1">
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                    isAdmin ? 'bg-purple-500 dark:bg-purple-400' : 'bg-blue-500 dark:bg-cyan-400'
+                  }`} />
+                  <span className={`text-[10px] font-heading font-black uppercase tracking-[0.14em] ${section.accent}`}>
+                    {section.title}
+                  </span>
+                  <div className="flex-1 h-px bg-linear-to-r from-slate-200 via-slate-100 to-transparent dark:from-slate-800 dark:via-slate-800/40 dark:to-transparent" />
+                </div>
 
-                      {/* Sub Navigation Items */}
-                      {item.subItems && isParentActive && (
-                        <div className="pl-7 pr-1 py-1 space-y-0.5 border-l-2 border-blue-200 dark:border-blue-800/60 ml-4 animate-in fade-in duration-200">
-                          {item.subItems.map((sub) => {
-                            const isSubActive =
-                              location.pathname + location.search === sub.href ||
-                              (sub.href === '/admin/live-classes' && location.pathname === '/admin/live-classes' && !location.search);
-                            return (
-                              <Link
-                                key={sub.name}
-                                to={sub.href}
-                                onClick={() => setSidebarOpen(false)}
-                                className={`block px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-colors ${
-                                  isSubActive
-                                    ? 'bg-blue-600 text-white shadow-xs font-bold'
-                                    : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-zinc-800/60'
-                                }`}
-                              >
-                                {sub.name}
-                              </Link>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              activeNavSections.map((section, sIdx) => (
-                <div key={sIdx}>
-                  <div className="flex items-center gap-2 px-1 mb-1">
-                    <span className={`text-[9px] font-extrabold uppercase tracking-widest leading-none ${section.accent}`}>
-                      {section.title}
-                    </span>
-                    <div className={`flex-1 h-px ${section.divider}`} />
-                  </div>
+                {/* Nav Links */}
+                <div className="space-y-1 pt-0.5">
+                  {section.items.map((item: any) => {
+                    const Icon = item.icon;
+                    const isParentActive = item.subItems ? location.pathname.startsWith(item.href) : false;
+                    const isActive = isNavItemActive(item.href) || isParentActive;
 
-                  <div className="space-y-0.5">
-                    {section.items.map((item: any) => {
-                      const Icon = item.icon;
-                      const isActive = isNavItemActive(item.href);
-                      return (
+                    return (
+                      <div key={item.name} className="space-y-1">
                         <Link
-                          key={item.name}
                           to={item.href}
                           onClick={() => setSidebarOpen(false)}
-                          className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 relative ${
+                          className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 relative ${
                             isActive
-                              ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/25'
-                              : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800/70 hover:text-slate-900 dark:hover:text-zinc-100'
+                              ? 'bg-linear-to-r from-blue-600 via-indigo-600 to-cyan-500 text-white shadow-lg shadow-blue-500/25 border border-white/20 translate-x-0.5'
+                              : 'text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-cyan-300 hover:bg-linear-to-r hover:from-blue-500/10 hover:via-indigo-500/5 hover:to-transparent border border-transparent hover:border-blue-500/15 hover:translate-x-1'
                           }`}
                         >
-                          {Icon ? <Icon className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-indigo-200' : 'text-slate-400 dark:text-zinc-500 group-hover:text-slate-600 dark:group-hover:text-zinc-300'}`} /> : null}
-                          <span className="truncate flex-1">{item.name}</span>
+                          {Icon ? (
+                            <div className={`p-1.5 rounded-lg shrink-0 transition-all ${
+                              isActive
+                                ? 'bg-white/20 text-white shadow-inner'
+                                : 'bg-slate-100 dark:bg-slate-900 group-hover:bg-blue-500/15 text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-cyan-400'
+                            }`}>
+                              <Icon className="w-3.5 h-3.5" />
+                            </div>
+                          ) : null}
+
+                          <span className="truncate flex-1 font-semibold">{item.name}</span>
+
+                          {/* SubItems Count Badge */}
+                          {item.subItems && (
+                            <span className={`text-[9.5px] font-mono px-2 py-0.5 rounded-md font-bold ${
+                              isActive ? 'bg-white/20 text-white' : 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400'
+                            }`}>
+                              {item.subItems.length}
+                            </span>
+                          )}
                           
                           {/* Premium PRO Badge */}
                           {item.isPremium && (
-                            <span className={`text-[8px] font-extrabold uppercase px-1.5 py-0.5 rounded border tracking-wider shrink-0 shadow-xs ${
+                            <span className={`text-[8.5px] font-black uppercase px-2 py-0.5 rounded-full border tracking-wider shrink-0 shadow-xs flex items-center gap-1 ${
                               isActive 
-                                ? 'bg-amber-400 text-amber-900 border-amber-300 shadow-amber-900/20' 
-                                : 'bg-gradient-to-r from-amber-200 to-amber-300 text-amber-900 border-amber-400 shadow-amber-500/20 dark:from-amber-700/80 dark:to-amber-900/80 dark:text-amber-200 dark:border-amber-700'
+                                ? 'bg-amber-300 text-amber-950 border-amber-200 shadow-amber-900/30' 
+                                : 'bg-linear-to-r from-amber-400 via-amber-500 to-orange-500 text-slate-950 border-amber-300 shadow-amber-500/25 font-black'
                             }`}>
-                              PRO
+                              <Sparkles className="w-2.5 h-2.5 fill-current" />
+                              <span>PRO</span>
                             </span>
                           )}
 
-                          {isActive && !item.isPremium && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-white/60 shrink-0" />
+                          {/* Active Indicator Dot */}
+                          {isActive && !item.isPremium && !item.subItems && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_#ffffff] shrink-0" />
                           )}
                         </Link>
-                      );
-                    })}
-                  </div>
+
+                        {/* Sub Navigation Items for Dropdowns */}
+                        {item.subItems && isParentActive && (
+                          <div className="pl-6 pr-1 py-1 space-y-1 border-l-2 border-blue-500/30 dark:border-cyan-500/30 ml-4 animate-in fade-in duration-200">
+                            {item.subItems.map((sub: any) => {
+                              const isSubActive =
+                                location.pathname + location.search === sub.href ||
+                                (sub.href === '/admin/live-classes' && location.pathname === '/admin/live-classes' && !location.search);
+                              return (
+                                <Link
+                                  key={sub.name}
+                                  to={sub.href}
+                                  onClick={() => setSidebarOpen(false)}
+                                  className={`block px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all ${
+                                    isSubActive
+                                      ? 'bg-linear-to-r from-blue-600 to-cyan-500 text-white font-bold shadow-xs'
+                                      : 'text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-cyan-300 hover:bg-blue-500/10'
+                                  }`}
+                                >
+                                  {sub.name}
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-              ))
-            )}
+              </div>
+            ))}
           </nav>
         </div>
 
-        <div className="px-2.5 py-3 border-t border-slate-100 dark:border-zinc-800 shrink-0">
-          <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800/60 transition-colors group">
+        {/* Bottom User Card */}
+        <div className="p-3 border-t border-slate-100 dark:border-slate-800/80 shrink-0 bg-slate-50/50 dark:bg-slate-950/50 relative z-10">
+          <div className="flex items-center gap-2.5 p-2 rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-md transition-all group">
             {userProfile?.photoURL || user?.photoURL ? (
               <img
                 src={userProfile?.photoURL || user?.photoURL || ''}
                 alt={userProfile?.name || 'User'}
-                className="w-8 h-8 rounded-full object-cover border border-slate-200 dark:border-zinc-700 shrink-0"
+                className="w-9 h-9 rounded-xl object-cover border border-blue-200 dark:border-blue-900/60 shrink-0 shadow-xs"
               />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">
+              <div className="w-9 h-9 rounded-xl bg-linear-to-br from-blue-600 to-cyan-500 text-white flex items-center justify-center font-black text-xs shrink-0 shadow-sm">
                 {(userProfile?.name || user?.displayName || 'S').charAt(0).toUpperCase()}
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <span className="font-bold text-xs text-slate-900 dark:text-zinc-100 block truncate leading-tight">
+              <span className="font-heading font-bold text-xs text-slate-900 dark:text-white block truncate leading-tight">
                 {userProfile?.name || user?.displayName || 'Student User'}
               </span>
-              <span className="text-[10px] text-slate-400 dark:text-zinc-500 capitalize block truncate">
-                {userProfile?.role || 'student'}
+              <span className="text-[10px] font-medium text-blue-600 dark:text-cyan-400 capitalize block truncate">
+                {userProfile?.role || 'student'} • KaizenQ
               </span>
             </div>
             <button
               onClick={handleSignOut}
-              className="text-slate-300 dark:text-zinc-600 hover:text-rose-500 dark:hover:text-rose-400 p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer shrink-0"
+              className="text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 p-2 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer shrink-0"
               title="Sign Out"
             >
-              <LogOut className="w-3.5 h-3.5" />
+              <LogOut className="w-4 h-4" />
             </button>
           </div>
         </div>
       </aside>
 
-      <div className="lg:pl-60 flex-1 flex flex-col">
+      <div className="lg:pl-64 flex-1 flex flex-col">
         <header className="h-14 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl border-b border-slate-200/80 dark:border-zinc-800 px-4 sm:px-6 lg:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm transition-colors duration-300">
           
           <div className="flex items-center gap-3">

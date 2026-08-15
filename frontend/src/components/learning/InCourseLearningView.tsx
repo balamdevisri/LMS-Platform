@@ -826,7 +826,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         }}
       />
       {/* Scroll Progress Bar */}
-      <div className="sticky top-0 z-50 w-full h-0.75 bg-slate-800/10">
+      <div className="w-full h-0.75 bg-slate-800/10 shrink-0">
         <div
           className={`h-full transition-all duration-75 ${
             isNightMode ? 'bg-linear-to-r from-cyan-400 to-blue-500' : 'bg-linear-to-r from-sky-500 to-indigo-600'

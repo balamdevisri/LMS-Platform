@@ -6,6 +6,7 @@ const SQLPracticeTerminal = lazy(() => import('./terminal/SQLPracticeTerminal').
 const PythonInterpreterTerminal = lazy(() => import('./terminal/PythonInterpreterTerminal').then(m => ({ default: m.PythonInterpreterTerminal })));
 const JavaConsoleTerminal = lazy(() => import('./terminal/JavaConsoleTerminal').then(m => ({ default: m.JavaConsoleTerminal })));
 const ReactPlaygroundTerminal = lazy(() => import('./terminal/ReactPlaygroundTerminal').then(m => ({ default: m.ReactPlaygroundTerminal })));
+const CCompilerTerminal = lazy(() => import('./terminal/CCompilerTerminal').then(m => ({ default: m.CCompilerTerminal })));
 
 interface TerminalProps {
   initialCommands?: Array<{ command: string; description: string }>;
@@ -71,6 +72,24 @@ export const Terminal: React.FC<TerminalProps> = ({
     if (titleLower.includes('react')) {
       return (
         <ReactPlaygroundTerminal 
+          onCommandRun={onExecuteCommand}
+          isNightMode={isNightMode}
+        />
+      );
+    }
+
+    if (
+      titleLower.includes('c programming') ||
+      titleLower.includes('c language') ||
+      titleLower.includes('c course') ||
+      titleLower === 'c' ||
+      titleLower.startsWith('c ') ||
+      titleLower.endsWith(' c') ||
+      titleLower.includes('c &') ||
+      titleLower.includes('c and')
+    ) {
+      return (
+        <CCompilerTerminal 
           onCommandRun={onExecuteCommand}
           isNightMode={isNightMode}
         />

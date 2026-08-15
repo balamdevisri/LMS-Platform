@@ -30,13 +30,8 @@ const createLesson = (
 
 const cSyllabusNotes: Record<number, string> = {
   1: `
+### Module 1: Introduction to C Programming
 
-
-○ #define ○ Macros ○ Conditional compilation ○ Command-line arguments ○ Storage classes
-14. Data Structures & C Projects ○ Linked Lists ○ Stacks ○ Queues ○ Searching ○ Sorting ○ Real-world C projects ○ Flowcharts for major algorithms
-15. C Interview Preparation & Career Guidance ○ Important interview questions ○ Coding problems ○ Output-based questions ○ Debugging ○ Common mistakes ○ C programming roadmap ○ Placement preparation
-### Module 1: Introduction to C
-Programming
 #### 1.1 Learning Objectives
 After completing this module, you will be able to:
 - Understand what C programming is.
@@ -654,28 +649,25 @@ int main() {
   **Answer**: main() is the entry point for execution in a hosted C program.
 - **Q4. What is stdio.h?**
   **Answer**: stdio.h is a standard C header that declares functions and types used for standard input and output, including
-printf() and scanf().
-- **Q- **Q5. Why is C case-sensitive?****`,
-  2: `
-
-
+- **Q5. Why is C case-sensitive?**
   **Answer**: C treats uppercase and lowercase letters as different characters, so identifiers such as \`age\`, \`Age\`, and \`AGE\` are distinct.
-6. What is a compiler?
-Answer: A compiler translates source code written in a programming language into a lower-level representation that can ultimately be executed by a computer.
+- **Q6. What is a compiler?**
+  **Answer**: A compiler translates source code written in a programming language into a lower-level representation that can ultimately be executed by a computer.
+
 #### 1.29 Practical Lab
-- **Task 1**: Write a C program to print: Hello, C Programming!
+- **Task 1**: Write a C program to print: \`Hello, C Programming!\`
 - **Task 2**: Write a program to print your:
-- Name
-- College
-- Branch
+  - Name
+  - College
+  - Branch
 - **Task 3**: Write a program to add two numbers.
 - **Task 4**: Write a program to calculate the area of a rectangle.
 - **Task 5**: Draw the flowchart for a program that calculates the sum of two numbers.
-### Module 2: Variables, Constants & Data
-Types
+`,
+  2: `
+### Module 2: Variables, Constants & Data Types
 
-
-\`\`\`\n#### 2.1 Learning Objectives
+#### 2.1 Learning Objectives
 After completing this module, you will be able to:
 - Understand variables and constants.
 - Learn C's fundamental data types.
@@ -685,6 +677,7 @@ After completing this module, you will be able to:
 - Understand type conversion and casting.
 - Identify signed and unsigned integer types.
 - Write programs using different data types.
+
 #### 2.2 What is a Variable?
 A variable is a named storage location used to hold a value that can change during program execution.
 
@@ -1209,18 +1202,13 @@ character array and terminated by a null character.#### 2.38 Practical Lab
 Display all values.
 - **Task 2**: Write a program to calculate the area of a circle.
 - **Task 3**: Write a program to convert Celsius to Fahrenheit.
-Task 4
+- **Task 4**: Write a program demonstrating integer-to-floating-point conversion.
+- **Task 5**: Use \`sizeof\` to display the sizes of several fundamental types on your compiler.
+- **Task 6**: Create a \`const\` variable for the maximum number of students and attempt to modify it. Observe the compiler diagnostic.
 `,
   3: `
-
-
-Write a program demonstrating integer-to-floating-point conversion.
-Task 5
-Use sizeof to display the sizes of several fundamental types on your compiler.
-Task 6
-Create a const variable for the maximum number of students and attempt to modify it.
-Observe the compiler diagnostic.
 ### Module 3: Operators & Expressions
+
 #### 3.1 Learning Objectives
 After completing this module, you will be able to:
 - Understand operators and operands.
@@ -1747,39 +1735,19 @@ Apply Precedence
    ↓
 Apply Associativity
    ↓
-Evaluate
-   ↓
-Result Diagram 3 — Decision Using Operators START
+Result
+
+\`\`\`text
+Diagram 3 — Decision Using Operators:
+START -> Read Input -> Evaluate Condition -> Action A / Action B -> END
+\`\`\`
 `,
   4: `
+### Module 4: Input, Output & Decision-Making Statements
 
-
-Read Input
-   ↓
-Evaluate Condition
-   ↓
-Condition True? ↙ ↘ YES NO
-   ↓
-Action A Action B ↘ ↙
-   ↓
-END
-Diagram 4 — Prefix vs Postfix ++x
-   ↓
-Increment First
-   ↓
-Use Value x++
-   ↓
-Use Value
-   ↓
-Increment
-Diagram 5 — Logical AND Condition A ──┐ ├── && ──→ Result Condition B ──┘ Both TRUE → TRUE Otherwise → FALSE
-### Module 4: Input, Output &
-Decision-Making Statements
 #### 4.1 Learning Objectives
 After completing this module, you will be able to:
 - Understand standard input and output.
-
-
 - Use printf() effectively.
 - Use scanf() to accept user input.
 - Understand format specifiers.
