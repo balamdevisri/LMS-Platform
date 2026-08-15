@@ -117,16 +117,16 @@ export const CourseDetailsPage: React.FC<CourseDetailsProps> = ({
   const totalLessonsCount = course.modules.reduce((acc, m) => acc + m.lessons.length, 0);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-20">
-      <section className="relative overflow-hidden bg-linear-to-b from-sky-50/80 via-white to-slate-50 border-b border-sky-100 pt-28 sm:pt-32 lg:pt-36 pb-16 px-4 sm:px-6 lg:px-8">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-sky-400/10 via-transparent to-transparent pointer-events-none" />
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans pb-20 transition-colors">
+      <section className="relative overflow-hidden bg-linear-to-b from-sky-50/80 via-white to-slate-50 dark:from-slate-900 dark:via-slate-950 dark:to-slate-950 border-b border-sky-100 dark:border-slate-800 pt-28 sm:pt-32 lg:pt-36 pb-16 px-4 sm:px-6 lg:px-8">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-sky-400/10 dark:from-blue-500/10 via-transparent to-transparent pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6 relative z-10">
           <button
             onClick={() => navigate('/dashboard')}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-white hover:bg-sky-50 border border-sky-200/80 text-sky-800 text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-white dark:bg-slate-900 hover:bg-sky-50 dark:hover:bg-slate-800 border border-sky-200/80 dark:border-slate-800 text-sky-800 dark:text-cyan-400 text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
           >
-            <ArrowLeft className="w-4 h-4 text-sky-600" />
+            <ArrowLeft className="w-4 h-4 text-sky-600 dark:text-cyan-400" />
             <span>Back to Dashboard</span>
           </button>
         </div>
@@ -134,33 +134,33 @@ export const CourseDetailsPage: React.FC<CourseDetailsProps> = ({
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 items-center relative z-10">
           <div className="lg:col-span-7 space-y-6">
             <div className="flex flex-wrap items-center gap-3">
-              <span className="px-3.5 py-1 rounded-full text-xs font-mono font-bold bg-sky-100 text-sky-700 border border-sky-200 flex items-center gap-1.5 shadow-xs">
-                <Sparkles className="w-3.5 h-3.5 text-sky-600" />
+              <span className="px-3.5 py-1 rounded-full text-xs font-mono font-bold bg-sky-100 dark:bg-cyan-950/60 text-sky-700 dark:text-cyan-300 border border-sky-200 dark:border-cyan-800/50 flex items-center gap-1.5 shadow-xs">
+                <Sparkles className="w-3.5 h-3.5 text-sky-600 dark:text-cyan-400" />
                 {course.category}
               </span>
-              <span className="px-3.5 py-1 rounded-full text-xs font-mono font-semibold bg-white text-slate-600 border border-sky-100 shadow-xs">
+              <span className="px-3.5 py-1 rounded-full text-xs font-mono font-semibold bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-sky-100 dark:border-slate-800 shadow-xs">
                 {course.level || 'All Levels'}
               </span>
             </div>
 
-            <h1 className="text-3xl sm:text-5xl font-heading font-black text-slate-900 tracking-tight leading-tight">
+            <h1 className="text-3xl sm:text-5xl font-heading font-black text-slate-900 dark:text-white tracking-tight leading-tight">
               {course.title}
             </h1>
 
-            <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl font-sans">
+            <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl font-sans">
               {course.introText[0]}
             </p>
 
-            <div className="flex items-center gap-3 p-3 rounded-2xl bg-white border border-sky-100 shadow-sm w-fit">
+            <div className="flex items-center gap-3 p-3 rounded-2xl bg-white dark:bg-slate-900/90 border border-sky-100 dark:border-slate-800 shadow-sm w-fit">
               <img
                 src={course.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
                 alt={course.instructor}
-                className="w-10 h-10 rounded-full object-cover border-2 border-sky-400"
+                className="w-10 h-10 rounded-full object-cover border-2 border-sky-400 dark:border-cyan-400 shadow-xs"
               />
               <div>
-                <span className="text-xs text-slate-500 block font-medium">Instructor</span>
-                <span className="text-xs font-bold text-slate-900 flex items-center gap-1">
-                  {course.instructor} <ShieldCheck className="w-3.5 h-3.5 text-sky-600" />
+                <span className="text-xs text-slate-500 dark:text-slate-400 block font-medium">Instructor</span>
+                <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1">
+                  {course.instructor} <ShieldCheck className="w-3.5 h-3.5 text-sky-600 dark:text-cyan-400" />
                 </span>
               </div>
             </div>
@@ -191,8 +191,8 @@ export const CourseDetailsPage: React.FC<CourseDetailsProps> = ({
           </div>
 
           <div className="lg:col-span-5">
-            <div className="p-4 rounded-3xl bg-white border border-sky-100 shadow-xl shadow-sky-500/5 space-y-5 relative">
-              <div className="relative aspect-video rounded-2xl overflow-hidden border border-sky-100 group shadow-sm">
+            <div className="p-4 rounded-3xl bg-white dark:bg-slate-900/90 border border-sky-100 dark:border-slate-800 shadow-xl shadow-sky-500/5 space-y-5 relative">
+              <div className="relative aspect-video rounded-2xl overflow-hidden border border-sky-100 dark:border-slate-800 group shadow-sm">
                 <img
                   src={course.thumbnail}
                   alt={course.title}
@@ -201,21 +201,21 @@ export const CourseDetailsPage: React.FC<CourseDetailsProps> = ({
               </div>
 
               <div className="grid grid-cols-2 gap-3 text-xs">
-                <div className="p-3 rounded-xl bg-sky-50/60 border border-sky-100">
-                  <span className="text-slate-500 block">Total Duration</span>
-                  <span className="font-bold text-slate-900 font-mono">{course.duration}</span>
+                <div className="p-3 rounded-xl bg-sky-50/60 dark:bg-slate-950/70 border border-sky-100 dark:border-slate-800">
+                  <span className="text-slate-500 dark:text-slate-400 block">Total Duration</span>
+                  <span className="font-bold text-slate-900 dark:text-white font-mono">{course.duration}</span>
                 </div>
-                <div className="p-3 rounded-xl bg-sky-50/60 border border-sky-100">
-                  <span className="text-slate-500 block">Lessons</span>
-                  <span className="font-bold text-slate-900 font-mono">{totalLessonsCount} Lessons</span>
+                <div className="p-3 rounded-xl bg-sky-50/60 dark:bg-slate-950/70 border border-sky-100 dark:border-slate-800">
+                  <span className="text-slate-500 dark:text-slate-400 block">Lessons</span>
+                  <span className="font-bold text-slate-900 dark:text-white font-mono">{totalLessonsCount} Lessons</span>
                 </div>
-                <div className="p-3 rounded-xl bg-sky-50/60 border border-sky-100">
-                  <span className="text-slate-500 block">Enrolled Students</span>
-                  <span className="font-bold text-slate-900 font-mono">{course.students}</span>
+                <div className="p-3 rounded-xl bg-sky-50/60 dark:bg-slate-950/70 border border-sky-100 dark:border-slate-800">
+                  <span className="text-slate-500 dark:text-slate-400 block">Enrolled Students</span>
+                  <span className="font-bold text-slate-900 dark:text-white font-mono">{course.students}</span>
                 </div>
-                <div className="p-3 rounded-xl bg-sky-50/60 border border-sky-100">
-                  <span className="text-slate-500 block">Live Classroom</span>
-                  <span className="font-bold text-emerald-600 font-mono flex items-center gap-1">
+                <div className="p-3 rounded-xl bg-sky-50/60 dark:bg-slate-950/70 border border-sky-100 dark:border-slate-800">
+                  <span className="text-slate-500 dark:text-slate-400 block">Live Classroom</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono flex items-center gap-1">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Included
                   </span>
                 </div>
@@ -227,15 +227,15 @@ export const CourseDetailsPage: React.FC<CourseDetailsProps> = ({
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-16">
         <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="p-6 sm:p-8 rounded-3xl bg-white border border-sky-100 shadow-md shadow-sky-500/5 space-y-4">
-            <h2 className="text-xl font-heading font-extrabold text-slate-900 flex items-center gap-2">
-              <CheckCircle2 className="w-6 h-6 text-sky-600" />
+          <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900/90 border border-sky-100 dark:border-slate-800 shadow-md shadow-sky-500/5 space-y-4">
+            <h2 className="text-xl font-heading font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+              <CheckCircle2 className="w-6 h-6 text-sky-600 dark:text-cyan-400" />
               Learning Outcomes (Measurable)
             </h2>
             <ol className="space-y-3">
               {course.outcomes.map((item, idx) => (
-                <li key={idx} className="flex items-start gap-3 text-sm text-slate-700 leading-relaxed font-sans">
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-sky-100 text-sky-700 font-mono font-bold text-xs shrink-0 mt-0.5">
+                <li key={idx} className="flex items-start gap-3 text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-sans">
+                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-sky-100 dark:bg-cyan-950/60 text-sky-700 dark:text-cyan-300 font-mono font-bold text-xs shrink-0 mt-0.5 border border-sky-200 dark:border-cyan-800/50">
                     {idx + 1}
                   </span>
                   <span>{item}</span>
@@ -244,19 +244,19 @@ export const CourseDetailsPage: React.FC<CourseDetailsProps> = ({
             </ol>
           </div>
 
-          <div className="p-6 sm:p-8 rounded-3xl bg-white border border-sky-100 shadow-md shadow-sky-500/5 space-y-6">
+          <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900/90 border border-sky-100 dark:border-slate-800 shadow-md shadow-sky-500/5 space-y-6">
             <div>
-              <h2 className="text-xl font-heading font-extrabold text-slate-900 flex items-center gap-2 mb-3">
-                <Award className="w-6 h-6 text-sky-600" />
+              <h2 className="text-xl font-heading font-extrabold text-slate-900 dark:text-white flex items-center gap-2 mb-3">
+                <Award className="w-6 h-6 text-sky-600 dark:text-cyan-400" />
                 Skills You Will Learn
               </h2>
               <ol className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {skills.map((skill, idx) => (
                   <li
                     key={idx}
-                    className="p-2.5 rounded-xl bg-sky-50/70 border border-sky-100 text-xs font-mono font-bold text-sky-800 flex items-center gap-2"
+                    className="p-2.5 rounded-xl bg-sky-50/70 dark:bg-slate-950/70 border border-sky-100 dark:border-slate-800 text-xs font-mono font-bold text-sky-800 dark:text-cyan-300 flex items-center gap-2"
                   >
-                    <span className="w-5 h-5 rounded-md bg-sky-200/80 text-sky-900 flex items-center justify-center text-[10px]">
+                    <span className="w-5 h-5 rounded-md bg-sky-200/80 dark:bg-cyan-900/40 text-sky-900 dark:text-cyan-200 flex items-center justify-center text-[10px]">
                       {idx + 1}
                     </span>
                     <span className="truncate">{skill}</span>
@@ -265,12 +265,12 @@ export const CourseDetailsPage: React.FC<CourseDetailsProps> = ({
               </ol>
             </div>
 
-            <div className="pt-4 border-t border-sky-100">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Prerequisites</h3>
+            <div className="pt-4 border-t border-sky-100 dark:border-slate-800">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Prerequisites</h3>
               <ol className="space-y-2">
                 {prerequisites.map((pre, idx) => (
-                  <li key={idx} className="text-xs text-slate-700 flex items-center gap-2">
-                    <span className="font-mono font-bold text-sky-600">{idx + 1}.</span>
+                  <li key={idx} className="text-xs text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                    <span className="font-mono font-bold text-sky-600 dark:text-cyan-400">{idx + 1}.</span>
                     <span>{pre}</span>
                   </li>
                 ))}
@@ -282,11 +282,11 @@ export const CourseDetailsPage: React.FC<CourseDetailsProps> = ({
         <section className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-heading font-extrabold text-slate-900 flex items-center gap-2">
-                <Layers className="w-6 h-6 text-sky-600" />
+              <h2 className="text-2xl font-heading font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                <Layers className="w-6 h-6 text-sky-600 dark:text-cyan-400" />
                 Course Curriculum Preview
               </h2>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                 {course.modules.length} Modules • {totalLessonsCount} Lessons • {course.duration} Total Length
               </p>
             </div>
@@ -316,22 +316,22 @@ export const CourseDetailsPage: React.FC<CourseDetailsProps> = ({
               return (
                 <div
                   key={mod.id}
-                  className="rounded-2xl border border-sky-100 bg-white overflow-hidden shadow-xs"
+                  className="rounded-2xl border border-sky-100 dark:border-slate-800 bg-white dark:bg-slate-900/90 overflow-hidden shadow-xs"
                 >
                   <button
                     onClick={() => toggleModule(mod.id)}
-                    className="w-full p-4 flex items-center justify-between text-left bg-sky-50/40 hover:bg-sky-50 transition-all cursor-pointer"
+                    className="w-full p-4 flex items-center justify-between text-left bg-sky-50/40 dark:bg-slate-950/50 hover:bg-sky-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
                   >
                     <div className="flex items-center gap-3">
-                      <Layers className="w-5 h-5 text-sky-600" />
+                      <Layers className="w-5 h-5 text-sky-600 dark:text-cyan-400" />
                       <div>
-                        <h3 className="text-sm font-bold text-slate-900">{mod.title}</h3>
-                        <span className="text-xs text-slate-500 font-mono">
+                        <h3 className="text-sm font-bold text-slate-900 dark:text-white">{mod.title}</h3>
+                        <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
                           {mod.lessons.length} Lessons {mod.duration ? `• ${mod.duration}` : ''}
                         </span>
                       </div>
                     </div>
-                    {isOpen ? <ChevronUp className="w-5 h-5 text-sky-600" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
+                    {isOpen ? <ChevronUp className="w-5 h-5 text-sky-600 dark:text-cyan-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
                   </button>
 
                   <AnimatePresence>
@@ -340,15 +340,15 @@ export const CourseDetailsPage: React.FC<CourseDetailsProps> = ({
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        className="px-4 py-2 border-t border-sky-100 bg-white space-y-2"
+                        className="px-4 py-2 border-t border-sky-100 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-2"
                       >
                         {mod.lessons.map((les) => (
                           <div
                             key={les.id}
-                            className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 text-xs text-slate-700 border border-slate-100"
+                            className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 text-xs text-slate-700 dark:text-slate-300 border border-slate-100 dark:border-slate-800"
                           >
                             <span className="truncate">{les.title}</span>
-                            <span className="font-mono text-slate-400 shrink-0 ml-2">{les.duration}</span>
+                            <span className="font-mono text-slate-400 dark:text-slate-500 shrink-0 ml-2">{les.duration}</span>
                           </div>
                         ))}
                       </motion.div>
@@ -362,45 +362,45 @@ export const CourseDetailsPage: React.FC<CourseDetailsProps> = ({
 
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div className="lg:col-span-6 space-y-4">
-            <h2 className="text-xl font-heading font-extrabold text-slate-900 flex items-center gap-2">
+            <h2 className="text-xl font-heading font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
               <Star className="w-5 h-5 text-amber-500 fill-amber-400" />
               Student Testimonials
             </h2>
             <div className="space-y-4">
               {reviews.map((rev, idx) => (
-                <div key={idx} className="p-5 rounded-2xl bg-white border border-sky-100 shadow-sm space-y-3">
+                <div key={idx} className="p-5 rounded-2xl bg-white dark:bg-slate-900/90 border border-sky-100 dark:border-slate-800 shadow-sm space-y-3">
                   <div className="flex items-center gap-3">
-                    <img src={rev.avatar} alt={rev.name} className="w-10 h-10 rounded-full object-cover border-2 border-sky-300" />
+                    <img src={rev.avatar} alt={rev.name} className="w-10 h-10 rounded-full object-cover border-2 border-sky-300 dark:border-cyan-400" />
                     <div>
-                      <h4 className="text-xs font-bold text-slate-900">{rev.name}</h4>
-                      <span className="text-[11px] text-slate-500">{rev.role}</span>
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-white">{rev.name}</h4>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400">{rev.role}</span>
                     </div>
                   </div>
-                  <p className="text-xs text-slate-600 italic">"{rev.comment}"</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 italic">"{rev.comment}"</p>
                 </div>
               ))}
             </div>
           </div>
 
           <div className="lg:col-span-6 space-y-4">
-            <h2 className="text-xl font-heading font-extrabold text-slate-900 flex items-center gap-2">
-              <HelpCircle className="w-5 h-5 text-sky-600" />
+            <h2 className="text-xl font-heading font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+              <HelpCircle className="w-5 h-5 text-sky-600 dark:text-cyan-400" />
               Frequently Asked Questions
             </h2>
             <div className="space-y-3">
               {faqs.map((faq, idx) => {
                 const isOpen = openFaqIndex === idx;
                 return (
-                  <div key={idx} className="rounded-2xl border border-sky-100 bg-white overflow-hidden shadow-xs">
+                  <div key={idx} className="rounded-2xl border border-sky-100 dark:border-slate-800 bg-white dark:bg-slate-900/90 overflow-hidden shadow-xs">
                     <button
                       onClick={() => toggleFaq(idx)}
-                      className="w-full p-4 flex items-center justify-between text-left text-xs font-bold text-slate-900 cursor-pointer"
+                      className="w-full p-4 flex items-center justify-between text-left text-xs font-bold text-slate-900 dark:text-white cursor-pointer"
                     >
                       <span>{faq.q}</span>
-                      {isOpen ? <ChevronUp className="w-4 h-4 text-sky-600" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                      {isOpen ? <ChevronUp className="w-4 h-4 text-sky-600 dark:text-cyan-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
                     </button>
                     {isOpen && (
-                      <div className="px-4 pb-4 text-xs text-slate-600 border-t border-sky-100/60 pt-3">
+                      <div className="px-4 pb-4 text-xs text-slate-600 dark:text-slate-300 border-t border-sky-100/60 dark:border-slate-800/60 pt-3">
                         {faq.a}
                       </div>
                     )}

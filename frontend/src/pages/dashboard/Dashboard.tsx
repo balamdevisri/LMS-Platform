@@ -871,10 +871,10 @@ export const Dashboard: React.FC = () => {
             enrolledCourses.length > 0 && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-heading font-bold text-xl text-slate-900 flex items-center gap-2">
-                    <BookOpen className="w-5 h-5 text-blue-600" /> Continue Learning (Resume Exact Position)
+                  <h3 className="font-heading font-bold text-xl text-slate-900 dark:text-white flex items-center gap-2">
+                    <BookOpen className="w-5 h-5 text-blue-600 dark:text-cyan-400" /> Continue Learning (Resume Exact Position)
                   </h3>
-                  <span className="text-xs font-semibold text-slate-500">
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                     {enrolledCourses.length} Active Track{enrolledCourses.length !== 1 ? 's' : ''}
                   </span>
                 </div>
@@ -915,11 +915,11 @@ export const Dashboard: React.FC = () => {
                     return (
                       <div
                         key={course.id}
-                        className="glass-card-light p-6 flex flex-col justify-between space-y-4 bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-xs hover:border-purple-300 dark:hover:border-purple-600 transition-all"
+                        className="glass-card-light p-6 flex flex-col justify-between space-y-4 bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs hover:border-blue-300 dark:hover:border-cyan-600 transition-all"
                       >
                         <div className="space-y-2">
                           <div className="flex flex-wrap items-center justify-between gap-1.5">
-                            <span className="text-[11px] font-bold text-purple-600 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 px-2.5 py-0.5 rounded-full border border-purple-200 dark:border-purple-800">
+                            <span className="text-[11px] font-bold text-blue-600 dark:text-cyan-300 bg-blue-50 dark:bg-blue-950/60 px-2.5 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
                               {course.category}
                             </span>
                             <div className="flex items-center gap-1.5">
@@ -938,41 +938,41 @@ export const Dashboard: React.FC = () => {
                           </h4>
                           
                           {/* Saved Resume Position Indicator */}
-                          <div className="bg-sky-50 dark:bg-zinc-800/80 border border-sky-200/80 dark:border-zinc-700 rounded-xl p-2.5 text-xs text-slate-700 dark:text-zinc-300 flex items-center gap-2">
-                            <Clock className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
+                          <div className="bg-sky-50 dark:bg-slate-950/80 border border-sky-200/80 dark:border-slate-800 rounded-xl p-2.5 text-xs text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-blue-600 dark:text-cyan-400 shrink-0" />
                             <div>
-                              <span className="font-bold text-slate-900 dark:text-zinc-100">Last Position: </span>
-                              <span className="text-purple-700 dark:text-purple-300 font-medium">Module {lastModule} ➔ {lastSubtopicTitle}</span>
+                              <span className="font-bold text-slate-900 dark:text-white">Last Position: </span>
+                              <span className="text-blue-700 dark:text-cyan-300 font-medium">Module {lastModule} ➔ {lastSubtopicTitle}</span>
                             </div>
                           </div>
 
                           {/* DYNAMIC: Module content progression layout with images */}
                           {course.modules && course.modules.length > 0 && (
-                            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-zinc-800/60">
-                              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 block">Course Modules Sequence</span>
+                            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800/60">
+                              <span className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 block">Course Modules Sequence</span>
                               <div className="flex gap-3 overflow-x-auto pb-3 pt-1 scrollbar-none snap-x">
                                 {course.modules.map((mod: any, idx: number) => {
                                   // Determine visual status for the module
                                   const isActive = idx + 1 === lastModule;
                                   const isCompleted = idx + 1 < lastModule;
                                   return (
-                                    <div key={idx} className={`shrink-0 w-[140px] rounded-xl overflow-hidden snap-start group relative border transition-all ${isActive ? 'border-purple-400 shadow-md shadow-purple-500/10' : isCompleted ? 'border-emerald-200 dark:border-emerald-800/50 opacity-80' : 'border-slate-200 dark:border-zinc-700 opacity-70'}`}>
-                                      <div className="h-20 bg-slate-200 dark:bg-zinc-700 relative overflow-hidden">
+                                    <div key={idx} className={`shrink-0 w-[140px] rounded-xl overflow-hidden snap-start group relative border transition-all ${isActive ? 'border-blue-400 dark:border-cyan-400 shadow-md shadow-blue-500/10' : isCompleted ? 'border-emerald-200 dark:border-emerald-800/50 opacity-80' : 'border-slate-200 dark:border-slate-800 opacity-70'}`}>
+                                      <div className="h-20 bg-slate-200 dark:bg-slate-800 relative overflow-hidden">
                                         {mod.image || mod.imageUrl ? (
                                           <img src={mod.image || mod.imageUrl} alt={mod.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                                         ) : (
-                                          <div className={`w-full h-full flex items-center justify-center bg-linear-to-br ${isActive ? 'from-purple-500 to-indigo-600' : 'from-slate-400 to-slate-500 dark:from-zinc-600 dark:to-zinc-700'} group-hover:scale-105 transition-transform duration-500`}>
+                                          <div className={`w-full h-full flex items-center justify-center bg-linear-to-br ${isActive ? 'from-blue-500 to-indigo-600' : 'from-slate-400 to-slate-500 dark:from-slate-700 dark:to-slate-800'} group-hover:scale-105 transition-transform duration-500`}>
                                             <Layers className="w-6 h-6 text-white/50" />
                                           </div>
                                         )}
                                         <div className="absolute top-1 right-1">
                                           {isCompleted && <div className="bg-emerald-500 text-white rounded-full p-0.5"><CheckCircle2 className="w-3 h-3" /></div>}
-                                          {isActive && <div className="bg-purple-600 text-white rounded-full px-1.5 py-0.5 text-[8px] font-bold">ACTIVE</div>}
+                                          {isActive && <div className="bg-blue-600 dark:bg-cyan-600 text-white rounded-full px-1.5 py-0.5 text-[8px] font-bold">ACTIVE</div>}
                                         </div>
                                       </div>
-                                      <div className={`p-2.5 ${isActive ? 'bg-purple-50 dark:bg-purple-950/20' : 'bg-slate-50 dark:bg-zinc-800'}`}>
-                                         <span className={`text-[9px] font-extrabold block mb-1 ${isActive ? 'text-purple-600 dark:text-purple-400' : 'text-slate-500'}`}>MOD {idx + 1}</span>
-                                         <p className="text-[10px] font-bold text-slate-800 dark:text-zinc-200 line-clamp-2 leading-snug" title={mod.title}>{mod.title}</p>
+                                      <div className={`p-2.5 ${isActive ? 'bg-blue-50 dark:bg-blue-950/40' : 'bg-slate-50 dark:bg-slate-950'}`}>
+                                         <span className={`text-[9px] font-extrabold block mb-1 ${isActive ? 'text-blue-600 dark:text-cyan-400' : 'text-slate-500 dark:text-slate-400'}`}>MOD {idx + 1}</span>
+                                         <p className="text-[10px] font-bold text-slate-800 dark:text-slate-200 line-clamp-2 leading-snug" title={mod.title}>{mod.title}</p>
                                       </div>
                                     </div>
                                   );
