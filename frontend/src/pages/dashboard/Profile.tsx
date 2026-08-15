@@ -542,18 +542,18 @@ export const Profile: React.FC = () => {
                 {certs.map((c) => (
                   <div key={c.id} className="p-4 bg-slate-50 dark:bg-zinc-800/40 border border-sky-100 dark:border-zinc-800 rounded-2xl flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-cyan-50 border border-cyan-100 text-cyan-600 flex items-center justify-center shrink-0">
+                      <div className="w-10 h-10 rounded-xl bg-cyan-50 dark:bg-cyan-950/60 border border-cyan-100 dark:border-cyan-800/50 text-cyan-600 dark:text-cyan-400 flex items-center justify-center shrink-0">
                         <Award className="w-5 h-5" />
                       </div>
                       <div>
                         <span className="font-bold text-xs text-slate-900 dark:text-white block truncate max-w-xs">{c.courseTitle}</span>
-                        <span className="text-[10px] text-slate-500 block">ID: {c.verificationId} • Issued {c.completionDate}</span>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 block">ID: {c.verificationId} • Issued {c.completionDate}</span>
                       </div>
                     </div>
 
                     <button
                       onClick={() => setSelectedCert(c)}
-                      className="py-1.5 px-3 bg-white border border-slate-200 hover:border-blue-500 rounded-xl text-[10px] font-bold text-slate-700 transition-all cursor-pointer whitespace-nowrap shadow-3xs hover:text-blue-600"
+                      className="py-1.5 px-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-cyan-500 rounded-xl text-[10px] font-bold text-slate-700 dark:text-slate-200 transition-all cursor-pointer whitespace-nowrap shadow-3xs hover:text-blue-600 dark:hover:text-cyan-400"
                     >
                       View Verified
                     </button>
@@ -571,7 +571,7 @@ export const Profile: React.FC = () => {
             </h3>
 
             {badges.length === 0 ? (
-              <div className="p-8 text-center border-2 border-dashed border-slate-150 rounded-2xl select-none text-slate-400 space-y-1 max-w-sm mx-auto">
+              <div className="p-8 text-center border-2 border-dashed border-slate-150 dark:border-zinc-800 rounded-2xl select-none text-slate-400 space-y-1 max-w-sm mx-auto">
                 <Lock className="w-8 h-8 text-slate-355 mx-auto" />
                 <p className="text-xs font-bold">No Earned Badges Yet</p>
                 <p className="text-[10px] text-slate-500 leading-normal">
@@ -581,8 +581,8 @@ export const Profile: React.FC = () => {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {badges.map((badge) => (
-                  <div key={badge.id} className="p-4 bg-slate-50 dark:bg-zinc-850/50 border border-slate-200 rounded-2xl flex gap-3 items-start">
-                    <div className="p-2 bg-white dark:bg-zinc-900 border border-slate-200 rounded-xl shrink-0">
+                  <div key={badge.id} className="p-4 bg-slate-50 dark:bg-zinc-850/50 border border-slate-200 dark:border-zinc-800 rounded-2xl flex gap-3 items-start">
+                    <div className="p-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-xl shrink-0">
                       {getBadgeIcon(badge.iconName)}
                     </div>
                     <div className="space-y-0.5 min-w-0">
@@ -593,7 +593,7 @@ export const Profile: React.FC = () => {
                         </span>
                       </div>
                       <p className="text-[10px] text-slate-500 dark:text-zinc-405 leading-relaxed font-medium">{badge.description}</p>
-                      <span className="text-[8px] font-semibold text-emerald-600 block">Earned {badge.earnedDate}</span>
+                      <span className="text-[8px] font-semibold text-emerald-600 dark:text-emerald-400 block">Earned {badge.earnedDate}</span>
                     </div>
                   </div>
                 ))}

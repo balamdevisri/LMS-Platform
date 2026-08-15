@@ -76,10 +76,10 @@ export const PracticeHub: React.FC = () => {
                     <span
                       className={`text-[9px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider border ${
                         ch.difficulty === 'Easy'
-                          ? 'text-emerald-700 bg-emerald-50 border-emerald-250'
+                          ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800/60'
                           : ch.difficulty === 'Medium'
-                          ? 'text-indigo-750 bg-indigo-50 border-indigo-250'
-                          : 'text-rose-700 bg-rose-50 border-rose-250'
+                          ? 'text-indigo-700 dark:text-cyan-300 bg-indigo-50 dark:bg-cyan-950/60 border-indigo-200 dark:border-cyan-800/60'
+                          : 'text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/60 border-rose-200 dark:border-rose-800/60'
                       }`}
                     >
                       {ch.difficulty}

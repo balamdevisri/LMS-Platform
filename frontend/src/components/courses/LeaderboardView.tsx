@@ -8,7 +8,6 @@ import {
   Clock,
   BookOpen,
   Search,
-  Medal,
   RefreshCw
 } from 'lucide-react';
 import { LeaderboardService } from '../../services/achievementService';
@@ -79,50 +78,50 @@ export const LeaderboardView: React.FC = () => {
   const getRankBadge = (rank: number) => {
     if (rank === 1) {
       return (
-        <div className="w-8 h-8 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-600 shadow-sm" title="1st Place (Gold Medal)">
-          <Trophy className="w-4 h-4 text-amber-500 fill-amber-400" />
+        <div className="w-8 h-8 rounded-xl bg-amber-400 text-amber-950 font-black text-xs flex items-center justify-center shadow-sm shadow-amber-500/30 ring-2 ring-amber-300">
+          👑 1
         </div>
       );
     }
     if (rank === 2) {
       return (
-        <div className="w-8 h-8 rounded-xl bg-slate-100 border border-slate-300 flex items-center justify-center text-slate-600 shadow-sm" title="2nd Place (Silver Medal)">
-          <Medal className="w-4 h-4 text-slate-400 fill-slate-300" />
+        <div className="w-8 h-8 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-extrabold text-xs flex items-center justify-center shadow-xs">
+          🥈 2
         </div>
       );
     }
     if (rank === 3) {
       return (
-        <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-700/30 flex items-center justify-center text-amber-800 shadow-sm" title="3rd Place (Bronze Medal)">
-          <Medal className="w-4 h-4 text-amber-700 fill-amber-600/60" />
+        <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700 font-extrabold text-xs flex items-center justify-center shadow-xs">
+          🥉 3
         </div>
       );
     }
     return (
-      <div className="w-7 h-7 rounded-lg bg-slate-100/80 border border-slate-200 flex items-center justify-center">
-        <span className="font-mono text-slate-500 text-xs font-bold">#{rank}</span>
+      <div className="w-7 h-7 rounded-lg bg-slate-100/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center">
+        <span className="font-mono text-slate-500 dark:text-slate-400 text-xs font-bold">#{rank}</span>
       </div>
     );
   };
 
   return (
-    <div className="space-y-6 font-['Sora'] text-slate-800 animate-in fade-in duration-300">
+    <div className="space-y-6 font-['Sora'] text-slate-800 dark:text-slate-100 animate-in fade-in duration-300">
       
       {/* ── Top Header & Filter Controls ─────────────────────────────── */}
-      <div className="bg-white border border-sky-100 p-6 rounded-3xl shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+      <div className="bg-white dark:bg-slate-900/90 border border-sky-100 dark:border-slate-800 p-6 rounded-3xl shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-5 transition-colors">
         <div className="space-y-1">
           <div className="flex items-center gap-2.5">
-            <div className="p-2.5 rounded-2xl bg-amber-500/10 text-amber-600 border border-amber-500/20">
+            <div className="p-2.5 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
               <Trophy className="w-6 h-6 text-amber-500 fill-amber-400/20" />
             </div>
             <div>
-              <h2 className="font-heading font-extrabold text-xl text-slate-900 flex items-center gap-2">
+              <h2 className="font-heading font-extrabold text-xl text-slate-900 dark:text-white flex items-center gap-2">
                 <span>Cohort Leaderboard Standings</span>
-                <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live Telemetry
                 </span>
               </h2>
-              <p className="text-xs text-slate-500 font-medium">Real-time cohort standings powered by verified XP, quizzes, and digital credentials.</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Real-time cohort standings powered by verified XP, quizzes, and digital credentials.</p>
             </div>
           </div>
         </div>
@@ -131,18 +130,18 @@ export const LeaderboardView: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           {/* Search Box */}
           <div className="relative min-w-[200px]">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Search student scholar..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-slate-50 border border-sky-100 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-400 transition-all placeholder:text-slate-400 font-medium text-slate-800"
+              className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-950 border border-sky-100 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-400 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 font-medium text-slate-800 dark:text-slate-200"
             />
           </div>
 
           {/* Filter Pills */}
-          <div className="flex bg-slate-100 border border-slate-200 rounded-xl p-1 text-[11px] font-bold shrink-0 select-none">
+          <div className="flex bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-1 text-[11px] font-bold shrink-0 select-none">
             {[
               { id: 'global', label: 'Global', icon: <Users className="w-3 h-3" /> },
               { id: 'course', label: 'Track', icon: <BookOpen className="w-3 h-3" /> },
@@ -154,8 +153,8 @@ export const LeaderboardView: React.FC = () => {
                 onClick={() => setFilter(opt.id as any)}
                 className={`px-3 py-1.5 rounded-lg cursor-pointer transition-all flex items-center gap-1.5 ${
                   filter === opt.id
-                    ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-900'
+                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 {opt.icon}
@@ -168,10 +167,10 @@ export const LeaderboardView: React.FC = () => {
           <button
             onClick={() => loadData(true)}
             disabled={isRefreshing}
-            className="p-2.5 rounded-xl bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 transition-all cursor-pointer flex items-center justify-center shrink-0"
+            className="p-2.5 rounded-xl bg-sky-50 dark:bg-slate-800 text-sky-700 dark:text-cyan-400 hover:bg-sky-100 dark:hover:bg-slate-700 border border-sky-200 dark:border-slate-700 transition-all cursor-pointer flex items-center justify-center shrink-0"
             title="Refresh Leaderboard"
           >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-sky-600' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-sky-600 dark:text-cyan-400' : ''}`} />
           </button>
         </div>
       </div>
@@ -236,33 +235,33 @@ export const LeaderboardView: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
           
           {/* Rank 2 (Silver) */}
-          <div className="p-5 rounded-3xl bg-linear-to-b from-slate-50 to-white border border-slate-200 shadow-xs flex flex-col items-center text-center space-y-3 relative order-2 md:order-1">
+          <div className="p-5 rounded-3xl bg-linear-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-950 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col items-center text-center space-y-3 relative order-2 md:order-1 transition-colors">
             <div className="absolute top-4 left-4">
-              <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 text-[10px] font-extrabold uppercase tracking-wider">
+              <span className="px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-extrabold uppercase tracking-wider">
                 🥈 2nd Place
               </span>
             </div>
             <div className="relative mt-4">
               {topThree[1].avatarUrl ? (
-                <img src={topThree[1].avatarUrl} alt={topThree[1].name} className="w-16 h-16 rounded-2xl object-cover border-2 border-slate-300 shadow-sm" />
+                <img src={topThree[1].avatarUrl} alt={topThree[1].name} className="w-16 h-16 rounded-2xl object-cover border-2 border-slate-300 dark:border-slate-700 shadow-sm" />
               ) : (
-                <div className="w-16 h-16 rounded-2xl bg-slate-200 text-slate-700 flex items-center justify-center font-extrabold text-xl shadow-sm">
+                <div className="w-16 h-16 rounded-2xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center font-extrabold text-xl shadow-sm">
                   {topThree[1].name.charAt(0)}
                 </div>
               )}
             </div>
             <div>
-              <h4 className="font-heading font-extrabold text-sm text-slate-900 truncate max-w-[180px]">{topThree[1].name}</h4>
-              <p className="text-[11px] text-slate-500 font-medium truncate max-w-[180px]">{topThree[1].college || 'Shaivika AI Foundation'}</p>
+              <h4 className="font-heading font-extrabold text-sm text-slate-900 dark:text-white truncate max-w-[180px]">{topThree[1].name}</h4>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate max-w-[180px]">{topThree[1].college || 'Shaivika AI Foundation'}</p>
             </div>
-            <div className="w-full pt-2 border-t border-slate-100 flex items-center justify-between text-xs font-mono">
-              <span className="text-slate-400 text-[10px] font-sans font-bold">XP Score</span>
-              <span className="font-bold text-slate-800">{topThree[1].xp.toLocaleString()} pts</span>
+            <div className="w-full pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-mono">
+              <span className="text-slate-400 dark:text-slate-500 text-[10px] font-sans font-bold">XP Score</span>
+              <span className="font-bold text-slate-800 dark:text-slate-200">{topThree[1].xp.toLocaleString()} pts</span>
             </div>
           </div>
 
           {/* Rank 1 (Gold) - Highlighted */}
-          <div className="p-6 rounded-3xl bg-linear-to-b from-amber-50/80 via-white to-amber-50/40 border-2 border-amber-300 shadow-lg shadow-amber-500/10 flex flex-col items-center text-center space-y-3 relative order-1 md:order-2 scale-100 md:-translate-y-2">
+          <div className="p-6 rounded-3xl bg-linear-to-b from-amber-50/80 via-white to-amber-50/40 dark:from-amber-950/30 dark:via-slate-900 dark:to-amber-950/20 border-2 border-amber-300 dark:border-amber-600/60 shadow-lg shadow-amber-500/10 flex flex-col items-center text-center space-y-3 relative order-1 md:order-2 scale-100 md:-translate-y-2 transition-colors">
             <div className="absolute top-4 left-4">
               <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-amber-950 text-[10px] font-black uppercase tracking-wider shadow-xs flex items-center gap-1">
                 👑 1st Place (Champion)
@@ -278,38 +277,38 @@ export const LeaderboardView: React.FC = () => {
               )}
             </div>
             <div>
-              <h4 className="font-heading font-extrabold text-base text-slate-900 truncate max-w-[200px]">{topThree[0].name}</h4>
-              <p className="text-xs text-amber-800 font-semibold truncate max-w-[200px]">{topThree[0].college || 'Shaivika AI Foundation Institute'}</p>
+              <h4 className="font-heading font-extrabold text-base text-slate-900 dark:text-white truncate max-w-[200px]">{topThree[0].name}</h4>
+              <p className="text-xs text-amber-800 dark:text-amber-300 font-semibold truncate max-w-[200px]">{topThree[0].college || 'Shaivika AI Foundation Institute'}</p>
             </div>
-            <div className="w-full pt-3 border-t border-amber-200 flex items-center justify-between text-xs font-mono">
-              <span className="text-amber-800 text-[10px] font-sans font-extrabold uppercase">Total XP Points</span>
-              <span className="font-extrabold text-amber-600 text-sm">{topThree[0].xp.toLocaleString()} pts</span>
+            <div className="w-full pt-3 border-t border-amber-200 dark:border-amber-800/60 flex items-center justify-between text-xs font-mono">
+              <span className="text-amber-800 dark:text-amber-400 text-[10px] font-sans font-extrabold uppercase">Total XP Points</span>
+              <span className="font-extrabold text-amber-600 dark:text-amber-300 text-sm">{topThree[0].xp.toLocaleString()} pts</span>
             </div>
           </div>
 
           {/* Rank 3 (Bronze) */}
-          <div className="p-5 rounded-3xl bg-linear-to-b from-amber-50/30 to-white border border-amber-200/80 shadow-xs flex flex-col items-center text-center space-y-3 relative order-3">
+          <div className="p-5 rounded-3xl bg-linear-to-b from-amber-50/30 to-white dark:from-slate-900 dark:to-slate-950 border border-amber-200/80 dark:border-slate-800 shadow-xs flex flex-col items-center text-center space-y-3 relative order-3 transition-colors">
             <div className="absolute top-4 left-4">
-              <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-extrabold uppercase tracking-wider">
+              <span className="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-[10px] font-extrabold uppercase tracking-wider">
                 🥉 3rd Place
               </span>
             </div>
             <div className="relative mt-4">
               {topThree[2].avatarUrl ? (
-                <img src={topThree[2].avatarUrl} alt={topThree[2].name} className="w-16 h-16 rounded-2xl object-cover border-2 border-amber-600/30 shadow-sm" />
+                <img src={topThree[2].avatarUrl} alt={topThree[2].name} className="w-16 h-16 rounded-2xl object-cover border-2 border-amber-600/30 dark:border-amber-700/40 shadow-sm" />
               ) : (
-                <div className="w-16 h-16 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center font-extrabold text-xl shadow-sm">
+                <div className="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 flex items-center justify-center font-extrabold text-xl shadow-sm">
                   {topThree[2].name.charAt(0)}
                 </div>
               )}
             </div>
             <div>
-              <h4 className="font-heading font-extrabold text-sm text-slate-900 truncate max-w-[180px]">{topThree[2].name}</h4>
-              <p className="text-[11px] text-slate-500 font-medium truncate max-w-[180px]">{topThree[2].college || 'Shaivika AI Foundation'}</p>
+              <h4 className="font-heading font-extrabold text-sm text-slate-900 dark:text-white truncate max-w-[180px]">{topThree[2].name}</h4>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate max-w-[180px]">{topThree[2].college || 'Shaivika AI Foundation'}</p>
             </div>
-            <div className="w-full pt-2 border-t border-slate-100 flex items-center justify-between text-xs font-mono">
-              <span className="text-slate-400 text-[10px] font-sans font-bold">XP Score</span>
-              <span className="font-bold text-slate-800">{topThree[2].xp.toLocaleString()} pts</span>
+            <div className="w-full pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-mono">
+              <span className="text-slate-400 dark:text-slate-500 text-[10px] font-sans font-bold">XP Score</span>
+              <span className="font-bold text-slate-800 dark:text-slate-200">{topThree[2].xp.toLocaleString()} pts</span>
             </div>
           </div>
 
@@ -317,11 +316,11 @@ export const LeaderboardView: React.FC = () => {
       )}
 
       {/* ── Leaderboard Ranks Table ─────────────────────────────────── */}
-      <div className="bg-white border border-sky-100 rounded-3xl overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-slate-900/90 border border-sky-100 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm transition-colors">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50/80 border-b border-sky-100 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest select-none">
+              <tr className="bg-slate-50/80 dark:bg-slate-950/80 border-b border-sky-100 dark:border-slate-800 text-[10px] font-extrabold text-slate-400 dark:text-slate-400 uppercase tracking-widest select-none">
                 <th className="py-4 px-6 w-20 text-center">Rank</th>
                 <th className="py-4 px-4">Student Scholar</th>
                 <th className="py-4 px-4">Institution / Branch</th>
@@ -330,10 +329,10 @@ export const LeaderboardView: React.FC = () => {
                 <th className="py-4 px-6 text-right w-40">Experience XP</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs font-semibold text-slate-700 dark:text-slate-300">
               {filteredEntries.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400 font-medium">
+                  <td colSpan={6} className="py-12 text-center text-slate-400 dark:text-slate-500 font-medium">
                     No scholars matched the criteria "{searchQuery}".
                   </td>
                 </tr>
@@ -343,8 +342,8 @@ export const LeaderboardView: React.FC = () => {
                     key={`${entry.rank}-${entry.name}`}
                     className={`transition-all duration-200 ${
                       entry.isCurrentUser
-                        ? 'bg-sky-50/70 border-l-4 border-l-sky-500 font-bold'
-                        : 'hover:bg-slate-50/50'
+                        ? 'bg-sky-50/70 dark:bg-cyan-950/30 border-l-4 border-l-sky-500 dark:border-l-cyan-400 font-bold'
+                        : 'hover:bg-slate-50/50 dark:hover:bg-slate-800/40'
                     }`}
                   >
                     {/* Rank Column */}
@@ -361,7 +360,7 @@ export const LeaderboardView: React.FC = () => {
                           <img
                             src={entry.avatarUrl}
                             alt={entry.name}
-                            className="w-9 h-9 rounded-xl object-cover border border-sky-200 shadow-xs shrink-0"
+                            className="w-9 h-9 rounded-xl object-cover border border-sky-200 dark:border-slate-700 shadow-xs shrink-0"
                           />
                         ) : (
                           <div
@@ -369,8 +368,8 @@ export const LeaderboardView: React.FC = () => {
                               entry.isCurrentUser
                                 ? 'bg-sky-600 text-white'
                                 : entry.rank === 1
-                                ? 'bg-amber-100 border border-amber-300 text-amber-800'
-                                : 'bg-slate-100 border border-slate-200 text-slate-700'
+                                ? 'bg-amber-100 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300'
+                                : 'bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
                             }`}
                           >
                             {entry.name.charAt(0)}
@@ -379,9 +378,9 @@ export const LeaderboardView: React.FC = () => {
 
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <span className="block truncate text-slate-900 font-bold">{entry.name}</span>
+                            <span className="block truncate text-slate-900 dark:text-white font-bold">{entry.name}</span>
                             {entry.isCurrentUser && (
-                              <span className="inline-block text-[8px] font-extrabold text-sky-700 bg-sky-100 px-1.5 py-0.5 rounded-md border border-sky-300 uppercase tracking-wide">
+                              <span className="inline-block text-[8px] font-extrabold text-sky-700 dark:text-cyan-300 bg-sky-100 dark:bg-cyan-950/60 px-1.5 py-0.5 rounded-md border border-sky-300 dark:border-cyan-800 uppercase tracking-wide">
                                 You
                               </span>
                             )}
@@ -391,14 +390,14 @@ export const LeaderboardView: React.FC = () => {
                     </td>
 
                     {/* College & Branch */}
-                    <td className="py-3.5 px-4 text-slate-500 text-[11px] font-normal">
-                      <div className="font-semibold text-slate-800 truncate max-w-[200px]">{entry.college || 'Shaivika AI Foundation'}</div>
-                      <div className="text-[10px] text-slate-400 truncate max-w-[200px]">{entry.branch || 'AI & Computer Science'}</div>
+                    <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400 text-[11px] font-normal">
+                      <div className="font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[200px]">{entry.college || 'Shaivika AI Foundation'}</div>
+                      <div className="text-[10px] text-slate-400 dark:text-slate-500 truncate max-w-[200px]">{entry.branch || 'AI & Computer Science'}</div>
                     </td>
 
                     {/* Badges count */}
                     <td className="py-3.5 px-4 text-center">
-                      <span className="inline-flex items-center gap-1 bg-slate-50 border border-slate-200 py-1 px-2.5 rounded-lg font-mono text-[10px] text-slate-600">
+                      <span className="inline-flex items-center gap-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 py-1 px-2.5 rounded-lg font-mono text-[10px] text-slate-600 dark:text-slate-300">
                         <BadgeIcon className="w-3 h-3 text-indigo-500" />
                         <span>{entry.badgesCount}</span>
                       </span>
@@ -406,7 +405,7 @@ export const LeaderboardView: React.FC = () => {
 
                     {/* Courses count */}
                     <td className="py-3.5 px-4 text-center">
-                      <span className="inline-flex items-center gap-1 bg-slate-50 border border-slate-200 py-1 px-2.5 rounded-lg font-mono text-[10px] text-slate-600">
+                      <span className="inline-flex items-center gap-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 py-1 px-2.5 rounded-lg font-mono text-[10px] text-slate-600 dark:text-slate-300">
                         <Award className="w-3.5 h-3.5 text-cyan-500" />
                         <span>{entry.coursesCompleted}</span>
                       </span>
@@ -417,13 +416,13 @@ export const LeaderboardView: React.FC = () => {
                       <span
                         className={`font-bold ${
                           entry.isCurrentUser
-                            ? 'text-sky-600 text-sm'
+                            ? 'text-sky-600 dark:text-cyan-400 text-sm'
                             : entry.rank === 1
-                            ? 'text-amber-600 font-extrabold'
-                            : 'text-slate-800'
+                            ? 'text-amber-600 dark:text-amber-400 font-extrabold'
+                            : 'text-slate-800 dark:text-slate-200'
                         }`}
                       >
-                        {entry.xp.toLocaleString()} <span className="text-[10px] text-slate-400 font-sans">pts</span>
+                        {entry.xp.toLocaleString()} <span className="text-[10px] text-slate-400 dark:text-slate-500 font-sans">pts</span>
                       </span>
                     </td>
                   </tr>

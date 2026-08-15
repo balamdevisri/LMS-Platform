@@ -1241,15 +1241,15 @@ export const Dashboard: React.FC = () => {
         const inProgressCerts = coursesProgress.filter(c => c.percentage > 0 && c.percentage < 100);
 
         return (
-          <div className="space-y-8 animate-in fade-in duration-200 text-slate-800">
+          <div className="space-y-8 animate-in fade-in duration-200 text-slate-800 dark:text-slate-100">
             
             {/* Header Description */}
-            <div className="bg-linear-to-r from-slate-900 to-indigo-950 text-white p-6 sm:p-8 rounded-3xl space-y-3 shadow-xl">
+            <div className="bg-linear-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-6 sm:p-8 rounded-3xl space-y-3 shadow-xl border border-slate-800">
               <div className="flex items-center gap-3 select-none">
                 <Award className="w-10 h-10 text-cyan-400 shrink-0" />
                 <div>
                   <h3 className="font-heading font-extrabold text-lg text-white">Certificate Center</h3>
-                  <p className="text-xs text-slate-455">ISO/IEC 27001 Authenticated Digital Course Credentials</p>
+                  <p className="text-xs text-slate-400">ISO/IEC 27001 Authenticated Digital Course Credentials</p>
                 </div>
               </div>
             </div>
@@ -1258,38 +1258,38 @@ export const Dashboard: React.FC = () => {
               
               {/* Earned Certificates Left list */}
               <div className="lg:col-span-8 space-y-4">
-                <h4 className="font-heading font-extrabold text-sm text-slate-900 border-b border-slate-100 pb-2 flex items-center gap-1.5">
+                <h4 className="font-heading font-extrabold text-sm text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center gap-1.5">
                   <Award className="w-5 h-5 text-emerald-500" />
                   <span>Earned Digital Certificates ({earnedCerts.length})</span>
                 </h4>
 
                 {earnedCerts.length === 0 ? (
-                  <div className="p-8 text-center border-2 border-dashed border-slate-150 rounded-2xl text-slate-400 space-y-2 py-12 bg-white shadow-3xs max-w-lg">
-                    <Award className="w-10 h-10 text-slate-300 mx-auto" />
-                    <p className="text-xs font-bold">No Earned Certificates Yet</p>
-                    <p className="text-[10px] text-slate-500 leading-normal max-w-xs mx-auto">
+                  <div className="p-8 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl text-slate-400 dark:text-slate-500 space-y-2 py-12 bg-white dark:bg-slate-900/90 shadow-3xs max-w-lg">
+                    <Award className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto" />
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">No Earned Certificates Yet</p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-normal max-w-xs mx-auto">
                       Complete 100% of any course syllabus, including mandatory quizzes and assignments, to unlock credentials.
                     </p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     {earnedCerts.map((cert) => (
-                      <div key={cert.id} className="p-5 bg-white border border-sky-100 rounded-2xl shadow-3xs flex flex-col justify-between space-y-4">
+                      <div key={cert.id} className="p-5 bg-white dark:bg-slate-900/90 border border-sky-100 dark:border-slate-800 rounded-2xl shadow-3xs flex flex-col justify-between space-y-4 transition-colors">
                         <div className="space-y-2">
-                          <span className="text-[9px] text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded font-mono font-bold uppercase tracking-wider block w-fit">
+                          <span className="text-[9px] text-emerald-600 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-100 dark:border-emerald-800/60 px-2 py-0.5 rounded font-mono font-bold uppercase tracking-wider block w-fit">
                             Verified Graduate Pass
                           </span>
-                          <h5 className="font-heading font-bold text-sm text-slate-900 truncate" title={cert.courseTitle}>
+                          <h5 className="font-heading font-bold text-sm text-slate-900 dark:text-white truncate" title={cert.courseTitle}>
                             {cert.courseTitle}
                           </h5>
-                          <div className="space-y-1 text-[11px] font-medium text-slate-500">
+                          <div className="space-y-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">
                             <div className="flex items-center justify-between">
                               <span>Certificate ID:</span>
-                              <span className="font-mono text-slate-900 font-bold bg-slate-100 px-1 rounded">{cert.verificationId}</span>
+                              <span className="font-mono text-slate-900 dark:text-slate-100 font-bold bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">{cert.verificationId}</span>
                             </div>
                             <div className="flex items-center justify-between">
                               <span>Issue Date:</span>
-                              <span className="text-slate-900 font-semibold">{cert.completionDate}</span>
+                              <span className="text-slate-900 dark:text-slate-200 font-semibold">{cert.completionDate}</span>
                             </div>
                           </div>
                         </div>
@@ -1297,17 +1297,17 @@ export const Dashboard: React.FC = () => {
                         <div className="grid grid-cols-1 gap-2 pt-2">
                           <button
                             onClick={() => setActivePreviewCert(cert)}
-                            className="w-full bg-slate-900 hover:bg-slate-850 text-white font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
+                            className="w-full bg-slate-900 hover:bg-slate-800 dark:bg-cyan-600 dark:hover:bg-cyan-500 text-white font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
                           >
-                            <Award className="w-4 h-4 text-cyan-400" />
+                            <Award className="w-4 h-4 text-cyan-400 dark:text-white" />
                             <span>View Certificate</span>
                           </button>
 
                           <a
                             href={`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/download?certificateId=${cert.verificationId}&studentId=${cert.studentId}&studentName=${encodeURIComponent(cert.studentName)}&courseTitle=${encodeURIComponent(cert.courseTitle)}&completionDate=${encodeURIComponent(cert.completionDate)}`}
-                            className="w-full bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                            className="w-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
                           >
-                            <Download className="w-4 h-4 text-emerald-500" />
+                            <Download className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
                             <span>Download PDF</span>
                           </a>
 
@@ -1315,9 +1315,9 @@ export const Dashboard: React.FC = () => {
                             href={`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/verify/${cert.verificationId}?studentId=${cert.studentId}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="w-full bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer text-center"
+                            className="w-full bg-slate-50 hover:bg-slate-100 dark:bg-slate-950 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer text-center"
                           >
-                            <ExternalLink className="w-4 h-4 text-sky-500" />
+                            <ExternalLink className="w-4 h-4 text-sky-500 dark:text-cyan-400" />
                             <span>Verify Credential</span>
                           </a>
                         </div>
@@ -1332,22 +1332,22 @@ export const Dashboard: React.FC = () => {
                 
                 {/* In Progress */}
                 <div className="space-y-3.5">
-                  <h4 className="font-heading font-extrabold text-sm text-slate-900 border-b border-slate-100 pb-2">
+                  <h4 className="font-heading font-extrabold text-sm text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2">
                     In Progress Certifications
                   </h4>
                   
                   {inProgressCerts.length === 0 ? (
-                    <p className="text-[11px] text-slate-400 italic">No course tracks currently in progress.</p>
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500 italic">No course tracks currently in progress.</p>
                   ) : (
                     <div className="space-y-3">
                       {inProgressCerts.map((item, idx) => (
-                        <div key={idx} className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2 shadow-3xs">
-                          <div className="flex items-center justify-between text-[10px] font-bold text-slate-400">
-                            <span className="truncate max-w-40 text-slate-700">{item.course.title}</span>
-                            <span className="font-mono text-blue-600 font-extrabold shrink-0">{item.percentage}%</span>
+                        <div key={idx} className="p-3.5 bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2 shadow-3xs transition-colors">
+                          <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 dark:text-slate-500">
+                            <span className="truncate max-w-40 text-slate-700 dark:text-slate-300">{item.course.title}</span>
+                            <span className="font-mono text-blue-600 dark:text-cyan-400 font-extrabold shrink-0">{item.percentage}%</span>
                           </div>
-                          <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-blue-600 rounded-full" style={{ width: `${item.percentage}%` }} />
+                          <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-blue-600 dark:bg-cyan-500 rounded-full" style={{ width: `${item.percentage}%` }} />
                           </div>
                         </div>
                       ))}
@@ -1357,14 +1357,14 @@ export const Dashboard: React.FC = () => {
 
                 {/* Expired Placeholder */}
                 <div className="space-y-3.5 pt-2">
-                  <h4 className="font-heading font-extrabold text-sm text-slate-900 border-b border-slate-100 pb-2">
+                  <h4 className="font-heading font-extrabold text-sm text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2">
                     Renewal & Expiration Ranks
                   </h4>
-                  <div className="p-4 bg-slate-50 border border-slate-250 rounded-2xl flex items-start gap-2.5 text-[10px] leading-relaxed text-slate-500 font-semibold select-none">
-                    <Award className="w-4.5 h-4.5 text-slate-400 shrink-0" />
+                  <div className="p-4 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-2xl flex items-start gap-2.5 text-[10px] leading-relaxed text-slate-500 dark:text-slate-400 font-semibold select-none">
+                    <Award className="w-4.5 h-4.5 text-slate-400 dark:text-slate-500 shrink-0" />
                     <div>
-                      <span>No Expired Certifications</span>
-                      <p className="mt-0.5 text-[9px] text-slate-400">All Kaizen Q credentials remain indefinitely valid. Future enterprise renewal status will display here.</p>
+                      <span className="text-slate-800 dark:text-slate-200">No Expired Certifications</span>
+                      <p className="mt-0.5 text-[9px] text-slate-400 dark:text-slate-500">All Kaizen Q credentials remain indefinitely valid. Future enterprise renewal status will display here.</p>
                     </div>
                   </div>
                 </div>

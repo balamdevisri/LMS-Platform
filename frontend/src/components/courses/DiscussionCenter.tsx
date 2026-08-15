@@ -458,14 +458,14 @@ export const DiscussionCenter: React.FC<DiscussionCenterProps> = ({
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 bg-slate-50/50 dark:bg-slate-900/10 p-1 rounded-3xl border border-sky-100/40 relative min-h-[550px] font-['Sora'] text-slate-800">
       
       {/* Educational Group Communication Policy Header Banner */}
-      <div className="lg:col-span-12 bg-blue-50/90 border border-blue-200 p-3.5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs font-semibold text-blue-900 shadow-2xs">
+      <div className="lg:col-span-12 bg-blue-50/90 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/80 p-3.5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs font-semibold text-blue-900 dark:text-blue-200 shadow-2xs">
         <div className="flex items-center gap-2.5">
-          <ShieldAlert className="w-5 h-5 text-blue-600 shrink-0" />
+          <ShieldAlert className="w-5 h-5 text-blue-600 dark:text-cyan-400 shrink-0" />
           <span>
             <strong>Educational Collaboration Policy:</strong> Public group discussions (Min 3 members). Personal messaging, DMs, 1-on-1 chats, and private calls are strictly disabled.
           </span>
         </div>
-        <span className="text-[10px] font-extrabold bg-blue-600 text-white px-2.5 py-1 rounded-lg shrink-0 uppercase tracking-wider">
+        <span className="text-[10px] font-extrabold bg-blue-600 dark:bg-cyan-600 text-white px-2.5 py-1 rounded-lg shrink-0 uppercase tracking-wider">
           Policy Active
         </span>
       </div>
@@ -477,10 +477,10 @@ export const DiscussionCenter: React.FC<DiscussionCenterProps> = ({
         }`}
       >
         {/* Sticky Actions Bar */}
-        <div className="sticky top-0 bg-white/90 border border-sky-150/40 p-4 rounded-2xl shadow-xs z-10 space-y-3.5 backdrop-blur-md">
+        <div className="sticky top-0 bg-white/90 dark:bg-slate-900/90 border border-sky-150/40 dark:border-slate-800 p-4 rounded-2xl shadow-xs z-10 space-y-3.5 backdrop-blur-md transition-colors">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="font-heading font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2">
-              <MessageSquare className="w-5 h-5 text-blue-600" />
+            <h2 className="font-heading font-extrabold text-sm sm:text-base text-slate-900 dark:text-white flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-blue-600 dark:text-cyan-400" />
               <span>Discussion Board</span>
             </h2>
             
@@ -490,7 +490,7 @@ export const DiscussionCenter: React.FC<DiscussionCenterProps> = ({
                 setSelectedQuestion(null);
                 setShowMobileDetail(true);
               }}
-              className="py-2 px-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-500/15 flex items-center gap-1.5 cursor-pointer shrink-0"
+              className="py-2 px-3.5 bg-blue-600 hover:bg-blue-700 dark:bg-cyan-600 dark:hover:bg-cyan-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-500/15 flex items-center gap-1.5 cursor-pointer shrink-0"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Ask Question</span>
@@ -499,18 +499,18 @@ export const DiscussionCenter: React.FC<DiscussionCenterProps> = ({
 
           {/* Search Box */}
           <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search discussions by title, description, tags, lesson..."
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 hover:bg-slate-100 focus:bg-white text-xs rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 font-medium outline-none transition-all placeholder:text-slate-400"
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-900 focus:bg-white dark:focus:bg-slate-900 text-xs text-slate-900 dark:text-slate-100 rounded-xl border border-slate-200 dark:border-slate-800 focus:border-blue-500 dark:focus:border-cyan-400 focus:ring-1 focus:ring-blue-500/20 font-medium outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-200 transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -521,22 +521,22 @@ export const DiscussionCenter: React.FC<DiscussionCenterProps> = ({
           <div className="flex lg:hidden items-center justify-between gap-2.5">
             <button
               onClick={() => setShowTabletFilters(!showTabletFilters)}
-              className="py-2 px-3.5 border border-slate-200 hover:border-slate-350 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-800 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+              className="py-2 px-3.5 border border-slate-200 dark:border-slate-800 hover:border-slate-350 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
             >
-              <Filter className="w-3.5 h-3.5 text-slate-500" />
+              <Filter className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
               <span>Filter & Sort</span>
               <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showTabletFilters ? 'rotate-180' : ''}`} />
             </button>
 
-            <span className="text-[11px] text-slate-500 font-medium bg-slate-100 py-1 px-2.5 rounded-lg border border-slate-200">
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium bg-slate-100 dark:bg-slate-800 py-1 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700">
               {filteredAndSortedQuestions.length} matches
             </span>
           </div>
 
           {/* Inline filters on Desktop OR collapsed drawer on Tablet/Mobile */}
-          <div className={`space-y-3 pt-2 border-t border-slate-100 ${showTabletFilters ? 'block' : 'hidden lg:block'}`}>
+          <div className={`space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800 ${showTabletFilters ? 'block' : 'hidden lg:block'}`}>
             <div className="space-y-1">
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Filter by Status</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider block">Filter by Status</span>
               <div className="flex flex-wrap gap-1.5">
                 {[
                   { id: 'all', label: 'All' },
@@ -551,8 +551,8 @@ export const DiscussionCenter: React.FC<DiscussionCenterProps> = ({
                     onClick={() => setSelectedFilter(f.id as any)}
                     className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border cursor-pointer transition-all ${
                       selectedFilter === f.id
-                        ? 'bg-blue-50 border-blue-200 text-blue-700'
-                        : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                        ? 'bg-blue-50 dark:bg-blue-950/80 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-cyan-300'
+                        : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700 hover:text-slate-700 dark:hover:text-slate-200'
                     }`}
                   >
                     {f.label}
@@ -561,22 +561,22 @@ export const DiscussionCenter: React.FC<DiscussionCenterProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center justify-between gap-3 border-t border-slate-100/50 pt-2.5">
+            <div className="flex items-center justify-between gap-3 border-t border-slate-100/50 dark:border-slate-800 pt-2.5">
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Sort:</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Sort:</span>
                 <select
                   value={selectedSort}
                   onChange={(e) => setSelectedSort(e.target.value as any)}
-                  className="bg-transparent border-none text-[11px] font-bold text-slate-700 focus:ring-0 cursor-pointer pr-5 py-0 outline-none"
+                  className="bg-transparent border-none text-[11px] font-bold text-slate-700 dark:text-slate-300 focus:ring-0 cursor-pointer pr-5 py-0 outline-none"
                 >
-                  <option value="latest">Latest Created</option>
-                  <option value="oldest">Oldest Created</option>
-                  <option value="replies">Most Replies</option>
-                  <option value="upvotes">Most Upvoted</option>
+                  <option value="latest" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Latest Created</option>
+                  <option value="oldest" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Oldest Created</option>
+                  <option value="replies" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Most Replies</option>
+                  <option value="upvotes" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Most Upvoted</option>
                 </select>
               </div>
 
-              <span className="hidden lg:inline text-[10px] text-slate-500 font-bold bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+              <span className="hidden lg:inline text-[10px] text-slate-500 dark:text-slate-400 font-bold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700">
                 {filteredAndSortedQuestions.length} Threads
               </span>
             </div>
@@ -588,10 +588,10 @@ export const DiscussionCenter: React.FC<DiscussionCenterProps> = ({
           {isLoading ? (
             renderSkeletons()
           ) : filteredAndSortedQuestions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-10 text-center rounded-2xl border border-dashed border-slate-250 bg-white/50 text-slate-400 my-4">
-              <Inbox className="w-10 h-10 text-slate-350 mb-3" />
-              <h4 className="font-heading font-extrabold text-xs text-slate-800 uppercase tracking-wide">No discussions yet</h4>
-              <p className="text-[11px] font-medium leading-relaxed text-slate-500 max-w-xs mt-1">
+            <div className="flex flex-col items-center justify-center p-10 text-center rounded-2xl border border-dashed border-slate-250 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 text-slate-400 dark:text-slate-500 my-4">
+              <Inbox className="w-10 h-10 text-slate-350 dark:text-slate-600 mb-3" />
+              <h4 className="font-heading font-extrabold text-xs text-slate-800 dark:text-slate-200 uppercase tracking-wide">No discussions yet</h4>
+              <p className="text-[11px] font-medium leading-relaxed text-slate-500 dark:text-slate-400 max-w-xs mt-1">
                 Start the first conversation! Create a question or review active filter parameters.
               </p>
             </div>
@@ -610,8 +610,8 @@ export const DiscussionCenter: React.FC<DiscussionCenterProps> = ({
                   }}
                   className={`p-4 rounded-2xl border cursor-pointer relative transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
                     isSelected
-                      ? 'bg-blue-50/50 border-blue-400 shadow-xs'
-                      : 'bg-white border-slate-200/70 hover:border-slate-300'
+                      ? 'bg-blue-50/50 dark:bg-cyan-950/30 border-blue-400 dark:border-cyan-500 shadow-xs'
+                      : 'bg-white dark:bg-slate-900/90 border-slate-200/70 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                   }`}
                 >
                   {/* Unread indicator dot */}
@@ -623,11 +623,11 @@ export const DiscussionCenter: React.FC<DiscussionCenterProps> = ({
                     {/* Lesson tag and status */}
                     <div className="flex flex-wrap items-center justify-between gap-2 text-[10px]">
                       {q.lessonName ? (
-                        <span className="font-extrabold text-blue-800 bg-blue-50/70 border border-blue-100 rounded-md px-1.5 py-0.5 max-w-xs truncate" title={q.lessonName}>
+                        <span className="font-extrabold text-blue-800 dark:text-cyan-300 bg-blue-50/70 dark:bg-cyan-950/60 border border-blue-100 dark:border-cyan-800/60 rounded-md px-1.5 py-0.5 max-w-xs truncate" title={q.lessonName}>
                           📖 {q.lessonName}
                         </span>
                       ) : (
-                        <span className="font-extrabold text-slate-500 bg-slate-100 rounded-md px-1.5 py-0.5">
+                        <span className="font-extrabold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded-md px-1.5 py-0.5">
                           Course General
                         </span>
                       )}
@@ -638,12 +638,12 @@ export const DiscussionCenter: React.FC<DiscussionCenterProps> = ({
                     </div>
 
                     {/* Question title */}
-                    <h3 className={`font-heading font-bold text-xs sm:text-sm leading-relaxed text-slate-900 ${isUnread ? 'font-extrabold' : ''}`}>
+                    <h3 className={`font-heading font-bold text-xs sm:text-sm leading-relaxed text-slate-900 dark:text-white ${isUnread ? 'font-extrabold' : ''}`}>
                       {q.title}
                     </h3>
 
                     {/* Description snippet */}
-                    <p className="text-[11px] text-slate-500 font-medium line-clamp-2 leading-relaxed">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium line-clamp-2 leading-relaxed">
                       {q.description}
                     </p>
 
@@ -651,7 +651,7 @@ export const DiscussionCenter: React.FC<DiscussionCenterProps> = ({
                     {q.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1.5">
                         {q.tags.map((tag) => (
-                          <span key={tag} className="inline-flex items-center gap-1 text-[9px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/50">
+                          <span key={tag} className="inline-flex items-center gap-1 text-[9px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200/50 dark:border-slate-700">
                             <Tag className="w-2.5 h-2.5 text-slate-400" />
                             <span>{tag}</span>
                           </span>
