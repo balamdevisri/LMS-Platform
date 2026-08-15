@@ -119,12 +119,14 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
   if (!content) return null;
 
   const isReactCourse = (courseId || '').toLowerCase().includes('react');
+  const isJavaCourse = (courseId || '').toLowerCase().includes('java');
   if (
     courseId === 'python-through-oops-course-id' ||
     courseId === 'kubernetes-complete-course-beginner-to-advanced' ||
     courseId === 'git-github-mastery-course-id' ||
     courseId === 'git-github-mastery' ||
-    isReactCourse
+    isReactCourse ||
+    isJavaCourse
   ) {
     return <LmsCourseRenderer content={content} isNightMode={isNightMode} courseId={courseId} />;
   }
