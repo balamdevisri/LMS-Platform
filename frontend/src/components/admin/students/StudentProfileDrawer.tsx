@@ -58,34 +58,34 @@ export const StudentProfileDrawer: React.FC<StudentProfileDrawerProps> = ({
       : 'text-amber-600 bg-amber-50 border-amber-200';
 
   return (
-    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex justify-end transition-opacity">
-      <div className="bg-white w-full max-w-2xl h-full shadow-2xl overflow-y-auto flex flex-col font-['Sora'] border-l border-sky-100 animate-in slide-in-from-right duration-300">
+    <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50 flex justify-end transition-opacity">
+      <div className="bg-white dark:bg-slate-900 w-full max-w-2xl h-full shadow-2xl overflow-y-auto flex flex-col font-['Sora'] border-l border-sky-100 dark:border-slate-800 animate-in slide-in-from-right duration-300 text-slate-800 dark:text-slate-100">
         
         {/* Drawer Header */}
-        <div className="sticky top-0 bg-white/95 backdrop-blur-md z-10 px-6 py-4 border-b border-sky-100 flex items-center justify-between">
+        <div className="sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md z-10 px-6 py-4 border-b border-sky-100 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-sky-50 text-sky-600 border border-sky-200">
+            <div className="p-2 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-cyan-400 border border-sky-200 dark:border-sky-800">
               <User className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="font-heading font-extrabold text-base text-slate-900">Student Intelligence Profile</h2>
-              <p className="text-[11px] text-slate-500 font-medium">Real-time telemetry & academic progress</p>
+              <h2 className="font-heading font-extrabold text-base text-slate-900 dark:text-white">Student Intelligence Profile</h2>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Real-time telemetry & academic progress</p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all cursor-pointer"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Drawer Main Body */}
-        <div className="p-6 space-y-6 flex-1 text-slate-900">
+        <div className="p-6 space-y-6 flex-1 text-slate-900 dark:text-slate-100">
           
           {/* Profile Overview Card */}
-          <div className="bg-linear-to-br from-sky-50/80 to-blue-50/40 p-6 rounded-3xl border border-sky-100 space-y-5">
+          <div className="bg-linear-to-br from-sky-50/80 to-blue-50/40 dark:from-slate-950/80 dark:to-slate-900/80 p-6 rounded-3xl border border-sky-100 dark:border-slate-800 space-y-5">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 {student.photoURL ? (
@@ -102,20 +102,20 @@ export const StudentProfileDrawer: React.FC<StudentProfileDrawerProps> = ({
 
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-heading font-extrabold text-xl text-slate-900">{student.name}</h3>
+                    <h3 className="font-heading font-extrabold text-xl text-slate-900 dark:text-white">{student.name}</h3>
                     {isGithub ? (
                       <span className="px-2.5 py-0.5 rounded-full bg-slate-900 text-cyan-300 text-[10px] font-mono font-bold border border-slate-700">
                         🐱 GitHub OAuth
                       </span>
                     ) : (
-                      <span className="px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800 text-[10px] font-mono font-bold border border-sky-200">
+                      <span className="px-2.5 py-0.5 rounded-full bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-cyan-300 text-[10px] font-mono font-bold border border-sky-200 dark:border-sky-800">
                         ✉️ Email Account
                       </span>
                     )}
                   </div>
 
-                  <p className="text-xs text-slate-600 font-medium flex items-center gap-1.5">
-                    <Mail className="w-3.5 h-3.5 text-sky-600" />
+                  <p className="text-xs text-slate-600 dark:text-slate-400 font-medium flex items-center gap-1.5">
+                    <Mail className="w-3.5 h-3.5 text-sky-600 dark:text-cyan-400" />
                     <span>{student.email}</span>
                   </p>
                 </div>
@@ -123,7 +123,7 @@ export const StudentProfileDrawer: React.FC<StudentProfileDrawerProps> = ({
 
               {/* Status & Learning Score Badge */}
               <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-2">
-                <span className="px-3 py-1 rounded-full text-xs font-extrabold border bg-amber-50 text-amber-800 border-amber-300 flex items-center gap-1">
+                <span className="px-3 py-1 rounded-full text-xs font-extrabold border bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800 flex items-center gap-1">
                   <Trophy className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
                   <span>Cohort Rank #{studentRank}</span>
                 </span>
@@ -132,8 +132,8 @@ export const StudentProfileDrawer: React.FC<StudentProfileDrawerProps> = ({
                 </span>
                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
                   student.status === 'Active'
-                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                    : 'bg-rose-100 text-rose-800 border border-rose-200'
+                    ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                    : 'bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
                 }`}>
                   ● {student.status}
                 </span>
@@ -141,11 +141,11 @@ export const StudentProfileDrawer: React.FC<StudentProfileDrawerProps> = ({
             </div>
 
             {/* Quick Action Toolbar */}
-            <div className="pt-3 border-t border-sky-200/60 flex items-center gap-2 flex-wrap text-xs">
+            <div className="pt-3 border-t border-sky-200/60 dark:border-slate-800 flex items-center gap-2 flex-wrap text-xs">
               {onEdit && (
                 <button
                   onClick={() => onEdit(student)}
-                  className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-sky-100 text-sky-700 border border-sky-200 font-bold transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-xs"
+                  className="px-3.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-sky-100 dark:hover:bg-slate-700 text-sky-700 dark:text-cyan-300 border border-sky-200 dark:border-slate-700 font-bold transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-xs"
                 >
                   <User className="w-3.5 h-3.5" />
                   <span>Edit Profile</span>
@@ -157,8 +157,8 @@ export const StudentProfileDrawer: React.FC<StudentProfileDrawerProps> = ({
                   onClick={() => onToggleStatus(student.id)}
                   className={`px-3.5 py-1.5 rounded-xl font-bold transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-xs ${
                     student.status === 'Active'
-                      ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200'
-                      : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200'
+                      ? 'bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900'
+                      : 'bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900'
                   }`}
                 >
                   <ShieldCheck className="w-3.5 h-3.5" />
@@ -169,7 +169,7 @@ export const StudentProfileDrawer: React.FC<StudentProfileDrawerProps> = ({
               {onResetPassword && (
                 <button
                   onClick={() => onResetPassword(student.email)}
-                  className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-amber-50 text-amber-700 border border-amber-200 font-bold transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-xs"
+                  className="px-3.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-slate-700 font-bold transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-xs"
                 >
                   <KeyRound className="w-3.5 h-3.5" />
                   <span>Reset Password</span>
@@ -179,7 +179,7 @@ export const StudentProfileDrawer: React.FC<StudentProfileDrawerProps> = ({
               {onSendEmail && (
                 <button
                   onClick={() => onSendEmail(student)}
-                  className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 font-bold transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-xs"
+                  className="px-3.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-950/40 text-blue-700 dark:text-cyan-300 border border-blue-200 dark:border-slate-700 font-bold transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-xs"
                 >
                   <Send className="w-3.5 h-3.5" />
                   <span>Send Email</span>
@@ -189,48 +189,48 @@ export const StudentProfileDrawer: React.FC<StudentProfileDrawerProps> = ({
           </div>
 
           {/* Academic & Bio Details */}
-          <div className="bg-white p-5 rounded-3xl border border-sky-100 space-y-4">
-            <h4 className="font-heading font-extrabold text-sm text-slate-900 flex items-center gap-2">
-              <GraduationCap className="w-4 h-4 text-sky-600" />
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-sky-100 dark:border-slate-800 space-y-4">
+            <h4 className="font-heading font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+              <GraduationCap className="w-4 h-4 text-sky-600 dark:text-cyan-400" />
               <span>Academic & Contact Information</span>
             </h4>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div className="p-3 bg-slate-50 border border-sky-100 rounded-2xl space-y-1">
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Branch / Major</span>
-                <span className="font-bold text-slate-900">{student.branch || 'AI & Computer Science'}</span>
+              <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-sky-100 dark:border-slate-800 rounded-2xl space-y-1">
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider block">Branch / Major</span>
+                <span className="font-bold text-slate-900 dark:text-white">{student.branch || 'AI & Computer Science'}</span>
               </div>
 
-              <div className="p-3 bg-slate-50 border border-sky-100 rounded-2xl space-y-1">
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Academic Year</span>
-                <span className="font-bold text-slate-900">{student.year || '1st Year'}</span>
+              <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-sky-100 dark:border-slate-800 rounded-2xl space-y-1">
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider block">Academic Year</span>
+                <span className="font-bold text-slate-900 dark:text-white">{student.year || '1st Year'}</span>
               </div>
 
-              <div className="p-3 bg-slate-50 border border-sky-100 rounded-2xl space-y-1">
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Institution / College</span>
-                <span className="font-bold text-slate-900">{student.college || 'Shaivika AI Foundation'}</span>
+              <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-sky-100 dark:border-slate-800 rounded-2xl space-y-1">
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider block">Institution / College</span>
+                <span className="font-bold text-slate-900 dark:text-white">{student.college || 'Shaivika AI Foundation'}</span>
               </div>
 
-              <div className="p-3 bg-slate-50 border border-sky-100 rounded-2xl space-y-1">
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Contact Phone</span>
-                <span className="font-bold text-slate-900 flex items-center gap-1">
-                  <Phone className="w-3 h-3 text-sky-500" />
+              <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-sky-100 dark:border-slate-800 rounded-2xl space-y-1">
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider block">Contact Phone</span>
+                <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1">
+                  <Phone className="w-3 h-3 text-sky-500 dark:text-cyan-400" />
                   <span>{student.phone || 'Not Provided'}</span>
                 </span>
               </div>
 
-              <div className="p-3 bg-slate-50 border border-sky-100 rounded-2xl space-y-1">
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Registration Date</span>
-                <span className="font-bold text-slate-900 flex items-center gap-1">
-                  <Calendar className="w-3 h-3 text-sky-500" />
+              <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-sky-100 dark:border-slate-800 rounded-2xl space-y-1">
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider block">Registration Date</span>
+                <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1">
+                  <Calendar className="w-3 h-3 text-sky-500 dark:text-cyan-400" />
                   <span>{student.joined || 'Recently'}</span>
                 </span>
               </div>
 
-              <div className="p-3 bg-slate-50 border border-sky-100 rounded-2xl space-y-1">
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Last Active</span>
-                <span className="font-bold text-slate-900 flex items-center gap-1">
-                  <Clock className="w-3 h-3 text-emerald-500" />
+              <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-sky-100 dark:border-slate-800 rounded-2xl space-y-1">
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider block">Last Active</span>
+                <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-emerald-500 dark:text-emerald-400" />
                   <span>{student.lastLogin ? new Date(student.lastLogin).toLocaleDateString() : 'Active Now'}</span>
                 </span>
               </div>
@@ -238,18 +238,18 @@ export const StudentProfileDrawer: React.FC<StudentProfileDrawerProps> = ({
 
             {/* Bio & Skills */}
             {student.bio && (
-              <div className="p-3 bg-slate-50 border border-sky-100 rounded-2xl space-y-1 text-xs">
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Bio</span>
-                <p className="text-slate-700 font-medium italic">{student.bio}</p>
+              <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-sky-100 dark:border-slate-800 rounded-2xl space-y-1 text-xs">
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider block">Bio</span>
+                <p className="text-slate-700 dark:text-slate-300 font-medium italic">{student.bio}</p>
               </div>
             )}
 
             {student.skills && student.skills.length > 0 && (
               <div className="space-y-1.5 pt-1">
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Verified Skills</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider block">Verified Skills</span>
                 <div className="flex flex-wrap gap-1.5">
                   {student.skills.map((sk, idx) => (
-                    <span key={idx} className="px-2.5 py-1 rounded-lg bg-sky-50 text-sky-800 text-[11px] font-bold border border-sky-200">
+                    <span key={idx} className="px-2.5 py-1 rounded-lg bg-sky-50 dark:bg-sky-950/60 text-sky-800 dark:text-cyan-300 text-[11px] font-bold border border-sky-200 dark:border-sky-800">
                       {sk}
                     </span>
                   ))}
@@ -259,9 +259,9 @@ export const StudentProfileDrawer: React.FC<StudentProfileDrawerProps> = ({
           </div>
 
           {/* Social Links Panel */}
-          <div className="bg-white p-5 rounded-3xl border border-sky-100 space-y-3">
-            <h4 className="font-heading font-extrabold text-sm text-slate-900 flex items-center gap-2">
-              <Globe className="w-4 h-4 text-sky-600" />
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-sky-100 dark:border-slate-800 space-y-3">
+            <h4 className="font-heading font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+              <Globe className="w-4 h-4 text-sky-600 dark:text-cyan-400" />
               <span>Developer Social Links</span>
             </h4>
 
@@ -298,7 +298,7 @@ export const StudentProfileDrawer: React.FC<StudentProfileDrawerProps> = ({
                   href={student.portfolio}
                   target="_blank"
                   rel="noreferrer"
-                  className="px-3.5 py-2 rounded-xl bg-sky-50 text-sky-700 font-bold hover:bg-sky-100 border border-sky-200 transition-all inline-flex items-center gap-2 shadow-xs"
+                  className="px-3.5 py-2 rounded-xl bg-sky-50 dark:bg-slate-800 text-sky-700 dark:text-cyan-300 font-bold hover:bg-sky-100 dark:hover:bg-slate-700 border border-sky-200 dark:border-slate-700 transition-all inline-flex items-center gap-2 shadow-xs"
                 >
                   <span>Portfolio Site</span>
                   <ExternalLink className="w-3 h-3" />
@@ -347,8 +347,8 @@ export const StudentProfileDrawer: React.FC<StudentProfileDrawerProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             
             {/* Quiz Scores */}
-            <div className="bg-white p-5 rounded-3xl border border-sky-100 space-y-3">
-              <h4 className="font-heading font-extrabold text-sm text-slate-900 flex items-center gap-2">
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-sky-100 dark:border-slate-800 space-y-3">
+              <h4 className="font-heading font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-2">
                 <Zap className="w-4 h-4 text-amber-500" />
                 <span>Quiz Scores</span>
               </h4>
@@ -356,44 +356,44 @@ export const StudentProfileDrawer: React.FC<StudentProfileDrawerProps> = ({
               <div className="space-y-2 max-h-48 overflow-y-auto pr-1 text-xs font-medium">
                 {student.quizScores && student.quizScores.length > 0 ? (
                   student.quizScores.map((q) => (
-                    <div key={q.id} className="p-2.5 bg-slate-50 border border-sky-100 rounded-xl flex items-center justify-between">
+                    <div key={q.id} className="p-2.5 bg-slate-50 dark:bg-slate-950 border border-sky-100 dark:border-slate-800 rounded-xl flex items-center justify-between">
                       <div>
-                        <div className="font-bold text-slate-900">{q.title}</div>
-                        <div className="text-[10px] text-slate-400">{q.date}</div>
+                        <div className="font-bold text-slate-900 dark:text-white">{q.title}</div>
+                        <div className="text-[10px] text-slate-400 dark:text-slate-500">{q.date}</div>
                       </div>
-                      <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200">
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-800">
                         {q.score} / {q.maxScore}
                       </span>
                     </div>
                   ))
                 ) : (
-                  <p className="text-xs text-slate-500 font-medium">No quiz scores recorded yet.</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">No quiz scores recorded yet.</p>
                 )}
               </div>
             </div>
 
             {/* Assignments */}
-            <div className="bg-white p-5 rounded-3xl border border-sky-100 space-y-3">
-              <h4 className="font-heading font-extrabold text-sm text-slate-900 flex items-center gap-2">
-                <FileCheck className="w-4 h-4 text-sky-600" />
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-sky-100 dark:border-slate-800 space-y-3">
+              <h4 className="font-heading font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                <FileCheck className="w-4 h-4 text-sky-600 dark:text-cyan-400" />
                 <span>Assignments</span>
               </h4>
 
               <div className="space-y-2 max-h-48 overflow-y-auto pr-1 text-xs font-medium">
                 {student.assignmentScores && student.assignmentScores.length > 0 ? (
                   student.assignmentScores.map((a) => (
-                    <div key={a.id} className="p-2.5 bg-slate-50 border border-sky-100 rounded-xl flex items-center justify-between">
+                    <div key={a.id} className="p-2.5 bg-slate-50 dark:bg-slate-950 border border-sky-100 dark:border-slate-800 rounded-xl flex items-center justify-between">
                       <div>
-                        <div className="font-bold text-slate-900">{a.title}</div>
-                        <div className="text-[10px] text-slate-400">{a.date}</div>
+                        <div className="font-bold text-slate-900 dark:text-white">{a.title}</div>
+                        <div className="text-[10px] text-slate-400 dark:text-slate-500">{a.date}</div>
                       </div>
-                      <span className="font-bold text-sky-600 bg-sky-50 px-2 py-0.5 rounded-lg border border-sky-200">
+                      <span className="font-bold text-sky-600 dark:text-cyan-400 bg-sky-50 dark:bg-sky-950/60 px-2 py-0.5 rounded-lg border border-sky-200 dark:border-sky-800">
                         {a.score} / {a.maxScore}
                       </span>
                     </div>
                   ))
                 ) : (
-                  <p className="text-xs text-slate-500 font-medium">No assignment submissions yet.</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">No assignment submissions yet.</p>
                 )}
               </div>
             </div>
@@ -402,21 +402,21 @@ export const StudentProfileDrawer: React.FC<StudentProfileDrawerProps> = ({
 
           {/* Certificates */}
           {student.certificates && student.certificates.length > 0 && (
-            <div className="bg-white p-5 rounded-3xl border border-sky-100 space-y-3">
-              <h4 className="font-heading font-extrabold text-sm text-slate-900 flex items-center gap-2">
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-sky-100 dark:border-slate-800 space-y-3">
+              <h4 className="font-heading font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-2">
                 <Award className="w-4 h-4 text-amber-500" />
                 <span>Verifiable Digital Credentials</span>
               </h4>
 
               <div className="space-y-2 text-xs">
                 {student.certificates.map((cert) => (
-                  <div key={cert.id} className="p-3 bg-amber-50/50 border border-amber-200/80 rounded-2xl flex items-center justify-between">
+                  <div key={cert.id} className="p-3 bg-amber-50/50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-900/60 rounded-2xl flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <div className="font-bold text-slate-900 flex items-center gap-1.5">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-amber-600" />
+                      <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                         <span>{cert.title}</span>
                       </div>
-                      <div className="text-[10px] text-slate-500">Issued: {cert.issuedAt}</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">Issued: {cert.issuedAt}</div>
                     </div>
                     {cert.credentialUrl && (
                       <a
@@ -437,17 +437,17 @@ export const StudentProfileDrawer: React.FC<StudentProfileDrawerProps> = ({
 
           {/* Recent Activity Log */}
           {student.recentActivity && student.recentActivity.length > 0 && (
-            <div className="bg-white p-5 rounded-3xl border border-sky-100 space-y-3">
-              <h4 className="font-heading font-extrabold text-sm text-slate-900 flex items-center gap-2">
-                <Activity className="w-4 h-4 text-sky-600" />
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-sky-100 dark:border-slate-800 space-y-3">
+              <h4 className="font-heading font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                <Activity className="w-4 h-4 text-sky-600 dark:text-cyan-400" />
                 <span>Recent Platform Telemetry</span>
               </h4>
 
               <div className="space-y-2 text-xs">
                 {student.recentActivity.map((act) => (
-                  <div key={act.id} className="p-2.5 bg-slate-50 border border-sky-100 rounded-xl flex items-center justify-between">
-                    <span className="font-medium text-slate-800">{act.action}</span>
-                    <span className="text-[10px] text-slate-400 font-mono">{act.timestamp}</span>
+                  <div key={act.id} className="p-2.5 bg-slate-50 dark:bg-slate-950 border border-sky-100 dark:border-slate-800 rounded-xl flex items-center justify-between">
+                    <span className="font-medium text-slate-800 dark:text-slate-200">{act.action}</span>
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">{act.timestamp}</span>
                   </div>
                 ))}
               </div>

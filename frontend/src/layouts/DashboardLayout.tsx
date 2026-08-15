@@ -16,7 +16,6 @@ import {
   CheckCheck,
   Trash2,
   ExternalLink,
-  Brain,
   Trophy,
   BarChart3,
   Settings,

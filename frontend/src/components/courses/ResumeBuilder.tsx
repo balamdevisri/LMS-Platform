@@ -160,7 +160,7 @@ export const ResumeBuilder: React.FC = () => {
         {/* Left Column: Form Editor */}
         <div className="no-print space-y-6">
           {/* Summary Section */}
-          <div className="p-6 rounded-3xl border border-sky-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xs space-y-4">
+          <div className="p-6 rounded-3xl border border-sky-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-4">
             <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-indigo-500" />
               <span>Professional Summary</span>
@@ -168,13 +168,13 @@ export const ResumeBuilder: React.FC = () => {
             <textarea
               value={summary}
               onChange={(e) => setSummary(e.target.value)}
-              className="w-full h-24 p-3.5 text-xs bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all resize-none font-medium leading-relaxed"
+              className="w-full h-24 p-3.5 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all resize-none font-medium leading-relaxed text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
               placeholder="Tell recruiters about your core competencies..."
             />
           </div>
 
           {/* Core Technical Skills */}
-          <div className="p-6 rounded-3xl border border-sky-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xs space-y-4">
+          <div className="p-6 rounded-3xl border border-sky-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-4">
             <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
               Skills Checklist
             </h3>
@@ -185,7 +185,7 @@ export const ResumeBuilder: React.FC = () => {
                 onChange={(e) => setNewSkill(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAddSkill()}
                 placeholder="Add new skill (e.g. Docker)..."
-                className="flex-1 p-2.5 text-xs bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="flex-1 p-2.5 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
               />
               <button
                 onClick={handleAddSkill}
@@ -198,7 +198,7 @@ export const ResumeBuilder: React.FC = () => {
               {skills.map((skill, index) => (
                 <span
                   key={index}
-                  className="px-2.5 py-1 text-[10px] font-bold bg-slate-100 dark:bg-zinc-800 rounded-lg flex items-center gap-1.5"
+                  className="px-2.5 py-1 text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-lg flex items-center gap-1.5 border border-slate-200 dark:border-slate-700"
                 >
                   <span>{skill}</span>
                   <button onClick={() => handleRemoveSkill(index)} className="text-rose-500 hover:text-rose-700 cursor-pointer">
@@ -210,18 +210,18 @@ export const ResumeBuilder: React.FC = () => {
           </div>
 
           {/* Work Experience */}
-          <div className="p-6 rounded-3xl border border-sky-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xs space-y-4">
+          <div className="p-6 rounded-3xl border border-sky-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-4">
             <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
               <Briefcase className="w-4 h-4 text-emerald-500" />
               <span>Professional Experience</span>
             </h3>
-            <div className="space-y-3 p-4 rounded-2xl bg-slate-50 dark:bg-zinc-800/40 border border-slate-200 dark:border-zinc-800">
+            <div className="space-y-3 p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800">
               <input
                 type="text"
                 placeholder="Role Title (e.g. Systems Engineer)"
                 value={newRole.role}
                 onChange={(e) => setNewRole({ ...newRole, role: e.target.value })}
-                className="w-full p-2.5 text-xs bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 rounded-xl focus:outline-none"
+                className="w-full p-2.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
               />
               <div className="grid grid-cols-2 gap-2">
                 <input
@@ -229,21 +229,21 @@ export const ResumeBuilder: React.FC = () => {
                   placeholder="Company"
                   value={newRole.company}
                   onChange={(e) => setNewRole({ ...newRole, company: e.target.value })}
-                  className="p-2.5 text-xs bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 rounded-xl focus:outline-none"
+                  className="p-2.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
                 />
                 <input
                   type="text"
                   placeholder="Duration (e.g. 2025 - 2026)"
                   value={newRole.duration}
                   onChange={(e) => setNewRole({ ...newRole, duration: e.target.value })}
-                  className="p-2.5 text-xs bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 rounded-xl focus:outline-none"
+                  className="p-2.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
                 />
               </div>
               <textarea
                 placeholder="Key accomplishments..."
                 value={newRole.desc}
                 onChange={(e) => setNewRole({ ...newRole, desc: e.target.value })}
-                className="w-full h-16 p-2.5 text-xs bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 rounded-xl resize-none focus:outline-none"
+                className="w-full h-16 p-2.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl resize-none focus:outline-none text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
               />
               <button
                 onClick={handleAddExperience}
@@ -256,18 +256,18 @@ export const ResumeBuilder: React.FC = () => {
           </div>
 
           {/* Education timeline */}
-          <div className="p-6 rounded-3xl border border-sky-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xs space-y-4">
+          <div className="p-6 rounded-3xl border border-sky-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-4">
             <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
               <GraduationCap className="w-4 h-4 text-cyan-500" />
               <span>Academic Education</span>
             </h3>
-            <div className="space-y-3 p-4 rounded-2xl bg-slate-50 dark:bg-zinc-800/40 border border-slate-200 dark:border-zinc-800">
+            <div className="space-y-3 p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800">
               <input
                 type="text"
                 placeholder="Degree Course (e.g. B.Tech)"
                 value={newEd.degree}
                 onChange={(e) => setNewEd({ ...newEd, degree: e.target.value })}
-                className="w-full p-2.5 text-xs bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 rounded-xl focus:outline-none"
+                className="w-full p-2.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
               />
               <div className="grid grid-cols-2 gap-2">
                 <input
@@ -275,14 +275,14 @@ export const ResumeBuilder: React.FC = () => {
                   placeholder="School / College"
                   value={newEd.school}
                   onChange={(e) => setNewEd({ ...newEd, school: e.target.value })}
-                  className="p-2.5 text-xs bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 rounded-xl focus:outline-none"
+                  className="p-2.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
                 />
                 <input
                   type="text"
                   placeholder="Duration (e.g. 2023 - 2027)"
                   value={newEd.duration}
                   onChange={(e) => setNewEd({ ...newEd, duration: e.target.value })}
-                  className="p-2.5 text-xs bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 rounded-xl focus:outline-none"
+                  className="p-2.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
                 />
               </div>
               <button

@@ -48,10 +48,10 @@ export const GitHubPortfolioDrawer: React.FC<Props> = ({ student, onClose }) => 
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-end animate-in fade-in duration-200 font-['Sora']">
-      <div className="bg-white border-l border-sky-200 w-full max-w-2xl h-full flex flex-col justify-between shadow-2xl overflow-hidden text-slate-900">
+      <div className="bg-white dark:bg-slate-900 border-l border-sky-200 dark:border-slate-800 w-full max-w-2xl h-full flex flex-col justify-between shadow-2xl overflow-hidden text-slate-900 dark:text-slate-100">
         
         {/* Header */}
-        <div className="p-6 border-b border-sky-100 flex items-center justify-between bg-slate-900 text-white shrink-0">
+        <div className="p-6 border-b border-sky-100 dark:border-slate-800 flex items-center justify-between bg-slate-900 text-white shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-sky-500/20 text-sky-400 border border-sky-500/30">
               <Code2 className="w-6 h-6" />
@@ -159,42 +159,42 @@ export const GitHubPortfolioDrawer: React.FC<Props> = ({ student, onClose }) => 
           </div>
 
           {/* AI Ready Analysis Metrics */}
-          <div className="p-5 rounded-3xl bg-sky-50 border border-sky-200 space-y-4">
+          <div className="p-5 rounded-3xl bg-sky-50 dark:bg-slate-950/80 border border-sky-200 dark:border-slate-800 space-y-4">
             <div className="flex items-center justify-between">
-              <h4 className="font-heading font-extrabold text-sm text-slate-900 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-purple-600 animate-pulse" /> AI Competency Score & Telemetry
+              <h4 className="font-heading font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400 animate-pulse" /> AI Competency Score & Telemetry
               </h4>
-              <span className="text-xs font-mono font-bold text-purple-700 bg-purple-100 border border-purple-200 px-2.5 py-0.5 rounded-full">
+              <span className="text-xs font-mono font-bold text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 px-2.5 py-0.5 rounded-full">
                 AI Ready
               </span>
             </div>
 
             <div className="grid grid-cols-3 gap-3 text-center font-mono">
-              <div className="p-3 bg-white rounded-2xl border border-sky-100 shadow-2xs">
-                <span className="block text-lg font-extrabold text-sky-700">{repoScore}/100</span>
-                <span className="text-[10px] text-slate-500 uppercase font-sans">Repo Score</span>
+              <div className="p-3 bg-white dark:bg-slate-900 rounded-2xl border border-sky-100 dark:border-slate-800 shadow-2xs">
+                <span className="block text-lg font-extrabold text-sky-700 dark:text-cyan-400">{repoScore}/100</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-sans">Repo Score</span>
               </div>
-              <div className="p-3 bg-white rounded-2xl border border-sky-100 shadow-2xs">
-                <span className="block text-lg font-extrabold text-emerald-700">{activityScore}%</span>
-                <span className="text-[10px] text-slate-500 uppercase font-sans">Activity Score</span>
+              <div className="p-3 bg-white dark:bg-slate-900 rounded-2xl border border-sky-100 dark:border-slate-800 shadow-2xs">
+                <span className="block text-lg font-extrabold text-emerald-700 dark:text-emerald-400">{activityScore}%</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-sans">Activity Score</span>
               </div>
-              <div className="p-3 bg-white rounded-2xl border border-sky-100 shadow-2xs">
-                <span className="block text-lg font-extrabold text-purple-700">{overallAIScore}/100</span>
-                <span className="text-[10px] text-slate-500 uppercase font-sans">Overall AI Index</span>
+              <div className="p-3 bg-white dark:bg-slate-900 rounded-2xl border border-sky-100 dark:border-slate-800 shadow-2xs">
+                <span className="block text-lg font-extrabold text-purple-700 dark:text-purple-400">{overallAIScore}/100</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-sans">Overall AI Index</span>
               </div>
             </div>
 
             {/* Languages & Frameworks Badges */}
             <div className="space-y-2 pt-1">
-              <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">Detected Languages & Skills:</span>
+              <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">Detected Languages & Skills:</span>
               <div className="flex flex-wrap gap-1.5">
                 {languages.map((lang: string, idx: number) => (
-                  <span key={idx} className="px-2.5 py-1 rounded-lg bg-white border border-sky-200 text-sky-900 text-xs font-bold font-mono">
+                  <span key={idx} className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-800 text-sky-900 dark:text-cyan-300 text-xs font-bold font-mono">
                     ⚡ {lang}
                   </span>
                 ))}
                 {skills.map((skill: string, idx: number) => (
-                  <span key={idx} className="px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-semibold">
+                  <span key={idx} className="px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-300 text-xs font-semibold">
                     ✓ {skill}
                   </span>
                 ))}
@@ -204,57 +204,57 @@ export const GitHubPortfolioDrawer: React.FC<Props> = ({ student, onClose }) => 
 
           {/* GitHub Repositories Showcase Section */}
           <div className="space-y-3">
-            <h4 className="font-heading font-extrabold text-sm text-slate-900 flex items-center justify-between">
+            <h4 className="font-heading font-extrabold text-sm text-slate-900 dark:text-white flex items-center justify-between">
               <span className="flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-sky-600" /> Public Repositories ({repos.length})
+                <BookOpen className="w-4 h-4 text-sky-600 dark:text-cyan-400" /> Public Repositories ({repos.length})
               </span>
-              <span className="text-xs text-slate-500 font-normal">Sorted by recent activity</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-normal">Sorted by recent activity</span>
             </h4>
 
             {repos.length === 0 ? (
-              <div className="p-6 rounded-2xl bg-slate-50 border border-sky-100 text-center space-y-1">
-                <p className="text-xs text-slate-500 font-medium">No public repositories fetched or profile has zero public repos.</p>
+              <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-sky-100 dark:border-slate-800 text-center space-y-1">
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">No public repositories fetched or profile has zero public repos.</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {repos.map((repo: any, idx: number) => (
-                  <div key={idx} className="p-4 rounded-2xl bg-white border border-sky-100 hover:border-sky-300 shadow-2xs hover:shadow-md transition-all space-y-2 group">
+                  <div key={idx} className="p-4 rounded-2xl bg-white dark:bg-slate-950/80 border border-sky-100 dark:border-slate-800 hover:border-sky-300 dark:hover:border-cyan-500 shadow-2xs hover:shadow-md transition-all space-y-2 group">
                     <div className="flex items-center justify-between gap-2">
                       <a
                         href={repo.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="font-heading font-extrabold text-xs text-sky-900 group-hover:text-sky-600 transition-colors flex items-center gap-1.5 truncate"
+                        className="font-heading font-extrabold text-xs text-sky-900 dark:text-cyan-300 group-hover:text-sky-600 dark:group-hover:text-cyan-200 transition-colors flex items-center gap-1.5 truncate"
                       >
-                        <Code2 className="w-4 h-4 text-sky-600 shrink-0" />
+                        <Code2 className="w-4 h-4 text-sky-600 dark:text-cyan-400 shrink-0" />
                         <span className="truncate">{repo.name}</span>
                         <ExternalLink className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </a>
-                      <span className="px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-slate-600 text-[9px] font-bold uppercase shrink-0">
+                      <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-[9px] font-bold uppercase shrink-0">
                         {repo.visibility || 'public'}
                       </span>
                     </div>
 
                     {repo.description && (
-                      <p className="text-xs text-slate-600 line-clamp-2 font-sans">
+                      <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 font-sans">
                         {repo.description}
                       </p>
                     )}
 
-                    <div className="flex flex-wrap items-center gap-4 text-[10px] font-mono text-slate-500 pt-1">
+                    <div className="flex flex-wrap items-center gap-4 text-[10px] font-mono text-slate-500 dark:text-slate-400 pt-1">
                       {repo.language && (
-                        <span className="font-bold text-sky-700 bg-sky-50 px-1.5 py-0.5 rounded border border-sky-100">
+                        <span className="font-bold text-sky-700 dark:text-cyan-300 bg-sky-50 dark:bg-sky-950/60 px-1.5 py-0.5 rounded border border-sky-100 dark:border-sky-800">
                           {repo.language}
                         </span>
                       )}
-                      <span className="flex items-center gap-1 text-amber-600 font-bold">
+                      <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-bold">
                         <Star className="w-3 h-3 fill-current" /> {repo.stars}
                       </span>
-                      <span className="flex items-center gap-1 text-slate-600 font-bold">
+                      <span className="flex items-center gap-1 text-slate-600 dark:text-slate-400 font-bold">
                         <GitFork className="w-3 h-3" /> {repo.forks}
                       </span>
                       {repo.updatedDate && (
-                        <span className="text-slate-400 font-sans">
+                        <span className="text-slate-400 dark:text-slate-500 font-sans">
                           Updated: {new Date(repo.updatedDate).toLocaleDateString()}
                         </span>
                       )}
@@ -267,9 +267,9 @@ export const GitHubPortfolioDrawer: React.FC<Props> = ({ student, onClose }) => 
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-sky-100 bg-slate-50 flex items-center justify-between shrink-0">
-          <span className="text-xs text-slate-500 font-medium">
-            Student Status: <strong className="uppercase text-sky-700">{student.status || 'pending'}</strong>
+        <div className="p-4 border-t border-sky-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex items-center justify-between shrink-0">
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+            Student Status: <strong className="uppercase text-sky-700 dark:text-cyan-400">{student.status || 'pending'}</strong>
           </span>
           <button
             onClick={onClose}
