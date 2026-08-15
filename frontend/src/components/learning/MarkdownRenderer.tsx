@@ -1,6 +1,6 @@
 import React from 'react';
 import { CodeBlock } from './CodeBlock';
-import { Sparkles, CheckCircle2, FileText } from 'lucide-react';
+import { Sparkles, CheckCircle2, FileText, Terminal } from 'lucide-react';
 
 import { LmsCourseRenderer } from './LmsCourseRenderer';
 
@@ -119,20 +119,98 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
   if (!content) return null;
 
   const isReactCourse = (courseId || '').toLowerCase().includes('react');
-  const isJavaCourse = (courseId || '').toLowerCase().includes('java');
   if (
     courseId === 'python-through-oops-course-id' ||
     courseId === 'kubernetes-complete-course-beginner-to-advanced' ||
     courseId === 'git-github-mastery-course-id' ||
     courseId === 'git-github-mastery' ||
-    isReactCourse ||
-    isJavaCourse
+    isReactCourse
   ) {
     return <LmsCourseRenderer content={content} isNightMode={isNightMode} courseId={courseId} />;
   }
 
+  const isJava = (courseId || '').toLowerCase().includes('java');
+
   // Split lines to parse markdown blocks after cleaning newlines
-  const lines = cleanMarkdownNewlines(content).split('\n');
+  let lines = cleanMarkdownNewlines(content).split('\n');
+
+  if (isJava) {
+    // Pass 1: Merge split question lines (e.g., questions with multiple parts/lines before Answer:)
+    let mergedLines: string[] = [];
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+      if (/^\s*(?:Q\d+\.?\s+|\d+\.\s+)/i.test(trimmed)) {
+        let answerIndex = -1;
+        for (let look = i + 1; look <= Math.min(i + 3, lines.length - 1); look++) {
+          if (lines[look].trim().toLowerCase().startsWith('answer')) {
+            answerIndex = look;
+            break;
+          }
+        }
+        if (answerIndex !== -1) {
+          const questionParts: string[] = [];
+          for (let q = i; q < answerIndex; q++) {
+            questionParts.push(lines[q].trim());
+          }
+          mergedLines.push(questionParts.join(' '));
+          i = answerIndex - 1;
+          continue;
+        }
+      }
+      mergedLines.push(line);
+    }
+    lines = mergedLines;
+
+    // Pass 2: Split inline bullet sequences with ❌ or ●
+    let splitBulletLines: string[] = [];
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.includes('❌')) {
+        const startsWithCross = trimmed.startsWith('❌');
+        const parts = trimmed.split('❌').map(p => p.trim()).filter(Boolean);
+        if (parts.length > 1) {
+          parts.forEach((part, index) => {
+            if (index === 0 && !startsWithCross) {
+              splitBulletLines.push(part);
+            } else {
+              splitBulletLines.push(`❌ ${part}`);
+            }
+          });
+          continue;
+        }
+      }
+      if (trimmed.includes('●')) {
+        const startsWithBullet = trimmed.startsWith('●');
+        const parts = trimmed.split('●').map(p => p.trim()).filter(Boolean);
+        if (parts.length > 1) {
+          parts.forEach((part, index) => {
+            if (index === 0 && !startsWithBullet) {
+              splitBulletLines.push(part);
+            } else {
+              splitBulletLines.push(`● ${part}`);
+            }
+          });
+          continue;
+        }
+      }
+      splitBulletLines.push(line);
+    }
+    lines = splitBulletLines;
+
+    // Pass 3: Convert numbered sequences (e.g. 1. item1 2. item2 3. item3) into separate lines
+    let splitNumLines: string[] = [];
+    for (const line of lines) {
+      if (/\s+\d+\.\s+/.test(line)) {
+        const splitLines = line.replace(/\s+(\d+\.\s+)/g, '\n$1').split('\n');
+        splitNumLines.push(...splitLines);
+      } else {
+        splitNumLines.push(line);
+      }
+    }
+    lines = splitNumLines;
+  }
+
   const elements: React.ReactNode[] = [];
 
   let inCodeBlock = false;
@@ -151,7 +229,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
           <CodeBlock
             key={`code-${index}`}
             code={codeBuffer.join('\n')}
-            language={codeLang || 'bash'}
+            language={codeLang || (isJava ? 'java' : 'bash')}
           />
         );
         codeBuffer = [];
@@ -159,7 +237,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
       } else {
         // Start code block
         inCodeBlock = true;
-        codeLang = line.trim().replace('```', '') || 'bash';
+        codeLang = line.trim().replace('```', '') || (isJava ? 'java' : 'bash');
       }
       return;
     }
@@ -167,6 +245,173 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
     if (inCodeBlock) {
       codeBuffer.push(line);
       return;
+    }
+
+    // Java custom formatting blocks
+    if (isJava) {
+      const trimmed = line.trim();
+
+      // Markdown Images: ![alt](url)
+      const imgRegex = /!\[(.*?)\]\((.*?)\)/;
+      const imgMatch = line.match(imgRegex);
+      if (imgMatch) {
+        const altText = imgMatch[1];
+        const imgSrc = imgMatch[2];
+        elements.push(
+          <figure
+            key={index}
+            className={`my-6 rounded-3xl overflow-hidden p-3 shadow-xl backdrop-blur-xl border ${
+              isNightMode
+                ? 'bg-slate-900 border-slate-800 shadow-slate-950/50'
+                : 'bg-white border-sky-100 shadow-sky-500/5'
+            }`}
+          >
+            <div
+              className={`rounded-2xl overflow-hidden flex items-center justify-center border ${
+                isNightMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-sky-100'
+              }`}
+            >
+              <img
+                src={imgSrc}
+                alt={altText}
+                className="w-full h-auto object-contain hover:scale-[1.01] transition-transform duration-300 max-h-125"
+              />
+            </div>
+            {altText && (
+              <figcaption
+                className={`text-center text-xs font-mono font-semibold pt-3 pb-1 flex items-center justify-center gap-1.5 ${
+                  isNightMode ? 'text-cyan-300' : 'text-sky-700'
+                }`}
+              >
+                <Sparkles className={`w-3.5 h-3.5 ${isNightMode ? 'text-cyan-400' : 'text-sky-500'}`} />
+                <span>{altText}</span>
+              </figcaption>
+            )}
+          </figure>
+        );
+        return;
+      }
+
+      // Flowcharts
+      if (line.includes('↓')) {
+        const steps = line.split('↓').map(s => s.trim()).filter(Boolean);
+        elements.push(
+          <div key={`flowchart-${index}`} className="flex flex-col items-center gap-2 my-6">
+            {steps.map((step, sidx) => (
+              <React.Fragment key={sidx}>
+                <div className={`px-5 py-3 rounded-2xl border text-sm font-semibold font-mono tracking-wide ${
+                  isNightMode ? 'bg-slate-900 border-slate-800 text-cyan-300' : 'bg-sky-50 border-sky-100 text-sky-850'
+                } shadow-sm max-w-md text-center`}>
+                  {step}
+                </div>
+                {sidx < steps.length - 1 && (
+                  <div className={`text-xl ${isNightMode ? 'text-cyan-400' : 'text-sky-500'} font-bold`}>↓</div>
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+        );
+        return;
+      }
+
+      // Common Mistakes
+      if (trimmed.startsWith('❌')) {
+        const cleanText = trimmed.replace(/^❌\s*/, '');
+        elements.push(
+          <div key={index} className="flex items-start gap-2.5 ml-3 my-2 text-sm sm:text-base leading-relaxed">
+            <span className="shrink-0 mt-0.5 text-base">❌</span>
+            <span className={isNightMode ? 'text-slate-200' : 'text-slate-700'}>
+              {renderInlineStyles(cleanText, isNightMode)}
+            </span>
+          </div>
+        );
+        return;
+      }
+
+      // Interview Questions
+      const qMatch = trimmed.match(/^\s*Q(\d+)\.?\s+(.+)$/i) || trimmed.match(/^\s*(\d+)\.\s+([A-Z].*\?)\s*$/);
+      if (qMatch) {
+        const qText = qMatch[2] || qMatch[0];
+        elements.push(
+          <h4 key={`q-${index}`} className={`text-base sm:text-lg font-heading font-bold px-4 py-2.5 rounded-xl border flex items-start gap-2.5 my-4 ${
+            isNightMode 
+              ? 'bg-slate-900/80 border-slate-800 text-cyan-300 shadow-sm shadow-cyan-950/20' 
+              : 'bg-sky-50/50 border-sky-100/80 text-sky-900 shadow-sm shadow-sky-100/10'
+          }`}>
+            <span className="shrink-0 text-cyan-500">❓</span>
+            <span>{qText}</span>
+          </h4>
+        );
+        return;
+      }
+
+      // Interview Answers
+      if (trimmed.toLowerCase().startsWith('answer:')) {
+        const ansText = trimmed.slice(7).trim();
+        elements.push(
+          <div key={`ans-${index}`} className={`pl-4 text-xs sm:text-sm leading-relaxed ${isNightMode ? 'text-slate-350' : 'text-slate-700'} space-y-2`}>
+            <div className="font-bold text-slate-800 dark:text-slate-200 mt-2 text-sm">
+              Answer:
+            </div>
+            {ansText && (
+              <p className="my-1.5 font-normal leading-relaxed">
+                {renderInlineStyles(ansText, isNightMode)}
+              </p>
+            )}
+          </div>
+        );
+        return;
+      }
+
+      // Headings (Module headings)
+      if (trimmed.startsWith('Module ') && (trimmed.includes('—') || trimmed.includes(':') || trimmed.includes('-'))) {
+        elements.push(
+          <h2
+            key={index}
+            className={`text-2xl sm:text-3xl font-heading font-extrabold mt-8 mb-4 border-b pb-3 flex items-center gap-2.5 ${
+              isNightMode ? 'text-white border-slate-800' : 'text-slate-900 border-sky-100'
+            }`}
+          >
+            <Sparkles className="w-6 h-6 text-cyan-450 shrink-0" />
+            <span>{trimmed}</span>
+          </h2>
+        );
+        return;
+      }
+
+      // Subheadings (e.g. 1.1)
+      const isSub = /^\s*\d+\.\d+\s+/.test(trimmed);
+      if (isSub) {
+        elements.push(
+          <h3
+            key={index}
+            className={`text-lg sm:text-xl font-heading font-bold mt-6 mb-3 flex items-center gap-2 ${
+              isNightMode ? 'text-cyan-300' : 'text-sky-850'
+            }`}
+          >
+            <Terminal className="w-5 h-5 text-cyan-400 shrink-0" />
+            <span>{trimmed}</span>
+          </h3>
+        );
+        return;
+      }
+
+      // Bullets (● / •)
+      if (trimmed.startsWith('●') || trimmed.startsWith('•')) {
+        const cleanText = trimmed.replace(/^[●•]\s*/, '');
+        elements.push(
+          <li
+            key={index}
+            className={`ml-4 my-2 text-sm sm:text-base flex items-start gap-2 leading-relaxed ${
+              isNightMode ? 'text-slate-200' : 'text-slate-700'
+            }`}
+          >
+            <CheckCircle2 className={`w-4 h-4 shrink-0 mt-1 ${isNightMode ? 'text-cyan-400' : 'text-sky-500'}`} />
+            <span>{renderInlineStyles(cleanText, isNightMode)}</span>
+          </li>
+        );
+        return;
+      }
     }
 
     // Markdown Table rows
