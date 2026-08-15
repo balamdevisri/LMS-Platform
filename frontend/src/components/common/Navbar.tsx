@@ -295,11 +295,12 @@ export const Navbar: React.FC = () => {
           )}
         </div>
 
-        {/* Mobile Hamburger Button */}
-        <div className="flex xl:hidden items-center pointer-events-auto">
+        {/* Mobile Hamburger Button and quick ThemeToggle */}
+        <div className="flex xl:hidden items-center space-x-2 pointer-events-auto">
+          <ThemeToggle />
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 text-slate-700 dark:text-zinc-300 hover:text-blue-600 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors"
+            className="p-2 text-slate-700 dark:text-slate-200 hover:text-blue-600 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             aria-label="Toggle Navigation"
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
