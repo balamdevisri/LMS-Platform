@@ -436,22 +436,65 @@ const getVisualKey = (title: string, desc: string, isK8s: boolean, isGit?: boole
 // 🔍 FLOWCHART & TABLE & QUESTION RENDERERS
 // ---------------------------------------------------------------------
 const FlowchartRenderer: React.FC<{ lines: string[]; isNightMode: boolean }> = ({ lines, isNightMode }) => {
-  const blocks = lines
-    .map(line => line.replace(/[↓|→|↙|↘|┌┐└┘├┤┬┴┼│─]+/g, '').trim())
-    .filter(Boolean);
+  // If it contains branching tree characters, preserve the layout inside a monospace block to display the 2D layout correctly
+  const hasBranching = lines.some(l => l.includes('┌') || l.includes('┬') || l.includes('┼') || l.includes('┐') || l.includes('├') || l.includes('┤') || l.includes('└') || l.includes('┘'));
+  
+  if (hasBranching) {
+    return (
+      <pre className={`p-4 rounded-2xl border overflow-x-auto font-mono text-xs leading-relaxed my-4 ${
+        isNightMode 
+          ? 'bg-slate-950 border-slate-800 text-cyan-300' 
+          : 'bg-sky-50/30 border-sky-100 text-sky-900'
+      }`}>
+        {lines.join('\n')}
+      </pre>
+    );
+  }
 
-  if (blocks.length === 0) return null;
+  const blocks: string[] = [];
+  let currentBlockParts: string[] = [];
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed === '↓' || trimmed === '▼' || trimmed === '→') {
+      if (currentBlockParts.length > 0) {
+        blocks.push(currentBlockParts.join(' ').replace(/\s+/g, ' '));
+        currentBlockParts = [];
+      }
+      continue;
+    }
+    
+    if (/[│▼↓→]+/.test(trimmed)) {
+      if (currentBlockParts.length > 0) {
+        blocks.push(currentBlockParts.join(' ').replace(/\s+/g, ' '));
+        currentBlockParts = [];
+      }
+      const parts = trimmed.split(/[│▼↓→]+/).map(p => p.trim()).filter(Boolean);
+      blocks.push(...parts);
+      continue;
+    }
+
+    currentBlockParts.push(trimmed);
+  }
+
+  if (currentBlockParts.length > 0) {
+    blocks.push(currentBlockParts.join(' ').replace(/\s+/g, ' '));
+  }
+
+  const finalBlocks = blocks.filter(Boolean);
+
+  if (finalBlocks.length === 0) return null;
 
   return (
     <div className="flex flex-col items-center gap-2 my-6">
-      {blocks.map((block, idx) => (
+      {finalBlocks.map((block, idx) => (
         <React.Fragment key={idx}>
           <div className={`px-5 py-3 rounded-2xl border text-sm font-semibold font-mono tracking-wide ${
-            isNightMode ? 'bg-slate-900 border-slate-800 text-cyan-300' : 'bg-sky-50 border-sky-100 text-sky-800'
-          } shadow-sm max-w-xs text-center`}>
+            isNightMode ? 'bg-slate-900 border-slate-800 text-cyan-300' : 'bg-sky-50 border-sky-100 text-sky-850'
+          } shadow-sm max-w-md text-center`}>
             {block}
           </div>
-          {idx < blocks.length - 1 && (
+          {idx < finalBlocks.length - 1 && (
             <div className={`text-xl ${isNightMode ? 'text-cyan-400' : 'text-sky-500'} font-bold`}>↓</div>
           )}
         </React.Fragment>
@@ -500,7 +543,44 @@ const TableRenderer: React.FC<{ lines: string[]; isNightMode: boolean }> = ({ li
 };
 
 const QuestionCard: React.FC<{ question: string; answer: string[]; isNightMode: boolean; isK8s: boolean; isGit?: boolean; isReact?: boolean }> = ({ question, answer, isNightMode, isK8s, isGit = false, isReact = false }) => {
-  if (isGit || isReact) {
+  if (isReact) {
+    const fullAnswerText = answer
+      .map(ans => ans.trim())
+      .filter(Boolean)
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .replace(/```(?:bash|sh|cmd|yaml|json|python|js|jsx)?/g, '')
+      .replace(/^answer:\s*/i, '')
+      .trim();
+
+    return (
+      <div className="my-6 space-y-4">
+        {/* Bold/highlighted Question Heading */}
+        <h4 className={`text-base sm:text-lg font-heading font-bold px-4 py-2.5 rounded-xl border flex items-start gap-2.5 ${
+          isNightMode 
+            ? 'bg-slate-900/80 border-slate-800 text-cyan-300 shadow-sm shadow-cyan-950/20' 
+            : 'bg-sky-50/50 border-sky-100/80 text-sky-900 shadow-sm shadow-sky-100/10'
+        }`}>
+          <span className="shrink-0 text-cyan-500">❓</span>
+          <span>{question}</span>
+        </h4>
+        
+        {/* Question and Answer on separate lines */}
+        <div className={`pl-4 text-xs sm:text-sm leading-relaxed ${
+          isNightMode ? 'text-slate-300' : 'text-slate-700'
+        } space-y-2`}>
+          <div className="font-bold text-slate-800 dark:text-slate-200 mt-2 text-sm">
+            Answer:
+          </div>
+          <p className="my-1.5 font-normal leading-relaxed">
+            {formatInlineStyles(fullAnswerText, isNightMode)}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isGit) {
     return (
       <div className="my-6 space-y-3">
         <h4 className={`text-base sm:text-lg font-heading font-bold px-4 py-2.5 rounded-xl border flex items-start gap-2.5 ${
@@ -1038,6 +1118,13 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
       const questionMatch = trimmed.match(/^\s*Q(\d+)\.?\s+(.+)$/i);
       const k8sQuestionMatch = isK8s ? trimmed.match(/^\s*(\d+)\.\s+([A-Z].*\?)\s*$/) : null;
 
+      const isBullet = trimmed.startsWith('●') || trimmed.startsWith('•') || trimmed.startsWith('- ') || trimmed.startsWith('* ') || trimmed.startsWith('❌') || trimmed.includes('●') || trimmed.includes('•');
+
+      if (isReact && currentFlowchartLines.length > 0 && trimmed !== '' && !isHeading && !isBullet) {
+        currentFlowchartLines.push(line);
+        continue;
+      }
+
       // Git/React-specific interview question lookahead: match a numeric line if followed by "Answer"
       let isGitQuestion = false;
       let gitQMatch: RegExpMatchArray | null = null;
@@ -1101,11 +1188,11 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
       }
 
       // Flowchart detection
-      if (/↓|→|↙|↘/.test(trimmed)) {
+      if (/↓|→|↙|↘/.test(trimmed) || (isReact && (/[▼│┌┐─┼]/.test(trimmed) || trimmed.toLowerCase().startsWith('step')))) {
         flushText();
         flushCodeBlock();
         flushTableBlock();
-        currentFlowchartLines.push(trimmed);
+        currentFlowchartLines.push(line); // Push raw line to preserve spaces
         continue;
       }
 
