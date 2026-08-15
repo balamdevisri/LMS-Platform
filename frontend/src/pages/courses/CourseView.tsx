@@ -107,7 +107,9 @@ export const CourseView: React.FC = () => {
       navigate('/auth/login', { state: { from: location } });
       return;
     }
-    setCheckoutModalOpen(true);
+    // Direct free enrollment with payment integration temporarily disabled
+    handleEnrollSuccess();
+    toast.success(`🎉 Enrolled successfully in "${dynamicCourse?.title || 'this course'}"! Free access is active.`);
   };
 
   const handleEnrollSuccess = (_enrollmentRecord?: any) => {
@@ -129,8 +131,7 @@ export const CourseView: React.FC = () => {
       return;
     }
     if (!isEnrolled) {
-      handleEnrollClick();
-      return;
+      handleEnrollSuccess();
     }
     setIsLearningMode(true);
     setSearchParams({ mode: 'learn' });

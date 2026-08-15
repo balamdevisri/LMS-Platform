@@ -182,7 +182,7 @@ export const CourseDetailsPage: React.FC<CourseDetailsProps> = ({
                 >
                   <UserPlus className="w-5 h-5" />
                   <span>
-                    Enroll Now {typeof (course as any).price === 'number' && (course as any).price > 0 ? `— ₹${(course as any).price}` : '(Free)'}
+                    Enroll Free to Access
                   </span>
                   <ArrowRight className="w-5 h-5" />
                 </button>
