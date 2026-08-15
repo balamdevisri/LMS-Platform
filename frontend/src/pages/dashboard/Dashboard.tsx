@@ -1124,48 +1124,48 @@ export const Dashboard: React.FC = () => {
           </div>
 
           {/* DYNAMIC: Claimed Experience (XP) breakdown & logs */}
-          <div className="bg-white/95 dark:bg-zinc-900/95 border border-amber-200/80 dark:border-zinc-800 rounded-3xl p-6 space-y-4 shadow-xs">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-100 dark:border-zinc-800 pb-3">
+          <div className="bg-white/95 dark:bg-slate-900/90 backdrop-blur-xl border border-amber-200/80 dark:border-amber-500/20 rounded-3xl p-6 space-y-4 shadow-xl shadow-amber-500/5 transition-colors">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-100 dark:border-slate-800/80 pb-3">
               <div>
                 <h3 className="font-heading font-bold text-base text-slate-900 dark:text-white flex items-center gap-1.5">
                   <Zap className="w-5 h-5 text-amber-500 fill-current animate-pulse" /> Claimed Experience (XP) breakdown & logs
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-zinc-400 font-medium">Verify your live activity logs and claim history.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Verify your live activity logs and claim history.</p>
               </div>
               <div className="text-right shrink-0">
-                <span className="text-xs font-bold text-slate-400 uppercase">Current Level</span>
-                <span className="block font-heading font-extrabold text-sm text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1 rounded-xl mt-0.5">
+                <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Current Level</span>
+                <span className="block font-heading font-extrabold text-sm text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-700/60 px-3 py-1 rounded-xl mt-0.5 shadow-xs">
                   Level {Math.floor(totalXP / 100) + 1}
                 </span>
               </div>
             </div>
 
             {xpClaims.length === 0 ? (
-              <p className="text-xs text-slate-400 italic py-4 text-center">No XP points claimed yet. Start reading lessons or passing quizzes to earn points!</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 italic py-6 text-center">No XP points claimed yet. Start reading lessons or passing quizzes to earn points!</p>
             ) : (
-              <div className="max-h-72 overflow-y-auto pr-1 space-y-2">
+              <div className="max-h-72 overflow-y-auto pr-1 space-y-2 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
                 {xpClaims.map((claim) => (
-                  <div key={claim.id} className="p-3 bg-slate-50 border border-slate-200/60 rounded-2xl flex items-center justify-between gap-4">
+                  <div key={claim.id} className="p-3.5 bg-slate-50/80 dark:bg-slate-950/70 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl flex items-center justify-between gap-4 hover:border-amber-400/40 dark:hover:border-amber-500/30 transition-all duration-150 group">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold text-slate-500 bg-slate-200 px-2 py-0.5 rounded-md font-mono">
+                        <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 bg-slate-200/80 dark:bg-slate-800 px-2.5 py-0.5 rounded-md font-mono border border-slate-300/40 dark:border-slate-700/60">
                           {claim.category}
                         </span>
                         {claim.courseTitle && (
-                          <span className="text-[10px] font-semibold text-sky-700 max-w-30 truncate" title={claim.courseTitle}>
+                          <span className="text-[10px] font-semibold text-blue-600 dark:text-cyan-400 max-w-44 truncate" title={claim.courseTitle}>
                             {claim.courseTitle}
                           </span>
                         )}
                       </div>
-                      <h4 className="text-xs font-bold text-slate-900 truncate mt-1">
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate mt-1">
                         {claim.title}
                       </h4>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-xs font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg font-mono">
+                      <span className="text-xs font-black text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/80 border border-amber-200 dark:border-amber-700/60 px-2.5 py-1 rounded-lg font-mono shadow-xs">
                         +{claim.xp} XP
                       </span>
-                      <span className="text-[10px] text-slate-400 font-mono">
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono font-medium">
                         {new Date(claim.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
@@ -1183,25 +1183,25 @@ export const Dashboard: React.FC = () => {
       {currentTab === 'assignments' && (
         <div className="space-y-6 animate-in fade-in duration-300">
           {/* Graded Quizzes Log */}
-          <div className="p-6 rounded-3xl border border-sky-100 bg-white space-y-4 shadow-3xs">
-            <h3 className="font-heading font-bold text-base text-slate-900 flex items-center gap-2">
+          <div className="p-6 rounded-3xl border border-sky-100 dark:border-slate-800 bg-white dark:bg-slate-900/90 space-y-4 shadow-3xs transition-colors">
+            <h3 className="font-heading font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-emerald-500" />
               <span>Interactive Quiz Scores Gradebook</span>
             </h3>
 
             {gradedQuizzes.length === 0 ? (
-              <div className="p-8 rounded-2xl border border-dashed border-slate-200 text-center space-y-1">
-                <FileCheck className="w-8 h-8 text-slate-300 mx-auto" />
-                <h4 className="text-xs font-bold text-slate-400 italic">No quiz grades recorded yet</h4>
-                <p className="text-[10px] text-slate-500 leading-normal font-medium max-w-xs mx-auto">
+              <div className="p-8 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 text-center space-y-1">
+                <FileCheck className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto" />
+                <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 italic">No quiz grades recorded yet</h4>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-normal font-medium max-w-xs mx-auto">
                   Take a simulation quiz in student preview mode inside any course syllabus to record scores here.
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto border border-slate-200/60 rounded-2xl shadow-3xs">
+              <div className="overflow-x-auto border border-slate-200/60 dark:border-slate-800 rounded-2xl shadow-3xs">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider bg-slate-50/50">
+                    <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-400 font-bold uppercase tracking-wider bg-slate-50/50 dark:bg-slate-950/50">
                       <th className="py-3.5 px-4">Quiz Name</th>
                       <th className="py-3.5 px-4">Course Track</th>
                       <th className="py-3.5 px-4">Attempt Date</th>
@@ -1209,18 +1209,18 @@ export const Dashboard: React.FC = () => {
                       <th className="py-3.5 px-4">Grade Percentage</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 font-medium">
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
                     {gradedQuizzes.map((item, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="py-3.5 px-4 font-bold text-slate-900">{item.unit.title}</td>
-                        <td className="py-3.5 px-4 text-slate-500">{item.courseTitle}</td>
-                        <td className="py-3.5 px-4 text-slate-500 font-mono">{item.scoreData.date}</td>
-                        <td className="py-3.5 px-4 text-slate-500 font-mono">{item.scoreData.score} / {item.scoreData.total}</td>
+                      <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
+                        <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-slate-100">{item.unit.title}</td>
+                        <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400">{item.courseTitle}</td>
+                        <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400 font-mono">{item.scoreData.date}</td>
+                        <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400 font-mono">{item.scoreData.score} / {item.scoreData.total}</td>
                         <td className="py-3.5 px-4">
                           <span className={`px-2 py-0.5 rounded font-mono font-bold ${
                             item.scoreData.percentage >= 70
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              : 'bg-rose-50 text-rose-700 border border-rose-200'
+                              ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60'
+                              : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60'
                           }`}>
                             {item.scoreData.percentage}%
                           </span>
