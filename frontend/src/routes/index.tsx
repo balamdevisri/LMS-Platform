@@ -9,7 +9,30 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
 // Helper to lazy load named exports and wrap them in a Suspense boundary
 const lazyLoad = (importFn: () => Promise<any>, name: string) => {
-  const LazyComponent = lazy(() => importFn().then((m) => ({ default: m[name] })));
+  const LazyComponent = lazy(async () => {
+    try {
+      const module = await importFn();
+      // Clear flag on successful load
+      sessionStorage.removeItem(`chunk_failed_${name}`);
+      return { default: module[name] };
+    } catch (error: any) {
+      console.error(`Error loading component ${name}:`, error);
+      const isChunkError = 
+        error?.message?.includes('Failed to fetch dynamically imported module') ||
+        error?.message?.includes('Importing a module script failed');
+        
+      if (isChunkError) {
+        const chunkFailedKey = `chunk_failed_${name}`;
+        if (!sessionStorage.getItem(chunkFailedKey)) {
+          sessionStorage.setItem(chunkFailedKey, 'true');
+          window.location.reload();
+          // Return a dummy component while page reloads to prevent React crash
+          return { default: () => null };
+        }
+      }
+      throw error;
+    }
+  });
   const SuspenseWrapper = (props: any) => (
     <Suspense fallback={
       <div className="flex items-center justify-center min-h-[400px] w-full">

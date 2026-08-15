@@ -27,6 +27,7 @@ const sanitizePrivateKey = (keyStr?: string): string | undefined => {
   }
   return str;
 };
+export let hasValidCredentials = false;
 
 if (!getApps().length) {
   const cleanPrivateKey = sanitizePrivateKey(env.FIREBASE_PRIVATE_KEY || process.env.FIREBASE_PRIVATE_KEY);
@@ -43,6 +44,7 @@ if (!getApps().length) {
         privateKey: cleanPrivateKey,
       });
       initializeApp({ credential });
+      hasValidCredentials = true;
       console.log('🎉 Firebase Admin SDK initialized successfully!');
     } catch (err: any) {
       console.warn('⚠️ Firebase Admin Cert Initialization Notice:', err?.message || err);
@@ -86,7 +88,7 @@ const createDbMock = (): Firestore => {
   });
 };
 
-export const isFirebaseAdminInitialized = (): boolean => getApps().length > 0;
-export const db = getApps().length ? getFirestore() : (createDbMock() as Firestore);
-export const adminAuth = getApps().length ? getAuth() : ({} as Auth);
-export const storage = getApps().length ? getStorage() : ({} as Storage);
+export const isFirebaseAdminInitialized = (): boolean => getApps().length > 0 && hasValidCredentials;
+export const db = isFirebaseAdminInitialized() ? getFirestore() : (createDbMock() as Firestore);
+export const adminAuth = isFirebaseAdminInitialized() ? getAuth() : ({} as Auth);
+export const storage = isFirebaseAdminInitialized() ? getStorage() : ({} as Storage);
