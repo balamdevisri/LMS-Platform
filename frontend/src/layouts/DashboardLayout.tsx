@@ -35,6 +35,7 @@ import { notificationService, type NotificationItem } from '@/services/notificat
 export const DashboardLayout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notificationFilter, setNotificationFilter] = useState<'all' | 'unread' | 'learning' | 'system'>('all');
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const location = useLocation();
@@ -50,6 +51,17 @@ export const DashboardLayout: React.FC = () => {
   }, [user?.uid]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
+
+  const filteredNotifications = notifications.filter((n) => {
+    if (notificationFilter === 'unread') return !n.read;
+    if (notificationFilter === 'learning') {
+      return n.type === 'course' || n.type === 'assignment' || n.type === 'live_class' || n.type === 'certificate';
+    }
+    if (notificationFilter === 'system') {
+      return n.type === 'system' || n.type === 'achievement' || n.type === 'info' || n.type === 'warning' || n.type === 'success';
+    }
+    return true;
+  });
 
   const handleMarkAllRead = async () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
@@ -468,14 +480,16 @@ export const DashboardLayout: React.FC = () => {
               </button>
 
               {notificationsOpen && (
-                <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-2xl shadow-2xl p-4 z-50 animate-in fade-in slide-in-from-top-2 space-y-3">
-                  <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-zinc-800">
+                <div className="absolute right-0 mt-2 w-88 sm:w-104 max-w-[calc(100vw-24px)] bg-white/95 dark:bg-slate-950/95 backdrop-blur-2xl border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xl z-50 animate-in fade-in slide-in-from-top-2 overflow-hidden flex flex-col max-h-[520px]">
+                  {/* Top Header */}
+                  <div className="px-4 py-3.5 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between shrink-0 bg-slate-50/50 dark:bg-slate-900/50">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-xs text-slate-900 dark:text-zinc-100">
-                        Notifications ({notifications.length})
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                      <span className="font-heading font-bold text-xs text-slate-900 dark:text-white">
+                        Live Notifications
                       </span>
                       {unreadCount > 0 && (
-                        <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-[10px] font-bold">
+                        <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-cyan-400 border border-blue-500/20 text-[10px] font-black">
                           {unreadCount} New
                         </span>
                       )}
@@ -485,82 +499,184 @@ export const DashboardLayout: React.FC = () => {
                       {unreadCount > 0 && (
                         <button
                           onClick={handleMarkAllRead}
-                          className="text-[11px] text-blue-600 hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                          className="text-[11px] text-blue-600 dark:text-cyan-400 hover:underline font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                          title="Mark all as read"
                         >
-                          <CheckCheck className="w-3 h-3" /> Mark read
+                          <CheckCheck className="w-3.5 h-3.5" />
+                          <span>Mark all read</span>
                         </button>
                       )}
-                      <button
-                        onClick={handleClearAll}
-                        className="text-[11px] text-slate-400 hover:text-rose-600 font-medium flex items-center gap-1 cursor-pointer"
-                        title="Clear all"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
+                      {notifications.length > 0 && (
+                        <button
+                          onClick={handleClearAll}
+                          className="p-1 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                          title="Clear all notifications"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   </div>
 
-                  <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-                    {notifications.length === 0 ? (
-                      <div className="py-8 text-center text-slate-400 text-xs font-medium">
-                        No notifications.
-                      </div>
-                    ) : (
-                      notifications.map((n) => (
-                        <div
-                          key={n.id}
-                          className={`p-3 rounded-xl text-xs space-y-1 border transition-all ${
-                            n.read
-                              ? 'bg-slate-50 dark:bg-zinc-800/50 border-slate-200/60 dark:border-zinc-700 text-slate-600 dark:text-zinc-400 opacity-80'
-                              : 'bg-blue-50/60 dark:bg-blue-950/30 border-blue-200/80 dark:border-blue-800/40 text-slate-900 dark:text-zinc-100 font-medium'
+                  {/* Filter Tabs */}
+                  <div className="px-3 pt-2.5 pb-2 border-b border-slate-100 dark:border-slate-800/60 flex items-center gap-1.5 shrink-0 bg-white dark:bg-slate-950">
+                    {[
+                      { id: 'all', label: 'All', count: notifications.length },
+                      { id: 'unread', label: 'Unread', count: unreadCount },
+                      { id: 'learning', label: 'Learning' },
+                      { id: 'system', label: 'System' },
+                    ].map((tab) => {
+                      const isTabActive = notificationFilter === tab.id;
+                      return (
+                        <button
+                          key={tab.id}
+                          onClick={() => setNotificationFilter(tab.id as any)}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                            isTabActive
+                              ? 'bg-blue-600 text-white shadow-xs'
+                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900'
                           }`}
                         >
-                          <div className="flex items-center justify-between font-bold gap-2">
-                            <span
-                              onClick={() => handleMarkSingleRead(n.id, n.link)}
-                              className="flex items-center gap-1.5 cursor-pointer hover:text-blue-600 min-w-0"
-                            >
-                              {!n.read && <span className="w-1.5 h-1.5 rounded-full bg-blue-600 shrink-0 animate-pulse" />}
-                              <span className="truncate max-w-44 sm:max-w-56">{n.title}</span>
+                          <span>{tab.label}</span>
+                          {tab.count !== undefined && tab.count > 0 && (
+                            <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+                              isTabActive ? 'bg-white/20 text-white' : 'bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                            }`}>
+                              {tab.count}
                             </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
 
-                            <div className="flex items-center gap-1 shrink-0">
-                              <span className="text-[10px] text-slate-400 font-mono font-normal mr-1">{n.time}</span>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleToggleRead(n.id); }}
-                                className={`p-1 rounded-lg transition-colors cursor-pointer ${n.read ? 'text-slate-400 hover:text-blue-600' : 'text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30'}`}
-                                title={n.read ? 'Mark as Unread' : 'Mark as Read'}
-                              >
-                                <CheckCheck className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleDeleteSingle(n.id); }}
-                                className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
-                                title="Delete"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                  {/* Notifications List */}
+                  <div className="p-3 space-y-2 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
+                    {filteredNotifications.length === 0 ? (
+                      <div className="py-12 flex flex-col items-center justify-center text-center space-y-2 text-slate-400">
+                        <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-slate-400">
+                          <Bell className="w-5 h-5" />
+                        </div>
+                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                          {notificationFilter === 'unread' ? "You're all caught up!" : "No notifications in this view"}
+                        </span>
+                        <p className="text-[10px] text-slate-400 max-w-56">
+                          Live system alerts, course completions, and live sessions will appear here.
+                        </p>
+                      </div>
+                    ) : (
+                      filteredNotifications.map((n) => {
+                        const isLearning = n.type === 'course' || n.type === 'assignment' || n.type === 'live_class' || n.type === 'certificate';
+                        const isLiveClass = n.type === 'live_class';
+                        const isAchievement = n.type === 'achievement';
+                        const isAssignment = n.type === 'assignment';
+
+                        return (
+                          <div
+                            key={n.id}
+                            className={`p-3 rounded-xl text-xs space-y-2 border transition-all duration-200 relative group ${
+                              n.read
+                                ? 'bg-slate-50/80 dark:bg-slate-900/40 border-slate-200/60 dark:border-slate-800/60 text-slate-600 dark:text-slate-400'
+                                : 'bg-linear-to-r from-blue-50/80 via-indigo-50/40 to-cyan-50/60 dark:from-blue-950/40 dark:via-indigo-950/20 dark:to-cyan-950/30 border-blue-200/90 dark:border-blue-800/60 text-slate-900 dark:text-zinc-100 shadow-xs'
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              {/* Icon Box */}
+                              <div className={`w-8 h-8 rounded-xl shrink-0 flex items-center justify-center shadow-xs ${
+                                isLiveClass
+                                  ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
+                                  : isAchievement
+                                  ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                                  : isAssignment
+                                  ? 'bg-cyan-500/10 text-cyan-500 border border-cyan-500/20'
+                                  : isLearning
+                                  ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20'
+                                  : 'bg-purple-500/10 text-purple-500 border border-purple-500/20'
+                              }`}>
+                                {isLiveClass ? (
+                                  <Video className="w-4 h-4" />
+                                ) : isAchievement ? (
+                                  <Trophy className="w-4 h-4" />
+                                ) : isAssignment ? (
+                                  <Terminal className="w-4 h-4" />
+                                ) : isLearning ? (
+                                  <BookOpen className="w-4 h-4" />
+                                ) : (
+                                  <Sparkles className="w-4 h-4" />
+                                )}
+                              </div>
+
+                              {/* Title & Desc */}
+                              <div className="min-w-0 flex-1 space-y-0.5">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span
+                                    onClick={() => handleMarkSingleRead(n.id, n.link)}
+                                    className="font-bold text-xs text-slate-900 dark:text-white cursor-pointer hover:text-blue-600 dark:hover:text-cyan-400 truncate flex items-center gap-1.5"
+                                  >
+                                    {!n.read && (
+                                      <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-cyan-400 shrink-0 animate-pulse" />
+                                    )}
+                                    <span>{n.title}</span>
+                                  </span>
+
+                                  <span className="text-[10px] text-slate-400 font-medium shrink-0">
+                                    {n.time}
+                                  </span>
+                                </div>
+
+                                <p
+                                  onClick={() => handleMarkSingleRead(n.id, n.link)}
+                                  className="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed cursor-pointer"
+                                >
+                                  {n.desc}
+                                </p>
+
+                                {/* Bottom Action Strip */}
+                                <div className="flex items-center justify-between pt-1">
+                                  {n.link ? (
+                                    <button
+                                      onClick={() => handleMarkSingleRead(n.id, n.link)}
+                                      className="text-[10.5px] font-bold text-blue-600 dark:text-cyan-400 hover:underline flex items-center gap-1 cursor-pointer"
+                                    >
+                                      <span>View details</span>
+                                      <ExternalLink className="w-3 h-3" />
+                                    </button>
+                                  ) : (
+                                    <div />
+                                  )}
+
+                                  <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleToggleRead(n.id);
+                                      }}
+                                      className={`p-1 rounded-lg transition-colors cursor-pointer ${
+                                        n.read
+                                          ? 'text-slate-400 hover:text-blue-600 hover:bg-slate-200/50 dark:hover:bg-slate-800'
+                                          : 'text-blue-600 dark:text-cyan-400 hover:bg-blue-100 dark:hover:bg-blue-900/40'
+                                      }`}
+                                      title={n.read ? 'Mark as unread' : 'Mark as read'}
+                                    >
+                                      <CheckCheck className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteSingle(n.id);
+                                      }}
+                                      className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                                      title="Delete notification"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                           </div>
-
-                          <p
-                            onClick={() => handleMarkSingleRead(n.id, n.link)}
-                            className="text-slate-600 dark:text-zinc-400 text-[11px] leading-relaxed cursor-pointer"
-                          >
-                            {n.desc}
-                          </p>
-
-                          {n.link && (
-                            <div
-                              onClick={() => handleMarkSingleRead(n.id, n.link)}
-                              className="text-[10px] text-blue-600 font-bold flex items-center gap-1 pt-0.5 cursor-pointer hover:underline"
-                            >
-                              <span>Open</span>
-                              <ExternalLink className="w-3 h-3" />
-                            </div>
-                          )}
-                        </div>
-                      ))
+                        );
+                      })
                     )}
                   </div>
                 </div>

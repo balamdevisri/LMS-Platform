@@ -17,7 +17,7 @@ export interface NotificationItem {
   desc: string;
   time: string;
   read: boolean;
-  type?: 'info' | 'success' | 'warning' | 'certificate' | 'assignment';
+  type?: 'course' | 'assignment' | 'live_class' | 'achievement' | 'system' | 'info' | 'success' | 'warning' | 'certificate';
   createdAt: string;
   link?: string;
   recipientId?: string;
@@ -26,6 +26,53 @@ export interface NotificationItem {
 
 const LOCAL_STORAGE_KEY = 'shaivika_realtime_notifications_v2';
 const DELETED_NOTIFS_KEY = 'shaivika_deleted_notifications_v1';
+
+const DEFAULT_ENTERPRISE_NOTIFICATIONS: NotificationItem[] = [
+  {
+    id: 'notif_welcome_system',
+    title: 'Welcome to KaizenQ AI LMS 3.0',
+    desc: 'Your AI learning engine, interactive sandboxes, and skill analytics are fully active.',
+    time: 'Just now',
+    read: false,
+    type: 'system',
+    createdAt: new Date().toISOString(),
+    link: '/dashboard',
+    recipientRole: 'all',
+  },
+  {
+    id: 'notif_c_compiler_ready',
+    title: 'C Programming Sandbox Active',
+    desc: 'Interactive GCC Compiler is now live in Practice Hub with 10+ code labs and live console.',
+    time: '15m ago',
+    read: false,
+    type: 'assignment',
+    createdAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+    link: '/dashboard?tab=practice-hub',
+    recipientRole: 'all',
+  },
+  {
+    id: 'notif_live_class_scheduled',
+    title: 'Live Interactive Session Ready',
+    desc: 'Join the upcoming Live Engineering Masterclass with real-time Q&A and code reviews.',
+    time: '1h ago',
+    read: true,
+    type: 'live_class',
+    createdAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+    link: '/dashboard/live-classroom',
+    recipientRole: 'all',
+  },
+  {
+    id: 'notif_leaderboard_update',
+    title: 'Cohort Leaderboard Live Sync',
+    desc: 'Rankings have been updated with latest XP and module completion metrics.',
+    time: '2h ago',
+    read: true,
+    type: 'achievement',
+    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    link: '/dashboard?tab=leaderboard',
+    recipientRole: 'all',
+  },
+];
 
 class NotificationService {
   private listeners: Set<(items: NotificationItem[]) => void> = new Set();
@@ -49,15 +96,19 @@ class NotificationService {
   private getLocalNotifications(): NotificationItem[] {
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+      const deletedIds = this.getDeletedIds();
       if (saved !== null) {
         const parsed: NotificationItem[] = JSON.parse(saved);
-        const deletedIds = this.getDeletedIds();
-        return parsed.filter((item) => !deletedIds.has(item.id));
+        if (parsed.length > 0) {
+          return parsed.filter((item) => !deletedIds.has(item.id));
+        }
       }
+      // If empty or never saved, seed with default enterprise notifications
+      return DEFAULT_ENTERPRISE_NOTIFICATIONS.filter((item) => !deletedIds.has(item.id));
     } catch (e) {
       console.warn('Failed to parse local notifications cache:', e);
     }
-    return [];
+    return DEFAULT_ENTERPRISE_NOTIFICATIONS;
   }
 
   private saveLocalNotifications(items: NotificationItem[]): void {
