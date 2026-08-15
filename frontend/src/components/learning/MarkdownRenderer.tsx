@@ -262,17 +262,17 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
         splitHeadingsLines.push('Comments help explain code.');
       } else if (norm.startsWith('1.22 Java Naming Conventions')) {
         splitHeadingsLines.push('1.22 Java Naming Conventions');
-      } else if (norm.startsWith('Class → PascalCase')) {
+      } else if (norm.includes('Class') && norm.includes('PascalCase') && norm.includes('camelCase')) {
         splitHeadingsLines.push('Class → PascalCase');
         splitHeadingsLines.push('StudentBankAccount → PascalCase');
-        splitHeadingsLines.push('EmployeeDetails → PascalCase');
+        splitHeadingsLines.push('EmployeeDetails → camelCase');
         splitHeadingsLines.push('studentName → camelCase');
         splitHeadingsLines.push('totalMarks → camelCase');
         splitHeadingsLines.push('accountBalance → camelCase');
         splitHeadingsLines.push('calculateTotal() → camelCase');
         splitHeadingsLines.push('displayDetails() → camelCase');
         splitHeadingsLines.push('findMaximum() → camelCase');
-      } else if (norm.startsWith('Constant → UPPER_SNAKE_CASE')) {
+      } else if (norm.includes('Constant') && norm.includes('UPPER_SNAKE_CASE')) {
         splitHeadingsLines.push('Constant → UPPER_SNAKE_CASE');
         splitHeadingsLines.push('MAX_SIZE');
         splitHeadingsLines.push('PI_VALUE');
@@ -292,6 +292,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
 
   const elements: React.ReactNode[] = [];
   let inInterviewQuestions = false;
+  let lastWasQuestion = false;
 
   let inCodeBlock = false;
   let codeBuffer: string[] = [];
@@ -330,6 +331,22 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
     // Java custom formatting blocks
     if (isJava) {
       const trimmed = line.trim();
+
+      // Answer line interception (follows a question line)
+      if (inInterviewQuestions && lastWasQuestion && trimmed !== '') {
+        lastWasQuestion = false;
+        elements.push(
+          <div key={`ans-${index}`} className={`pl-4 text-xs sm:text-sm leading-relaxed ${isNightMode ? 'text-slate-350' : 'text-slate-700'} space-y-2 mb-6`}>
+            <div className="font-bold text-slate-800 dark:text-slate-200 mt-2 text-sm">
+              Answer:
+            </div>
+            <p className="my-1.5 font-normal leading-relaxed">
+              {renderInlineStyles(trimmed, isNightMode)}
+            </p>
+          </div>
+        );
+        return;
+      }
 
       // Heading hashtag cleaning
       if (trimmed.startsWith('# ') || trimmed.startsWith('## ')) {
@@ -528,6 +545,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
       // Interview Questions (Stateful matching)
       const qMatch = inInterviewQuestions && (trimmed.match(/^\s*Q?(\d+)\.?\s+(.+)$/i) || trimmed.match(/^\s*(\d+)\.\s+([A-Z].*\?)\s*$/));
       if (qMatch) {
+        lastWasQuestion = true;
         const qNum = qMatch[1];
         const qText = qMatch[2];
         elements.push(
