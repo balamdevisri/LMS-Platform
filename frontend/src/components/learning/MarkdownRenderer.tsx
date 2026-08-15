@@ -115,6 +115,73 @@ function cleanMarkdownNewlines(text: string): string {
   return result.join('\n');
 }
 
+function splitInlineCProgram(line: string): string[] {
+  const includeIdx = line.indexOf('#include');
+  if (includeIdx === -1) {
+    return [line];
+  }
+
+  const textBefore = line.substring(0, includeIdx).trim();
+  const programText = line.substring(includeIdx).trim();
+
+  if (line.includes('```')) {
+    return [line];
+  }
+
+  let formatted = programText;
+  
+  // Separate preprocessors
+  formatted = formatted.replace(/(#include\s*<[^>]+>)/g, '\n$1\n');
+  formatted = formatted.replace(/(#define\s+[A-Z0-9_]+\s+[^\n]+)/g, '\n$1\n');
+
+  // Separate function definitions
+  formatted = formatted.replace(/(int\s+main\s*\([^)]*\))/g, '\n$1\n');
+  formatted = formatted.replace(/(void\s+[a-zA-Z0-9_]+\s*\([^)]*\))/g, '\n$1\n');
+
+  // Separate braces
+  formatted = formatted.replace(/{/g, '\n{\n');
+  formatted = formatted.replace(/}/g, '\n}\n');
+
+  // Separate statements ending with ;
+  const forLoops: string[] = [];
+  formatted = formatted.replace(/(for\s*\([^)]*\))/g, (match) => {
+    forLoops.push(match);
+    return `__FOR_LOOP_PLACEHOLDER_${forLoops.length - 1}__`;
+  });
+
+  formatted = formatted.replace(/;/g, ';\n');
+
+  // Restore for loops
+  forLoops.forEach((fl, idx) => {
+    formatted = formatted.replace(`__FOR_LOOP_PLACEHOLDER_${idx}__`, fl);
+  });
+
+  const rawLines = formatted.split('\n').map(l => l.trim()).filter(Boolean);
+  const codeLines: string[] = [];
+  let indentLevel = 0;
+
+  rawLines.forEach(l => {
+    if (l === '}') {
+      indentLevel = Math.max(0, indentLevel - 1);
+    }
+    const indent = '    '.repeat(indentLevel);
+    codeLines.push(indent + l);
+    if (l === '{') {
+      indentLevel++;
+    }
+  });
+
+  const result: string[] = [];
+  if (textBefore) {
+    result.push(textBefore);
+  }
+  result.push('```c');
+  result.push(...codeLines);
+  result.push('```');
+
+  return result;
+}
+
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isNightMode = false, courseId }) => {
   if (!content) return null;
 
@@ -515,6 +582,31 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
       cleanedQALines.push(line);
     }
     lines = cleanedQALines;
+
+    // Pass 7: Split conjoined Output and Flowchart lines
+    let splitOutputFlowchartLines: string[] = [];
+    for (const line of lines) {
+      const trimmed = line.trim();
+      const outputFlowchartMatch = trimmed.match(/^(Output:.*?)\s*\b(Flowchart\b.*)$/i);
+      if (outputFlowchartMatch) {
+        splitOutputFlowchartLines.push(outputFlowchartMatch[1]);
+        splitOutputFlowchartLines.push(outputFlowchartMatch[2]);
+      } else {
+        splitOutputFlowchartLines.push(line);
+      }
+    }
+    lines = splitOutputFlowchartLines;
+
+    // Pass 8: Extract inline single-line C programs into code blocks
+    let splitCodeLines: string[] = [];
+    for (const line of lines) {
+      if (line.includes('#include') && !line.includes('```')) {
+        splitCodeLines.push(...splitInlineCProgram(line));
+      } else {
+        splitCodeLines.push(line);
+      }
+    }
+    lines = splitCodeLines;
   }
 
   const elements: React.ReactNode[] = [];
@@ -529,6 +621,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
   let tableBuffer: string[] = [];
 
   lines.forEach((line, index) => {
+    const trimmed = line.trim();
     // Check code block fence
     if (line.trim().startsWith('```')) {
       if (inCodeBlock) {
@@ -557,7 +650,6 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
 
     // Java and C custom formatting blocks
     if (isJava || isC) {
-      const trimmed = line.trim();
 
       // Answer line interception (follows a question line)
       if (inInterviewQuestions && lastWasQuestion && trimmed !== '') {
@@ -698,11 +790,12 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
       }
 
       // Subheadings (e.g. 1.1)
-      const isSub = /^\s*\d+\.\d+\s+/.test(trimmed);
+      const isSub = /^\s*#*\s*\d+\.\d+\s+/.test(trimmed);
       if (isSub) {
         inInterviewQuestions = false;
+        const cleanSubheading = trimmed.replace(/^#+\s*/, '').trim();
 
-        if (trimmed.startsWith('1.26 Important Terms')) {
+        if (cleanSubheading.startsWith('1.26 Important Terms')) {
           elements.push(
             <h3
               key={index}
@@ -753,7 +846,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
               }`}
           >
             <Terminal className="w-5 h-5 text-cyan-400 shrink-0" />
-            <span>{trimmed}</span>
+            <span>{cleanSubheading}</span>
           </h3>
         );
         return;
@@ -864,7 +957,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
     }
 
     // Headers
-    if (line.startsWith('### ')) {
+    if (trimmed.startsWith('### ')) {
       elements.push(
         <h3
           key={index}
@@ -872,13 +965,13 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
             }`}
         >
           <Sparkles className={`w-5 h-5 ${isNightMode ? 'text-cyan-400' : 'text-sky-500'}`} />
-          {line.replace('### ', '')}
+          {trimmed.replace('### ', '')}
         </h3>
       );
       return;
     }
 
-    if (line.startsWith('#### ')) {
+    if (trimmed.startsWith('#### ')) {
       elements.push(
         <h4
           key={index}
@@ -886,7 +979,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
             }`}
         >
           <FileText className={`w-4 h-4 ${isNightMode ? 'text-cyan-400' : 'text-sky-500'}`} />
-          {line.replace('#### ', '')}
+          {trimmed.replace('#### ', '')}
         </h4>
       );
       return;
