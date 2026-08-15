@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { liveClassAuthorizationService } from '@/services/liveClassAuthorizationService';
 import { liveClassService, normalizeLiveClassStatus, type LiveClass } from '@/services/liveClassService';
+import { Crown, ArrowRight } from 'lucide-react';
 
 export const StudentLiveClassroomSection: React.FC = () => {
   const navigate = useNavigate();
@@ -129,6 +130,22 @@ export const StudentLiveClassroomSection: React.FC = () => {
           <p className="text-xs text-slate-500 dark:text-zinc-400 font-medium">
             Join interactive video masterclasses, take live quizzes, vote on polls, and download session recordings.
           </p>
+        </div>
+
+        {/* PRO Subscription Banner */}
+        <div className="bg-gradient-to-r from-amber-100 to-amber-50 dark:from-amber-900/40 dark:to-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-amber-200 dark:bg-amber-800 flex items-center justify-center text-amber-700 dark:text-amber-300 shadow-sm shrink-0">
+              <Crown className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm text-slate-900 dark:text-amber-100">Unlock Premium Live Courses</h3>
+              <p className="text-[11px] text-slate-600 dark:text-amber-200/70 font-medium">Get unlimited access to expert masterclasses and new courses.</p>
+            </div>
+          </div>
+          <button onClick={() => navigate('/dashboard?tab=settings')} className="shrink-0 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl shadow-md flex items-center gap-1.5 transition-colors cursor-pointer">
+            View Plans <ArrowRight className="w-3.5 h-3.5" />
+          </button>
         </div>
 
         {/* Filter Buttons */}

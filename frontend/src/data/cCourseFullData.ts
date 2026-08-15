@@ -754,14 +754,19 @@ Important Rules
 A data type specifies what kind of value a variable can represent and helps determine how the value is stored and interpreted. C provides several fundamental types. 
 
 \`\`\`text
-                 Data Types
-                     │
-      ┌──────────────┼──────────────┐
-      ▼              ▼              ▼
-   Integer       Floating       Character 
-      │            Point            │
-      ▼              ▼              ▼
-     int        float/double       char
+                      DATA TYPES HIERARCHY
+                               │
+       ┌───────────────────────┼───────────────────────┐
+       ▼                       ▼                       ▼
+   INTEGER               FLOATING-POINT            CHARACTER 
+ (Whole numbers)       (Decimal numbers)         (Text & symbols)
+       │                       │                       │
+       ▼                       ▼                       ▼
+ ┌───────────┐           ┌───────────┐           ┌───────────┐
+ │   int     │           │   float   │           │   char    │
+ │  short    │           │  double   │           └───────────┘
+ │  long     │           └───────────┘
+ └───────────┘
 \`\`\`
 
 Common fundamental types include:
@@ -950,10 +955,19 @@ int age = 20;
 
 Conceptually: 
 \`\`\`text
-       Memory
- ┌──────────────────┐ 
- │     age = 20     │ 
- └──────────────────┘ 
+ ┌────────────────────────────────────────────────────────┐
+ │                   MAIN MEMORY (RAM)                    │
+ ├────────────────────────────────────────────────────────┤
+ │                                                        │
+ │     Variable Name: age                                 │
+ │     Memory Address: 0x7ffee9b                          │
+ │                                                        │
+ │     ┌────────────────────────────────────────────┐     │
+ │     │                  20                        │     │
+ │     └────────────────────────────────────────────┘     │
+ │     (Stored in binary format: 00000000 00010100)       │
+ │                                                        │
+ └────────────────────────────────────────────────────────┘
 \`\`\`
 The exact memory representation depends on the type and implementation. Later, pointers will allow us to examine addresses and manipulate objects more directly.
 
@@ -962,14 +976,15 @@ Format specifiers tell formatted I/O functions how to interpret or display value
 
 Common examples: 
 
-| Data Type | Common \`printf\` Specifier |
-|-----------|-------------------------|
-| \`int\` | \`%d\` |
-| \`unsigned int\` | \`%u\` |
-| \`float\` | \`%f\` |
-| \`double\` | \`%f\` (in \`printf\`) |
-| \`char\` | \`%c\` |
-| String | \`%s\` |
+| Data Type | Format Specifier | Description | Example Input/Output |
+|-----------|------------------|-------------|----------------------|
+| \`int\` | \`%d\` or \`%i\` | Signed Decimal Integer | \`25\`, \`-10\` |
+| \`unsigned int\` | \`%u\` | Unsigned Decimal Integer | \`25\`, \`100\` |
+| \`float\` | \`%f\` | Floating-point Number | \`3.14159\` |
+| \`double\` | \`%lf\` | Double precision floating-point | \`3.14159265\` |
+| \`char\` | \`%c\` | Single Character | \`'A'\`, \`'z'\` |
+| \`char[]\` (String) | \`%s\` | String of Characters | \`"Hello World"\` |
+| \`void *\` (Pointer)| \`%p\` | Memory Address (Hexadecimal) | \`0x7ffee9b\` |
 
 Example:
 
@@ -2574,7 +2589,7 @@ Condition? ↙ ↘ YES NO │
 #### 5.15 Difference Between while and do-while
 Consider:
 int x = 10;
-while while (x < 5) { printf("Hello"); } Output: Nothing Because the condition is false initially. do-while do { printf("Hello"); } while (x < 5); Output: Hello Because the body executes before the condition is tested.
+while { printf("Hello"); } Output: Nothing Because the condition is false initially. do-while do { printf("Hello"); } while (x < 5); Output: Hello Because the body executes before the condition is tested.
 #### 5.16 Loop Comparison
 Feature for while do-while Condition checked Before body Before body After body Guaranteed first execution No No Yes
 

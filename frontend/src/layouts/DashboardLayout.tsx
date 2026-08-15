@@ -172,8 +172,8 @@ export const DashboardLayout: React.FC = () => {
       accent: 'text-emerald-600 dark:text-emerald-450',
       divider: 'bg-emerald-100 dark:bg-emerald-900/40',
       items: [
-        { name: 'My Portfolio', href: '/profile', icon: UserCheck },
-        { name: 'Resume Builder', href: '/dashboard?tab=resume-builder', icon: FileText },
+        { name: 'My Portfolio', href: '/profile', icon: UserCheck, isPremium: true },
+        { name: 'Resume Builder', href: '/dashboard?tab=resume-builder', icon: FileText, isPremium: true },
         { name: 'Career Roadmap', href: '/dashboard?tab=career-roadmap', icon: Map },
         { name: 'Certificates', href: '/dashboard?tab=certificates', icon: Award },
         { name: 'Achievements', href: '/dashboard?tab=achievements', icon: Trophy },
@@ -309,7 +309,7 @@ export const DashboardLayout: React.FC = () => {
                   </div>
 
                   <div className="space-y-0.5">
-                    {section.items.map((item) => {
+                    {section.items.map((item: any) => {
                       const Icon = item.icon;
                       const isActive = isNavItemActive(item.href);
                       return (
@@ -317,7 +317,7 @@ export const DashboardLayout: React.FC = () => {
                           key={item.name}
                           to={item.href}
                           onClick={() => setSidebarOpen(false)}
-                          className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 ${
+                          className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 relative ${
                             isActive
                               ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/25'
                               : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800/70 hover:text-slate-900 dark:hover:text-zinc-100'
@@ -325,7 +325,19 @@ export const DashboardLayout: React.FC = () => {
                         >
                           {Icon ? <Icon className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-indigo-200' : 'text-slate-400 dark:text-zinc-500 group-hover:text-slate-600 dark:group-hover:text-zinc-300'}`} /> : null}
                           <span className="truncate flex-1">{item.name}</span>
-                          {isActive && (
+                          
+                          {/* Premium PRO Badge */}
+                          {item.isPremium && (
+                            <span className={`text-[8px] font-extrabold uppercase px-1.5 py-0.5 rounded border tracking-wider shrink-0 shadow-xs ${
+                              isActive 
+                                ? 'bg-amber-400 text-amber-900 border-amber-300 shadow-amber-900/20' 
+                                : 'bg-gradient-to-r from-amber-200 to-amber-300 text-amber-900 border-amber-400 shadow-amber-500/20 dark:from-amber-700/80 dark:to-amber-900/80 dark:text-amber-200 dark:border-amber-700'
+                            }`}>
+                              PRO
+                            </span>
+                          )}
+
+                          {isActive && !item.isPremium && (
                             <span className="w-1.5 h-1.5 rounded-full bg-white/60 shrink-0" />
                           )}
                         </Link>

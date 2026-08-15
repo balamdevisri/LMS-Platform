@@ -44,6 +44,7 @@ import { CareerRoadmap } from '../../components/courses/CareerRoadmap';
 import { PracticeHub } from '../../components/courses/PracticeHub';
 import { InterviewPrep } from '../../components/courses/InterviewPrep';
 import { StudentLiveClassroomSection } from '../../components/liveClassroom/StudentLiveClassroomSection';
+import { SubscriptionSettings } from '../../components/settings/SubscriptionSettings';
 
 export const Dashboard: React.FC = () => {
   const { user, userProfile } = useAuth();
@@ -547,6 +548,7 @@ export const Dashboard: React.FC = () => {
     'career-roadmap': 'Career Roadmap',
     'practice-hub': 'Practice Hub',
     'interview-prep': 'Interview Prep',
+    settings: 'Settings & Billing',
   };
 
   return (
@@ -1414,6 +1416,11 @@ export const Dashboard: React.FC = () => {
       {/* ------------------- 16. LIVE CLASSROOM TAB ------------------- */}
       {currentTab === 'live-classroom' && (
         <StudentLiveClassroomSection />
+      )}
+
+      {/* ------------------- SETTINGS & BILLING TAB ------------------- */}
+      {currentTab === 'settings' && (
+        <SubscriptionSettings />
       )}
 
       {/* ----------------- CERTIFICATE PREVIEW MODAL ----------------- */}
