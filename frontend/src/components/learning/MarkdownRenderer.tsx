@@ -115,11 +115,79 @@ function cleanMarkdownNewlines(text: string): string {
   return result.join('\n');
 }
 
+function splitInlineCProgram(line: string): string[] {
+  const includeIdx = line.indexOf('#include');
+  if (includeIdx === -1) {
+    return [line];
+  }
+
+  const textBefore = line.substring(0, includeIdx).trim();
+  const programText = line.substring(includeIdx).trim();
+
+  if (line.includes('```')) {
+    return [line];
+  }
+
+  let formatted = programText;
+  
+  // Separate preprocessors
+  formatted = formatted.replace(/(#include\s*<[^>]+>)/g, '\n$1\n');
+  formatted = formatted.replace(/(#define\s+[A-Z0-9_]+\s+[^\n]+)/g, '\n$1\n');
+
+  // Separate function definitions
+  formatted = formatted.replace(/(int\s+main\s*\([^)]*\))/g, '\n$1\n');
+  formatted = formatted.replace(/(void\s+[a-zA-Z0-9_]+\s*\([^)]*\))/g, '\n$1\n');
+
+  // Separate braces
+  formatted = formatted.replace(/{/g, '\n{\n');
+  formatted = formatted.replace(/}/g, '\n}\n');
+
+  // Separate statements ending with ;
+  const forLoops: string[] = [];
+  formatted = formatted.replace(/(for\s*\([^)]*\))/g, (match) => {
+    forLoops.push(match);
+    return `__FOR_LOOP_PLACEHOLDER_${forLoops.length - 1}__`;
+  });
+
+  formatted = formatted.replace(/;/g, ';\n');
+
+  // Restore for loops
+  forLoops.forEach((fl, idx) => {
+    formatted = formatted.replace(`__FOR_LOOP_PLACEHOLDER_${idx}__`, fl);
+  });
+
+  const rawLines = formatted.split('\n').map(l => l.trim()).filter(Boolean);
+  const codeLines: string[] = [];
+  let indentLevel = 0;
+
+  rawLines.forEach(l => {
+    if (l === '}') {
+      indentLevel = Math.max(0, indentLevel - 1);
+    }
+    const indent = '    '.repeat(indentLevel);
+    codeLines.push(indent + l);
+    if (l === '{') {
+      indentLevel++;
+    }
+  });
+
+  const result: string[] = [];
+  if (textBefore) {
+    result.push(textBefore);
+  }
+  result.push('```c');
+  result.push(...codeLines);
+  result.push('```');
+
+  return result;
+}
+
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isNightMode = false, courseId }) => {
   if (!content) return null;
 
   const isReactCourse = (courseId || '').toLowerCase().includes('react');
   const isJava = (courseId || '').toLowerCase().includes('java');
+  const isC = (courseId || '').toLowerCase().includes('c-programming');
 
   if (
     courseId === 'python-through-oops-course-id' ||
@@ -132,10 +200,10 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
   }
 
   // IMPORTANT:
-  // Java content must preserve the original line structure.
-  // The generic newline cleaner merges lines and breaks Java headings,
+  // Java and C content must preserve the original line structure.
+  // The generic newline cleaner merges lines and breaks headings,
   // naming conventions, flowcharts and interview-question formatting.
-  let lines = isJava
+  let lines = (isJava || isC)
     ? content.split('\n')
     : cleanMarkdownNewlines(content).split('\n');
 
@@ -301,6 +369,270 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
     lines = splitHeadingsLines;
   }
 
+  if (isC) {
+    // Pass 1: Merge split module headings
+    let mergedModuleLines: string[] = [];
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+
+      if (trimmed.startsWith('### Module 1:') && trimmed.endsWith('to C')) {
+        const next = lines[i + 1] || '';
+        if (next.trim().startsWith('Programming')) {
+          mergedModuleLines.push('### Module 1: Introduction to C Programming');
+          lines[i + 1] = next.trim().substring('Programming'.length).trim();
+          continue;
+        }
+      }
+
+      if (trimmed.startsWith('### Module 2:') && trimmed.endsWith('& Data')) {
+        const next = lines[i + 1] || '';
+        if (next.trim().startsWith('Types')) {
+          mergedModuleLines.push('### Module 2: Variables, Constants & Data Types');
+          lines[i + 1] = next.trim().substring('Types'.length).trim();
+          continue;
+        }
+      }
+
+      if (trimmed.startsWith('### Module 4:') && trimmed.endsWith('Output &')) {
+        const next = lines[i + 1] || '';
+        if (next.trim().startsWith('Decision-Making Statements')) {
+          mergedModuleLines.push('### Module 4: Input, Output & Decision-Making Statements');
+          lines[i + 1] = next.trim().substring('Decision-Making Statements'.length).trim();
+          continue;
+        }
+      }
+
+      if (trimmed.startsWith('### Module 10:') && trimmed.endsWith('Unions &')) {
+        const next = lines[i + 1] || '';
+        if (next.trim().startsWith('Enumerations')) {
+          mergedModuleLines.push('### Module 10: Structures, Unions & Enumerations');
+          lines[i + 1] = next.trim().substring('Enumerations'.length).trim();
+          continue;
+        }
+      }
+
+      if (trimmed.startsWith('### Module 13:') && trimmed.endsWith('Header Files &')) {
+        const next = lines[i + 1] || '';
+        if (next.trim().startsWith('Macros')) {
+          mergedModuleLines.push('### Module 13: Preprocessor, Header Files & Macros');
+          lines[i + 1] = next.trim().substring('Macros'.length).trim();
+          continue;
+        }
+      }
+
+      if (trimmed.startsWith('### Module 14:') && trimmed.endsWith('Storage Classes, Scope,')) {
+        const next = lines[i + 1] || '';
+        if (next.trim().startsWith('Lifetime & Linkage')) {
+          mergedModuleLines.push('### Module 14: Storage Classes, Scope, Lifetime & Linkage');
+          lines[i + 1] = next.trim().substring('Lifetime & Linkage'.length).trim();
+          continue;
+        }
+      }
+
+      if (trimmed.startsWith('### Module 15:') && trimmed.endsWith('Advanced C Concepts &')) {
+        const next = lines[i + 1] || '';
+        if (next.trim().startsWith('Final Revision')) {
+          mergedModuleLines.push('### Module 15: Advanced C Concepts & Final Revision');
+          lines[i + 1] = next.trim().substring('Final Revision'.length).trim();
+          continue;
+        }
+      }
+
+      mergedModuleLines.push(line);
+    }
+    lines = mergedModuleLines;
+
+    // Pass 2: Normalize subheadings (convert "1.1 Learning Objectives" to "#### 1.1 Learning Objectives")
+    let normalizedHeadingLines: string[] = [];
+    for (const line of lines) {
+      const trimmed = line.trim();
+      const headingMatch = trimmed.match(/^(\d+\.\d+)\s+(.+)$/);
+      if (headingMatch && !trimmed.startsWith('#') && !trimmed.startsWith('-') && !trimmed.startsWith('*')) {
+        normalizedHeadingLines.push(`#### ${headingMatch[1]} ${headingMatch[2]}`);
+      } else {
+        normalizedHeadingLines.push(line);
+      }
+    }
+    lines = normalizedHeadingLines;
+
+    // Pass 3: Split inline markdown code blocks/fences onto new lines
+    let splitFenceLines: string[] = [];
+    for (const line of lines) {
+      if (line.includes('```')) {
+        const parts = line.split(/(```[a-zA-Z]*)/);
+        parts.forEach(part => {
+          if (part.trim() !== '') {
+            splitFenceLines.push(part);
+          }
+        });
+      } else {
+        splitFenceLines.push(line);
+      }
+    }
+    lines = splitFenceLines;
+
+    // Pass 4: Split conjoined bullet points (multiple ● or ○ on a single line)
+    let splitBulletLines: string[] = [];
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if ((trimmed.includes('●') || trimmed.includes('○')) && !trimmed.startsWith('`')) {
+        const parts = trimmed.split(/[●○]/);
+        parts.forEach(part => {
+          const cleanedPart = part.trim();
+          if (cleanedPart) {
+            splitBulletLines.push(`- ${cleanedPart}`);
+          }
+        });
+      } else {
+        splitBulletLines.push(line);
+      }
+    }
+    lines = splitBulletLines;
+
+    // Pass 5: Merge vertical flowcharts
+    let mergedFlowchartLines: string[] = [];
+    let flowchartBuffer: string[] = [];
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+
+      const isArrow = trimmed === '↓';
+      const nextIsArrow = (lines[i + 1] || '').trim() === '↓';
+      const prevWasArrow = flowchartBuffer.length > 0 && flowchartBuffer[flowchartBuffer.length - 1] === '↓';
+
+      if (isArrow || nextIsArrow || prevWasArrow) {
+        if (trimmed) {
+          flowchartBuffer.push(trimmed);
+        }
+      } else {
+        if (flowchartBuffer.length > 0) {
+          const steps: string[] = [];
+          flowchartBuffer.forEach(item => {
+            if (item === '↓') {
+              if (steps.length > 0 && steps[steps.length - 1] !== '↓') {
+                steps.push('↓');
+              }
+            } else {
+              steps.push(item);
+            }
+          });
+          if (steps[steps.length - 1] === '↓') {
+            steps.pop();
+          }
+          if (steps.length > 0) {
+            mergedFlowchartLines.push(steps.join(' ↓ '));
+          }
+          flowchartBuffer = [];
+        }
+        mergedFlowchartLines.push(line);
+      }
+    }
+    if (flowchartBuffer.length > 0) {
+      const steps: string[] = [];
+      flowchartBuffer.forEach(item => {
+        if (item === '↓') {
+          if (steps.length > 0 && steps[steps.length - 1] !== '↓') {
+            steps.push('↓');
+          }
+        } else {
+          steps.push(item);
+        }
+      });
+      if (steps[steps.length - 1] === '↓') {
+        steps.pop();
+      }
+      if (steps.length > 0) {
+        mergedFlowchartLines.push(steps.join(' ↓ '));
+      }
+    }
+    lines = mergedFlowchartLines;
+
+    // Pass 6: Standardize Q&A interview questions
+    let cleanedQALines: string[] = [];
+    let inInterviewSection = false;
+    for (const line of lines) {
+      const trimmed = line.trim();
+      const norm = trimmed.replace(/\s+/g, ' ');
+
+      if (norm.toLowerCase().includes('interview questions') || norm.toLowerCase().includes('interview preparation')) {
+        inInterviewSection = true;
+      } else if (norm.startsWith('### ') || norm.startsWith('#### ')) {
+        inInterviewSection = false;
+      }
+
+      if (inInterviewSection) {
+        const qMatch = norm.match(/^(?:-\s+)?\**\s*Q?(?:-\s*)?\**\s*(\d+)\.?\s*(.*?)\**$/i) ||
+                        norm.match(/^(?:-\s+)?\**\s*(\d+)\.\s*(.*?)\**$/i);
+        
+        if (qMatch && !norm.toLowerCase().startsWith('answer') && !norm.includes('http') && !norm.includes('[')) {
+          const qNum = qMatch[1];
+          const qText = qMatch[2].replace(/\*+$/, '').trim();
+          cleanedQALines.push(`Q${qNum}. ${qText}`);
+          continue;
+        }
+
+        if (norm.toLowerCase().includes('answer')) {
+          const ansText = trimmed.replace(/^(?:-\s+)?\**\s*Answer\s*\**\s*:\s*/i, '').trim();
+          cleanedQALines.push(`Answer: ${ansText}`);
+          continue;
+        }
+      }
+
+      cleanedQALines.push(line);
+    }
+    lines = cleanedQALines;
+
+    // Pass 7: Split conjoined Output and Flowchart lines
+    let splitOutputFlowchartLines: string[] = [];
+    for (const line of lines) {
+      const trimmed = line.trim();
+      const outputFlowchartMatch = trimmed.match(/^(Output:.*?)\s*\b(Flowchart\b.*)$/i);
+      if (outputFlowchartMatch) {
+        splitOutputFlowchartLines.push(outputFlowchartMatch[1]);
+        splitOutputFlowchartLines.push(outputFlowchartMatch[2]);
+      } else {
+        splitOutputFlowchartLines.push(line);
+      }
+    }
+    lines = splitOutputFlowchartLines;
+
+    // Pass 8: Extract inline single-line C programs into code blocks
+    let splitCodeLines: string[] = [];
+    let inPreBlock = false;
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('```')) {
+        inPreBlock = !inPreBlock;
+        splitCodeLines.push(line);
+        continue;
+      }
+
+      if (!inPreBlock && trimmed.includes('#include') && !trimmed.includes('```')) {
+        splitCodeLines.push(...splitInlineCProgram(line));
+      } else {
+        splitCodeLines.push(line);
+      }
+    }
+    lines = splitCodeLines;
+
+    // Pass 9: Split and format sequential steps (Step 1, Step 2, etc.)
+    let splitStepsLines: string[] = [];
+    for (const line of lines) {
+      if (line.includes('Step ') && !line.includes('```')) {
+        let replaced = line.replace(/(Step\s+\d+:\s*[A-Za-z\s]+?)(?=\s+[A-Z\d\-\[!]|$)/g, '\n#### $1\n');
+        replaced.split('\n').forEach(part => {
+          if (part.trim() !== '') {
+            splitStepsLines.push(part);
+          }
+        });
+      } else {
+        splitStepsLines.push(line);
+      }
+    }
+    lines = splitStepsLines;
+  }
+
   const elements: React.ReactNode[] = [];
   let inInterviewQuestions = false;
   let lastWasQuestion = false;
@@ -313,6 +645,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
   let tableBuffer: string[] = [];
 
   lines.forEach((line, index) => {
+    const trimmed = line.trim();
     // Check code block fence
     if (line.trim().startsWith('```')) {
       if (inCodeBlock) {
@@ -321,7 +654,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
           <CodeBlock
             key={`code-${index}`}
             code={codeBuffer.join('\n')}
-            language={codeLang || (isJava ? 'java' : 'bash')}
+            language={codeLang || (isJava ? 'java' : (isC ? 'c' : 'bash'))}
           />
         );
         codeBuffer = [];
@@ -329,7 +662,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
       } else {
         // Start code block
         inCodeBlock = true;
-        codeLang = line.trim().replace('```', '') || (isJava ? 'java' : 'bash');
+        codeLang = line.trim().replace('```', '') || (isJava ? 'java' : (isC ? 'c' : 'bash'));
       }
       return;
     }
@@ -339,9 +672,8 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
       return;
     }
 
-    // Java custom formatting blocks
-    if (isJava) {
-      const trimmed = line.trim();
+    // Java and C custom formatting blocks
+    if (isJava || isC) {
 
       // Answer line interception (follows a question line)
       if (inInterviewQuestions && lastWasQuestion && trimmed !== '') {
@@ -482,11 +814,12 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
       }
 
       // Subheadings (e.g. 1.1)
-      const isSub = /^\s*\d+\.\d+\s+/.test(trimmed);
+      const isSub = /^\s*#*\s*\d+\.\d+\s+/.test(trimmed);
       if (isSub) {
         inInterviewQuestions = false;
+        const cleanSubheading = trimmed.replace(/^#+\s*/, '').trim();
 
-        if (trimmed.startsWith('1.26 Important Terms')) {
+        if (cleanSubheading.startsWith('1.26 Important Terms')) {
           elements.push(
             <h3
               key={index}
@@ -537,7 +870,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
               }`}
           >
             <Terminal className="w-5 h-5 text-cyan-400 shrink-0" />
-            <span>{trimmed}</span>
+            <span>{cleanSubheading}</span>
           </h3>
         );
         return;
@@ -648,7 +981,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
     }
 
     // Headers
-    if (line.startsWith('### ')) {
+    if (trimmed.startsWith('### ')) {
       elements.push(
         <h3
           key={index}
@@ -656,13 +989,13 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
             }`}
         >
           <Sparkles className={`w-5 h-5 ${isNightMode ? 'text-cyan-400' : 'text-sky-500'}`} />
-          {line.replace('### ', '')}
+          {trimmed.replace('### ', '')}
         </h3>
       );
       return;
     }
 
-    if (line.startsWith('#### ')) {
+    if (trimmed.startsWith('#### ')) {
       elements.push(
         <h4
           key={index}
@@ -670,7 +1003,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
             }`}
         >
           <FileText className={`w-4 h-4 ${isNightMode ? 'text-cyan-400' : 'text-sky-500'}`} />
-          {line.replace('#### ', '')}
+          {trimmed.replace('#### ', '')}
         </h4>
       );
       return;
