@@ -209,6 +209,61 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
       }
     }
     lines = splitNumLines;
+
+    // Pass 4: Split merged headings/sections for Module 1
+    let splitHeadingsLines: string[] = [];
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('1.3 History of Java')) {
+        splitHeadingsLines.push('1.3 History of Java');
+        splitHeadingsLines.push('Important points:');
+      } else if (trimmed.startsWith('1.5 Platform Dependent vs Independent')) {
+        splitHeadingsLines.push('1.5 Platform Dependent vs Independent');
+        const rest = trimmed.replace('1.5 Platform Dependent vs Independent', '').trim();
+        if (rest.startsWith('C example')) {
+          splitHeadingsLines.push('C example');
+          splitHeadingsLines.push(rest.replace('C example', '').trim());
+        } else {
+          splitHeadingsLines.push(rest);
+        }
+      } else if (trimmed.startsWith('1.12 Compilation vs Execution')) {
+        splitHeadingsLines.push('1.12 Compilation vs Execution');
+        splitHeadingsLines.push(trimmed.replace('1.12 Compilation vs Execution', '').trim());
+      } else if (trimmed.startsWith('1.14 Understanding the Program')) {
+        splitHeadingsLines.push('1.14 Understanding the Program');
+        splitHeadingsLines.push(trimmed.replace('1.14 Understanding the Program', '').trim());
+      } else if (trimmed.startsWith('1.17 Java Syntax Rules')) {
+        splitHeadingsLines.push('1.17 Java Syntax Rules');
+        splitHeadingsLines.push(trimmed.replace('1.17 Java Syntax Rules', '').trim());
+      } else if (trimmed.startsWith('1.18 Java Identifiers')) {
+        splitHeadingsLines.push('1.18 Java Identifiers');
+        splitHeadingsLines.push(trimmed.replace('1.18 Java Identifiers', '').trim());
+      } else if (trimmed.startsWith('1.19 Identifier Rules')) {
+        splitHeadingsLines.push('1.19 Identifier Rules');
+        splitHeadingsLines.push(trimmed.replace('1.19 Identifier Rules', '').trim());
+      } else if (trimmed.startsWith('1.20 Java Keywords')) {
+        splitHeadingsLines.push('1.20 Java Keywords');
+        splitHeadingsLines.push('Keywords have special meaning in Java.');
+        splitHeadingsLines.push('Examples:');
+      } else if (trimmed.startsWith('1.21 Comments')) {
+        splitHeadingsLines.push('1.21 Comments');
+        splitHeadingsLines.push('Comments help explain code.');
+      } else if (trimmed === '1.22 Java Naming Conventions ⭐⭐') {
+        splitHeadingsLines.push('1.22 Java Naming Conventions');
+      } else if (trimmed.startsWith('Class → PascalCase')) {
+        splitHeadingsLines.push('Class → PascalCase (Student, BankAccount, EmployeeDetails)');
+        splitHeadingsLines.push('Variable → camelCase (studentName, totalMarks, accountBalance)');
+        splitHeadingsLines.push('Method → camelCase (calculateTotal(), displayDetails(), findMaximum())');
+      } else if (trimmed === '1.23 Java') {
+        splitHeadingsLines.push('1.23 Java Flowchart');
+      } else if (trimmed.startsWith('1.26 Important Terms')) {
+        splitHeadingsLines.push('1.26 Important Terms');
+        splitHeadingsLines.push('Term Meaning Java Programming language JVM Executes Java bytecode JRE Runtime environment JDK Development kit Bytecode Compiled Java code javac Java compiler command java Command used to launch a Java application Class Blueprint/type Object Instance of a class Method Block of executable behavior');
+      } else {
+        splitHeadingsLines.push(line);
+      }
+    }
+    lines = splitHeadingsLines;
   }
 
   const elements: React.ReactNode[] = [];
@@ -422,7 +477,8 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
               >
                 <CheckCircle2 className={`w-4 h-4 shrink-0 mt-1 ${isNightMode ? 'text-cyan-400' : 'text-sky-500'}`} />
                 <span>
-                  <strong className="font-semibold text-slate-800 dark:text-slate-250 mr-1.5">{t.term}:</strong>
+                  <strong className="font-semibold text-slate-800 dark:text-slate-250 mr-1.5">{t.term}</strong>
+                  <span className="mx-1.5 text-slate-400">—</span>
                   {renderInlineStyles(t.meaning, isNightMode)}
                 </span>
               </li>
