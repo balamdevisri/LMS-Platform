@@ -214,10 +214,11 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
     let splitHeadingsLines: string[] = [];
     for (const line of lines) {
       const trimmed = line.trim();
+      const norm = trimmed.replace(/\s+/g, ' ');
 
       // Split interview question heading and first question
-      if (trimmed.toLowerCase().includes('interview questions') && /\d+\.\s+/.test(trimmed)) {
-        const match = trimmed.match(/^(.*Interview\s+Questions)(?:\s+)?(\d+\.\s+.*)$/i);
+      if (norm.toLowerCase().includes('interview questions') && /\d+\.\s+/.test(norm)) {
+        const match = norm.match(/^(.*Interview\s+Questions)(?:\s+)?(\d+\.\s+.*)$/i);
         if (match) {
           splitHeadingsLines.push(match[1].trim());
           splitHeadingsLines.push(match[2].trim());
@@ -225,62 +226,61 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
         }
       }
 
-      if (trimmed.startsWith('1.3 History of Java')) {
+      if (norm.startsWith('1.3 History of Java')) {
         splitHeadingsLines.push('1.3 History of Java');
         splitHeadingsLines.push('Important points:');
-      } else if (trimmed.startsWith('1.5 Platform Dependent vs Independent')) {
+      } else if (norm.startsWith('1.5 Platform Dependent vs Independent')) {
         splitHeadingsLines.push('1.5 Platform Dependent vs Independent');
-        const rest = trimmed.replace('1.5 Platform Dependent vs Independent', '').trim();
+        const rest = norm.replace('1.5 Platform Dependent vs Independent', '').trim();
         if (rest.startsWith('C example')) {
           splitHeadingsLines.push('C example');
           splitHeadingsLines.push(rest.replace('C example', '').trim());
         } else {
           splitHeadingsLines.push(rest);
         }
-      } else if (trimmed.startsWith('1.12 Compilation vs Execution')) {
+      } else if (norm.startsWith('1.12 Compilation vs Execution')) {
         splitHeadingsLines.push('1.12 Compilation vs Execution');
-        splitHeadingsLines.push(trimmed.replace('1.12 Compilation vs Execution', '').trim());
-      } else if (trimmed.startsWith('1.14 Understanding the Program')) {
+        splitHeadingsLines.push(norm.replace('1.12 Compilation vs Execution', '').trim());
+      } else if (norm.startsWith('1.14 Understanding the Program')) {
         splitHeadingsLines.push('1.14 Understanding the Program');
-        splitHeadingsLines.push(trimmed.replace('1.14 Understanding the Program', '').trim());
-      } else if (trimmed.startsWith('1.17 Java Syntax Rules')) {
+        splitHeadingsLines.push(norm.replace('1.14 Understanding the Program', '').trim());
+      } else if (norm.startsWith('1.17 Java Syntax Rules')) {
         splitHeadingsLines.push('1.17 Java Syntax Rules');
-        splitHeadingsLines.push(trimmed.replace('1.17 Java Syntax Rules', '').trim());
-      } else if (trimmed.startsWith('1.18 Java Identifiers')) {
+        splitHeadingsLines.push(norm.replace('1.17 Java Syntax Rules', '').trim());
+      } else if (norm.startsWith('1.18 Java Identifiers')) {
         splitHeadingsLines.push('1.18 Java Identifiers');
-        splitHeadingsLines.push(trimmed.replace('1.18 Java Identifiers', '').trim());
-      } else if (trimmed.startsWith('1.19 Identifier Rules')) {
+        splitHeadingsLines.push(norm.replace('1.18 Java Identifiers', '').trim());
+      } else if (norm.startsWith('1.19 Identifier Rules')) {
         splitHeadingsLines.push('1.19 Identifier Rules');
-        splitHeadingsLines.push(trimmed.replace('1.19 Identifier Rules', '').trim());
-      } else if (trimmed.startsWith('1.20 Java Keywords')) {
+        splitHeadingsLines.push(norm.replace('1.19 Identifier Rules', '').trim());
+      } else if (norm.startsWith('1.20 Java Keywords')) {
         splitHeadingsLines.push('1.20 Java Keywords');
         splitHeadingsLines.push('Keywords have special meaning in Java.');
         splitHeadingsLines.push('Examples:');
-      } else if (trimmed.startsWith('1.21 Comments')) {
+      } else if (norm.startsWith('1.21 Comments')) {
         splitHeadingsLines.push('1.21 Comments');
         splitHeadingsLines.push('Comments help explain code.');
-      } else if (trimmed === '1.22 Java Naming Conventions ⭐⭐' || trimmed === '1.22 Java Naming Conventions') {
+      } else if (norm.startsWith('1.22 Java Naming Conventions')) {
         splitHeadingsLines.push('1.22 Java Naming Conventions');
-      } else if (trimmed.startsWith('Class → PascalCase')) {
+      } else if (norm.startsWith('Class → PascalCase')) {
         splitHeadingsLines.push('Class → PascalCase');
-        splitHeadingsLines.push('StudentBankAccount');
-        splitHeadingsLines.push('EmployeeDetails');
+        splitHeadingsLines.push('StudentBankAccount → PascalCase');
+        splitHeadingsLines.push('EmployeeDetails → PascalCase');
         splitHeadingsLines.push('studentName → camelCase');
-        splitHeadingsLines.push('totalMarks');
-        splitHeadingsLines.push('accountBalance');
+        splitHeadingsLines.push('totalMarks → camelCase');
+        splitHeadingsLines.push('accountBalance → camelCase');
         splitHeadingsLines.push('calculateTotal() → camelCase');
-        splitHeadingsLines.push('displayDetails()');
-        splitHeadingsLines.push('findMaximum()');
-      } else if (trimmed.startsWith('Constant → UPPER_SNAKE_CASE')) {
+        splitHeadingsLines.push('displayDetails() → camelCase');
+        splitHeadingsLines.push('findMaximum() → camelCase');
+      } else if (norm.startsWith('Constant → UPPER_SNAKE_CASE')) {
         splitHeadingsLines.push('Constant → UPPER_SNAKE_CASE');
         splitHeadingsLines.push('MAX_SIZE');
         splitHeadingsLines.push('PI_VALUE');
-      } else if (trimmed === '1.23 Java') {
+      } else if (norm.startsWith('1.23 Java')) {
         splitHeadingsLines.push('1.23 Java Flowchart');
-      } else if (trimmed.startsWith('1.26 Important Terms')) {
+      } else if (norm.startsWith('1.26 Important Terms')) {
         splitHeadingsLines.push('1.26 Important Terms');
-        // Do NOT push the duplicated terms list string here
-      } else if (trimmed.startsWith('Term Meaning Java Programming language')) {
+      } else if (norm.toLowerCase().startsWith('term meaning java')) {
         // Skip the duplicated raw terms paragraph completely since it is handled by the heading block
         continue;
       } else {
