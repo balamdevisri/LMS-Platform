@@ -599,14 +599,38 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
 
     // Pass 8: Extract inline single-line C programs into code blocks
     let splitCodeLines: string[] = [];
+    let inPreBlock = false;
     for (const line of lines) {
-      if (line.includes('#include') && !line.includes('```')) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('```')) {
+        inPreBlock = !inPreBlock;
+        splitCodeLines.push(line);
+        continue;
+      }
+
+      if (!inPreBlock && trimmed.includes('#include') && !trimmed.includes('```')) {
         splitCodeLines.push(...splitInlineCProgram(line));
       } else {
         splitCodeLines.push(line);
       }
     }
     lines = splitCodeLines;
+
+    // Pass 9: Split and format sequential steps (Step 1, Step 2, etc.)
+    let splitStepsLines: string[] = [];
+    for (const line of lines) {
+      if (line.includes('Step ') && !line.includes('```')) {
+        let replaced = line.replace(/(Step\s+\d+:\s*[A-Za-z\s]+?)(?=\s+[A-Z\d\-\[!]|$)/g, '\n#### $1\n');
+        replaced.split('\n').forEach(part => {
+          if (part.trim() !== '') {
+            splitStepsLines.push(part);
+          }
+        });
+      } else {
+        splitStepsLines.push(line);
+      }
+    }
+    lines = splitStepsLines;
   }
 
   const elements: React.ReactNode[] = [];
