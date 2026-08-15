@@ -13,7 +13,6 @@ import {
   Radio,
   FileSpreadsheet,
   Layers,
-  ExternalLink,
   Search,
   Play,
   StopCircle,
@@ -393,25 +392,25 @@ export const AdminLiveClassroom: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 text-slate-900 font-['Sora'] max-w-7xl mx-auto pb-12 animate-in fade-in duration-300">
+    <div className="space-y-6 text-slate-900 dark:text-slate-100 font-['Sora'] max-w-7xl mx-auto pb-12 animate-in fade-in duration-300">
       
       {/* Header Banner */}
-      <div className="bg-white/90 backdrop-blur-2xl border border-sky-200/80 p-6 sm:p-8 rounded-3xl shadow-xl shadow-sky-500/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl border border-sky-200/80 dark:border-slate-800 p-6 sm:p-8 rounded-3xl shadow-xl shadow-sky-500/10 dark:shadow-none flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-colors">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50 border border-sky-200 text-sky-700 text-xs font-bold uppercase tracking-wider">
-              <Video className="w-3.5 h-3.5 text-sky-600" />
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800/80 text-sky-700 dark:text-cyan-300 text-xs font-bold uppercase tracking-wider">
+              <Video className="w-3.5 h-3.5 text-sky-600 dark:text-cyan-400" />
               <span>ENTERPRISE LIVE CLASSROOM ENGINE</span>
             </div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold uppercase tracking-wider">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 text-emerald-700 dark:text-emerald-300 text-xs font-bold uppercase tracking-wider">
               <Radio className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
               <span>REAL-TIME SNAPSHOT SYNC</span>
             </div>
           </div>
-          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-slate-900">
+          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-slate-900 dark:text-white">
             Live Classes Control Center ({filteredClasses.length})
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">
             Schedule live sessions, assign instructors, trigger real-time quizzes & polls, and download attendance reports.
           </p>
         </div>
@@ -491,7 +490,7 @@ export const AdminLiveClassroom: React.FC = () => {
       )}
 
       {/* Top Filter Tabs & Search Bar */}
-      <div className="bg-white/90 border border-sky-200/80 rounded-3xl p-5 shadow-sm space-y-4">
+      <div className="bg-white/90 dark:bg-slate-900/90 border border-sky-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-sm space-y-4 transition-colors">
         <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
           
           {/* Status Tabs */}
@@ -515,8 +514,8 @@ export const AdminLiveClassroom: React.FC = () => {
                     isActive
                       ? tab === 'Live'
                         ? 'bg-rose-600 text-white shadow-md shadow-rose-500/20'
-                        : 'bg-sky-600 text-white shadow-md shadow-sky-500/20'
-                      : 'bg-slate-50 text-slate-600 hover:bg-sky-50 border border-slate-200'
+                        : 'bg-sky-600 dark:bg-cyan-600 text-white shadow-md shadow-sky-500/20'
+                      : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 hover:bg-sky-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
                   }`}
                 >
                   {labelMap[tab]}
@@ -528,20 +527,20 @@ export const AdminLiveClassroom: React.FC = () => {
           {/* Search & Instructor Filter */}
           <div className="flex items-center gap-3 w-full lg:w-auto">
             <div className="relative flex-1 lg:w-64">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search live classes, topics, instructors..."
-                className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2 pl-9 pr-3 text-xs text-slate-900 focus:outline-hidden"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2 pl-9 pr-3 text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-hidden"
               />
             </div>
 
             <select
               value={instructorFilter}
               onChange={(e) => setInstructorFilter(e.target.value)}
-              className="bg-slate-50 border border-sky-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-hidden"
+              className="bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-hidden cursor-pointer"
             >
               <option value="ALL">All Instructors</option>
               {instructorsList.map((inst) => (
@@ -557,17 +556,17 @@ export const AdminLiveClassroom: React.FC = () => {
 
       {/* Live Class Grid Display */}
       {loading ? (
-        <div className="py-16 text-center text-slate-400 animate-pulse text-xs font-bold">
+        <div className="py-16 text-center text-slate-400 dark:text-slate-500 animate-pulse text-xs font-bold">
           Syncing Firestore live classroom telemetry...
         </div>
       ) : filteredClasses.length === 0 ? (
-        <div className="py-16 text-center space-y-3 bg-white rounded-3xl border border-dashed border-sky-200 shadow-xs">
-          <Video className="w-10 h-10 text-slate-300 mx-auto" />
-          <h3 className="font-heading font-extrabold text-base text-slate-700">No Live Classes Found</h3>
-          <p className="text-xs text-slate-500 max-w-sm mx-auto font-medium">
+        <div className="py-16 text-center space-y-3 bg-white dark:bg-slate-900/90 rounded-3xl border border-dashed border-sky-200 dark:border-slate-800 shadow-xs">
+          <Video className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto" />
+          <h3 className="font-heading font-extrabold text-base text-slate-700 dark:text-slate-300">No Live Classes Found</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto font-medium">
             No live classroom sessions match your selected filter tab or search query.
           </p>
-          <button onClick={() => openCreateModal()} className="btn-blue-primary text-xs py-2 px-4 font-bold inline-flex items-center gap-1.5">
+          <button onClick={() => openCreateModal()} className="btn-blue-primary text-xs py-2 px-4 font-bold inline-flex items-center gap-1.5 cursor-pointer">
             <Plus className="w-4 h-4" />
             <span>Create First Session</span>
           </button>
@@ -581,12 +580,12 @@ export const AdminLiveClassroom: React.FC = () => {
             return (
               <div
                 key={c.id}
-                className={`bg-white rounded-3xl border transition-all flex flex-col justify-between overflow-hidden shadow-xs hover:shadow-xl ${
+                className={`bg-white dark:bg-slate-900/90 rounded-3xl border transition-all flex flex-col justify-between overflow-hidden shadow-xs hover:shadow-xl ${
                   isLiveNow
-                    ? 'border-rose-300 ring-2 ring-rose-500/20'
+                    ? 'border-rose-300 dark:border-rose-700 ring-2 ring-rose-500/20'
                     : isCompleted
-                    ? 'border-slate-200 opacity-90'
-                    : 'border-sky-200/80 hover:border-sky-400'
+                    ? 'border-slate-200 dark:border-slate-800 opacity-90'
+                    : 'border-sky-200/80 dark:border-slate-800 hover:border-sky-400 dark:hover:border-cyan-500'
                 }`}
               >
                 {/* Class Thumbnail Banner */}
@@ -634,99 +633,108 @@ export const AdminLiveClassroom: React.FC = () => {
                 {/* Card Body */}
                 <div className="p-5 space-y-4 flex-1 flex flex-col justify-between">
                   <div className="space-y-2">
-                    <h3 className="font-heading font-extrabold text-sm text-slate-900 leading-snug line-clamp-2">
+                    <h3 className="font-heading font-extrabold text-sm text-slate-900 dark:text-white leading-snug line-clamp-2">
                       {c.title}
                     </h3>
-                    <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed font-medium">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed font-medium">
                       {c.description}
                     </p>
                   </div>
 
                   {/* Time & Schedule Info */}
-                  <div className="bg-sky-50/60 border border-sky-100 rounded-2xl p-3 space-y-1.5 text-xs text-slate-700">
+                  <div className="bg-sky-50/60 dark:bg-slate-950/80 border border-sky-100 dark:border-slate-800 rounded-2xl p-3 space-y-1.5 text-xs text-slate-700 dark:text-slate-300">
                     <div className="flex items-center justify-between font-semibold">
-                      <span className="flex items-center gap-1.5 text-slate-600">
-                        <Calendar className="w-3.5 h-3.5 text-sky-600" />
+                      <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
+                        <Calendar className="w-3.5 h-3.5 text-sky-600 dark:text-cyan-400" />
                         <span>{new Date(c.startTime).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                       </span>
-                      <span className="flex items-center gap-1 text-slate-600 font-mono text-[11px]">
-                        <Clock className="w-3.5 h-3.5 text-sky-600" />
-                        <span>{new Date(c.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ({c.duration}m)</span>
+                      <span className="flex items-center gap-1 text-slate-800 dark:text-slate-200 font-mono">
+                        <Clock className="w-3.5 h-3.5 text-sky-600 dark:text-cyan-400" />
+                        <span>{new Date(c.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between text-[10px] text-slate-500 font-medium pt-1 border-t border-sky-200/50">
-                      <span>Max Participants: <strong>{c.maxParticipants}</strong></span>
-                      <span className="font-bold text-emerald-700">{c.difficulty}</span>
+                    <div className="flex items-center justify-between pt-1 border-t border-sky-100/60 dark:border-slate-800/80 text-[11px]">
+                      <span className="text-slate-500 dark:text-slate-400">Target Group:</span>
+                      <span className="font-bold text-sky-700 dark:text-cyan-300 font-mono">
+                        {c.branch} • {c.semester} • {c.section}
+                      </span>
                     </div>
                   </div>
 
-                  {/* Feature Badges */}
-                  <div className="flex items-center gap-1.5 flex-wrap text-[10px] font-bold">
-                    {c.isRecordingEnabled && <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700">🎥 Rec</span>}
-                    {c.isQuizEnabled && <span className="px-2 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200">⚡ Quiz</span>}
-                    {c.isPollEnabled && <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">📊 Poll</span>}
-                    {c.isChatEnabled && <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">💬 Chat</span>}
-                  </div>
+                  {/* Action Buttons Toolbar */}
+                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                    {/* Primary Room Enter / Launch */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleEnterControlPanel(c)}
+                        className={`flex-1 py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-md transition-all ${
+                          isLiveNow
+                            ? 'bg-rose-600 hover:bg-rose-700 text-white animate-pulse'
+                            : 'bg-blue-600 hover:bg-blue-700 dark:bg-cyan-600 dark:hover:bg-cyan-500 text-white shadow-blue-500/20'
+                        }`}
+                      >
+                        <Radio className="w-4 h-4" />
+                        <span>{isLiveNow ? 'Control Active Live Stream' : 'Enter Control Room'}</span>
+                      </button>
 
-                  {/* Action Bar */}
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1">
                       {isLiveNow ? (
                         <button
                           onClick={() => handleEndClass(c.id)}
-                          className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-1 cursor-pointer"
+                          className="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-rose-400 font-bold text-xs flex items-center gap-1 cursor-pointer transition-all border border-slate-700"
+                          title="End Live Stream"
                         >
-                          <StopCircle className="w-3.5 h-3.5" />
-                          <span>End Class</span>
+                          <StopCircle className="w-4 h-4" />
+                          <span>End</span>
                         </button>
                       ) : (
                         <button
                           onClick={() => handleStartClass(c.id)}
-                          className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 cursor-pointer"
+                          className="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 cursor-pointer transition-all shadow-md shadow-emerald-500/20"
+                          title="Start Live Stream"
                         >
-                          <Play className="w-3.5 h-3.5" />
-                          <span>Start Live</span>
+                          <Play className="w-4 h-4 fill-current" />
+                          <span>Start</span>
                         </button>
                       )}
-
-                      <button
-                        onClick={() => handleEnterControlPanel(c)}
-                        className="px-3 py-1.5 rounded-xl bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 font-bold text-xs flex items-center gap-1 cursor-pointer"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        <span>Enter Control Panel</span>
-                      </button>
                     </div>
 
-                    <div className="flex items-center gap-1">
+                    {/* Secondary Utilities & Actions */}
+                    <div className="flex items-center justify-between gap-1 pt-1">
                       <button
                         onClick={() => handleOpenAttendance(c)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-colors cursor-pointer"
-                        title="View Attendance & Reports"
+                        className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-sky-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                        title="View Attendance Records"
                       >
-                        <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                        <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                        <span className="hidden sm:inline">Roster</span>
                       </button>
+
                       <button
                         onClick={() => handleDuplicateClass(c.id)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
-                        title="Duplicate Session"
+                        className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-sky-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                        title="Duplicate Live Class"
                       >
-                        <Copy className="w-4 h-4" />
+                        <Copy className="w-3.5 h-3.5 text-sky-600 dark:text-cyan-400" />
+                        <span className="hidden sm:inline">Clone</span>
                       </button>
+
                       <button
                         onClick={() => openEditModal(c)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-colors cursor-pointer"
+                        className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-sky-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-bold flex items-center gap-1 cursor-pointer"
                         title="Edit Session"
                       >
-                        <Edit className="w-4 h-4" />
+                        <Edit className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                        <span className="hidden sm:inline">Edit</span>
                       </button>
+
                       <button
                         onClick={() => handleDeleteClass(c.id, c.title)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                        className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 border border-rose-200 dark:border-rose-900 text-rose-600 dark:text-rose-400 text-[10px] font-bold flex items-center gap-1 cursor-pointer"
                         title="Delete Session"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Delete</span>
                       </button>
                     </div>
                   </div>
@@ -740,21 +748,21 @@ export const AdminLiveClassroom: React.FC = () => {
 
       {/* CREATE / EDIT LIVE CLASS MODAL */}
       {isCreateModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-8 max-h-[90vh] overflow-y-auto space-y-6 shadow-2xl font-['Sora'] border border-sky-100 animate-in zoom-in-95">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-3xl w-full p-6 sm:p-8 max-h-[90vh] overflow-y-auto space-y-6 shadow-2xl font-['Sora'] border border-sky-100 dark:border-slate-800 animate-in zoom-in-95 text-slate-800 dark:text-slate-100">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-sky-50 text-sky-600 border border-sky-200">
+                <div className="p-2 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-cyan-400 border border-sky-200 dark:border-sky-800">
                   <Video className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-heading font-extrabold text-lg text-slate-900">
+                  <h3 className="font-heading font-extrabold text-lg text-slate-900 dark:text-white">
                     {editingClass ? 'Edit Live Classroom Session' : 'Create & Publish Live Session'}
                   </h3>
-                  <p className="text-xs text-slate-500 font-medium">Configure meeting provider, instructor assignment & features</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Configure meeting provider, instructor assignment & features</p>
                 </div>
               </div>
-              <button onClick={() => setIsCreateModalOpen(false)} className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100">
+              <button onClick={() => setIsCreateModalOpen(false)} className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -762,19 +770,19 @@ export const AdminLiveClassroom: React.FC = () => {
             <form onSubmit={handleSaveClass} className="space-y-5 text-xs font-medium">
               
               {/* Linked Curriculum Selection */}
-              <div className="p-4 bg-sky-50/50 border border-sky-200/80 rounded-2xl space-y-3">
-                <h4 className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
-                  <Layers className="w-4 h-4 text-sky-600" />
+              <div className="p-4 bg-sky-50/50 dark:bg-slate-950/70 border border-sky-200/80 dark:border-slate-800 rounded-2xl space-y-3">
+                <h4 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 text-xs">
+                  <Layers className="w-4 h-4 text-sky-600 dark:text-cyan-400" />
                   <span>Linked Course Curriculum & Instructor</span>
                 </h4>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-slate-700 font-bold mb-1">Target Course Track</label>
+                    <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Target Course Track</label>
                     <select
                       value={formCourseId}
                       onChange={(e) => setFormCourseId(e.target.value)}
-                      className="w-full bg-white border border-sky-200 rounded-xl p-2.5 text-xs focus:outline-hidden"
+                      className="w-full bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-900 dark:text-white focus:outline-hidden cursor-pointer"
                     >
                       {courses.map((c) => (
                         <option key={c.id} value={c.id}>
@@ -785,11 +793,11 @@ export const AdminLiveClassroom: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-slate-700 font-bold mb-1">Assigned Lead Instructor</label>
+                    <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Assigned Lead Instructor</label>
                     <select
                       value={formInstructorId}
                       onChange={(e) => setFormInstructorId(e.target.value)}
-                      className="w-full bg-white border border-sky-200 rounded-xl p-2.5 text-xs focus:outline-hidden"
+                      className="w-full bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-900 dark:text-white focus:outline-hidden cursor-pointer"
                     >
                       {instructorsList.map((inst) => (
                         <option key={inst.id} value={inst.id}>
@@ -802,11 +810,11 @@ export const AdminLiveClassroom: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-slate-700 font-bold mb-1">Module</label>
+                    <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Module</label>
                     <select
                       value={formModuleId}
                       onChange={(e) => setFormModuleId(e.target.value)}
-                      className="w-full bg-white border border-sky-200 rounded-xl p-2.5 text-xs focus:outline-hidden"
+                      className="w-full bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-900 dark:text-white focus:outline-hidden cursor-pointer"
                     >
                       <option value="">Select Module...</option>
                       {availableModules.map((m) => (
@@ -818,11 +826,11 @@ export const AdminLiveClassroom: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-slate-700 font-bold mb-1">Lesson Topic</label>
+                    <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Lesson Topic</label>
                     <select
                       value={formLessonId}
                       onChange={(e) => setFormLessonId(e.target.value)}
-                      className="w-full bg-white border border-sky-200 rounded-xl p-2.5 text-xs focus:outline-hidden"
+                      className="w-full bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-900 dark:text-white focus:outline-hidden cursor-pointer"
                     >
                       <option value="">Select Lesson...</option>
                       {availableLessons.map((l) => (
@@ -838,25 +846,25 @@ export const AdminLiveClassroom: React.FC = () => {
               {/* Title & Description */}
               <div className="space-y-3">
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">Session Title</label>
+                  <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Session Title</label>
                   <input
                     type="text"
                     required
                     value={formTitle}
                     onChange={(e) => setFormTitle(e.target.value)}
                     placeholder="e.g. Linux Kernel Monolithic Architecture & Memory Layout"
-                    className="w-full bg-slate-50 border border-sky-200 rounded-xl p-2.5 text-xs focus:outline-hidden font-semibold"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-900 dark:text-white focus:outline-hidden font-semibold"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">Description & Learning Objectives</label>
+                  <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Description & Learning Objectives</label>
                   <textarea
                     rows={3}
                     value={formDescription}
                     onChange={(e) => setFormDescription(e.target.value)}
                     placeholder="Provide overview of topics to be covered during live interactive stream..."
-                    className="w-full bg-slate-50 border border-sky-200 rounded-xl p-2.5 text-xs focus:outline-hidden"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-900 dark:text-white focus:outline-hidden"
                   />
                 </div>
               </div>
@@ -864,35 +872,35 @@ export const AdminLiveClassroom: React.FC = () => {
               {/* Timing & Provider Settings */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">Session Date</label>
+                  <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Session Date</label>
                   <input
                     type="date"
                     required
                     value={formDate}
                     onChange={(e) => setFormDate(e.target.value)}
-                    className="w-full bg-slate-50 border border-sky-200 rounded-xl p-2.5 text-xs focus:outline-hidden"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-900 dark:text-white focus:outline-hidden"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">Start Time</label>
+                  <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Start Time</label>
                   <input
                     type="time"
                     required
                     value={formStartTime}
                     onChange={(e) => setFormStartTime(e.target.value)}
-                    className="w-full bg-slate-50 border border-sky-200 rounded-xl p-2.5 text-xs focus:outline-hidden"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-900 dark:text-white focus:outline-hidden"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">End Time</label>
+                  <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">End Time</label>
                   <input
                     type="time"
                     required
                     value={formEndTime}
                     onChange={(e) => setFormEndTime(e.target.value)}
-                    className="w-full bg-slate-50 border border-sky-200 rounded-xl p-2.5 text-xs focus:outline-hidden"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-900 dark:text-white focus:outline-hidden"
                   />
                 </div>
               </div>
@@ -900,11 +908,11 @@ export const AdminLiveClassroom: React.FC = () => {
               {/* Provider & Meeting URL / YouTube Video ID */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">Live Broadcast Provider</label>
+                  <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Live Broadcast Provider</label>
                   <select
                     value={formProvider}
                     onChange={(e) => setFormProvider(e.target.value as any)}
-                    className="w-full bg-slate-50 border border-sky-200 rounded-xl p-2.5 text-xs focus:outline-hidden font-semibold"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-900 dark:text-white focus:outline-hidden font-semibold cursor-pointer"
                   >
                     <option value="youtube">YouTube Live Stream (Official Player)</option>
                     <option value="kaizenq">KaizenQ Live Classroom (Native Private WebRTC)</option>
@@ -915,15 +923,15 @@ export const AdminLiveClassroom: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">
-                    YouTube Video ID / Live URL <span className="text-sky-600 font-normal">(e.g. bMknfKXIFA8 or full URL)</span>
+                  <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">
+                    YouTube Video ID / Live URL <span className="text-sky-600 dark:text-cyan-400 font-normal">(e.g. bMknfKXIFA8 or full URL)</span>
                   </label>
                   <input
                     type="text"
                     value={formYoutubeVideoId}
                     onChange={(e) => setFormYoutubeVideoId(e.target.value)}
                     placeholder="e.g. bMknfKXIFA8 or https://youtube.com/watch?v=..."
-                    className="w-full bg-slate-50 border border-sky-200 rounded-xl p-2.5 text-xs focus:outline-hidden font-mono"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-900 dark:text-white focus:outline-hidden font-mono"
                   />
                 </div>
               </div>
@@ -931,21 +939,21 @@ export const AdminLiveClassroom: React.FC = () => {
               {/* Participants & Status */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">Max Participants</label>
+                  <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Max Participants</label>
                   <input
                     type="number"
                     value={formMaxParticipants}
                     onChange={(e) => setFormMaxParticipants(Number(e.target.value))}
-                    className="w-full bg-slate-50 border border-sky-200 rounded-xl p-2.5 text-xs focus:outline-hidden"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-900 dark:text-white focus:outline-hidden"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">Difficulty Level</label>
+                  <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Difficulty Level</label>
                   <select
                     value={formDifficulty}
                     onChange={(e) => setFormDifficulty(e.target.value as any)}
-                    className="w-full bg-slate-50 border border-sky-200 rounded-xl p-2.5 text-xs focus:outline-hidden"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-900 dark:text-white focus:outline-hidden cursor-pointer"
                   >
                     <option value="Beginner">Beginner</option>
                     <option value="Intermediate">Intermediate</option>
@@ -954,11 +962,11 @@ export const AdminLiveClassroom: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">Publication Status</label>
+                  <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Publication Status</label>
                   <select
                     value={formStatus}
                     onChange={(e) => setFormStatus(e.target.value as any)}
-                    className="w-full bg-slate-50 border border-sky-200 rounded-xl p-2.5 text-xs focus:outline-hidden font-bold"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-900 dark:text-white focus:outline-hidden font-bold cursor-pointer"
                   >
                     <option value="Scheduled">Scheduled (Published)</option>
                     <option value="Live">🔴 Live Now</option>
@@ -970,8 +978,8 @@ export const AdminLiveClassroom: React.FC = () => {
               </div>
 
               {/* Feature Toggles */}
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2">Interactive Classroom Features</label>
+              <div className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2 text-slate-800 dark:text-slate-200">
+                <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-2">Interactive Classroom Features</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   <label className="flex items-center gap-2 cursor-pointer text-xs">
                     <input type="checkbox" checked={isRecordingEnabled} onChange={(e) => setIsRecordingEnabled(e.target.checked)} className="rounded text-sky-600" />
@@ -1000,8 +1008,8 @@ export const AdminLiveClassroom: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
-                <button type="button" onClick={() => setIsCreateModalOpen(false)} className="px-5 py-2.5 rounded-xl bg-slate-100 text-slate-600 font-bold hover:bg-slate-200 cursor-pointer">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button type="button" onClick={() => setIsCreateModalOpen(false)} className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer">
                   Cancel
                 </button>
                 <button type="submit" className="btn-blue-primary text-xs py-2.5 px-6 font-bold cursor-pointer shadow-lg shadow-sky-500/20">
@@ -1016,14 +1024,14 @@ export const AdminLiveClassroom: React.FC = () => {
 
       {/* ATTENDANCE ROSTER DRAWER */}
       {isAttendanceModalOpen && attendanceClass && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex justify-end">
-          <div className="bg-white max-w-xl w-full h-full p-6 shadow-2xl overflow-y-auto space-y-5 font-['Sora'] border-l border-sky-100 animate-in slide-in-from-right duration-300">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50 flex justify-end">
+          <div className="bg-white dark:bg-slate-900 max-w-xl w-full h-full p-6 shadow-2xl overflow-y-auto space-y-5 font-['Sora'] border-l border-sky-100 dark:border-slate-800 animate-in slide-in-from-right duration-300 text-slate-800 dark:text-slate-100">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
-                <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
+                <FileSpreadsheet className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                 <div>
-                  <h3 className="font-heading font-extrabold text-base text-slate-900">Attendance Log Roster</h3>
-                  <p className="text-[11px] text-slate-500 truncate max-w-xs">{attendanceClass.title}</p>
+                  <h3 className="font-heading font-extrabold text-base text-slate-900 dark:text-white">Attendance Log Roster</h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-xs">{attendanceClass.title}</p>
                 </div>
               </div>
               <button
@@ -1031,17 +1039,17 @@ export const AdminLiveClassroom: React.FC = () => {
                   setIsAttendanceModalOpen(false);
                   setAttendanceClass(null);
                 }}
-                className="p-1 rounded-lg hover:bg-slate-100 text-slate-400"
+                className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-700">{attendanceRecords.length} Student Records Logged</span>
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{attendanceRecords.length} Student Records Logged</span>
               <button
                 onClick={() => handleExportAttendance(attendanceClass)}
-                className="px-3.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                className="px-3.5 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
               >
                 <FileSpreadsheet className="w-3.5 h-3.5" />
                 <span>Export CSV</span>
@@ -1049,21 +1057,21 @@ export const AdminLiveClassroom: React.FC = () => {
             </div>
 
             {attendanceRecords.length === 0 ? (
-              <div className="py-12 text-center text-slate-400 text-xs font-medium space-y-1">
-                <Users className="w-8 h-8 mx-auto text-slate-300" />
+              <div className="py-12 text-center text-slate-400 dark:text-slate-500 text-xs font-medium space-y-1">
+                <Users className="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600" />
                 <p>No active attendance logged for this session yet.</p>
               </div>
             ) : (
               <div className="space-y-2">
                 {attendanceRecords.map((r) => (
-                  <div key={r.id} className="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between text-xs font-medium">
+                  <div key={r.id} className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl flex items-center justify-between text-xs font-medium">
                     <div>
-                      <p className="font-bold text-slate-900">{r.studentName}</p>
-                      <p className="text-[10px] text-slate-400 font-mono">{r.studentEmail}</p>
+                      <p className="font-bold text-slate-900 dark:text-white">{r.studentName}</p>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">{r.studentEmail}</p>
                     </div>
                     <div className="text-right">
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold uppercase">{r.status}</span>
-                      <p className="text-[10px] text-slate-400 mt-0.5">{r.durationMinutes} mins active</p>
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold uppercase">{r.status}</span>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">{r.durationMinutes} mins active</p>
                     </div>
                   </div>
                 ))}

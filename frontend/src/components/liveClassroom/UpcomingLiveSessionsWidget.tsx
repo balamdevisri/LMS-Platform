@@ -163,7 +163,7 @@ export const UpcomingLiveSessionsWidget: React.FC = () => {
                 <div className="pt-3 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-between gap-2">
                   <button
                     onClick={() => setSelectedClassModal(c)}
-                    className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 text-slate-700 dark:text-zinc-300 font-bold text-xs cursor-pointer"
+                    className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700 font-bold text-xs cursor-pointer"
                   >
                     View Details
                   </button>
@@ -190,14 +190,14 @@ export const UpcomingLiveSessionsWidget: React.FC = () => {
 
       {/* DETAILS MODAL */}
       {selectedClassModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-zinc-900 rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl font-['Sora'] border border-sky-200 dark:border-zinc-800 animate-in zoom-in-95">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 pb-3">
               <div className="flex items-center gap-2">
-                <Video className="w-5 h-5 text-blue-600" />
+                <Video className="w-5 h-5 text-blue-600 dark:text-cyan-400" />
                 <h3 className="font-heading font-extrabold text-base text-slate-900 dark:text-white">Live Classroom Details</h3>
               </div>
-              <button onClick={() => setSelectedClassModal(null)} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-zinc-800">
+              <button onClick={() => setSelectedClassModal(null)} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-zinc-800 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -206,7 +206,7 @@ export const UpcomingLiveSessionsWidget: React.FC = () => {
               <h4 className="font-bold text-sm text-slate-900 dark:text-white">{selectedClassModal.title}</h4>
               <p className="text-slate-600 dark:text-zinc-400 leading-relaxed font-medium">{selectedClassModal.description}</p>
 
-              <div className="bg-sky-50 dark:bg-zinc-800/80 p-3 rounded-2xl space-y-1.5 text-slate-700 dark:text-zinc-300 font-semibold">
+              <div className="bg-sky-50 dark:bg-zinc-800/80 p-3 rounded-2xl space-y-1.5 text-slate-700 dark:text-zinc-300 font-semibold border border-sky-100 dark:border-zinc-700">
                 <p>Course: <strong>{selectedClassModal.courseName}</strong></p>
                 <p>Instructor: <strong>{selectedClassModal.instructorName}</strong></p>
                 <p>Scheduled: <strong>{new Date(selectedClassModal.startTime).toLocaleString()}</strong></p>
@@ -215,12 +215,12 @@ export const UpcomingLiveSessionsWidget: React.FC = () => {
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-zinc-800">
-              <button onClick={() => setSelectedClassModal(null)} className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 font-bold text-xs cursor-pointer">
+              <button onClick={() => setSelectedClassModal(null)} className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 border border-slate-200 dark:border-zinc-700 text-slate-600 dark:text-zinc-300 font-bold text-xs cursor-pointer">
                 Close
               </button>
               <button
                 onClick={() => navigate(`/live-classroom/room/${selectedClassModal.id}`)}
-                className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md flex items-center gap-1.5 cursor-pointer"
+                className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 dark:bg-cyan-600 dark:hover:bg-cyan-500 text-white font-bold text-xs shadow-md flex items-center gap-1.5 cursor-pointer"
               >
                 <Play className="w-3.5 h-3.5 fill-current" />
                 <span>Enter Session</span>

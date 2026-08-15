@@ -154,8 +154,8 @@ export const StudentLiveClassroomSection: React.FC = () => {
             onClick={() => setActiveFilter('today')}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               activeFilter === 'today'
-                ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-                : 'bg-slate-50 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-sky-50'
+                ? 'bg-blue-600 dark:bg-cyan-600 text-white shadow-md shadow-blue-500/20'
+                : 'bg-slate-50 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-sky-50 dark:hover:bg-zinc-700 border border-slate-200 dark:border-zinc-700'
             }`}
           >
             Today ({todayCount})
@@ -165,8 +165,8 @@ export const StudentLiveClassroomSection: React.FC = () => {
             onClick={() => setActiveFilter('upcoming')}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               activeFilter === 'upcoming'
-                ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-                : 'bg-slate-50 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-sky-50'
+                ? 'bg-blue-600 dark:bg-cyan-600 text-white shadow-md shadow-blue-500/20'
+                : 'bg-slate-50 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-sky-50 dark:hover:bg-zinc-700 border border-slate-200 dark:border-zinc-700'
             }`}
           >
             Upcoming ({upcomingCount})
@@ -176,8 +176,8 @@ export const StudentLiveClassroomSection: React.FC = () => {
             onClick={() => setActiveFilter('completed')}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               activeFilter === 'completed'
-                ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-                : 'bg-slate-50 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-sky-50'
+                ? 'bg-blue-600 dark:bg-cyan-600 text-white shadow-md shadow-blue-500/20'
+                : 'bg-slate-50 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-sky-50 dark:hover:bg-zinc-700 border border-slate-200 dark:border-zinc-700'
             }`}
           >
             Completed ({completedCount})
@@ -187,8 +187,8 @@ export const StudentLiveClassroomSection: React.FC = () => {
             onClick={() => setActiveFilter('missed')}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               activeFilter === 'missed'
-                ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-                : 'bg-slate-50 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-sky-50'
+                ? 'bg-blue-600 dark:bg-cyan-600 text-white shadow-md shadow-blue-500/20'
+                : 'bg-slate-50 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-sky-50 dark:hover:bg-zinc-700 border border-slate-200 dark:border-zinc-700'
             }`}
           >
             Missed ({missedCount})
@@ -293,10 +293,10 @@ export const StudentLiveClassroomSection: React.FC = () => {
                         href={c.notesUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="p-2 rounded-xl bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 text-[10px] font-bold flex items-center gap-1 hover:bg-slate-200"
+                        className="p-2 rounded-xl bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 text-[10px] font-bold flex items-center gap-1 hover:bg-slate-200 dark:hover:bg-zinc-700 border border-slate-200 dark:border-zinc-700"
                         title="Download Lecture Notes"
                       >
-                        <FileText className="w-3.5 h-3.5 text-blue-600" />
+                        <FileText className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400" />
                         <span>Notes</span>
                       </a>
                     )}
@@ -306,10 +306,10 @@ export const StudentLiveClassroomSection: React.FC = () => {
                         href={c.recordingUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 text-[10px] font-bold flex items-center gap-1 border border-purple-200"
+                        className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 text-[10px] font-bold flex items-center gap-1 border border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900/40"
                         title="Watch Session Recording"
                       >
-                        <Video className="w-3.5 h-3.5 text-purple-600" />
+                        <Video className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                         <span>Recording</span>
                       </a>
                     )}
