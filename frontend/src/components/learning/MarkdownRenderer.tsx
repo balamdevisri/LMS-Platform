@@ -212,6 +212,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
   }
 
   const elements: React.ReactNode[] = [];
+  let inInterviewQuestions = false;
 
   let inCodeBlock = false;
   let codeBuffer: string[] = [];
@@ -250,6 +251,23 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
     // Java custom formatting blocks
     if (isJava) {
       const trimmed = line.trim();
+
+      // Heading hashtag cleaning
+      if (trimmed.startsWith('# ') || trimmed.startsWith('## ')) {
+        const cleanHeading = trimmed.replace(/^#+\s*/, '').replace(/\s*#+$/, '').trim();
+        elements.push(
+          <h2
+            key={index}
+            className={`text-2xl sm:text-3xl font-heading font-extrabold mt-8 mb-4 border-b pb-3 flex items-center gap-2.5 ${
+              isNightMode ? 'text-white border-slate-800' : 'text-slate-900 border-sky-100'
+            }`}
+          >
+            <Sparkles className="w-6 h-6 text-cyan-455 shrink-0" />
+            <span>{cleanHeading}</span>
+          </h2>
+        );
+        return;
+      }
 
       // Markdown Images: ![alt](url)
       const imgRegex = /!\[(.*?)\]\((.*?)\)/;
@@ -328,10 +346,110 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
         return;
       }
 
-      // Interview Questions
-      const qMatch = trimmed.match(/^\s*Q(\d+)\.?\s+(.+)$/i) || trimmed.match(/^\s*(\d+)\.\s+([A-Z].*\?)\s*$/);
+      // Interview Questions heading
+      if (trimmed.toLowerCase().includes('interview questions')) {
+        inInterviewQuestions = true;
+        const cleanHeading = trimmed.replace(/^🎯\s*/, '').trim();
+        elements.push(
+          <h2
+            key={index}
+            className={`text-2xl sm:text-3xl font-heading font-extrabold mt-8 mb-4 border-b pb-3 flex items-center gap-2.5 ${
+              isNightMode ? 'text-white border-slate-800' : 'text-slate-900 border-sky-100'
+            }`}
+          >
+            <Sparkles className="w-6 h-6 text-cyan-450 shrink-0" />
+            <span>{cleanHeading}</span>
+          </h2>
+        );
+        return;
+      }
+
+      // Module headings
+      if (trimmed.startsWith('Module ') && (trimmed.includes('—') || trimmed.includes(':') || trimmed.includes('-'))) {
+        inInterviewQuestions = false;
+        elements.push(
+          <h2
+            key={index}
+            className={`text-2xl sm:text-3xl font-heading font-extrabold mt-8 mb-4 border-b pb-3 flex items-center gap-2.5 ${
+              isNightMode ? 'text-white border-slate-800' : 'text-slate-900 border-sky-100'
+            }`}
+          >
+            <Sparkles className="w-6 h-6 text-cyan-450 shrink-0" />
+            <span>{trimmed}</span>
+          </h2>
+        );
+        return;
+      }
+
+      // Subheadings (e.g. 1.1)
+      const isSub = /^\s*\d+\.\d+\s+/.test(trimmed);
+      if (isSub) {
+        inInterviewQuestions = false;
+
+        if (trimmed.startsWith('1.26 Important Terms')) {
+          elements.push(
+            <h3
+              key={index}
+              className={`text-lg sm:text-xl font-heading font-bold mt-6 mb-3 flex items-center gap-2 ${
+                isNightMode ? 'text-cyan-300' : 'text-sky-850'
+              }`}
+            >
+              <Terminal className="w-5 h-5 text-cyan-400 shrink-0" />
+              <span>1.26 Important Terms</span>
+            </h3>
+          );
+
+          const terms = [
+            { term: 'Java', meaning: 'Programming language' },
+            { term: 'JVM', meaning: 'Executes Java bytecode' },
+            { term: 'JRE', meaning: 'Runtime environment' },
+            { term: 'JDK', meaning: 'Development kit' },
+            { term: 'Bytecode', meaning: 'Compiled Java code' },
+            { term: 'javac', meaning: 'Java compiler command' },
+            { term: 'java', meaning: 'Command used to launch a Java application' },
+            { term: 'Class', meaning: 'Blueprint/type' },
+            { term: 'Object', meaning: 'Instance of a class' },
+            { term: 'Method', meaning: 'Block of executable behavior' },
+          ];
+
+          terms.forEach((t, tidx) => {
+            elements.push(
+              <li
+                key={`term-${index}-${tidx}`}
+                className={`ml-6 my-2 text-sm sm:text-base flex items-start gap-2 leading-relaxed ${
+                  isNightMode ? 'text-slate-200' : 'text-slate-700'
+                }`}
+              >
+                <CheckCircle2 className={`w-4 h-4 shrink-0 mt-1 ${isNightMode ? 'text-cyan-400' : 'text-sky-500'}`} />
+                <span>
+                  <strong className="font-semibold text-slate-800 dark:text-slate-250 mr-1.5">{t.term}:</strong>
+                  {renderInlineStyles(t.meaning, isNightMode)}
+                </span>
+              </li>
+            );
+          });
+          return;
+        }
+
+        elements.push(
+          <h3
+            key={index}
+            className={`text-lg sm:text-xl font-heading font-bold mt-6 mb-3 flex items-center gap-2 ${
+              isNightMode ? 'text-cyan-300' : 'text-sky-850'
+            }`}
+          >
+            <Terminal className="w-5 h-5 text-cyan-400 shrink-0" />
+            <span>{trimmed}</span>
+          </h3>
+        );
+        return;
+      }
+
+      // Interview Questions (Stateful matching)
+      const qMatch = inInterviewQuestions && (trimmed.match(/^\s*Q?(\d+)\.?\s+(.+)$/i) || trimmed.match(/^\s*(\d+)\.\s+([A-Z].*\?)\s*$/));
       if (qMatch) {
-        const qText = qMatch[2] || qMatch[0];
+        const qNum = qMatch[1];
+        const qText = qMatch[2];
         elements.push(
           <h4 key={`q-${index}`} className={`text-base sm:text-lg font-heading font-bold px-4 py-2.5 rounded-xl border flex items-start gap-2.5 my-4 ${
             isNightMode 
@@ -339,7 +457,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
               : 'bg-sky-50/50 border-sky-100/80 text-sky-900 shadow-sm shadow-sky-100/10'
           }`}>
             <span className="shrink-0 text-cyan-500">❓</span>
-            <span>{qText}</span>
+            <span>Q{qNum}. {qText}</span>
           </h4>
         );
         return;
@@ -359,39 +477,6 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
               </p>
             )}
           </div>
-        );
-        return;
-      }
-
-      // Headings (Module headings)
-      if (trimmed.startsWith('Module ') && (trimmed.includes('—') || trimmed.includes(':') || trimmed.includes('-'))) {
-        elements.push(
-          <h2
-            key={index}
-            className={`text-2xl sm:text-3xl font-heading font-extrabold mt-8 mb-4 border-b pb-3 flex items-center gap-2.5 ${
-              isNightMode ? 'text-white border-slate-800' : 'text-slate-900 border-sky-100'
-            }`}
-          >
-            <Sparkles className="w-6 h-6 text-cyan-450 shrink-0" />
-            <span>{trimmed}</span>
-          </h2>
-        );
-        return;
-      }
-
-      // Subheadings (e.g. 1.1)
-      const isSub = /^\s*\d+\.\d+\s+/.test(trimmed);
-      if (isSub) {
-        elements.push(
-          <h3
-            key={index}
-            className={`text-lg sm:text-xl font-heading font-bold mt-6 mb-3 flex items-center gap-2 ${
-              isNightMode ? 'text-cyan-300' : 'text-sky-850'
-            }`}
-          >
-            <Terminal className="w-5 h-5 text-cyan-400 shrink-0" />
-            <span>{trimmed}</span>
-          </h3>
         );
         return;
       }
