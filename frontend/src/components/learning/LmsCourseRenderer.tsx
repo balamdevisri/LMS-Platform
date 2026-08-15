@@ -1033,7 +1033,7 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
         continue;
       }
 
-      const isHeading = trimmed.startsWith('#') || (trimmed.toLowerCase().includes('module ') && (trimmed.includes(':') || trimmed.includes('—'))) || (isReact && (trimmed.toLowerCase().startsWith('interview questions') || trimmed.toLowerCase().startsWith('practical exercise') || trimmed.toLowerCase().startsWith('practical lab')));
+      const isHeading = trimmed.startsWith('#') || (trimmed.toLowerCase().includes('module ') && (trimmed.includes(':') || trimmed.includes('—'))) || (isReact && (trimmed.toLowerCase().startsWith('interview questions') || trimmed.toLowerCase().startsWith('practical exercise') || trimmed.toLowerCase().startsWith('practical lab') || trimmed.toLowerCase().startsWith('real-time scenario') || trimmed.toLowerCase().includes('common mistakes')));
       const isSubheading = /^\d+\.\d+\s+/.test(trimmed);
       const questionMatch = trimmed.match(/^\s*Q(\d+)\.?\s+(.+)$/i);
       const k8sQuestionMatch = isK8s ? trimmed.match(/^\s*(\d+)\.\s+([A-Z].*\?)\s*$/) : null;
