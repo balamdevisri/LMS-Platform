@@ -214,6 +214,17 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
     let splitHeadingsLines: string[] = [];
     for (const line of lines) {
       const trimmed = line.trim();
+
+      // Split interview question heading and first question
+      if (trimmed.toLowerCase().includes('interview questions') && /\d+\.\s+/.test(trimmed)) {
+        const match = trimmed.match(/^(.*Interview\s+Questions)(?:\s+)?(\d+\.\s+.*)$/i);
+        if (match) {
+          splitHeadingsLines.push(match[1].trim());
+          splitHeadingsLines.push(match[2].trim());
+          continue;
+        }
+      }
+
       if (trimmed.startsWith('1.3 History of Java')) {
         splitHeadingsLines.push('1.3 History of Java');
         splitHeadingsLines.push('Important points:');
@@ -248,17 +259,30 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
       } else if (trimmed.startsWith('1.21 Comments')) {
         splitHeadingsLines.push('1.21 Comments');
         splitHeadingsLines.push('Comments help explain code.');
-      } else if (trimmed === '1.22 Java Naming Conventions ⭐⭐') {
+      } else if (trimmed === '1.22 Java Naming Conventions ⭐⭐' || trimmed === '1.22 Java Naming Conventions') {
         splitHeadingsLines.push('1.22 Java Naming Conventions');
       } else if (trimmed.startsWith('Class → PascalCase')) {
-        splitHeadingsLines.push('Class → PascalCase (Student, BankAccount, EmployeeDetails)');
-        splitHeadingsLines.push('Variable → camelCase (studentName, totalMarks, accountBalance)');
-        splitHeadingsLines.push('Method → camelCase (calculateTotal(), displayDetails(), findMaximum())');
+        splitHeadingsLines.push('Class → PascalCase');
+        splitHeadingsLines.push('StudentBankAccount');
+        splitHeadingsLines.push('EmployeeDetails');
+        splitHeadingsLines.push('studentName → camelCase');
+        splitHeadingsLines.push('totalMarks');
+        splitHeadingsLines.push('accountBalance');
+        splitHeadingsLines.push('calculateTotal() → camelCase');
+        splitHeadingsLines.push('displayDetails()');
+        splitHeadingsLines.push('findMaximum()');
+      } else if (trimmed.startsWith('Constant → UPPER_SNAKE_CASE')) {
+        splitHeadingsLines.push('Constant → UPPER_SNAKE_CASE');
+        splitHeadingsLines.push('MAX_SIZE');
+        splitHeadingsLines.push('PI_VALUE');
       } else if (trimmed === '1.23 Java') {
         splitHeadingsLines.push('1.23 Java Flowchart');
       } else if (trimmed.startsWith('1.26 Important Terms')) {
         splitHeadingsLines.push('1.26 Important Terms');
-        splitHeadingsLines.push('Term Meaning Java Programming language JVM Executes Java bytecode JRE Runtime environment JDK Development kit Bytecode Compiled Java code javac Java compiler command java Command used to launch a Java application Class Blueprint/type Object Instance of a class Method Block of executable behavior');
+        // Do NOT push the duplicated terms list string here
+      } else if (trimmed.startsWith('Term Meaning Java Programming language')) {
+        // Skip the duplicated raw terms paragraph completely since it is handled by the heading block
+        continue;
       } else {
         splitHeadingsLines.push(line);
       }
