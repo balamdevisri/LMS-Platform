@@ -370,8 +370,12 @@ const TopicVisual: React.FC<{ topicKey: string; isNightMode: boolean }> = ({ top
   }
 };
 
-const getVisualKey = (title: string, desc: string, isK8s: boolean, isGit?: boolean): string => {
+const getVisualKey = (title: string, desc: string, isK8s: boolean, isGit?: boolean, isReact?: boolean): string => {
   const searchStr = `${title} ${desc}`.toLowerCase();
+
+  if (isReact) {
+    return 'Default';
+  }
 
   if (isGit) {
     if (searchStr.includes('github') || searchStr.includes('remote')) {
@@ -432,22 +436,65 @@ const getVisualKey = (title: string, desc: string, isK8s: boolean, isGit?: boole
 // 🔍 FLOWCHART & TABLE & QUESTION RENDERERS
 // ---------------------------------------------------------------------
 const FlowchartRenderer: React.FC<{ lines: string[]; isNightMode: boolean }> = ({ lines, isNightMode }) => {
-  const blocks = lines
-    .map(line => line.replace(/[↓|→|↙|↘|┌┐└┘├┤┬┴┼│─]+/g, '').trim())
-    .filter(Boolean);
+  // If it contains branching tree characters, preserve the layout inside a monospace block to display the 2D layout correctly
+  const hasBranching = lines.some(l => l.includes('┌') || l.includes('┬') || l.includes('┼') || l.includes('┐') || l.includes('├') || l.includes('┤') || l.includes('└') || l.includes('┘'));
+  
+  if (hasBranching) {
+    return (
+      <pre className={`p-4 rounded-2xl border overflow-x-auto font-mono text-xs leading-relaxed my-4 ${
+        isNightMode 
+          ? 'bg-slate-950 border-slate-800 text-cyan-300' 
+          : 'bg-sky-50/30 border-sky-100 text-sky-900'
+      }`}>
+        {lines.join('\n')}
+      </pre>
+    );
+  }
 
-  if (blocks.length === 0) return null;
+  const blocks: string[] = [];
+  let currentBlockParts: string[] = [];
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed === '↓' || trimmed === '▼' || trimmed === '→') {
+      if (currentBlockParts.length > 0) {
+        blocks.push(currentBlockParts.join(' ').replace(/\s+/g, ' '));
+        currentBlockParts = [];
+      }
+      continue;
+    }
+    
+    if (/[│▼↓→]+/.test(trimmed)) {
+      if (currentBlockParts.length > 0) {
+        blocks.push(currentBlockParts.join(' ').replace(/\s+/g, ' '));
+        currentBlockParts = [];
+      }
+      const parts = trimmed.split(/[│▼↓→]+/).map(p => p.trim()).filter(Boolean);
+      blocks.push(...parts);
+      continue;
+    }
+
+    currentBlockParts.push(trimmed);
+  }
+
+  if (currentBlockParts.length > 0) {
+    blocks.push(currentBlockParts.join(' ').replace(/\s+/g, ' '));
+  }
+
+  const finalBlocks = blocks.filter(Boolean);
+
+  if (finalBlocks.length === 0) return null;
 
   return (
     <div className="flex flex-col items-center gap-2 my-6">
-      {blocks.map((block, idx) => (
+      {finalBlocks.map((block, idx) => (
         <React.Fragment key={idx}>
           <div className={`px-5 py-3 rounded-2xl border text-sm font-semibold font-mono tracking-wide ${
-            isNightMode ? 'bg-slate-900 border-slate-800 text-cyan-300' : 'bg-sky-50 border-sky-100 text-sky-800'
-          } shadow-sm max-w-xs text-center`}>
+            isNightMode ? 'bg-slate-900 border-slate-800 text-cyan-300' : 'bg-sky-50 border-sky-100 text-sky-850'
+          } shadow-sm max-w-md text-center`}>
             {block}
           </div>
-          {idx < blocks.length - 1 && (
+          {idx < finalBlocks.length - 1 && (
             <div className={`text-xl ${isNightMode ? 'text-cyan-400' : 'text-sky-500'} font-bold`}>↓</div>
           )}
         </React.Fragment>
@@ -495,7 +542,44 @@ const TableRenderer: React.FC<{ lines: string[]; isNightMode: boolean }> = ({ li
   );
 };
 
-const QuestionCard: React.FC<{ question: string; answer: string[]; isNightMode: boolean; isK8s: boolean; isGit?: boolean }> = ({ question, answer, isNightMode, isK8s, isGit = false }) => {
+const QuestionCard: React.FC<{ question: string; answer: string[]; isNightMode: boolean; isK8s: boolean; isGit?: boolean; isReact?: boolean }> = ({ question, answer, isNightMode, isK8s, isGit = false, isReact = false }) => {
+  if (isReact) {
+    const fullAnswerText = answer
+      .map(ans => ans.trim())
+      .filter(Boolean)
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .replace(/```(?:bash|sh|cmd|yaml|json|python|js|jsx)?/g, '')
+      .replace(/^answer:\s*/i, '')
+      .trim();
+
+    return (
+      <div className="my-6 space-y-4">
+        {/* Bold/highlighted Question Heading */}
+        <h4 className={`text-base sm:text-lg font-heading font-bold px-4 py-2.5 rounded-xl border flex items-start gap-2.5 ${
+          isNightMode 
+            ? 'bg-slate-900/80 border-slate-800 text-cyan-300 shadow-sm shadow-cyan-950/20' 
+            : 'bg-sky-50/50 border-sky-100/80 text-sky-900 shadow-sm shadow-sky-100/10'
+        }`}>
+          <span className="shrink-0 text-cyan-500">❓</span>
+          <span>{question}</span>
+        </h4>
+        
+        {/* Question and Answer on separate lines */}
+        <div className={`pl-4 text-xs sm:text-sm leading-relaxed ${
+          isNightMode ? 'text-slate-300' : 'text-slate-700'
+        } space-y-2`}>
+          <div className="font-bold text-slate-800 dark:text-slate-200 mt-2 text-sm">
+            Answer:
+          </div>
+          <p className="my-1.5 font-normal leading-relaxed">
+            {formatInlineStyles(fullAnswerText, isNightMode)}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (isGit) {
     return (
       <div className="my-6 space-y-3">
@@ -514,7 +598,7 @@ const QuestionCard: React.FC<{ question: string; answer: string[]; isNightMode: 
             let trimmedAns = ans.trim();
             
             // Remove visible ```bash / ``` markers from answers
-            trimmedAns = trimmedAns.replace(/```(?:bash|sh|cmd|yaml|json|python)?/g, '').trim();
+            trimmedAns = trimmedAns.replace(/```(?:bash|sh|cmd|yaml|json|python|js|jsx)?/g, '').trim();
             if (!trimmedAns) return null;
             
             // Split/render "Answer: [text]" to put the answer text on a separate line
@@ -540,10 +624,10 @@ const QuestionCard: React.FC<{ question: string; answer: string[]; isNightMode: 
               );
             }
             
-            if (isCodeLine(trimmedAns, isK8s, isGit)) {
+            if (isCodeLine(trimmedAns, isK8s, isGit, isReact)) {
               return (
                 <div key={idx} className="my-2">
-                  <CodeBlock code={trimmedAns} language="bash" />
+                  <CodeBlock code={trimmedAns} language={isReact ? 'jsx' : 'bash'} />
                 </div>
               );
             }
@@ -639,9 +723,28 @@ const QuestionCard: React.FC<{ question: string; answer: string[]; isNightMode: 
 // ---------------------------------------------------------------------
 // 📦 HELPER FUNCTIONS FOR PYTHON & KUBERNETES PARSING
 // ---------------------------------------------------------------------
-function isCodeLine(line: string, isK8s: boolean, isGit?: boolean): boolean {
+function isCodeLine(line: string, isK8s: boolean, isGit?: boolean, isReact?: boolean): boolean {
   const trimmed = line.trim();
   if (!trimmed) return false;
+
+  if (isReact) {
+    const reactPatterns = [
+      /^\s*(import|export|const|let|var|function|return|class|extends)\b/,
+      /^\s*<\/?([A-Za-z][A-Za-z0-9]*|[a-z]+)\b/,
+      /^\s*(console\.log|useState|useEffect|useContext|useRef|useMemo|useCallback)\b/,
+      /^\s*(npm\s+(install|run|create|init)|npx\s+|node\s+-v|npm\s+-v|cd\s+react-app)\b/,
+      /^\s*onClick\s*=\s*/,
+      /^[\[\{}\(\)]\s*.*$/, // Matches starting with braces/brackets
+      /^\s*props\./,
+      /^\s*<\/?\s*>?\s*$/,
+      /^\s*\b(ReactDOM|React)\b/,
+      /^\s*<\/?[a-zA-Z0-9_\s"'={}.]+>?\s*$/, // XML/JSX tags
+      /^[a-zA-Z0-9_\$]+\s*(\+|-|\*|\/|%|\*\*|\/\/)?=\s*.+/, // Assignments like x = y
+      /^\s*(?:{|\s*\}\s*|\s*\);\s*|\s*\}\s*\);\s*)$/, // lonely closing brackets/braces
+      /^\s*(react-app\/|├──\s*node_modules|└──\s*src\/)/
+    ];
+    return reactPatterns.some(regex => regex.test(line));
+  }
   
   if (isGit) {
     const gitPatterns = [
@@ -728,6 +831,7 @@ function formatInlineStyles(text: string, isNightMode: boolean): React.ReactNode
 export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, isNightMode = false, courseId }) => {
   const isK8s = courseId === 'kubernetes-complete-course-beginner-to-advanced';
   const isGit = courseId === 'git-github-mastery-course-id' || courseId === 'git-github-mastery';
+  const isReact = (courseId || '').toLowerCase().includes('react');
 
   const blocks = useMemo(() => {
     let cleanContent = content
@@ -735,7 +839,7 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
       .trim();
 
     // Dynamically heal Python Module 1 to skip Page 5 Table of Contents (TOC) index page
-    if (!isK8s && !isGit && cleanContent.includes('Module') && cleanContent.includes('15:')) {
+    if (!isK8s && !isGit && !isReact && cleanContent.includes('Module') && cleanContent.includes('15:')) {
       const headingMatch = cleanContent.match(/(🐍\s*)?Module\s+1\s*:/i);
       if (headingMatch && headingMatch.index !== undefined) {
         cleanContent = cleanContent.slice(headingMatch.index);
@@ -744,7 +848,7 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
 
     let lines = cleanContent.split('\n');
 
-    if (isGit) {
+    if (isGit || isReact) {
       // Pass 1: Merge split question lines (e.g., questions with multiple parts/lines before Answer:)
       let mergedLines: string[] = [];
       for (let i = 0; i < lines.length; i++) {
@@ -896,7 +1000,7 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
             flushTempText();
             continue;
           }
-          const isCode = isCodeLine(trimmedLine, isK8s, isGit);
+          const isCode = isCodeLine(trimmedLine, isK8s, isGit, isReact);
           const isBullet = trimmedLine.startsWith('●') || trimmedLine.startsWith('•') || trimmedLine.startsWith('-') || trimmedLine.startsWith('*');
           
           if (isCode || isBullet) {
@@ -970,7 +1074,7 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
             }
           }
 
-          const isNextCode = nextNonEmptyLine && isCodeLine(nextNonEmptyLine, isK8s, isGit);
+          const isNextCode = nextNonEmptyLine && isCodeLine(nextNonEmptyLine, isK8s, isGit, isReact);
           
           if (currentCodeLines.length > 0 && isNextCode) {
             currentCodeLines.push('');
@@ -1009,15 +1113,22 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
         continue;
       }
 
-      const isHeading = trimmed.startsWith('#') || (trimmed.toLowerCase().includes('module ') && (trimmed.includes(':') || trimmed.includes('—')));
+      const isHeading = trimmed.startsWith('#') || (trimmed.toLowerCase().includes('module ') && (trimmed.includes(':') || trimmed.includes('—'))) || (isReact && (trimmed.toLowerCase().startsWith('interview questions') || trimmed.toLowerCase().startsWith('practical exercise') || trimmed.toLowerCase().startsWith('practical lab') || trimmed.toLowerCase().startsWith('real-time scenario') || trimmed.toLowerCase().includes('common mistakes')));
       const isSubheading = /^\d+\.\d+\s+/.test(trimmed);
       const questionMatch = trimmed.match(/^\s*Q(\d+)\.?\s+(.+)$/i);
       const k8sQuestionMatch = isK8s ? trimmed.match(/^\s*(\d+)\.\s+([A-Z].*\?)\s*$/) : null;
 
-      // Git-specific interview question lookahead: match a numeric line if followed by "Answer"
+      const isBullet = trimmed.startsWith('●') || trimmed.startsWith('•') || trimmed.startsWith('- ') || trimmed.startsWith('* ') || trimmed.startsWith('❌') || trimmed.includes('●') || trimmed.includes('•');
+
+      if (isReact && currentFlowchartLines.length > 0 && trimmed !== '' && !isHeading && !isBullet) {
+        currentFlowchartLines.push(line);
+        continue;
+      }
+
+      // Git/React-specific interview question lookahead: match a numeric line if followed by "Answer"
       let isGitQuestion = false;
       let gitQMatch: RegExpMatchArray | null = null;
-      if (isGit && /^\s*(\d+)\.\s+/.test(trimmed)) {
+      if ((isGit || isReact) && /^\s*(\d+)\.\s+/.test(trimmed)) {
         let hasAnswerLookahead = false;
         for (let look = i + 1; look <= Math.min(i + 3, lines.length - 1); look++) {
           if (lines[look].trim().toLowerCase().startsWith('answer')) {
@@ -1032,10 +1143,10 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
       }
 
       // Flush paragraph blocks for numeric list items and lab tasks to render them on separate lines
-      const isGitOrDbmsOrK8s = isGit || isK8s || courseId === 'database-management-system' || courseId === 'c-programming-course-id';
-      const isNumericList = isGit ? /^\s*\d+\.\s+/.test(trimmed) : (isGitOrDbmsOrK8s && /^\s*\d+\.\s+[A-Z\u00C0-\u00FF]/.test(trimmed));
+      const isGitOrDbmsOrK8s = isGit || isK8s || isReact || courseId === 'database-management-system' || courseId === 'c-programming-course-id';
+      const isNumericList = (isGit || isReact) ? /^\s*\d+\.\s+/.test(trimmed) : (isGitOrDbmsOrK8s && /^\s*\d+\.\s+[A-Z\u00C0-\u00FF]/.test(trimmed));
       const isTaskLine = isGitOrDbmsOrK8s && /^\s*(Task\s+\d+|Scenario\s+\d+|Problem\s+\d+|Program\s+\d+|Step\s+\d+|Question\s+\d+|Q\d+)\b/i.test(trimmed);
-      const isMistakeLine = isGit && trimmed.startsWith('❌');
+      const isMistakeLine = (isGit || isReact) && trimmed.startsWith('❌');
 
       if (isGitOrDbmsOrK8s && (isNumericList || isTaskLine || isMistakeLine) && !isGitQuestion) {
         flushAllAccumulators();
@@ -1077,11 +1188,11 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
       }
 
       // Flowchart detection
-      if (/↓|→|↙|↘/.test(trimmed)) {
+      if (/↓|→|↙|↘/.test(trimmed) || (isReact && (/[▼│┌┐─┼]/.test(trimmed) || trimmed.toLowerCase().startsWith('step')))) {
         flushText();
         flushCodeBlock();
         flushTableBlock();
-        currentFlowchartLines.push(trimmed);
+        currentFlowchartLines.push(line); // Push raw line to preserve spaces
         continue;
       }
 
@@ -1096,7 +1207,15 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
 
       // Code detection
       const inlineCodeStatements = splitInlineCodeStatements(trimmed, isK8s);
-      if (isCodeLine(trimmed, isK8s, isGit) || inlineCodeStatements.length > 1) {
+      // Example Line Detection
+      const isExampleLine = (isGit || isReact) && (trimmed.toLowerCase().startsWith('example:') || trimmed.toLowerCase().startsWith('real-time example') || trimmed.toLowerCase().startsWith('real-time scenario') || trimmed.toLowerCase().startsWith('real-time example:'));
+      if (isExampleLine) {
+        flushAllAccumulators();
+        parsedBlocks.push({ type: 'example', text: trimmed });
+        continue;
+      }
+
+      if (isCodeLine(trimmed, isK8s, isGit, isReact) || inlineCodeStatements.length > 1) {
         flushText();
         flushFlowchartBlock();
         flushTableBlock();
@@ -1104,17 +1223,18 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
         continue;
       }
 
-      // Bullet points detection (●, •, -, *)
-      if (trimmed.startsWith('●') || trimmed.startsWith('•') || trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+      // Bullet points detection (●, •, -, *, ❌)
+      if (trimmed.startsWith('●') || trimmed.startsWith('•') || trimmed.startsWith('- ') || trimmed.startsWith('* ') || trimmed.startsWith('❌')) {
         flushAllAccumulators();
+        const isCross = trimmed.startsWith('❌');
         const separators = /[●•]/g;
         if (separators.test(trimmed)) {
           const items = trimmed.split(/[●•]/).map(item => item.trim()).filter(Boolean);
           items.forEach(item => {
-            parsedBlocks.push({ type: 'bullet', text: item });
+            parsedBlocks.push({ type: 'bullet', text: item, isCross: false });
           });
         } else {
-          parsedBlocks.push({ type: 'bullet', text: trimmed.replace(/^[-*•●]\s*/, '') });
+          parsedBlocks.push({ type: 'bullet', text: trimmed.replace(/^[-*•●❌]\s*/, ''), isCross });
         }
         continue;
       }
@@ -1123,7 +1243,7 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
         flushAllAccumulators();
         const items = trimmed.split(/[●•]/).map(item => item.trim()).filter(Boolean);
         items.forEach(item => {
-          parsedBlocks.push({ type: 'bullet', text: item });
+          parsedBlocks.push({ type: 'bullet', text: item, isCross: false });
         });
         continue;
       }
@@ -1148,13 +1268,13 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
     flushAllAccumulators();
 
     return parsedBlocks;
-  }, [content, isK8s, isGit]);
+  }, [content, isK8s, isGit, isReact]);
 
   const topicVisualKey = useMemo(() => {
     const heading = blocks.find(b => b.type === 'heading')?.text || '';
     const subheading = blocks.find(b => b.type === 'subheading')?.text || '';
-    return getVisualKey(heading, subheading + ' ' + content.slice(0, 100), isK8s, isGit);
-  }, [blocks, content, isK8s, isGit]);
+    return getVisualKey(heading, subheading + ' ' + content.slice(0, 100), isK8s, isGit, isReact);
+  }, [blocks, content, isK8s, isGit, isReact]);
 
   return (
     <div className="space-y-6">
@@ -1214,7 +1334,7 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
                 <CodeBlock
                   key={idx}
                   code={block.code}
-                  language={block.lang || (isGit ? 'bash' : (isK8s ? 'yaml' : 'python'))}
+                  language={block.lang || (isGit ? 'bash' : (isK8s ? 'yaml' : (isReact ? 'jsx' : 'python')))}
                 />
               );
             case 'flowchart':
@@ -1242,15 +1362,33 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
                   isNightMode={isNightMode}
                   isK8s={isK8s}
                   isGit={isGit}
+                  isReact={isReact}
                 />
               );
             case 'bullet':
+              const isCross = block.isCross;
               return (
                 <div key={idx} className="flex items-start gap-2.5 ml-3 my-2 text-sm sm:text-base leading-relaxed">
-                  <CheckCircle2 className={`w-4 h-4 shrink-0 mt-1 ${isNightMode ? 'text-cyan-400' : 'text-sky-500'}`} />
+                  {isCross ? (
+                    <span className="shrink-0 mt-0.5 text-base">❌</span>
+                  ) : (
+                    <CheckCircle2 className={`w-4 h-4 shrink-0 mt-1 ${isNightMode ? 'text-cyan-400' : 'text-sky-500'}`} />
+                  )}
                   <span className={isNightMode ? 'text-slate-200' : 'text-slate-700'}>
                     {formatInlineStyles(block.text, isNightMode)}
                   </span>
+                </div>
+              );
+            case 'example':
+              return (
+                <div
+                  key={idx}
+                  className={`p-4 rounded-2xl border flex items-start gap-3 my-4 leading-relaxed ${
+                    isNightMode ? 'bg-sky-950/20 border-sky-900/50 text-cyan-200' : 'bg-sky-50/50 border-sky-100 text-sky-850'
+                  }`}
+                >
+                  <Sparkles className="w-5 h-5 shrink-0 mt-0.5 text-cyan-500" />
+                  <span className="text-sm font-medium">{formatInlineStyles(block.text, isNightMode)}</span>
                 </div>
               );
             case 'note':
