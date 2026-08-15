@@ -118,13 +118,13 @@ function cleanMarkdownNewlines(text: string): string {
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isNightMode = false, courseId }) => {
   if (!content) return null;
 
+  const isReactCourse = (courseId || '').toLowerCase().includes('react');
   if (
     courseId === 'python-through-oops-course-id' ||
     courseId === 'kubernetes-complete-course-beginner-to-advanced' ||
     courseId === 'git-github-mastery-course-id' ||
     courseId === 'git-github-mastery' ||
-    courseId === 'react-js-complete-course' ||
-    courseId === 'react-js-complete-course-id'
+    isReactCourse
   ) {
     return <LmsCourseRenderer content={content} isNightMode={isNightMode} courseId={courseId} />;
   }

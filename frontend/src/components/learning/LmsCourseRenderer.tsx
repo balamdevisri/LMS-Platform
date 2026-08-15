@@ -751,7 +751,7 @@ function formatInlineStyles(text: string, isNightMode: boolean): React.ReactNode
 export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, isNightMode = false, courseId }) => {
   const isK8s = courseId === 'kubernetes-complete-course-beginner-to-advanced';
   const isGit = courseId === 'git-github-mastery-course-id' || courseId === 'git-github-mastery';
-  const isReact = courseId === 'react-js-complete-course' || courseId === 'react-js-complete-course-id';
+  const isReact = (courseId || '').toLowerCase().includes('react');
 
   const blocks = useMemo(() => {
     let cleanContent = content
@@ -768,7 +768,7 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
 
     let lines = cleanContent.split('\n');
 
-    if (isGit) {
+    if (isGit || isReact) {
       // Pass 1: Merge split question lines (e.g., questions with multiple parts/lines before Answer:)
       let mergedLines: string[] = [];
       for (let i = 0; i < lines.length; i++) {
@@ -1038,10 +1038,10 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
       const questionMatch = trimmed.match(/^\s*Q(\d+)\.?\s+(.+)$/i);
       const k8sQuestionMatch = isK8s ? trimmed.match(/^\s*(\d+)\.\s+([A-Z].*\?)\s*$/) : null;
 
-      // Git-specific interview question lookahead: match a numeric line if followed by "Answer"
+      // Git/React-specific interview question lookahead: match a numeric line if followed by "Answer"
       let isGitQuestion = false;
       let gitQMatch: RegExpMatchArray | null = null;
-      if (isGit && /^\s*(\d+)\.\s+/.test(trimmed)) {
+      if ((isGit || isReact) && /^\s*(\d+)\.\s+/.test(trimmed)) {
         let hasAnswerLookahead = false;
         for (let look = i + 1; look <= Math.min(i + 3, lines.length - 1); look++) {
           if (lines[look].trim().toLowerCase().startsWith('answer')) {
@@ -1056,10 +1056,10 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
       }
 
       // Flush paragraph blocks for numeric list items and lab tasks to render them on separate lines
-      const isGitOrDbmsOrK8s = isGit || isK8s || courseId === 'database-management-system' || courseId === 'c-programming-course-id';
-      const isNumericList = isGit ? /^\s*\d+\.\s+/.test(trimmed) : (isGitOrDbmsOrK8s && /^\s*\d+\.\s+[A-Z\u00C0-\u00FF]/.test(trimmed));
+      const isGitOrDbmsOrK8s = isGit || isK8s || isReact || courseId === 'database-management-system' || courseId === 'c-programming-course-id';
+      const isNumericList = (isGit || isReact) ? /^\s*\d+\.\s+/.test(trimmed) : (isGitOrDbmsOrK8s && /^\s*\d+\.\s+[A-Z\u00C0-\u00FF]/.test(trimmed));
       const isTaskLine = isGitOrDbmsOrK8s && /^\s*(Task\s+\d+|Scenario\s+\d+|Problem\s+\d+|Program\s+\d+|Step\s+\d+|Question\s+\d+|Q\d+)\b/i.test(trimmed);
-      const isMistakeLine = isGit && trimmed.startsWith('❌');
+      const isMistakeLine = (isGit || isReact) && trimmed.startsWith('❌');
 
       if (isGitOrDbmsOrK8s && (isNumericList || isTaskLine || isMistakeLine) && !isGitQuestion) {
         flushAllAccumulators();
@@ -1136,17 +1136,18 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
         continue;
       }
 
-      // Bullet points detection (●, •, -, *)
-      if (trimmed.startsWith('●') || trimmed.startsWith('•') || trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+      // Bullet points detection (●, •, -, *, ❌)
+      if (trimmed.startsWith('●') || trimmed.startsWith('•') || trimmed.startsWith('- ') || trimmed.startsWith('* ') || trimmed.startsWith('❌')) {
         flushAllAccumulators();
+        const isCross = trimmed.startsWith('❌');
         const separators = /[●•]/g;
         if (separators.test(trimmed)) {
           const items = trimmed.split(/[●•]/).map(item => item.trim()).filter(Boolean);
           items.forEach(item => {
-            parsedBlocks.push({ type: 'bullet', text: item });
+            parsedBlocks.push({ type: 'bullet', text: item, isCross: false });
           });
         } else {
-          parsedBlocks.push({ type: 'bullet', text: trimmed.replace(/^[-*•●]\s*/, '') });
+          parsedBlocks.push({ type: 'bullet', text: trimmed.replace(/^[-*•●❌]\s*/, ''), isCross });
         }
         continue;
       }
@@ -1155,7 +1156,7 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
         flushAllAccumulators();
         const items = trimmed.split(/[●•]/).map(item => item.trim()).filter(Boolean);
         items.forEach(item => {
-          parsedBlocks.push({ type: 'bullet', text: item });
+          parsedBlocks.push({ type: 'bullet', text: item, isCross: false });
         });
         continue;
       }
@@ -1274,12 +1275,18 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
                   isNightMode={isNightMode}
                   isK8s={isK8s}
                   isGit={isGit}
+                  isReact={isReact}
                 />
               );
             case 'bullet':
+              const isCross = block.isCross;
               return (
                 <div key={idx} className="flex items-start gap-2.5 ml-3 my-2 text-sm sm:text-base leading-relaxed">
-                  <CheckCircle2 className={`w-4 h-4 shrink-0 mt-1 ${isNightMode ? 'text-cyan-400' : 'text-sky-500'}`} />
+                  {isCross ? (
+                    <span className="shrink-0 mt-0.5 text-base">❌</span>
+                  ) : (
+                    <CheckCircle2 className={`w-4 h-4 shrink-0 mt-1 ${isNightMode ? 'text-cyan-400' : 'text-sky-500'}`} />
+                  )}
                   <span className={isNightMode ? 'text-slate-200' : 'text-slate-700'}>
                     {formatInlineStyles(block.text, isNightMode)}
                   </span>
