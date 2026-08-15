@@ -186,6 +186,69 @@ const TopicVisual: React.FC<{ topicKey: string; isNightMode: boolean }> = ({ top
         </svg>
       );
 
+    // --- GIT VISUALS ---
+    case 'Git Overview':
+      return (
+        <svg viewBox="0 0 100 40" className="w-full max-h-32 object-contain my-4">
+          <rect x="5" y="5" width="90" height="30" rx="6" fill={fillColor} stroke={strokeColor} strokeWidth="1.5" />
+          <circle cx="20" cy="20" r="4" fill={fillColor} stroke={strokeColor} strokeWidth="1.5" />
+          <line x1="24" y1="20" x2="46" y2="20" stroke={strokeColor} strokeWidth="1.5" />
+          <circle cx="50" cy="20" r="4" fill={accentColor} stroke={strokeColor} strokeWidth="1.5" />
+          <path d="M20 20 C 35 20, 35 10, 50 10" fill="none" stroke={strokeColor} strokeWidth="1.5" />
+          <circle cx="50" cy="10" r="4" fill={fillColor} stroke={strokeColor} strokeWidth="1.5" />
+          <line x1="54" y1="20" x2="76" y2="20" stroke={strokeColor} strokeWidth="1.5" />
+          <circle cx="80" cy="20" r="4" fill={accentColor} stroke={strokeColor} strokeWidth="1.5" />
+          <path d="M50 10 C 65 10, 65 20, 80 20" fill="none" stroke={strokeColor} strokeWidth="1.5" />
+        </svg>
+      );
+    case 'GitHub':
+      return (
+        <svg viewBox="0 0 100 40" className="w-full max-h-32 object-contain my-4">
+          <rect x="5" y="5" width="90" height="30" rx="6" fill={fillColor} stroke={strokeColor} strokeWidth="1.5" />
+          <path d="M30 25 A 8 8 0 0 1 40 15 A 12 12 0 0 1 65 15 A 8 8 0 0 1 75 25 Z" fill={fillColor} stroke={strokeColor} strokeWidth="1.5" />
+          <circle cx="52" cy="22" r="5" fill={accentColor} stroke={strokeColor} strokeWidth="1" />
+          <line x1="52" y1="27" x2="52" y2="33" stroke={strokeColor} strokeWidth="1.5" />
+          <rect x="42" y="31" width="20" height="4" rx="1" fill={fillColor} stroke={strokeColor} strokeWidth="1" />
+        </svg>
+      );
+    case 'Git Branching':
+      return (
+        <svg viewBox="0 0 100 40" className="w-full max-h-32 object-contain my-4">
+          <rect x="5" y="5" width="90" height="30" rx="6" fill={fillColor} stroke={strokeColor} strokeWidth="1.5" />
+          <line x1="15" y1="25" x2="85" y2="25" stroke={strokeColor} strokeWidth="2" strokeLinecap="round" />
+          <circle cx="30" cy="25" r="3.5" fill={fillColor} stroke={strokeColor} strokeWidth="1.5" />
+          <circle cx="70" cy="25" r="3.5" fill={fillColor} stroke={strokeColor} strokeWidth="1.5" />
+          <path d="M30 25 C 45 25, 45 12, 60 12 L 80 12" fill="none" stroke={strokeColor} strokeWidth="1.5" strokeDasharray="3,1" />
+          <circle cx="60" cy="12" r="3.5" fill={accentColor} stroke={strokeColor} strokeWidth="1.5" />
+        </svg>
+      );
+    case 'Git Commits':
+      return (
+        <svg viewBox="0 0 100 40" className="w-full max-h-32 object-contain my-4">
+          <rect x="5" y="5" width="90" height="30" rx="6" fill={fillColor} stroke={strokeColor} strokeWidth="1.5" />
+          <line x1="15" y1="18" x2="85" y2="18" stroke={strokeColor} strokeWidth="1.5" />
+          <circle cx="25" cy="18" r="4" fill={accentColor} stroke={strokeColor} strokeWidth="1.5" />
+          <circle cx="50" cy="18" r="4" fill={fillColor} stroke={strokeColor} strokeWidth="1.5" />
+          <circle cx="75" cy="18" r="4" fill={accentColor} stroke={strokeColor} strokeWidth="1.5" />
+          <text x="25" y="30" textAnchor="middle" fontSize="6" fontFamily="monospace" fill={strokeColor}>C1</text>
+          <text x="50" y="30" textAnchor="middle" fontSize="6" fontFamily="monospace" fill={strokeColor}>C2</text>
+          <text x="75" y="30" textAnchor="middle" fontSize="6" fontFamily="monospace" fill={strokeColor}>C3</text>
+        </svg>
+      );
+    case 'Git Remote':
+      return (
+        <svg viewBox="0 0 100 40" className="w-full max-h-32 object-contain my-4">
+          <rect x="5" y="5" width="90" height="30" rx="6" fill={fillColor} stroke={strokeColor} strokeWidth="1.5" />
+          <rect x="15" y="12" width="22" height="15" rx="2" fill={fillColor} stroke={strokeColor} strokeWidth="1.5" />
+          <line x1="10" y1="27" x2="42" y2="27" stroke={strokeColor} strokeWidth="2" />
+          <path d="M37 20 L63 20" stroke={strokeColor} strokeWidth="1.5" strokeDasharray="2,2" strokeLinecap="round" />
+          <path d="M60 17 L63 20 L60 23" fill="none" stroke={strokeColor} strokeWidth="1.5" />
+          <rect x="63" y="12" width="22" height="15" rx="2" fill={accentColor} stroke={strokeColor} strokeWidth="1.5" />
+          <text x="26" y="21" textAnchor="middle" fontSize="5" fill={strokeColor}>Local</text>
+          <text x="74" y="21" textAnchor="middle" fontSize="5" fill={isNightMode ? '#0f172a' : '#0369a1'}>Remote</text>
+        </svg>
+      );
+
     // --- KUBERNETES VISUALS ---
     case 'Kubernetes Overview':
     case 'Helm':
@@ -307,8 +370,20 @@ const TopicVisual: React.FC<{ topicKey: string; isNightMode: boolean }> = ({ top
   }
 };
 
-const getVisualKey = (title: string, desc: string, isK8s: boolean): string => {
+const getVisualKey = (title: string, desc: string, isK8s: boolean, isGit?: boolean): string => {
   const searchStr = `${title} ${desc}`.toLowerCase();
+
+  if (isGit) {
+    if (searchStr.includes('github') || searchStr.includes('remote')) {
+      if (searchStr.includes('push') || searchStr.includes('pull') || searchStr.includes('clone') || searchStr.includes('fetch')) {
+        return 'Git Remote';
+      }
+      return 'GitHub';
+    }
+    if (searchStr.includes('branch') || searchStr.includes('merge') || searchStr.includes('conflict')) return 'Git Branching';
+    if (searchStr.includes('commit') || searchStr.includes('stage') || searchStr.includes('add') || searchStr.includes('log') || searchStr.includes('init')) return 'Git Commits';
+    return 'Git Overview';
+  }
 
   if (isK8s) {
     if (searchStr.includes('ingress') || searchStr.includes('routing')) return 'Ingress';
@@ -420,7 +495,82 @@ const TableRenderer: React.FC<{ lines: string[]; isNightMode: boolean }> = ({ li
   );
 };
 
-const QuestionCard: React.FC<{ question: string; answer: string[]; isNightMode: boolean; isK8s: boolean }> = ({ question, answer, isNightMode, isK8s }) => {
+const QuestionCard: React.FC<{ question: string; answer: string[]; isNightMode: boolean; isK8s: boolean; isGit?: boolean }> = ({ question, answer, isNightMode, isK8s, isGit = false }) => {
+  if (isGit) {
+    return (
+      <div className="my-6 space-y-3">
+        <h4 className={`text-base sm:text-lg font-heading font-bold px-4 py-2.5 rounded-xl border flex items-start gap-2.5 ${
+          isNightMode 
+            ? 'bg-slate-900/80 border-slate-800 text-cyan-300 shadow-sm shadow-cyan-950/20' 
+            : 'bg-sky-50/50 border-sky-100/80 text-sky-900 shadow-sm shadow-sky-100/10'
+        }`}>
+          <span className="shrink-0 text-cyan-500">❓</span>
+          <span>{question}</span>
+        </h4>
+        <div className={`pl-4 text-xs sm:text-sm leading-relaxed ${
+          isNightMode ? 'text-slate-300' : 'text-slate-700'
+        } space-y-2`}>
+          {answer.map((ans, idx) => {
+            let trimmedAns = ans.trim();
+            
+            // Remove visible ```bash / ``` markers from answers
+            trimmedAns = trimmedAns.replace(/```(?:bash|sh|cmd|yaml|json|python)?/g, '').trim();
+            if (!trimmedAns) return null;
+            
+            // Split/render "Answer: [text]" to put the answer text on a separate line
+            if (trimmedAns.toLowerCase().startsWith('answer:')) {
+              const rest = trimmedAns.slice(7).trim();
+              return (
+                <React.Fragment key={idx}>
+                  <div className="font-semibold text-slate-800 dark:text-slate-200 mt-1">
+                    Answer:
+                  </div>
+                  {rest && (
+                    <p className="my-1.5 font-normal leading-relaxed">
+                      {formatInlineStyles(rest, isNightMode)}
+                    </p>
+                  )}
+                </React.Fragment>
+              );
+            } else if (trimmedAns.toLowerCase() === 'answer:') {
+              return (
+                <div key={idx} className="font-semibold text-slate-800 dark:text-slate-200 mt-1">
+                  Answer:
+                </div>
+              );
+            }
+            
+            if (isCodeLine(trimmedAns, isK8s, isGit)) {
+              return (
+                <div key={idx} className="my-2">
+                  <CodeBlock code={trimmedAns} language="bash" />
+                </div>
+              );
+            }
+            
+            if (trimmedAns.startsWith('●') || trimmedAns.startsWith('•') || trimmedAns.startsWith('-') || trimmedAns.startsWith('*')) {
+              const cleanText = trimmedAns.replace(/^[-*•●]\s*/, '');
+              return (
+                <div key={idx} className="flex items-start gap-2 ml-2 my-1.5">
+                  <CheckCircle2 className={`w-3.5 h-3.5 shrink-0 mt-0.5 ${isNightMode ? 'text-cyan-400' : 'text-sky-500'}`} />
+                  <span>
+                    {formatInlineStyles(cleanText, isNightMode)}
+                  </span>
+                </div>
+              );
+            }
+            
+            return (
+              <p key={idx} className="my-1.5 font-normal leading-relaxed">
+                {formatInlineStyles(trimmedAns, isNightMode)}
+              </p>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`my-5 p-5 rounded-2xl border shadow-sm ${
       isNightMode ? 'bg-slate-900/60 border-slate-800' : 'bg-sky-50/20 border-sky-100/80'
@@ -435,12 +585,28 @@ const QuestionCard: React.FC<{ question: string; answer: string[]; isNightMode: 
         {answer.map((ans, idx) => {
           const trimmedAns = ans.trim();
           if (!trimmedAns) return null;
-          if (trimmedAns.toLowerCase() === 'answer:') return null;
           
-          if (isCodeLine(trimmedAns, isK8s)) {
+          let isInlineAnswer = false;
+          let displayText = ans;
+          
+          if (isGit && trimmedAns.toLowerCase().startsWith('answer:')) {
+            isInlineAnswer = true;
+            displayText = trimmedAns.slice(7).trim();
+          } else if (trimmedAns.toLowerCase() === 'answer:') {
+            if (isGit) {
+              return (
+                <div key={idx} className="font-semibold text-slate-800 dark:text-slate-200 mt-1">
+                  Answer:
+                </div>
+              );
+            }
+            return null;
+          }
+          
+          if (isCodeLine(trimmedAns, isK8s, isGit)) {
             return (
               <div key={idx} className="my-2">
-                <CodeBlock code={trimmedAns} language={isK8s ? 'yaml' : 'python'} />
+                <CodeBlock code={trimmedAns} language={isGit ? 'bash' : (isK8s ? 'yaml' : 'python')} />
               </div>
             );
           }
@@ -450,14 +616,18 @@ const QuestionCard: React.FC<{ question: string; answer: string[]; isNightMode: 
             return (
               <div key={idx} className="flex items-start gap-2 ml-2 my-1.5">
                 <CheckCircle2 className={`w-3.5 h-3.5 shrink-0 mt-0.5 ${isNightMode ? 'text-cyan-400' : 'text-sky-500'}`} />
-                <span>{formatInlineStyles(cleanText, isNightMode)}</span>
+                <span>
+                  {isInlineAnswer && <strong className="font-semibold text-slate-800 dark:text-slate-250 mr-1.5">Answer:</strong>}
+                  {formatInlineStyles(cleanText, isNightMode)}
+                </span>
               </div>
             );
           }
           
           return (
             <p key={idx} className="my-1.5 font-normal leading-relaxed">
-              {formatInlineStyles(ans, isNightMode)}
+              {isInlineAnswer && <strong className="font-semibold text-slate-800 dark:text-slate-250 mr-1.5">Answer:</strong>}
+              {formatInlineStyles(displayText, isNightMode)}
             </p>
           );
         })}
@@ -469,9 +639,26 @@ const QuestionCard: React.FC<{ question: string; answer: string[]; isNightMode: 
 // ---------------------------------------------------------------------
 // 📦 HELPER FUNCTIONS FOR PYTHON & KUBERNETES PARSING
 // ---------------------------------------------------------------------
-function isCodeLine(line: string, isK8s: boolean): boolean {
+function isCodeLine(line: string, isK8s: boolean, isGit?: boolean): boolean {
   const trimmed = line.trim();
   if (!trimmed) return false;
+  
+  if (isGit) {
+    const gitPatterns = [
+      /^\s*(git|mkdir|cd|touch|cat|echo|sudo|apt|dnf|brew|rm|tar|unzip|chmod|chown|docker|kubectl|minikube)\b/,
+      /^\s*(commit\s+[0-9a-f]{6,}|Author:|Date:)/i,
+      /^\s*(On branch|No commits yet|Untracked files:|nothing added to commit|Changes to be committed:|Changes not staged for commit:)/i,
+      /^\s*(Initialized empty Git repository|MyProject\/|\.git\/|objects\/|refs\/|hooks\/|config|HEAD|index|package\.json|index\.html|style\.css|app\.js)\b/,
+      /^\s*[\w\-\.\/]+\s*│\s*▼/,
+      /^\s*[\w\-\.\/]+\s*──────*→/,
+      /^\s*#\s+.+$/,
+      /^\s*(\*?\s*)(main|master|login|payment|authentication|feature\/profile|feature\/cart)\s*$/,
+      /^\s*(host|kubelet|apiserver|kubeconfig|minikube|Client Version)\s*:/i,
+      /^\s*(NAME\s+STATUS\s+ROLES\s+AGE|minikube\s+Ready\s+control-plane)/,
+      /^\s*(Docker version|Client Version:)/i,
+    ];
+    return gitPatterns.some(regex => regex.test(line));
+  }
   
   if (isK8s) {
     const k8sPatterns = [
@@ -540,6 +727,7 @@ function formatInlineStyles(text: string, isNightMode: boolean): React.ReactNode
 // ---------------------------------------------------------------------
 export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, isNightMode = false, courseId }) => {
   const isK8s = courseId === 'kubernetes-complete-course-beginner-to-advanced';
+  const isGit = courseId === 'git-github-mastery-course-id' || courseId === 'git-github-mastery';
 
   const blocks = useMemo(() => {
     let cleanContent = content
@@ -547,16 +735,110 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
       .trim();
 
     // Dynamically heal Python Module 1 to skip Page 5 Table of Contents (TOC) index page
-    if (!isK8s && cleanContent.includes('Module') && cleanContent.includes('15:')) {
+    if (!isK8s && !isGit && cleanContent.includes('Module') && cleanContent.includes('15:')) {
       const headingMatch = cleanContent.match(/(🐍\s*)?Module\s+1\s*:/i);
       if (headingMatch && headingMatch.index !== undefined) {
         cleanContent = cleanContent.slice(headingMatch.index);
       }
     }
 
-    const lines = cleanContent.split('\n');
+    let lines = cleanContent.split('\n');
+
+    if (isGit) {
+      // Pass 1: Merge split question lines (e.g., questions with multiple parts/lines before Answer:)
+      let mergedLines: string[] = [];
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const trimmed = line.trim();
+        if (/^\s*(?:Q\d+\.?\s+|\d+\.\s+)/i.test(trimmed)) {
+          let answerIndex = -1;
+          for (let look = i + 1; look <= Math.min(i + 3, lines.length - 1); look++) {
+            if (lines[look].trim().toLowerCase().startsWith('answer')) {
+              answerIndex = look;
+              break;
+            }
+          }
+          if (answerIndex !== -1) {
+            const questionParts: string[] = [];
+            for (let q = i; q < answerIndex; q++) {
+              questionParts.push(lines[q].trim());
+            }
+            mergedLines.push(questionParts.join(' '));
+            i = answerIndex - 1;
+            continue;
+          }
+        }
+        mergedLines.push(line);
+      }
+      lines = mergedLines;
+
+      // Pass 2: Clean inline/malformed fenced markdown and single-line fence blocks
+      let cleanFenceLines: string[] = [];
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const trimmed = line.trim();
+
+        // 2a. Inline fence: ```bash Git is a distributed version control system ```
+        if (trimmed.startsWith('```') && trimmed.endsWith('```') && trimmed.length > 6) {
+          const cleaned = trimmed.replace(/^```(?:[a-zA-Z0-9_-]+)?\s*/, '').replace(/\s*```$/, '');
+          cleanFenceLines.push(cleaned);
+          continue;
+        }
+
+        // 2b. Single-line fence spanning 3 lines (opening, content, closing)
+        if (trimmed.startsWith('```') && !trimmed.endsWith('```')) {
+          if (i + 2 < lines.length && lines[i + 2].trim() === '```') {
+            const contentLine = lines[i + 1];
+            cleanFenceLines.push(contentLine);
+            i += 2;
+            continue;
+          }
+        }
+
+        cleanFenceLines.push(line);
+      }
+      lines = cleanFenceLines;
+
+      // Pass 3: Split inline bullet sequences with ❌
+      let splitCrossLines: string[] = [];
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed.includes('❌')) {
+          const startsWithCross = trimmed.startsWith('❌');
+          const parts = trimmed.split('❌').map(p => p.trim()).filter(Boolean);
+          if (parts.length > 1) {
+            parts.forEach((part, index) => {
+              if (index === 0 && !startsWithCross) {
+                splitCrossLines.push(part);
+              } else {
+                splitCrossLines.push(`❌ ${part}`);
+              }
+            });
+            continue;
+          }
+        }
+        splitCrossLines.push(line);
+      }
+      lines = splitCrossLines;
+
+      // Pass 4: Convert numbered sequences (e.g. 1. item1 2. item2 3. item3) into separate lines
+      let splitNumLines: string[] = [];
+      for (const line of lines) {
+        if (/\s+\d+\.\s+/.test(line)) {
+          const splitLines = line.replace(/\s+(\d+\.\s+)/g, '\n$1').split('\n');
+          splitNumLines.push(...splitLines);
+        } else {
+          splitNumLines.push(line);
+        }
+      }
+      lines = splitNumLines;
+    }
     const parsedBlocks: any[] = [];
     
+    let inCodeBlock = false;
+    let codeBuffer: string[] = [];
+    let codeLang = 'bash';
+
     let currentCodeLines: string[] = [];
     let currentFlowchartLines: string[] = [];
     let currentTableLines: string[] = [];
@@ -614,7 +896,7 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
             flushTempText();
             continue;
           }
-          const isCode = isCodeLine(trimmedLine, isK8s);
+          const isCode = isCodeLine(trimmedLine, isK8s, isGit);
           const isBullet = trimmedLine.startsWith('●') || trimmedLine.startsWith('•') || trimmedLine.startsWith('-') || trimmedLine.startsWith('*');
           
           if (isCode || isBullet) {
@@ -657,6 +939,24 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
         continue;
       }
 
+      if (trimmed.startsWith('```')) {
+        if (inCodeBlock) {
+          parsedBlocks.push({ type: 'code', code: codeBuffer.join('\n'), lang: codeLang });
+          codeBuffer = [];
+          inCodeBlock = false;
+        } else {
+          flushAllAccumulators();
+          inCodeBlock = true;
+          codeLang = trimmed.replace('```', '').trim() || 'bash';
+        }
+        continue;
+      }
+
+      if (inCodeBlock) {
+        codeBuffer.push(line);
+        continue;
+      }
+
       if (!trimmed) {
         if (currentQuestion) {
           currentAnswerLines.push('');
@@ -670,7 +970,7 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
             }
           }
 
-          const isNextCode = nextNonEmptyLine && isCodeLine(nextNonEmptyLine, isK8s);
+          const isNextCode = nextNonEmptyLine && isCodeLine(nextNonEmptyLine, isK8s, isGit);
           
           if (currentCodeLines.length > 0 && isNextCode) {
             currentCodeLines.push('');
@@ -681,10 +981,14 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
               /^\d+\.\d+\s+/.test(nextNonEmptyLine) ||
               /^\s*Q\d+\.?\s+/.test(nextNonEmptyLine) ||
               (isK8s && /^\s*(\d+)\.\s+([A-Z].*\?)\s*$/.test(nextNonEmptyLine)) ||
+              (isGit && /^\s*(\d+)\.\s+/.test(nextNonEmptyLine)) ||
+              (isGit && /^\s*(Task\s+\d+|Scenario\s+\d+|Problem\s+\d+|Program\s+\d+|Step\s+\d+|Question\s+\d+|Q\d+)\b/i.test(nextNonEmptyLine)) ||
+              (isGit && nextNonEmptyLine.startsWith('❌')) ||
+              nextNonEmptyLine.startsWith('```') ||
               /↓|→|↙|↘/.test(nextNonEmptyLine) ||
               nextNonEmptyLine.includes('|') ||
               (nextNonEmptyLine.includes('│') && nextNonEmptyLine.length > 5) ||
-              isCodeLine(nextNonEmptyLine, isK8s) ||
+              isCodeLine(nextNonEmptyLine, isK8s, isGit) ||
               nextNonEmptyLine.startsWith('●') || nextNonEmptyLine.startsWith('•') || nextNonEmptyLine.startsWith('- ') || nextNonEmptyLine.startsWith('* ') ||
               nextNonEmptyLine.includes('●') || nextNonEmptyLine.includes('•') ||
               nextNonEmptyLine.toLowerCase().startsWith('mistake ') || nextNonEmptyLine.toLowerCase().startsWith('warning:') || nextNonEmptyLine.toLowerCase().startsWith('note:');
@@ -710,11 +1014,40 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
       const questionMatch = trimmed.match(/^\s*Q(\d+)\.?\s+(.+)$/i);
       const k8sQuestionMatch = isK8s ? trimmed.match(/^\s*(\d+)\.\s+([A-Z].*\?)\s*$/) : null;
 
-      if (isHeading || isSubheading || questionMatch || k8sQuestionMatch) {
+      // Git-specific interview question lookahead: match a numeric line if followed by "Answer"
+      let isGitQuestion = false;
+      let gitQMatch: RegExpMatchArray | null = null;
+      if (isGit && /^\s*(\d+)\.\s+/.test(trimmed)) {
+        let hasAnswerLookahead = false;
+        for (let look = i + 1; look <= Math.min(i + 3, lines.length - 1); look++) {
+          if (lines[look].trim().toLowerCase().startsWith('answer')) {
+            hasAnswerLookahead = true;
+            break;
+          }
+        }
+        if (hasAnswerLookahead) {
+          isGitQuestion = true;
+          gitQMatch = trimmed.match(/^\s*(\d+)\.\s+(.+)$/);
+        }
+      }
+
+      // Flush paragraph blocks for numeric list items and lab tasks to render them on separate lines
+      const isGitOrDbmsOrK8s = isGit || isK8s || courseId === 'database-management-system' || courseId === 'c-programming-course-id';
+      const isNumericList = isGit ? /^\s*\d+\.\s+/.test(trimmed) : (isGitOrDbmsOrK8s && /^\s*\d+\.\s+[A-Z\u00C0-\u00FF]/.test(trimmed));
+      const isTaskLine = isGitOrDbmsOrK8s && /^\s*(Task\s+\d+|Scenario\s+\d+|Problem\s+\d+|Program\s+\d+|Step\s+\d+|Question\s+\d+|Q\d+)\b/i.test(trimmed);
+      const isMistakeLine = isGit && trimmed.startsWith('❌');
+
+      if (isGitOrDbmsOrK8s && (isNumericList || isTaskLine || isMistakeLine) && !isGitQuestion) {
+        flushAllAccumulators();
+        parsedBlocks.push({ type: 'text', text: trimmed });
+        continue;
+      }
+
+      if (isHeading || isSubheading || questionMatch || k8sQuestionMatch || isGitQuestion) {
         flushAllAccumulators();
 
         if (isHeading) {
-          const headerText = trimmed.replace(/^#+\s*/, '').trim();
+          const headerText = trimmed.replace(/^#+\s*/, '').replace(/\s*#+$/, '').trim();
           parsedBlocks.push({ type: 'heading', text: headerText, level: trimmed.startsWith('#') ? trimmed.match(/^#+/)?.[0].length || 1 : 1 });
         } else if (isSubheading) {
           parsedBlocks.push({ type: 'subheading', text: trimmed });
@@ -732,6 +1065,8 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
           }
         } else if (k8sQuestionMatch) {
           currentQuestion = `Q${k8sQuestionMatch[1]}. ${k8sQuestionMatch[2].trim()}`;
+        } else if (isGitQuestion && gitQMatch) {
+          currentQuestion = `Q${gitQMatch[1]}. ${gitQMatch[2].trim()}`;
         }
         continue;
       }
@@ -761,7 +1096,7 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
 
       // Code detection
       const inlineCodeStatements = splitInlineCodeStatements(trimmed, isK8s);
-      if (isCodeLine(trimmed, isK8s) || inlineCodeStatements.length > 1) {
+      if (isCodeLine(trimmed, isK8s, isGit) || inlineCodeStatements.length > 1) {
         flushText();
         flushFlowchartBlock();
         flushTableBlock();
@@ -807,16 +1142,19 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
       currentTextLines.push(trimmed);
     }
 
+    if (inCodeBlock && codeBuffer.length > 0) {
+      parsedBlocks.push({ type: 'code', code: codeBuffer.join('\n'), lang: codeLang });
+    }
     flushAllAccumulators();
 
     return parsedBlocks;
-  }, [content, isK8s]);
+  }, [content, isK8s, isGit]);
 
   const topicVisualKey = useMemo(() => {
     const heading = blocks.find(b => b.type === 'heading')?.text || '';
     const subheading = blocks.find(b => b.type === 'subheading')?.text || '';
-    return getVisualKey(heading, subheading + ' ' + content.slice(0, 100), isK8s);
-  }, [blocks, content, isK8s]);
+    return getVisualKey(heading, subheading + ' ' + content.slice(0, 100), isK8s, isGit);
+  }, [blocks, content, isK8s, isGit]);
 
   return (
     <div className="space-y-6">
@@ -835,6 +1173,19 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
         {blocks.map((block, idx) => {
           switch (block.type) {
             case 'heading':
+              const isSubSub = block.level >= 3;
+              if (isSubSub) {
+                return (
+                  <h4
+                    key={idx}
+                    className={`text-base sm:text-lg font-heading font-bold mt-5 mb-2 flex items-center gap-1.5 ${
+                      isNightMode ? 'text-slate-350' : 'text-slate-800'
+                    }`}
+                  >
+                    <span>{block.text}</span>
+                  </h4>
+                );
+              }
               return (
                 <h2
                   key={idx}
@@ -863,7 +1214,7 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
                 <CodeBlock
                   key={idx}
                   code={block.code}
-                  language={isK8s ? 'yaml' : 'python'}
+                  language={block.lang || (isGit ? 'bash' : (isK8s ? 'yaml' : 'python'))}
                 />
               );
             case 'flowchart':
@@ -890,6 +1241,7 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
                   answer={block.answer}
                   isNightMode={isNightMode}
                   isK8s={isK8s}
+                  isGit={isGit}
                 />
               );
             case 'bullet':

@@ -111,3 +111,7 @@ backend/config/google-drive.json
 **/config/google-drive.json
 *.json.secret
 
+# Local nested repository directory
+LMS-Platform/
+
+

@@ -96,7 +96,12 @@ function cleanMarkdownNewlines(text: string): string {
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isNightMode = false, courseId }) => {
   if (!content) return null;
 
-  if (courseId === 'python-through-oops-course-id' || courseId === 'kubernetes-complete-course-beginner-to-advanced') {
+  if (
+    courseId === 'python-through-oops-course-id' ||
+    courseId === 'kubernetes-complete-course-beginner-to-advanced' ||
+    courseId === 'git-github-mastery-course-id' ||
+    courseId === 'git-github-mastery'
+  ) {
     return <LmsCourseRenderer content={content} isNightMode={isNightMode} courseId={courseId} />;
   }
 
