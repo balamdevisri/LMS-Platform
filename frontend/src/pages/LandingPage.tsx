@@ -401,7 +401,7 @@ export const LandingPage: React.FC = () => {
   const pricingPlans = [
     {
       name: 'Starter Pro',
-      price: '19',
+      price: '1499',
       period: 'per month',
       desc: 'Ideal for individual students and self-paced developers.',
       features: [
@@ -415,7 +415,7 @@ export const LandingPage: React.FC = () => {
     },
     {
       name: 'Pro Academy',
-      price: '49',
+      price: '3999',
       period: 'per seat / month',
       desc: 'Built for engineering teams, bootcamps, and academies.',
       features: [
@@ -430,7 +430,7 @@ export const LandingPage: React.FC = () => {
     },
     {
       name: 'Enterprise Organization',
-      price: '99',
+      price: '7999',
       period: 'per seat / month',
       desc: 'For universities and corporate learning organizations.',
       features: [
@@ -1158,7 +1158,7 @@ export const LandingPage: React.FC = () => {
                 <div className="space-y-5">
                   <h3 className="font-heading font-bold text-xl text-slate-900 dark:text-white">{plan.name}</h3>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-xs text-slate-500 dark:text-zinc-400 font-bold">$</span>
+                    <span className="text-xs text-slate-500 dark:text-zinc-400 font-bold">₹</span>
                     <span className="font-heading font-extrabold text-5xl text-slate-900 dark:text-white tracking-tight">{plan.price}</span>
                     <span className="text-xs text-slate-500 dark:text-zinc-400 font-medium ml-1">/{plan.period}</span>
                   </div>

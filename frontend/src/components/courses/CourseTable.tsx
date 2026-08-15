@@ -61,7 +61,7 @@ export const CourseTable: React.FC<CourseTableProps> = ({
               <td className="py-3.5 px-4 capitalize">{course.level.replace('_', ' ')}</td>
 
               <td className="py-3.5 px-4 font-bold text-indigo-400">
-                {course.price === 0 ? 'Free' : `$${course.price.toFixed(2)}`}
+                {course.price === 0 ? 'Free' : `₹${course.price.toFixed(2)}`}
               </td>
 
               <td className="py-3.5 px-4 font-mono">{course.enrollmentCount.toLocaleString()}</td>

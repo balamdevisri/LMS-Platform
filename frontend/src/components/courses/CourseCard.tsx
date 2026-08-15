@@ -108,7 +108,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
             {levelLabel}
           </span>
           <span className={`text-xs font-extrabold ${isFree ? 'text-emerald-600 dark:text-emerald-400' : 'text-indigo-600 dark:text-indigo-400'}`}>
-            {isFree ? 'Free' : `$${course.price.toFixed(2)}`}
+            {isFree ? 'Free' : `₹${course.price.toFixed(2)}`}
           </span>
         </div>
 

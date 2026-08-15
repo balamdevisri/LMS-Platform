@@ -62,7 +62,7 @@ export const CourseList: React.FC<CourseListProps> = ({ courses }) => {
             <div className="text-right">
               <span className="block text-[10px] text-slate-400 uppercase font-semibold">Course Price</span>
               <span className="font-heading font-extrabold text-xl text-indigo-400">
-                {course.price === 0 ? 'Free' : `$${course.price.toFixed(2)}`}
+                {course.price === 0 ? 'Free' : `₹${course.price.toFixed(2)}`}
               </span>
             </div>
 

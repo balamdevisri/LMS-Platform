@@ -390,7 +390,7 @@ export const AdminCourseCreate: React.FC = () => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-300">Price ($ USD, 0 for Free) *</label>
+                <label className="text-xs font-bold text-slate-300">Price (₹ INR, 0 for Free) *</label>
                 <input
                   type="number"
                   step="0.01"

@@ -8,17 +8,17 @@ export const SubscriptionSettings: React.FC = () => {
       id: 'plan_pro',
       name: 'Scholar PRO',
       status: 'active',
-      price: '$19.99/mo',
+      price: '₹1499/mo',
       nextBilling: 'Oct 15, 2026',
       features: ['Unlimited Course Access', 'Resume Builder', 'Live Premium Classes', 'Priority Support'],
     },
   ];
 
   const transactionHistory = [
-    { id: 'txn_1092', date: 'Sep 15, 2026', amount: '$19.99', plan: 'Scholar PRO - Monthly', status: 'completed' },
-    { id: 'txn_1091', date: 'Aug 15, 2026', amount: '$19.99', plan: 'Scholar PRO - Monthly', status: 'completed' },
-    { id: 'txn_1090', date: 'Jul 15, 2026', amount: '$19.99', plan: 'Scholar PRO - Monthly', status: 'completed' },
-    { id: 'txn_1089', date: 'Jun 15, 2026', amount: '$19.99', plan: 'Scholar PRO - Monthly', status: 'failed' },
+    { id: 'txn_1092', date: 'Sep 15, 2026', amount: '₹1499', plan: 'Scholar PRO - Monthly', status: 'completed' },
+    { id: 'txn_1091', date: 'Aug 15, 2026', amount: '₹1499', plan: 'Scholar PRO - Monthly', status: 'completed' },
+    { id: 'txn_1090', date: 'Jul 15, 2026', amount: '₹1499', plan: 'Scholar PRO - Monthly', status: 'completed' },
+    { id: 'txn_1089', date: 'Jun 15, 2026', amount: '₹1499', plan: 'Scholar PRO - Monthly', status: 'failed' },
   ];
 
   return (
