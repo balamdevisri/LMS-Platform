@@ -122,7 +122,9 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
     courseId === 'python-through-oops-course-id' ||
     courseId === 'kubernetes-complete-course-beginner-to-advanced' ||
     courseId === 'git-github-mastery-course-id' ||
-    courseId === 'git-github-mastery'
+    courseId === 'git-github-mastery' ||
+    courseId === 'react-js-complete-course' ||
+    courseId === 'react-js-complete-course-id'
   ) {
     return <LmsCourseRenderer content={content} isNightMode={isNightMode} courseId={courseId} />;
   }
