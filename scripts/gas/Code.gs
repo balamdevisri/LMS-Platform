@@ -104,6 +104,8 @@ function doPost(e) {
 
     if (action === "append") {
       return handleAppend(body);
+    } else if (action === "resetAndInit") {
+      return handleResetAndInit(body);
     } else if (action === "cleanup") {
       return handleCleanup(body.studentEmail, body.courseId);
     } else if (action === "get") {
@@ -283,4 +285,37 @@ function handleCleanup(studentEmail, courseId) {
   }
 
   return jsonResponse({ success: true, rowsDeleted: rowsDeleted });
+}
+
+/**
+ * Action: RESET_AND_INIT (Deletes all data rows below header and inserts one correct row)
+ */
+function handleResetAndInit(body) {
+  var sheet = getSheet();
+  var lastRow = sheet.getLastRow();
+  
+  // Delete all rows below row 1
+  if (lastRow > 1) {
+    sheet.deleteRows(2, lastRow - 1);
+  }
+
+  // Append new row if details are provided
+  if (body.studentId && body.courseId) {
+    var newRow = [
+      body.certificateId || "",
+      body.studentId || "",
+      body.studentName || "",
+      body.studentEmail || "",
+      body.courseId || "",
+      body.courseName || "",
+      body.completionDate || "",
+      body.issueDate || "",
+      body.certificateStatus || "Issued",
+      body.emailStatus || "Sent",
+      body.generatedTimestamp || new Date().toISOString()
+    ];
+    sheet.appendRow(newRow);
+  }
+
+  return jsonResponse({ success: true, message: "Sheet reset and initialized successfully." });
 }

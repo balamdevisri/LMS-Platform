@@ -291,6 +291,36 @@ export class GoogleSheetsService {
       return false;
     }
   }
+
+  /**
+   * Reset the sheet (delete all rows below row 1) and optionally insert one production row.
+   */
+  public async resetAndInitCertificateRegistry(data?: CertificateRegistryData): Promise<boolean> {
+    try {
+      logger.info(`[GOOGLE SHEETS WEB APP] Resetting registry sheet and seeding production row...`);
+      const response = await fetch(this.scriptUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'resetAndInit',
+          ...(data || {}),
+        }),
+      });
+
+      if (response.ok) {
+        const resText = await response.text();
+        const resJson = JSON.parse(resText);
+        if (resJson && resJson.success === true) {
+          logger.info(`[GOOGLE SHEETS WEB APP] ✅ ${resJson.message}`);
+          return true;
+        }
+      }
+      return false;
+    } catch (err: any) {
+      logger.error(`[GOOGLE SHEETS WEB APP] ❌ resetAndInitCertificateRegistry error: ${err?.message || err}`);
+      return false;
+    }
+  }
 }
 
 export const googleSheetsService = new GoogleSheetsService();
