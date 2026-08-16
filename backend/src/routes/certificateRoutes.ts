@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { certificateController } from '../controllers/certificateController';
+import { verifyFirebaseToken } from '../middleware/auth.middleware';
 
 const router = Router();
 
 // Trigger automated certificate delivery upon 100% course completion
-router.post('/complete-and-deliver', (req, res) => certificateController.handleCompletionAndDeliver(req, res));
+router.post('/complete-and-deliver', verifyFirebaseToken, (req, res) => certificateController.handleCompletionAndDeliver(req, res));
 
 // Test endpoint to trigger automated certificate delivery for diagnostic testing
 router.get('/test-delivery', (req, res) => certificateController.testDelivery(req, res));
@@ -19,6 +20,6 @@ router.get('/verify/:certificateId', (req, res) => certificateController.verifyC
 router.get('/student/:studentEmail', (req, res) => certificateController.getCertificatesByEmail(req, res));
 
 // Route to sync student learning state to Firestore for backend validation
-router.post('/sync-state', (req, res) => certificateController.syncState(req, res));
+router.post('/sync-state', verifyFirebaseToken, (req, res) => certificateController.syncState(req, res));
 
 export default router;

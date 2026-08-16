@@ -5,6 +5,7 @@ import { pdfCertificateGenerator } from '../services/certificate/PDFCertificateG
 import { qrCodeService } from '../services/certificate/QRCodeService';
 import { googleSheetsService } from '../services/certificate/GoogleSheetsService';
 import logger from '../config/logger';
+import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import {
   studentProgressCollection,
   quizAttemptsCollection,
@@ -16,12 +17,10 @@ export class CertificateController {
    * POST /api/certificates/complete-and-deliver
    * Triggered when student reaches 100% course completion
    */
-  public async handleCompletionAndDeliver(req: Request, res: Response): Promise<Response> {
+  public async handleCompletionAndDeliver(req: AuthenticatedRequest, res: Response): Promise<Response> {
     try {
+      const studentId = req.user?.uid;
       const {
-        studentId,
-        studentName,
-        studentEmail,
         courseId,
         courseTitle,
         completionPercentage,
@@ -30,10 +29,33 @@ export class CertificateController {
         modulesCount,
       } = req.body;
 
-      if (!studentId || !studentName || !studentEmail || !courseId || !courseTitle) {
+      if (!studentId || !courseId || !courseTitle) {
         return res.status(400).json({
           success: false,
-          error: 'Missing required fields: studentId, studentName, studentEmail, courseId, courseTitle are mandatory.',
+          error: 'Missing authenticated profile UID or required courseId / courseTitle.',
+        });
+      }
+
+      // Resolve student profile from Firestore users collection to get real name/email
+      let studentName = 'Student User';
+      let studentEmail = req.user?.email || '';
+      if (db) {
+        try {
+          const userDoc = await db.collection('users').doc(studentId).get();
+          if (userDoc.exists) {
+            const userData = userDoc.data();
+            studentName = userData?.fullName || userData?.name || studentName;
+            studentEmail = userData?.email || studentEmail;
+          }
+        } catch (dbErr: any) {
+          logger.warn(`[CERTIFICATE CONTROLLER] Firestore user profile lookup notice: ${dbErr?.message}`);
+        }
+      }
+
+      if (!studentEmail) {
+        return res.status(400).json({
+          success: false,
+          error: 'Could not resolve a valid student email for delivery.',
         });
       }
 
@@ -241,14 +263,15 @@ export class CertificateController {
    * POST /api/certificates/sync-state
    * Syncs student's current learning progress, quiz scores, and assignment status to Firestore
    */
-  public async syncState(req: Request, res: Response): Promise<Response> {
+  public async syncState(req: AuthenticatedRequest, res: Response): Promise<Response> {
     try {
-      const { studentId, courseId, completedLessons, completedModules, quizScores, assignmentSubmissions } = req.body;
+      const studentId = req.user?.uid;
+      const { courseId, completedLessons, completedModules, quizScores, assignmentSubmissions } = req.body;
 
       if (!studentId || !courseId) {
         return res.status(400).json({
           success: false,
-          error: 'Missing studentId or courseId in payload.',
+          error: 'Missing authenticated profile UID or courseId.',
         });
       }
 
