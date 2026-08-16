@@ -370,18 +370,27 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         return submission ? { assignmentId: String(a.id), status: submission.status } : null;
       }).filter(Boolean);
 
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
+      let token: string | null = null;
       if (user) {
-        const token = await user.getIdToken();
-        headers['Authorization'] = `Bearer ${token}`;
+        try {
+          token = await user.getIdToken();
+        } catch (tErr) {
+          console.warn('Failed to fetch initial ID token:', tErr);
+        }
       }
 
+      const getHeaders = (t: string | null) => {
+        const h: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (t) {
+          h['Authorization'] = `Bearer ${t}`;
+        }
+        return h;
+      };
+
       // Sync state to backend before generation trigger
-      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/sync-state`, {
+      let syncRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/sync-state`, {
         method: 'POST',
-        headers,
+        headers: getHeaders(token),
         body: JSON.stringify({
           studentId: studentUid,
           courseId: String(courseId),
@@ -392,10 +401,35 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         }),
       });
 
+      let syncData = await syncRes.json();
+      const isSyncAuthError = syncRes.status === 401 || (syncData.error && String(syncData.error).toLowerCase().includes('firebase id token'));
+
+      if (isSyncAuthError && user) {
+        console.warn('Sync request unauthorized (token expired/invalid). Refreshing token...');
+        try {
+          token = await user.getIdToken(true);
+          syncRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/sync-state`, {
+            method: 'POST',
+            headers: getHeaders(token),
+            body: JSON.stringify({
+              studentId: studentUid,
+              courseId: String(courseId),
+              completedLessons: completedLessonIds.map(String),
+              completedModules,
+              quizScores,
+              assignmentSubmissions,
+            }),
+          });
+          syncData = await syncRes.json();
+        } catch (refreshErr) {
+          console.error('Failed to retry sync with refreshed ID token:', refreshErr);
+        }
+      }
+
       // Complete and deliver
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/complete-and-deliver`, {
+      let res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/complete-and-deliver`, {
         method: 'POST',
-        headers,
+        headers: getHeaders(token),
         body: JSON.stringify({
           studentId: studentUid,
           studentName,
@@ -410,7 +444,35 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         }),
       });
 
-      const data = await res.json();
+      let data = await res.json();
+      const isDeliverAuthError = res.status === 401 || (data.error && String(data.error).toLowerCase().includes('firebase id token'));
+
+      if (isDeliverAuthError && user) {
+        console.warn('Delivery request unauthorized (token expired/invalid). Refreshing token...');
+        try {
+          token = await user.getIdToken(true);
+          res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/complete-and-deliver`, {
+            method: 'POST',
+            headers: getHeaders(token),
+            body: JSON.stringify({
+              studentId: studentUid,
+              studentName,
+              studentEmail,
+              courseId: String(courseId),
+              courseTitle,
+              completionPercentage: 100,
+              instructorName: 'Shaivika Groups Board',
+              courseDuration: '24 Hours',
+              modulesCount: modules.length || 8,
+              forceRegenerate: true
+            }),
+          });
+          data = await res.json();
+        } catch (refreshErr) {
+          console.error('Failed to retry delivery with refreshed ID token:', refreshErr);
+        }
+      }
+
       setIsGeneratingCert(false);
       if (data.success) {
         setGeneratedCert(data);

@@ -138,6 +138,21 @@ export class CertificateDeliveryService {
         studentDoc = fallbackSnap.docs[0];
         studentData = studentDoc.data();
         lookupResult = 'User Found by UID Fallback Query';
+      } else {
+        // Fallback: Resolve student's existing profile/account matching first 6 chars of UID case-infinitively
+        const prefix = studentId.substring(0, 6).toLowerCase();
+        logger.info(`[AUTOMATED CERTIFICATE VALIDATION] Searching users collection for document starting with prefix: ${prefix}...`);
+        const allUsersSnap = await db.collection('users').get();
+        const matchedDoc = allUsersSnap.docs.find(doc => 
+          doc.id.toLowerCase().startsWith(prefix) || 
+          String(doc.data()?.uid || '').toLowerCase().startsWith(prefix)
+        );
+        if (matchedDoc) {
+          studentDoc = matchedDoc;
+          studentData = studentDoc.data();
+          lookupResult = `User Found by UID Prefix Match (${prefix})`;
+          logger.info(`[AUTOMATED CERTIFICATE VALIDATION] ✓ Resolved to existing student account: ${studentDoc.id} (${studentData?.email})`);
+        }
       }
     }
 

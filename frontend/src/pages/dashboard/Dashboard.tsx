@@ -436,38 +436,88 @@ export const Dashboard: React.FC = () => {
     const studentEmail = user?.email || userProfile?.email || 'shaivikagroups@gmail.com';
     const studentId = uid;
 
-    certsToSync.forEach((cert) => {
+    const syncCertificate = async (cert: any) => {
       const syncKey = `shaivika_cert_synced_${cert.verificationId}`;
       if (localStorage.getItem(syncKey) === 'true') return;
 
-      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/complete-and-deliver`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          studentId,
-          studentName,
-          studentEmail,
-          courseId: cert.courseId,
-          courseTitle: cert.courseTitle,
-          completionPercentage: 100,
-          instructorName: cert.instructorName || 'Shaivika Groups Board',
-          courseDuration: cert.courseDuration || '24 Hours',
-          modulesCount: cert.modulesCount || 8,
-          verificationId: cert.verificationId,
-          forceRegenerate: true
-        }),
-      })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data && data.success) {
+      try {
+        let token: string | null = null;
+        if (user) {
+          try {
+            token = await user.getIdToken();
+          } catch (tErr) {
+            console.warn('Failed to fetch initial ID token:', tErr);
+          }
+        }
+
+        const getHeaders = (t: string | null) => {
+          const h: Record<string, string> = { 'Content-Type': 'application/json' };
+          if (t) {
+            h['Authorization'] = `Bearer ${t}`;
+          }
+          return h;
+        };
+
+        let response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/complete-and-deliver`, {
+          method: 'POST',
+          headers: getHeaders(token),
+          body: JSON.stringify({
+            studentId,
+            studentName,
+            studentEmail,
+            courseId: cert.courseId,
+            courseTitle: cert.courseTitle,
+            completionPercentage: 100,
+            instructorName: cert.instructorName || 'Shaivika Groups Board',
+            courseDuration: cert.courseDuration || '24 Hours',
+            modulesCount: cert.modulesCount || 8,
+            verificationId: cert.verificationId,
+            forceRegenerate: true
+          }),
+        });
+
+        let data = await response.json();
+        const isAuthError = response.status === 401 || (data.error && String(data.error).toLowerCase().includes('firebase id token'));
+
+        if (isAuthError && user) {
+          console.warn('Sync request unauthorized (token expired/invalid). Refreshing token...');
+          try {
+            token = await user.getIdToken(true);
+            response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/complete-and-deliver`, {
+              method: 'POST',
+              headers: getHeaders(token),
+              body: JSON.stringify({
+                studentId,
+                studentName,
+                studentEmail,
+                courseId: cert.courseId,
+                courseTitle: cert.courseTitle,
+                completionPercentage: 100,
+                instructorName: cert.instructorName || 'Shaivika Groups Board',
+                courseDuration: cert.courseDuration || '24 Hours',
+                modulesCount: cert.modulesCount || 8,
+                verificationId: cert.verificationId,
+                forceRegenerate: true
+              }),
+            });
+            data = await response.json();
+          } catch (refreshErr) {
+            console.error('Failed to retry sync with refreshed ID token:', refreshErr);
+          }
+        }
+
+        if (response.ok && data && data.success) {
           localStorage.setItem(syncKey, 'true');
         }
-      })
-      .catch((err) => {
+      } catch (err) {
         console.warn('Certificate registry sync error:', err);
-      });
+      }
+    };
+
+    certsToSync.forEach((cert) => {
+      syncCertificate(cert);
     });
-  }, [earnedCerts, user, userProfile, studentName, certificateService]);
+  }, [earnedCerts, user, userProfile, studentName, certificateService, uid]);
 
   // Active courses (progress > 0 and < 100)
   let activeLearningCourses = coursesProgress.filter((c) => c.percentage > 0 && c.percentage < 100);
