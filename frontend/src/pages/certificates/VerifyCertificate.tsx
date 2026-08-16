@@ -9,6 +9,7 @@ export interface VerifiedCertificate {
   verificationId?: string;
   studentName: string;
   studentEmail?: string;
+  studentId?: string;
   courseName?: string;
   courseTitle?: string;
   instructorName?: string;
@@ -166,7 +167,7 @@ export const VerifyCertificate: React.FC = () => {
             {/* Actions */}
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <a
-                href={`${API_BASE_URL}/certificates/download?certificateId=${certificate.certificateId}&studentId=${certificate.studentEmail || 'student'}&studentName=${encodeURIComponent(certificate.studentName)}&courseTitle=${encodeURIComponent(certificate.courseTitle || certificate.courseName || 'Course')}`}
+                href={`${API_BASE_URL}/certificates/download?certificateId=${certificate.certificateId}&studentId=${certificate.studentId || 'student'}&studentName=${encodeURIComponent(certificate.studentName)}&courseTitle=${encodeURIComponent(certificate.courseTitle || certificate.courseName || 'Course')}`}
                 target="_blank"
                 rel="noreferrer"
                 className="flex-1 inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm px-5 py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20"

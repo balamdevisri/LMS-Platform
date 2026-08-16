@@ -18,6 +18,12 @@ export class PDFCertificateGenerator {
    * Generates a high-quality vector PDF Certificate as an In-Memory Buffer
    */
   public async generateCertificateBuffer(data: CertificateData): Promise<Buffer> {
+    const rawUid = data.studentId || 'default_student';
+    let displayStudentId = rawUid;
+    if (!rawUid.includes('@')) {
+      displayStudentId = rawUid.startsWith('STU-') ? rawUid : `STU-${rawUid.substring(0, 6).toUpperCase()}`;
+    }
+
     return new Promise((resolve, reject) => {
       try {
         // Landscape A4 Page Dimensions in PDF points: 841.89 x 595.28
@@ -237,7 +243,7 @@ export class PDFCertificateGenerator {
           .fontSize(6.5)
           .font('Helvetica-Bold')
           .text(`ID: ${data.certificateId}`, qrBoxX + 5, qrBoxY + 108, { width: 105, align: 'center' })
-          .text(`Student: ${data.studentId}`, qrBoxX + 5, qrBoxY + 118, { width: 105, align: 'center' });
+          .text(`Student: ${displayStudentId}`, qrBoxX + 5, qrBoxY + 118, { width: 105, align: 'center' });
 
         // 4 Metric Pillars
         const pillarY = 360;
