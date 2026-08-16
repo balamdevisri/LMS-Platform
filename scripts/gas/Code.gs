@@ -42,8 +42,7 @@ function mapRowToObj(row) {
     issueDate: row[7] || "",
     certificateStatus: row[8] || "Issued",
     emailStatus: row[9] || "Sent",
-    generatedTimestamp: row[10] || "",
-    downloadCount: Number(row[11] || 0)
+    generatedTimestamp: row[10] || ""
   };
 }
 
@@ -189,28 +188,37 @@ function handleList(studentEmail) {
 }
 
 /**
- * Action: APPEND (Inserts a new certificate log row into sheet)
+ * Action: APPEND (Inserts a new certificate log row into sheet, or updates if it already exists)
  */
 function handleAppend(body) {
-  var certificateId = body.certificateId;
-  if (!certificateId) {
-    return jsonResponse({ success: false, error: "Missing parameter: certificateId" });
+  var studentId = body.studentId;
+  var courseId = body.courseId;
+  
+  if (!studentId || !courseId) {
+    return jsonResponse({ success: false, error: "Missing required studentId or courseId" });
   }
 
   var sheet = getSheet();
   var data = sheet.getDataRange().getDisplayValues();
+  
+  var existingRowIndex = -1;
+  var stableCertId = body.certificateId;
 
-  // Prevent duplicate additions
+  // Uniqueness check: Match on studentId + courseId
   for (var i = 1; i < data.length; i++) {
     var row = data[i];
-    if (String(row[0]).trim() === String(certificateId).trim()) {
-      return jsonResponse({ success: false, error: "Certificate ID already registered." });
+    if (
+      String(row[1]).trim() === String(studentId).trim() &&
+      String(row[4]).trim() === String(courseId).trim()
+    ) {
+      existingRowIndex = i;
+      stableCertId = row[0] || body.certificateId; // Keep existing certificate ID stable
+      break;
     }
   }
 
-  // Row columns structured in strict ordered array
   var newRow = [
-    body.certificateId || "",
+    stableCertId || "",
     body.studentId || "",
     body.studentName || "",
     body.studentEmail || "",
@@ -220,22 +228,25 @@ function handleAppend(body) {
     body.issueDate || "",
     body.certificateStatus || "Issued",
     body.emailStatus || "Sent",
-    body.generatedTimestamp || new Date().toISOString(),
-    Number(body.downloadCount || 0)
+    body.generatedTimestamp || new Date().toISOString()
   ];
 
-  sheet.appendRow(newRow);
-  return jsonResponse({ success: true });
+  if (existingRowIndex !== -1) {
+    // Update existing row (index i corresponds to i+1 row in Sheet)
+    var rowNum = existingRowIndex + 1;
+    sheet.getRange(rowNum, 1, 1, 11).setValues([newRow]);
+    return jsonResponse({ success: true, updated: true, certificateId: stableCertId });
+  } else {
+    // Append new row
+    sheet.appendRow(newRow);
+    return jsonResponse({ success: true, updated: false, certificateId: stableCertId });
+  }
 }
 
 /**
  * Action: CLEANUP (Removes wrong/test/duplicate rows matching a specific student email and courseId)
  */
 function handleCleanup(studentEmail, courseId) {
-  if (!studentEmail || !courseId) {
-    return jsonResponse({ success: false, error: "Missing studentEmail or courseId" });
-  }
-
   var sheet = getSheet();
   var data = sheet.getDataRange().getValues();
   var rowsDeleted = 0;
@@ -243,18 +254,29 @@ function handleCleanup(studentEmail, courseId) {
   // Iterate backwards to safely delete rows without changing indices of remaining rows
   for (var i = data.length - 1; i >= 1; i--) {
     var row = data[i];
-    var rowEmail = String(row[3]).trim().toLowerCase();
-    var rowCourseId = String(row[4]).trim();
+    var rowCertId = String(row[0]).trim();
+    var rowStudentId = String(row[1]).trim();
     var rowStudentName = String(row[2]).trim();
+    var rowEmail = String(row[3]).trim().toLowerCase();
 
     // Identify wrong/test/duplicate records
-    var isTarget = rowEmail === studentEmail.trim().toLowerCase() && rowCourseId === courseId;
-    var isPlaceholderOrWrong = rowStudentName.toLowerCase().indexOf("student user") !== -1 || 
-                               rowStudentName.toLowerCase().indexOf("banu prakash") !== -1 ||
-                               rowEmail.indexOf("test") !== -1 ||
-                               rowStudentName.toLowerCase().indexOf("default_student") !== -1;
+    var isTestRecord = false;
+    
+    if (
+      rowStudentName.toLowerCase().indexOf("student user") !== -1 ||
+      rowStudentName.toLowerCase().indexOf("default_student") !== -1 ||
+      rowStudentName.toLowerCase().indexOf("test verification") !== -1 ||
+      rowStudentName.toLowerCase().indexOf("banu prakash") !== -1 ||
+      rowEmail.indexOf("test") !== -1 ||
+      rowEmail === "verifytest@shaivika.ai" ||
+      rowCertId.indexOf("TEST-123") !== -1 ||
+      rowCertId.indexOf("TEST-VERIFY-999") !== -1 ||
+      rowStudentId.indexOf("STU-ATTKFO") !== -1
+    ) {
+      isTestRecord = true;
+    }
 
-    if (isTarget && isPlaceholderOrWrong) {
+    if (isTestRecord) {
       sheet.deleteRow(i + 1); // 1-based index in Google Sheets
       rowsDeleted++;
     }

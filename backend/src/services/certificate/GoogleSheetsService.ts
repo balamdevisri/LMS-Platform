@@ -93,19 +93,9 @@ export class GoogleSheetsService {
     }
   }
 
-  /**
-   * Appends a new certificate row to the Certificates registry sheet via the Google Apps Script Web App
-   */
   public async appendCertificateRow(data: CertificateRegistryData): Promise<boolean> {
     try {
       logger.info(`[GOOGLE SHEETS WEB APP] Appending Certificate ID ${data.certificateId} via HTTP POST...`);
-
-      // Check if it already exists to prevent duplicate entries
-      const existing = await this.getCertificateById(data.certificateId);
-      if (existing) {
-        logger.warn(`[GOOGLE SHEETS WEB APP] ⚠️ Certificate ID ${data.certificateId} already registered. Skipping append.`);
-        return false;
-      }
 
       const response = await fetch(this.scriptUrl, {
         method: 'POST',
@@ -268,7 +258,6 @@ export class GoogleSheetsService {
       certificateStatus: raw.certificateStatus || raw.CertificateStatus || raw[8] || 'Issued',
       emailStatus: raw.emailStatus || raw.EmailStatus || raw[9] || 'Sent',
       generatedTimestamp: raw.generatedTimestamp || raw.GeneratedTimestamp || raw[10] || '',
-      downloadCount: Number(raw.downloadCount || raw.DownloadCount || raw[11] || 0),
     };
   }
 
