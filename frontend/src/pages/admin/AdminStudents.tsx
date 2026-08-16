@@ -376,25 +376,25 @@ export const AdminStudents: React.FC = () => {
     <div className="space-y-6 text-slate-900 font-['Sora'] max-w-7xl mx-auto pb-12">
       
       {/* Header Bar */}
-      <div className="bg-white/90 backdrop-blur-2xl border border-sky-200/80 p-6 rounded-3xl shadow-xl shadow-sky-500/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="bg-white/90 dark:bg-slate-900 backdrop-blur-2xl border border-sky-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-xl shadow-sky-500/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-2">
             {isInstructor ? (
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold uppercase tracking-wider">
-                <BarChart3 className="w-3.5 h-3.5 text-blue-600" />
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-cyan-300 text-xs font-bold uppercase tracking-wider">
+                <BarChart3 className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400" />
                 <span>STUDENT PERFORMANCE & REPORTING TELEMETRY</span>
               </div>
             ) : (
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50 border border-sky-200 text-sky-700 text-xs font-bold uppercase tracking-wider">
-                <Users className="w-3.5 h-3.5 text-sky-600" />
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800 text-sky-700 dark:text-cyan-300 text-xs font-bold uppercase tracking-wider">
+                <Users className="w-3.5 h-3.5 text-sky-600 dark:text-cyan-400" />
                 <span>STUDENT APPROVAL & ROSTER MANAGEMENT</span>
               </div>
             )}
           </div>
-          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-slate-900">
+          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-slate-900 dark:text-white">
             {isInstructor ? 'Student Performance Telemetry' : 'Student Intelligence Roster'} ({filteredStudents.length})
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">
             {isInstructor
               ? 'Monitor real-time student learning telemetry, review course progress, analyze quiz scores, and export progress reports.'
               : 'Review student applications, verify credentials, perform bulk actions, and dispatch automated lifecycle emails.'}
@@ -403,7 +403,7 @@ export const AdminStudents: React.FC = () => {
 
         <div className="flex items-center gap-3 flex-wrap">
           {selectedIds.length > 0 && (
-            <span className="text-xs font-bold bg-sky-50 text-sky-700 px-3 py-1.5 rounded-xl border border-sky-200">
+            <span className="text-xs font-bold bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-cyan-300 px-3 py-1.5 rounded-xl border border-sky-200 dark:border-sky-800">
               {selectedIds.length} Selected
             </span>
           )}
