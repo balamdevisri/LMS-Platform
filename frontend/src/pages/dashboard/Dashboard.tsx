@@ -517,7 +517,7 @@ export const Dashboard: React.FC = () => {
     certsToSync.forEach((cert) => {
       syncCertificate(cert);
     });
-  }, [earnedCerts, user, userProfile, studentName, certificateService, uid]);
+  }, [earnedCerts, user, userProfile, studentName, certificateService]);
 
   // Active courses (progress > 0 and < 100)
   let activeLearningCourses = coursesProgress.filter((c) => c.percentage > 0 && c.percentage < 100);
