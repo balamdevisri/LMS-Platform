@@ -694,7 +694,6 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
     completedLessonIds.some((cId) => String(cId) === String(l.id))
   );
 
-  const studentUid = user?.uid || userProfile?.uid || 'default_student';
   const certService = useMemo(() => new CertificateService(), []);
   const currentCert = useMemo(() => {
     const certs = certService.getCertificates(studentUid);
