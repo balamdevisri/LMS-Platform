@@ -18,10 +18,10 @@ export const CourseTable: React.FC<CourseTableProps> = ({
   onDelete,
 }) => {
   return (
-    <div className="w-full overflow-x-auto rounded-2xl border border-sky-100/80 bg-white shadow-2xs">
+    <div className="w-full overflow-x-auto rounded-2xl border border-sky-100/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs">
       <table className="w-full border-collapse text-left min-w-[900px]">
         <thead>
-          <tr className="bg-slate-50/80 border-b border-sky-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider select-none">
+          <tr className="bg-slate-50/80 dark:bg-slate-950/80 border-b border-sky-100 dark:border-slate-800 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider select-none">
             <th className="py-3 px-4 font-bold">Thumbnail</th>
             <th className="py-3 px-4 font-bold">Course Title</th>
             <th className="py-3 px-4 font-bold">Category</th>
@@ -34,7 +34,7 @@ export const CourseTable: React.FC<CourseTableProps> = ({
             <th className="py-3 px-4 font-bold text-right">Actions</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
           {courses.map((course) => (
             <CourseRow
               key={course.id}

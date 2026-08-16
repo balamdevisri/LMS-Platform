@@ -370,24 +370,24 @@ export const AdminDashboard: React.FC = () => {
     <div className="space-y-8 text-slate-900 font-['Sora'] max-w-7xl mx-auto pb-12">
       
       {/* Header Banner */}
-      <div className="bg-white/90 backdrop-blur-2xl border border-sky-200/80 p-6 sm:p-8 rounded-3xl shadow-xl shadow-sky-500/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative">
+      <div className="bg-white/90 dark:bg-slate-900 backdrop-blur-2xl border border-sky-200/80 dark:border-slate-800 p-6 sm:p-8 rounded-3xl shadow-xl shadow-sky-500/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative">
         <div>
           <div className="flex flex-wrap items-center gap-2 mb-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50 border border-sky-200 text-sky-700 text-xs font-bold uppercase tracking-wider">
-              <ShieldCheck className="w-3.5 h-3.5 text-sky-500" />
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800 text-sky-700 dark:text-cyan-300 text-xs font-bold uppercase tracking-wider">
+              <ShieldCheck className="w-3.5 h-3.5 text-sky-500 dark:text-cyan-400" />
               <span>ADMINISTRATOR CONTROL PANEL</span>
             </div>
             
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold uppercase tracking-wider">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold uppercase tracking-wider">
               <Radio className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
               <span>REAL-TIME LIVE DATA</span>
             </div>
           </div>
 
-          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-slate-900">
+          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-slate-900 dark:text-white">
             Welcome back, {userProfile?.name || 'Administrator'}
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">
             Manage real-time student applications, approval workflows, and analytics telemetry.
           </p>
         </div>
@@ -397,10 +397,10 @@ export const AdminDashboard: React.FC = () => {
           <div className="relative">
             <button
               onClick={() => setIsNotifOpen(!isNotifOpen)}
-              className="p-2.5 rounded-2xl bg-white border border-sky-200 text-slate-700 hover:bg-sky-50 transition-all shadow-xs cursor-pointer relative"
+              className="p-2.5 rounded-2xl bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-sky-50 dark:hover:bg-slate-800 transition-all shadow-xs cursor-pointer relative"
               title="Admin Notifications"
             >
-              <Bell className="w-5 h-5 text-slate-700" />
+              <Bell className="w-5 h-5 text-slate-700 dark:text-slate-200" />
               {unreadNotifsCount > 0 && (
                 <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center animate-bounce shadow-xs">
                   {unreadNotifsCount}

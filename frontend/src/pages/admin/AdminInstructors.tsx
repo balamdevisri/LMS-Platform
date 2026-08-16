@@ -210,25 +210,25 @@ export const AdminInstructors: React.FC = () => {
     <div className="space-y-8 text-slate-900 font-['Sora'] max-w-7xl mx-auto pb-12">
       
       {/* Header Banner */}
-      <div className="bg-white/95 backdrop-blur-2xl border border-sky-200/80 p-6 sm:p-8 rounded-3xl shadow-xl shadow-sky-500/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="bg-white/95 dark:bg-slate-900 backdrop-blur-2xl border border-sky-200/80 dark:border-slate-800 p-6 sm:p-8 rounded-3xl shadow-xl shadow-sky-500/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-2 mb-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50 border border-sky-200 text-sky-700 text-xs font-bold uppercase tracking-wider">
-              <GraduationCap className="w-3.5 h-3.5 text-sky-500" />
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800 text-sky-700 dark:text-cyan-300 text-xs font-bold uppercase tracking-wider">
+              <GraduationCap className="w-3.5 h-3.5 text-sky-500 dark:text-cyan-400" />
               <span>Instructor Portal Approvals</span>
             </div>
 
             {/* Live Indicator */}
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold uppercase tracking-wider">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold uppercase tracking-wider">
               <Radio className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
               <span>REAL-TIME LIVE DB SYNC</span>
             </div>
           </div>
 
-          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-slate-900">
+          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-slate-900 dark:text-white">
             Instructor Approval Dashboard ({instructors.length})
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">
             Manage pending instructor registrations, review applications, and toggle portal authorization.
           </p>
         </div>
@@ -237,7 +237,7 @@ export const AdminInstructors: React.FC = () => {
           <button
             onClick={handleRefresh}
             disabled={loading}
-            className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl border border-sky-200 bg-white text-sky-700 text-xs font-bold hover:bg-sky-50 transition-all cursor-pointer disabled:opacity-50"
+            className="inline-flex items-center gap-2 py-2.5 px-4 rounded-xl border border-sky-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sky-700 dark:text-cyan-400 text-xs font-bold hover:bg-sky-50 dark:hover:bg-slate-800 transition-all cursor-pointer disabled:opacity-50"
             title="Force refresh from Firestore"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -255,16 +255,16 @@ export const AdminInstructors: React.FC = () => {
       </div>
 
       {/* Search & Filter Bar */}
-      <div className="bg-white/90 border border-sky-200/80 rounded-3xl p-6 space-y-4 shadow-sm">
+      <div className="bg-white/90 dark:bg-slate-900 border border-sky-200/80 dark:border-slate-800 rounded-3xl p-6 space-y-4 shadow-sm">
         <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
           <div className="relative w-full lg:w-96">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search instructors by name, email..."
-              className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-900 focus:outline-hidden transition-all font-medium"
+              className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-hidden transition-all font-medium"
             />
           </div>
 
@@ -275,11 +275,11 @@ export const AdminInstructors: React.FC = () => {
               className={`py-2 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
                 !showAll && filterStatus === 'pending'
                   ? 'bg-amber-500 text-white shadow-xs'
-                  : 'bg-slate-50 text-slate-600 hover:text-slate-900 border border-sky-100'
+                  : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-sky-100 dark:border-slate-800'
               }`}
             >
               <span>Pending Requests</span>
-              <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${!showAll && filterStatus === 'pending' ? 'bg-white text-amber-600' : 'bg-slate-200 text-slate-700'}`}>{pendingCount}</span>
+              <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${!showAll && filterStatus === 'pending' ? 'bg-white text-amber-600' : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'}`}>{pendingCount}</span>
             </button>
 
             <button
@@ -287,11 +287,11 @@ export const AdminInstructors: React.FC = () => {
               className={`py-2 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
                 !showAll && filterStatus === 'approved'
                   ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'bg-slate-50 text-slate-600 hover:text-slate-900 border border-sky-100'
+                  : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-sky-100 dark:border-slate-800'
               }`}
             >
               <span>Approved Instructors</span>
-              <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${!showAll && filterStatus === 'approved' ? 'bg-white text-emerald-600' : 'bg-slate-200 text-slate-700'}`}>{approvedCount}</span>
+              <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${!showAll && filterStatus === 'approved' ? 'bg-white text-emerald-600' : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'}`}>{approvedCount}</span>
             </button>
 
             <button
@@ -299,23 +299,23 @@ export const AdminInstructors: React.FC = () => {
               className={`py-2 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
                 !showAll && filterStatus === 'rejected'
                   ? 'bg-rose-600 text-white shadow-xs'
-                  : 'bg-slate-50 text-slate-600 hover:text-slate-900 border border-sky-100'
+                  : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-sky-100 dark:border-slate-800'
               }`}
             >
               <span>Rejected Instructors</span>
-              <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${!showAll && filterStatus === 'rejected' ? 'bg-white text-rose-600' : 'bg-slate-200 text-slate-700'}`}>{rejectedCount}</span>
+              <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${!showAll && filterStatus === 'rejected' ? 'bg-white text-rose-600' : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'}`}>{rejectedCount}</span>
             </button>
 
             <button
               onClick={() => setShowAll(!showAll)}
               className={`py-2 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
                 showAll
-                  ? 'bg-slate-800 text-white shadow-xs'
-                  : 'bg-slate-50 text-slate-600 hover:text-slate-900 border border-sky-100'
+                  ? 'bg-slate-800 dark:bg-cyan-950 text-white dark:text-cyan-300 border border-transparent dark:border-cyan-800 shadow-xs'
+                  : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-sky-100 dark:border-slate-800'
               }`}
             >
               <span>Show All</span>
-              <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${showAll ? 'bg-white text-slate-700' : 'bg-slate-200 text-slate-700'}`}>{instructors.length}</span>
+              <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${showAll ? 'bg-white text-slate-700' : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'}`}>{instructors.length}</span>
             </button>
           </div>
         </div>
