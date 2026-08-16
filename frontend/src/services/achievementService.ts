@@ -57,6 +57,9 @@ export interface LeaderboardEntry {
   xp: number;
   badgesCount: number;
   coursesCompleted: number;
+  streak?: number;
+  level?: number;
+  levelTitle?: string;
   isCurrentUser?: boolean;
 }
 
@@ -242,6 +245,10 @@ export class XPService {
 
     const oldLevel = getLevelForXP(currentXp);
     const newLevel = getLevelForXP(updatedXp);
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('shaivika_xp_updated', { detail: { xp: updatedXp, userId, points, activityName } }));
+    }
 
     if (newLevel > oldLevel) {
       toast.success(`🎉 Level Up! You reached Level ${newLevel} (${getLevelTitle(newLevel)})!`);
@@ -576,6 +583,8 @@ export class LeaderboardService {
     const userXp = xpService.getXPPoints(userId);
     const badgeService = new BadgeService();
     const userBadges = badgeService.getEarnedBadges(userId).length;
+    const statService = new AchievementService();
+    const userStreak = statService.getStreaks(userId).dailyStreak;
 
     let loggedInName = 'You (Scholar)';
     try {
@@ -605,6 +614,9 @@ export class LeaderboardService {
         : (Array.isArray(s.badges) ? s.badges.length : (typeof s.badgesCount === 'number' ? s.badgesCount : Math.min(Math.floor(studentXp / 300), 8)));
 
       const coursesCompleted = s.completedCourses || s.courses || (studentXp >= 1000 ? 1 : 0);
+      const streak = isCurrent ? userStreak : ((s as any).streak || (s as any).dailyStreak || Math.max(1, (studentXp % 7) + 1));
+      const level = getLevelForXP(studentXp);
+      const levelTitle = getLevelTitle(level);
 
       if (isCurrent) {
         currentUserIncluded = true;
@@ -619,18 +631,25 @@ export class LeaderboardService {
         xp: studentXp,
         badgesCount,
         coursesCompleted,
+        streak,
+        level,
+        levelTitle,
         isCurrentUser: isCurrent
       });
     });
 
     // Ensure active logged-in user is included if not in student roster
     if (!currentUserIncluded) {
+      const level = getLevelForXP(userXp);
       cohort.push({
         id: userId,
         name: loggedInName,
         xp: userXp,
         badgesCount: userBadges,
         coursesCompleted: userXp >= 2000 ? 1 : 0,
+        streak: userStreak,
+        level,
+        levelTitle: getLevelTitle(level),
         isCurrentUser: true
       });
     }
@@ -664,5 +683,53 @@ export class LeaderboardService {
   async getLeaderboardAsync(filter: 'global' | 'course' | 'weekly' | 'monthly', userId = 'default_student'): Promise<LeaderboardEntry[]> {
     const students = await studentService.fetchFirestoreStudentsDirectly();
     return this.calculateCohortFromStudents(students, filter, userId);
+  }
+
+  /**
+   * Real-time subscription to Cohort Leaderboard updates from Firestore & local storage telemetry.
+   */
+  subscribeToLeaderboard(
+    filter: 'global' | 'course' | 'weekly' | 'monthly',
+    userId = 'default_student',
+    callback: (entries: LeaderboardEntry[]) => void
+  ): () => void {
+    // 1. Initial calculate from current local dataset
+    const initialList = this.getLeaderboard(filter, userId);
+    callback(initialList);
+
+    // 2. Event handlers for local/state updates
+    const handleLocalEvent = () => {
+      const updated = this.getLeaderboard(filter, userId);
+      callback(updated);
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('shaivika_xp_updated', handleLocalEvent);
+      window.addEventListener('shaivika_student_updated', handleLocalEvent);
+      window.addEventListener('storage', handleLocalEvent);
+    }
+
+    // 3. Connect to live studentService Firestore snapshot listener
+    const unsubStudents = studentService.subscribeToStudents((students) => {
+      const computed = this.calculateCohortFromStudents(students, filter, userId);
+      callback(computed);
+    });
+
+    // 4. Periodic background sync heartbeat (every 20s)
+    const interval = setInterval(() => {
+      this.getLeaderboardAsync(filter, userId).then((fresh) => {
+        if (fresh && fresh.length > 0) callback(fresh);
+      });
+    }, 20000);
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('shaivika_xp_updated', handleLocalEvent);
+        window.removeEventListener('shaivika_student_updated', handleLocalEvent);
+        window.removeEventListener('storage', handleLocalEvent);
+      }
+      unsubStudents();
+      clearInterval(interval);
+    };
   }
 }
