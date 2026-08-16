@@ -2,8 +2,9 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { z } from 'zod';
 
-// Load .env file from process cwd or root
+// Load .env file from process cwd or root, then load/merge backend-specific .env
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 
 const envSchema = z.object({
   PORT: z.string().default('5000'),
@@ -33,7 +34,7 @@ const envSchema = z.object({
   GOOGLE_DRIVE_PRIVATE_KEY: z.string().optional(),
   GOOGLE_DRIVE_FOLDER_ID: z.string().optional(),
   GOOGLE_SHEET_ID: z.string().optional(),
-  GOOGLE_SHEETS_SCRIPT_URL: z.string().default('https://script.google.com/macros/s/AKfycbyVymRV2dGQU2TEpGTtU4g8JCttmrEze15Qi0kjFoqQxV2lFWFrnZkqhC1Uw7bQid2U8A/exec'),
+  GOOGLE_SHEETS_SCRIPT_URL: z.string().default('https://script.google.com/macros/s/AKfycbykZnfc-ngEOADfuqclw6FZ08mh9CKuhv-niMf3awTy3lmyD309QDjl5zgwPJh713L-CQ/exec'),
   MONGODB_URI: z.string().default('mongodb://localhost:27017/shaivika_live_classroom'),
   REDIS_URL: z.string().default('redis://localhost:6379'),
 });

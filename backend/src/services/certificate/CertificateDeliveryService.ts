@@ -203,8 +203,21 @@ export class CertificateDeliveryService {
     let expectedLessons: any[] = [];
     if (Array.isArray(courseData.modules)) {
       courseData.modules.forEach((mod: any) => {
-        if (Array.isArray(mod.lessons)) {
+        if (Array.isArray(mod.lessons) && mod.lessons.length > 0) {
           expectedLessons.push(...mod.lessons);
+        } else if (Array.isArray(mod.topics)) {
+          mod.topics.forEach((topic: any) => {
+            if (Array.isArray(topic.learningUnits)) {
+              topic.learningUnits.forEach((unit: any) => {
+                expectedLessons.push({
+                  id: unit.id || unit.unitId,
+                  title: unit.title,
+                  type: unit.type || unit.unitType || 'reading',
+                  quizPassingScore: unit.quizPassingScore,
+                });
+              });
+            }
+          });
         }
       });
     }
@@ -234,7 +247,20 @@ export class CertificateDeliveryService {
     const quizUnits: any[] = [];
     const assignmentUnits: any[] = [];
     expectedModules.forEach((mod: any) => {
-      mod.lessons?.forEach((lesson: any) => {
+      const lessons = (Array.isArray(mod.lessons) && mod.lessons.length > 0) ? [...mod.lessons] : [];
+      if (lessons.length === 0 && Array.isArray(mod.topics)) {
+        mod.topics.forEach((topic: any) => {
+          if (Array.isArray(topic.learningUnits)) {
+            lessons.push(...topic.learningUnits.map((u: any) => ({
+              id: u.id || u.unitId,
+              title: u.title,
+              type: u.type || u.unitType || 'reading',
+              quizPassingScore: u.quizPassingScore,
+            })));
+          }
+        });
+      }
+      lessons.forEach((lesson: any) => {
         const typeLower = (lesson.type || '').toLowerCase();
         if (typeLower === 'quiz') quizUnits.push(lesson);
         else if (typeLower === 'assignment') assignmentUnits.push(lesson);
@@ -403,34 +429,36 @@ export class CertificateDeliveryService {
         }
       }
 
-      try {
-        const sheetExisting = await googleSheetsService.checkCertificateExists(payload.studentEmail, payload.courseId);
-        if (sheetExisting) {
-          logger.info(`[AUTOMATED CERTIFICATE SYSTEM] ⚠️ Certificate already exists in Google Sheets Registry for ${payload.studentEmail} in course ${payload.courseId}. Skipping generation.`);
-          
-          this.logLocalRegistry({
-            certificateId: sheetExisting.certificateId,
-            studentEmail: payload.studentEmail,
-            courseId: payload.courseId,
-            completionDate: sheetExisting.completionDate,
-            googleDriveLink: 'local-server',
-          });
+      if (!isForce) {
+        try {
+          const sheetExisting = await googleSheetsService.checkCertificateExists(payload.studentEmail, payload.courseId);
+          if (sheetExisting) {
+            logger.info(`[AUTOMATED CERTIFICATE SYSTEM] ⚠️ Certificate already exists in Google Sheets Registry for ${payload.studentEmail} in course ${payload.courseId}. Skipping generation.`);
+            
+            this.logLocalRegistry({
+              certificateId: sheetExisting.certificateId,
+              studentEmail: payload.studentEmail,
+              courseId: payload.courseId,
+              completionDate: sheetExisting.completionDate,
+              googleDriveLink: 'local-server',
+            });
 
-          return {
-            success: true,
-            certificateId: sheetExisting.certificateId,
-            studentId: payload.studentId,
-            studentName: payload.studentName,
-            studentEmail: payload.studentEmail,
-            courseTitle: payload.courseTitle,
-            completionDate: sheetExisting.completionDate,
-            googleDriveLink: 'local-server',
-            googleDriveFileId: 'local-server',
-            timeline,
-          };
+            return {
+              success: true,
+              certificateId: sheetExisting.certificateId,
+              studentId: payload.studentId,
+              studentName: payload.studentName,
+              studentEmail: payload.studentEmail,
+              courseTitle: payload.courseTitle,
+              completionDate: sheetExisting.completionDate,
+              googleDriveLink: 'local-server',
+              googleDriveFileId: 'local-server',
+              timeline,
+            };
+          }
+        } catch (sheetCheckErr: any) {
+          logger.warn(`[AUTOMATED CERTIFICATE SYSTEM] Sheet precheck search failed/skipped: ${sheetCheckErr?.message || sheetCheckErr}`);
         }
-      } catch (sheetCheckErr: any) {
-        logger.warn(`[AUTOMATED CERTIFICATE SYSTEM] Sheet precheck search failed/skipped: ${sheetCheckErr?.message || sheetCheckErr}`);
       }
 
     // Step 1: Generate Deterministic Globally Unique Certificate ID (Preventing duplicates in sheet registry)
@@ -523,8 +551,9 @@ export class CertificateDeliveryService {
     const verifyUrl = `${env.FRONTEND_URL || 'http://localhost:5173'}/verify-certificate/${certificateId}?studentId=${payload.studentId}`;
 
     // Step 4: Log Certificate to Google Sheet Registry FIRST
+    let sheetLogged = false;
     try {
-      const sheetLogged = await googleSheetsService.appendCertificateRow({
+      sheetLogged = await googleSheetsService.appendCertificateRow({
         certificateId,
         studentId: payload.studentId,
         studentName: payload.studentName,
@@ -547,51 +576,46 @@ export class CertificateDeliveryService {
         });
         logger.info(`[AUTOMATED CERTIFICATE SYSTEM] Step 4: Certificate logged to Google Sheet Registry successfully.`);
       } else {
-        throw new Error('Google Sheets Append returned false.');
-      }
-
-      // Store certificate in Firestore certificates collection
-      if (db) {
-        try {
-          const certRecord = {
-            certificateId,
-            verificationId: certificateId,
-            studentId: payload.studentId,
-            studentName: payload.studentName,
-            studentEmail: payload.studentEmail,
-            courseId: payload.courseId,
-            courseName: payload.courseTitle,
-            instructorId: 'instructor_system',
-            instructorName: payload.instructorName || 'SHAIVIKA LMS Team',
-            issueDate: completionDate,
-            completionDate: completionDate,
-            pdfUrl: downloadUrl,
-            status: 'Issued',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          };
-          await db.collection('certificates').doc(certificateId).set(certRecord, { merge: true });
-          firestoreUpdated = true;
-          logger.info(`[AUTOMATED CERTIFICATE SYSTEM] Firestore certificates document created: certificates/${certificateId}`);
-        } catch (certDocErr: any) {
-          logger.warn(`[AUTOMATED CERTIFICATE SYSTEM] Firestore cert write notice: ${certDocErr?.message || certDocErr}`);
-        }
+        logger.error(`[AUTOMATED CERTIFICATE SYSTEM] ❌ Google Sheets Append returned false but proceeding with certificate generation.`);
+        timeline.push({
+          step: '4. UPDATE_GOOGLE_SHEETS_REGISTRY',
+          status: 'FAILED',
+          timestamp: new Date().toISOString(),
+          details: 'Google Sheets Append returned false.',
+        });
       }
     } catch (sheetLogErr: any) {
       const msg = `Failed to log certificate to Google Sheets: ${sheetLogErr?.message || sheetLogErr}`;
       timeline.push({ step: '4. UPDATE_GOOGLE_SHEETS_REGISTRY', status: 'FAILED', timestamp: new Date().toISOString(), details: msg });
-      logger.error(`[AUTOMATED CERTIFICATE SYSTEM] ❌ ${msg}`);
-      return {
-        success: false,
-        certificateId,
-        studentId: payload.studentId,
-        studentName: payload.studentName,
-        studentEmail: payload.studentEmail,
-        courseTitle: payload.courseTitle,
-        completionDate,
-        error: msg,
-        timeline,
-      };
+      logger.error(`[AUTOMATED CERTIFICATE SYSTEM] ❌ ${msg} but proceeding with certificate generation.`);
+    }
+
+    // Store certificate in Firestore certificates collection
+    if (db) {
+      try {
+        const certRecord = {
+          certificateId,
+          verificationId: certificateId,
+          studentId: payload.studentId,
+          studentName: payload.studentName,
+          studentEmail: payload.studentEmail,
+          courseId: payload.courseId,
+          courseName: payload.courseTitle,
+          instructorId: 'instructor_system',
+          instructorName: payload.instructorName || 'SHAIVIKA LMS Team',
+          issueDate: completionDate,
+          completionDate: completionDate,
+          pdfUrl: downloadUrl,
+          status: 'Issued',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        await db.collection('certificates').doc(certificateId).set(certRecord, { merge: true });
+        firestoreUpdated = true;
+        logger.info(`[AUTOMATED CERTIFICATE SYSTEM] Firestore certificates document created: certificates/${certificateId}`);
+      } catch (certDocErr: any) {
+        logger.warn(`[AUTOMATED CERTIFICATE SYSTEM] Firestore cert write notice: ${certDocErr?.message || certDocErr}`);
+      }
     }
 
     // Step 5: Send Professional Email via Nodemailer SMTP with PDF Attachment & Direct Download Link

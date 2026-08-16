@@ -124,12 +124,13 @@ export class GoogleSheetsService {
       const resText = await response.text();
       try {
         const resJson = JSON.parse(resText);
-        if (resJson && resJson.success === false) {
-          logger.error(`[GOOGLE SHEETS WEB APP] ❌ Apps Script reported failure: ${resJson.error || 'Unknown error'}`);
+        if (!resJson || resJson.success !== true) {
+          logger.error(`[GOOGLE SHEETS WEB APP] ❌ Apps Script reported failure: ${resJson?.error || 'Unknown error'}`);
           return false;
         }
-      } catch (e) {
-        // Plain text return ok
+      } catch (err: any) {
+        logger.error(`[GOOGLE SHEETS WEB APP] ❌ Failed to parse Apps Script response as JSON: ${err.message}. Response snippet: ${resText.substring(0, 200)}`);
+        return false;
       }
 
       logger.info(`[GOOGLE SHEETS WEB APP] 📝 Logged Certificate ${data.certificateId} successfully.`);
