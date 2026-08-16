@@ -425,33 +425,33 @@ export const AdminContentManagement: React.FC = () => {
   const hasErrors = validationChecklist.some(v => v.status === 'error');
 
   return (
-    <div className="space-y-8 font-['Sora'] text-slate-800 pb-12 select-text animate-in fade-in duration-300">
+    <div className="space-y-8 font-['Sora'] text-slate-800 dark:text-slate-200 pb-12 select-text animate-in fade-in duration-300">
       
       {/* 1. Header Banner */}
-      <div className="border-b border-sky-100 pb-4 select-none flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="border-b border-sky-100 dark:border-slate-800 pb-4 select-none flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-slate-900 flex items-center gap-2">
-            <Layers className="w-7 h-7 text-blue-600" />
+          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-slate-900 dark:text-white flex items-center gap-2">
+            <Layers className="w-7 h-7 text-blue-600 dark:text-cyan-400" />
             <span>Enterprise Content Management (CMS)</span>
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">
             Manage course modules, topics, lessons, sandboxes, resource files, and publications.
           </p>
         </div>
 
         {/* Course Select dropdown */}
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-slate-500 whitespace-nowrap">Active Course:</span>
+          <span className="text-xs font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap">Active Course:</span>
           <select
             value={selectedCourseId}
             onChange={(e) => {
               setSelectedCourseId(e.target.value);
               setSelectedLesson(null);
             }}
-            className="bg-white border border-slate-200 hover:border-slate-300 py-2.5 px-4 rounded-xl text-xs font-bold focus:border-blue-500 outline-none transition-all cursor-pointer shadow-3xs"
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 py-2.5 px-4 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:border-blue-500 outline-none transition-all cursor-pointer shadow-3xs"
           >
             {courses.map((c) => (
-              <option key={c.id} value={c.id}>
+              <option key={c.id} value={c.id} className="dark:bg-slate-900">
                 {c.title}
               </option>
             ))}
@@ -463,11 +463,11 @@ export const AdminContentManagement: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
         {/* ================= LEFT PANE: COURSE CONTENT EXPLORER ================= */}
-        <div className="lg:col-span-5 bg-white border border-sky-100 rounded-3xl p-5 shadow-3xs space-y-5 flex flex-col h-[750px] relative">
+        <div className="lg:col-span-5 bg-white dark:bg-slate-900 border border-sky-100 dark:border-slate-800 rounded-3xl p-5 shadow-3xs space-y-5 flex flex-col h-[750px] relative">
           
           {/* Header search & filters */}
           <div className="space-y-3.5 select-none shrink-0">
-            <h3 className="font-heading font-extrabold text-sm text-slate-900">Curriculum Explorer</h3>
+            <h3 className="font-heading font-extrabold text-sm text-slate-900 dark:text-white">Curriculum Explorer</h3>
             
             <div className="relative">
               <input
@@ -475,7 +475,7 @@ export const AdminContentManagement: React.FC = () => {
                 placeholder="Search curriculum items..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-8 pr-3 text-xs focus:outline-hidden focus:bg-white focus:border-blue-500 font-medium"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 pl-8 pr-3 text-xs text-slate-900 dark:text-white focus:outline-hidden focus:bg-white dark:focus:bg-slate-900 focus:border-blue-500 font-medium"
               />
               <Search className="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5" />
             </div>
@@ -483,45 +483,45 @@ export const AdminContentManagement: React.FC = () => {
             {/* Tree Filters Swaps */}
             <div className="grid grid-cols-3 gap-2 text-[10px] font-bold">
               <div>
-                <label className="text-slate-400 block mb-0.5 uppercase tracking-wide">Type</label>
+                <label className="text-slate-400 dark:text-slate-500 block mb-0.5 uppercase tracking-wide">Type</label>
                 <select
                   value={filterType}
                   onChange={(e) => setFilterType(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 focus:outline-hidden"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-lg p-1.5 focus:outline-hidden cursor-pointer"
                 >
-                  <option value="all">All Types</option>
-                  <option value="Video">Video</option>
-                  <option value="Reading">Reading</option>
-                  <option value="Quiz">Quiz</option>
-                  <option value="Assignment">Assignment</option>
+                  <option value="all" className="dark:bg-slate-900">All Types</option>
+                  <option value="Video" className="dark:bg-slate-900">Video</option>
+                  <option value="Reading" className="dark:bg-slate-900">Reading</option>
+                  <option value="Quiz" className="dark:bg-slate-900">Quiz</option>
+                  <option value="Assignment" className="dark:bg-slate-900">Assignment</option>
                 </select>
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-0.5 uppercase tracking-wide">Status</label>
+                <label className="text-slate-400 dark:text-slate-500 block mb-0.5 uppercase tracking-wide">Status</label>
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 focus:outline-hidden"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-lg p-1.5 focus:outline-hidden cursor-pointer"
                 >
-                  <option value="all">All Status</option>
-                  <option value="Published">Published</option>
-                  <option value="Draft">Draft</option>
+                  <option value="all" className="dark:bg-slate-900">All Status</option>
+                  <option value="Published" className="dark:bg-slate-900">Published</option>
+                  <option value="Draft" className="dark:bg-slate-900">Draft</option>
                 </select>
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-0.5 uppercase tracking-wide">Validation</label>
+                <label className="text-slate-400 dark:text-slate-500 block mb-0.5 uppercase tracking-wide">Validation</label>
                 <select
                   value={filterWarning}
                   onChange={(e) => setFilterWarning(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 focus:outline-hidden"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-lg p-1.5 focus:outline-hidden cursor-pointer"
                 >
-                  <option value="all">All Warnings</option>
-                  <option value="video">Missing Video</option>
-                  <option value="reading">Missing Text</option>
-                  <option value="quiz">Missing Quiz</option>
-                  <option value="assignment">Missing Homework</option>
+                  <option value="all" className="dark:bg-slate-900">All Warnings</option>
+                  <option value="video" className="dark:bg-slate-900">Missing Video</option>
+                  <option value="reading" className="dark:bg-slate-900">Missing Text</option>
+                  <option value="quiz" className="dark:bg-slate-900">Missing Quiz</option>
+                  <option value="assignment" className="dark:bg-slate-900">Missing Homework</option>
                 </select>
               </div>
             </div>
@@ -533,24 +533,24 @@ export const AdminContentManagement: React.FC = () => {
               activeCourse.modules.map((m, mIdx) => {
                 const isModExpanded = expandedModules[m.id] !== false;
                 return (
-                  <div key={m.id} className="border border-slate-150 rounded-2xl p-3 space-y-2 bg-slate-50/20">
+                  <div key={m.id} className="border border-slate-150 dark:border-slate-800 rounded-2xl p-3 space-y-2 bg-slate-50/20 dark:bg-slate-950/30">
                     
                     {/* Module Row */}
-                    <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-1.5 select-none">
+                    <div className="flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-1.5 select-none">
                       <button
                         onClick={() => setExpandedModules({ ...expandedModules, [m.id]: !isModExpanded })}
-                        className="flex items-center gap-2 text-slate-900 font-bold hover:text-blue-600 transition-all cursor-pointer text-left flex-1"
+                        className="flex items-center gap-2 text-slate-900 dark:text-white font-bold hover:text-blue-600 dark:hover:text-cyan-400 transition-all cursor-pointer text-left flex-1"
                       >
-                        {isModExpanded ? <FolderOpen className="w-4.5 h-4.5 text-blue-500 shrink-0" /> : <Folder className="w-4.5 h-4.5 text-blue-500 shrink-0" />}
+                        {isModExpanded ? <FolderOpen className="w-4.5 h-4.5 text-blue-500 dark:text-cyan-400 shrink-0" /> : <Folder className="w-4.5 h-4.5 text-blue-500 dark:text-cyan-400 shrink-0" />}
                         <span className="truncate max-w-[180px]">{m.title}</span>
                       </button>
 
                       {/* Module control keys */}
                       <div className="flex items-center gap-1">
-                        <button onClick={() => moveModule(m.id, 'up')} disabled={mIdx === 0} className="p-1 hover:bg-white border border-transparent hover:border-slate-200 rounded disabled:opacity-30 cursor-pointer"><ChevronUp className="w-3.5 h-3.5" /></button>
-                        <button onClick={() => moveModule(m.id, 'down')} disabled={mIdx === activeCourse.modules!.length - 1} className="p-1 hover:bg-white border border-transparent hover:border-slate-200 rounded disabled:opacity-30 cursor-pointer"><ChevronDown className="w-3.5 h-3.5" /></button>
-                        <button onClick={() => addTopicNode(m.id)} title="Add Topic" className="p-1 hover:bg-blue-55 hover:text-blue-600 rounded cursor-pointer"><Plus className="w-3.5 h-3.5" /></button>
-                        <button onClick={() => deleteModule(m.id)} title="Delete Module" className="p-1 hover:bg-rose-50 hover:text-rose-600 rounded cursor-pointer"><Trash2 className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => moveModule(m.id, 'up')} disabled={mIdx === 0} className="p-1 hover:bg-white dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 rounded disabled:opacity-30 cursor-pointer text-slate-500 dark:text-slate-400"><ChevronUp className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => moveModule(m.id, 'down')} disabled={mIdx === activeCourse.modules!.length - 1} className="p-1 hover:bg-white dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 rounded disabled:opacity-30 cursor-pointer text-slate-500 dark:text-slate-400"><ChevronDown className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => addTopicNode(m.id)} title="Add Topic" className="p-1 hover:bg-blue-50 dark:hover:bg-slate-800 hover:text-blue-600 dark:hover:text-cyan-400 text-slate-500 dark:text-slate-400 rounded cursor-pointer"><Plus className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => deleteModule(m.id)} title="Delete Module" className="p-1 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600 text-slate-500 dark:text-slate-400 rounded cursor-pointer"><Trash2 className="w-3.5 h-3.5" /></button>
                       </div>
                     </div>
 
@@ -561,13 +561,13 @@ export const AdminContentManagement: React.FC = () => {
                           m.topics.map((t, tIdx) => {
                             const isTopicExpanded = expandedTopics[t.id] !== false;
                             return (
-                              <div key={t.id} className="border-l-2 border-slate-200 pl-2.5 space-y-2">
+                              <div key={t.id} className="border-l-2 border-slate-200 dark:border-slate-700 pl-2.5 space-y-2">
                                 
                                 {/* Topic Row */}
                                 <div className="flex items-center justify-between gap-2 select-none">
                                   <button
                                     onClick={() => setExpandedTopics({ ...expandedTopics, [t.id]: !isTopicExpanded })}
-                                    className="flex items-center gap-1.5 text-slate-700 hover:text-blue-600 transition-all cursor-pointer text-left flex-1"
+                                    className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-cyan-400 transition-all cursor-pointer text-left flex-1"
                                   >
                                     {isTopicExpanded ? <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />}
                                     <span className="truncate max-w-[140px]">{t.title}</span>
@@ -575,10 +575,10 @@ export const AdminContentManagement: React.FC = () => {
 
                                   {/* Topic control keys */}
                                   <div className="flex items-center gap-1">
-                                    <button onClick={() => moveTopic(m.id, t.id, 'up')} disabled={tIdx === 0} className="p-1 hover:bg-white border border-transparent hover:border-slate-200 rounded disabled:opacity-30 cursor-pointer"><ChevronUp className="w-3 h-3" /></button>
-                                    <button onClick={() => moveTopic(m.id, t.id, 'down')} disabled={tIdx === m.topics.length - 1} className="p-1 hover:bg-white border border-transparent hover:border-slate-200 rounded disabled:opacity-30 cursor-pointer"><ChevronDown className="w-3 h-3" /></button>
-                                    <button onClick={() => addLessonNode(m.id, t.id)} title="Add Lesson" className="p-1 hover:bg-blue-55 hover:text-blue-600 rounded cursor-pointer"><Plus className="w-3 h-3" /></button>
-                                    <button onClick={() => deleteTopic(m.id, t.id)} title="Delete Topic" className="p-1 hover:bg-rose-50 hover:text-rose-600 rounded cursor-pointer"><Trash2 className="w-3 h-3" /></button>
+                                    <button onClick={() => moveTopic(m.id, t.id, 'up')} disabled={tIdx === 0} className="p-1 hover:bg-white dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 rounded disabled:opacity-30 cursor-pointer text-slate-500 dark:text-slate-400"><ChevronUp className="w-3 h-3" /></button>
+                                    <button onClick={() => moveTopic(m.id, t.id, 'down')} disabled={tIdx === m.topics.length - 1} className="p-1 hover:bg-white dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 rounded disabled:opacity-30 cursor-pointer text-slate-500 dark:text-slate-400"><ChevronDown className="w-3 h-3" /></button>
+                                    <button onClick={() => addLessonNode(m.id, t.id)} title="Add Lesson" className="p-1 hover:bg-blue-50 dark:hover:bg-slate-800 hover:text-blue-600 dark:hover:text-cyan-400 text-slate-500 dark:text-slate-400 rounded cursor-pointer"><Plus className="w-3 h-3" /></button>
+                                    <button onClick={() => deleteTopic(m.id, t.id)} title="Delete Topic" className="p-1 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600 text-slate-500 dark:text-slate-400 rounded cursor-pointer"><Trash2 className="w-3 h-3" /></button>
                                   </div>
                                 </div>
 
@@ -598,8 +598,8 @@ export const AdminContentManagement: React.FC = () => {
                                             key={u.id}
                                             className={`group p-2 rounded-xl border flex items-center justify-between gap-2 transition-all ${
                                               isSelected 
-                                                ? 'bg-blue-50 border-blue-200 text-blue-800' 
-                                                : 'bg-white hover:bg-slate-50 border-slate-150'
+                                                ? 'bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-cyan-300' 
+                                                : 'bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-800/60 border-slate-150 dark:border-slate-800 text-slate-800 dark:text-slate-200'
                                             }`}
                                           >
                                             <div className="flex items-center gap-2 min-w-0">
@@ -614,7 +614,7 @@ export const AdminContentManagement: React.FC = () => {
                                                 onClick={() => handleSelectLesson(u, m.id, t.id)}
                                                 className="flex items-center gap-1.5 font-medium text-left truncate cursor-pointer text-xs"
                                               >
-                                                {u.type === 'Video' ? <FileVideo className="w-3.5 h-3.5 text-blue-500 shrink-0" /> : u.type === 'Quiz' ? <FileCheck2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> : <FileText className="w-3.5 h-3.5 text-slate-500 shrink-0" />}
+                                                {u.type === 'Video' ? <FileVideo className="w-3.5 h-3.5 text-blue-500 shrink-0" /> : u.type === 'Quiz' ? <FileCheck2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> : <FileText className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 shrink-0" />}
                                                 <span className="truncate max-w-[120px]">{u.title}</span>
                                               </button>
                                             </div>
@@ -625,17 +625,17 @@ export const AdminContentManagement: React.FC = () => {
                                               
                                               {/* Tiny reorder and copy/delete options */}
                                               <div className="hidden group-hover:flex items-center gap-0.5">
-                                                <button onClick={() => moveLesson(m.id, t.id, u.id, 'up')} disabled={uIdx === 0} className="p-0.5 hover:bg-slate-200 rounded disabled:opacity-20 cursor-pointer"><ChevronUp className="w-3 h-3" /></button>
-                                                <button onClick={() => moveLesson(m.id, t.id, u.id, 'down')} disabled={uIdx === t.learningUnits.length - 1} className="p-0.5 hover:bg-slate-200 rounded disabled:opacity-20 cursor-pointer"><ChevronDown className="w-3 h-3" /></button>
-                                                <button onClick={() => duplicateLesson(m.id, t.id, u)} title="Duplicate" className="p-0.5 hover:bg-slate-200 rounded cursor-pointer"><Copy className="w-3.5 h-3.5 text-slate-500" /></button>
-                                                <button onClick={() => deleteLesson(m.id, t.id, u.id)} title="Delete" className="p-0.5 hover:bg-rose-50 rounded cursor-pointer"><Trash2 className="w-3.5 h-3.5 text-rose-500" /></button>
+                                                <button onClick={() => moveLesson(m.id, t.id, u.id, 'up')} disabled={uIdx === 0} className="p-0.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded disabled:opacity-20 cursor-pointer text-slate-500 dark:text-slate-400"><ChevronUp className="w-3 h-3" /></button>
+                                                <button onClick={() => moveLesson(m.id, t.id, u.id, 'down')} disabled={uIdx === t.learningUnits.length - 1} className="p-0.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded disabled:opacity-20 cursor-pointer text-slate-500 dark:text-slate-400"><ChevronDown className="w-3 h-3" /></button>
+                                                <button onClick={() => duplicateLesson(m.id, t.id, u)} title="Duplicate" className="p-0.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded cursor-pointer"><Copy className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" /></button>
+                                                <button onClick={() => deleteLesson(m.id, t.id, u.id)} title="Delete" className="p-0.5 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded cursor-pointer"><Trash2 className="w-3.5 h-3.5 text-rose-500" /></button>
                                               </div>
                                             </div>
                                           </div>
                                         );
                                       })
                                     ) : (
-                                      <p className="text-[10px] text-slate-400 italic">No lessons</p>
+                                      <p className="text-[10px] text-slate-400 dark:text-slate-500 italic">No lessons</p>
                                     )}
                                   </div>
                                 )}
@@ -643,7 +643,7 @@ export const AdminContentManagement: React.FC = () => {
                             );
                           })
                         ) : (
-                          <p className="text-[10px] text-slate-400 italic">No topics</p>
+                          <p className="text-[10px] text-slate-400 dark:text-slate-500 italic">No topics</p>
                         )}
                       </div>
                     )}
@@ -651,12 +651,12 @@ export const AdminContentManagement: React.FC = () => {
                 );
               })
             ) : (
-              <p className="text-slate-400 italic">No modules exist. Create a new module to start building syllabus tracks.</p>
+              <p className="text-slate-400 dark:text-slate-500 italic">No modules exist. Create a new module to start building syllabus tracks.</p>
             )}
           </div>
 
           {/* Sticky Bottom bulk actions panel */}
-          <div className="border-t border-slate-100 pt-3 select-none flex items-center justify-between gap-2 shrink-0">
+          <div className="border-t border-slate-100 dark:border-slate-800 pt-3 select-none flex items-center justify-between gap-2 shrink-0">
             <button
               onClick={addModuleNode}
               className="py-2 px-3.5 bg-blue-600 hover:bg-blue-500 text-white font-extrabold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
@@ -666,17 +666,17 @@ export const AdminContentManagement: React.FC = () => {
             </button>
 
             {selectedLessonIds.size > 0 && (
-              <div className="p-1.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-1 text-[11px] font-bold">
-                <span className="text-slate-500 px-1">{selectedLessonIds.size} checked</span>
+              <div className="p-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center gap-1 text-[11px] font-bold">
+                <span className="text-slate-500 dark:text-slate-400 px-1">{selectedLessonIds.size} checked</span>
                 <button
                   onClick={() => handleBulkPublish('Published')}
-                  className="py-1 px-2 hover:bg-white text-emerald-700 hover:border-slate-350 border border-transparent rounded cursor-pointer"
+                  className="py-1 px-2 hover:bg-white dark:hover:bg-slate-850 text-emerald-700 dark:text-emerald-400 hover:border-slate-350 border border-transparent rounded cursor-pointer"
                 >
                   Publish
                 </button>
                 <button
                   onClick={handleBulkDelete}
-                  className="py-1 px-2 hover:bg-white text-rose-700 hover:border-slate-350 border border-transparent rounded cursor-pointer"
+                  className="py-1 px-2 hover:bg-white dark:hover:bg-slate-850 text-rose-700 dark:text-rose-400 hover:border-slate-350 border border-transparent rounded cursor-pointer"
                 >
                   Delete
                 </button>
@@ -686,16 +686,16 @@ export const AdminContentManagement: React.FC = () => {
         </div>
 
         {/* ================= RIGHT PANE: LESSON CONTENT EDITOR ================= */}
-        <div className="lg:col-span-7 bg-white border border-sky-100 rounded-3xl shadow-xs overflow-hidden flex flex-col h-[750px]">
+        <div className="lg:col-span-7 bg-white dark:bg-slate-900 border border-sky-100 dark:border-slate-800 rounded-3xl shadow-xs overflow-hidden flex flex-col h-[750px]">
           
           {!selectedLesson ? (
             <div className="flex-1 flex flex-col items-center justify-center p-12 text-center space-y-4 select-none">
-              <div className="w-16 h-16 rounded-3xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-500">
+              <div className="w-16 h-16 rounded-3xl bg-blue-50 dark:bg-slate-950 border border-blue-100 dark:border-slate-800 flex items-center justify-center text-blue-500 dark:text-cyan-400">
                 <FileText className="w-8 h-8" />
               </div>
               <div className="space-y-1 max-w-sm">
-                <h4 className="font-heading font-extrabold text-sm text-slate-800">No Lesson Selected</h4>
-                <p className="text-xs text-slate-500 leading-normal font-medium">
+                <h4 className="font-heading font-extrabold text-sm text-slate-800 dark:text-slate-200">No Lesson Selected</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-normal font-medium">
                   Select a syllabus unit from the explorer hierarchy on the left, or add modules and topics to start structuring content.
                 </p>
               </div>
@@ -704,29 +704,29 @@ export const AdminContentManagement: React.FC = () => {
             <div className="flex-1 flex flex-col justify-between h-full">
               
               {/* Sticky Top editor toolbar */}
-              <div className="bg-slate-50/50 border-b border-slate-100 p-4 select-none shrink-0 flex items-center justify-between gap-4">
+              <div className="bg-slate-50/50 dark:bg-slate-950/60 border-b border-slate-100 dark:border-slate-800 p-4 select-none shrink-0 flex items-center justify-between gap-4">
                 <div className="space-y-0.5">
-                  <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wider block">Currently Editing</span>
-                  <h4 className="font-heading font-bold text-sm text-slate-900 truncate max-w-sm">{selectedLesson.title}</h4>
+                  <span className="text-[9px] text-slate-400 dark:text-slate-500 font-extrabold uppercase tracking-wider block">Currently Editing</span>
+                  <h4 className="font-heading font-bold text-sm text-slate-900 dark:text-white truncate max-w-sm">{selectedLesson.title}</h4>
                 </div>
 
                 <div className="flex items-center gap-3 text-xs font-bold select-none">
                   {/* Validation checklist status */}
                   <div className="relative group">
-                    <button className="py-1 px-2.5 bg-white border border-slate-200 rounded-lg text-slate-600 flex items-center gap-1.5 cursor-pointer">
+                    <button className="py-1 px-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 flex items-center gap-1.5 cursor-pointer">
                       {hasErrors ? <AlertCircle className="w-4 h-4 text-rose-500" /> : <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
                       <span>Checks</span>
                     </button>
                     
                     {/* Hover dropdown list of checks */}
-                    <div className="hidden group-hover:block absolute right-0 top-full mt-1.5 w-64 bg-white border border-slate-250 rounded-2xl shadow-xl p-3.5 z-40 space-y-2 leading-relaxed text-left text-[11px] font-semibold text-slate-600">
-                      <span className="font-bold text-slate-900 block border-b border-slate-100 pb-1">Publication Checklist</span>
+                    <div className="hidden group-hover:block absolute right-0 top-full mt-1.5 w-64 bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800 rounded-2xl shadow-xl p-3.5 z-40 space-y-2 leading-relaxed text-left text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                      <span className="font-bold text-slate-900 dark:text-white block border-b border-slate-100 dark:border-slate-800 pb-1">Publication Checklist</span>
                       {validationChecklist.map((v) => (
                         <div key={v.id} className="flex items-start gap-1.5">
                           {v.status === 'success' ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" /> : v.status === 'warning' ? <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" /> : <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0 mt-0.5" />}
                           <div>
-                            <strong className="text-slate-800">{v.label}</strong>
-                            <p className="text-[10px] text-slate-400 font-medium">{v.message}</p>
+                            <strong className="text-slate-800 dark:text-slate-200">{v.label}</strong>
+                            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">{v.message}</p>
                           </div>
                         </div>
                       ))}
@@ -735,7 +735,7 @@ export const AdminContentManagement: React.FC = () => {
 
                   {/* Saving status indicator */}
                   <span className={`font-medium ${
-                    saveStatus === 'saving' ? 'text-blue-500 font-bold animate-pulse' : saveStatus === 'saved' ? 'text-emerald-600 font-bold' : 'text-slate-450'
+                    saveStatus === 'saving' ? 'text-blue-500 font-bold animate-pulse' : saveStatus === 'saved' ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-slate-450 dark:text-slate-500'
                   }`}>
                     {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved ✓' : 'Autosaved'}
                   </span>
@@ -743,7 +743,7 @@ export const AdminContentManagement: React.FC = () => {
               </div>
 
               {/* Editor Tabs switcher */}
-              <div className="flex bg-slate-50/30 border-b border-slate-100 text-[11px] font-bold overflow-x-auto gap-1 p-1 scrollbar-none select-none shrink-0">
+              <div className="flex bg-slate-50/30 dark:bg-slate-950/40 border-b border-slate-100 dark:border-slate-800 text-[11px] font-bold overflow-x-auto gap-1 p-1 scrollbar-none select-none shrink-0">
                 {[
                   { id: 'overview', label: 'Overview' },
                   { id: 'video', label: 'Video' },
@@ -759,7 +759,7 @@ export const AdminContentManagement: React.FC = () => {
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as any)}
                     className={`py-1.5 px-3 rounded-lg cursor-pointer transition-all whitespace-nowrap shrink-0 ${
-                      activeTab === tab.id ? 'bg-white text-slate-900 border border-slate-200 shadow-3xs' : 'text-slate-500 hover:text-slate-900'
+                      activeTab === tab.id ? 'bg-white dark:bg-slate-950 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 shadow-3xs' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                     }`}
                   >
                     {tab.label}
@@ -775,59 +775,59 @@ export const AdminContentManagement: React.FC = () => {
                   <div className="space-y-4 animate-in fade-in duration-200">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="text-slate-500 block mb-1">Lesson Title</label>
+                        <label className="text-slate-500 dark:text-slate-400 block mb-1">Lesson Title</label>
                         <input
                           type="text"
                           value={selectedLesson.title}
                           onChange={(e) => handleInputChange('title', e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:outline-hidden focus:bg-white focus:border-blue-500"
+                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl p-2.5 focus:outline-hidden focus:bg-white dark:focus:bg-slate-900 focus:border-blue-500"
                         />
                       </div>
                       <div>
-                        <label className="text-slate-500 block mb-1">Estimated Duration</label>
+                        <label className="text-slate-500 dark:text-slate-400 block mb-1">Estimated Duration</label>
                         <input
                           type="text"
                           value={selectedLesson.duration}
                           onChange={(e) => handleInputChange('duration', e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:outline-hidden"
+                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl p-2.5 focus:outline-hidden"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="text-slate-500 block mb-1">Lesson Summary / Description</label>
+                      <label className="text-slate-500 dark:text-slate-400 block mb-1">Lesson Summary / Description</label>
                       <textarea
                         value={selectedLesson.description}
                         onChange={(e) => handleInputChange('description', e.target.value)}
                         rows={3}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:outline-hidden"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl p-2.5 focus:outline-hidden"
                       />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="text-slate-500 block mb-1">Difficulty level</label>
+                        <label className="text-slate-500 dark:text-slate-400 block mb-1">Difficulty level</label>
                         <select
                           value={(selectedLesson as any).quizDifficulty || 'Medium'}
                           onChange={(e) => handleInputChange('quizDifficulty', e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:outline-hidden"
+                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl p-2.5 focus:outline-hidden cursor-pointer"
                         >
-                          <option value="Easy">Easy</option>
-                          <option value="Medium">Medium</option>
-                          <option value="Hard">Hard</option>
+                          <option value="Easy" className="dark:bg-slate-900">Easy</option>
+                          <option value="Medium" className="dark:bg-slate-900">Medium</option>
+                          <option value="Hard" className="dark:bg-slate-900">Hard</option>
                         </select>
                       </div>
                       <div>
-                        <label className="text-slate-500 block mb-1">Content Delivery Type</label>
+                        <label className="text-slate-500 dark:text-slate-400 block mb-1">Content Delivery Type</label>
                         <select
                           value={selectedLesson.type}
                           onChange={(e) => handleInputChange('type', e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:outline-hidden"
+                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl p-2.5 focus:outline-hidden cursor-pointer"
                         >
-                          <option value="Video">Video</option>
-                          <option value="Reading">Reading</option>
-                          <option value="Quiz">Quiz</option>
-                          <option value="Assignment">Assignment</option>
+                          <option value="Video" className="dark:bg-slate-900">Video</option>
+                          <option value="Reading" className="dark:bg-slate-900">Reading</option>
+                          <option value="Quiz" className="dark:bg-slate-900">Quiz</option>
+                          <option value="Assignment" className="dark:bg-slate-900">Assignment</option>
                         </select>
                       </div>
                     </div>
@@ -838,13 +838,13 @@ export const AdminContentManagement: React.FC = () => {
                 {activeTab === 'video' && (
                   <div className="space-y-4 animate-in fade-in duration-200">
                     <div>
-                      <label className="text-slate-500 block mb-1">Streaming Video URL (YouTube / Vimeo)</label>
+                      <label className="text-slate-500 dark:text-slate-400 block mb-1">Streaming Video URL (YouTube / Vimeo)</label>
                       <input
                         type="text"
                         value={selectedLesson.videoUrl || ''}
                         onChange={(e) => handleInputChange('videoUrl', e.target.value)}
                         placeholder="https://www.youtube.com/watch?v=..."
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:outline-hidden"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl p-2.5 focus:outline-hidden"
                       />
                       {selectedLesson.videoUrl && videoDetails && !videoDetails.isValid && (
                         <span className="text-[10px] font-bold text-rose-600 block mt-1 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" /> Invalid Streaming Link structure. Must match YouTube/Vimeo.</span>
@@ -853,8 +853,8 @@ export const AdminContentManagement: React.FC = () => {
 
                     {selectedLesson.videoUrl && videoDetails && videoDetails.isValid && (
                       <div className="space-y-2">
-                        <label className="text-slate-500 block">Streaming Preview Player</label>
-                        <div className="aspect-video w-full border border-slate-200 rounded-2xl overflow-hidden bg-slate-900">
+                        <label className="text-slate-500 dark:text-slate-400 block">Streaming Preview Player</label>
+                        <div className="aspect-video w-full border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden bg-slate-900">
                           <iframe
                             title="Video Preview"
                             src={videoDetails.embedUrl}
@@ -865,13 +865,13 @@ export const AdminContentManagement: React.FC = () => {
                       </div>
                     )}
 
-                    <div className="p-4 bg-slate-50 border border-slate-200/50 rounded-2xl flex items-center justify-between select-none">
+                    <div className="p-4 bg-slate-50 dark:bg-slate-950/60 border border-slate-200/50 dark:border-slate-800 rounded-2xl flex items-center justify-between select-none">
                       <div className="space-y-0.5">
-                        <span className="font-bold text-slate-800">Media Asset Upload (Cloud integration placeholder)</span>
-                        <p className="text-[10px] text-slate-400 font-medium">Select and drag raw MP4 video structures directly to stream.</p>
+                        <span className="font-bold text-slate-800 dark:text-slate-200">Media Asset Upload (Cloud integration placeholder)</span>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Select and drag raw MP4 video structures directly to stream.</p>
                       </div>
-                      <button type="button" onClick={() => toast.info('Cloud S3/Firebase upload interface invoked (placeholder).')} className="py-1.5 px-3 bg-white border border-slate-200 rounded-xl text-slate-700 font-bold flex items-center gap-1 cursor-pointer hover:border-slate-400">
-                        <UploadCloud className="w-4 h-4 text-blue-500" />
+                      <button type="button" onClick={() => toast.info('Cloud S3/Firebase upload interface invoked (placeholder).')} className="py-1.5 px-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-700 dark:text-slate-200 font-bold flex items-center gap-1 cursor-pointer hover:border-slate-400 dark:hover:border-slate-600">
+                        <UploadCloud className="w-4 h-4 text-blue-500 dark:text-cyan-400" />
                         <span>Upload Video</span>
                       </button>
                     </div>
@@ -882,7 +882,7 @@ export const AdminContentManagement: React.FC = () => {
                 {activeTab === 'reading' && (
                   <div className="space-y-3.5 animate-in fade-in duration-200 h-full flex flex-col">
                     {/* Markdown buttons toolbar */}
-                    <div className="flex flex-wrap items-center gap-1 p-1 bg-slate-100 rounded-xl border select-none shrink-0">
+                    <div className="flex flex-wrap items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 select-none shrink-0">
                       {[
                         { id: 'heading', label: 'Heading' },
                         { id: 'bold', label: 'Bold' },
@@ -896,7 +896,7 @@ export const AdminContentManagement: React.FC = () => {
                           key={act.id}
                           type="button"
                           onClick={() => insertMarkdown(act.id)}
-                          className="py-1 px-2.5 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-650 hover:bg-slate-50 transition-all cursor-pointer shadow-3xs"
+                          className="py-1 px-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-bold text-slate-650 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer shadow-3xs"
                         >
                           {act.label}
                         </button>
@@ -909,7 +909,7 @@ export const AdminContentManagement: React.FC = () => {
                       onChange={(e) => handleInputChange('readingContent', e.target.value)}
                       rows={14}
                       placeholder="Write rich markdown course materials here..."
-                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3.5 focus:outline-hidden font-mono text-[11px] leading-relaxed flex-1"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-2xl p-3.5 focus:outline-hidden font-mono text-[11px] leading-relaxed flex-1"
                     />
                   </div>
                 )}
@@ -918,22 +918,22 @@ export const AdminContentManagement: React.FC = () => {
                 {activeTab === 'resources' && (
                   <div className="space-y-4 animate-in fade-in duration-200">
                     <div className="space-y-2">
-                      <label className="text-slate-500 block">Attached Resource Files</label>
+                      <label className="text-slate-500 dark:text-slate-400 block">Attached Resource Files</label>
                       
                       {!(selectedLesson as any).resources || (selectedLesson as any).resources.length === 0 ? (
-                        <p className="text-[10px] text-slate-400 italic">No resources attached to this lesson.</p>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 italic">No resources attached to this lesson.</p>
                       ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 select-none">
                           {((selectedLesson as any).resources as ResourceItem[]).map((res) => (
-                            <div key={res.id} className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-3">
+                            <div key={res.id} className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between gap-3">
                               <div className="flex items-center gap-2 min-w-0">
-                                <FileCode className="w-4 h-4 text-blue-500 shrink-0" />
+                                <FileCode className="w-4 h-4 text-blue-500 dark:text-cyan-400 shrink-0" />
                                 <div className="min-w-0">
-                                  <span className="block truncate text-slate-800 text-[11px]">{res.name}</span>
-                                  <span className="text-[9px] text-slate-400 font-bold block">{res.category} • {res.fileSize}</span>
+                                  <span className="block truncate text-slate-800 dark:text-slate-200 text-[11px]">{res.name}</span>
+                                  <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold block">{res.category} • {res.fileSize}</span>
                                 </div>
                               </div>
-                              <button onClick={() => deleteResource(res.id)} className="p-1 hover:bg-rose-50 text-rose-600 rounded cursor-pointer"><Trash2 className="w-3.5 h-3.5" /></button>
+                              <button onClick={() => deleteResource(res.id)} className="p-1 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 rounded cursor-pointer"><Trash2 className="w-3.5 h-3.5" /></button>
                             </div>
                           ))}
                         </div>
@@ -941,31 +941,31 @@ export const AdminContentManagement: React.FC = () => {
                     </div>
 
                     {/* Form to attach resource */}
-                    <div className="p-4 bg-slate-50/50 border border-slate-200 rounded-2xl space-y-3 select-none">
-                      <span className="font-bold text-slate-800 block text-[11px]">Attach New Resource Asset</span>
+                    <div className="p-4 bg-slate-50/50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3 select-none">
+                      <span className="font-bold text-slate-800 dark:text-slate-200 block text-[11px]">Attach New Resource Asset</span>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <input
                           type="text"
                           placeholder="File Name (e.g. cheat-sheet.pdf)"
                           value={newResourceName}
                           onChange={(e) => setNewResourceName(e.target.value)}
-                          className="bg-white border border-slate-200 rounded-lg p-2 focus:outline-hidden"
+                          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg p-2 focus:outline-hidden"
                         />
                         <select
                           value={newResourceCat}
                           onChange={(e) => setNewResourceCat(e.target.value as any)}
-                          className="bg-white border border-slate-200 rounded-lg p-2 focus:outline-hidden"
+                          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg p-2 focus:outline-hidden cursor-pointer"
                         >
-                          <option value="PDF">PDF Document</option>
-                          <option value="DOCX">Word Document</option>
-                          <option value="ZIP">ZIP Archive</option>
-                          <option value="Source Code">Source Code File</option>
-                          <option value="External Link">External URL Link</option>
+                          <option value="PDF" className="dark:bg-slate-900">PDF Document</option>
+                          <option value="DOCX" className="dark:bg-slate-900">Word Document</option>
+                          <option value="ZIP" className="dark:bg-slate-900">ZIP Archive</option>
+                          <option value="Source Code" className="dark:bg-slate-900">Source Code File</option>
+                          <option value="External Link" className="dark:bg-slate-900">External URL Link</option>
                         </select>
                         <button
                           type="button"
                           onClick={addResourceToLesson}
-                          className="bg-slate-900 hover:bg-slate-850 text-white font-bold rounded-lg py-2 cursor-pointer shadow-sm text-center"
+                          className="bg-slate-900 dark:bg-sky-600 hover:bg-slate-850 dark:hover:bg-sky-500 text-white font-bold rounded-lg py-2 cursor-pointer shadow-sm text-center"
                         >
                           Attach Resource
                         </button>
@@ -979,33 +979,33 @@ export const AdminContentManagement: React.FC = () => {
                   <div className="space-y-4 animate-in fade-in duration-200">
                     <div className="space-y-2">
                       <div className="flex justify-between items-center select-none">
-                        <label className="text-slate-500 block">Graded Assessment Questions</label>
-                        <span className="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded font-bold font-mono">
+                        <label className="text-slate-500 dark:text-slate-400 block">Graded Assessment Questions</label>
+                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded font-bold font-mono">
                           Passing score: {selectedLesson.quizPassingScore || 70}%
                         </span>
                       </div>
 
                       {!selectedLesson.quizQuestions || selectedLesson.quizQuestions.length === 0 ? (
-                        <p className="text-[10px] text-slate-400 italic">No questions currently attached to this quiz.</p>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 italic">No questions currently attached to this quiz.</p>
                       ) : (
                         <div className="space-y-2 select-text">
                           {selectedLesson.quizQuestions.map((q, idx) => (
-                            <div key={q.id} className="p-3 bg-slate-50 border border-slate-150 rounded-xl space-y-1.5 relative">
-                              <span className="text-[9px] text-slate-400 block font-mono font-bold">QUESTION {idx + 1}</span>
-                              <p className="text-slate-800 font-bold text-[11px] pr-8">{q.questionText}</p>
+                            <div key={q.id} className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-150 dark:border-slate-800 rounded-xl space-y-1.5 relative">
+                              <span className="text-[9px] text-slate-400 dark:text-slate-500 block font-mono font-bold">QUESTION {idx + 1}</span>
+                              <p className="text-slate-800 dark:text-slate-200 font-bold text-[11px] pr-8">{q.questionText}</p>
                               
-                              <div className="pl-3.5 space-y-0.5 font-medium text-slate-500">
+                              <div className="pl-3.5 space-y-0.5 font-medium text-slate-500 dark:text-slate-400">
                                 {q.options.map((opt, oIdx) => (
                                   <div key={oIdx} className="flex items-center gap-1.5">
-                                    <span className={`w-1.5 h-1.5 rounded-full ${oIdx === q.correctAnswerIndex ? 'bg-emerald-500' : 'bg-slate-200'}`} />
-                                    <span className={oIdx === q.correctAnswerIndex ? 'text-emerald-700 font-bold' : ''}>{opt}</span>
+                                    <span className={`w-1.5 h-1.5 rounded-full ${oIdx === q.correctAnswerIndex ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-700'}`} />
+                                    <span className={oIdx === q.correctAnswerIndex ? 'text-emerald-700 dark:text-emerald-400 font-bold' : ''}>{opt}</span>
                                   </div>
                                 ))}
                               </div>
 
                               <button
                                 onClick={() => handleInputChange('quizQuestions', selectedLesson.quizQuestions!.filter(item => item.id !== q.id))}
-                                className="absolute right-3 top-3 p-1 hover:bg-rose-50 text-rose-600 rounded cursor-pointer"
+                                className="absolute right-3 top-3 p-1 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 rounded cursor-pointer"
                                 title="Remove Question"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -1017,34 +1017,34 @@ export const AdminContentManagement: React.FC = () => {
                     </div>
 
                     {/* Question Builder */}
-                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3.5 select-none">
-                      <span className="font-bold text-slate-800 block text-[11px]">Append New Quiz Question</span>
+                    <div className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3.5 select-none">
+                      <span className="font-bold text-slate-800 dark:text-slate-200 block text-[11px]">Append New Quiz Question</span>
                       <textarea
                         placeholder="Question Prompt Text (e.g. What is the standard configuration file for SSH?)"
                         value={newQuizQText}
                         onChange={(e) => setNewQuizQText(e.target.value)}
-                        className="w-full bg-white border border-slate-200 rounded-lg p-2 focus:outline-hidden"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg p-2 focus:outline-hidden"
                       />
 
                       <div className="grid grid-cols-2 gap-3 text-[10px] font-bold">
                         <div>
-                          <label className="text-slate-400 block mb-0.5">Correct Option Index</label>
+                          <label className="text-slate-400 dark:text-slate-500 block mb-0.5">Correct Option Index</label>
                           <select
                             value={newQuizCorrectIdx}
                             onChange={(e) => setNewQuizCorrectIdx(parseInt(e.target.value, 10))}
-                            className="w-full bg-white border border-slate-200 rounded-lg p-2 focus:outline-hidden"
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg p-2 focus:outline-hidden cursor-pointer"
                           >
-                            <option value={0}>Option 1 (Index 0)</option>
-                            <option value={1}>Option 2 (Index 1)</option>
-                            <option value={2}>Option 3 (Index 2)</option>
-                            <option value={3}>Option 4 (Index 3)</option>
+                            <option value={0} className="dark:bg-slate-900">Option 1 (Index 0)</option>
+                            <option value={1} className="dark:bg-slate-900">Option 2 (Index 1)</option>
+                            <option value={2} className="dark:bg-slate-900">Option 3 (Index 2)</option>
+                            <option value={3} className="dark:bg-slate-900">Option 4 (Index 3)</option>
                           </select>
                         </div>
 
                         <button
                           type="button"
                           onClick={addQuizQuestion}
-                          className="h-10 self-end bg-slate-900 hover:bg-slate-850 text-white font-bold rounded-lg cursor-pointer shadow-sm text-center"
+                          className="h-10 self-end bg-slate-900 dark:bg-sky-600 hover:bg-slate-850 dark:hover:bg-sky-500 text-white font-bold rounded-lg cursor-pointer shadow-sm text-center"
                         >
                           Append Question
                         </button>
@@ -1057,53 +1057,53 @@ export const AdminContentManagement: React.FC = () => {
                 {activeTab === 'assignment' && (
                   <div className="space-y-4 animate-in fade-in duration-200">
                     <div>
-                      <label className="text-slate-500 block mb-1">Homework Instructions (Markdown supported)</label>
+                      <label className="text-slate-500 dark:text-slate-400 block mb-1">Homework Instructions (Markdown supported)</label>
                       <textarea
                         value={selectedLesson.assignmentInstructions || ''}
                         onChange={(e) => handleInputChange('assignmentInstructions', e.target.value)}
                         rows={6}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:outline-hidden font-mono"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl p-2.5 focus:outline-hidden font-mono"
                       />
                     </div>
 
                     <div className="grid grid-cols-3 gap-4">
                       <div>
-                        <label className="text-slate-500 block mb-1">Maximum Grades / Marks</label>
+                        <label className="text-slate-500 dark:text-slate-400 block mb-1">Maximum Grades / Marks</label>
                         <input
                           type="number"
                           value={selectedLesson.assignmentMaxMarks || 100}
                           onChange={(e) => handleInputChange('assignmentMaxMarks', parseInt(e.target.value, 10) || 100)}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:outline-hidden font-mono"
+                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl p-2.5 focus:outline-hidden font-mono"
                         />
                       </div>
                       <div>
-                        <label className="text-slate-500 block mb-1">Allowed Upload Formats</label>
+                        <label className="text-slate-500 dark:text-slate-400 block mb-1">Allowed Upload Formats</label>
                         <input
                           type="text"
                           value={selectedLesson.assignmentAllowedTypes || 'ZIP, PDF, TXT'}
                           onChange={(e) => handleInputChange('assignmentAllowedTypes', e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:outline-hidden"
+                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl p-2.5 focus:outline-hidden"
                         />
                       </div>
                       <div>
-                        <label className="text-slate-500 block mb-1">Due Deadline Period</label>
+                        <label className="text-slate-500 dark:text-slate-400 block mb-1">Due Deadline Period</label>
                         <input
                           type="text"
                           value={selectedLesson.assignmentDeadline || '7 days'}
                           onChange={(e) => handleInputChange('assignmentDeadline', e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:outline-hidden"
+                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl p-2.5 focus:outline-hidden"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="text-slate-500 block mb-1">Grading Rubric Matrix Details</label>
+                      <label className="text-slate-500 dark:text-slate-400 block mb-1">Grading Rubric Matrix Details</label>
                       <textarea
                         value={selectedLesson.assignmentRubric || ''}
                         onChange={(e) => handleInputChange('assignmentRubric', e.target.value)}
                         placeholder="Completeness (50%), Accuracy (30%), Formatting (20%)"
                         rows={3}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:outline-hidden"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl p-2.5 focus:outline-hidden"
                       />
                     </div>
                   </div>
@@ -1126,63 +1126,63 @@ export const AdminContentManagement: React.FC = () => {
                   };
 
                   return (
-                    <div className="space-y-4 animate-in fade-in duration-200 text-slate-800">
+                    <div className="space-y-4 animate-in fade-in duration-200 text-slate-800 dark:text-slate-200">
                       
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="text-slate-550 block mb-1">Coding Challenge Title</label>
+                          <label className="text-slate-550 dark:text-slate-400 block mb-1">Coding Challenge Title</label>
                           <input
                             type="text"
                             value={challenge.title}
                             onChange={(e) => updateChallengeField('title', e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:outline-hidden text-xs font-semibold"
+                            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl p-2.5 focus:outline-hidden text-xs font-semibold"
                           />
                         </div>
                         <div>
-                          <label className="text-slate-555 block mb-1">Difficulty level</label>
+                          <label className="text-slate-555 dark:text-slate-400 block mb-1">Difficulty level</label>
                           <select
                             value={challenge.difficulty}
                             onChange={(e) => updateChallengeField('difficulty', e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:outline-hidden text-xs font-semibold"
+                            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl p-2.5 focus:outline-hidden text-xs font-semibold cursor-pointer"
                           >
-                            <option value="Easy">Easy</option>
-                            <option value="Medium">Medium</option>
-                            <option value="Hard">Hard</option>
+                            <option value="Easy" className="dark:bg-slate-900">Easy</option>
+                            <option value="Medium" className="dark:bg-slate-900">Medium</option>
+                            <option value="Hard" className="dark:bg-slate-900">Hard</option>
                           </select>
                         </div>
                       </div>
 
                       <div>
-                        <label className="text-slate-550 block mb-1">Starter Code Template</label>
+                        <label className="text-slate-550 dark:text-slate-400 block mb-1">Starter Code Template</label>
                         <textarea
                           value={challenge.starterCode}
                           onChange={(e) => updateChallengeField('starterCode', e.target.value)}
                           rows={6}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:outline-hidden font-mono text-[11px]"
+                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl p-2.5 focus:outline-hidden font-mono text-[11px]"
                         />
                       </div>
 
                       {/* Test cases list */}
                       <div className="space-y-2 select-none">
-                        <label className="text-slate-550 block font-semibold">Compiler Test Cases</label>
+                        <label className="text-slate-550 dark:text-slate-400 block font-semibold">Compiler Test Cases</label>
                         
                         {challenge.testCases.length === 0 ? (
-                          <p className="text-[10px] text-slate-400 italic">No compiler test cases. Add one below.</p>
+                          <p className="text-[10px] text-slate-400 dark:text-slate-500 italic">No compiler test cases. Add one below.</p>
                         ) : (
                           <div className="space-y-2">
                             {challenge.testCases.map((tc: any, idx: number) => (
-                              <div key={tc.id} className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-3 text-[11px]">
+                              <div key={tc.id} className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between gap-3 text-[11px]">
                                 <div>
-                                  <span className="font-bold text-slate-600 font-mono">CASE #{idx+1}:</span>
-                                  <span className="ml-1.5 text-slate-500">Input: <code className="bg-white px-1 border rounded">{tc.input}</code></span>
-                                  <span className="ml-3 text-slate-500">Expected: <code className="bg-white px-1 border rounded">{tc.expectedOutput}</code></span>
+                                  <span className="font-bold text-slate-600 dark:text-slate-400 font-mono">CASE #{idx+1}:</span>
+                                  <span className="ml-1.5 text-slate-500 dark:text-slate-400">Input: <code className="bg-white dark:bg-slate-900 px-1 border border-slate-200 dark:border-slate-700 rounded text-slate-800 dark:text-slate-200">{tc.input}</code></span>
+                                  <span className="ml-3 text-slate-500 dark:text-slate-400">Expected: <code className="bg-white dark:bg-slate-900 px-1 border border-slate-200 dark:border-slate-700 rounded text-slate-800 dark:text-slate-200">{tc.expectedOutput}</code></span>
                                 </div>
                                 <button
                                   onClick={() => {
                                     const nextTc = challenge.testCases.filter((item: any) => item.id !== tc.id);
                                     updateChallengeField('testCases', nextTc);
                                   }}
-                                  className="p-1 hover:bg-rose-50 text-rose-600 rounded cursor-pointer"
+                                  className="p-1 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 rounded cursor-pointer"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </button>
@@ -1193,27 +1193,27 @@ export const AdminContentManagement: React.FC = () => {
                       </div>
 
                       {/* Add Test Case Form */}
-                      <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
-                        <span className="font-bold text-slate-800 block text-[11px]">Add Test Case Case</span>
+                      <div className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3">
+                        <span className="font-bold text-slate-800 dark:text-slate-200 block text-[11px]">Add Test Case Case</span>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <input
                             type="text"
                             placeholder="Input String (e.g. 15)"
                             value={newTcInput}
                             onChange={(e) => setNewTcInput(e.target.value)}
-                            className="bg-white border border-slate-200 rounded-lg p-2 focus:outline-hidden"
+                            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg p-2 focus:outline-hidden"
                           />
                           <input
                             type="text"
                             placeholder="Expected Output String"
                             value={newTcExpected}
                             onChange={(e) => setNewTcExpected(e.target.value)}
-                            className="bg-white border border-slate-200 rounded-lg p-2 focus:outline-hidden"
+                            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg p-2 focus:outline-hidden"
                           />
                           <button
                             type="button"
                             onClick={addTestCase}
-                            className="bg-slate-900 hover:bg-slate-850 text-white font-bold rounded-lg py-2 cursor-pointer shadow-sm text-center"
+                            className="bg-slate-900 dark:bg-sky-600 hover:bg-slate-850 dark:hover:bg-sky-500 text-white font-bold rounded-lg py-2 cursor-pointer shadow-sm text-center"
                           >
                             Add Test Case
                           </button>
@@ -1228,34 +1228,34 @@ export const AdminContentManagement: React.FC = () => {
                 {activeTab === 'ai' && (
                   <div className="space-y-4 animate-in fade-in duration-200">
                     <div>
-                      <label className="text-slate-550 block mb-1">AI Context Summary Guide (Used by chatbot reviews)</label>
+                      <label className="text-slate-550 dark:text-slate-400 block mb-1">AI Context Summary Guide (Used by chatbot reviews)</label>
                       <textarea
                         value={(selectedLesson as any).aiSummary || ''}
                         onChange={(e) => handleInputChange('aiSummary' as any, e.target.value)}
                         placeholder="Add summarizing notes for the AI Learning Assistant..."
                         rows={4}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:outline-hidden text-xs"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl p-2.5 focus:outline-hidden text-xs"
                       />
                     </div>
 
                     <div>
-                      <label className="text-slate-550 block mb-1">Key Concepts (Comma separated)</label>
+                      <label className="text-slate-550 dark:text-slate-400 block mb-1">Key Concepts (Comma separated)</label>
                       <input
                         type="text"
                         value={(selectedLesson as any).aiKeyConcepts || 'Linux CLI, File permissions'}
                         onChange={(e) => handleInputChange('aiKeyConcepts' as any, e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:outline-hidden text-xs"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl p-2.5 focus:outline-hidden text-xs"
                       />
                     </div>
 
                     <div>
-                      <label className="text-slate-550 block mb-1">Suggested User Prompts for Assistant panel</label>
+                      <label className="text-slate-550 dark:text-slate-400 block mb-1">Suggested User Prompts for Assistant panel</label>
                       <textarea
                         value={(selectedLesson as any).aiSuggestedPrompts || 'How do file permissions work in Linux?\nExplain the differences between owner and group.'}
                         onChange={(e) => handleInputChange('aiSuggestedPrompts' as any, e.target.value)}
                         placeholder="One prompt per line..."
                         rows={3}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:outline-hidden text-xs"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl p-2.5 focus:outline-hidden text-xs"
                       />
                     </div>
                   </div>
@@ -1264,27 +1264,27 @@ export const AdminContentManagement: React.FC = () => {
                 {/* 9. SETTINGS TAB */}
                 {activeTab === 'settings' && (
                   <div className="space-y-4 animate-in fade-in duration-200 select-none">
-                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
+                    <div className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-4">
                       
                       <div className="flex items-center justify-between">
                         <div>
-                          <span className="font-bold text-slate-800 block">Lesson Publication Status</span>
-                          <span className="text-[10px] text-slate-400 block font-medium">Published lessons are visible in student learning player catalog views.</span>
+                          <span className="font-bold text-slate-800 dark:text-slate-200 block">Lesson Publication Status</span>
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500 block font-medium">Published lessons are visible in student learning player catalog views.</span>
                         </div>
                         <select
                           value={selectedLesson.assignmentSubmissionStatus === 'Published' ? 'Published' : 'Draft'}
                           onChange={(e) => handleInputChange('assignmentSubmissionStatus' as any, e.target.value)}
-                          className="bg-white border border-slate-200 rounded-lg p-1.5 font-bold cursor-pointer"
+                          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg p-1.5 font-bold cursor-pointer"
                         >
-                          <option value="Published">Published</option>
-                          <option value="Draft">Draft</option>
+                          <option value="Published" className="dark:bg-slate-900">Published</option>
+                          <option value="Draft" className="dark:bg-slate-900">Draft</option>
                         </select>
                       </div>
 
-                      <div className="border-t border-slate-200/50 pt-4 flex items-center justify-between">
+                      <div className="border-t border-slate-200/50 dark:border-slate-800 pt-4 flex items-center justify-between">
                         <div>
-                          <span className="font-bold text-slate-800 block">Free Preview Mode</span>
-                          <span className="text-[10px] text-slate-400 block font-medium">Allows unsubscribed or guest visitors to view study materials.</span>
+                          <span className="font-bold text-slate-800 dark:text-slate-200 block">Free Preview Mode</span>
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500 block font-medium">Allows unsubscribed or guest visitors to view study materials.</span>
                         </div>
                         <input
                           type="checkbox"
@@ -1294,20 +1294,20 @@ export const AdminContentManagement: React.FC = () => {
                         />
                       </div>
 
-                      <div className="border-t border-slate-200/50 pt-4 flex items-center justify-between">
+                      <div className="border-t border-slate-200/50 dark:border-slate-800 pt-4 flex items-center justify-between">
                         <div>
-                          <span className="font-bold text-slate-800 block">Completion Verification requirement</span>
-                          <span className="text-[10px] text-slate-400 block font-medium">Condition that marks progress checkpoint as completed.</span>
+                          <span className="font-bold text-slate-800 dark:text-slate-200 block">Completion Verification requirement</span>
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500 block font-medium">Condition that marks progress checkpoint as completed.</span>
                         </div>
                         <select
                           value={(selectedLesson as any).completionRequirement || 'View'}
                           onChange={(e) => handleInputChange('completionRequirement' as any, e.target.value)}
-                          className="bg-white border border-slate-200 rounded-lg p-1.5 font-bold cursor-pointer"
+                          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg p-1.5 font-bold cursor-pointer"
                         >
-                          <option value="View">View Content (Default)</option>
-                          <option value="PassQuiz">Pass Quiz Assessment</option>
-                          <option value="SubmitAssignment">Submit homework files</option>
-                          <option value="SolveCode">Solve practice lab sandbox</option>
+                          <option value="View" className="dark:bg-slate-900">View Content (Default)</option>
+                          <option value="PassQuiz" className="dark:bg-slate-900">Pass Quiz Assessment</option>
+                          <option value="SubmitAssignment" className="dark:bg-slate-900">Submit homework files</option>
+                          <option value="SolveCode" className="dark:bg-slate-900">Solve practice lab sandbox</option>
                         </select>
                       </div>
 
@@ -1318,11 +1318,11 @@ export const AdminContentManagement: React.FC = () => {
               </div>
 
               {/* Bottom Sticky action bar */}
-              <div className="bg-slate-50/50 border-t border-slate-100 p-4 select-none shrink-0 flex justify-end gap-3">
+              <div className="bg-slate-50/50 dark:bg-slate-950/60 border-t border-slate-100 dark:border-slate-800 p-4 select-none shrink-0 flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => toast.info('Preview mode launched (simulation placeholder).')}
-                  className="py-2.5 px-4 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-650 hover:bg-slate-100 cursor-pointer transition-all flex items-center gap-1.5"
+                  className="py-2.5 px-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-650 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-all flex items-center gap-1.5"
                 >
                   <Eye className="w-4 h-4" />
                   <span>Preview Lesson</span>
@@ -1334,7 +1334,7 @@ export const AdminContentManagement: React.FC = () => {
                     saveLessonEdits(selectedLesson);
                     toast.success('Changes successfully persisted manually.');
                   }}
-                  className="py-2.5 px-5 bg-slate-900 hover:bg-slate-850 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md"
+                  className="py-2.5 px-5 bg-slate-900 dark:bg-sky-600 hover:bg-slate-850 dark:hover:bg-sky-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md"
                 >
                   <Save className="w-4 h-4 text-emerald-400" />
                   <span>Force Save Changes</span>

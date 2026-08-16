@@ -207,7 +207,7 @@ export const AdminUsers: React.FC = () => {
       <UserStatistics stats={stats} />
 
       {/* Main Table & Filters Container */}
-      <div className="bg-white/90 border border-sky-200/80 rounded-3xl p-6 space-y-5 shadow-sm">
+      <div className="bg-white/90 dark:bg-slate-900 border border-sky-200/80 dark:border-slate-800 rounded-3xl p-6 space-y-5 shadow-sm">
         
         {/* Search & Filters Toolbar */}
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
@@ -230,8 +230,8 @@ export const AdminUsers: React.FC = () => {
         {/* User Data Table */}
         {loading ? (
           <div className="py-16 text-center space-y-3">
-            <Loader2 className="w-9 h-9 text-sky-600 animate-spin mx-auto" />
-            <p className="text-xs text-slate-500 font-bold">Subscribing to Firestore users database in real-time...</p>
+            <Loader2 className="w-9 h-9 text-sky-600 dark:text-cyan-400 animate-spin mx-auto" />
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-bold">Subscribing to Firestore users database in real-time...</p>
           </div>
         ) : (
           <UserTable
@@ -274,46 +274,46 @@ export const AdminUsers: React.FC = () => {
 
       {/* MODAL: QUICK REGISTER */}
       {isRegisteringOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-5 border border-sky-200 animate-in zoom-in-95 text-slate-900 font-['Sora']">
-            <div className="flex items-center justify-between border-b border-sky-100 pb-3">
-              <h3 className="font-heading font-bold text-lg text-slate-900">Create Platform Account</h3>
-              <button onClick={() => setIsRegisteringOpen(false)} className="text-slate-400 hover:text-slate-900 cursor-pointer">
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-5 border border-sky-200 dark:border-slate-800 animate-in zoom-in-95 text-slate-900 dark:text-white font-['Sora']">
+            <div className="flex items-center justify-between border-b border-sky-100 dark:border-slate-800 pb-3">
+              <h3 className="font-heading font-bold text-lg text-slate-900 dark:text-white">Create Platform Account</h3>
+              <button onClick={() => setIsRegisteringOpen(false)} className="text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 cursor-pointer">
                 ✕
               </button>
             </div>
 
             <form onSubmit={handleQuickRegister} className="space-y-4 text-xs font-medium">
               <div>
-                <label className="block text-slate-700 font-bold mb-1">Full Name</label>
+                <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Full Name</label>
                 <input
                   type="text"
                   value={regName}
                   onChange={(e) => setRegName(e.target.value)}
                   placeholder="Alex Johnson"
                   required
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl p-2.5 text-slate-900 dark:text-white focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-700 font-bold mb-1">Email Address</label>
+                <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Email Address</label>
                 <input
                   type="email"
                   value={regEmail}
                   onChange={(e) => setRegEmail(e.target.value)}
                   placeholder="alex@stanford.edu"
                   required
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl p-2.5 text-slate-900 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl p-2.5 text-slate-900 dark:text-white focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-700 font-bold mb-1">Assigned Role</label>
+                <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Assigned Role</label>
                 <select
                   value={regRole}
                   onChange={(e) => setRegRole(e.target.value as UserRole)}
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl p-2.5 text-slate-900 font-bold focus:outline-none cursor-pointer"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl p-2.5 text-slate-900 dark:text-white font-bold focus:outline-none cursor-pointer"
                 >
                   <option value="student">Student (Default)</option>
                   <option value="instructor">Instructor</option>
@@ -321,17 +321,17 @@ export const AdminUsers: React.FC = () => {
                 </select>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-sky-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setIsRegisteringOpen(false)}
-                  className="py-2 px-4 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50"
+                  className="py-2 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="btn-blue-primary text-xs py-2 px-5 font-bold shadow-md"
+                  className="btn-blue-primary text-xs py-2 px-5 font-bold shadow-md cursor-pointer"
                 >
                   Register Account
                 </button>

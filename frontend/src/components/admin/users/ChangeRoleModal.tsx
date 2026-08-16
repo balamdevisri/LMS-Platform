@@ -27,20 +27,20 @@ export const ChangeRoleModal: React.FC<ChangeRoleModalProps> = ({ user, onClose,
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 font-['Sora']">
-      <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-6 border border-sky-200 animate-in zoom-in-95 text-slate-900">
-        <div className="flex items-center justify-between border-b border-sky-100 pb-3">
+    <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 font-['Sora']">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-6 border border-sky-200 dark:border-slate-800 animate-in zoom-in-95 text-slate-900 dark:text-white">
+        <div className="flex items-center justify-between border-b border-sky-100 dark:border-slate-800 pb-3">
           <div className="flex items-center gap-2">
-            <ShieldAlert className="w-5 h-5 text-purple-600" />
-            <h3 className="font-heading font-bold text-lg text-slate-900">Change Account Role</h3>
+            <ShieldAlert className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            <h3 className="font-heading font-bold text-lg text-slate-900 dark:text-white">Change Account Role</h3>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-900 cursor-pointer">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 cursor-pointer">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="space-y-4 text-xs font-medium">
-          <div className="p-3 bg-sky-50 rounded-2xl border border-sky-100 flex items-center gap-3">
+          <div className="p-3 bg-sky-50 dark:bg-slate-950 rounded-2xl border border-sky-100 dark:border-slate-800 flex items-center gap-3">
             {user.photoURL ? (
               <img src={user.photoURL} alt={user.fullName} className="w-10 h-10 rounded-full object-cover border-2 border-sky-400" />
             ) : (
@@ -49,25 +49,25 @@ export const ChangeRoleModal: React.FC<ChangeRoleModalProps> = ({ user, onClose,
               </div>
             )}
             <div>
-              <h4 className="font-heading font-bold text-sm text-slate-900">{user.fullName}</h4>
-              <p className="text-slate-500">{user.email}</p>
+              <h4 className="font-heading font-bold text-sm text-slate-900 dark:text-white">{user.fullName}</h4>
+              <p className="text-slate-500 dark:text-slate-400">{user.email}</p>
             </div>
           </div>
 
-          <div className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-200">
+          <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800">
             <div>
-              <span className="text-slate-400 text-[10px] font-bold uppercase block mb-1">Current Role</span>
+              <span className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase block mb-1">Current Role</span>
               <RoleBadge role={user.role} />
             </div>
-            <ArrowRight className="w-4 h-4 text-slate-400" />
+            <ArrowRight className="w-4 h-4 text-slate-400 dark:text-slate-500" />
             <div>
-              <span className="text-slate-400 text-[10px] font-bold uppercase block mb-1">Target Role</span>
+              <span className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase block mb-1">Target Role</span>
               <RoleBadge role={selectedRole} />
             </div>
           </div>
 
           <div>
-            <label className="block text-slate-700 font-bold mb-2">Select New Access Level</label>
+            <label className="block text-slate-700 dark:text-slate-300 font-bold mb-2">Select New Access Level</label>
             <div className="grid grid-cols-3 gap-2">
               {(['student', 'instructor', 'admin'] as UserRole[]).map((r) => (
                 <button
@@ -77,7 +77,7 @@ export const ChangeRoleModal: React.FC<ChangeRoleModalProps> = ({ user, onClose,
                   className={`py-2.5 px-3 rounded-xl border text-xs font-bold capitalize transition-all cursor-pointer ${
                     selectedRole === r
                       ? 'bg-sky-600 text-white border-sky-600 shadow-md'
-                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-sky-50'
+                      : 'bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-sky-50 dark:hover:bg-slate-800'
                   }`}
                 >
                   {r}
@@ -86,7 +86,7 @@ export const ChangeRoleModal: React.FC<ChangeRoleModalProps> = ({ user, onClose,
             </div>
           </div>
 
-          <p className="text-[11px] text-amber-700 bg-amber-50 p-3 rounded-xl border border-amber-200 font-medium">
+          <p className="text-[11px] text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 p-3 rounded-xl border border-amber-200 dark:border-amber-800 font-medium">
             ⚠️ Changing a user's role grants or restricts platform permissions in real-time. Only authorized Admins can modify user access.
           </p>
         </div>
@@ -94,7 +94,7 @@ export const ChangeRoleModal: React.FC<ChangeRoleModalProps> = ({ user, onClose,
         <div className="flex items-center justify-end gap-3 pt-2">
           <button
             onClick={onClose}
-            className="py-2 px-4 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer"
+            className="py-2 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
           >
             Cancel
           </button>

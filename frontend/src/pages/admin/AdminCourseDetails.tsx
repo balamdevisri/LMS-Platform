@@ -1348,7 +1348,7 @@ export const AdminCourseDetails: React.FC = () => {
       <div className="flex items-center justify-between">
         <Link
           to="/admin/courses"
-          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-sky-600 hover:bg-sky-50/80 transition-all border border-sky-100/50 bg-white"
+          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-sky-600 dark:hover:text-cyan-400 hover:bg-sky-50/80 dark:hover:bg-slate-800 transition-all border border-sky-100/50 dark:border-slate-800 bg-white dark:bg-slate-900"
         >
           <ArrowLeft className="w-4 h-4 text-sky-500" />
           <span>Back to Course Tracks</span>
@@ -1356,25 +1356,25 @@ export const AdminCourseDetails: React.FC = () => {
       </div>
 
       {/* Course Header Banner */}
-      <div className="bg-white/95 backdrop-blur-2xl border border-sky-200/80 p-6 sm:p-8 rounded-3xl shadow-xl shadow-sky-500/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      <div className="bg-white/95 dark:bg-slate-900 backdrop-blur-2xl border border-sky-200/80 dark:border-slate-800 p-6 sm:p-8 rounded-3xl shadow-xl shadow-sky-500/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="space-y-3 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-bold text-sky-700 bg-sky-100/80 px-2.5 py-0.5 rounded-md border border-sky-200">
+            <span className="text-[10px] font-bold text-sky-700 dark:text-cyan-300 bg-sky-100/80 dark:bg-sky-950/60 px-2.5 py-0.5 rounded-md border border-sky-200 dark:border-sky-800">
               {course.category}
             </span>
             <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
               course.status === 'Published'
-                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                : 'bg-amber-50 text-amber-700 border border-amber-200'
+                ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
             }`}>
               {course.status}
             </span>
           </div>
-          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-slate-900 leading-tight">
+          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-slate-900 dark:text-white leading-tight">
             {course.title}
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 font-medium">
-            Lead Instructor: <span className="text-slate-800 font-bold">{course.instructor}</span>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
+            Lead Instructor: <span className="text-slate-800 dark:text-slate-200 font-bold">{course.instructor}</span>
           </p>
         </div>
 
@@ -1387,18 +1387,18 @@ export const AdminCourseDetails: React.FC = () => {
             }}
             className={`font-bold text-xs border py-3 px-5 rounded-xl transition-all shadow-xs flex items-center gap-2 cursor-pointer ${
               isStudentPreviewMode
-                ? 'bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-100'
-                : 'bg-white text-slate-800 border border-sky-200 hover:bg-sky-50/80'
+                ? 'bg-sky-50 dark:bg-cyan-950/60 text-sky-700 dark:text-cyan-300 border-sky-200 dark:border-cyan-800 hover:bg-sky-100 dark:hover:bg-cyan-900/60'
+                : 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-sky-200 dark:border-slate-800 hover:bg-sky-50/80 dark:hover:bg-slate-800'
             }`}
           >
             {isStudentPreviewMode ? (
               <>
-                <EyeOff className="w-4 h-4 text-sky-600" />
+                <EyeOff className="w-4 h-4 text-sky-600 dark:text-cyan-400" />
                 <span>Exit Preview</span>
               </>
             ) : (
               <>
-                <Eye className="w-4 h-4 text-slate-500" />
+                <Eye className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                 <span>Student Preview</span>
               </>
             )}
@@ -1410,7 +1410,7 @@ export const AdminCourseDetails: React.FC = () => {
                 toggleCourseStatus(course.id);
                 toast.success(`Course status toggled successfully!`);
               }}
-              className="bg-white hover:bg-sky-50/80 text-slate-800 font-bold text-xs border border-sky-200 py-3 px-5 rounded-xl transition-all shadow-xs flex items-center gap-2 cursor-pointer"
+              className="bg-white dark:bg-slate-900 hover:bg-sky-50/80 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold text-xs border border-sky-200 dark:border-slate-800 py-3 px-5 rounded-xl transition-all shadow-xs flex items-center gap-2 cursor-pointer"
             >
               <span>Toggle Status</span>
             </button>
@@ -1422,113 +1422,113 @@ export const AdminCourseDetails: React.FC = () => {
       {!isStudentPreviewMode ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           {/* Completion Progress Card */}
-          <div className="bg-white border border-sky-200/80 rounded-3xl p-5 shadow-xs flex flex-col justify-between space-y-4">
+          <div className="bg-white dark:bg-slate-900 border border-sky-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-xs flex flex-col justify-between space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
                 Curriculum Completion
               </span>
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
                 completionPercentage === 100
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                  : 'bg-sky-50 text-sky-700 border border-sky-200'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                  : 'bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-cyan-300 border border-sky-200 dark:border-sky-800'
               }`}>
                 {completionPercentage}% Populated
               </span>
             </div>
 
             <div className="space-y-2">
-              <div className="text-2xl font-extrabold text-slate-900 tracking-tight">
+              <div className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
                 {completionPercentage}%
               </div>
               
               {/* Progress Bar Container */}
-              <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden border">
+              <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden border dark:border-slate-700">
                 <div
                   className="bg-sky-600 h-full rounded-full transition-all duration-500"
                   style={{ width: `${completionPercentage}%` }}
                 />
               </div>
 
-              <span className="text-[10px] text-slate-400 font-semibold block">
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold block">
                 Audited units: {populatedUnitsCount} of {totalUnitsCount} fully set up.
               </span>
             </div>
           </div>
 
           {/* Syllabus Scale Card */}
-          <div className="bg-white border border-sky-200/80 rounded-3xl p-5 shadow-xs flex flex-col justify-between space-y-4">
+          <div className="bg-white dark:bg-slate-900 border border-sky-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-xs flex flex-col justify-between space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
                 Syllabus Structure
               </span>
               <Layers className="w-4 h-4 text-sky-500" />
             </div>
 
             <div className="space-y-1.5">
-              <div className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-baseline gap-1.5">
+              <div className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-baseline gap-1.5">
                 <span>{totalModules}</span>
-                <span className="text-xs text-slate-400 font-bold">Modules</span>
+                <span className="text-xs text-slate-400 dark:text-slate-500 font-bold">Modules</span>
               </div>
-              <div className="text-xs font-bold text-slate-700 flex items-center gap-1">
-                <span className="text-sky-700 bg-sky-50 border px-1.5 py-0.5 rounded font-mono">
+              <div className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                <span className="text-sky-700 dark:text-cyan-400 bg-sky-50 dark:bg-slate-800 border dark:border-slate-700 px-1.5 py-0.5 rounded font-mono">
                   {totalTopics}
                 </span>
                 <span>Topics & Lessons configured</span>
               </div>
-              <span className="text-[10px] text-slate-400 font-semibold block pt-1">
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold block pt-1">
                 Avg {totalModules > 0 ? (totalTopics / totalModules).toFixed(1) : 0} topics per module.
               </span>
             </div>
           </div>
 
           {/* Distribution Details Card */}
-          <div className="bg-white border border-sky-200/80 rounded-3xl p-5 shadow-xs flex flex-col justify-between space-y-4">
+          <div className="bg-white dark:bg-slate-900 border border-sky-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-xs flex flex-col justify-between space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
                 Asset Distributions
               </span>
-              <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border font-mono">
+              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border dark:border-slate-700 font-mono">
                 {totalUnitsCount} Units Total
               </span>
             </div>
 
             <div className="grid grid-cols-2 gap-2 text-[10px] font-bold font-mono">
-              <div className="bg-sky-50/50 border border-sky-100 rounded-lg p-1.5 flex items-center justify-between">
-                <span className="text-slate-500 flex items-center gap-1">🎥 Videos</span>
-                <span className="text-sky-800 font-extrabold">{totalVideos}</span>
+              <div className="bg-sky-50/50 dark:bg-slate-950 border border-sky-100 dark:border-slate-800 rounded-lg p-1.5 flex items-center justify-between">
+                <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1">🎥 Videos</span>
+                <span className="text-sky-800 dark:text-cyan-400 font-extrabold">{totalVideos}</span>
               </div>
-              <div className="bg-indigo-50/50 border border-indigo-100 rounded-lg p-1.5 flex items-center justify-between">
-                <span className="text-slate-500 flex items-center gap-1">📖 Readings</span>
-                <span className="text-indigo-800 font-extrabold">{totalReadings}</span>
+              <div className="bg-indigo-50/50 dark:bg-slate-950 border border-indigo-100 dark:border-slate-800 rounded-lg p-1.5 flex items-center justify-between">
+                <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1">📖 Readings</span>
+                <span className="text-indigo-800 dark:text-indigo-400 font-extrabold">{totalReadings}</span>
               </div>
-              <div className="bg-emerald-50/50 border border-emerald-100 rounded-lg p-1.5 flex items-center justify-between">
-                <span className="text-slate-500 flex items-center gap-1">📝 Quizzes</span>
-                <span className="text-emerald-800 font-extrabold">{totalQuizzes}</span>
+              <div className="bg-emerald-50/50 dark:bg-slate-950 border border-emerald-100 dark:border-slate-800 rounded-lg p-1.5 flex items-center justify-between">
+                <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1">📝 Quizzes</span>
+                <span className="text-emerald-800 dark:text-emerald-400 font-extrabold">{totalQuizzes}</span>
               </div>
-              <div className="bg-amber-50/50 border border-amber-100 rounded-lg p-1.5 flex items-center justify-between">
-                <span className="text-slate-500 flex items-center gap-1">📂 Tasks</span>
-                <span className="text-amber-800 font-extrabold">{totalAssignments}</span>
+              <div className="bg-amber-50/50 dark:bg-slate-950 border border-amber-100 dark:border-slate-800 rounded-lg p-1.5 flex items-center justify-between">
+                <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1">📂 Tasks</span>
+                <span className="text-amber-800 dark:text-amber-400 font-extrabold">{totalAssignments}</span>
               </div>
             </div>
           </div>
 
           {/* Estimated Hours Card */}
-          <div className="bg-white border border-sky-200/80 rounded-3xl p-5 shadow-xs flex flex-col justify-between space-y-4">
+          <div className="bg-white dark:bg-slate-900 border border-sky-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-xs flex flex-col justify-between space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
                 Total Learning Volume
               </span>
               <Clock className="w-4 h-4 text-sky-500" />
             </div>
 
             <div className="space-y-1.5">
-              <div className="text-2xl font-extrabold text-slate-900 tracking-tight">
+              <div className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
                 {totalLearningHours.toFixed(1)} hrs
               </div>
-              <div className="text-xs font-semibold text-slate-600">
+              <div className="text-xs font-semibold text-slate-600 dark:text-slate-400">
                 Approx. {totalUnitsCount > 0 ? Math.round((totalLearningHours * 60) / totalUnitsCount) : 0} mins per learning unit
               </div>
-              <span className="text-[10px] text-slate-400 font-semibold block pt-1">
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold block pt-1">
                 Calculated dynamically from live curriculum items.
               </span>
             </div>
@@ -1537,53 +1537,53 @@ export const AdminCourseDetails: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           {/* 1. Student Overall Completion Progress Card */}
-          <div className="bg-white border border-sky-200/80 rounded-3xl p-5 shadow-xs flex flex-col justify-between space-y-4 animate-in fade-in slide-in-from-bottom duration-300">
+          <div className="bg-white dark:bg-slate-900 border border-sky-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-xs flex flex-col justify-between space-y-4 animate-in fade-in slide-in-from-bottom duration-300">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
                 Overall Completion
               </span>
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
                 studentCompletionPercentage === 100
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 animate-pulse'
-                  : 'bg-sky-50 text-sky-700 border border-sky-200'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 animate-pulse'
+                  : 'bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-cyan-300 border border-sky-200 dark:border-sky-800'
               }`}>
                 {studentCompletionPercentage}% Completed
               </span>
             </div>
 
             <div className="space-y-2">
-              <div className="text-2xl font-extrabold text-slate-900 tracking-tight">
+              <div className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
                 {studentCompletionPercentage}%
               </div>
               
               {/* Progress Bar Container */}
-              <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden border">
+              <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden border dark:border-slate-700">
                 <div
                   className="bg-emerald-500 h-full rounded-full transition-all duration-500"
                   style={{ width: `${studentCompletionPercentage}%` }}
                 />
               </div>
 
-              <span className="text-[10px] text-slate-400 font-semibold block">
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold block">
                 Lessons: {completedUnitsCount} of {totalUnitsCount} completed.
               </span>
             </div>
           </div>
 
           {/* 2. Completed Learning Hours Card */}
-          <div className="bg-white border border-sky-200/80 rounded-3xl p-5 shadow-xs flex flex-col justify-between space-y-4 animate-in fade-in slide-in-from-bottom duration-300 delay-75">
+          <div className="bg-white dark:bg-slate-900 border border-sky-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-xs flex flex-col justify-between space-y-4 animate-in fade-in slide-in-from-bottom duration-300 delay-75">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
                 Completed Hours
               </span>
               <Clock className="w-4 h-4 text-sky-500" />
             </div>
 
             <div className="space-y-1.5">
-              <div className="text-2xl font-extrabold text-slate-900 tracking-tight">
+              <div className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
                 {completedLearningHours.toFixed(1)} / {totalLearningHours.toFixed(1)} hrs
               </div>
-              <p className="text-[10px] font-semibold text-slate-500 leading-relaxed">
+              <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 leading-relaxed">
                 {studentCompletionPercentage === 100 
                   ? 'Incredible! You have finished the full learning volume.' 
                   : `You have completed ${totalLearningHours > 0 ? Math.round((completedLearningHours / totalLearningHours) * 100) : 0}% of the course volume.`}
@@ -1592,32 +1592,32 @@ export const AdminCourseDetails: React.FC = () => {
           </div>
 
           {/* 3. Completed Assets Progress Card */}
-          <div className="bg-white border border-sky-200/80 rounded-3xl p-5 shadow-xs flex flex-col justify-between space-y-4 animate-in fade-in slide-in-from-bottom duration-300 delay-150">
+          <div className="bg-white dark:bg-slate-900 border border-sky-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-xs flex flex-col justify-between space-y-4 animate-in fade-in slide-in-from-bottom duration-300 delay-150">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
                 Completed Units
               </span>
-              <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border font-mono">
+              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border dark:border-slate-700 font-mono">
                 {completedUnitsCount} / {totalUnitsCount} Done
               </span>
             </div>
 
             <div className="grid grid-cols-2 gap-2 text-[10px] font-bold font-mono">
-              <div className="bg-sky-50/50 border border-sky-100 rounded-lg p-1.5 flex items-center justify-between">
-                <span className="text-slate-550 flex items-center gap-1">🎥 Videos</span>
-                <span className="text-sky-850 font-extrabold">{completedVideosCount} / {totalVideos}</span>
+              <div className="bg-sky-50/50 dark:bg-slate-950 border border-sky-100 dark:border-slate-800 rounded-lg p-1.5 flex items-center justify-between">
+                <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1">🎥 Videos</span>
+                <span className="text-sky-800 dark:text-cyan-400 font-extrabold">{completedVideosCount} / {totalVideos}</span>
               </div>
-              <div className="bg-indigo-50/50 border border-indigo-100 rounded-lg p-1.5 flex items-center justify-between">
-                <span className="text-slate-550 flex items-center gap-1">📖 Readings</span>
-                <span className="text-indigo-850 font-extrabold">{completedReadingsCount} / {totalReadings}</span>
+              <div className="bg-indigo-50/50 dark:bg-slate-950 border border-indigo-100 dark:border-slate-800 rounded-lg p-1.5 flex items-center justify-between">
+                <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1">📖 Readings</span>
+                <span className="text-indigo-800 dark:text-indigo-400 font-extrabold">{completedReadingsCount} / {totalReadings}</span>
               </div>
-              <div className="bg-emerald-50/50 border border-emerald-100 rounded-lg p-1.5 flex items-center justify-between">
-                <span className="text-slate-550 flex items-center gap-1">📝 Quizzes</span>
-                <span className="text-emerald-850 font-extrabold">{completedQuizzesCount} / {totalQuizzes}</span>
+              <div className="bg-emerald-50/50 dark:bg-slate-950 border border-emerald-100 dark:border-slate-800 rounded-lg p-1.5 flex items-center justify-between">
+                <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1">📝 Quizzes</span>
+                <span className="text-emerald-800 dark:text-emerald-400 font-extrabold">{completedQuizzesCount} / {totalQuizzes}</span>
               </div>
-              <div className="bg-amber-50/50 border border-amber-100 rounded-lg p-1.5 flex items-center justify-between">
-                <span className="text-slate-550 flex items-center gap-1">📂 Tasks</span>
-                <span className="text-amber-850 font-extrabold">{completedAssignmentsCount} / {totalAssignments}</span>
+              <div className="bg-amber-50/50 dark:bg-slate-950 border border-amber-100 dark:border-slate-800 rounded-lg p-1.5 flex items-center justify-between">
+                <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1">📂 Tasks</span>
+                <span className="text-amber-800 dark:text-amber-400 font-extrabold">{completedAssignmentsCount} / {totalAssignments}</span>
               </div>
             </div>
           </div>
@@ -1625,17 +1625,17 @@ export const AdminCourseDetails: React.FC = () => {
           {/* 4. Certificate Eligibility Card */}
           <div className={`border rounded-3xl p-5 shadow-xs flex flex-col justify-between space-y-3 transition-all duration-500 animate-in fade-in slide-in-from-bottom duration-300 delay-200 ${
             isEligibleForCertificate 
-              ? 'bg-gradient-to-br from-amber-500/10 via-emerald-500/5 to-sky-500/5 border-amber-300 shadow-md shadow-amber-500/5'
-              : 'bg-white border-sky-200/80'
+              ? 'bg-linear-to-br from-amber-500/10 via-emerald-500/5 to-sky-500/5 border-amber-300 shadow-md shadow-amber-500/5 dark:bg-slate-900 dark:border-amber-500/40'
+              : 'bg-white dark:bg-slate-900 border-sky-200/80 dark:border-slate-800'
           }`}>
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
                 Certificate Status
               </span>
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                 isEligibleForCertificate 
-                  ? 'bg-amber-100 text-amber-800 border border-amber-200 animate-bounce'
-                  : 'bg-slate-100 text-slate-650 border border-slate-200'
+                  ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 animate-bounce'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-650 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
               }`}>
                 {isEligibleForCertificate ? 'Eligible' : 'Locked'}
               </span>
@@ -1644,7 +1644,7 @@ export const AdminCourseDetails: React.FC = () => {
             <div className="space-y-1">
               {isEligibleForCertificate ? (
                 <>
-                  <div className="text-[11px] font-extrabold text-amber-900 tracking-tight flex items-center gap-1">
+                  <div className="text-[11px] font-extrabold text-amber-900 dark:text-amber-200 tracking-tight flex items-center gap-1">
                     <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                     <span>Certificate Unlocked!</span>
                   </div>
@@ -1658,8 +1658,8 @@ export const AdminCourseDetails: React.FC = () => {
                 </>
               ) : (
                 <>
-                  <div className="text-[11px] font-bold text-slate-500">Course Incomplete</div>
-                  <p className="text-[9px] font-medium text-slate-400 leading-relaxed">
+                  <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">Course Incomplete</div>
+                  <p className="text-[9px] font-medium text-slate-400 dark:text-slate-500 leading-relaxed">
                     Complete remaining {totalUnitsCount - completedUnitsCount} items to claim your verified certificate of completion.
                   </p>
                 </>
@@ -1671,14 +1671,14 @@ export const AdminCourseDetails: React.FC = () => {
 
       {/* Main Tabs Switcher */}
       {!isStudentPreviewMode && (
-        <div className="flex border-b border-slate-200 gap-6 text-sm font-bold bg-white p-4 rounded-3xl border border-sky-100/50 shadow-3xs mb-6">
+        <div className="flex border-b border-slate-200 dark:border-slate-800 gap-6 text-sm font-bold bg-white dark:bg-slate-900 p-4 rounded-3xl border border-sky-100/50 dark:border-slate-800 shadow-3xs mb-6">
           <button
             type="button"
             onClick={() => setActiveTab('edit')}
             className={`pb-1 transition-all border-b-2 cursor-pointer ${
               activeTab === 'edit'
-                ? 'border-sky-600 text-sky-700'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
+                ? 'border-sky-600 text-sky-700 dark:text-cyan-400'
+                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
             }`}
           >
             Curriculum Builder
@@ -1688,8 +1688,8 @@ export const AdminCourseDetails: React.FC = () => {
             onClick={() => setActiveTab('grading')}
             className={`pb-1 transition-all border-b-2 cursor-pointer ${
               activeTab === 'grading'
-                ? 'border-sky-600 text-sky-700'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
+                ? 'border-sky-600 text-sky-700 dark:text-cyan-400'
+                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
             }`}
           >
             Assignment Grading Center
@@ -1702,14 +1702,14 @@ export const AdminCourseDetails: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left: Modules Section */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white/90 border border-sky-200/80 rounded-3xl p-6 sm:p-8 space-y-6 shadow-sm">
-            <div className="flex items-center justify-between border-b border-sky-100 pb-4">
+          <div className="bg-white/90 dark:bg-slate-900 border border-sky-200/80 dark:border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-sm">
+            <div className="flex items-center justify-between border-b border-sky-100 dark:border-slate-800 pb-4">
               <div>
-                <h2 className="font-heading font-bold text-lg text-slate-900 flex items-center gap-2">
-                  <Layers className="w-5 h-5 text-sky-600" />
+                <h2 className="font-heading font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                  <Layers className="w-5 h-5 text-sky-600 dark:text-cyan-400" />
                   <span>Course Curriculum Modules</span>
                 </h2>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   Structure learning modules, topics, and granular learning units. Click on any unit's edit icon to configure content settings in the editor drawer.
                 </p>
               </div>
@@ -1726,13 +1726,13 @@ export const AdminCourseDetails: React.FC = () => {
 
             {/* Empty State or Modules List */}
             {modules.length === 0 ? (
-              <div className="flex flex-col items-center justify-center text-center p-8 sm:p-12 rounded-2xl bg-slate-50 border border-dashed border-sky-200 space-y-4">
-                <div className="w-16 h-16 rounded-2xl bg-sky-100/50 border border-sky-200 flex items-center justify-center text-sky-600 shadow-xs">
+              <div className="flex flex-col items-center justify-center text-center p-8 sm:p-12 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-dashed border-sky-200 dark:border-slate-800 space-y-4">
+                <div className="w-16 h-16 rounded-2xl bg-sky-100/50 dark:bg-slate-900 border border-sky-200 dark:border-slate-800 flex items-center justify-center text-sky-600 dark:text-cyan-400 shadow-xs">
                   <Layers className="w-8 h-8" />
                 </div>
                 <div className="space-y-1.5 max-w-sm">
-                  <h3 className="font-heading font-bold text-sm text-slate-900">Curriculum is Empty</h3>
-                  <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                  <h3 className="font-heading font-bold text-sm text-slate-900 dark:text-white">Curriculum is Empty</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
                     There are no modules defined for this course track yet. Click the "Add Module" button above to start adding lessons, labs, and interactive content.
                   </p>
                 </div>
@@ -1748,8 +1748,8 @@ export const AdminCourseDetails: React.FC = () => {
                       onDrop={(e) => handleModuleDrop(e, index)}
                       className={`border rounded-2xl transition-all duration-300 overflow-hidden ${
                         isExpanded
-                          ? 'border-sky-300 bg-sky-50/20 shadow-xs'
-                          : 'border-slate-200/80 bg-slate-50/50 hover:bg-slate-50'
+                          ? 'border-sky-300 dark:border-cyan-800 bg-sky-50/20 dark:bg-slate-950/60 shadow-xs'
+                          : 'border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 hover:bg-slate-50 dark:hover:bg-slate-800/50'
                       }`}
                     >
                       {/* Module Header Area */}
@@ -1761,7 +1761,7 @@ export const AdminCourseDetails: React.FC = () => {
                               draggable
                               onDragStart={(e) => handleModuleDragStart(e, index)}
                               onDragEnd={handleModuleDragEnd}
-                              className="p-1 text-slate-400 hover:text-slate-700 cursor-grab active:cursor-grabbing transition-colors shrink-0"
+                              className="p-1 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 cursor-grab active:cursor-grabbing transition-colors shrink-0"
                               title="Drag to reorder module"
                             >
                               <GripVertical className="w-4 h-4" />
@@ -1773,14 +1773,14 @@ export const AdminCourseDetails: React.FC = () => {
                             onClick={() => toggleExpand(module.id)}
                             className="min-w-0 flex-1 cursor-pointer flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5"
                           >
-                            <h3 className="font-heading font-bold text-xs sm:text-sm text-slate-900 truncate">
+                            <h3 className="font-heading font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate">
                               {module.title}
                             </h3>
                             <div className="flex items-center gap-2 shrink-0">
-                              <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 font-mono">
+                              <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 font-mono">
                                 {module.duration}
                               </span>
-                              <span className="text-[10px] font-semibold text-sky-700 bg-sky-50 px-2 py-0.5 rounded border border-sky-100 font-mono">
+                              <span className="text-[10px] font-semibold text-sky-700 dark:text-cyan-400 bg-sky-50 dark:bg-slate-800 px-2 py-0.5 rounded border border-sky-100 dark:border-slate-700 font-mono">
                                 {module.topics.length} {module.topics.length === 1 ? 'Topic' : 'Topics'}
                               </span>
                             </div>
@@ -1793,14 +1793,14 @@ export const AdminCourseDetails: React.FC = () => {
                             <>
                               <button
                                 onClick={() => openEditModal(module)}
-                                className="p-1.5 text-slate-400 hover:text-sky-600 rounded-lg hover:bg-white transition-colors cursor-pointer"
+                                className="p-1.5 text-slate-400 hover:text-sky-600 dark:hover:text-cyan-400 rounded-lg hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
                                 title="Edit Module"
                               >
                                 <Edit className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 onClick={() => handleDeleteModule(module.id, module.title)}
-                                className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-white transition-colors cursor-pointer"
+                                className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
                                 title="Delete Module"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -1809,7 +1809,7 @@ export const AdminCourseDetails: React.FC = () => {
                           )}
                           <button
                             onClick={() => toggleExpand(module.id)}
-                            className="p-1.5 text-slate-500 hover:text-slate-900 rounded-lg hover:bg-white transition-colors cursor-pointer"
+                            className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 rounded-lg hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
                           >
                             {isExpanded ? (
                               <ChevronUp className="w-4 h-4" />
@@ -1824,26 +1824,26 @@ export const AdminCourseDetails: React.FC = () => {
                       <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
                         isExpanded ? 'max-h-[8000px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'
                       }`}>
-                        <div className="p-4 sm:p-5 border-t border-sky-100 bg-white/90 space-y-4">
+                        <div className="p-4 sm:p-5 border-t border-sky-100 dark:border-slate-800 bg-white/90 dark:bg-slate-900 space-y-4">
                           <div className="space-y-1">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+                            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
                               Description
                             </span>
-                            <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                            <p className="text-xs text-slate-600 dark:text-slate-300 font-medium leading-relaxed">
                               {module.description || 'No description provided.'}
                             </p>
                           </div>
 
                           {/* Topics List */}
                           <div className="space-y-3">
-                            <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+                            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-1.5">
+                              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
                                 Topics & Lessons
                               </span>
                               {!isStudentPreviewMode && (
                                 <button
                                   onClick={() => openAddTopicModal(module.id)}
-                                  className="inline-flex items-center gap-1 text-[10px] font-bold text-sky-700 hover:text-sky-800 bg-sky-50 hover:bg-sky-100/80 border border-sky-100 py-1 px-2.5 rounded-lg transition-all cursor-pointer"
+                                  className="inline-flex items-center gap-1 text-[10px] font-bold text-sky-700 dark:text-cyan-400 hover:text-sky-800 bg-sky-50 dark:bg-slate-800 hover:bg-sky-100/80 dark:hover:bg-slate-700 border border-sky-100 dark:border-slate-700 py-1 px-2.5 rounded-lg transition-all cursor-pointer"
                                 >
                                   <Plus className="w-3 h-3" />
                                   <span>Add Topic</span>
@@ -1852,7 +1852,7 @@ export const AdminCourseDetails: React.FC = () => {
                             </div>
 
                             {module.topics.length === 0 ? (
-                              <p className="text-xs text-slate-400 italic py-2">No topics added to this module yet.</p>
+                              <p className="text-xs text-slate-400 dark:text-slate-500 italic py-2">No topics added to this module yet.</p>
                             ) : (
                               <div className="space-y-3">
                                 {module.topics.map((topic, topicIdx) => {
@@ -1864,8 +1864,8 @@ export const AdminCourseDetails: React.FC = () => {
                                       onDrop={(e) => handleTopicDrop(e, module.id, topicIdx)}
                                       className={`rounded-2xl border transition-all duration-300 ${
                                         isTopicExpanded
-                                          ? 'border-sky-200 bg-sky-50/10 shadow-2xs'
-                                          : 'border-slate-200 bg-slate-50/50 hover:bg-slate-50'
+                                          ? 'border-sky-200 dark:border-cyan-800 bg-sky-50/10 dark:bg-slate-950/60 shadow-2xs'
+                                          : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 hover:bg-slate-50 dark:hover:bg-slate-800/50'
                                       }`}
                                     >
                                       {/* Topic Header Area */}
@@ -1877,7 +1877,7 @@ export const AdminCourseDetails: React.FC = () => {
                                               draggable
                                               onDragStart={(e) => handleTopicDragStart(e, module.id, topicIdx)}
                                               onDragEnd={handleTopicDragEnd}
-                                              className="p-1 text-slate-400 hover:text-slate-700 cursor-grab active:cursor-grabbing transition-colors shrink-0"
+                                              className="p-1 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 cursor-grab active:cursor-grabbing transition-colors shrink-0"
                                               title="Drag to reorder topic"
                                             >
                                               <GripVertical className="w-3.5 h-3.5" />
@@ -1889,14 +1889,14 @@ export const AdminCourseDetails: React.FC = () => {
                                             onClick={() => toggleTopicExpand(topic.id)}
                                             className="min-w-0 flex-1 cursor-pointer flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5"
                                           >
-                                            <h4 className="font-heading font-bold text-xs sm:text-sm text-slate-900 truncate">
+                                            <h4 className="font-heading font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate">
                                               {topic.title}
                                             </h4>
                                             <div className="flex items-center gap-2 shrink-0">
-                                              <span className="text-[9px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 font-mono">
+                                              <span className="text-[9px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 font-mono">
                                                 {topic.estimatedDuration || '45 mins'}
                                               </span>
-                                              <span className="text-[9px] font-bold text-sky-700 bg-sky-100/50 px-2 py-0.5 rounded-full border border-sky-100 font-mono shrink-0">
+                                              <span className="text-[9px] font-bold text-sky-700 dark:text-cyan-400 bg-sky-100/50 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-sky-100 dark:border-slate-700 font-mono shrink-0">
                                                 {topic.learningUnits ? topic.learningUnits.length : 0} {(!topic.learningUnits || topic.learningUnits.length === 1) ? 'Unit' : 'Units'}
                                               </span>
                                             </div>
@@ -1909,14 +1909,14 @@ export const AdminCourseDetails: React.FC = () => {
                                             <>
                                               <button
                                                 onClick={() => openEditTopicModal(module.id, topic)}
-                                                className="p-1.5 text-slate-400 hover:text-sky-600 rounded-lg hover:bg-white transition-colors cursor-pointer"
+                                                className="p-1.5 text-slate-400 hover:text-sky-600 dark:hover:text-cyan-400 rounded-lg hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
                                                 title="Edit Topic"
                                               >
                                                 <Edit className="w-3.5 h-3.5" />
                                               </button>
                                               <button
                                                 onClick={() => handleDeleteTopic(module.id, topic.id, topic.title)}
-                                                className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-white transition-colors cursor-pointer"
+                                                className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
                                                 title="Delete Topic"
                                               >
                                                 <Trash2 className="w-3.5 h-3.5" />
@@ -1925,7 +1925,7 @@ export const AdminCourseDetails: React.FC = () => {
                                           )}
                                           <button
                                             onClick={() => toggleTopicExpand(topic.id)}
-                                            className="p-1.5 text-slate-500 hover:text-slate-900 rounded-lg hover:bg-white transition-colors cursor-pointer"
+                                            className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 rounded-lg hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
                                           >
                                             {isTopicExpanded ? (
                                               <ChevronUp className="w-3.5 h-3.5" />
@@ -1940,27 +1940,27 @@ export const AdminCourseDetails: React.FC = () => {
                                       <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
                                         isTopicExpanded ? 'max-h-[3000px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'
                                       }`}>
-                                        <div className="p-4 border-t border-sky-100 bg-white/70 space-y-4 rounded-b-2xl">
+                                        <div className="p-4 border-t border-sky-100 dark:border-slate-800 bg-white/70 dark:bg-slate-900 space-y-4 rounded-b-2xl">
                                           {/* Description */}
                                           <div className="space-y-1">
-                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">
+                                            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
                                               Topic Description
                                             </span>
-                                            <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                                            <p className="text-xs text-slate-600 dark:text-slate-300 font-medium leading-relaxed">
                                               {topic.description || 'No description provided.'}
                                             </p>
                                           </div>
 
                                           {/* Learning Units Section */}
                                           <div className="space-y-3">
-                                            <div className="flex items-center justify-between border-b border-slate-100 pb-1">
-                                              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">
+                                            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-1">
+                                              <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
                                                 Learning Units
                                               </span>
                                               {!isStudentPreviewMode && (
                                                 <button
                                                   onClick={() => openAddUnitModal(module.id, topic.id)}
-                                                  className="inline-flex items-center gap-1 text-[9px] font-bold text-sky-700 hover:text-sky-800 bg-sky-50 border border-sky-100 py-1 px-2.5 rounded-lg transition-colors cursor-pointer"
+                                                  className="inline-flex items-center gap-1 text-[9px] font-bold text-sky-700 dark:text-cyan-400 hover:text-sky-800 bg-sky-50 dark:bg-slate-800 border border-sky-100 dark:border-slate-700 py-1 px-2.5 rounded-lg transition-colors cursor-pointer"
                                                 >
                                                   <Plus className="w-2.5 h-2.5" />
                                                   <span>Add Learning Unit</span>
@@ -1969,7 +1969,7 @@ export const AdminCourseDetails: React.FC = () => {
                                             </div>
 
                                             {!topic.learningUnits || topic.learningUnits.length === 0 ? (
-                                              <p className="text-xs text-slate-400 italic py-1">No learning units defined for this topic.</p>
+                                              <p className="text-xs text-slate-400 dark:text-slate-500 italic py-1">No learning units defined for this topic.</p>
                                             ) : (
                                               <div className="space-y-2">
                                                 {topic.learningUnits.map((unit, unitIdx) => (
@@ -1978,7 +1978,7 @@ export const AdminCourseDetails: React.FC = () => {
                                                     onDragOver={handleUnitDragOver}
                                                     onDrop={(e) => handleUnitDrop(e, module.id, topic.id, unitIdx)}
                                                     onClick={() => openEditUnitDrawer(module.id, topic.id, unit)}
-                                                    className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 hover:border-sky-200 transition-all flex items-start justify-between gap-4 shadow-3xs cursor-pointer hover:bg-sky-50/20"
+                                                    className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 hover:border-sky-200 dark:hover:border-cyan-800 transition-all flex items-start justify-between gap-4 shadow-3xs cursor-pointer hover:bg-sky-50/20 dark:hover:bg-slate-800/40"
                                                   >
                                                     <div className="flex items-start gap-2.5 min-w-0 flex-1">
                                                       {/* Unit Drag Handle */}
@@ -1988,7 +1988,7 @@ export const AdminCourseDetails: React.FC = () => {
                                                           onDragStart={(e) => handleUnitDragStart(e, module.id, topic.id, unitIdx)}
                                                           onDragEnd={handleUnitDragEnd}
                                                           onClick={(e) => e.stopPropagation()}
-                                                          className="p-1 text-slate-400 hover:text-slate-700 cursor-grab active:cursor-grabbing transition-colors shrink-0 mt-0.5"
+                                                          className="p-1 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 cursor-grab active:cursor-grabbing transition-colors shrink-0 mt-0.5"
                                                           title="Drag to reorder unit"
                                                         >
                                                           <GripVertical className="w-3.5 h-3.5" />
@@ -1999,18 +1999,18 @@ export const AdminCourseDetails: React.FC = () => {
                                                       <div className="space-y-1 min-w-0 flex-1">
                                                         <div className="flex items-center gap-2 flex-wrap">
                                                           {renderUnitIcon(unit.type)}
-                                                          <h5 className="font-heading font-bold text-xs text-slate-900 truncate">
+                                                          <h5 className="font-heading font-bold text-xs text-slate-900 dark:text-white truncate">
                                                             {unit.title}
                                                           </h5>
                                                           <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full font-mono shrink-0 ${getUnitTypeBadgeStyles(unit.type)}`}>
                                                             {unit.type}
                                                           </span>
-                                                          <span className="text-[9px] font-semibold text-slate-500 bg-white border px-1.5 py-0.5 rounded shrink-0 flex items-center gap-1 font-mono">
+                                                          <span className="text-[9px] font-semibold text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 border dark:border-slate-700 px-1.5 py-0.5 rounded shrink-0 flex items-center gap-1 font-mono">
                                                             <Clock className="w-2.5 h-2.5 text-sky-500" />
                                                             {unit.duration}
                                                           </span>
                                                         </div>
-                                                        <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
+                                                        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
                                                           {unit.description || 'No description.'}
                                                         </p>
                                                       </div>
@@ -2021,14 +2021,14 @@ export const AdminCourseDetails: React.FC = () => {
                                                       <div className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                                                         <button
                                                           onClick={() => openEditUnitDrawer(module.id, topic.id, unit)}
-                                                          className="p-1.5 text-slate-400 hover:text-sky-600 rounded hover:bg-slate-100 transition-colors cursor-pointer"
+                                                          className="p-1.5 text-slate-400 hover:text-sky-600 dark:hover:text-cyan-400 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                                                           title="Edit Unit Drawer"
                                                         >
                                                           <Edit className="w-3.5 h-3.5" />
                                                         </button>
                                                         <button
                                                           onClick={() => handleDeleteLearningUnit(module.id, topic.id, unit.id, unit.title)}
-                                                          className="p-1.5 text-slate-400 hover:text-rose-600 rounded transition-colors cursor-pointer"
+                                                          className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded transition-colors cursor-pointer"
                                                           title="Delete Unit"
                                                         >
                                                           <Trash2 className="w-3.5 h-3.5" />
@@ -2061,45 +2061,45 @@ export const AdminCourseDetails: React.FC = () => {
         {/* Right: Sidebar / Meta Info */}
         <div className="space-y-6">
           {/* Quick Metrics */}
-          <div className="bg-white/90 border border-sky-200/80 rounded-3xl p-6 space-y-4 shadow-sm">
-            <h3 className="font-heading font-bold text-sm text-slate-900 border-b border-sky-100 pb-3 flex items-center gap-2">
-              <Settings className="w-4.5 h-4.5 text-sky-600" />
+          <div className="bg-white/90 dark:bg-slate-900 border border-sky-200/80 dark:border-slate-800 rounded-3xl p-6 space-y-4 shadow-sm">
+            <h3 className="font-heading font-bold text-sm text-slate-900 dark:text-white border-b border-sky-100 dark:border-slate-800 pb-3 flex items-center gap-2">
+              <Settings className="w-4.5 h-4.5 text-sky-600 dark:text-cyan-400" />
               <span>Track Parameters</span>
             </h3>
 
             <div className="space-y-3 font-medium text-xs">
-              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-sky-100">
-                <span className="text-slate-500 flex items-center gap-1.5">
+              <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-sky-100 dark:border-slate-800">
+                <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                   <Users className="w-3.5 h-3.5 text-sky-500" />
                   <span>Enrolled Students</span>
                 </span>
-                <span className="font-bold text-slate-800">{course.students || '0'}</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">{course.students || '0'}</span>
               </div>
 
-              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-sky-100">
-                <span className="text-slate-500 flex items-center gap-1.5">
+              <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-sky-100 dark:border-slate-800">
+                <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                   <Star className="w-3.5 h-3.5 text-amber-500" />
                   <span>Average Rating</span>
                 </span>
-                <span className="font-bold text-slate-800 flex items-center gap-1">
+                <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1">
                   <Star className="w-3 h-3 fill-current text-amber-400" />
                   <span>{course.rating || '5.0'}</span>
                 </span>
               </div>
 
-              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-sky-100">
-                <span className="text-slate-500 flex items-center gap-1.5">
+              <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-sky-100 dark:border-slate-800">
+                <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                   <Clock className="w-3.5 h-3.5 text-sky-500" />
                   <span>Duration</span>
                 </span>
-                <span className="font-bold text-slate-800">{course.duration || '20 hrs'}</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">{course.duration || '20 hrs'}</span>
               </div>
             </div>
           </div>
 
           {/* Instructor Bio Card */}
-          <div className="bg-white/90 border border-sky-200/80 rounded-3xl p-6 space-y-4 shadow-sm">
-            <h3 className="font-heading font-bold text-sm text-slate-900 border-b border-sky-100 pb-3">
+          <div className="bg-white/90 dark:bg-slate-900 border border-sky-200/80 dark:border-slate-800 rounded-3xl p-6 space-y-4 shadow-sm">
+            <h3 className="font-heading font-bold text-sm text-slate-900 dark:text-white border-b border-sky-100 dark:border-slate-800 pb-3">
               Instructor Profile
             </h3>
 
@@ -2107,17 +2107,17 @@ export const AdminCourseDetails: React.FC = () => {
               <img
                 src={course.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
                 alt={course.instructor}
-                className="w-12 h-12 rounded-xl object-cover border border-sky-200"
+                className="w-12 h-12 rounded-xl object-cover border border-sky-200 dark:border-slate-700"
               />
               <div className="space-y-0.5">
-                <span className="font-bold text-slate-900 text-xs block">{course.instructor}</span>
-                <span className="text-[10px] text-sky-700 font-semibold uppercase tracking-wider block">
+                <span className="font-bold text-slate-900 dark:text-white text-xs block">{course.instructor}</span>
+                <span className="text-[10px] text-sky-700 dark:text-cyan-400 font-semibold uppercase tracking-wider block">
                   {course.role || 'Senior Technical Instructor'}
                 </span>
               </div>
             </div>
 
-            <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
               Enterprise system architectures instructor focusing on Linux system administration, virtualization, shell scripting, and AI-assisted evaluations.
             </p>
           </div>
@@ -2128,18 +2128,18 @@ export const AdminCourseDetails: React.FC = () => {
       {/* Grading Center View */}
       {!isStudentPreviewMode && activeTab === 'grading' && (
         <div className="space-y-6 animate-in fade-in duration-300">
-          <div className="bg-white border border-sky-200 p-6 rounded-3xl shadow-xs space-y-4">
-            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
+          <div className="bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-800 p-6 rounded-3xl shadow-xs space-y-4">
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
               Select Course Assignment to Evaluate
             </label>
             <div className="relative">
               <select
                 value={selectedGradingAssignmentId}
                 onChange={(e) => setSelectedGradingAssignmentId(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-xs font-bold text-slate-800 focus:outline-hidden cursor-pointer"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-3 px-4 text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-hidden cursor-pointer"
               >
                 {courseAssignments.map((ass) => (
-                  <option key={ass.id} value={ass.id}>
+                  <option key={ass.id} value={ass.id} className="dark:bg-slate-900">
                     {ass.title}
                   </option>
                 ))}
@@ -2162,15 +2162,15 @@ export const AdminCourseDetails: React.FC = () => {
 
       {/* Add Module Modal */}
       {addModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-6 border border-sky-200 animate-in zoom-in-95 text-slate-900 font-['Sora']">
-            <div className="flex items-center justify-between border-b border-sky-100 pb-3">
-              <h3 className="font-heading font-bold text-lg text-slate-900 flex items-center gap-2">
-                <Layers className="w-5 h-5 text-sky-600" /> Create New Module
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-6 border border-sky-200 dark:border-slate-800 animate-in zoom-in-95 text-slate-900 dark:text-white font-['Sora']">
+            <div className="flex items-center justify-between border-b border-sky-100 dark:border-slate-800 pb-3">
+              <h3 className="font-heading font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                <Layers className="w-5 h-5 text-sky-600 dark:text-cyan-400" /> Create New Module
               </h3>
               <button
                 onClick={() => setAddModalOpen(false)}
-                className="text-slate-400 hover:text-slate-900 cursor-pointer"
+                className="text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -2178,45 +2178,45 @@ export const AdminCourseDetails: React.FC = () => {
 
             <form onSubmit={handleAddModule} className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Module Title</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Module Title</label>
                 <input
                   type="text"
                   required
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
                   placeholder="e.g. Module 3: Process Scheduling & Systemd"
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 text-xs text-slate-900 focus:outline-hidden transition-all font-medium"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-all font-medium"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Description</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Description</label>
                 <textarea
                   rows={3}
                   value={newDescription}
                   onChange={(e) => setNewDescription(e.target.value)}
                   placeholder="Provide a brief summary of what this module covers..."
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 text-xs text-slate-900 focus:outline-hidden transition-all font-medium resize-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-all font-medium resize-none"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Estimated Duration</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Estimated Duration</label>
                 <input
                   type="text"
                   required
                   value={newDuration}
                   onChange={(e) => setNewDuration(e.target.value)}
                   placeholder="e.g. 8 hours, 4 lessons"
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 text-xs text-slate-900 focus:outline-hidden transition-all font-medium"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-all font-medium"
                 />
               </div>
 
-              <div className="pt-2 flex items-center justify-end gap-3">
+              <div className="pt-2 flex items-center justify-end gap-3 border-t border-sky-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setAddModalOpen(false)}
-                  className="py-2.5 px-4 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer"
+                  className="py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -2235,18 +2235,18 @@ export const AdminCourseDetails: React.FC = () => {
 
       {/* Edit Module Modal */}
       {editModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-6 border border-sky-200 animate-in zoom-in-95 text-slate-900 font-['Sora']">
-            <div className="flex items-center justify-between border-b border-sky-100 pb-3">
-              <h3 className="font-heading font-bold text-lg text-slate-900 flex items-center gap-2">
-                <Edit className="w-5 h-5 text-sky-600" /> Edit Module Details
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-6 border border-sky-200 dark:border-slate-800 animate-in zoom-in-95 text-slate-900 dark:text-white font-['Sora']">
+            <div className="flex items-center justify-between border-b border-sky-100 dark:border-slate-800 pb-3">
+              <h3 className="font-heading font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                <Edit className="w-5 h-5 text-sky-600 dark:text-cyan-400" /> Edit Module Details
               </h3>
               <button
                 onClick={() => {
                   setEditModalOpen(false);
                   setEditingModule(null);
                 }}
-                className="text-slate-400 hover:text-slate-900 cursor-pointer"
+                className="text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -2254,45 +2254,45 @@ export const AdminCourseDetails: React.FC = () => {
 
             <form onSubmit={handleEditModule} className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Module Title</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Module Title</label>
                 <input
                   type="text"
                   required
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 text-xs text-slate-900 focus:outline-hidden transition-all font-medium"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-all font-medium"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Description</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Description</label>
                 <textarea
                   rows={3}
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 text-xs text-slate-900 focus:outline-hidden transition-all font-medium resize-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-all font-medium resize-none"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Estimated Duration</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Estimated Duration</label>
                 <input
                   type="text"
                   required
                   value={editDuration}
                   onChange={(e) => setEditDuration(e.target.value)}
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 text-xs text-slate-900 focus:outline-hidden transition-all font-medium"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-all font-medium"
                 />
               </div>
 
-              <div className="pt-2 flex items-center justify-end gap-3">
+              <div className="pt-2 flex items-center justify-end gap-3 border-t border-sky-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => {
                     setEditModalOpen(false);
                     setEditingModule(null);
                   }}
-                  className="py-2.5 px-4 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer"
+                  className="py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -2311,18 +2311,18 @@ export const AdminCourseDetails: React.FC = () => {
 
       {/* Add Topic Modal */}
       {addTopicModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-6 border border-sky-200 animate-in zoom-in-95 text-slate-900 font-['Sora']">
-            <div className="flex items-center justify-between border-b border-sky-100 pb-3">
-              <h3 className="font-heading font-bold text-lg text-slate-900 flex items-center gap-2">
-                <Layers className="w-5 h-5 text-sky-600" /> Add Topic to Module
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-6 border border-sky-200 dark:border-slate-800 animate-in zoom-in-95 text-slate-900 dark:text-white font-['Sora']">
+            <div className="flex items-center justify-between border-b border-sky-100 dark:border-slate-800 pb-3">
+              <h3 className="font-heading font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                <Layers className="w-5 h-5 text-sky-600 dark:text-cyan-400" /> Add Topic to Module
               </h3>
               <button
                 onClick={() => {
                   setAddTopicModalOpen(false);
                   setActiveModuleIdForTopic(null);
                 }}
-                className="text-slate-400 hover:text-slate-900 cursor-pointer"
+                className="text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -2330,48 +2330,48 @@ export const AdminCourseDetails: React.FC = () => {
 
             <form onSubmit={handleAddTopic} className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Topic Title</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Topic Title</label>
                 <input
                   type="text"
                   required
                   value={newTopicTitle}
                   onChange={(e) => setNewTopicTitle(e.target.value)}
                   placeholder="e.g. 1.3 Navigating Files & Directories"
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 text-xs text-slate-900 focus:outline-hidden transition-all font-medium"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-all font-medium"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Description</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Description</label>
                 <textarea
                   rows={3}
                   value={newTopicDescription}
                   onChange={(e) => setNewTopicDescription(e.target.value)}
                   placeholder="Summarize key learning concepts, instructions, or CLI lab goals..."
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 text-xs text-slate-900 focus:outline-hidden transition-all font-medium resize-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-all font-medium resize-none"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Estimated Duration</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Estimated Duration</label>
                 <input
                   type="text"
                   required
                   value={newTopicEstimatedDuration}
                   onChange={(e) => setNewTopicEstimatedDuration(e.target.value)}
                   placeholder="e.g. 45 mins, 1 hour"
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 text-xs text-slate-900 focus:outline-hidden transition-all font-medium"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-all font-medium"
                 />
               </div>
 
-              <div className="pt-2 flex items-center justify-end gap-3">
+              <div className="pt-2 flex items-center justify-end gap-3 border-t border-sky-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => {
                     setAddTopicModalOpen(false);
                     setActiveModuleIdForTopic(null);
                   }}
-                  className="py-2.5 px-4 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer"
+                  className="py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -2390,11 +2390,11 @@ export const AdminCourseDetails: React.FC = () => {
 
       {/* Edit Topic Modal */}
       {editTopicModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-6 border border-sky-200 animate-in zoom-in-95 text-slate-900 font-['Sora']">
-            <div className="flex items-center justify-between border-b border-sky-100 pb-3">
-              <h3 className="font-heading font-bold text-lg text-slate-900 flex items-center gap-2">
-                <Edit className="w-5 h-5 text-sky-600" /> Edit Topic Details
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-6 border border-sky-200 dark:border-slate-800 animate-in zoom-in-95 text-slate-900 dark:text-white font-['Sora']">
+            <div className="flex items-center justify-between border-b border-sky-100 dark:border-slate-800 pb-3">
+              <h3 className="font-heading font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                <Edit className="w-5 h-5 text-sky-600 dark:text-cyan-400" /> Edit Topic Details
               </h3>
               <button
                 onClick={() => {
@@ -2402,7 +2402,7 @@ export const AdminCourseDetails: React.FC = () => {
                   setEditingTopic(null);
                   setActiveModuleIdForTopic(null);
                 }}
-                className="text-slate-400 hover:text-slate-900 cursor-pointer"
+                className="text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -2410,38 +2410,38 @@ export const AdminCourseDetails: React.FC = () => {
 
             <form onSubmit={handleEditTopic} className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Topic Title</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Topic Title</label>
                 <input
                   type="text"
                   required
                   value={editTopicTitle}
                   onChange={(e) => setEditTopicTitle(e.target.value)}
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 text-xs text-slate-900 focus:outline-hidden transition-all font-medium"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-all font-medium"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Description</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Description</label>
                 <textarea
                   rows={3}
                   value={editTopicDescription}
                   onChange={(e) => setEditTopicDescription(e.target.value)}
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 text-xs text-slate-900 focus:outline-hidden transition-all font-medium resize-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-all font-medium resize-none"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Estimated Duration</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Estimated Duration</label>
                 <input
                   type="text"
                   required
                   value={editTopicEstimatedDuration}
                   onChange={(e) => setEditTopicEstimatedDuration(e.target.value)}
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 text-xs text-slate-900 focus:outline-hidden transition-all font-medium"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-all font-medium"
                 />
               </div>
 
-              <div className="pt-2 flex items-center justify-end gap-3">
+              <div className="pt-2 flex items-center justify-end gap-3 border-t border-sky-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => {
@@ -2449,7 +2449,7 @@ export const AdminCourseDetails: React.FC = () => {
                     setEditingTopic(null);
                     setActiveModuleIdForTopic(null);
                   }}
-                  className="py-2.5 px-4 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer"
+                  className="py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -2468,11 +2468,11 @@ export const AdminCourseDetails: React.FC = () => {
 
       {/* Add Learning Unit Modal */}
       {addUnitModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-6 border border-sky-200 animate-in zoom-in-95 text-slate-900 font-['Sora']">
-            <div className="flex items-center justify-between border-b border-sky-100 pb-3">
-              <h3 className="font-heading font-bold text-lg text-slate-900 flex items-center gap-2">
-                <Layers className="w-5 h-5 text-sky-600" /> Create Learning Unit
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-6 border border-sky-200 dark:border-slate-800 animate-in zoom-in-95 text-slate-900 dark:text-white font-['Sora']">
+            <div className="flex items-center justify-between border-b border-sky-100 dark:border-slate-800 pb-3">
+              <h3 className="font-heading font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                <Layers className="w-5 h-5 text-sky-600 dark:text-cyan-400" /> Create Learning Unit
               </h3>
               <button
                 onClick={() => {
@@ -2480,7 +2480,7 @@ export const AdminCourseDetails: React.FC = () => {
                   setActiveModuleIdForUnit(null);
                   setActiveTopicIdForUnit(null);
                 }}
-                className="text-slate-400 hover:text-slate-900 cursor-pointer"
+                className="text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -2488,47 +2488,47 @@ export const AdminCourseDetails: React.FC = () => {
 
             <form onSubmit={handleAddLearningUnit} className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Unit Title</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Unit Title</label>
                 <input
                   type="text"
                   required
                   value={newUnitTitle}
                   onChange={(e) => setNewUnitTitle(e.target.value)}
                   placeholder="e.g. 1.1 Unix Shell History Overview"
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 text-xs text-slate-900 focus:outline-hidden transition-all font-medium"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-all font-medium"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Description</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Description</label>
                 <textarea
                   rows={3}
                   value={newUnitDescription}
                   onChange={(e) => setNewUnitDescription(e.target.value)}
                   placeholder="Summarize the specific goal, content overview, or grading rubric of this unit..."
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 text-xs text-slate-900 focus:outline-hidden transition-all font-medium resize-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-all font-medium resize-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Duration</label>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Duration</label>
                   <input
                     type="text"
                     required
                     value={newUnitDuration}
                     onChange={(e) => setNewUnitDuration(e.target.value)}
                     placeholder="e.g. 15 mins, 2 hours"
-                    className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 text-xs text-slate-900 focus:outline-hidden transition-all font-medium"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-all font-medium"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Unit Type</label>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Unit Type</label>
                   <select
                     value={newUnitType}
                     onChange={(e) => setNewUnitType(e.target.value as LearningUnitType)}
-                    className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 text-xs text-slate-900 focus:outline-hidden transition-all font-medium cursor-pointer"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-all font-medium cursor-pointer"
                   >
                     <option value="Video">Video</option>
                     <option value="Reading">Reading</option>
@@ -2538,7 +2538,7 @@ export const AdminCourseDetails: React.FC = () => {
                 </div>
               </div>
 
-              <div className="pt-2 flex items-center justify-end gap-3">
+              <div className="pt-2 flex items-center justify-end gap-3 border-t border-sky-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => {
@@ -2546,7 +2546,7 @@ export const AdminCourseDetails: React.FC = () => {
                     setActiveModuleIdForUnit(null);
                     setActiveTopicIdForUnit(null);
                   }}
-                  className="py-2.5 px-4 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer"
+                  className="py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -2572,23 +2572,23 @@ export const AdminCourseDetails: React.FC = () => {
               setDrawerOpen(false);
               setActiveUnit(null);
             }}
-            className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-2xs transition-opacity"
+            className="fixed inset-0 z-40 bg-slate-950/70 backdrop-blur-2xs transition-opacity"
           />
 
           {/* Side Drawer Panel */}
-          <div className="fixed top-0 right-0 h-full w-[460px] sm:w-[580px] bg-white shadow-2xl border-l border-slate-200/80 z-50 flex flex-col animate-in slide-in-from-right duration-300 text-slate-900 font-['Sora']">
+          <div className="fixed top-0 right-0 h-full w-[460px] sm:w-[580px] bg-white dark:bg-slate-900 shadow-2xl border-l border-slate-200/80 dark:border-slate-800 z-50 flex flex-col animate-in slide-in-from-right duration-300 text-slate-900 dark:text-white font-['Sora']">
             {/* Drawer Header */}
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/60">
               <div className="min-w-0 flex-1 pr-4">
                 <div className="flex items-center gap-2">
                   <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full font-mono ${getUnitTypeBadgeStyles(activeUnit.type)}`}>
                     {activeUnit.type}
                   </span>
-                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">
                     LMS Content Builder
                   </span>
                 </div>
-                <h3 className="font-heading font-extrabold text-sm text-slate-900 mt-1 truncate" title={activeUnit.title}>
+                <h3 className="font-heading font-extrabold text-sm text-slate-900 dark:text-white mt-1 truncate" title={activeUnit.title}>
                   {activeUnit.title}
                 </h3>
               </div>
@@ -2598,7 +2598,7 @@ export const AdminCourseDetails: React.FC = () => {
                   setDrawerOpen(false);
                   setActiveUnit(null);
                 }}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all cursor-pointer"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
               >
                 <X className="w-4.5 h-4.5" />
               </button>
@@ -2606,14 +2606,14 @@ export const AdminCourseDetails: React.FC = () => {
 
             {/* Tab Bar Selector (only shown if not in Student Preview Mode) */}
             {!isStudentPreviewMode ? (
-              <div className="flex border-b border-slate-100 bg-white">
+              <div className="flex border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
                 <button
                   type="button"
                   onClick={() => setActiveTab('edit')}
                   className={`flex-1 py-3 text-xs font-bold text-center border-b-2 transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                     activeTab === 'edit'
-                      ? 'border-sky-600 text-sky-700 bg-sky-50/20'
-                      : 'border-transparent text-slate-500 hover:text-slate-800'
+                      ? 'border-sky-600 text-sky-700 dark:text-cyan-400 bg-sky-50/20 dark:bg-slate-800/40'
+                      : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                   }`}
                 >
                   <Edit className="w-3.5 h-3.5" />
@@ -2624,8 +2624,8 @@ export const AdminCourseDetails: React.FC = () => {
                   onClick={() => setActiveTab('preview')}
                   className={`flex-1 py-3 text-xs font-bold text-center border-b-2 transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                     activeTab === 'preview'
-                      ? 'border-sky-600 text-sky-700 bg-sky-50/20'
-                      : 'border-transparent text-slate-500 hover:text-slate-800'
+                      ? 'border-sky-600 text-sky-700 dark:text-cyan-400 bg-sky-50/20 dark:bg-slate-800/40'
+                      : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                   }`}
                 >
                   <Eye className="w-3.5 h-3.5" />
@@ -2633,9 +2633,9 @@ export const AdminCourseDetails: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <div className="px-6 py-4 bg-slate-50 border-b border-slate-100">
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Registered Student view</span>
-                <h4 className="font-heading font-extrabold text-sm text-slate-800 mt-0.5">{activeUnit?.title}</h4>
+              <div className="px-6 py-4 bg-slate-50 dark:bg-slate-950 border-b border-slate-100 dark:border-slate-800">
+                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Registered Student view</span>
+                <h4 className="font-heading font-extrabold text-sm text-slate-800 dark:text-slate-200 mt-0.5">{activeUnit?.title}</h4>
               </div>
             )}
 
@@ -2645,37 +2645,37 @@ export const AdminCourseDetails: React.FC = () => {
                 // EDIT CONTENT TAB PANEL
                 <form onSubmit={handleSaveUnitDrawer} className="space-y-5">
                   {/* Basic Metadata */}
-                  <div className="space-y-4 p-4 rounded-2xl border border-slate-100 bg-slate-50/30">
-                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                      <Settings className="w-3 h-3 text-sky-600" />
+                  <div className="space-y-4 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-950/40">
+                    <h4 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-1">
+                      <Settings className="w-3 h-3 text-sky-600 dark:text-cyan-400" />
                       <span>Standard Metadata</span>
                     </h4>
 
                     <div>
-                      <label className="text-[10px] font-bold text-slate-700 block mb-1">Unit Title</label>
+                      <label className="text-[10px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Unit Title</label>
                       <input
                         type="text"
                         required
                         value={activeUnit.title}
                         onChange={(e) => setActiveUnit({ ...activeUnit, title: e.target.value })}
-                        className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs focus:outline-hidden focus:border-sky-500 transition-all font-medium text-slate-900"
+                        className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-xs focus:outline-hidden focus:border-sky-500 transition-all font-medium text-slate-900 dark:text-white"
                       />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="text-[10px] font-bold text-slate-700 block mb-1">Estimated Duration</label>
+                        <label className="text-[10px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Estimated Duration</label>
                         <input
                           type="text"
                           required
                           value={activeUnit.duration}
                           onChange={(e) => setActiveUnit({ ...activeUnit, duration: e.target.value })}
                           placeholder="e.g. 15 mins"
-                          className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs focus:outline-hidden focus:border-sky-500 transition-all font-medium text-slate-900"
+                          className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-xs focus:outline-hidden focus:border-sky-500 transition-all font-medium text-slate-900 dark:text-white"
                         />
                       </div>
                       <div>
-                        <label className="text-[10px] font-bold text-slate-700 block mb-1">Unit Type</label>
+                        <label className="text-[10px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Unit Type</label>
                         <select
                           value={activeUnit.type}
                           onChange={(e) => {
@@ -2689,23 +2689,23 @@ export const AdminCourseDetails: React.FC = () => {
                             if (newType === 'Assignment' && !updated.assignmentInstructions) updated.assignmentInstructions = '### Assignment Instructions\n\nComplete lab tasks.';
                             setActiveUnit(updated);
                           }}
-                          className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs focus:outline-hidden focus:border-sky-500 transition-all font-medium text-slate-900 cursor-pointer"
+                          className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-xs focus:outline-hidden focus:border-sky-500 transition-all font-medium text-slate-900 dark:text-white cursor-pointer"
                         >
-                          <option value="Video">Video</option>
-                          <option value="Reading">Reading</option>
-                          <option value="Quiz">Quiz</option>
-                          <option value="Assignment">Assignment</option>
+                          <option value="Video" className="dark:bg-slate-900">Video</option>
+                          <option value="Reading" className="dark:bg-slate-900">Reading</option>
+                          <option value="Quiz" className="dark:bg-slate-900">Quiz</option>
+                          <option value="Assignment" className="dark:bg-slate-900">Assignment</option>
                         </select>
                       </div>
                     </div>
 
                     <div>
-                      <label className="text-[10px] font-bold text-slate-700 block mb-1">Brief Description</label>
+                      <label className="text-[10px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Brief Description</label>
                       <textarea
                         rows={2}
                         value={activeUnit.description}
                         onChange={(e) => setActiveUnit({ ...activeUnit, description: e.target.value })}
-                        className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs focus:outline-hidden focus:border-sky-500 transition-all font-medium resize-none text-slate-900"
+                        className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-xs focus:outline-hidden focus:border-sky-500 transition-all font-medium resize-none text-slate-900 dark:text-white"
                       />
                     </div>
                   </div>
@@ -2714,21 +2714,21 @@ export const AdminCourseDetails: React.FC = () => {
                   <div className="space-y-4">
                     {activeUnit.type === 'Video' && (
                       <div className="space-y-3">
-                        <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                          <Play className="w-3.5 h-3.5 text-sky-600" />
+                        <h4 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                          <Play className="w-3.5 h-3.5 text-sky-600 dark:text-cyan-400" />
                           <span>Video Asset Configuration</span>
                         </h4>
                         <div>
-                          <label className="text-[10px] font-bold text-slate-700 block mb-1">Video Resource URL (YouTube, Vimeo, MP4)</label>
+                          <label className="text-[10px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Video Resource URL (YouTube, Vimeo, MP4)</label>
                           <input
                             type="url"
                             required
                             value={activeUnit.videoUrl || ''}
                             onChange={(e) => setActiveUnit({ ...activeUnit, videoUrl: e.target.value })}
                             placeholder="e.g. https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-xs focus:outline-hidden focus:border-sky-500 transition-all font-medium text-slate-900"
+                            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs focus:outline-hidden focus:border-sky-500 transition-all font-medium text-slate-900 dark:text-white"
                           />
-                          <p className="text-[9px] text-slate-400 font-medium mt-1">
+                          <p className="text-[9px] text-slate-400 dark:text-slate-500 font-medium mt-1">
                             Paste standard video links. The system automatically converts them to secure iframe embeds for preview checks.
                           </p>
                         </div>
@@ -2737,19 +2737,19 @@ export const AdminCourseDetails: React.FC = () => {
 
                     {activeUnit.type === 'Reading' && (
                       <div className="space-y-3">
-                        <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                          <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
+                        <h4 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                          <BookOpen className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                           <span>Reading Markdown content</span>
                         </h4>
                         <div>
-                          <label className="text-[10px] font-bold text-slate-700 block mb-1">Structured Lesson Text (Markdown Support)</label>
+                          <label className="text-[10px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Structured Lesson Text (Markdown Support)</label>
                           <textarea
                             rows={12}
                             required
                             value={activeUnit.readingContent || ''}
                             onChange={(e) => setActiveUnit({ ...activeUnit, readingContent: e.target.value })}
                             placeholder="Write your study notes, code snippets, or reference links here..."
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-xs focus:outline-hidden focus:border-sky-500 transition-all font-medium font-mono text-slate-800"
+                            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs focus:outline-hidden focus:border-sky-500 transition-all font-medium font-mono text-slate-800 dark:text-slate-200"
                           />
                         </div>
                       </div>
@@ -2758,51 +2758,51 @@ export const AdminCourseDetails: React.FC = () => {
                     {activeUnit.type === 'Quiz' && (
                       <div className="space-y-4">
                         {/* Quiz Unit Parameters */}
-                        <div className="grid grid-cols-3 gap-3 p-4 rounded-2xl bg-emerald-50/20 border border-emerald-100/50">
+                        <div className="grid grid-cols-3 gap-3 p-4 rounded-2xl bg-emerald-50/20 dark:bg-emerald-950/20 border border-emerald-100/50 dark:border-emerald-800/40">
                           <div>
-                            <label className="text-[9px] font-bold text-slate-700 block mb-1">Difficulty</label>
+                            <label className="text-[9px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Difficulty</label>
                             <select
                               value={activeUnit.quizDifficulty || 'Medium'}
                               onChange={(e) => setActiveUnit({ ...activeUnit, quizDifficulty: e.target.value as 'Easy' | 'Medium' | 'Hard' })}
-                              className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-2.5 text-[11px] font-semibold text-slate-800 focus:outline-hidden focus:border-emerald-500 cursor-pointer"
+                              className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-1.5 px-2.5 text-[11px] font-semibold text-slate-800 dark:text-slate-200 focus:outline-hidden focus:border-emerald-500 cursor-pointer"
                             >
-                              <option value="Easy">Easy</option>
-                              <option value="Medium">Medium</option>
-                              <option value="Hard">Hard</option>
+                              <option value="Easy" className="dark:bg-slate-900">Easy</option>
+                              <option value="Medium" className="dark:bg-slate-900">Medium</option>
+                              <option value="Hard" className="dark:bg-slate-900">Hard</option>
                             </select>
                           </div>
                           <div>
-                            <label className="text-[9px] font-bold text-slate-700 block mb-1">Timer (minutes)</label>
+                            <label className="text-[9px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Timer (minutes)</label>
                             <input
                               type="number"
                               min={1}
                               value={activeUnit.quizTimer || 10}
                               onChange={(e) => setActiveUnit({ ...activeUnit, quizTimer: parseInt(e.target.value) || 10 })}
-                              className="w-full bg-white border border-slate-200 rounded-lg py-1 px-2 text-[11px] font-semibold text-slate-800 focus:outline-hidden focus:border-emerald-500"
+                              className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-1 px-2 text-[11px] font-semibold text-slate-800 dark:text-slate-200 focus:outline-hidden focus:border-emerald-500"
                             />
                           </div>
                           <div>
-                            <label className="text-[9px] font-bold text-slate-700 block mb-1">Passing Score (%)</label>
+                            <label className="text-[9px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Passing Score (%)</label>
                             <input
                               type="number"
                               min={1}
                               max={100}
                               value={activeUnit.quizPassingScore || 70}
                               onChange={(e) => setActiveUnit({ ...activeUnit, quizPassingScore: parseInt(e.target.value) || 70 })}
-                              className="w-full bg-white border border-slate-200 rounded-lg py-1 px-2 text-[11px] font-semibold text-slate-800 focus:outline-hidden focus:border-emerald-500"
+                              className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-1 px-2 text-[11px] font-semibold text-slate-800 dark:text-slate-200 focus:outline-hidden focus:border-emerald-500"
                             />
                           </div>
                         </div>
 
                         <div className="flex items-center justify-between pt-2">
-                          <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                            <HelpCircle className="w-3.5 h-3.5 text-emerald-600" />
+                          <h4 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                            <HelpCircle className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                             <span>Quiz Questions Builder</span>
                           </h4>
                           <button
                             type="button"
                             onClick={addQuizQuestion}
-                            className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 py-1 px-2.5 rounded-lg transition-colors cursor-pointer"
+                            className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 border border-emerald-100 dark:border-emerald-800 py-1 px-2.5 rounded-lg transition-colors cursor-pointer"
                           >
                             <Plus className="w-2.5 h-2.5" />
                             <span>Add Question</span>
@@ -2810,17 +2810,17 @@ export const AdminCourseDetails: React.FC = () => {
                         </div>
 
                         {(!activeUnit.quizQuestions || activeUnit.quizQuestions.length === 0) ? (
-                          <div className="p-6 text-center border border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
-                            <HelpCircle className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                            <p className="text-xs text-slate-400 italic">No questions created yet. Click "Add Question" to begin.</p>
+                          <div className="p-6 text-center border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50/50 dark:bg-slate-950/40">
+                            <HelpCircle className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                            <p className="text-xs text-slate-400 dark:text-slate-500 italic">No questions created yet. Click "Add Question" to begin.</p>
                           </div>
                         ) : (
                           <div className="space-y-4">
                             {activeUnit.quizQuestions.map((q, qIdx) => (
-                              <div key={q.id} className="p-4 rounded-2xl border border-slate-200 bg-slate-50/30 space-y-3 relative">
+                              <div key={q.id} className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-950/40 space-y-3 relative">
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-3">
-                                    <span className="text-[10px] font-bold text-slate-500 font-mono">
+                                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 font-mono">
                                       Question {qIdx + 1}
                                     </span>
                                     <div className="flex items-center gap-1">
@@ -2835,14 +2835,14 @@ export const AdminCourseDetails: React.FC = () => {
                                           nextQs[qIdx] = { ...q, marks: val };
                                           setActiveUnit({ ...activeUnit, quizQuestions: nextQs });
                                         }}
-                                        className="w-12 bg-white border border-slate-200 rounded-md py-0.5 px-1.5 text-[10px] font-bold text-slate-700 focus:outline-hidden font-mono"
+                                        className="w-12 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md py-0.5 px-1.5 text-[10px] font-bold text-slate-700 dark:text-slate-300 focus:outline-hidden font-mono"
                                       />
                                     </div>
                                   </div>
                                   <button
                                     type="button"
                                     onClick={() => deleteQuizQuestion(qIdx)}
-                                    className="text-slate-400 hover:text-rose-600 p-1 rounded-md transition-colors cursor-pointer"
+                                    className="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 p-1 rounded-md transition-colors cursor-pointer"
                                     title="Delete Question"
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
@@ -2856,12 +2856,12 @@ export const AdminCourseDetails: React.FC = () => {
                                     value={q.questionText}
                                     onChange={(e) => updateQuestionText(qIdx, e.target.value)}
                                     placeholder="Enter question prompt..."
-                                    className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs focus:outline-hidden focus:border-sky-500 font-bold text-slate-900"
+                                    className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-xs focus:outline-hidden focus:border-sky-500 font-bold text-slate-900 dark:text-white"
                                   />
                                 </div>
 
                                 <div className="space-y-2">
-                                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">
+                                  <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
                                     Options & Correct Flag
                                   </span>
                                   {q.options.map((opt, optIdx) => (
@@ -2880,14 +2880,14 @@ export const AdminCourseDetails: React.FC = () => {
                                         value={opt}
                                         onChange={(e) => updateQuestionOption(qIdx, optIdx, e.target.value)}
                                         placeholder={`Option ${optIdx + 1}`}
-                                        className="flex-1 bg-white border border-slate-200 rounded-lg py-1.5 px-2.5 text-xs text-slate-800 focus:outline-hidden font-medium"
+                                        className="flex-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg py-1.5 px-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-hidden font-medium"
                                       />
                                     </div>
                                   ))}
                                 </div>
 
                                 <div>
-                                  <label className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Explanation (shown to student after submit)</label>
+                                  <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">Explanation (shown to student after submit)</label>
                                   <textarea
                                     rows={2}
                                     value={q.explanation || ''}
@@ -2897,7 +2897,7 @@ export const AdminCourseDetails: React.FC = () => {
                                       setActiveUnit({ ...activeUnit, quizQuestions: nextQs });
                                     }}
                                     placeholder="Provide detailed explanation for correct answer..."
-                                    className="w-full bg-white border border-slate-200 rounded-xl py-1.5 px-2.5 text-xs focus:outline-hidden focus:border-sky-500 font-medium text-slate-800"
+                                    className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-1.5 px-2.5 text-xs focus:outline-hidden focus:border-sky-500 font-medium text-slate-800 dark:text-slate-200"
                                   />
                                 </div>
                               </div>
@@ -2909,101 +2909,101 @@ export const AdminCourseDetails: React.FC = () => {
 
                     {activeUnit.type === 'Assignment' && (
                       <div className="space-y-4">
-                        <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                          <FileText className="w-3.5 h-3.5 text-amber-600" />
+                        <h4 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                          <FileText className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                           <span>Assignment Builder Configuration</span>
                         </h4>
 
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="text-[9px] font-bold text-slate-700 block mb-1">Maximum Marks</label>
+                            <label className="text-[9px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Maximum Marks</label>
                             <input
                               type="number"
                               min={1}
                               value={activeUnit.assignmentMaxMarks || 100}
                               onChange={(e) => setActiveUnit({ ...activeUnit, assignmentMaxMarks: parseInt(e.target.value) || 100 })}
-                              className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs focus:outline-hidden focus:border-sky-500 transition-all font-medium text-slate-900"
+                              className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-xs focus:outline-hidden focus:border-sky-500 transition-all font-medium text-slate-900 dark:text-white"
                             />
                           </div>
                           <div>
-                            <label className="text-[9px] font-bold text-slate-700 block mb-1">Submission Deadline</label>
+                            <label className="text-[9px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Submission Deadline</label>
                             <input
                               type="text"
                               value={activeUnit.assignmentDeadline || '7 days after module start'}
                               onChange={(e) => setActiveUnit({ ...activeUnit, assignmentDeadline: e.target.value })}
                               placeholder="e.g. 7 days or date"
-                              className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs focus:outline-hidden focus:border-sky-500 transition-all font-medium text-slate-900"
+                              className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-xs focus:outline-hidden focus:border-sky-500 transition-all font-medium text-slate-900 dark:text-white"
                             />
                           </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="text-[9px] font-bold text-slate-700 block mb-1">Allowed File Types</label>
+                            <label className="text-[9px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Allowed File Types</label>
                             <input
                               type="text"
                               value={activeUnit.assignmentAllowedTypes || 'PDF, ZIP, MD'}
                               onChange={(e) => setActiveUnit({ ...activeUnit, assignmentAllowedTypes: e.target.value })}
                               placeholder="e.g. PDF, ZIP, DOCX"
-                              className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs focus:outline-hidden focus:border-sky-500 transition-all font-medium text-slate-900"
+                              className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-xs focus:outline-hidden focus:border-sky-500 transition-all font-medium text-slate-900 dark:text-white"
                             />
                           </div>
                           <div>
-                            <label className="text-[9px] font-bold text-slate-700 block mb-1">Submission Status</label>
+                            <label className="text-[9px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Submission Status</label>
                             <select
                               value={activeUnit.assignmentSubmissionStatus || 'Not Submitted'}
                               onChange={(e) => setActiveUnit({ ...activeUnit, assignmentSubmissionStatus: e.target.value })}
-                              className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs focus:outline-hidden focus:border-sky-500 transition-all font-medium text-slate-900 cursor-pointer"
+                              className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-xs focus:outline-hidden focus:border-sky-500 transition-all font-medium text-slate-900 dark:text-white cursor-pointer"
                             >
-                              <option value="Not Submitted">Not Submitted</option>
-                              <option value="Submitted">Submitted</option>
-                              <option value="Graded">Graded</option>
+                              <option value="Not Submitted" className="dark:bg-slate-900">Not Submitted</option>
+                              <option value="Submitted" className="dark:bg-slate-900">Submitted</option>
+                              <option value="Graded" className="dark:bg-slate-900">Graded</option>
                             </select>
                           </div>
                         </div>
 
                         <div>
-                          <label className="text-[9px] font-bold text-slate-700 block mb-1">Reference Files (comma-separated)</label>
+                          <label className="text-[9px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Reference Files (comma-separated)</label>
                           <input
                             type="text"
                             value={activeUnit.assignmentReferenceFiles || ''}
                             onChange={(e) => setActiveUnit({ ...activeUnit, assignmentReferenceFiles: e.target.value })}
                             placeholder="e.g. git-cheatsheet.pdf, lab-instructions.md"
-                            className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs focus:outline-hidden focus:border-sky-500 transition-all font-medium text-slate-900"
+                            className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-xs focus:outline-hidden focus:border-sky-500 transition-all font-medium text-slate-900 dark:text-white"
                           />
                         </div>
 
                         <div>
-                          <label className="text-[9px] font-bold text-slate-700 block mb-1">Detailed Instructions (Markdown Support)</label>
+                          <label className="text-[9px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Detailed Instructions (Markdown Support)</label>
                           <textarea
                             rows={6}
                             required
                             value={activeUnit.assignmentInstructions || ''}
                             onChange={(e) => setActiveUnit({ ...activeUnit, assignmentInstructions: e.target.value })}
                             placeholder="Define steps, build commands, expected layout guidelines..."
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs focus:outline-hidden focus:border-sky-500 transition-all font-medium text-slate-800 leading-relaxed font-mono"
+                            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-xs focus:outline-hidden focus:border-sky-500 transition-all font-medium text-slate-800 dark:text-slate-200 leading-relaxed font-mono"
                           />
                         </div>
 
                         <div>
-                          <label className="text-[9px] font-bold text-slate-700 block mb-1">Grading Rubric Description</label>
+                          <label className="text-[9px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Grading Rubric Description</label>
                           <textarea
                             rows={3}
                             value={activeUnit.assignmentRubric || ''}
                             onChange={(e) => setActiveUnit({ ...activeUnit, assignmentRubric: e.target.value })}
                             placeholder="e.g. Completeness (50%), Accuracy (30%), Formatting (20%)"
-                            className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs focus:outline-hidden focus:border-sky-500 transition-all font-medium text-slate-900 leading-normal"
+                            className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-xs focus:outline-hidden focus:border-sky-500 transition-all font-medium text-slate-900 dark:text-white leading-normal"
                           />
                         </div>
 
                         <div>
-                          <label className="text-[9px] font-bold text-slate-700 block mb-1">Teacher Feedback Notes</label>
+                          <label className="text-[9px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Teacher Feedback Notes</label>
                           <textarea
                             rows={3}
                             value={activeUnit.assignmentTeacherFeedback || ''}
                             onChange={(e) => setActiveUnit({ ...activeUnit, assignmentTeacherFeedback: e.target.value })}
                             placeholder="Provide descriptive feedback for student submission..."
-                            className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs focus:outline-hidden focus:border-sky-500 transition-all font-medium text-slate-900 leading-normal"
+                            className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-xs focus:outline-hidden focus:border-sky-500 transition-all font-medium text-slate-900 dark:text-white leading-normal"
                           />
                         </div>
                       </div>
@@ -3013,9 +3013,9 @@ export const AdminCourseDetails: React.FC = () => {
               ) : (
                 // STUDENT PREVIEW TAB PANEL
                 <div className="space-y-5">
-                  <div className="p-3 bg-sky-50 border border-sky-100 rounded-2xl flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-sky-600 shrink-0 animate-bounce" />
-                    <p className="text-[10px] text-sky-800 font-semibold">
+                  <div className="p-3 bg-sky-50 dark:bg-slate-950 border border-sky-100 dark:border-slate-800 rounded-2xl flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-sky-600 dark:text-cyan-400 shrink-0 animate-bounce" />
+                    <p className="text-[10px] text-sky-800 dark:text-cyan-300 font-semibold">
                       This shows how this learning unit displays to registered students inside the curriculum view.
                     </p>
                   </div>
@@ -3023,7 +3023,7 @@ export const AdminCourseDetails: React.FC = () => {
                   {activeUnit.type === 'Video' && (
                     <div className="space-y-4">
                       {activeUnit.videoUrl ? (
-                        <div className="aspect-video w-full rounded-2xl overflow-hidden bg-slate-900 border border-slate-200 shadow-sm">
+                        <div className="aspect-video w-full rounded-2xl overflow-hidden bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
                           <iframe
                             src={getEmbedUrl(activeUnit.videoUrl)}
                             title={activeUnit.title}
@@ -3040,13 +3040,13 @@ export const AdminCourseDetails: React.FC = () => {
                       )}
 
                       <div className="space-y-1.5">
-                        <h4 className="font-heading font-extrabold text-sm text-slate-900">
+                        <h4 className="font-heading font-extrabold text-sm text-slate-900 dark:text-white">
                           {activeUnit.title}
                         </h4>
-                        <span className="text-[10px] text-slate-400 font-semibold block">
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold block">
                           ESTIMATED DURATION: {activeUnit.duration}
                         </span>
-                        <p className="text-xs text-slate-600 leading-relaxed font-medium pt-1">
+                        <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium pt-1">
                           {activeUnit.description || 'No description provided.'}
                         </p>
                       </div>
@@ -3056,28 +3056,28 @@ export const AdminCourseDetails: React.FC = () => {
                   {activeUnit.type === 'Reading' && (
                     <div className="space-y-4">
                       {/* Reading Time Badge */}
-                      <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 font-mono bg-slate-100 border py-1.5 px-3 rounded-xl w-fit">
-                        <Clock className="w-3.5 h-3.5 text-indigo-500" />
+                      <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 font-mono bg-slate-100 dark:bg-slate-800 border dark:border-slate-700 py-1.5 px-3 rounded-xl w-fit">
+                        <Clock className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
                         <span>ESTIMATED DURATION: {activeUnit.duration} ({getEstimatedReadingTime(activeUnit.readingContent || '')})</span>
                       </div>
 
                       {/* Scrollable Reader Container */}
-                      <div className="p-6 sm:p-7 rounded-3xl bg-amber-50/15 border border-amber-100/70 shadow-3xs max-h-[500px] overflow-y-auto pr-3 select-text leading-relaxed">
+                      <div className="p-6 sm:p-7 rounded-3xl bg-amber-50/15 dark:bg-slate-950/60 border border-amber-100/70 dark:border-slate-800 shadow-3xs max-h-[500px] overflow-y-auto pr-3 select-text leading-relaxed">
                         {activeUnit.readingContent ? (
                           <div
                             dangerouslySetInnerHTML={{ __html: parseMarkdownToHtml(activeUnit.readingContent) }}
-                            className="text-xs text-slate-800 space-y-3 font-medium select-text"
+                            className="text-xs text-slate-800 dark:text-slate-200 space-y-3 font-medium select-text"
                           />
                         ) : (
-                          <p className="text-slate-400 italic font-medium">No reading text configured. Write your study notes in the edit tab.</p>
+                          <p className="text-slate-400 dark:text-slate-500 italic font-medium">No reading text configured. Write your study notes in the edit tab.</p>
                         )}
                       </div>
 
-                      <div className="space-y-1 bg-slate-50 border p-4 rounded-2xl">
-                        <h5 className="font-heading font-bold text-xs text-slate-800">
+                      <div className="space-y-1 bg-slate-50 dark:bg-slate-950 border dark:border-slate-800 p-4 rounded-2xl">
+                        <h5 className="font-heading font-bold text-xs text-slate-800 dark:text-slate-200">
                           {activeUnit.title}
                         </h5>
-                        <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
                           {activeUnit.description || 'No description.'}
                         </p>
                       </div>
@@ -3087,18 +3087,18 @@ export const AdminCourseDetails: React.FC = () => {
                   {activeUnit.type === 'Quiz' && (
                     <div className="space-y-5">
                       {/* Quiz Banner & Meta Badges */}
-                      <div className="p-4 rounded-2xl bg-emerald-50/20 border border-emerald-100 flex items-center justify-between flex-wrap gap-3">
+                      <div className="p-4 rounded-2xl bg-emerald-50/20 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-800/40 flex items-center justify-between flex-wrap gap-3">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-mono">
+                          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-mono">
                             DIFFICULTY: {activeUnit.quizDifficulty || 'Medium'}
                           </span>
-                          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 font-mono">
+                          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-sky-100 dark:bg-sky-950 text-sky-800 dark:text-cyan-300 font-mono">
                             PASSING SCORE: {activeUnit.quizPassingScore || 70}%
                           </span>
                         </div>
 
                         {/* Live Timer Countdown */}
-                        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 font-mono bg-white border border-slate-200 shadow-3xs py-1.5 px-3 rounded-xl">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200 font-mono bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-3xs py-1.5 px-3 rounded-xl">
                           <Clock className={`w-3.5 h-3.5 ${quizTimeRemaining < 60 ? 'text-rose-500 animate-pulse' : 'text-emerald-500'}`} />
                           <span className={quizTimeRemaining < 60 ? 'text-rose-600 font-bold' : ''}>
                             {quizSubmitted ? 'Timer Stopped' : formatQuizTime(quizTimeRemaining)}
@@ -3106,28 +3106,28 @@ export const AdminCourseDetails: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="space-y-1 border-b pb-3">
-                        <h4 className="font-heading font-extrabold text-sm text-slate-900">
+                      <div className="space-y-1 border-b dark:border-slate-800 pb-3">
+                        <h4 className="font-heading font-extrabold text-sm text-slate-900 dark:text-white">
                           {activeUnit.title}
                         </h4>
-                        <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
                           {activeUnit.description || 'Practice quiz evaluation.'}
                         </p>
                       </div>
 
                       {(!activeUnit.quizQuestions || activeUnit.quizQuestions.length === 0) ? (
-                        <p className="text-xs text-slate-400 italic">No questions defined in this quiz.</p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 italic">No questions defined in this quiz.</p>
                       ) : (
                         <div className="space-y-5">
                           {activeUnit.quizQuestions.map((q, qIdx) => {
                             const selectedIdx = quizSelectedAnswers[q.id];
                             return (
-                              <div key={q.id} className="space-y-3 p-4 rounded-2xl border bg-slate-50/40">
+                              <div key={q.id} className="space-y-3 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-950/40">
                                 <div className="flex items-center justify-between">
-                                  <h5 className="text-xs font-bold text-slate-900 leading-relaxed">
+                                  <h5 className="text-xs font-bold text-slate-900 dark:text-white leading-relaxed">
                                     {qIdx + 1}. {q.questionText}
                                   </h5>
-                                  <span className="text-[9px] font-bold text-slate-400 font-mono">
+                                  <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 font-mono">
                                     {q.marks || 5} Marks
                                   </span>
                                 </div>
@@ -3136,17 +3136,17 @@ export const AdminCourseDetails: React.FC = () => {
                                     const isSelected = selectedIdx === optIdx;
                                     const isCorrect = q.correctAnswerIndex === optIdx;
                                     
-                                    let btnStyles = 'border-slate-200 bg-white text-slate-800 hover:bg-slate-50';
+                                    let btnStyles = 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800';
                                     if (quizSubmitted) {
                                       if (isCorrect) {
-                                        btnStyles = 'border-emerald-300 bg-emerald-50 text-emerald-900 font-bold';
+                                        btnStyles = 'border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-200 font-bold';
                                       } else if (isSelected) {
-                                        btnStyles = 'border-rose-300 bg-rose-50 text-rose-900 font-bold';
+                                        btnStyles = 'border-rose-300 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/60 text-rose-900 dark:text-rose-200 font-bold';
                                       } else {
-                                        btnStyles = 'border-slate-100 bg-slate-50 text-slate-400';
+                                        btnStyles = 'border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-400 dark:text-slate-500';
                                       }
                                     } else if (isSelected) {
-                                      btnStyles = 'border-sky-500 bg-sky-50 text-sky-800 font-bold';
+                                      btnStyles = 'border-sky-500 dark:border-cyan-500 bg-sky-50 dark:bg-cyan-950/60 text-sky-800 dark:text-cyan-200 font-bold';
                                     }
 
                                     return (
@@ -3167,8 +3167,8 @@ export const AdminCourseDetails: React.FC = () => {
 
                                 {/* Explanation block shown post-submission */}
                                 {quizSubmitted && q.explanation && (
-                                  <div className="p-3.5 rounded-xl bg-slate-100 border border-slate-200 text-[11px] text-slate-700 leading-relaxed font-medium">
-                                    <strong className="text-slate-800 block mb-0.5 font-bold">Explanation:</strong>
+                                  <div className="p-3.5 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+                                    <strong className="text-slate-800 dark:text-white block mb-0.5 font-bold">Explanation:</strong>
                                     {q.explanation}
                                   </div>
                                 )}
@@ -3189,7 +3189,7 @@ export const AdminCourseDetails: React.FC = () => {
                                 return (
                                   <div className="w-full space-y-3">
                                     <div className={`p-4 rounded-xl border flex items-center justify-between ${
-                                      isPassed ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'
+                                      isPassed ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200' : 'bg-rose-50 dark:bg-rose-950/60 border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-200'
                                     }`}>
                                       <div className="space-y-0.5">
                                         <span className="text-xs font-extrabold block">
@@ -3202,7 +3202,7 @@ export const AdminCourseDetails: React.FC = () => {
                                       <button
                                         type="button"
                                         onClick={startQuizSimulation}
-                                        className="btn-blue-primary text-[10px] py-2 px-3 font-bold"
+                                        className="btn-blue-primary text-[10px] py-2 px-3 font-bold cursor-pointer"
                                       >
                                         Retry Simulation
                                       </button>
@@ -3231,7 +3231,7 @@ export const AdminCourseDetails: React.FC = () => {
                                     date: new Date().toLocaleDateString('en-US')
                                   }));
                                 }}
-                                className="w-full py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition-colors cursor-pointer"
+                                className="w-full py-2.5 rounded-xl bg-slate-900 dark:bg-sky-600 text-white font-bold text-xs hover:bg-slate-800 dark:hover:bg-sky-500 transition-colors cursor-pointer"
                               >
                                 Submit Quiz Answers
                               </button>
@@ -3245,40 +3245,40 @@ export const AdminCourseDetails: React.FC = () => {
                   {activeUnit.type === 'Assignment' && (
                     <div className="space-y-4">
                       {/* Assignment Meta Header */}
-                      <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-200/50 space-y-3">
+                      <div className="p-4 rounded-2xl bg-amber-500/5 dark:bg-slate-950/60 border border-amber-200/50 dark:border-amber-800/40 space-y-3">
                         <div className="flex items-center justify-between flex-wrap gap-2">
-                          <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wide">Assignment Scope</span>
+                          <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Assignment Scope</span>
                           <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${
                             activeUnit.assignmentSubmissionStatus === 'Graded'
-                              ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                              ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300'
                               : activeUnit.assignmentSubmissionStatus === 'Submitted'
-                              ? 'bg-sky-50 border-sky-200 text-sky-800'
-                              : 'bg-slate-100 border-slate-200 text-slate-600'
+                              ? 'bg-sky-50 dark:bg-sky-950/60 border-sky-200 dark:border-sky-800 text-sky-800 dark:text-cyan-300'
+                              : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
                           }`}>
                             STATUS: {activeUnit.assignmentSubmissionStatus || 'Not Submitted'}
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-2 text-center border-t border-slate-100 pt-2.5">
+                        <div className="grid grid-cols-3 gap-2 text-center border-t border-slate-100 dark:border-slate-800 pt-2.5">
                           <div className="space-y-0.5">
                             <span className="text-[8px] font-bold text-slate-400 uppercase block">Max Score</span>
-                            <span className="text-xs font-extrabold text-slate-800">{activeUnit.assignmentMaxMarks || 100} pts</span>
+                            <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200">{activeUnit.assignmentMaxMarks || 100} pts</span>
                           </div>
                           <div className="space-y-0.5">
                             <span className="text-[8px] font-bold text-slate-400 uppercase block">Deadline</span>
-                            <span className="text-xs font-extrabold text-slate-800 truncate block max-w-full">{activeUnit.assignmentDeadline || '7 Days'}</span>
+                            <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 truncate block max-w-full">{activeUnit.assignmentDeadline || '7 Days'}</span>
                           </div>
                           <div className="space-y-0.5">
                             <span className="text-[8px] font-bold text-slate-400 uppercase block">Formats</span>
-                            <span className="text-xs font-extrabold text-slate-800">{activeUnit.assignmentAllowedTypes || 'Any'}</span>
+                            <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200">{activeUnit.assignmentAllowedTypes || 'Any'}</span>
                           </div>
                         </div>
                       </div>
 
                       {/* Reference Files List */}
                       {activeUnit.assignmentReferenceFiles && (
-                        <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50 space-y-1.5">
-                          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">Attachment Resources</span>
+                        <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 space-y-1.5">
+                          <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Attachment Resources</span>
                           <div className="flex flex-wrap gap-2">
                             {activeUnit.assignmentReferenceFiles.split(',').map((file, idx) => {
                               const cleanName = file.trim();
@@ -3288,7 +3288,7 @@ export const AdminCourseDetails: React.FC = () => {
                                   key={idx}
                                   href="#"
                                   onClick={(e) => { e.preventDefault(); toast.success(`Simulating download: ${cleanName}`); }}
-                                  className="inline-flex items-center gap-1.5 text-[10px] font-bold text-sky-700 bg-white border border-slate-200 hover:border-sky-200 shadow-3xs py-1 px-2.5 rounded-lg transition-all"
+                                  className="inline-flex items-center gap-1.5 text-[10px] font-bold text-sky-700 dark:text-cyan-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-sky-200 dark:hover:border-cyan-800 shadow-3xs py-1 px-2.5 rounded-lg transition-all"
                                 >
                                   <FileText className="w-3 h-3 text-sky-500" />
                                   <span>{cleanName}</span>
@@ -3300,32 +3300,32 @@ export const AdminCourseDetails: React.FC = () => {
                       )}
 
                       {/* Instructions reader */}
-                      <div className="p-5 sm:p-6 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3 max-h-[300px] overflow-y-auto pr-2">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Instructions Guidelines</span>
+                      <div className="p-5 sm:p-6 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 space-y-3 max-h-[300px] overflow-y-auto pr-2">
+                        <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Instructions Guidelines</span>
                         <div
                           dangerouslySetInnerHTML={{ __html: parseMarkdownToHtml(activeUnit.assignmentInstructions || '') }}
-                          className="text-xs text-slate-800 leading-relaxed font-medium"
+                          className="text-xs text-slate-800 dark:text-slate-200 leading-relaxed font-medium"
                         />
                       </div>
 
                       {/* Grading Rubric Card */}
                       {activeUnit.assignmentRubric && (
-                        <div className="p-4 rounded-xl border border-slate-200/60 bg-white space-y-1">
-                          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">Grading Rubric</span>
-                          <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                        <div className="p-4 rounded-xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-1">
+                          <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Grading Rubric</span>
+                          <p className="text-xs text-slate-600 dark:text-slate-300 font-medium leading-relaxed">
                             {activeUnit.assignmentRubric}
                           </p>
                         </div>
                       )}
 
                       {/* Submission Upload Action Area */}
-                      <div className="border border-dashed border-sky-300 bg-sky-50/10 p-6 rounded-2xl text-center space-y-2">
-                        <FileText className="w-8 h-8 text-sky-500 mx-auto" />
+                      <div className="border border-dashed border-sky-300 dark:border-cyan-800 bg-sky-50/10 dark:bg-slate-950/50 p-6 rounded-2xl text-center space-y-2">
+                        <FileText className="w-8 h-8 text-sky-500 dark:text-cyan-400 mx-auto" />
                         <div>
-                          <span className="text-xs font-bold text-sky-800 hover:underline cursor-pointer">
+                          <span className="text-xs font-bold text-sky-800 dark:text-cyan-300 hover:underline cursor-pointer">
                             Click to upload response document
                           </span>{' '}
-                          <span className="text-xs text-slate-500">
+                          <span className="text-xs text-slate-500 dark:text-slate-400">
                             or drag and drop your files ({activeUnit.assignmentAllowedTypes || 'PDF, ZIP'})
                           </span>
                         </div>
@@ -3333,12 +3333,12 @@ export const AdminCourseDetails: React.FC = () => {
 
                       {/* Teacher Feedback Card */}
                       {activeUnit.assignmentTeacherFeedback && (
-                        <div className="p-4 rounded-2xl border border-indigo-100 bg-indigo-50/20 space-y-1">
+                        <div className="p-4 rounded-2xl border border-indigo-100 dark:border-indigo-900/60 bg-indigo-50/20 dark:bg-indigo-950/20 space-y-1">
                           <div className="flex items-center gap-1.5">
                             <Sparkles className="w-4 h-4 text-indigo-500 animate-pulse" />
-                            <span className="text-[10px] font-bold text-indigo-900 uppercase tracking-wide">Instructor Evaluations Feedback</span>
+                            <span className="text-[10px] font-bold text-indigo-900 dark:text-indigo-300 uppercase tracking-wide">Instructor Evaluations Feedback</span>
                           </div>
-                          <p className="text-xs text-indigo-950 font-medium leading-relaxed pt-0.5">
+                          <p className="text-xs text-indigo-950 dark:text-indigo-200 font-medium leading-relaxed pt-0.5">
                             {activeUnit.assignmentTeacherFeedback}
                           </p>
                         </div>
@@ -3347,14 +3347,14 @@ export const AdminCourseDetails: React.FC = () => {
                   )}
 
                   {/* Navigation and Completion Actions */}
-                  <div className="pt-5 border-t border-slate-100 space-y-3 mt-6">
+                  <div className="pt-5 border-t border-slate-100 dark:border-slate-800 space-y-3 mt-6">
                     <button
                       type="button"
                       onClick={() => handleToggleComplete(activeUnit.id)}
                       className={`w-full py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 border transition-all cursor-pointer ${
                         completedUnitIds[activeUnit.id]
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : 'bg-slate-900 text-white border-transparent hover:bg-slate-800'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                          : 'bg-slate-900 dark:bg-sky-600 text-white border-transparent hover:bg-slate-800 dark:hover:bg-sky-500'
                       }`}
                     >
                       {completedUnitIds[activeUnit.id] ? (
@@ -3374,8 +3374,8 @@ export const AdminCourseDetails: React.FC = () => {
                         onClick={navigateToPrevUnit}
                         className={`flex-1 py-2 rounded-lg border text-center text-xs font-bold transition-all cursor-pointer ${
                           prevUnitIndex === -1
-                            ? 'border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed'
-                            : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                            ? 'border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-300 dark:text-slate-600 cursor-not-allowed'
+                            : 'border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                         }`}
                       >
                         Previous Lesson
@@ -3386,8 +3386,8 @@ export const AdminCourseDetails: React.FC = () => {
                         onClick={navigateToNextUnit}
                         className={`flex-1 py-2 rounded-lg border text-center text-xs font-bold transition-all cursor-pointer ${
                           nextUnitIndex === -1
-                            ? 'border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed'
-                            : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                            ? 'border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-300 dark:text-slate-600 cursor-not-allowed'
+                            : 'border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                         }`}
                       >
                         Next Lesson
@@ -3400,11 +3400,11 @@ export const AdminCourseDetails: React.FC = () => {
 
             {/* Drawer Footer Actions */}
             {!isStudentPreviewMode ? (
-              <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-3 shrink-0">
+              <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex items-center justify-between gap-3 shrink-0">
                 <button
                   type="button"
                   onClick={handleDeleteUnitDrawer}
-                  className="py-2.5 px-3.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent transition-all flex items-center gap-1.5 cursor-pointer text-xs font-semibold"
+                  className="py-2.5 px-3.5 rounded-xl text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-transparent transition-all flex items-center gap-1.5 cursor-pointer text-xs font-semibold"
                   title="Delete Unit from course curriculum"
                 >
                   <Trash2 className="w-4.5 h-4.5" />
@@ -3418,14 +3418,14 @@ export const AdminCourseDetails: React.FC = () => {
                       setDrawerOpen(false);
                       setActiveUnit(null);
                     }}
-                    className="py-2.5 px-4 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all cursor-pointer"
+                    className="py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
                     onClick={handleSaveUnitDrawer}
-                    className="btn-blue-primary text-xs py-2.5 px-5 font-bold flex items-center gap-1.5 cursor-pointer"
+                    className="btn-blue-primary text-xs py-2.5 px-5 font-bold shadow-md shadow-sky-500/10 flex items-center gap-1.5 cursor-pointer"
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     <span>Save Changes</span>
@@ -3451,16 +3451,16 @@ export const AdminCourseDetails: React.FC = () => {
       )}
       {/* Certificate Modal */}
       {certificateModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-2xl w-full shadow-2xl space-y-6 border border-sky-200 animate-in zoom-in-95 text-slate-900 font-['Sora']">
-            <div className="flex items-center justify-between border-b border-sky-100 pb-3">
-              <h3 className="font-heading font-bold text-lg text-slate-900 flex items-center gap-2">
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-2xl w-full shadow-2xl space-y-6 border border-sky-200 dark:border-slate-800 animate-in zoom-in-95 text-slate-900 dark:text-white font-['Sora']">
+            <div className="flex items-center justify-between border-b border-sky-100 dark:border-slate-800 pb-3">
+              <h3 className="font-heading font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-amber-500" />
                 <span>Configure & Generate Certificate</span>
               </h3>
               <button
                 onClick={() => setCertificateModalOpen(false)}
-                className="text-slate-400 hover:text-slate-900 cursor-pointer"
+                className="text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -3468,65 +3468,65 @@ export const AdminCourseDetails: React.FC = () => {
 
             <div className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Recipient Name</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Recipient Name</label>
                 <input
                   type="text"
                   value={certStudentName}
                   onChange={(e) => setCertStudentName(e.target.value)}
                   placeholder="Enter your name as it should appear..."
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 text-xs text-slate-900 focus:outline-hidden transition-all font-bold"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-all font-bold"
                 />
               </div>
 
               {/* Certificate Preview Box */}
-              <div className="border-4 border-amber-500 rounded-2xl p-6 bg-amber-50/5 relative text-center space-y-6 select-none overflow-hidden max-w-full font-sans">
+              <div className="border-4 border-amber-500 rounded-2xl p-6 bg-amber-50/5 dark:bg-slate-950/80 relative text-center space-y-6 select-none overflow-hidden max-w-full font-sans">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-amber-400/20 to-transparent rounded-bl-full pointer-events-none" />
                 
                 <div className="space-y-1">
-                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-900 font-mono">Kaizen Q Academy</span>
-                  <h4 className="font-serif text-xl sm:text-2xl font-extrabold text-amber-800 leading-tight">Certificate of Completion</h4>
+                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-900 dark:text-slate-100 font-mono">Kaizen Q Academy</span>
+                  <h4 className="font-serif text-xl sm:text-2xl font-extrabold text-amber-800 dark:text-amber-400 leading-tight">Certificate of Completion</h4>
                   <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block">Enterprise Learning Credential</span>
                 </div>
 
                 <div className="space-y-2">
-                  <span className="text-[10px] text-slate-500 italic block">This is proudly presented to</span>
-                  <span className="font-serif text-2xl font-extrabold text-slate-950 border-b border-slate-200 pb-1.5 px-6 inline-block min-w-[200px]">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 italic block">This is proudly presented to</span>
+                  <span className="font-serif text-2xl font-extrabold text-slate-950 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-1.5 px-6 inline-block min-w-[200px]">
                     {certStudentName || 'Your Name'}
                   </span>
-                  <p className="text-[10px] text-slate-500 max-w-md mx-auto leading-relaxed">
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
                     for successfully mastering all modules, labs, and evaluation milestones for the course track
                   </p>
-                  <span className="text-xs font-extrabold text-slate-800 block uppercase tracking-wide">
+                  <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 block uppercase tracking-wide">
                     {course.title}
                   </span>
                 </div>
 
-                <div className="flex items-end justify-between pt-4 text-[9px] font-bold text-slate-450">
+                <div className="flex items-end justify-between pt-4 text-[9px] font-bold text-slate-450 dark:text-slate-400">
                   <div className="text-center w-1/3">
-                    <span className="text-slate-800 block text-[10px] font-semibold">{course.instructor}</span>
-                    <span className="border-t border-slate-200 pt-1 block uppercase tracking-wider">Lead Instructor</span>
+                    <span className="text-slate-800 dark:text-slate-200 block text-[10px] font-semibold">{course.instructor}</span>
+                    <span className="border-t border-slate-200 dark:border-slate-800 pt-1 block uppercase tracking-wider">Lead Instructor</span>
                   </div>
-                  <div className="w-16 h-16 rounded-full border-4 border-double border-amber-500 bg-amber-50 flex items-center justify-center text-[8px] font-extrabold text-amber-800 uppercase tracking-wider shrink-0 shadow-sm mx-auto">
+                  <div className="w-16 h-16 rounded-full border-4 border-double border-amber-500 bg-amber-50 dark:bg-amber-950/60 flex items-center justify-center text-[8px] font-extrabold text-amber-800 dark:text-amber-300 uppercase tracking-wider shrink-0 shadow-sm mx-auto">
                     Seal
                   </div>
                   <div className="text-center w-1/3">
-                    <span className="text-slate-800 block text-[10px] font-semibold">Kaizen Q Board</span>
-                    <span className="border-t border-slate-200 pt-1 block uppercase tracking-wider">Academic Registrar</span>
+                    <span className="text-slate-800 dark:text-slate-200 block text-[10px] font-semibold">Kaizen Q Board</span>
+                    <span className="border-t border-slate-200 dark:border-slate-800 pt-1 block uppercase tracking-wider">Academic Registrar</span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-[8px] font-mono font-bold text-slate-400 border-t border-slate-100 pt-3">
+                <div className="flex items-center justify-between text-[8px] font-mono font-bold text-slate-400 dark:text-slate-500 border-t border-slate-100 dark:border-slate-800 pt-3">
                   <span>DATE: {certCompletionDate}</span>
                   <span>ID: {certUniqueId}</span>
                 </div>
               </div>
             </div>
 
-            <div className="pt-2 flex items-center justify-end gap-3">
+            <div className="pt-2 flex items-center justify-end gap-3 border-t border-sky-100 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => setCertificateModalOpen(false)}
-                className="py-2.5 px-4 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer"
+                className="py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
               >
                 Close
               </button>

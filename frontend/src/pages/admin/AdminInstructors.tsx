@@ -1,16 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, GraduationCap, Mail, Plus, CheckCircle2, X, Loader2, Edit, Trash2, ShieldAlert, Radio, FileText, Calendar, UserCheck, AlertTriangle, Eye, Phone, RefreshCw } from 'lucide-react';
+import { Search, GraduationCap, Mail, Plus, CheckCircle2, X, Loader2, Edit, Trash2, ShieldAlert, Radio, FileText, Calendar, AlertTriangle, Eye, Phone, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCourses } from '@/contexts/CourseContext';
 import { instructorService, type InstructorUser } from '@/services/instructorService';
-import { liveClassService, type LiveClass } from '@/services/liveClassService';
 
 export const AdminInstructors: React.FC = () => {
   const { userProfile } = useAuth();
-  const { courses } = useCourses();
   const [instructors, setInstructors] = useState<InstructorUser[]>([]);
-  const [allLiveClasses, setAllLiveClasses] = useState<LiveClass[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'pending' | 'approved' | 'rejected'>('pending');
   const [loading, setLoading] = useState(true);
@@ -37,12 +33,8 @@ export const AdminInstructors: React.FC = () => {
       setInstructors(data);
       setLoading(false);
     });
-    const unsubscribeLive = liveClassService.subscribeLiveClasses((data) => {
-      setAllLiveClasses(data);
-    });
     return () => {
       unsubscribeInst();
-      unsubscribeLive();
     };
   }, []);
 
@@ -368,7 +360,7 @@ export const AdminInstructors: React.FC = () => {
               return (
                 <div
                   key={inst.id}
-                  className="rounded-3xl bg-white border border-sky-200/70 hover:border-sky-300 hover:shadow-md transition-all flex flex-col justify-between overflow-hidden shadow-xs relative"
+                  className="rounded-3xl bg-white dark:bg-slate-900 border border-sky-200/70 dark:border-slate-800 hover:border-sky-300 dark:hover:border-slate-700 hover:shadow-md transition-all flex flex-col justify-between overflow-hidden shadow-xs relative"
                 >
                   {/* Status Top Strip */}
                   <div className={`h-1.5 w-full ${
@@ -383,22 +375,22 @@ export const AdminInstructors: React.FC = () => {
                         <img
                           src={inst.avatar}
                           alt={inst.name}
-                          className="w-12 h-12 rounded-2xl object-cover border border-sky-200 shrink-0"
+                          className="w-12 h-12 rounded-2xl object-cover border border-sky-200 dark:border-slate-700 shrink-0"
                         />
                       ) : (
-                        <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-700 font-bold text-lg flex items-center justify-center shrink-0 border border-sky-200">
+                        <div className="w-12 h-12 rounded-2xl bg-sky-50 dark:bg-slate-800 text-sky-700 dark:text-cyan-400 font-bold text-lg flex items-center justify-center shrink-0 border border-sky-200 dark:border-slate-700">
                           {inst.name.charAt(0)}
                         </div>
                       )}
                       <div>
-                        <h3 className="font-heading font-extrabold text-sm text-slate-900 leading-tight">{inst.name}</h3>
-                        <p className="text-[10px] text-sky-700 font-bold uppercase tracking-wider mt-0.5">{inst.specialty}</p>
-                        <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-1 font-medium">
+                        <h3 className="font-heading font-extrabold text-sm text-slate-900 dark:text-white leading-tight">{inst.name}</h3>
+                        <p className="text-[10px] text-sky-700 dark:text-cyan-400 font-bold uppercase tracking-wider mt-0.5">{inst.specialty}</p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-1 font-medium">
                           <Mail className="w-3 h-3 text-slate-400" />
                           <span>{inst.email}</span>
                         </p>
                         {inst.phone && (
-                          <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5 font-medium">
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5 font-medium">
                             <Phone className="w-3 h-3 text-slate-400" />
                             <span>{inst.phone}</span>
                           </p>
@@ -407,30 +399,30 @@ export const AdminInstructors: React.FC = () => {
                     </div>
 
                     {/* Meta/Skills section */}
-                    <div className="pt-3 border-t border-sky-50 space-y-3 text-xs">
+                    <div className="pt-3 border-t border-sky-50 dark:border-slate-800 space-y-3 text-xs">
                       <div>
-                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1">Expertise Skills</span>
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider block mb-1">Expertise Skills</span>
                         <div className="flex flex-wrap gap-1">
                           {(inst.skills || ['Linux', 'Systems', 'DevOps']).slice(0, 3).map((s, idx) => (
-                            <span key={idx} className="bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded-md">
+                            <span key={idx} className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-bold px-2 py-0.5 rounded-md">
                               {s}
                             </span>
                           ))}
                           {(inst.skills || []).length > 3 && (
-                            <span className="bg-sky-50 text-sky-600 text-[10px] font-bold px-1.5 py-0.5 rounded-md">
+                            <span className="bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-cyan-400 text-[10px] font-bold px-1.5 py-0.5 rounded-md">
                               +{inst.skills!.length - 3}
                             </span>
                           )}
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2 text-[11px] font-semibold text-slate-700">
-                        <div className="bg-slate-50 p-2 rounded-xl border border-sky-100/50">
-                          <span className="text-[9px] text-slate-400 font-bold block mb-0.5">EXPERIENCE</span>
+                      <div className="grid grid-cols-2 gap-2 text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                        <div className="bg-slate-50 dark:bg-slate-950 p-2 rounded-xl border border-sky-100/50 dark:border-slate-800">
+                          <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold block mb-0.5">EXPERIENCE</span>
                           <span className="truncate block">{inst.experience || 'Not Specified'}</span>
                         </div>
-                        <div className="bg-slate-50 p-2 rounded-xl border border-sky-100/50">
-                          <span className="text-[9px] text-slate-400 font-bold block mb-0.5">APPLIED DATE</span>
+                        <div className="bg-slate-50 dark:bg-slate-950 p-2 rounded-xl border border-sky-100/50 dark:border-slate-800">
+                          <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold block mb-0.5">APPLIED DATE</span>
                           <span className="flex items-center gap-1"><Calendar className="w-3 h-3 text-sky-500" /> {appliedFormatted}</span>
                         </div>
                       </div>
@@ -438,10 +430,10 @@ export const AdminInstructors: React.FC = () => {
                   </div>
 
                   {/* Actions Footer */}
-                  <div className="bg-slate-50/80 px-6 py-4 border-t border-sky-100 flex items-center justify-between gap-2">
+                  <div className="bg-slate-50/80 dark:bg-slate-950/80 px-6 py-4 border-t border-sky-100 dark:border-slate-800 flex items-center justify-between gap-2">
                     <button
                       onClick={() => setViewingInstructor(inst)}
-                      className="inline-flex items-center gap-1 py-1.5 px-3 rounded-lg border border-sky-200 bg-white text-[11px] font-bold text-sky-700 hover:bg-sky-50 transition-all cursor-pointer"
+                      className="inline-flex items-center gap-1 py-1.5 px-3 rounded-lg border border-sky-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-[11px] font-bold text-sky-700 dark:text-cyan-400 hover:bg-sky-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
                     >
                       <Eye className="w-3.5 h-3.5" />
                       <span>Details</span>
@@ -459,7 +451,7 @@ export const AdminInstructors: React.FC = () => {
                           </button>
                           <button
                             onClick={() => setRejectingId(inst.id)}
-                            className="bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 text-[11px] font-bold py-1.5 px-3 rounded-lg flex items-center gap-1 transition-all cursor-pointer"
+                            className="bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-[11px] font-bold py-1.5 px-3 rounded-lg flex items-center gap-1 transition-all cursor-pointer"
                           >
                             <X className="w-3.5 h-3.5" />
                             <span>Reject</span>
@@ -471,7 +463,7 @@ export const AdminInstructors: React.FC = () => {
                         <>
                           <button
                             onClick={() => setRejectingId(inst.id)}
-                            className="bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 text-[11px] font-bold py-1.5 px-3 rounded-lg flex items-center gap-1 transition-all cursor-pointer"
+                            className="bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-[11px] font-bold py-1.5 px-3 rounded-lg flex items-center gap-1 transition-all cursor-pointer"
                           >
                             <X className="w-3.5 h-3.5" />
                             <span>Revoke / Reject</span>
@@ -494,14 +486,14 @@ export const AdminInstructors: React.FC = () => {
                       {/* Edit / Trash Actions */}
                       <button
                         onClick={() => setEditingInstructor(inst)}
-                        className="p-1.5 rounded-lg bg-white border border-sky-200 text-sky-700 hover:bg-sky-50 transition-all cursor-pointer"
+                        className="p-1.5 rounded-lg bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-800 text-sky-700 dark:text-cyan-400 hover:bg-sky-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
                         title="Edit Details"
                       >
                         <Edit className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => setDeletingInstructorId(inst.id)}
-                        className="p-1.5 rounded-lg bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 transition-all cursor-pointer"
+                        className="p-1.5 rounded-lg bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/60 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950 transition-all cursor-pointer"
                         title="Delete Profile"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -517,13 +509,13 @@ export const AdminInstructors: React.FC = () => {
 
       {/* MODAL: VIEW DETAILS */}
       {viewingInstructor && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-6 border border-sky-200 animate-in zoom-in-95 text-slate-900 font-['Sora']">
-            <div className="flex items-center justify-between border-b border-sky-100 pb-3">
-              <h3 className="font-heading font-bold text-lg text-slate-900 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-sky-600" /> Instructor Registration Profile
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-6 border border-sky-200 dark:border-slate-800 animate-in zoom-in-95 text-slate-900 dark:text-white font-['Sora']">
+            <div className="flex items-center justify-between border-b border-sky-100 dark:border-slate-800 pb-3">
+              <h3 className="font-heading font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                <FileText className="w-5 h-5 text-sky-600 dark:text-cyan-400" /> Instructor Registration Profile
               </h3>
-              <button onClick={() => setViewingInstructor(null)} className="text-slate-400 hover:text-slate-900 cursor-pointer">
+              <button onClick={() => setViewingInstructor(null)} className="text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -531,131 +523,43 @@ export const AdminInstructors: React.FC = () => {
             <div className="space-y-4">
               <div className="flex items-center gap-4">
                 {viewingInstructor.avatar ? (
-                  <img src={viewingInstructor.avatar} alt="" className="w-16 h-16 rounded-2xl object-cover border border-sky-200" />
+                  <img src={viewingInstructor.avatar} alt="" className="w-16 h-16 rounded-2xl object-cover border border-sky-200 dark:border-slate-700" />
                 ) : (
-                  <div className="w-16 h-16 rounded-2xl bg-sky-50 border border-sky-200 text-sky-700 font-bold text-2xl flex items-center justify-center shrink-0">
+                  <div className="w-16 h-16 rounded-2xl bg-sky-50 dark:bg-slate-800 border border-sky-200 dark:border-slate-700 text-sky-700 dark:text-cyan-400 font-bold text-2xl flex items-center justify-center shrink-0">
                     {viewingInstructor.name.charAt(0)}
                   </div>
                 )}
                 <div>
-                  <h4 className="font-heading font-extrabold text-base text-slate-900">{viewingInstructor.name}</h4>
-                  <p className="text-xs text-sky-700 font-bold uppercase tracking-wider">{viewingInstructor.specialty}</p>
-                  <p className="text-xs text-slate-500 mt-1">{viewingInstructor.email}</p>
+                  <h4 className="font-heading font-extrabold text-base text-slate-900 dark:text-white">{viewingInstructor.name}</h4>
+                  <p className="text-xs text-sky-700 dark:text-cyan-400 font-bold uppercase tracking-wider">{viewingInstructor.specialty}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{viewingInstructor.email}</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-sky-100 text-xs">
+              <div className="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-sky-100 dark:border-slate-800 text-xs">
                 <div>
-                  <span className="text-[10px] text-slate-400 font-bold block mb-1">APPLICATION STATUS</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold block mb-1">APPLICATION STATUS</span>
                   <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border ${
-                    viewingInstructor.status === 'approved' || viewingInstructor.status === 'Verified' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                    viewingInstructor.status === 'rejected' ? 'bg-rose-50 text-rose-700 border-rose-200' :
-                    'bg-amber-50 text-amber-700 border-amber-200'
+                    viewingInstructor.status === 'approved' || viewingInstructor.status === 'Verified' ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800' :
+                    viewingInstructor.status === 'rejected' ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800' :
+                    'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
                   }`}>
                     {viewingInstructor.status}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-slate-400 font-bold block mb-1">APPLIED DATE</span>
-                  <span className="font-bold text-slate-700">{viewingInstructor.appliedDate ? new Date(viewingInstructor.appliedDate).toLocaleDateString() : 'N/A'}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 font-bold block mb-1">PHONE</span>
-                  <span className="font-bold text-slate-700">{viewingInstructor.phone || 'Not Provided'}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 font-bold block mb-1">EXPERIENCE</span>
-                  <span className="font-bold text-slate-700">{viewingInstructor.experience || 'Not Specified'}</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold block mb-1">APPLIED DATE</span>
+                  <span className="font-bold text-slate-700 dark:text-slate-300">{viewingInstructor.appliedDate ? new Date(viewingInstructor.appliedDate).toLocaleDateString() : 'N/A'}</span>
                 </div>
               </div>
-
-              <div>
-                <span className="text-[10px] text-slate-400 font-bold block mb-1">REGISTERED SKILLS</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {(viewingInstructor.skills || ['Linux', 'Shell Scripting', 'Git/GitHub', 'Docker']).map((s, idx) => (
-                    <span key={idx} className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold">
-                      {s}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Assigned Courses Breakdown */}
-              <div className="space-y-2 pt-2 border-t border-sky-100">
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Assigned Courses & Tracks</span>
-                {(() => {
-                  const assignedC = courses.filter((c) => 
-                    (c as any).instructorId === viewingInstructor.id || 
-                    (c.instructor && c.instructor.toLowerCase().includes(viewingInstructor.name.toLowerCase()))
-                  );
-                  if (assignedC.length === 0) {
-                    return <p className="text-xs text-slate-400 italic">No courses currently assigned to this instructor.</p>;
-                  }
-                  return (
-                    <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-                      {assignedC.map((c) => (
-                        <div key={c.id} className="p-2.5 bg-slate-50 border border-sky-100 rounded-xl flex items-center justify-between text-xs">
-                          <div className="min-w-0 pr-2">
-                            <p className="font-bold text-slate-900 truncate">{c.title}</p>
-                            <p className="text-[10px] text-slate-500 font-medium">{c.category} • {c.duration}</p>
-                          </div>
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200 shrink-0">
-                            {c.status || 'Published'}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })()}
-              </div>
-
-              {/* Assigned Live Broadcasts Breakdown */}
-              <div className="space-y-2 pt-2 border-t border-sky-100">
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Assigned Live Classroom Broadcasts</span>
-                {(() => {
-                  const assignedLC = allLiveClasses.filter((lc) => 
-                    lc.instructorId === viewingInstructor.id || 
-                    (lc.instructorName && lc.instructorName.toLowerCase().includes(viewingInstructor.name.toLowerCase()))
-                  );
-                  if (assignedLC.length === 0) {
-                    return <p className="text-xs text-slate-400 italic">No live broadcasts currently assigned.</p>;
-                  }
-                  return (
-                    <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-                      {assignedLC.map((lc) => (
-                        <div key={lc.id} className="p-2.5 bg-slate-50 border border-sky-100 rounded-xl flex items-center justify-between text-xs">
-                          <div className="min-w-0 pr-2">
-                            <p className="font-bold text-slate-900 truncate">{lc.title}</p>
-                            <p className="text-[10px] text-slate-500 font-medium">{lc.courseName} • {new Date(lc.startTime).toLocaleString()}</p>
-                          </div>
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shrink-0 ${
-                            lc.status === 'Live' ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-blue-50 text-blue-700 border-blue-200'
-                          }`}>
-                            {lc.status}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })()}
-              </div>
-
-              {/* Approval/Rejection Auditing Records */}
-              {(viewingInstructor.approvedBy || viewingInstructor.approvedAt) && (
-                <div className="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100 text-xs space-y-1">
-                  <span className="text-[10px] text-emerald-700 font-extrabold flex items-center gap-1 uppercase"><UserCheck className="w-3.5 h-3.5" /> Approved Audit Log</span>
-                  <p className="text-slate-600 font-medium"><strong>Approved By UID:</strong> {viewingInstructor.approvedBy || 'N/A'}</p>
-                  <p className="text-slate-600 font-medium"><strong>Approved At:</strong> {viewingInstructor.approvedAt ? new Date(viewingInstructor.approvedAt).toLocaleString() : 'N/A'}</p>
-                </div>
-              )}
 
               {viewingInstructor.status === 'rejected' && (
-                <div className="bg-rose-50/50 p-4 rounded-2xl border border-rose-100 text-xs space-y-1.5">
-                  <span className="text-[10px] text-rose-700 font-extrabold flex items-center gap-1 uppercase"><AlertTriangle className="w-3.5 h-3.5" /> Rejection Audit Log</span>
+                <div className="bg-rose-50/50 dark:bg-rose-950/40 p-4 rounded-2xl border border-rose-100 dark:border-rose-900/60 text-xs space-y-1.5">
+                  <span className="text-[10px] text-rose-700 dark:text-rose-400 font-extrabold flex items-center gap-1 uppercase"><AlertTriangle className="w-3.5 h-3.5" /> Rejection Audit Log</span>
                   {viewingInstructor.rejectionReason && (
-                    <p className="text-rose-800 font-bold"><strong>Reason:</strong> &ldquo;{viewingInstructor.rejectionReason}&rdquo;</p>
+                    <p className="text-rose-800 dark:text-rose-300 font-bold"><strong>Reason:</strong> &ldquo;{viewingInstructor.rejectionReason}&rdquo;</p>
                   )}
-                  <p className="text-slate-600 font-medium"><strong>Rejected At:</strong> {viewingInstructor.rejectedAt ? new Date(viewingInstructor.rejectedAt).toLocaleString() : 'N/A'}</p>
+                  <p className="text-slate-600 dark:text-slate-400 font-medium"><strong>Rejected At:</strong> {viewingInstructor.rejectedAt ? new Date(viewingInstructor.rejectedAt).toLocaleString() : 'N/A'}</p>
                 </div>
               )}
             </div>
@@ -663,7 +567,7 @@ export const AdminInstructors: React.FC = () => {
             <div className="pt-2 flex justify-end">
               <button
                 onClick={() => setViewingInstructor(null)}
-                className="py-2.5 px-5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all cursor-pointer"
+                className="py-2.5 px-5 rounded-xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white text-xs font-bold transition-all cursor-pointer"
               >
                 Close Profile
               </button>
@@ -674,26 +578,26 @@ export const AdminInstructors: React.FC = () => {
 
       {/* MODAL: ENTER REJECTION REASON */}
       {rejectingId && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-4 border border-rose-200 font-['Sora'] text-slate-900">
-            <div className="flex items-center justify-between border-b border-sky-100 pb-3">
-              <h3 className="font-heading font-bold text-lg text-rose-600 flex items-center gap-2">
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-4 border border-rose-200 dark:border-rose-900/60 font-['Sora'] text-slate-900 dark:text-white">
+            <div className="flex items-center justify-between border-b border-sky-100 dark:border-slate-800 pb-3">
+              <h3 className="font-heading font-bold text-lg text-rose-600 dark:text-rose-400 flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5" /> Reject Instructor Application
               </h3>
-              <button onClick={() => setRejectingId(null)} className="text-slate-400 hover:text-slate-900 cursor-pointer">
+              <button onClick={() => setRejectingId(null)} className="text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleRejectSubmit} className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Reason for Rejection</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Reason for Rejection</label>
                 <textarea
                   required
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
                   placeholder="e.g., Portfolio does not meet minimum technical criteria or experience background not verified."
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 text-xs text-slate-900 focus:outline-hidden transition-all font-medium h-24 resize-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-all font-medium h-24 resize-none"
                 />
               </div>
 
@@ -701,7 +605,7 @@ export const AdminInstructors: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setRejectingId(null)}
-                  className="py-2 px-4 rounded-xl border border-sky-200 text-xs font-bold text-slate-600 hover:bg-sky-50 transition-all cursor-pointer"
+                  className="py-2 px-4 rounded-xl border border-sky-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-sky-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -720,51 +624,51 @@ export const AdminInstructors: React.FC = () => {
 
       {/* MODAL: ADD INSTRUCTOR */}
       {addModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-6 border border-sky-200 animate-in zoom-in-95 text-slate-900 font-['Sora']">
-            <div className="flex items-center justify-between border-b border-sky-100 pb-3">
-              <h3 className="font-heading font-bold text-lg text-slate-900 flex items-center gap-2">
-                <GraduationCap className="w-5 h-5 text-sky-600" /> Onboard Approved Instructor
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-6 border border-sky-200 dark:border-slate-800 animate-in zoom-in-95 text-slate-900 dark:text-white font-['Sora']">
+            <div className="flex items-center justify-between border-b border-sky-100 dark:border-slate-800 pb-3">
+              <h3 className="font-heading font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                <GraduationCap className="w-5 h-5 text-sky-600 dark:text-cyan-400" /> Onboard Approved Instructor
               </h3>
-              <button onClick={() => setAddModalOpen(false)} className="text-slate-400 hover:text-slate-900 cursor-pointer">
+              <button onClick={() => setAddModalOpen(false)} className="text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleAddInstructor} className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Instructor Full Name</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Instructor Full Name</label>
                 <input
                   type="text"
                   required
                   value={newInstructorName}
                   onChange={(e) => setNewInstructorName(e.target.value)}
                   placeholder="Prof. Alan Turing"
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 text-xs text-slate-900 focus:outline-hidden transition-all font-medium"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-all font-medium"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Email Address</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Email Address</label>
                 <input
                   type="email"
                   required
                   value={newInstructorEmail}
                   onChange={(e) => setNewInstructorEmail(e.target.value)}
                   placeholder="alan@university.edu"
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 text-xs text-slate-900 focus:outline-hidden transition-all font-medium"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-all font-medium"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Specialty / Course Track</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Specialty / Course Track</label>
                 <input
                   type="text"
                   required
                   value={newInstructorSpecialty}
                   onChange={(e) => setNewInstructorSpecialty(e.target.value)}
                   placeholder="Linux Systems & Kernel Architecture"
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 text-xs text-slate-900 focus:outline-hidden transition-all font-medium"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-all font-medium"
                 />
               </div>
 
@@ -772,7 +676,7 @@ export const AdminInstructors: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setAddModalOpen(false)}
-                  className="py-2.5 px-4 rounded-xl border border-sky-200 text-xs font-bold text-slate-600 hover:bg-sky-50 transition-all cursor-pointer"
+                  className="py-2.5 px-4 rounded-xl border border-sky-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-sky-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -801,57 +705,57 @@ export const AdminInstructors: React.FC = () => {
 
       {/* MODAL: EDIT INSTRUCTOR */}
       {editingInstructor && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-6 border border-sky-200 animate-in zoom-in-95 text-slate-900 font-['Sora']">
-            <div className="flex items-center justify-between border-b border-sky-100 pb-3">
-              <h3 className="font-heading font-bold text-lg text-slate-900 flex items-center gap-2">
-                <Edit className="w-5 h-5 text-sky-600" /> Edit Instructor Details
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-6 border border-sky-200 dark:border-slate-800 animate-in zoom-in-95 text-slate-900 dark:text-white font-['Sora']">
+            <div className="flex items-center justify-between border-b border-sky-100 dark:border-slate-800 pb-3">
+              <h3 className="font-heading font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                <Edit className="w-5 h-5 text-sky-600 dark:text-cyan-400" /> Edit Instructor Details
               </h3>
-              <button onClick={() => setEditingInstructor(null)} className="text-slate-400 hover:text-slate-900 cursor-pointer">
+              <button onClick={() => setEditingInstructor(null)} className="text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleUpdateInstructor} className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Full Name</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Full Name</label>
                 <input
                   type="text"
                   required
                   value={editingInstructor.name}
                   onChange={(e) => setEditingInstructor({ ...editingInstructor, name: e.target.value })}
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 text-xs text-slate-900 focus:outline-hidden transition-all font-medium"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-all font-medium"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Email Address</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Email Address</label>
                 <input
                   type="email"
                   required
                   value={editingInstructor.email}
                   onChange={(e) => setEditingInstructor({ ...editingInstructor, email: e.target.value })}
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 text-xs text-slate-900 focus:outline-hidden transition-all font-medium"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-all font-medium"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Specialty & Domain</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Specialty & Domain</label>
                 <input
                   type="text"
                   required
                   value={editingInstructor.specialty}
                   onChange={(e) => setEditingInstructor({ ...editingInstructor, specialty: e.target.value })}
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 text-xs text-slate-900 focus:outline-hidden transition-all font-medium"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-all font-medium"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Verification Status</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Verification Status</label>
                 <select
                   value={editingInstructor.status}
                   onChange={(e) => setEditingInstructor({ ...editingInstructor, status: e.target.value as any })}
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 text-xs text-slate-900 focus:outline-hidden transition-all font-medium"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-all font-medium"
                 >
                   <option value="pending">Pending</option>
                   <option value="approved">Approved</option>
@@ -863,7 +767,7 @@ export const AdminInstructors: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setEditingInstructor(null)}
-                  className="py-2.5 px-4 rounded-xl border border-sky-200 text-xs font-bold text-slate-600 hover:bg-sky-50 transition-all cursor-pointer"
+                  className="py-2.5 px-4 rounded-xl border border-sky-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-sky-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -881,20 +785,20 @@ export const AdminInstructors: React.FC = () => {
 
       {/* MODAL: DELETE CONFIRMATION */}
       {deletingInstructorId !== null && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4 border border-rose-200 text-center font-['Sora']">
-            <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 mx-auto flex items-center justify-center">
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4 border border-rose-200 dark:border-rose-900/60 text-center font-['Sora'] text-slate-900 dark:text-white">
+            <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 mx-auto flex items-center justify-center">
               <ShieldAlert className="w-6 h-6" />
             </div>
-            <h3 className="font-heading font-extrabold text-base text-slate-900">Delete Instructor Account?</h3>
-            <p className="text-xs text-slate-500 font-medium">
+            <h3 className="font-heading font-extrabold text-base text-slate-900 dark:text-white">Delete Instructor Account?</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
               Are you sure you want to delete this instructor? This action will remove their account in real-time.
             </p>
 
             <div className="flex items-center justify-center gap-3 pt-2">
               <button
                 onClick={() => setDeletingInstructorId(null)}
-                className="py-2 px-4 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer"
+                className="py-2 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
               >
                 Cancel
               </button>

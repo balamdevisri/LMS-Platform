@@ -593,11 +593,11 @@ export const AdminDashboard: React.FC = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Zap className="w-5 h-5 text-amber-500" />
-            <h2 className="font-heading font-extrabold text-xl text-slate-900">
+            <h2 className="font-heading font-extrabold text-xl text-slate-900 dark:text-white">
               Enterprise System Telemetry & Metrics
             </h2>
           </div>
-          <span className="text-xs bg-sky-50 text-sky-700 font-bold px-3 py-1 rounded-full border border-sky-200">
+          <span className="text-xs bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-cyan-300 font-bold px-3 py-1 rounded-full border border-sky-200 dark:border-sky-800">
             10 Live Indicators
           </span>
         </div>
@@ -613,22 +613,22 @@ export const AdminDashboard: React.FC = () => {
               >
                 <Link
                   to={metric.link}
-                  className="block p-4 rounded-3xl bg-white/90 border border-sky-100 backdrop-blur-xl space-y-3 hover:border-sky-300 hover:shadow-xl transition-all shadow-xs group relative overflow-hidden"
+                  className="block p-4 rounded-3xl bg-white/90 dark:bg-slate-900 border border-sky-100 dark:border-slate-800 backdrop-blur-xl space-y-3 hover:border-sky-300 dark:hover:border-slate-700 hover:shadow-xl transition-all shadow-xs group relative overflow-hidden"
                 >
                   <div className={`w-10 h-10 rounded-2xl bg-linear-to-tr ${metric.gradient} text-white flex items-center justify-center shadow-md ${metric.bgGlow}`}>
                     {Icon ? <Icon className="w-5 h-5" /> : null}
                   </div>
 
                   <div>
-                    <div className="text-[11px] font-bold text-slate-400 tracking-wide uppercase">{metric.label}</div>
-                    <div className="font-heading font-extrabold text-2xl text-slate-900 mt-0.5">
+                    <div className="text-[11px] font-bold text-slate-400 dark:text-slate-500 tracking-wide uppercase">{metric.label}</div>
+                    <div className="font-heading font-extrabold text-2xl text-slate-900 dark:text-white mt-0.5">
                       {typeof metric.value === 'number' ? metric.value.toLocaleString() : metric.value}
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between text-[10px] text-sky-700 font-semibold pt-1 border-t border-slate-100">
+                  <div className="flex items-center justify-between text-[10px] text-sky-700 dark:text-cyan-400 font-semibold pt-1 border-t border-slate-100 dark:border-slate-800">
                     <span>{metric.change}</span>
-                    <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-sky-600 group-hover:translate-x-1 transition-all" />
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 group-hover:text-sky-600 dark:group-hover:text-cyan-400 group-hover:translate-x-1 transition-all" />
                   </div>
                 </Link>
               </motion.div>
@@ -638,21 +638,21 @@ export const AdminDashboard: React.FC = () => {
       </div>
 
       {/* MODULE 9: ANALYTICS DASHBOARD CHARTS — REAL-TIME DATA */}
-      <div className="bg-white border border-sky-100 rounded-3xl p-6 shadow-sm space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-sky-100 pb-4">
+      <div className="bg-white dark:bg-slate-900 border border-sky-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-sky-100 dark:border-slate-800 pb-4">
           <div>
             <div className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-indigo-600" />
-              <h3 className="font-heading font-extrabold text-lg text-slate-900">Platform Analytics Telemetry</h3>
+              <TrendingUp className="w-5 h-5 text-indigo-600 dark:text-cyan-400" />
+              <h3 className="font-heading font-extrabold text-lg text-slate-900 dark:text-white">Platform Analytics Telemetry</h3>
             </div>
-            <p className="text-xs text-slate-500 font-medium mt-0.5">Live registration trends, branch distribution & verification ratios from Firestore</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">Live registration trends, branch distribution & verification ratios from Firestore</p>
           </div>
           <div className="flex items-center gap-2 text-xs font-bold">
-            <span className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl flex items-center gap-1.5">
+            <span className="px-3 py-1 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-xl flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               {approvedStudents} Approved
             </span>
-            <span className="px-3 py-1 bg-sky-50 text-sky-700 border border-sky-200 rounded-xl">
+            <span className="px-3 py-1 bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-cyan-300 border border-sky-200 dark:border-sky-800 rounded-xl">
               {totalStudents} Total Students
             </span>
           </div>
@@ -660,8 +660,8 @@ export const AdminDashboard: React.FC = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Real-Time Daily Registrations Bar Chart */}
-          <div className="bg-slate-50/70 border border-slate-200/80 p-5 rounded-2xl space-y-4">
-            <h4 className="font-bold text-xs text-slate-700 uppercase tracking-wider">Daily Student Registrations (Last 7 Days)</h4>
+          <div className="bg-slate-50/70 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 p-5 rounded-2xl space-y-4">
+            <h4 className="font-bold text-xs text-slate-700 dark:text-slate-300 uppercase tracking-wider">Daily Student Registrations (Last 7 Days)</h4>
             {totalStudents === 0 ? (
               <div className="h-40 flex items-center justify-center text-xs text-slate-400 font-medium">Loading live data...</div>
             ) : (
@@ -670,7 +670,7 @@ export const AdminDashboard: React.FC = () => {
                   const heightPct = maxDailyCount > 0 ? Math.max((item.count / maxDailyCount) * 100, item.count > 0 ? 8 : 0) : 0;
                   return (
                     <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
-                      <div className="text-[10px] font-bold text-slate-500 group-hover:text-blue-600 transition-colors">{item.count > 0 ? item.count : ''}</div>
+                      <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition-colors">{item.count > 0 ? item.count : ''}</div>
                       <motion.div
                         initial={{ height: 0 }}
                         animate={{ height: `${heightPct}%` }}
@@ -678,32 +678,32 @@ export const AdminDashboard: React.FC = () => {
                         className={`w-full rounded-t-lg shadow-xs transition-all ${
                           heightPct > 0
                             ? 'bg-linear-to-t from-blue-600 to-indigo-500 group-hover:from-blue-500 group-hover:to-cyan-400'
-                            : 'bg-slate-200'
+                            : 'bg-slate-200 dark:bg-slate-800'
                         }`}
                       />
-                      <div className="text-[10px] font-bold text-slate-500">{item.day}</div>
+                      <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{item.day}</div>
                     </div>
                   );
                 })}
               </div>
             )}
-            <p className="text-[10px] text-slate-400 font-medium text-center">Computed from {totalStudents} real student registrations</p>
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium text-center">Computed from {totalStudents} real student registrations</p>
           </div>
 
           {/* Real-Time Branch Distribution */}
-          <div className="bg-slate-50/70 border border-slate-200/80 p-5 rounded-2xl space-y-4">
-            <h4 className="font-bold text-xs text-slate-700 uppercase tracking-wider">Branch & Specialization Distribution</h4>
+          <div className="bg-slate-50/70 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 p-5 rounded-2xl space-y-4">
+            <h4 className="font-bold text-xs text-slate-700 dark:text-slate-300 uppercase tracking-wider">Branch & Specialization Distribution</h4>
             <div className="space-y-3 pt-2">
               {branchDistribution.length === 0 ? (
                 <div className="py-4 text-center text-xs text-slate-400 font-medium">No branch data yet</div>
               ) : (
                 branchDistribution.map((b, idx) => (
                   <div key={idx} className="space-y-1">
-                    <div className="flex justify-between text-xs font-semibold text-slate-700">
+                    <div className="flex justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
                       <span className="truncate pr-2">{b.name}</span>
                       <span className="font-mono shrink-0">{b.pct}% ({b.count})</span>
                     </div>
-                    <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                    <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${b.pct}%` }}
@@ -718,43 +718,43 @@ export const AdminDashboard: React.FC = () => {
           </div>
 
           {/* Real-Time Verification & Integration Status */}
-          <div className="bg-slate-50/70 border border-slate-200/80 p-5 rounded-2xl space-y-4">
-            <h4 className="font-bold text-xs text-slate-700 uppercase tracking-wider">Live Verification & GitHub Ratios</h4>
+          <div className="bg-slate-50/70 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800 p-5 rounded-2xl space-y-4">
+            <h4 className="font-bold text-xs text-slate-700 dark:text-slate-300 uppercase tracking-wider">Live Verification & GitHub Ratios</h4>
             <div className="space-y-4 pt-1">
-              <div className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between">
+              <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  <span className="text-xs font-bold text-slate-700">Email Verified</span>
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Email Verified</span>
                 </div>
-                <span className="font-mono font-bold text-xs text-emerald-600">
+                <span className="font-mono font-bold text-xs text-emerald-600 dark:text-emerald-400">
                   {emailVerified} / {totalStudents} ({totalStudents > 0 ? Math.round((emailVerified / totalStudents) * 100) : 0}%)
                 </span>
               </div>
 
-              <div className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between">
+              <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Code2 className="w-4 h-4 text-slate-800" />
-                  <span className="text-xs font-bold text-slate-700">GitHub Connected</span>
+                  <Code2 className="w-4 h-4 text-slate-800 dark:text-slate-200" />
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">GitHub Connected</span>
                 </div>
-                <span className="font-mono font-bold text-xs text-indigo-600">
+                <span className="font-mono font-bold text-xs text-indigo-600 dark:text-indigo-400">
                   {githubConnected} / {totalStudents} ({totalStudents > 0 ? Math.round((githubConnected / totalStudents) * 100) : 0}%)
                 </span>
               </div>
 
-              <div className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between">
+              <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-sky-600" />
-                  <span className="text-xs font-bold text-slate-700">Admin Approved</span>
+                  <ShieldCheck className="w-4 h-4 text-sky-600 dark:text-cyan-400" />
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Admin Approved</span>
                 </div>
-                <span className="font-mono font-bold text-xs text-sky-600">{approvedStudents} / {totalStudents}</span>
+                <span className="font-mono font-bold text-xs text-sky-600 dark:text-cyan-400">{approvedStudents} / {totalStudents}</span>
               </div>
 
-              <div className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between">
+              <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 text-amber-500" />
-                  <span className="text-xs font-bold text-slate-700">Pending Review</span>
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Pending Review</span>
                 </div>
-                <span className="font-mono font-bold text-xs text-amber-600">{pendingApprovals}</span>
+                <span className="font-mono font-bold text-xs text-amber-600 dark:text-amber-400">{pendingApprovals}</span>
               </div>
             </div>
           </div>
@@ -765,12 +765,12 @@ export const AdminDashboard: React.FC = () => {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Sliders className="w-5 h-5 text-sky-600" />
-            <h2 className="font-heading font-extrabold text-xl text-slate-900">
+            <Sliders className="w-5 h-5 text-sky-600 dark:text-cyan-400" />
+            <h2 className="font-heading font-extrabold text-xl text-slate-900 dark:text-white">
               Faculty & Student Operations Hub
             </h2>
           </div>
-          <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-3 py-1 rounded-full border border-emerald-200 flex items-center gap-1.5">
+          <span className="text-xs bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             Real-Time DB Sync Active
           </span>
@@ -778,11 +778,11 @@ export const AdminDashboard: React.FC = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* FACULTY SECTION */}
-          <div className="bg-white border border-sky-100 p-6 rounded-3xl shadow-sm space-y-4">
+          <div className="bg-white dark:bg-slate-900 border border-sky-100 dark:border-slate-800 p-6 rounded-3xl shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <GraduationCap className="w-5 h-5 text-sky-600" />
-                <h3 className="font-heading font-extrabold text-lg text-slate-900">Faculty Members</h3>
+                <GraduationCap className="w-5 h-5 text-sky-600 dark:text-cyan-400" />
+                <h3 className="font-heading font-extrabold text-lg text-slate-900 dark:text-white">Faculty Members</h3>
               </div>
               <button
                 onClick={() => setIsInstructorModalOpen(true)}
@@ -793,15 +793,15 @@ export const AdminDashboard: React.FC = () => {
               </button>
             </div>
 
-            <div className="divide-y divide-slate-100 max-h-60 overflow-y-auto pr-1">
+            <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-60 overflow-y-auto pr-1">
               {instructorsList.map((inst) => (
                 <div key={inst.id} className="py-3 flex items-center justify-between text-xs font-semibold">
                   <div>
-                    <span className="block font-bold text-slate-900">{inst.name}</span>
-                    <span className="text-[11px] text-slate-500">{inst.email} • {inst.specialty}</span>
+                    <span className="block font-bold text-slate-900 dark:text-white">{inst.name}</span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400">{inst.email} • {inst.specialty}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button onClick={() => setEditingInstructor(inst)} className="p-1.5 text-slate-400 hover:text-sky-600 cursor-pointer">
+                    <button onClick={() => setEditingInstructor(inst)} className="p-1.5 text-slate-400 hover:text-sky-600 dark:hover:text-cyan-400 cursor-pointer">
                       <Edit className="w-4 h-4" />
                     </button>
                     <button onClick={() => setDeletingInstructorId(inst.id)} className="p-1.5 text-slate-400 hover:text-rose-600 cursor-pointer">
@@ -814,31 +814,31 @@ export const AdminDashboard: React.FC = () => {
           </div>
 
           {/* RECENT STUDENTS QUICK VIEW */}
-          <div className="bg-white border border-sky-100 p-6 rounded-3xl shadow-sm space-y-4">
+          <div className="bg-white dark:bg-slate-900 border border-sky-100 dark:border-slate-800 p-6 rounded-3xl shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-indigo-600" />
-                <h3 className="font-heading font-extrabold text-lg text-slate-900">Recent Student Applications</h3>
+                <Users className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                <h3 className="font-heading font-extrabold text-lg text-slate-900 dark:text-white">Recent Student Applications</h3>
               </div>
-              <Link to="/admin/students" className="text-xs font-bold text-sky-600 hover:text-sky-700 flex items-center gap-1">
+              <Link to="/admin/students" className="text-xs font-bold text-sky-600 dark:text-cyan-400 hover:underline flex items-center gap-1">
                 <span>View All ({totalStudents})</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
 
-            <div className="divide-y divide-slate-100 max-h-60 overflow-y-auto pr-1">
+            <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-60 overflow-y-auto pr-1">
               {studentsList.slice(0, 5).map((stud) => (
                 <div key={stud.id} className="py-3 flex items-center justify-between text-xs font-semibold">
                   <div>
-                    <span className="block font-bold text-slate-900">{stud.name}</span>
-                    <span className="text-[11px] text-slate-500">{stud.email}</span>
+                    <span className="block font-bold text-slate-900 dark:text-white">{stud.name}</span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400">{stud.email}</span>
                   </div>
                   <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider ${
                     stud.status === 'approved' || stud.approved
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
                       : stud.status === 'rejected'
-                      ? 'bg-rose-50 text-rose-700 border-rose-200'
-                      : 'bg-amber-50 text-amber-700 border-amber-200'
+                      ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                      : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
                   }`}>
                     {stud.status || 'pending'}
                   </span>
@@ -851,52 +851,53 @@ export const AdminDashboard: React.FC = () => {
 
       {/* MODAL: ADD INSTRUCTOR */}
       {isInstructorModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-sky-200 max-w-md w-full p-6 shadow-2xl space-y-4 font-['Sora']">
-            <div className="flex items-center justify-between pb-2 border-b border-sky-100">
-              <h3 className="font-heading font-extrabold text-lg text-slate-900">Add Faculty Instructor</h3>
-              <button onClick={() => setIsInstructorModalOpen(false)} className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer">
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-sky-200 dark:border-slate-800 max-w-md w-full p-6 shadow-2xl space-y-4 font-['Sora'] text-slate-900 dark:text-white">
+            <div className="flex items-center justify-between pb-2 border-b border-sky-100 dark:border-slate-800">
+              <h3 className="font-heading font-extrabold text-lg text-slate-900 dark:text-white">Add Faculty Instructor</h3>
+              <button onClick={() => setIsInstructorModalOpen(false)} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleAddInstructor} className="space-y-4 text-xs font-medium">
               <div>
-                <label className="block text-slate-700 font-bold mb-1">Full Name</label>
+                <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Full Name</label>
                 <input
                   type="text"
                   required
                   value={instName}
                   onChange={(e) => setInstName(e.target.value)}
                   placeholder="e.g. Dr. Vikram Sharma"
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 focus:outline-hidden"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-slate-900 dark:text-white focus:outline-hidden"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-700 font-bold mb-1">Email Address</label>
+                <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Email Address</label>
                 <input
                   type="email"
                   required
                   value={instEmail}
                   onChange={(e) => setInstEmail(e.target.value)}
                   placeholder="vikram@kaizenq.ai"
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 focus:outline-hidden"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-slate-900 dark:text-white focus:outline-hidden"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-700 font-bold mb-1">Specialty</label>
+                <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Specialty</label>
                 <input
                   type="text"
                   value={instSpecialty}
                   onChange={(e) => setInstSpecialty(e.target.value)}
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 focus:outline-hidden"
+                  placeholder="e.g. AI & Machine Learning"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-slate-900 dark:text-white focus:outline-hidden"
                 />
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setIsInstructorModalOpen(false)} className="px-4 py-2 rounded-xl text-slate-600 font-bold hover:bg-slate-100 cursor-pointer">
+                <button type="button" onClick={() => setIsInstructorModalOpen(false)} className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
                   Cancel
                 </button>
                 <button type="submit" className="btn-blue-primary text-xs py-2.5 px-5 font-bold cursor-pointer">
@@ -910,40 +911,40 @@ export const AdminDashboard: React.FC = () => {
 
       {/* MODAL: EDIT INSTRUCTOR */}
       {editingInstructor && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-sky-200 max-w-md w-full p-6 shadow-2xl space-y-4 font-['Sora']">
-            <div className="flex items-center justify-between pb-2 border-b border-sky-100">
-              <h3 className="font-heading font-extrabold text-lg text-slate-900">Edit Instructor Details</h3>
-              <button onClick={() => setEditingInstructor(null)} className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer">
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-sky-200 dark:border-slate-800 max-w-md w-full p-6 shadow-2xl space-y-4 font-['Sora'] text-slate-900 dark:text-white">
+            <div className="flex items-center justify-between pb-2 border-b border-sky-100 dark:border-slate-800">
+              <h3 className="font-heading font-extrabold text-lg text-slate-900 dark:text-white">Edit Instructor Details</h3>
+              <button onClick={() => setEditingInstructor(null)} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleUpdateInstructor} className="space-y-4 text-xs font-medium">
               <div>
-                <label className="block text-slate-700 font-bold mb-1">Full Name</label>
+                <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Full Name</label>
                 <input
                   type="text"
                   required
                   value={editingInstructor.name}
                   onChange={(e) => setEditingInstructor({ ...editingInstructor, name: e.target.value })}
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 focus:outline-hidden"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-slate-900 dark:text-white focus:outline-hidden"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-700 font-bold mb-1">Email</label>
+                <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Email</label>
                 <input
                   type="email"
                   required
                   value={editingInstructor.email}
                   onChange={(e) => setEditingInstructor({ ...editingInstructor, email: e.target.value })}
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 focus:outline-hidden"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-slate-900 dark:text-white focus:outline-hidden"
                 />
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setEditingInstructor(null)} className="px-4 py-2 rounded-xl text-slate-600 font-bold hover:bg-slate-100 cursor-pointer">
+                <button type="button" onClick={() => setEditingInstructor(null)} className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
                   Cancel
                 </button>
                 <button type="submit" className="btn-blue-primary text-xs py-2.5 px-5 font-bold cursor-pointer">
@@ -957,15 +958,15 @@ export const AdminDashboard: React.FC = () => {
 
       {/* MODAL: DELETE INSTRUCTOR CONFIRMATION */}
       {deletingInstructorId !== null && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4 border border-rose-200 text-center font-['Sora']">
-            <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 mx-auto flex items-center justify-center">
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4 border border-rose-200 dark:border-rose-900/60 text-center font-['Sora'] text-slate-900 dark:text-white">
+            <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 mx-auto flex items-center justify-center">
               <ShieldAlert className="w-6 h-6" />
             </div>
-            <h3 className="font-heading font-extrabold text-base text-slate-900">Delete Instructor?</h3>
-            <p className="text-xs text-slate-500 font-medium">Are you sure you want to remove this faculty instructor?</p>
+            <h3 className="font-heading font-extrabold text-base text-slate-900 dark:text-white">Delete Instructor?</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Are you sure you want to remove this faculty instructor?</p>
             <div className="flex items-center justify-center gap-3 pt-2">
-              <button onClick={() => setDeletingInstructorId(null)} className="py-2 px-4 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer">
+              <button onClick={() => setDeletingInstructorId(null)} className="py-2 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer">
                 Cancel
               </button>
               <button onClick={() => handleDeleteInstructor(deletingInstructorId)} className="py-2 px-4 rounded-xl bg-rose-600 text-white text-xs font-bold shadow-xs cursor-pointer">
@@ -978,47 +979,47 @@ export const AdminDashboard: React.FC = () => {
 
       {/* MODAL: EDIT STUDENT */}
       {editingStudent && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-sky-200 max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-sky-100">
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-sky-200 dark:border-slate-800 max-w-md w-full p-6 shadow-2xl space-y-4 text-slate-900 dark:text-white font-['Sora']">
+            <div className="flex items-center justify-between pb-2 border-b border-sky-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
-                <Edit className="w-5 h-5 text-sky-600" />
-                <h3 className="font-heading font-extrabold text-lg text-slate-900">Edit Student Details</h3>
+                <Edit className="w-5 h-5 text-sky-600 dark:text-cyan-400" />
+                <h3 className="font-heading font-extrabold text-lg text-slate-900 dark:text-white">Edit Student Details</h3>
               </div>
-              <button onClick={() => setEditingStudent(null)} className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer">
+              <button onClick={() => setEditingStudent(null)} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleUpdateStudent} className="space-y-4 text-xs font-medium">
               <div>
-                <label className="block text-slate-700 font-bold mb-1">Student Name</label>
+                <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Student Name</label>
                 <input
                   type="text"
                   required
                   value={editingStudent.name}
                   onChange={(e) => setEditingStudent({ ...editingStudent, name: e.target.value })}
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 focus:outline-hidden"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-slate-900 dark:text-white focus:outline-hidden"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-700 font-bold mb-1">Email Address</label>
+                <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Email Address</label>
                 <input
                   type="email"
                   required
                   value={editingStudent.email}
                   onChange={(e) => setEditingStudent({ ...editingStudent, email: e.target.value })}
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 focus:outline-hidden"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-slate-900 dark:text-white focus:outline-hidden"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-700 font-bold mb-1">Approval Status</label>
+                <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Approval Status</label>
                 <select
                   value={editingStudent.status}
                   onChange={(e) => setEditingStudent({ ...editingStudent, status: e.target.value as any })}
-                  className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2.5 px-3 focus:outline-hidden"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-slate-900 dark:text-white focus:outline-hidden"
                 >
                   <option value="pending font-bold">pending</option>
                   <option value="approved">approved</option>
@@ -1028,7 +1029,7 @@ export const AdminDashboard: React.FC = () => {
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setEditingStudent(null)} className="px-4 py-2 rounded-xl text-slate-600 font-bold hover:bg-slate-100 cursor-pointer">
+                <button type="button" onClick={() => setEditingStudent(null)} className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
                   Cancel
                 </button>
                 <button type="submit" className="btn-blue-primary text-xs py-2.5 px-5 font-bold cursor-pointer">
@@ -1042,15 +1043,15 @@ export const AdminDashboard: React.FC = () => {
 
       {/* MODAL: DELETE STUDENT CONFIRMATION */}
       {deletingStudentId !== null && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4 border border-rose-200 text-center font-['Sora']">
-            <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 mx-auto flex items-center justify-center">
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4 border border-rose-200 dark:border-rose-900/60 text-center font-['Sora'] text-slate-900 dark:text-white">
+            <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 mx-auto flex items-center justify-center">
               <ShieldAlert className="w-6 h-6" />
             </div>
-            <h3 className="font-heading font-extrabold text-base text-slate-900">Delete Student Account?</h3>
-            <p className="text-xs text-slate-500 font-medium">Are you sure you want to delete this student account?</p>
+            <h3 className="font-heading font-extrabold text-base text-slate-900 dark:text-white">Delete Student Account?</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Are you sure you want to delete this student account?</p>
             <div className="flex items-center justify-center gap-3 pt-2">
-              <button onClick={() => setDeletingStudentId(null)} className="py-2 px-4 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer">
+              <button onClick={() => setDeletingStudentId(null)} className="py-2 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer">
                 Cancel
               </button>
               <button onClick={() => handleDeleteStudent(deletingStudentId)} className="py-2 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold cursor-pointer">

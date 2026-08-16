@@ -93,17 +93,17 @@ export const UserStatistics: React.FC<UserStatisticsProps> = ({ stats }) => {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: i * 0.05 }}
-            className={`bg-white/95 backdrop-blur-xl rounded-3xl p-5 border ${c.border} shadow-lg ${c.shadow} hover:shadow-xl transition-all duration-300 relative overflow-hidden group`}
+            className={`bg-white/95 dark:bg-slate-900 backdrop-blur-xl rounded-3xl p-5 border ${c.border} dark:border-slate-800 shadow-lg ${c.shadow} hover:shadow-xl transition-all duration-300 relative overflow-hidden group`}
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+                <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                   {c.title}
                 </p>
-                <h3 className="text-2xl sm:text-3xl font-heading font-extrabold text-slate-900 mt-1">
+                <h3 className="text-2xl sm:text-3xl font-heading font-extrabold text-slate-900 dark:text-white mt-1">
                   {c.value}
                 </h3>
-                <p className="text-[11px] font-semibold text-slate-500 mt-1">
+                <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1">
                   {c.subtext}
                 </p>
               </div>

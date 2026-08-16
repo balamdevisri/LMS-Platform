@@ -139,16 +139,16 @@ export const Courses: React.FC = () => {
     <div className="space-y-8 text-slate-900 max-w-7xl mx-auto pb-12 font-['Sora']">
       
       {/* Header Banner */}
-      <div className="bg-white/95 backdrop-blur-2xl border border-sky-100 p-6 sm:p-8 rounded-3xl shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="bg-white/95 dark:bg-slate-900 backdrop-blur-2xl border border-sky-100 dark:border-slate-800 p-6 sm:p-8 rounded-3xl shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50 border border-sky-100 text-sky-700 text-[10px] font-bold uppercase tracking-wider mb-2 select-none">
-            <Sparkles className="w-3.5 h-3.5 text-sky-500 animate-spin" style={{ animationDuration: '3s' }} />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50 dark:bg-sky-950/60 border border-sky-100 dark:border-sky-800 text-sky-700 dark:text-cyan-300 text-[10px] font-bold uppercase tracking-wider mb-2 select-none">
+            <Sparkles className="w-3.5 h-3.5 text-sky-500 dark:text-cyan-400 animate-spin" style={{ animationDuration: '3s' }} />
             <span>Kaizen Q Portal</span>
           </div>
-          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-slate-900 tracking-tight">
+          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-slate-900 dark:text-white tracking-tight">
             Course Management
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">
             Create, edit, publish and manage all learning courses.
           </p>
         </div>
@@ -194,12 +194,12 @@ export const Courses: React.FC = () => {
       {courses.length === 0 ? (
         <EmptyCourses onCreateCourse={handleCreateCourseClick} />
       ) : (
-        <div className="bg-white/90 border border-sky-100 rounded-3xl p-6 space-y-6 shadow-2xs">
+        <div className="bg-white/90 dark:bg-slate-900 border border-sky-100 dark:border-slate-800 rounded-3xl p-6 space-y-6 shadow-2xs">
           
           {/* Search bar & filter controls */}
           <div className="flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-              <h2 className="font-heading font-extrabold text-lg text-slate-900 select-none">
+              <h2 className="font-heading font-extrabold text-lg text-slate-900 dark:text-white select-none">
                 All Courses ({filteredCourses.length})
               </h2>
               <CourseSearchBar value={searchQuery} onChange={setSearchQuery} />

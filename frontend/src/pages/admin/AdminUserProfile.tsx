@@ -107,7 +107,7 @@ export const AdminUserProfile: React.FC = () => {
       <div className="flex items-center justify-between">
         <button
           onClick={() => navigate('/admin/users')}
-          className="flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-sky-600 transition-colors cursor-pointer bg-white px-4 py-2 rounded-xl border border-sky-200 shadow-2xs"
+          className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-sky-600 dark:hover:text-cyan-400 transition-colors cursor-pointer bg-white dark:bg-slate-900 px-4 py-2 rounded-xl border border-sky-200 dark:border-slate-800 shadow-2xs"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Admin User Directory</span>
@@ -117,17 +117,17 @@ export const AdminUserProfile: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsEditing(true)}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold bg-white text-slate-800 border border-sky-200 rounded-xl hover:bg-sky-50 transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-sky-200 dark:border-slate-800 rounded-xl hover:bg-sky-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
           >
-            <Edit className="w-3.5 h-3.5 text-sky-600" />
+            <Edit className="w-3.5 h-3.5 text-sky-600 dark:text-cyan-400" />
             <span>Edit Profile</span>
           </button>
 
           <button
             onClick={() => setIsChangingRole(true)}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold bg-white text-purple-700 border border-purple-200 rounded-xl hover:bg-purple-50 transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 rounded-xl hover:bg-purple-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
           >
-            <Shield className="w-3.5 h-3.5 text-purple-600" />
+            <Shield className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
             <span>Change Role</span>
           </button>
 
@@ -135,8 +135,8 @@ export const AdminUserProfile: React.FC = () => {
             onClick={handleToggleBlock}
             className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold border rounded-xl transition-all cursor-pointer ${
               user.status === 'Blocked'
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
-                : 'bg-rose-50 text-rose-700 border-rose-300 hover:bg-rose-100'
+                ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-100'
+                : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800 hover:bg-rose-100'
             }`}
           >
             <Ban className="w-3.5 h-3.5" />
@@ -146,51 +146,51 @@ export const AdminUserProfile: React.FC = () => {
       </div>
 
       {/* Main Profile Header Banner */}
-      <div className="bg-white/95 backdrop-blur-2xl border border-sky-200 p-6 sm:p-8 rounded-3xl shadow-xl shadow-sky-500/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      <div className="bg-white/95 dark:bg-slate-900 backdrop-blur-2xl border border-sky-200 dark:border-slate-800 p-6 sm:p-8 rounded-3xl shadow-xl shadow-sky-500/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="flex items-center gap-5">
           {user.photoURL ? (
             <img
               src={user.photoURL}
               alt={user.fullName}
-              className="w-20 h-20 rounded-full object-cover border-4 border-sky-400 shadow-md shrink-0"
+              className="w-20 h-20 rounded-full object-cover border-4 border-sky-400 dark:border-cyan-500 shadow-md shrink-0"
             />
           ) : (
-            <div className="w-20 h-20 rounded-full bg-linear-to-tr from-sky-600 via-sky-500 to-indigo-600 text-white font-extrabold text-2xl flex items-center justify-center border-4 border-sky-300 shadow-md shrink-0">
+            <div className="w-20 h-20 rounded-full bg-linear-to-tr from-sky-600 via-sky-500 to-indigo-600 text-white font-extrabold text-2xl flex items-center justify-center border-4 border-sky-300 dark:border-slate-700 shadow-md shrink-0">
               {user.fullName?.charAt(0).toUpperCase() || 'U'}
             </div>
           )}
 
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-slate-900">
+              <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-slate-900 dark:text-white">
                 {user.fullName || user.name}
               </h1>
               <RoleBadge role={user.role} size="md" />
               <StatusBadge status={user.status} size="md" />
             </div>
 
-            <p className="text-xs text-slate-500 font-mono font-medium flex items-center gap-2">
-              <Mail className="w-3.5 h-3.5 text-sky-500" />
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-mono font-medium flex items-center gap-2">
+              <Mail className="w-3.5 h-3.5 text-sky-500 dark:text-cyan-400" />
               <span>{user.email}</span>
               <span>•</span>
               <ProviderBadge provider={user.provider} />
             </p>
 
-            <p className="text-xs text-slate-600 font-medium pt-1 max-w-xl">
+            <p className="text-xs text-slate-600 dark:text-slate-300 font-medium pt-1 max-w-xl">
               {user.bio || 'AI Learner pursuing intelligent agents, deep learning & fullstack system architectures.'}
             </p>
           </div>
         </div>
 
         {/* Overall Progress Meter */}
-        <div className="bg-sky-50/80 border border-sky-200/80 p-4 rounded-2xl shrink-0 text-center w-full md:w-56 space-y-2">
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
+        <div className="bg-sky-50/80 dark:bg-slate-950/80 border border-sky-200/80 dark:border-slate-800 p-4 rounded-2xl shrink-0 text-center w-full md:w-56 space-y-2">
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">
             Learning Progress
           </span>
-          <div className="text-3xl font-heading font-extrabold text-sky-600">
+          <div className="text-3xl font-heading font-extrabold text-sky-600 dark:text-cyan-400">
             {user.learningProgressPercent || 65}%
           </div>
-          <div className="w-full bg-sky-200 rounded-full h-2 overflow-hidden">
+          <div className="w-full bg-sky-200 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
             <div
               className="bg-linear-to-r from-sky-500 to-indigo-600 h-2 rounded-full transition-all duration-500"
               style={{ width: `${user.learningProgressPercent || 65}%` }}
@@ -206,35 +206,35 @@ export const AdminUserProfile: React.FC = () => {
         <div className="space-y-6">
           
           {/* Basic Information Box */}
-          <div className="bg-white/90 border border-sky-200/80 p-6 rounded-3xl shadow-xs space-y-4">
-            <h3 className="font-heading font-bold text-base text-slate-900 border-b border-sky-100 pb-3 flex items-center gap-2">
-              <User className="w-4 h-4 text-sky-600" /> Account Metadata
+          <div className="bg-white/90 dark:bg-slate-900 border border-sky-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-xs space-y-4">
+            <h3 className="font-heading font-bold text-base text-slate-900 dark:text-white border-b border-sky-100 dark:border-slate-800 pb-3 flex items-center gap-2">
+              <User className="w-4 h-4 text-sky-600 dark:text-cyan-400" /> Account Metadata
             </h3>
 
             <div className="space-y-3 text-xs font-medium">
               <div className="flex items-center justify-between">
-                <span className="text-slate-400">UID</span>
-                <span className="font-mono text-sky-700 font-bold truncate max-w-40">{user.uid}</span>
+                <span className="text-slate-400 dark:text-slate-500">UID</span>
+                <span className="font-mono text-sky-700 dark:text-cyan-400 font-bold truncate max-w-40">{user.uid}</span>
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-slate-400">Verification</span>
-                <span className="font-bold text-emerald-600">{user.isVerified ? '✓ Verified' : 'Pending'}</span>
+                <span className="text-slate-400 dark:text-slate-500">Verification</span>
+                <span className="font-bold text-emerald-600 dark:text-emerald-400">{user.isVerified ? '✓ Verified' : 'Pending'}</span>
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-slate-400">Academic Branch</span>
-                <span className="font-bold text-slate-900">{user.branch || 'AI & Computer Science'}</span>
+                <span className="text-slate-400 dark:text-slate-500">Academic Branch</span>
+                <span className="font-bold text-slate-900 dark:text-white">{user.branch || 'AI & Computer Science'}</span>
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-slate-400">Academic Year</span>
-                <span className="font-bold text-slate-900">{user.year || '4th Year'}</span>
+                <span className="text-slate-400 dark:text-slate-500">Academic Year</span>
+                <span className="font-bold text-slate-900 dark:text-white">{user.year || '4th Year'}</span>
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-slate-400">Registration Date</span>
-                <span className="text-slate-700">
+                <span className="text-slate-400 dark:text-slate-500">Registration Date</span>
+                <span className="text-slate-700 dark:text-slate-300">
                   {user.createdAt
                     ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                     : 'Recently'}
@@ -242,8 +242,8 @@ export const AdminUserProfile: React.FC = () => {
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-slate-400">Last Login Activity</span>
-                <span className="text-slate-700">
+                <span className="text-slate-400 dark:text-slate-500">Last Login Activity</span>
+                <span className="text-slate-700 dark:text-slate-300">
                   {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Active Now'}
                 </span>
               </div>
@@ -251,15 +251,15 @@ export const AdminUserProfile: React.FC = () => {
           </div>
 
           {/* Technical Skills */}
-          <div className="bg-white/90 border border-sky-200/80 p-6 rounded-3xl shadow-xs space-y-4">
-            <h3 className="font-heading font-bold text-base text-slate-900 border-b border-sky-100 pb-3">
+          <div className="bg-white/90 dark:bg-slate-900 border border-sky-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-xs space-y-4">
+            <h3 className="font-heading font-bold text-base text-slate-900 dark:text-white border-b border-sky-100 dark:border-slate-800 pb-3">
               Technical Skills & Competencies
             </h3>
             <div className="flex flex-wrap gap-2">
               {(user.skills || ['Python', 'Machine Learning', 'PyTorch', 'React', 'TypeScript']).map((skill) => (
                 <span
                   key={skill}
-                  className="px-3 py-1 rounded-xl bg-sky-50 text-sky-700 border border-sky-200 text-xs font-bold"
+                  className="px-3 py-1 rounded-xl bg-sky-50 dark:bg-slate-950 text-sky-700 dark:text-cyan-300 border border-sky-200 dark:border-slate-800 text-xs font-bold"
                 >
                   {skill}
                 </span>
@@ -268,8 +268,8 @@ export const AdminUserProfile: React.FC = () => {
           </div>
 
           {/* Social Profiles */}
-          <div className="bg-white/90 border border-sky-200/80 p-6 rounded-3xl shadow-xs space-y-4">
-            <h3 className="font-heading font-bold text-base text-slate-900 border-b border-sky-100 pb-3">
+          <div className="bg-white/90 dark:bg-slate-900 border border-sky-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-xs space-y-4">
+            <h3 className="font-heading font-bold text-base text-slate-900 dark:text-white border-b border-sky-100 dark:border-slate-800 pb-3">
               Social Links
             </h3>
             <div className="space-y-2.5 text-xs font-bold">
@@ -278,9 +278,9 @@ export const AdminUserProfile: React.FC = () => {
                   href={user.github}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-2.5 text-slate-800 hover:text-sky-600 transition-colors p-2 bg-slate-50 rounded-xl border border-slate-200"
+                  className="flex items-center gap-2.5 text-slate-800 dark:text-slate-200 hover:text-sky-600 dark:hover:text-cyan-400 transition-colors p-2 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800"
                 >
-                  <svg className="w-4 h-4 text-slate-900 fill-current" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-slate-900 dark:text-slate-100 fill-current" viewBox="0 0 24 24">
                     <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
                   </svg>
                   <span className="truncate">{user.github}</span>
@@ -292,9 +292,9 @@ export const AdminUserProfile: React.FC = () => {
                   href={user.linkedin}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-2.5 text-slate-800 hover:text-sky-600 transition-colors p-2 bg-slate-50 rounded-xl border border-slate-200"
+                  className="flex items-center gap-2.5 text-slate-800 dark:text-slate-200 hover:text-sky-600 dark:hover:text-cyan-400 transition-colors p-2 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800"
                 >
-                  <svg className="w-4 h-4 text-sky-600 fill-current" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-sky-600 dark:text-cyan-400 fill-current" viewBox="0 0 24 24">
                     <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
                   </svg>
                   <span className="truncate">{user.linkedin}</span>
@@ -306,9 +306,9 @@ export const AdminUserProfile: React.FC = () => {
                   href={user.portfolio}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-2.5 text-slate-800 hover:text-sky-600 transition-colors p-2 bg-slate-50 rounded-xl border border-slate-200"
+                  className="flex items-center gap-2.5 text-slate-800 dark:text-slate-200 hover:text-sky-600 dark:hover:text-cyan-400 transition-colors p-2 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800"
                 >
-                  <Globe className="w-4 h-4 text-purple-600" />
+                  <Globe className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                   <span className="truncate">{user.portfolio}</span>
                 </a>
               )}
@@ -321,30 +321,30 @@ export const AdminUserProfile: React.FC = () => {
         <div className="lg:col-span-2 space-y-6">
           
           {/* Enrolled Courses & Completed Tracks */}
-          <div className="bg-white/90 border border-sky-200/80 p-6 rounded-3xl shadow-xs space-y-4">
-            <h3 className="font-heading font-bold text-base text-slate-900 border-b border-sky-100 pb-3 flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-sky-600" /> Enrolled Course Tracks ({user.enrolledCoursesCount || 2})
+          <div className="bg-white/90 dark:bg-slate-900 border border-sky-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-xs space-y-4">
+            <h3 className="font-heading font-bold text-base text-slate-900 dark:text-white border-b border-sky-100 dark:border-slate-800 pb-3 flex items-center gap-2">
+              <BookOpen className="w-4 h-4 text-sky-600 dark:text-cyan-400" /> Enrolled Course Tracks ({user.enrolledCoursesCount || 2})
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="p-4 bg-sky-50/70 border border-sky-200 rounded-2xl space-y-2">
+              <div className="p-4 bg-sky-50/70 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-2xl space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-extrabold text-slate-900">AI Foundation & Deep Learning</span>
-                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">In Progress</span>
+                  <span className="text-xs font-extrabold text-slate-900 dark:text-white">AI Foundation & Deep Learning</span>
+                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full">In Progress</span>
                 </div>
-                <p className="text-[11px] text-slate-500">Neural Networks, Vector Search & LLM Fine-Tuning</p>
-                <div className="w-full bg-sky-200 rounded-full h-1.5 overflow-hidden">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">Neural Networks, Vector Search & LLM Fine-Tuning</p>
+                <div className="w-full bg-sky-200 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
                   <div className="bg-sky-600 h-1.5 rounded-full w-[75%]" />
                 </div>
               </div>
 
-              <div className="p-4 bg-purple-50/70 border border-purple-200 rounded-2xl space-y-2">
+              <div className="p-4 bg-purple-50/70 dark:bg-slate-950 border border-purple-200 dark:border-slate-800 rounded-2xl space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-extrabold text-slate-900">Fullstack Systems Engineering</span>
-                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">In Progress</span>
+                  <span className="text-xs font-extrabold text-slate-900 dark:text-white">Fullstack Systems Engineering</span>
+                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full">In Progress</span>
                 </div>
-                <p className="text-[11px] text-slate-500">React, TypeScript, GraphQL & Distributed Caching</p>
-                <div className="w-full bg-purple-200 rounded-full h-1.5 overflow-hidden">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">React, TypeScript, GraphQL & Distributed Caching</p>
+                <div className="w-full bg-purple-200 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
                   <div className="bg-purple-600 h-1.5 rounded-full w-[50%]" />
                 </div>
               </div>
@@ -352,24 +352,24 @@ export const AdminUserProfile: React.FC = () => {
           </div>
 
           {/* Quiz Scores & Evaluations */}
-          <div className="bg-white/90 border border-sky-200/80 p-6 rounded-3xl shadow-xs space-y-4">
-            <h3 className="font-heading font-bold text-base text-slate-900 border-b border-sky-100 pb-3 flex items-center gap-2">
-              <FileCheck className="w-4 h-4 text-sky-600" /> Quiz & Assessment Scores
+          <div className="bg-white/90 dark:bg-slate-900 border border-sky-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-xs space-y-4">
+            <h3 className="font-heading font-bold text-base text-slate-900 dark:text-white border-b border-sky-100 dark:border-slate-800 pb-3 flex items-center gap-2">
+              <FileCheck className="w-4 h-4 text-sky-600 dark:text-cyan-400" /> Quiz & Assessment Scores
             </h3>
 
-            <div className="divide-y divide-sky-100 text-xs">
+            <div className="divide-y divide-sky-100 dark:divide-slate-800 text-xs">
               {(user.quizScores || [
                 { id: 'q1', title: 'Neural Networks 101', score: 95, maxScore: 100, date: '2026-03-01' },
                 { id: 'q2', title: 'Transformer Architectures', score: 88, maxScore: 100, date: '2026-03-15' },
               ]).map((q) => (
                 <div key={q.id} className="py-3 flex items-center justify-between">
                   <div>
-                    <h4 className="font-bold text-slate-900">{q.title}</h4>
-                    <span className="text-[10px] text-slate-400 font-medium">{q.date}</span>
+                    <h4 className="font-bold text-slate-900 dark:text-white">{q.title}</h4>
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">{q.date}</span>
                   </div>
                   <div className="text-right">
-                    <span className="font-heading font-extrabold text-sky-600 text-sm">{q.score} / {q.maxScore}</span>
-                    <span className="block text-[10px] font-bold text-emerald-600">PASSED</span>
+                    <span className="font-heading font-extrabold text-sky-600 dark:text-cyan-400 text-sm">{q.score} / {q.maxScore}</span>
+                    <span className="block text-[10px] font-bold text-emerald-600 dark:text-emerald-400">PASSED</span>
                   </div>
                 </div>
               ))}
@@ -377,18 +377,18 @@ export const AdminUserProfile: React.FC = () => {
           </div>
 
           {/* Certificates & Rewards */}
-          <div className="bg-white/90 border border-sky-200/80 p-6 rounded-3xl shadow-xs space-y-4">
-            <h3 className="font-heading font-bold text-base text-slate-900 border-b border-sky-100 pb-3 flex items-center gap-2">
-              <Award className="w-4 h-4 text-sky-600" /> Earned Certificates
+          <div className="bg-white/90 dark:bg-slate-900 border border-sky-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-xs space-y-4">
+            <h3 className="font-heading font-bold text-base text-slate-900 dark:text-white border-b border-sky-100 dark:border-slate-800 pb-3 flex items-center gap-2">
+              <Award className="w-4 h-4 text-sky-600 dark:text-cyan-400" /> Earned Certificates
             </h3>
 
             {user.certificates && user.certificates.length > 0 ? (
               <div className="space-y-3">
                 {user.certificates.map((cert) => (
-                  <div key={cert.id} className="p-3 bg-amber-50/70 border border-amber-200 rounded-2xl flex items-center justify-between">
+                  <div key={cert.id} className="p-3 bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-2xl flex items-center justify-between">
                     <div>
-                      <h4 className="font-bold text-amber-900 text-xs">{cert.title}</h4>
-                      <span className="text-[10px] text-amber-700 font-medium">Issued on {cert.issuedAt}</span>
+                      <h4 className="font-bold text-amber-900 dark:text-amber-200 text-xs">{cert.title}</h4>
+                      <span className="text-[10px] text-amber-700 dark:text-amber-400 font-medium">Issued on {cert.issuedAt}</span>
                     </div>
                     <span className="px-3 py-1 bg-amber-600 text-white font-bold text-[10px] rounded-xl shadow-xs">
                       Verified Certificate
@@ -397,7 +397,7 @@ export const AdminUserProfile: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-center text-xs text-slate-500 font-medium">
+              <div className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-center text-xs text-slate-500 dark:text-slate-400 font-medium">
                 No course certificates unlocked yet. Certificates will unlock automatically upon 100% course track completion.
               </div>
             )}

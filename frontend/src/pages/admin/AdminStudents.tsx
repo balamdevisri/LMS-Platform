@@ -410,9 +410,9 @@ export const AdminStudents: React.FC = () => {
 
           <button
             onClick={handleExportCSV}
-            className="bg-white hover:bg-sky-50 text-slate-800 font-bold text-xs border border-sky-200 py-3 px-4 rounded-xl transition-all shadow-xs flex items-center gap-2 cursor-pointer"
+            className="bg-white dark:bg-slate-900 hover:bg-sky-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold text-xs border border-sky-200 dark:border-slate-800 py-3 px-4 rounded-xl transition-all shadow-xs flex items-center gap-2 cursor-pointer"
           >
-            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+            <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             <span>Export CSV / Excel</span>
           </button>
 
@@ -442,65 +442,65 @@ export const AdminStudents: React.FC = () => {
 
       {/* Top Statistics Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-        <div className="p-4 rounded-3xl bg-white border border-sky-100 shadow-sm space-y-1">
-          <div className="flex items-center justify-between text-slate-500">
+        <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-sky-100 dark:border-slate-800 shadow-sm space-y-1">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
             <span className="text-[11px] font-bold uppercase tracking-wider">Total</span>
-            <Users className="w-4 h-4 text-sky-600" />
+            <Users className="w-4 h-4 text-sky-600 dark:text-cyan-400" />
           </div>
-          <div className="text-2xl font-extrabold text-slate-900">{stats.totalStudents}</div>
-          <div className="text-[10px] text-slate-500 font-medium">Registered Learners</div>
+          <div className="text-2xl font-extrabold text-slate-900 dark:text-white">{stats.totalStudents}</div>
+          <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Registered Learners</div>
         </div>
 
-        <div className="p-4 rounded-3xl bg-white border border-sky-100 shadow-sm space-y-1">
-          <div className="flex items-center justify-between text-slate-500">
+        <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-sky-100 dark:border-slate-800 shadow-sm space-y-1">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
             <span className="text-[11px] font-bold uppercase tracking-wider">Pending</span>
             <AlertCircle className="w-4 h-4 text-amber-500 animate-pulse" />
           </div>
-          <div className="text-2xl font-extrabold text-amber-600">
+          <div className="text-2xl font-extrabold text-amber-600 dark:text-amber-400">
             {students.filter(isPendingStudent).length}
           </div>
-          <div className="text-[10px] text-amber-600 font-medium">Needs Review</div>
+          <div className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">Needs Review</div>
         </div>
 
-        <div className="p-4 rounded-3xl bg-white border border-sky-100 shadow-sm space-y-1">
-          <div className="flex items-center justify-between text-slate-500">
+        <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-sky-100 dark:border-slate-800 shadow-sm space-y-1">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
             <span className="text-[11px] font-bold uppercase tracking-wider">Approved</span>
-            <UserCheck className="w-4 h-4 text-emerald-600" />
+            <UserCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           </div>
-          <div className="text-2xl font-extrabold text-emerald-700">{stats.activeStudents}</div>
-          <div className="text-[10px] text-emerald-600 font-medium">Active Accounts</div>
+          <div className="text-2xl font-extrabold text-emerald-700 dark:text-emerald-400">{stats.activeStudents}</div>
+          <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Active Accounts</div>
         </div>
 
-        <div className="p-4 rounded-3xl bg-white border border-sky-100 shadow-sm space-y-1">
-          <div className="flex items-center justify-between text-slate-500">
+        <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-sky-100 dark:border-slate-800 shadow-sm space-y-1">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
             <span className="text-[11px] font-bold uppercase tracking-wider">Verified</span>
-            <ShieldCheck className="w-4 h-4 text-blue-600" />
+            <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-cyan-400" />
           </div>
-          <div className="text-2xl font-extrabold text-blue-700">{stats.verifiedStudents}</div>
-          <div className="text-[10px] text-blue-600 font-medium">Verified Emails</div>
+          <div className="text-2xl font-extrabold text-blue-700 dark:text-cyan-400">{stats.verifiedStudents}</div>
+          <div className="text-[10px] text-blue-600 dark:text-cyan-400 font-medium">Verified Emails</div>
         </div>
 
-        <div className="p-4 rounded-3xl bg-white border border-sky-100 shadow-sm space-y-1">
-          <div className="flex items-center justify-between text-slate-500">
+        <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-sky-100 dark:border-slate-800 shadow-sm space-y-1">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
             <span className="text-[11px] font-bold uppercase tracking-wider">GitHub OAuth</span>
-            <Code2 className="w-4 h-4 text-slate-800" />
+            <Code2 className="w-4 h-4 text-slate-800 dark:text-slate-200" />
           </div>
-          <div className="text-2xl font-extrabold text-slate-900">{githubCount}</div>
-          <div className="text-[10px] text-slate-500 font-medium">Connected Users</div>
+          <div className="text-2xl font-extrabold text-slate-900 dark:text-white">{githubCount}</div>
+          <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Connected Users</div>
         </div>
 
-        <div className="p-4 rounded-3xl bg-white border border-sky-100 shadow-sm space-y-1">
-          <div className="flex items-center justify-between text-slate-500">
+        <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-sky-100 dark:border-slate-800 shadow-sm space-y-1">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
             <span className="text-[11px] font-bold uppercase tracking-wider">Avg Progress</span>
-            <TrendingUp className="w-4 h-4 text-sky-600" />
+            <TrendingUp className="w-4 h-4 text-sky-600 dark:text-cyan-400" />
           </div>
-          <div className="text-2xl font-extrabold text-sky-700">{stats.avgProgress}%</div>
-          <div className="text-[10px] text-sky-600 font-medium">Mean Score</div>
+          <div className="text-2xl font-extrabold text-sky-700 dark:text-cyan-400">{stats.avgProgress}%</div>
+          <div className="text-[10px] text-sky-600 dark:text-cyan-400 font-medium">Mean Score</div>
         </div>
       </div>
 
       {/* Main Table Container & Filters */}
-      <div className="bg-white/90 border border-sky-200/80 rounded-3xl p-6 space-y-6 shadow-sm">
+      <div className="bg-white/90 dark:bg-slate-900 border border-sky-200/80 dark:border-slate-800 rounded-3xl p-6 space-y-6 shadow-sm">
         
         {/* Search Bar & Multi-Filter Bar */}
         <div className="space-y-4">
@@ -513,7 +513,7 @@ export const AdminStudents: React.FC = () => {
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                   providerFilter === 'all'
                     ? 'bg-sky-600 text-white shadow-xs'
-                    : 'bg-slate-50 text-slate-600 hover:bg-sky-50 border border-slate-200'
+                    : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 hover:bg-sky-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
                 }`}
               >
                 All Students ({students.length})
@@ -523,8 +523,8 @@ export const AdminStudents: React.FC = () => {
                 onClick={() => setProviderFilter('github')}
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                   providerFilter === 'github'
-                    ? 'bg-slate-900 text-cyan-300 border border-slate-700 shadow-xs'
-                    : 'bg-slate-50 text-slate-600 hover:bg-sky-50 border border-slate-200'
+                    ? 'bg-slate-900 dark:bg-cyan-950 text-cyan-300 border border-slate-700 dark:border-cyan-800 shadow-xs'
+                    : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 hover:bg-sky-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
                 }`}
               >
                 🐱 GitHub OAuth ({githubCount})
@@ -534,8 +534,8 @@ export const AdminStudents: React.FC = () => {
                 onClick={() => setProviderFilter('manual')}
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                   providerFilter === 'manual'
-                    ? 'bg-sky-100 text-sky-800 border border-sky-300 shadow-xs'
-                    : 'bg-slate-50 text-slate-600 hover:bg-sky-50 border border-slate-200'
+                    ? 'bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 border border-sky-300 dark:border-sky-800 shadow-xs'
+                    : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 hover:bg-sky-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
                 }`}
               >
                 ✉️ Email / Manual ({manualCount})
@@ -544,18 +544,18 @@ export const AdminStudents: React.FC = () => {
 
             {/* Global Search Input */}
             <div className="relative w-full lg:w-96">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search name, email, college, branch, github, skills..."
-                className="w-full bg-slate-50 border border-sky-200 rounded-xl py-2 pl-10 pr-4 text-xs text-slate-900 focus:outline-hidden transition-all font-medium"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2 pl-10 pr-4 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-hidden transition-all font-medium"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -565,15 +565,15 @@ export const AdminStudents: React.FC = () => {
           </div>
 
           {/* Granular Filters & Sorting Bar */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-3 border-t border-sky-100 text-xs font-medium">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-3 border-t border-sky-100 dark:border-slate-800 text-xs font-medium">
             
             {/* Approval Status Filter */}
             <div>
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Approval Status</label>
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">Approval Status</label>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full bg-slate-50 border border-sky-200 rounded-xl py-1.5 px-2.5 focus:outline-hidden"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-1.5 px-2.5 text-slate-900 dark:text-white focus:outline-hidden"
               >
                 <option value="ALL">All Statuses</option>
                 <option value="pending">⏳ Pending Approval</option>
@@ -585,11 +585,11 @@ export const AdminStudents: React.FC = () => {
 
             {/* Email Verification Filter */}
             <div>
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Email Verified</label>
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">Email Verified</label>
               <select
                 value={verificationFilter}
                 onChange={(e) => setVerificationFilter(e.target.value)}
-                className="w-full bg-slate-50 border border-sky-200 rounded-xl py-1.5 px-2.5 focus:outline-hidden"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-1.5 px-2.5 text-slate-900 dark:text-white focus:outline-hidden"
               >
                 <option value="ALL">All Accounts</option>
                 <option value="Verified">Verified Only</option>
@@ -599,11 +599,11 @@ export const AdminStudents: React.FC = () => {
 
             {/* Branch Filter */}
             <div>
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Branch</label>
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">Branch</label>
               <select
                 value={branchFilter}
                 onChange={(e) => setBranchFilter(e.target.value)}
-                className="w-full bg-slate-50 border border-sky-200 rounded-xl py-1.5 px-2.5 focus:outline-hidden"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-1.5 px-2.5 text-slate-900 dark:text-white focus:outline-hidden"
               >
                 <option value="ALL">All Branches</option>
                 {uniqueBranches.map((b) => (
@@ -614,11 +614,11 @@ export const AdminStudents: React.FC = () => {
 
             {/* Academic Year Filter */}
             <div>
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Academic Year</label>
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">Academic Year</label>
               <select
                 value={yearFilter}
                 onChange={(e) => setYearFilter(e.target.value)}
-                className="w-full bg-slate-50 border border-sky-200 rounded-xl py-1.5 px-2.5 focus:outline-hidden"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-1.5 px-2.5 text-slate-900 dark:text-white focus:outline-hidden"
               >
                 <option value="ALL">All Years</option>
                 {uniqueYears.map((y) => (
@@ -629,11 +629,11 @@ export const AdminStudents: React.FC = () => {
 
             {/* Date Filter */}
             <div>
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Registration Date</label>
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">Registration Date</label>
               <select
                 value={dateFilter}
                 onChange={(e) => setDateFilter(e.target.value)}
-                className="w-full bg-slate-50 border border-sky-200 rounded-xl py-1.5 px-2.5 focus:outline-hidden"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-1.5 px-2.5 text-slate-900 dark:text-white focus:outline-hidden"
               >
                 <option value="ALL">All Time</option>
                 <option value="today">Today's Registrations</option>
@@ -644,11 +644,11 @@ export const AdminStudents: React.FC = () => {
 
             {/* Sorting Filter */}
             <div>
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Sort By</label>
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">Sort By</label>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="w-full bg-slate-50 border border-sky-200 rounded-xl py-1.5 px-2.5 focus:outline-hidden font-bold text-sky-700"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-1.5 px-2.5 text-slate-900 dark:text-white focus:outline-hidden font-bold text-sky-700 dark:text-cyan-400"
               >
                 <option value="newest">⚡ Newest Registrations</option>
                 <option value="oldest">⌛ Oldest Registrations</option>
@@ -679,13 +679,13 @@ export const AdminStudents: React.FC = () => {
           ) : (
             <table className="w-full text-left border-collapse text-xs font-medium">
               <thead>
-                <tr className="border-b border-sky-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider bg-sky-50/50">
+                <tr className="border-b border-sky-100 dark:border-slate-800 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-sky-50/50 dark:bg-slate-950/80">
                   <th className="py-3 px-3 w-10 text-center">
-                    <button onClick={handleSelectAll} className="cursor-pointer text-slate-600 hover:text-sky-600">
+                    <button onClick={handleSelectAll} className="cursor-pointer text-slate-600 dark:text-slate-400 hover:text-sky-600 dark:hover:text-cyan-400">
                       {selectedIds.length > 0 && selectedIds.length === filteredStudents.length ? (
-                        <CheckSquare className="w-4 h-4 text-sky-600" />
+                        <CheckSquare className="w-4 h-4 text-sky-600 dark:text-cyan-400" />
                       ) : (
-                        <Square className="w-4 h-4 text-slate-400" />
+                        <Square className="w-4 h-4 text-slate-400 dark:text-slate-600" />
                       )}
                     </button>
                   </th>
@@ -699,7 +699,7 @@ export const AdminStudents: React.FC = () => {
                   <th className="py-3 px-4 text-right">{isInstructor ? 'Reporting Actions' : 'Approval Actions'}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-sky-100">
+              <tbody className="divide-y divide-sky-100 dark:divide-slate-800">
                 {filteredStudents.map((st) => {
                   const id = st.id || st.uid;
                   const isSelected = selectedIds.includes(id);
@@ -710,16 +710,18 @@ export const AdminStudents: React.FC = () => {
                     <tr
                       key={id}
                       className={`transition-colors group ${
-                        isSelected ? 'bg-sky-50/80 font-semibold' : 'hover:bg-sky-50/40'
+                        isSelected
+                          ? 'bg-sky-50/80 dark:bg-cyan-950/40 font-semibold'
+                          : 'hover:bg-sky-50/40 dark:hover:bg-slate-800/40'
                       }`}
                     >
                       {/* Checkbox */}
                       <td className="py-3 px-3 text-center">
-                        <button onClick={() => handleToggleSelect(id)} className="cursor-pointer text-slate-600">
+                        <button onClick={() => handleToggleSelect(id)} className="cursor-pointer text-slate-600 dark:text-slate-400">
                           {isSelected ? (
-                            <CheckSquare className="w-4 h-4 text-sky-600" />
+                            <CheckSquare className="w-4 h-4 text-sky-600 dark:text-cyan-400" />
                           ) : (
-                            <Square className="w-4 h-4 text-slate-300 group-hover:text-slate-400" />
+                            <Square className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-slate-400" />
                           )}
                         </button>
                       </td>
@@ -731,7 +733,7 @@ export const AdminStudents: React.FC = () => {
                             <img
                               src={st.photoURL}
                               alt={st.name}
-                              className="w-9 h-9 rounded-full object-cover border border-sky-300 shadow-xs"
+                              className="w-9 h-9 rounded-full object-cover border border-sky-300 dark:border-slate-700 shadow-xs"
                             />
                           ) : (
                             <div className="w-9 h-9 rounded-full bg-linear-to-r from-sky-500 to-blue-600 text-white flex items-center justify-center font-extrabold text-xs shadow-xs">
@@ -750,21 +752,21 @@ export const AdminStudents: React.FC = () => {
                       <td className="py-3 px-4">
                         <div
                           onClick={() => setInspectStudent(st)}
-                          className="font-bold text-slate-900 group-hover:text-sky-700 transition-colors cursor-pointer"
+                          className="font-bold text-slate-900 dark:text-white group-hover:text-sky-700 dark:group-hover:text-cyan-400 transition-colors cursor-pointer"
                         >
                           {st.name || st.fullName}
                         </div>
                       </td>
 
                       {/* Email */}
-                      <td className="py-3 px-4 text-slate-700">
+                      <td className="py-3 px-4 text-slate-700 dark:text-slate-300">
                         <div className="truncate max-w-44 font-mono text-[11px]">{st.email}</div>
                       </td>
 
                       {/* College & Branch */}
                       <td className="py-3 px-4">
-                        <div className="font-bold text-slate-800">{st.college || 'Shaivika AI Foundation'}</div>
-                        <div className="text-[10px] text-slate-500">{st.branch || 'AI & Computer Science'}</div>
+                        <div className="font-bold text-slate-800 dark:text-slate-200">{st.college || 'Shaivika AI Foundation'}</div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400">{st.branch || 'AI & Computer Science'}</div>
                       </td>
 
                       {/* Joined Date */}
