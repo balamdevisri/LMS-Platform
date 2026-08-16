@@ -36,31 +36,61 @@ export class CertificateController {
         });
       }
 
-      // Resolve student profile from Firestore users collection to get real name/email
-      let studentName = 'Student User';
-      let studentEmail = req.user?.email || '';
+      // Resolve student profile from Firestore users collection
+      let studentName = '';
+      let studentEmail = '';
+      let resolvedStudentId = studentId;
+
       if (db) {
         try {
-          const userDoc = await db.collection('users').doc(studentId).get();
-          if (userDoc.exists) {
-            const userData = userDoc.data();
-            studentName = userData?.fullName || userData?.name || studentName;
-            studentEmail = userData?.email || studentEmail;
+          // 1. Direct document ID lookup
+          let userDoc = await db.collection('users').doc(studentId).get();
+          let userData = userDoc.exists ? userDoc.data() : null;
+
+          // 2. Query fallback lookup
+          if (!userData) {
+            const querySnap = await db.collection('users').where('uid', '==', studentId).get();
+            if (!querySnap.empty) {
+              userDoc = querySnap.docs[0];
+              userData = userDoc.data();
+              resolvedStudentId = userDoc.id;
+            }
+          }
+
+          // 3. Case-insensitive prefix fallback lookup
+          if (!userData) {
+            const prefix = studentId.substring(0, 6).toLowerCase();
+            const allUsersSnap = await db.collection('users').get();
+            const matchedDoc = allUsersSnap.docs.find(doc => 
+              doc.id.toLowerCase().startsWith(prefix) || 
+              String(doc.data()?.uid || '').toLowerCase().startsWith(prefix)
+            );
+            if (matchedDoc) {
+              userDoc = matchedDoc;
+              userData = userDoc.data();
+              resolvedStudentId = userDoc.id;
+            }
+          }
+
+          if (userData) {
+            studentName = userData.fullName || userData.name || '';
+            studentEmail = userData.email || '';
           }
         } catch (dbErr: any) {
-          logger.warn(`[CERTIFICATE CONTROLLER] Firestore user profile lookup notice: ${dbErr?.message}`);
+          logger.error(`[CERTIFICATE CONTROLLER] Error resolving profile: ${dbErr?.message}`);
         }
       }
 
-      if (!studentEmail) {
-        return res.status(400).json({
+      // If no valid student profile is resolved, STOP issuance and return "Student profile not found."
+      if (!studentName || !studentEmail) {
+        return res.status(404).json({
           success: false,
-          error: 'Could not resolve a valid student email for delivery.',
+          error: 'Student profile not found.',
         });
       }
 
       const payload = {
-        studentId,
+        studentId: resolvedStudentId,
         studentName,
         studentEmail,
         courseId,
