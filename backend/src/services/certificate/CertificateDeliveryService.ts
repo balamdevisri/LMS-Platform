@@ -436,6 +436,8 @@ export class CertificateDeliveryService {
     // Step 1: Generate Deterministic Globally Unique Certificate ID (Preventing duplicates in sheet registry)
     const certificateId = payload.verificationId || await this.generateGloballyUniqueId(payload.courseId);
     const completionDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    const rawUid = payload.studentId || 'default_student';
+    const displayStudentId = rawUid.startsWith('STU-') ? rawUid : `STU-${rawUid.substring(0, 6).toUpperCase()}`;
 
     timeline.push({
       step: '1. GENERATE_CERTIFICATE_ID',
@@ -482,7 +484,7 @@ export class CertificateDeliveryService {
     try {
       pdfBuffer = await pdfCertificateGenerator.generateCertificateBuffer({
         certificateId,
-        studentId: payload.studentId,
+        studentId: displayStudentId,
         studentName: payload.studentName,
         courseTitle: payload.courseTitle,
         instructorName: payload.instructorName || 'Shaivika Groups Board',
@@ -518,7 +520,7 @@ export class CertificateDeliveryService {
 
     // Direct download and verification URL preparation
     const downloadUrl = `${env.BACKEND_URL || 'http://localhost:5000'}/api/certificates/download?certificateId=${certificateId}&studentId=${payload.studentId}&studentName=${encodeURIComponent(payload.studentName)}&courseTitle=${encodeURIComponent(payload.courseTitle)}&completionDate=${encodeURIComponent(completionDate)}`;
-    const verifyUrl = `${env.BACKEND_URL || 'http://localhost:5000'}/api/certificates/verify/${certificateId}?studentId=${payload.studentId}`;
+    const verifyUrl = `${env.FRONTEND_URL || 'http://localhost:5173'}/verify-certificate/${certificateId}?studentId=${payload.studentId}`;
 
     // Step 4: Log Certificate to Google Sheet Registry FIRST
     try {

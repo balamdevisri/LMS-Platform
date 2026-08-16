@@ -189,7 +189,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
   const { user, userProfile } = useAuth();
   useCourseTimeTracker(String(courseId));
   const userAvatar = propAvatar || userProfile?.photoURL || user?.photoURL || undefined;
-  const userName = propName && propName !== 'Student' ? propName : (userProfile?.name || user?.displayName || userProfile?.githubUsername || 'Student User');
+  const userName = propName && propName !== 'Student' ? propName : (user?.displayName || userProfile?.name || userProfile?.githubUsername || 'Student User');
   
   const containerRef = React.useRef<HTMLDivElement>(null);
   const [isNightMode, setIsNightMode] = useState<boolean>(() => {
@@ -409,7 +409,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          studentId,
+          studentId: studentUid,
           courseId: String(courseId),
           completedLessons: completedLessonIds.map(String),
           completedModules,
@@ -422,7 +422,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            studentId,
+            studentId: studentUid,
             studentName,
             studentEmail,
             courseId: String(courseId),
@@ -668,7 +668,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            studentId,
+            studentId: studentUid,
             studentName,
             studentEmail,
             courseId: String(courseId),
@@ -782,7 +782,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                studentId,
+                studentId: studentUid,
                 studentName,
                 studentEmail,
                 courseId: String(courseId),

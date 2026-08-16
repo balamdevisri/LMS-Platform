@@ -8,7 +8,7 @@ export class QRCodeService {
   public async generateVerificationQRCodeBuffer(
     certificateId: string,
     studentId: string,
-    verificationBaseUrl: string = (process.env.BACKEND_URL || 'http://localhost:5000') + '/api/certificates/verify'
+    verificationBaseUrl: string = (process.env.FRONTEND_URL || 'http://localhost:5173') + '/verify-certificate'
   ): Promise<Buffer> {
     try {
       const verificationUrl = `${verificationBaseUrl}/${certificateId}?studentId=${studentId}`;
