@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { db } from '../firebase';
+import { db, adminAuth } from '../firebase';
 import { certificateDeliveryService } from '../services/certificate/CertificateDeliveryService';
 import { pdfCertificateGenerator } from '../services/certificate/PDFCertificateGenerator';
 import { qrCodeService } from '../services/certificate/QRCodeService';
@@ -47,7 +47,7 @@ export class CertificateController {
           let userDoc = await db.collection('users').doc(studentId).get();
           let userData = userDoc.exists ? userDoc.data() : null;
 
-          // 2. Query fallback lookup
+          // 2. Query fallback lookup by uid field
           if (!userData) {
             const querySnap = await db.collection('users').where('uid', '==', studentId).get();
             if (!querySnap.empty) {
@@ -57,18 +57,35 @@ export class CertificateController {
             }
           }
 
-          // 3. Case-insensitive prefix fallback lookup
-          if (!userData) {
-            const prefix = studentId.substring(0, 6).toLowerCase();
-            const allUsersSnap = await db.collection('users').get();
-            const matchedDoc = allUsersSnap.docs.find(doc => 
-              doc.id.toLowerCase().startsWith(prefix) || 
-              String(doc.data()?.uid || '').toLowerCase().startsWith(prefix)
-            );
-            if (matchedDoc) {
-              userDoc = matchedDoc;
-              userData = userDoc.data();
-              resolvedStudentId = userDoc.id;
+          // 3. Auto-sync/create profile from authentic Firebase Auth details
+          if (!userData && adminAuth) {
+            try {
+              const authUser = await adminAuth.getUser(studentId);
+              if (authUser) {
+                const displayName = authUser.displayName || req.body.studentName || 'Scholar Student';
+                const email = authUser.email || req.body.studentEmail || '';
+                
+                if (email) {
+                  const newProfile = {
+                    uid: studentId,
+                    fullName: displayName,
+                    name: displayName,
+                    email: email,
+                    role: 'student',
+                    status: 'Active',
+                    isActive: true,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                  };
+                  await db.collection('users').doc(studentId).set(newProfile);
+                  logger.info(`[CERTIFICATE CONTROLLER] Automatically created student profile in database for ${studentId} (${email})`);
+                  
+                  userDoc = await db.collection('users').doc(studentId).get();
+                  userData = userDoc.exists ? userDoc.data() : null;
+                }
+              }
+            } catch (authErr: any) {
+              logger.warn(`[CERTIFICATE CONTROLLER] Firebase Auth user lookup notice: ${authErr?.message}`);
             }
           }
 

@@ -138,21 +138,6 @@ export class CertificateDeliveryService {
         studentDoc = fallbackSnap.docs[0];
         studentData = studentDoc.data();
         lookupResult = 'User Found by UID Fallback Query';
-      } else {
-        // Fallback: Resolve student's existing profile/account matching first 6 chars of UID case-infinitively
-        const prefix = studentId.substring(0, 6).toLowerCase();
-        logger.info(`[AUTOMATED CERTIFICATE VALIDATION] Searching users collection for document starting with prefix: ${prefix}...`);
-        const allUsersSnap = await db.collection('users').get();
-        const matchedDoc = allUsersSnap.docs.find(doc => 
-          doc.id.toLowerCase().startsWith(prefix) || 
-          String(doc.data()?.uid || '').toLowerCase().startsWith(prefix)
-        );
-        if (matchedDoc) {
-          studentDoc = matchedDoc;
-          studentData = studentDoc.data();
-          lookupResult = `User Found by UID Prefix Match (${prefix})`;
-          logger.info(`[AUTOMATED CERTIFICATE VALIDATION] ✓ Resolved to existing student account: ${studentDoc.id} (${studentData?.email})`);
-        }
       }
     }
 
@@ -556,76 +541,7 @@ export class CertificateDeliveryService {
     const downloadUrl = `${env.BACKEND_URL || 'http://localhost:5000'}/api/certificates/download?certificateId=${certificateId}&studentId=${payload.studentId}&studentName=${encodeURIComponent(payload.studentName)}&courseTitle=${encodeURIComponent(payload.courseTitle)}&completionDate=${encodeURIComponent(completionDate)}`;
     const verifyUrl = `${env.FRONTEND_URL || 'http://localhost:5173'}/verify-certificate/${certificateId}?studentId=${payload.studentId}`;
 
-    // Step 4: Log Certificate to Google Sheet Registry FIRST
-    let sheetLogged = false;
-    try {
-      sheetLogged = await googleSheetsService.appendCertificateRow({
-        certificateId,
-        studentId: displayStudentId, // USE DISPLAY STUDENT ID FOR SHEETS
-        studentName: payload.studentName,
-        studentEmail: payload.studentEmail,
-        courseId: payload.courseId,
-        courseName: payload.courseTitle,
-        completionDate,
-        issueDate: completionDate,
-        certificateStatus: 'Issued',
-        emailStatus: 'Pending',
-        generatedTimestamp: new Date().toISOString(),
-      });
-
-      if (sheetLogged) {
-        timeline.push({
-          step: '4. UPDATE_GOOGLE_SHEETS_REGISTRY',
-          status: 'SUCCESS',
-          timestamp: new Date().toISOString(),
-          details: `Logged to Google Sheets Registry.`,
-        });
-        logger.info(`[AUTOMATED CERTIFICATE SYSTEM] Step 4: Certificate logged to Google Sheet Registry successfully.`);
-      } else {
-        logger.error(`[AUTOMATED CERTIFICATE SYSTEM] ❌ Google Sheets Append returned false but proceeding with certificate generation.`);
-        timeline.push({
-          step: '4. UPDATE_GOOGLE_SHEETS_REGISTRY',
-          status: 'FAILED',
-          timestamp: new Date().toISOString(),
-          details: 'Google Sheets Append returned false.',
-        });
-      }
-    } catch (sheetLogErr: any) {
-      const msg = `Failed to log certificate to Google Sheets: ${sheetLogErr?.message || sheetLogErr}`;
-      timeline.push({ step: '4. UPDATE_GOOGLE_SHEETS_REGISTRY', status: 'FAILED', timestamp: new Date().toISOString(), details: msg });
-      logger.error(`[AUTOMATED CERTIFICATE SYSTEM] ❌ ${msg} but proceeding with certificate generation.`);
-    }
-
-    // Store certificate in Firestore certificates collection
-    if (db) {
-      try {
-        const certRecord = {
-          certificateId,
-          verificationId: certificateId,
-          studentId: displayStudentId, // USE DISPLAY STUDENT ID FOR PUBLIC/DOWNLOAD FLOW
-          studentUid: payload.studentId, // SAVE RAW FIREBASE UID FOR INTERNAL OP
-          studentName: payload.studentName,
-          studentEmail: payload.studentEmail,
-          courseId: payload.courseId,
-          courseName: payload.courseTitle,
-          instructorId: 'instructor_system',
-          instructorName: payload.instructorName || 'SHAIVIKA LMS Team',
-          issueDate: completionDate,
-          completionDate: completionDate,
-          pdfUrl: downloadUrl,
-          status: 'Issued',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        await db.collection('certificates').doc(certificateId).set(certRecord, { merge: true });
-        firestoreUpdated = true;
-        logger.info(`[AUTOMATED CERTIFICATE SYSTEM] Firestore certificates document created: certificates/${certificateId}`);
-      } catch (certDocErr: any) {
-        logger.warn(`[AUTOMATED CERTIFICATE SYSTEM] Firestore cert write notice: ${certDocErr?.message || certDocErr}`);
-      }
-    }
-
-    // Step 5: Send Professional Email via Nodemailer SMTP with PDF Attachment & Direct Download Link
+    // Step 4: Send Professional Email via Nodemailer SMTP with PDF Attachment & Direct Download Link
     const emailSubject = `Congratulations! Your Course Certificate is Ready`;
     const courseDescription = this.getCourseDescription(payload.courseId, payload.courseTitle);
     const pdfFileName = `${certificateId}.pdf`;
@@ -679,85 +595,126 @@ export class CertificateDeliveryService {
       }
     }
 
-    if (mailResult.success) {
+    const emailStatus = emailSent ? 'Sent' : 'Failed';
+
+    if (emailSent) {
       timeline.push({
         step: '5. SEND_EMAIL_SMTP',
         status: 'SUCCESS',
         timestamp: new Date().toISOString(),
         details: `Delivered via SMTP to ${payload.studentEmail} (MsgId: ${mailResult.messageId})`,
       });
-      logger.info(`[AUTOMATED CERTIFICATE SYSTEM] Step 5: Nodemailer SMTP email delivered successfully to ${payload.studentEmail}`);
-
-      // Log to local cache registry
-      try {
-        this.logLocalRegistry({
-          certificateId,
-          studentId: payload.studentId,
-          studentName: payload.studentName,
-          studentEmail: payload.studentEmail,
-          courseId: payload.courseId,
-          courseTitle: payload.courseTitle,
-          completionDate,
-          googleDriveLink: downloadUrl,
-          issuedAt: new Date().toISOString(),
-        });
-      } catch (localCacheErr: any) {
-        logger.warn(`[AUTOMATED CERTIFICATE SYSTEM] Failed to write to local cache: ${localCacheErr?.message || localCacheErr}`);
-      }
-
-      logger.info(`================================================================`);
-      logger.info(`[AUTOMATED CERTIFICATE SYSTEM] 🎉 AUTOMATED DELIVERY COMPLETE!`);
-      logger.info(`================================================================`);
-
-      return {
-        success: true,
-        certificateId,
-        studentId: payload.studentId,
-        studentName: payload.studentName,
-        studentEmail: payload.studentEmail,
-        courseTitle: payload.courseTitle,
-        completionDate,
-        googleDriveLink: downloadUrl,
-        googleDriveFileId: 'local-server',
-        emailMessageId: mailResult.messageId,
-        timeline,
-      };
+      logger.info(`[AUTOMATED CERTIFICATE SYSTEM] SMTP email delivered successfully to ${payload.studentEmail}`);
     } else {
       const msg = `SMTP Email dispatch failed after retries: ${mailResult.error}`;
       timeline.push({ step: '5. SEND_EMAIL_SMTP', status: 'FAILED', timestamp: new Date().toISOString(), details: msg });
-      logger.error(`[AUTOMATED CERTIFICATE SYSTEM] ❌ ${msg} but proceeding with successful certificate generation.`);
+      logger.error(`[AUTOMATED CERTIFICATE SYSTEM] ❌ ${msg}`);
+    }
 
-      // Log to local cache registry even if email failed
+    // Step 5: Log Certificate to Google Sheet Registry with correct email status
+    let sheetLogged = false;
+    try {
+      sheetLogged = await googleSheetsService.appendCertificateRow({
+        certificateId,
+        studentId: displayStudentId, // USE DISPLAY STUDENT ID FOR SHEETS
+        studentName: payload.studentName,
+        studentEmail: payload.studentEmail,
+        courseId: payload.courseId,
+        courseName: payload.courseTitle,
+        completionDate,
+        issueDate: completionDate,
+        certificateStatus: 'Issued',
+        emailStatus,
+        generatedTimestamp: new Date().toISOString(),
+      });
+
+      if (sheetLogged) {
+        timeline.push({
+          step: '4. UPDATE_GOOGLE_SHEETS_REGISTRY',
+          status: 'SUCCESS',
+          timestamp: new Date().toISOString(),
+          details: `Logged to Google Sheets Registry (Email Status: ${emailStatus}).`,
+        });
+        logger.info(`[AUTOMATED CERTIFICATE SYSTEM] Step 5: Certificate logged to Google Sheet Registry successfully.`);
+      } else {
+        logger.error(`[AUTOMATED CERTIFICATE SYSTEM] ❌ Google Sheets Append returned false but proceeding.`);
+        timeline.push({
+          step: '4. UPDATE_GOOGLE_SHEETS_REGISTRY',
+          status: 'FAILED',
+          timestamp: new Date().toISOString(),
+          details: 'Google Sheets Append returned false.',
+        });
+      }
+    } catch (sheetLogErr: any) {
+      const msg = `Failed to log certificate to Google Sheets: ${sheetLogErr?.message || sheetLogErr}`;
+      timeline.push({ step: '4. UPDATE_GOOGLE_SHEETS_REGISTRY', status: 'FAILED', timestamp: new Date().toISOString(), details: msg });
+      logger.error(`[AUTOMATED CERTIFICATE SYSTEM] ❌ ${msg} but proceeding.`);
+    }
+
+    // Store certificate in Firestore certificates collection
+    if (db) {
       try {
-        this.logLocalRegistry({
+        const certRecord = {
           certificateId,
-          studentId: payload.studentId,
+          verificationId: certificateId,
+          studentId: displayStudentId, // USE DISPLAY STUDENT ID FOR PUBLIC/DOWNLOAD FLOW
+          studentUid: payload.studentId, // SAVE RAW FIREBASE UID FOR INTERNAL OP
           studentName: payload.studentName,
           studentEmail: payload.studentEmail,
           courseId: payload.courseId,
-          courseTitle: payload.courseTitle,
-          completionDate,
-          googleDriveLink: downloadUrl,
-          issuedAt: new Date().toISOString(),
-        });
-      } catch (localCacheErr: any) {
-        logger.warn(`[AUTOMATED CERTIFICATE SYSTEM] Failed to write to local cache: ${localCacheErr?.message || localCacheErr}`);
+          courseName: payload.courseTitle,
+          instructorId: 'instructor_system',
+          instructorName: payload.instructorName || 'SHAIVIKA LMS Team',
+          issueDate: completionDate,
+          completionDate: completionDate,
+          pdfUrl: downloadUrl,
+          status: 'Issued',
+          emailStatus,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        await db.collection('certificates').doc(certificateId).set(certRecord, { merge: true });
+        firestoreUpdated = true;
+        logger.info(`[AUTOMATED CERTIFICATE SYSTEM] Firestore certificates document created: certificates/${certificateId}`);
+      } catch (certDocErr: any) {
+        logger.warn(`[AUTOMATED CERTIFICATE SYSTEM] Firestore cert write notice: ${certDocErr?.message || certDocErr}`);
       }
+    }
 
-      return {
-        success: true, // Return success: true in production!
+    // Log to local cache registry
+    try {
+      this.logLocalRegistry({
         certificateId,
         studentId: payload.studentId,
         studentName: payload.studentName,
         studentEmail: payload.studentEmail,
+        courseId: payload.courseId,
         courseTitle: payload.courseTitle,
         completionDate,
         googleDriveLink: downloadUrl,
-        googleDriveFileId: 'local-server',
-        error: msg,
-        timeline,
-      };
+        issuedAt: new Date().toISOString(),
+      });
+    } catch (localCacheErr: any) {
+      logger.warn(`[AUTOMATED CERTIFICATE SYSTEM] Failed to write to local cache: ${localCacheErr?.message || localCacheErr}`);
     }
+
+    logger.info(`================================================================`);
+    logger.info(`[AUTOMATED CERTIFICATE SYSTEM] 🎉 AUTOMATED DELIVERY COMPLETE!`);
+    logger.info(`================================================================`);
+
+    return {
+      success: true,
+      certificateId,
+      studentId: payload.studentId,
+      studentName: payload.studentName,
+      studentEmail: payload.studentEmail,
+      courseTitle: payload.courseTitle,
+      completionDate,
+      googleDriveLink: downloadUrl,
+      googleDriveFileId: 'local-server',
+      emailMessageId: mailResult.messageId,
+      timeline,
+    };
   } finally {
     CertificateDeliveryService.activeLocks.delete(lockKey);
     const executionTimeMs = Date.now() - startTime;

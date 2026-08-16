@@ -271,6 +271,37 @@ export class GoogleSheetsService {
       downloadCount: Number(raw.downloadCount || raw.DownloadCount || raw[11] || 0),
     };
   }
+
+  /**
+   * Cleans up wrong/test/duplicate certificate rows matching student email and course ID via Google Apps Script Web App
+   */
+  public async cleanupCertificateRows(studentEmail: string, courseId: string): Promise<boolean> {
+    try {
+      logger.info(`[GOOGLE SHEETS WEB APP] Triggering cleanup of duplicate/test certificate rows for ${studentEmail} in course ${courseId}...`);
+      const response = await fetch(this.scriptUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'cleanup',
+          studentEmail,
+          courseId,
+        }),
+      });
+
+      if (response.ok) {
+        const resText = await response.text();
+        const data = JSON.parse(resText);
+        if (data && data.success === true) {
+          logger.info(`[GOOGLE SHEETS WEB APP] ✅ Cleanup completed successfully (rows deleted: ${data.rowsDeleted}).`);
+          return true;
+        }
+      }
+      return false;
+    } catch (err: any) {
+      logger.warn(`[GOOGLE SHEETS WEB APP] cleanupCertificateRows notice/failed: ${err?.message || err}`);
+      return false;
+    }
+  }
 }
 
 export const googleSheetsService = new GoogleSheetsService();
