@@ -373,7 +373,9 @@ export class CertificateDeliveryService {
         };
       }
 
-      // Precheck 1: Check Firestore certificates collection (Prevent duplicate generation)
+      let existingCert: any = null;
+      let certExists = false;
+
       if (db) {
         try {
           const certQuery = await db.collection('certificates')
@@ -382,89 +384,75 @@ export class CertificateDeliveryService {
             .get();
           
           if (!certQuery.empty) {
-            const existingCert = certQuery.docs[0].data();
+            existingCert = certQuery.docs[0].data();
+            certExists = true;
             certExistsInFirestore = true;
-            logger.info(`[AUTOMATED CERTIFICATE SYSTEM] ⚠️ Certificate Already Exists in Firestore certificates collection for ${payload.studentEmail} in course ${payload.courseId}. Skipping generation.`);
-            return {
-              success: true,
-              certificateId: existingCert.certificateId,
-              studentId: payload.studentId,
-              studentName: payload.studentName,
-              studentEmail: payload.studentEmail,
-              courseTitle: payload.courseTitle,
-              completionDate: existingCert.completionDate || existingCert.issueDate,
-              googleDriveLink: existingCert.pdfUrl || 'local-server',
-              googleDriveFileId: 'local-server',
-              timeline,
-            };
           }
         } catch (certCheckErr: any) {
           logger.warn(`[AUTOMATED CERTIFICATE SYSTEM] Firestore cert precheck notice: ${certCheckErr?.message}`);
         }
       }
 
-      // Precheck 2: Check Local Registry
-      const localExisting = this.isAlreadyIssued(payload.studentEmail, payload.courseId);
-      if (localExisting) {
-        logger.info(`[AUTOMATED CERTIFICATE SYSTEM] ⚠️ Certificate already exists locally for ${payload.studentEmail} in course ${payload.courseId}. Skipping generation.`);
+      // Check if email was already sent successfully for this certificate (idempotency checks)
+      const emailAlreadySent = existingCert && existingCert.emailStatus === 'Sent' && existingCert.emailMessageId;
+
+      if (emailAlreadySent && !isForce) {
+        logger.info(`[AUTOMATED CERTIFICATE SYSTEM] ⚠️ Certificate and email delivery already exist for ${payload.studentEmail} in course ${payload.courseId}. Skipping generation.`);
         return {
           success: true,
-          certificateId: localExisting.certificateId,
+          certificateId: existingCert.certificateId,
           studentId: payload.studentId,
           studentName: payload.studentName,
           studentEmail: payload.studentEmail,
           courseTitle: payload.courseTitle,
-          completionDate: localExisting.completionDate,
-          googleDriveLink: localExisting.googleDriveLink || 'local-server',
+          completionDate: existingCert.completionDate || existingCert.issueDate,
+          googleDriveLink: existingCert.pdfUrl || 'local-server',
           googleDriveFileId: 'local-server',
+          emailMessageId: existingCert.emailMessageId,
           timeline,
         };
       }
 
-      // Precheck 3: Check Google Sheets Registry
-      try {
-        const sheetExisting = await googleSheetsService.checkCertificateExists(payload.studentEmail, payload.courseId);
-        if (sheetExisting) {
-          logger.info(`[AUTOMATED CERTIFICATE SYSTEM] ⚠️ Certificate already exists in Google Sheets Registry for ${payload.studentEmail} in course ${payload.courseId}. Skipping generation.`);
-          
-          this.logLocalRegistry({
-            certificateId: sheetExisting.certificateId,
-            studentEmail: payload.studentEmail,
-            courseId: payload.courseId,
-            completionDate: sheetExisting.completionDate,
-            googleDriveLink: 'local-server',
-          });
-
-          return {
-            success: true,
-            certificateId: sheetExisting.certificateId,
-            studentId: payload.studentId,
-            studentName: payload.studentName,
-            studentEmail: payload.studentEmail,
-            courseTitle: payload.courseTitle,
-            completionDate: sheetExisting.completionDate,
-            googleDriveLink: 'local-server',
-            googleDriveFileId: 'local-server',
-            timeline,
-          };
+      // If certificate exists but email failed/needs retry, we reuse the existing certificate ID
+      let certificateId = '';
+      if (existingCert) {
+        certificateId = existingCert.certificateId;
+        logger.info(`[AUTOMATED CERTIFICATE SYSTEM] 🔄 Found existing certificate ID ${certificateId} for ${payload.studentEmail} without confirmed email delivery. Retrying delivery.`);
+      } else {
+        // Fallback checks to local/sheets if not in Firestore yet
+        const localExisting = this.isAlreadyIssued(payload.studentEmail, payload.courseId);
+        if (localExisting) {
+          certificateId = localExisting.certificateId;
+        } else {
+          try {
+            const sheetExisting = await googleSheetsService.checkCertificateExists(payload.studentEmail, payload.courseId);
+            if (sheetExisting) {
+              certificateId = sheetExisting.certificateId;
+            }
+          } catch (sheetCheckErr: any) {
+            logger.warn(`[AUTOMATED CERTIFICATE SYSTEM] Sheet precheck search failed/skipped: ${sheetCheckErr?.message || sheetCheckErr}`);
+          }
         }
-      } catch (sheetCheckErr: any) {
-        logger.warn(`[AUTOMATED CERTIFICATE SYSTEM] Sheet precheck search failed/skipped: ${sheetCheckErr?.message || sheetCheckErr}`);
       }
 
-    // Step 1: Generate Deterministic Globally Unique Certificate ID (Preventing duplicates in sheet registry)
-    const certificateId = payload.verificationId || await this.generateGloballyUniqueId(payload.courseId);
-    const completionDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    const rawUid = payload.studentId || 'default_student';
-    const displayStudentId = rawUid.startsWith('STU-') ? rawUid : `STU-${rawUid.substring(0, 6).toUpperCase()}`;
+      // Step 1: Generate Deterministic Globally Unique Certificate ID if not already resolved
+      if (!certificateId) {
+        certificateId = payload.verificationId || await this.generateGloballyUniqueId(payload.courseId);
+        logger.info(`[AUTOMATED CERTIFICATE SYSTEM] Step 1: Generated Unique Certificate ID -> ${certificateId}`);
+      } else {
+        logger.info(`[AUTOMATED CERTIFICATE SYSTEM] Step 1: Reusing existing Certificate ID -> ${certificateId}`);
+      }
 
-    timeline.push({
-      step: '1. GENERATE_CERTIFICATE_ID',
-      status: 'SUCCESS',
-      timestamp: new Date().toISOString(),
-      details: `Generated ID: ${certificateId}`,
-    });
-    logger.info(`[AUTOMATED CERTIFICATE SYSTEM] Step 1: Generated Unique Certificate ID -> ${certificateId}`);
+      const completionDate = existingCert?.completionDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      const rawUid = payload.studentId || 'default_student';
+      const displayStudentId = rawUid.startsWith('STU-') ? rawUid : `STU-${rawUid.substring(0, 6).toUpperCase()}`;
+
+      timeline.push({
+        step: '1. GENERATE_CERTIFICATE_ID',
+        status: 'SUCCESS',
+        timestamp: new Date().toISOString(),
+        details: `Reused/Generated ID: ${certificateId}`,
+      });
 
     let qrCodeBuffer: Buffer;
     let pdfBuffer: Buffer;
@@ -654,7 +642,7 @@ export class CertificateDeliveryService {
     // Store certificate in Firestore certificates collection
     if (db) {
       try {
-        const certRecord = {
+        const certRecord: any = {
           certificateId,
           verificationId: certificateId,
           studentId: displayStudentId, // USE DISPLAY STUDENT ID FOR PUBLIC/DOWNLOAD FLOW
@@ -670,12 +658,20 @@ export class CertificateDeliveryService {
           pdfUrl: downloadUrl,
           status: 'Issued',
           emailStatus,
-          createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
+
+        if (!certExistsInFirestore) {
+          certRecord.createdAt = new Date().toISOString();
+        }
+
+        if (emailSent && mailResult.messageId) {
+          certRecord.emailMessageId = mailResult.messageId;
+        }
+
         await db.collection('certificates').doc(certificateId).set(certRecord, { merge: true });
         firestoreUpdated = true;
-        logger.info(`[AUTOMATED CERTIFICATE SYSTEM] Firestore certificates document created: certificates/${certificateId}`);
+        logger.info(`[AUTOMATED CERTIFICATE SYSTEM] Firestore certificates document updated: certificates/${certificateId}`);
       } catch (certDocErr: any) {
         logger.warn(`[AUTOMATED CERTIFICATE SYSTEM] Firestore cert write notice: ${certDocErr?.message || certDocErr}`);
       }
