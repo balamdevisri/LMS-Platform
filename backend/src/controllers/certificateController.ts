@@ -57,35 +57,30 @@ export class CertificateController {
             }
           }
 
-          // 3. Auto-sync/create profile from authentic Firebase Auth details
-          if (!userData && adminAuth) {
-            try {
-              const authUser = await adminAuth.getUser(studentId);
-              if (authUser) {
-                const displayName = authUser.displayName || req.body.studentName || 'Scholar Student';
-                const email = authUser.email || req.body.studentEmail || '';
-                
-                if (email) {
-                  const newProfile = {
-                    uid: studentId,
-                    fullName: displayName,
-                    name: displayName,
-                    email: email,
-                    role: 'student',
-                    status: 'Active',
-                    isActive: true,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                  };
-                  await db.collection('users').doc(studentId).set(newProfile);
-                  logger.info(`[CERTIFICATE CONTROLLER] Automatically created student profile in database for ${studentId} (${email})`);
-                  
-                  userDoc = await db.collection('users').doc(studentId).get();
-                  userData = userDoc.exists ? userDoc.data() : null;
-                }
-              }
-            } catch (authErr: any) {
-              logger.warn(`[CERTIFICATE CONTROLLER] Firebase Auth user lookup notice: ${authErr?.message}`);
+          // 3. Auto-sync/create profile from verified token details
+          if (!userData && req.user?.email) {
+            const email = req.user.email;
+            const displayName = req.user.name;
+            
+            if (!displayName) {
+              logger.error(`[CERTIFICATE CONTROLLER] ❌ Cannot auto-create profile: name claim is missing for UID ${studentId}.`);
+            } else {
+              const newProfile = {
+                uid: studentId,
+                fullName: displayName,
+                name: displayName,
+                email: email,
+                role: 'student',
+                status: 'Active',
+                isActive: true,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              };
+              await db.collection('users').doc(studentId).set(newProfile);
+              logger.info(`[CERTIFICATE CONTROLLER] Automatically created student profile in database for ${studentId} (${email}) using verified token claims.`);
+              
+              userDoc = await db.collection('users').doc(studentId).get();
+              userData = userDoc.exists ? userDoc.data() : null;
             }
           }
 
