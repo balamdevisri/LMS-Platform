@@ -41,6 +41,11 @@ export const registerHandHandlers = (io: SocketServer, socket: AuthenticatedSock
           ...handEntry,
           totalRaised: raisedHandsMap.get(liveClassId)!.size,
         });
+        io.to(roomName).emit('hand_raised', {
+          userId: handEntry.studentId,
+          userName: handEntry.studentName,
+          timestamp: new Date(handEntry.timestamp),
+        });
 
         if (callback) callback({ success: true, ...handEntry });
       } catch (err: any) {
@@ -108,4 +113,12 @@ export const registerHandHandlers = (io: SocketServer, socket: AuthenticatedSock
       }
     }
   );
+
+  // 4. Compatibility Alias
+  socket.on('raise_hand', (data: { classId?: string; liveClassId?: string }) => {
+    const liveClassId = data.liveClassId || data.classId;
+    if (liveClassId) {
+      socket.emit('hand:raise', { liveClassId });
+    }
+  });
 };

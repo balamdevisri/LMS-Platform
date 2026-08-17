@@ -1,12 +1,13 @@
 import { Server as SocketServer } from 'socket.io';
 import { AuthenticatedSocket } from './socket.auth';
+import { liveClassroomService } from '../modules/liveClassroom/liveClassroom.service';
 import logger from '../config/logger';
 
 export const registerAnnouncementHandlers = (io: SocketServer, socket: AuthenticatedSocket) => {
   // 1. Send Announcement (Instructor / Admin only)
   socket.on(
     'announcement:send',
-    (
+    async (
       data: { liveClassId: string; message: string; priority?: 'normal' | 'urgent' },
       callback?: (res: any) => void
     ) => {
@@ -38,6 +39,20 @@ export const registerAnnouncementHandlers = (io: SocketServer, socket: Authentic
           senderRole: user.role,
           createdAt: new Date().toISOString(),
         };
+
+        // Persist in repository
+        try {
+          const { liveClassroomService } = await import('../modules/liveClassroom/liveClassroom.service');
+          await liveClassroomService.createAnnouncement({
+            classId: liveClassId,
+            authorId: user.uid || user.id,
+            authorName: user.name || 'Instructor',
+            authorRole: (user.role as any) || 'instructor',
+            message: message.trim(),
+          });
+        } catch (dbErr) {
+          logger.warn('[SOCKET ANNOUNCEMENT] DB persist warning:', dbErr);
+        }
 
         logger.info(`[ANNOUNCEMENT] Broadcast in ${roomName} by ${user.name}: ${message}`);
 

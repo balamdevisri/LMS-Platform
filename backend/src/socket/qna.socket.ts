@@ -53,15 +53,17 @@ export const registerQnaHandlers = (io: SocketServer, socket: AuthenticatedSocke
         }
         activeQuestions.get(liveClassId)!.push(newQuestion);
 
-        // Also save to database
-        liveClassroomService
-          .createQuestion({
+        // Save to database
+        try {
+          await liveClassroomService.createQuestion({
             classId: liveClassId,
             studentId: user.uid || user.id,
             studentName: user.name || 'Student',
             question: questionText,
-          } as any)
-          .catch((dbErr: any) => logger.warn('[SOCKET QNA] DB save warning:', dbErr));
+          } as any);
+        } catch (dbErr: any) {
+          logger.warn('[SOCKET QNA] DB save warning:', dbErr);
+        }
 
         // Broadcast to entire room
         io.to(roomName).emit('qna:question', newQuestion);
@@ -102,6 +104,17 @@ export const registerQnaHandlers = (io: SocketServer, socket: AuthenticatedSocke
           q.status = 'ANSWERED';
           q.answeredBy = user.name || user.email || 'Instructor';
           q.answeredAt = new Date().toISOString();
+        }
+
+        // Persist answer in database
+        try {
+          await liveClassroomService.updateQuestion(liveClassId, questionId, {
+            answer,
+            status: 'answered',
+            answeredBy: user.name || 'Instructor',
+          } as any);
+        } catch (dbErr) {
+          logger.warn('[SOCKET QNA] DB update warning:', dbErr);
         }
 
         // Broadcast answered question to the room

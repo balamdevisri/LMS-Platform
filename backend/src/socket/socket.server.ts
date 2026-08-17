@@ -37,25 +37,11 @@ export const setupSocketServer = (io: SocketServer) => {
     registerQuizHandlers(liveNS as any, authSocket);
     registerAttendanceHandlers(liveNS as any, authSocket);
 
-    // Provide generic error listener
+    // Generic error listener
     socket.on('error', (err) => {
       logger.error(`[SOCKET ERROR] Client ${socket.id} encountered error:`, err);
     });
   });
 
-  // Also attach authentication and handlers to root namespace if clients connect directly
-  io.use(socketAuthMiddleware);
-  io.on('connection', (socket: Socket) => {
-    const authSocket = socket as AuthenticatedSocket;
-    registerLiveClassHandlers(io, authSocket);
-    registerChatHandlers(io, authSocket);
-    registerQnaHandlers(io, authSocket);
-    registerHandHandlers(io, authSocket);
-    registerAnnouncementHandlers(io, authSocket);
-    registerPollHandlers(io, authSocket);
-    registerQuizHandlers(io, authSocket);
-    registerAttendanceHandlers(io, authSocket);
-  });
-
-  logger.info('[SOCKET SERVER] ✅ Real-Time Interaction Layer Successfully Attached to HTTP Server.');
+  logger.info('[SOCKET SERVER] ✅ Dedicated /live-classroom Real-Time Interaction Layer Attached.');
 };

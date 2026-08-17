@@ -1,4 +1,5 @@
 import { db } from '../../../firebase';
+import { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import { 
   LiveClass, 
   LiveStatus, 
@@ -50,7 +51,7 @@ export class LiveClassRepository {
       .where('status', 'in', [LiveStatus.Scheduled, LiveStatus.Live])
       .orderBy('startTime', 'asc')
       .get();
-    return snapshot.docs.map((d: any) => d.data() as LiveClass);
+    return snapshot.docs.map((d: QueryDocumentSnapshot) => d.data() as LiveClass);
   }
 
   async findByInstructor(instructorId: string): Promise<LiveClass[]> {
@@ -59,7 +60,7 @@ export class LiveClassRepository {
       .where('instructorId', '==', instructorId)
       .orderBy('startTime', 'desc')
       .get();
-    return snapshot.docs.map((d: any) => d.data() as LiveClass);
+    return snapshot.docs.map((d: QueryDocumentSnapshot) => d.data() as LiveClass);
   }
 
   async findByCourse(courseId: string): Promise<LiveClass[]> {
@@ -68,7 +69,7 @@ export class LiveClassRepository {
       .where('courseId', '==', courseId)
       .orderBy('startTime', 'desc')
       .get();
-    return snapshot.docs.map((d: any) => d.data() as LiveClass);
+    return snapshot.docs.map((d: QueryDocumentSnapshot) => d.data() as LiveClass);
   }
 
   // --- SUBCOLLECTION: ATTENDANCE ---

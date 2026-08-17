@@ -1,5 +1,6 @@
 import { Enrollment, IEnrollment, EnrollmentStatus, AccessType } from '../../models/mongo/payment.model';
 import { db, isFirebaseAdminInitialized } from '../../firebase';
+import { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import { CourseService } from '../../services/course/CourseService';
 import { EmailService } from '../../services/email/EmailService';
 import { EmailEventType } from '../../types/emailTypes';
@@ -30,7 +31,7 @@ export class EnrollmentService {
       try {
         const snap = await db.collection('enrollments').where('studentId', '==', studentId).get();
         if (!snap.empty) {
-          return snap.docs.map((d) => ({ id: d.id, ...d.data() } as any));
+          return snap.docs.map((d: QueryDocumentSnapshot) => ({ id: d.id, ...d.data() } as any));
         }
       } catch (err) {
         logger.warn('[EnrollmentService] Firestore getStudentEnrollments fallback notice:', err);
@@ -63,7 +64,7 @@ export class EnrollmentService {
           .get();
 
         if (!snap.empty) {
-          const doc = snap.docs[0];
+          const doc: QueryDocumentSnapshot = snap.docs[0];
           return { id: doc.id, ...doc.data() } as any;
         }
       } catch (err) {

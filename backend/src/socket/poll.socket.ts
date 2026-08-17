@@ -1,5 +1,6 @@
 import { Server as SocketServer } from 'socket.io';
 import { AuthenticatedSocket } from './socket.auth';
+import { liveClassroomService } from '../modules/liveClassroom/liveClassroom.service';
 import logger from '../config/logger';
 
 interface PollItem {
@@ -62,11 +63,21 @@ export const registerPollHandlers = (io: SocketServer, socket: AuthenticatedSock
 
         activePollsMap.set(liveClassId, newPoll);
 
+        // Persist poll in repository
+        liveClassroomService.createPoll({
+          classId: liveClassId,
+          title: question.trim(),
+          options: options.map((opt) => ({ text: opt.trim(), votesCount: 0, voters: [] })),
+          status: 'open',
+          createdBy: user.name || 'Instructor',
+          createdAt: new Date().toISOString(),
+        }).catch((e: any) => logger.warn('[SOCKET POLL] DB save warning:', e));
+
         const roomName = `live-class:${liveClassId}`;
         logger.info(`[POLL] Created poll ${pollId} in ${roomName}`);
 
         // Broadcast to entire room
-        io.to(roomName).emit('poll:start', {
+        const pollPayload = {
           id: newPoll.id,
           liveClassId: newPoll.liveClassId,
           question: newPoll.question,
@@ -74,6 +85,14 @@ export const registerPollHandlers = (io: SocketServer, socket: AuthenticatedSock
           durationSeconds: newPoll.durationSeconds,
           status: 'ACTIVE',
           createdAt: newPoll.createdAt,
+        };
+
+        io.to(roomName).emit('poll:start', pollPayload);
+        io.to(roomName).emit('poll_published', {
+          id: newPoll.id,
+          classId: newPoll.liveClassId,
+          question: newPoll.question,
+          options: options.map((opt) => opt.trim()),
         });
 
         if (callback) callback({ success: true, pollId });
@@ -179,4 +198,22 @@ export const registerPollHandlers = (io: SocketServer, socket: AuthenticatedSock
       }
     }
   );
+
+  // 4. Compatibility Aliases
+  socket.on('publish_poll', (data: { classId?: string; liveClassId?: string; question: string; options: string[] }) => {
+    const liveClassId = data.liveClassId || data.classId;
+    if (liveClassId) {
+      socket.emit('poll:create', { liveClassId, question: data.question, options: data.options });
+    }
+  });
+
+  socket.on('submit_vote', (data: { classId?: string; liveClassId?: string; pollId?: string; optionIndex?: number; optionId?: string }) => {
+    const liveClassId = data.liveClassId || data.classId;
+    if (!liveClassId) return;
+    const activePoll = activePollsMap.get(liveClassId);
+    const optionId = data.optionId || (activePoll && typeof data.optionIndex === 'number' ? activePoll.options[data.optionIndex]?.id : undefined);
+    if (activePoll && optionId) {
+      socket.emit('poll:vote', { liveClassId, pollId: activePoll.id, optionId });
+    }
+  });
 };

@@ -174,4 +174,76 @@ export const registerChatHandlers = (io: SocketServer, socket: AuthenticatedSock
       }
     }
   );
+
+  // 4. Compatibility Handlers for Legacy Frontend Widgets
+  socket.on(
+    'send_chat',
+    async (data: {
+      classId?: string;
+      liveClassId?: string;
+      message: string;
+      messageType?: 'normal' | 'announcement';
+      replyToId?: string;
+    }) => {
+      const liveClassId = data.liveClassId || data.classId;
+      if (!liveClassId) return;
+
+      const user = socket.user;
+      if (!user) return;
+
+      const rawMessage = (data.message || '').trim();
+      if (!rawMessage || rawMessage.length > 500) return;
+      if (isRateLimited(user.uid || user.id)) return;
+
+      const cleanMessage = sanitizeContent(rawMessage);
+      const roomName = `live-class:${liveClassId}`;
+
+      try {
+        const savedMessage = await liveClassroomService.saveChatMessage({
+          classId: liveClassId,
+          userId: user.uid || user.id,
+          userName: user.name || 'User',
+          userRole: (user.role as any) || 'student',
+          message: cleanMessage,
+          createdAt: new Date().toISOString(),
+        });
+
+        const chatPayload = {
+          id: (savedMessage as any).id || `msg_${Date.now()}`,
+          liveClassId,
+          classId: liveClassId,
+          userId: user.uid || user.id,
+          userName: user.name || 'User',
+          role: user.role,
+          message: cleanMessage,
+          status: 'VISIBLE',
+          messageType: data.messageType || 'normal',
+          replyToId: data.replyToId,
+          createdAt: new Date().toISOString(),
+        };
+
+        io.to(roomName).emit('chat:message', chatPayload);
+        io.to(roomName).emit('chat_received', chatPayload);
+      } catch (err: any) {
+        logger.error('[SOCKET] send_chat exception:', err);
+      }
+    }
+  );
+
+  socket.on('pin_chat', (data: { classId?: string; liveClassId?: string; messageId: string; pinned: boolean }) => {
+    const user = socket.user;
+    if (!user || (user.role !== 'admin' && user.role !== 'instructor' && user.role !== 'mentor')) return;
+
+    const liveClassId = data.liveClassId || data.classId;
+    if (!liveClassId) return;
+
+    const roomName = `live-class:${liveClassId}`;
+    io.to(roomName).emit('chat_pinned', { messageId: data.messageId, pinned: data.pinned });
+    io.to(roomName).emit('chat:moderate', {
+      liveClassId,
+      messageId: data.messageId,
+      action: data.pinned ? 'pin' : 'unpin',
+      moderatedBy: user.name || user.email,
+    });
+  });
 };

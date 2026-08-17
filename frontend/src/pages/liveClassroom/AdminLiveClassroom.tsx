@@ -148,6 +148,57 @@ export const AdminLiveClassroom: React.FC = () => {
     return result;
   }, [classes, activeTab, instructorFilter, searchQuery]);
 
+  // Dynamic, deduplicated instructors (no duplicates by id, email, or name; filter out rejected & legacy mocks)
+  const dynamicInstructors = useMemo(() => {
+    const map = new Map<string, any>();
+    const seenEmails = new Set<string>();
+    const seenNames = new Set<string>();
+
+    const MOCK_EMAILS = [
+      'sarah.j@stanford.edu',
+      'm.vance@ai.research.org',
+      'elena.r@framer.com',
+    ];
+
+    instructorsList.forEach((inst) => {
+      if (!inst) return;
+      const email = (inst.email || '').toLowerCase().trim();
+      const name = (inst.name || '').trim();
+      const st = (inst.status || '').toLowerCase();
+
+      if (st === 'rejected' || MOCK_EMAILS.includes(email)) return;
+
+      const normalizedName = name.toLowerCase();
+      if (email && seenEmails.has(email)) return;
+      if (normalizedName && seenNames.has(normalizedName)) return;
+
+      const idVal = String(inst.id || email || name);
+      if (!map.has(idVal)) {
+        if (email) seenEmails.add(email);
+        if (normalizedName) seenNames.add(normalizedName);
+        map.set(idVal, inst);
+      }
+    });
+
+    if (userProfile && (userProfile.role === 'instructor' || userProfile.role === 'admin')) {
+      const myEmail = (userProfile.email || '').toLowerCase().trim();
+      const myName = (userProfile.name || '').trim();
+      const myId = String(userProfile.uid || 'current_user');
+      const normalizedMyName = myName.toLowerCase();
+
+      if (!seenEmails.has(myEmail) && !seenNames.has(normalizedMyName) && myName) {
+        map.set(myId, {
+          id: myId,
+          name: myName,
+          email: myEmail,
+          specialty: userProfile.role === 'instructor' ? 'Assigned Instructor' : 'Administrator / Lead',
+        });
+      }
+    }
+
+    return Array.from(map.values());
+  }, [instructorsList, userProfile]);
+
   // Tab counts
   const tabCounts = useMemo(() => {
     return {
@@ -165,7 +216,11 @@ export const AdminLiveClassroom: React.FC = () => {
     setFormCourseId(courses[0]?.id ? String(courses[0].id) : 'course_linux_kernel');
     setFormModuleId('');
     setFormLessonId('');
-    setFormInstructorId(instructorsList[0]?.id || 'inst_kaizen');
+    setFormInstructorId(
+      userProfile?.role === 'instructor'
+        ? userProfile.uid
+        : dynamicInstructors[0]?.id || 'inst_kaizen'
+    );
     setFormTitle(initialStatus === 'Live' ? '🔴 Live Masterclass Session' : '');
     setFormDescription(initialStatus === 'Live' ? 'Real-time broadcast session with interactive whiteboard, AI code playground, polls, and live video control panel.' : '');
     setFormDate(new Date().toISOString().split('T')[0]);
@@ -243,7 +298,7 @@ export const AdminLiveClassroom: React.FC = () => {
     }
 
     try {
-      const selectedInst = instructorsList.find((i) => i.id === formInstructorId || i.name === formInstructorId);
+      const selectedInst = dynamicInstructors.find((i) => i.id === formInstructorId || i.name === formInstructorId);
       const instructorName = selectedInst?.name || userProfile?.name || 'Prof. Manoj Acharya';
 
       const courseNameStr = selectedCourse?.title || 'Enterprise Engineering Track';
@@ -543,7 +598,7 @@ export const AdminLiveClassroom: React.FC = () => {
               className="bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-hidden cursor-pointer"
             >
               <option value="ALL">All Instructors</option>
-              {instructorsList.map((inst) => (
+              {dynamicInstructors.map((inst) => (
                 <option key={inst.id} value={inst.id}>
                   {inst.name}
                 </option>
@@ -799,11 +854,15 @@ export const AdminLiveClassroom: React.FC = () => {
                       onChange={(e) => setFormInstructorId(e.target.value)}
                       className="w-full bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-900 dark:text-white focus:outline-hidden cursor-pointer"
                     >
-                      {instructorsList.map((inst) => (
-                        <option key={inst.id} value={inst.id}>
-                          {inst.name} ({inst.specialty || 'Instructor'})
-                        </option>
-                      ))}
+                      {dynamicInstructors.length === 0 ? (
+                        <option value="">No registered instructors available</option>
+                      ) : (
+                        dynamicInstructors.map((inst) => (
+                          <option key={inst.id} value={inst.id}>
+                            {inst.name} ({inst.specialty || 'Instructor'})
+                          </option>
+                        ))
+                      )}
                     </select>
                   </div>
                 </div>

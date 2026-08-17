@@ -26,21 +26,36 @@ class SocketService {
     }
 
     const socketUrl = `${getSocketUrl()}/live-classroom`;
+    const authToken =
+      token ||
+      localStorage.getItem('token') ||
+      localStorage.getItem('shaivika_auth_token') ||
+      localStorage.getItem('firebase_token') ||
+      '';
+
     this.socket = io(socketUrl, {
       autoConnect: true,
       transports: ['websocket', 'polling'],
       auth: {
-        token: token || localStorage.getItem('token') || localStorage.getItem('shaivika_auth_token') || '',
+        token: authToken,
         userId: userInfo?.uid || 'student_guest',
         name: userInfo?.name || 'Student',
         role: userInfo?.role || 'student',
         email: userInfo?.email || '',
       },
       reconnection: true,
-      reconnectionAttempts: 10,
+      reconnectionAttempts: 15,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       timeout: 20000,
+    });
+
+    // Automatically rejoin live classroom upon reconnect
+    this.socket.on('connect', () => {
+      if (this.currentLiveClassId && this.socket) {
+        this.socket.emit('liveClass:join', { liveClassId: this.currentLiveClassId });
+        this.socket.emit('attendance:join', { liveClassId: this.currentLiveClassId });
+      }
     });
 
     return this.socket;

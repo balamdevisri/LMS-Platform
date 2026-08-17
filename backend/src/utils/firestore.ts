@@ -1,11 +1,11 @@
-import { FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { FieldValue, Timestamp, DocumentSnapshot, QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import { ApiError } from './ApiError';
 import logger from '../config/logger';
 
 /**
  * Converts a JavaScript Date to a Firestore Timestamp or ServerTimestamp.
  */
-export const toFirestoreDateTime = (date?: Date): any => {
+export const toFirestoreDateTime = (date?: Date): Timestamp | FieldValue => {
   if (!date) {
     return FieldValue.serverTimestamp();
   }
@@ -74,7 +74,7 @@ export const toDocument = <T extends Record<string, any>>(data: T): Record<strin
  * Maps a Firestore document snapshot to a clean typed object.
  * Extracts the document ID and converts Timestamps back to JavaScript Dates.
  */
-export const fromDocument = <T>(doc: any): T => {
+export const fromDocument = <T>(doc: DocumentSnapshot | QueryDocumentSnapshot): T => {
   if (!doc.exists) {
     throw new ApiError(404, 'Document not found');
   }

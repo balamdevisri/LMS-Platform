@@ -195,4 +195,117 @@ export const registerQuizHandlers = (io: SocketServer, socket: AuthenticatedSock
       }
     }
   );
+
+  // 4. Compatibility Aliases for Legacy LiveQuizWidget
+  socket.on(
+    'publish_quiz',
+    async (data: {
+      classId?: string;
+      liveClassId?: string;
+      question: string;
+      options: string[];
+      correctAnswer?: string;
+      marks?: number;
+      timerSeconds?: number;
+      title?: string;
+    }) => {
+      const liveClassId = data.liveClassId || data.classId;
+      if (!liveClassId) return;
+
+      const user = socket.user;
+      if (!user || (user.role !== 'admin' && user.role !== 'instructor')) return;
+
+      const quizId = `quiz_${Date.now()}`;
+      const newQuiz: LiveQuizItem = {
+        id: quizId,
+        liveClassId,
+        title: data.title || 'Live Concept Check',
+        question: (data.question || '').trim(),
+        options: (data.options || []).map((opt) => (typeof opt === 'string' ? opt.trim() : (opt as any).text || 'Option')),
+        correctAnswer: (data.correctAnswer || (data.options && data.options[0]) || '').trim(),
+        marks: data.marks || 10,
+        timerSeconds: data.timerSeconds || 30,
+        status: 'ACTIVE',
+        createdAt: new Date().toISOString(),
+        submissions: new Map(),
+      };
+
+      activeQuizzesMap.set(liveClassId, newQuiz);
+
+      const roomName = `live-class:${liveClassId}`;
+      const broadcastPayload = {
+        id: newQuiz.id,
+        classId: newQuiz.liveClassId,
+        liveClassId: newQuiz.liveClassId,
+        title: newQuiz.title,
+        question: newQuiz.question,
+        options: newQuiz.options,
+        marks: newQuiz.marks,
+        timerSeconds: newQuiz.timerSeconds,
+        status: 'ACTIVE',
+      };
+
+      io.to(roomName).emit('quiz:start', broadcastPayload);
+      io.to(roomName).emit('quiz_published', broadcastPayload);
+    }
+  );
+
+  socket.on(
+    'submit_quiz',
+    async (data: {
+      classId?: string;
+      liveClassId?: string;
+      quizId: string;
+      answer: string;
+      timeTakenSeconds?: number;
+    }) => {
+      const liveClassId = data.liveClassId || data.classId;
+      if (!liveClassId) return;
+
+      const user = socket.user;
+      if (!user) return;
+
+      const activeQuiz = activeQuizzesMap.get(liveClassId);
+      if (!activeQuiz || activeQuiz.id !== data.quizId || activeQuiz.status !== 'ACTIVE') return;
+
+      const userId = user.uid || user.id;
+      if (activeQuiz.submissions.has(userId)) return;
+
+      const studentAnswer = (data.answer || '').trim();
+      const isCorrect = studentAnswer.toLowerCase() === activeQuiz.correctAnswer.toLowerCase();
+      const score = isCorrect ? activeQuiz.marks : 0;
+
+      const submission = {
+        studentId: userId,
+        studentName: user.name || 'Student',
+        answer: studentAnswer,
+        isCorrect,
+        score,
+        submittedAt: new Date().toISOString(),
+      };
+
+      activeQuiz.submissions.set(userId, submission);
+
+      const roomName = `live-class:${liveClassId}`;
+      io.to(roomName).emit('quiz_submission_update', {
+        quizId: activeQuiz.id,
+        studentId: userId,
+        studentName: user.name,
+        isCorrect,
+        score,
+      });
+
+      const responses = Array.from(activeQuiz.submissions.values());
+      const leaderboard = responses
+        .sort((a, b) => (b.score || 0) - (a.score || 0))
+        .map((r, idx) => ({
+          rank: idx + 1,
+          studentName: r.studentName,
+          isCorrect: r.isCorrect,
+          score: r.score,
+        }));
+
+      io.to(roomName).emit('leaderboard_update', leaderboard);
+    }
+  );
 };

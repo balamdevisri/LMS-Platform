@@ -23,14 +23,29 @@ process.on('unhandledRejection', (reason) => {
 // Create HTTP server wrapper around Express App
 const server = http.createServer(app);
 
+// Resolve allowed origins for Socket.IO and HTTP
+const configuredOrigins = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(',').map((url) => url.trim()).filter(Boolean)
+  : [];
+const defaultDevOrigins = ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:4173', 'http://127.0.0.1:5173'];
+const allowedOrigins = Array.from(new Set([...configuredOrigins, ...defaultDevOrigins]));
+
 // Initialize Socket.IO Server
 const io = new SocketServer(server, {
   cors: {
-    origin: '*',
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. mobile apps, server-to-server)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+        return callback(null, true);
+      }
+      return callback(new Error('CORS origin rejected by policy'));
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     credentials: true,
   },
   pingTimeout: 60000,
+  pingInterval: 25000,
 });
 
 setupSocketServer(io);

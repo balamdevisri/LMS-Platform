@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -8,6 +8,8 @@ import {
   Radio,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCourses } from '@/contexts/CourseContext';
+import { instructorService, type InstructorUser } from '@/services/instructorService';
 import { liveClassService, type LiveClass } from '@/services/liveClassService';
 import { extractYouTubeVideoId, YouTubePlayer } from '@/components/liveClass/YouTubePlayer';
 import { toast } from 'sonner';
@@ -28,11 +30,12 @@ export const AdminCreateLiveClass: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { userProfile, user } = useAuth();
+  const { courses: lmsCourses } = useCourses();
   const isEditing = Boolean(id);
 
   // Form State
-  const [courseId, setCourseId] = useState<string>('react-101');
-  const [courseName, setCourseName] = useState<string>('React Fundamentals Masterclass');
+  const [courseId, setCourseId] = useState<string>('');
+  const [courseName, setCourseName] = useState<string>('');
   const [title, setTitle] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [instructorId, setInstructorId] = useState<string>('');
@@ -50,28 +53,103 @@ export const AdminCreateLiveClass: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(isEditing);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [previewVideoId, setPreviewVideoId] = useState<string | null>(null);
+  const [instructorsList, setInstructorsList] = useState<InstructorUser[]>([]);
 
-  // Sample course options from LMS catalog
-  const courseOptions: CourseOption[] = [
-    { id: 'react-101', title: 'React Fundamentals Masterclass' },
-    { id: 'linux-101', title: 'Linux Fundamentals & Shell Scripting' },
-    { id: 'backend-node-201', title: 'Node.js & Scalable Backend Architecture' },
-    { id: 'ai-python-301', title: 'AI Engineering & Deep Learning with PyTorch' },
-    { id: 'cybersecurity-401', title: 'Enterprise Cybersecurity & Threat Intelligence' },
-  ];
+  // Subscribe to dynamic instructors
+  useEffect(() => {
+    const unsub = instructorService.subscribeToInstructors((insts) => {
+      setInstructorsList(insts);
+    });
+    return () => unsub();
+  }, []);
 
-  // Instructor options
-  const instructorOptions: InstructorOption[] = [
-    { id: 'inst_kaizen', name: 'Prof. Manoj Acharya', specialization: 'Full Stack & AI' },
-    { id: 'inst_bhanu', name: 'Bhanu Prakash', specialization: 'LMS Platform & Architecture' },
-    { id: 'inst_sarah', name: 'Dr. Sarah Jenkins', specialization: 'Distributed Systems' },
-    { id: 'inst_alex', name: 'Alex Rivera', specialization: 'Cybersecurity & DevOps' },
-  ];
+  // Compute dynamic, deduplicated course options from LMS catalog
+  const courseOptions: CourseOption[] = useMemo(() => {
+    if (lmsCourses && lmsCourses.length > 0) {
+      return lmsCourses.map((c) => ({
+        id: String(c.id),
+        title: c.title,
+      }));
+    }
+    return [
+      { id: 'react-101', title: 'React Fundamentals Masterclass' },
+      { id: 'linux-101', title: 'Linux Fundamentals & Shell Scripting' },
+      { id: 'backend-node-201', title: 'Node.js & Scalable Backend Architecture' },
+      { id: 'ai-python-301', title: 'AI Engineering & Deep Learning with PyTorch' },
+      { id: 'cybersecurity-401', title: 'Enterprise Cybersecurity & Threat Intelligence' },
+    ];
+  }, [lmsCourses]);
 
-  // Initialize instructor default
+  // Compute dynamic, deduplicated instructors (no mock duplicates, only active/approved/real instructors)
+  const instructorOptions: InstructorOption[] = useMemo(() => {
+    const map = new Map<string, InstructorOption>();
+    const seenEmails = new Set<string>();
+    const seenNames = new Set<string>();
+
+    const MOCK_EMAILS = [
+      'sarah.j@stanford.edu',
+      'm.vance@ai.research.org',
+      'elena.r@framer.com',
+    ];
+
+    instructorsList.forEach((inst) => {
+      if (!inst) return;
+      const email = (inst.email || '').toLowerCase().trim();
+      const name = (inst.name || '').trim();
+      const st = (inst.status || '').toLowerCase();
+
+      // Skip rejected or mock entries
+      if (st === 'rejected' || MOCK_EMAILS.includes(email)) return;
+
+      const normalizedName = name.toLowerCase();
+      if (email && seenEmails.has(email)) return;
+      if (normalizedName && seenNames.has(normalizedName)) return;
+
+      const idVal = String(inst.id || email || name);
+      if (!map.has(idVal)) {
+        if (email) seenEmails.add(email);
+        if (normalizedName) seenNames.add(normalizedName);
+        map.set(idVal, {
+          id: idVal,
+          name: name || 'Faculty Instructor',
+          email: inst.email,
+          specialization: inst.specialty || 'Instructor',
+        });
+      }
+    });
+
+    // If current logged-in user is an instructor or admin, make sure they are available in the list
+    if (userProfile && (userProfile.role === 'instructor' || userProfile.role === 'admin')) {
+      const myEmail = (userProfile.email || user?.email || '').toLowerCase().trim();
+      const myName = (userProfile.name || user?.displayName || '').trim();
+      const myId = String(userProfile.uid || user?.uid || 'current_user');
+      const normalizedMyName = myName.toLowerCase();
+
+      if (!seenEmails.has(myEmail) && !seenNames.has(normalizedMyName) && myName) {
+        map.set(myId, {
+          id: myId,
+          name: myName,
+          email: myEmail,
+          specialization: userProfile.role === 'instructor' ? 'Assigned Instructor' : 'Administrator / Lead',
+        });
+      }
+    }
+
+    return Array.from(map.values());
+  }, [instructorsList, userProfile, user]);
+
+  // Set default course when course options load
+  useEffect(() => {
+    if (!courseId && courseOptions.length > 0) {
+      setCourseId(courseOptions[0].id);
+      setCourseName(courseOptions[0].title);
+    }
+  }, [courseOptions, courseId]);
+
+  // Initialize instructor default dynamically
   useEffect(() => {
     if (userProfile?.role === 'instructor') {
-      const myId = userProfile?.uid || user?.uid || 'inst_kaizen';
+      const myId = String(userProfile?.uid || user?.uid || 'inst_kaizen');
       const myName = userProfile?.name || user?.displayName || 'Faculty Instructor';
       setInstructorId(myId);
       setInstructorName(myName);
@@ -79,7 +157,7 @@ export const AdminCreateLiveClass: React.FC = () => {
       setInstructorId(instructorOptions[0].id);
       setInstructorName(instructorOptions[0].name);
     }
-  }, [userProfile, user]);
+  }, [userProfile, user, instructorOptions, instructorId]);
 
   // Load existing class if editing
   useEffect(() => {
@@ -259,11 +337,15 @@ export const AdminCreateLiveClass: React.FC = () => {
                 onChange={(e) => handleCourseChange(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-900 dark:text-zinc-100 text-xs font-medium focus:outline-hidden focus:ring-2 focus:ring-blue-500"
               >
-                {courseOptions.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.title} ({c.id})
-                  </option>
-                ))}
+                {courseOptions.length === 0 ? (
+                  <option value="">No courses available</option>
+                ) : (
+                  courseOptions.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.title}
+                    </option>
+                  ))
+                )}
               </select>
             </div>
 
@@ -278,11 +360,15 @@ export const AdminCreateLiveClass: React.FC = () => {
                 disabled={userProfile?.role === 'instructor'}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-900 dark:text-zinc-100 text-xs font-medium focus:outline-hidden focus:ring-2 focus:ring-blue-500 disabled:opacity-70"
               >
-                {instructorOptions.map((inst) => (
-                  <option key={inst.id} value={inst.id}>
-                    {inst.name} - {inst.specialization}
-                  </option>
-                ))}
+                {instructorOptions.length === 0 ? (
+                  <option value="">No registered instructors available</option>
+                ) : (
+                  instructorOptions.map((inst) => (
+                    <option key={inst.id} value={inst.id}>
+                      {inst.name} {inst.specialization ? `(${inst.specialization})` : ''}
+                    </option>
+                  ))
+                )}
               </select>
             </div>
 

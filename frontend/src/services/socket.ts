@@ -1,17 +1,8 @@
-import { io, Socket } from 'socket.io-client';
+import { Socket } from 'socket.io-client';
+import { socketService } from './socketService';
 
-const getSocketUrl = (): string => {
-  const envUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL;
-  if (envUrl) {
-    // Remove /api suffix if present in BACKEND/API URLs
-    return envUrl.replace(/\/api\/?$/, '');
-  }
-  return 'http://localhost:5000';
+export const getLiveClassroomSocket = (token?: string, userInfo?: { uid?: string; name?: string; role?: string; email?: string }): Socket => {
+  return socketService.connect(token, userInfo);
 };
 
-export const getLiveClassroomSocket = (): Socket => {
-  return io(`${getSocketUrl()}/live-classroom`, {
-    autoConnect: false,
-    transports: ['websocket', 'polling'],
-  });
-};
+export { socketService };

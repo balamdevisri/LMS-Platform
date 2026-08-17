@@ -1,4 +1,5 @@
 import { db } from '../../firebase';
+import { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import { ICourse, CreateCourseDTO, UpdateCourseDTO, CourseFilterOptions, CoursePaginationResult } from '../../types/course';
 
 export class CourseRepository {
@@ -84,7 +85,7 @@ export class CourseRepository {
     }
 
     const snapshot = await this.collection.get();
-    let courses: ICourse[] = snapshot.docs.map((doc: any) => doc.data() as ICourse);
+    let courses: ICourse[] = snapshot.docs.map((doc: QueryDocumentSnapshot) => doc.data() as ICourse);
 
     // 1. Filter by status (case-insensitive)
     if (options.status && options.status !== 'all') {

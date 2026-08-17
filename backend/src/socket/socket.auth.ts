@@ -1,105 +1,136 @@
 import { Socket } from 'socket.io';
-import { adminAuth } from '../firebase';
+import { adminAuth, db } from '../firebase';
 import logger from '../config/logger';
+
+export type UserRole = 'admin' | 'instructor' | 'mentor' | 'student';
 
 export interface AuthenticatedSocketUser {
   id: string;
   uid: string;
   email?: string;
   name?: string;
-  role: 'admin' | 'instructor' | 'mentor' | 'student';
+  role: UserRole;
 }
 
 export interface AuthenticatedSocket extends Socket {
   user?: AuthenticatedSocketUser;
 }
 
+const VALID_ROLES = new Set<UserRole>(['admin', 'instructor', 'mentor', 'student']);
+
 /**
  * Socket.IO Handshake Authentication Middleware
- * Validates JWT token, extracts authenticated user and role, or rejects with UNAUTHORIZED_SOCKET.
+ * Strictly validates Firebase ID tokens via Firebase Admin SDK,
+ * resolves user role from Firestore, and binds authenticated identity to socket.user and socket.data.user.
  */
 export const socketAuthMiddleware = async (
   socket: AuthenticatedSocket,
   next: (err?: Error) => void
 ): Promise<void> => {
   try {
-    const authHeader = socket.handshake.auth?.token || socket.handshake.headers?.authorization;
+    // 1. Extract Token from handshake auth or authorization header
+    const rawAuth =
+      socket.handshake.auth?.token ||
+      socket.handshake.auth?.accessToken ||
+      socket.handshake.headers?.authorization;
+
     let token: string | undefined;
 
-    if (authHeader) {
-      token = authHeader.startsWith('Bearer ') ? authHeader.split('Bearer ')[1] : authHeader;
+    if (typeof rawAuth === 'string' && rawAuth.trim().length > 0) {
+      const trimmed = rawAuth.trim();
+      token = trimmed.startsWith('Bearer ') ? trimmed.split('Bearer ')[1]?.trim() : trimmed;
     }
 
     if (!token) {
-      // Fallback for development / query parameters
-      const queryUid = (socket.handshake.query?.userId || socket.handshake.auth?.userId) as string;
-      const queryRole = (socket.handshake.query?.role || socket.handshake.auth?.role) as string;
-      const queryEmail = (socket.handshake.query?.email || socket.handshake.auth?.email) as string;
-      const queryName = (socket.handshake.query?.name || socket.handshake.auth?.name) as string;
-
-      if (queryUid) {
-        socket.user = {
-          id: queryUid,
-          uid: queryUid,
-          email: queryEmail || '',
-          name: queryName || 'Student',
-          role: (queryRole?.toLowerCase() as any) || 'student',
-        };
-        return next();
-      }
-
-      logger.warn(`[SOCKET AUTH] Connection rejected: No authentication token provided. Socket: ${socket.id}`);
+      logger.warn(`[SOCKET AUTH] Connection rejected: Missing Firebase ID token. Socket: ${socket.id}`);
       return next(new Error('UNAUTHORIZED_SOCKET'));
     }
 
-    // 1. Verify token with Firebase Admin Auth if initialized
-    if (adminAuth && typeof adminAuth.verifyIdToken === 'function') {
-      try {
-        const decodedToken = await adminAuth.verifyIdToken(token);
-        const email = decodedToken.email || '';
-        const isAdminEmail = email.includes('admin') || email === 'admin@gmail.com';
-        const role = (decodedToken as any).role || (isAdminEmail ? 'admin' : 'student');
-
-        socket.user = {
-          id: decodedToken.uid,
-          uid: decodedToken.uid,
-          email,
-          name: decodedToken.name || (decodedToken as any).displayName || 'User',
-          role: role.toLowerCase(),
-        };
-        return next();
-      } catch (firebaseErr) {
-        logger.warn(`[SOCKET AUTH] Firebase verifyIdToken fallback:`, firebaseErr);
-      }
+    // 2. Verify Firebase ID Token via Firebase Admin Auth
+    if (!adminAuth || typeof adminAuth.verifyIdToken !== 'function') {
+      logger.error(`[SOCKET AUTH] Server configuration error: Firebase Admin Auth not initialized.`);
+      return next(new Error('UNAUTHORIZED_SOCKET'));
     }
 
-    // 2. Fallback token decode for local development
+    let decodedToken: any;
     try {
-      const payloadBase64 = token.split('.')[1];
-      if (payloadBase64) {
-        const decoded = JSON.parse(Buffer.from(payloadBase64, 'base64').toString('utf-8'));
-        const email = decoded.email || decoded.sub || 'student@shaivika.ai';
-        const isAdminEmail = email.includes('admin') || email === 'admin@gmail.com';
-        const role = isAdminEmail ? 'admin' : (decoded.role || 'student');
-
-        socket.user = {
-          id: decoded.user_id || decoded.sub || decoded.uid || 'usr_socket_dev',
-          uid: decoded.user_id || decoded.sub || decoded.uid || 'usr_socket_dev',
-          email,
-          name: decoded.name || 'Student',
-          role: role.toLowerCase(),
-        };
-        return next();
-      }
-    } catch (decodeErr) {
-      logger.warn(`[SOCKET AUTH] Manual JWT decode warning:`, decodeErr);
+      decodedToken = await adminAuth.verifyIdToken(token);
+    } catch (verifyErr: any) {
+      logger.warn(`[SOCKET AUTH] Firebase token verification failed for socket ${socket.id}: ${verifyErr.code || verifyErr.message}`);
+      return next(new Error('UNAUTHORIZED_SOCKET'));
     }
 
-    // If all token verifications fail
-    logger.warn(`[SOCKET AUTH] Invalid token signature. Socket: ${socket.id}`);
-    return next(new Error('UNAUTHORIZED_SOCKET'));
+    if (!decodedToken || !decodedToken.uid) {
+      logger.warn(`[SOCKET AUTH] Token verification yielded no UID. Socket: ${socket.id}`);
+      return next(new Error('UNAUTHORIZED_SOCKET'));
+    }
+
+    const uid = decodedToken.uid;
+    const tokenEmail = decodedToken.email || '';
+    const tokenName = decodedToken.name || (decodedToken as any).displayName || '';
+
+    // 3. Load User Document from Firestore users/{uid}
+    if (!db || typeof db.collection !== 'function') {
+      logger.error(`[SOCKET AUTH] Server configuration error: Firestore DB not initialized.`);
+      return next(new Error('UNAUTHORIZED_SOCKET'));
+    }
+
+    let userData: any = null;
+    try {
+      const userDoc = await db.collection('users').doc(uid).get();
+      if (userDoc.exists) {
+        userData = userDoc.data();
+      } else {
+        // Fallback for admins collection if configured
+        const adminDoc = await db.collection('admins').doc(uid).get().catch(() => null);
+        if (adminDoc && adminDoc.exists) {
+          userData = { ...adminDoc.data(), role: 'admin' };
+        }
+      }
+    } catch (dbErr: any) {
+      logger.error(`[SOCKET AUTH] Firestore error retrieving user profile for ${uid}:`, dbErr.message);
+      return next(new Error('UNAUTHORIZED_SOCKET'));
+    }
+
+    if (!userData) {
+      logger.warn(`[SOCKET AUTH] User document users/${uid} does not exist in Firestore. Socket rejected.`);
+      return next(new Error('UNAUTHORIZED_SOCKET'));
+    }
+
+    // 4. Resolve and Validate KaizenQ Role strictly from Firestore document
+    const rawRole = userData.role;
+
+    if (!rawRole || typeof rawRole !== 'string') {
+      logger.warn(`[SOCKET AUTH] User ${uid} has missing role in Firestore document. Socket rejected.`);
+      return next(new Error('UNAUTHORIZED_SOCKET'));
+    }
+
+    const normalizedRole = rawRole.toLowerCase().trim() as UserRole;
+
+    if (!VALID_ROLES.has(normalizedRole)) {
+      logger.warn(`[SOCKET AUTH] User ${uid} has unsupported role '${rawRole}' in Firestore. Socket rejected.`);
+      return next(new Error('UNAUTHORIZED_SOCKET'));
+    }
+
+    // 5. Attach Authenticated Identity
+    const resolvedEmail = tokenEmail || userData?.email || '';
+    const resolvedName = userData?.name || userData?.fullName || userData?.displayName || tokenName || 'User';
+
+    const authUser: AuthenticatedSocketUser = {
+      id: uid,
+      uid,
+      email: resolvedEmail,
+      name: resolvedName,
+      role: normalizedRole,
+    };
+
+    socket.user = authUser;
+    socket.data = { ...socket.data, user: authUser };
+
+    return next();
   } catch (err: any) {
-    logger.error(`[SOCKET AUTH] Exception during socket handshake auth:`, err);
+    logger.error(`[SOCKET AUTH] Unexpected exception during handshake authentication:`, err.message);
     return next(new Error('UNAUTHORIZED_SOCKET'));
   }
 };
+

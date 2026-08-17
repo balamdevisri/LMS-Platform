@@ -187,7 +187,132 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
     });
   });
 
-  // 4. Handle Disconnection
+  // 4. Whiteboard Controls & Drawing Sync
+  socket.on('toggle_whiteboard', (data: { classId: string; liveClassId?: string; isOpen: boolean }) => {
+    const user = socket.user;
+    if (!user || (user.role !== 'admin' && user.role !== 'instructor' && user.role !== 'mentor')) {
+      return;
+    }
+    const classId = data.liveClassId || data.classId;
+    const roomName = `live-class:${classId}`;
+    io.to(roomName).emit('whiteboard_toggled', { isOpen: data.isOpen });
+  });
+
+  socket.on('whiteboard_draw', (data: { classId: string; liveClassId?: string; x: number; y: number; prevX?: number; prevY?: number; color: string; lineWidth: number; tool: string }) => {
+    const classId = data.liveClassId || data.classId;
+    const roomName = `live-class:${classId}`;
+    socket.to(roomName).emit('whiteboard_draw_event', data);
+  });
+
+  socket.on('whiteboard_clear', (data: { classId: string; liveClassId?: string }) => {
+    const user = socket.user;
+    if (!user || (user.role !== 'admin' && user.role !== 'instructor' && user.role !== 'mentor')) {
+      return;
+    }
+    const classId = data.liveClassId || data.classId;
+    const roomName = `live-class:${classId}`;
+    io.to(roomName).emit('whiteboard_clear_event');
+  });
+
+  // 5. Classroom Lock Control
+  socket.on('toggle_lock', (data: { classId: string; liveClassId?: string; locked: boolean }) => {
+    const user = socket.user;
+    if (!user || (user.role !== 'admin' && user.role !== 'instructor')) {
+      return;
+    }
+    const classId = data.liveClassId || data.classId;
+    const roomName = `live-class:${classId}`;
+    io.to(roomName).emit('lock_toggled', { locked: data.locked });
+  });
+
+  // 6. Moderation: Mute Student & Kick Participant
+  socket.on('mute_student', (data: { classId: string; liveClassId?: string; userId: string; isMuted: boolean }) => {
+    const user = socket.user;
+    if (!user || (user.role !== 'admin' && user.role !== 'instructor' && user.role !== 'mentor')) {
+      return;
+    }
+    const classId = data.liveClassId || data.classId;
+    const roomName = `live-class:${classId}`;
+    logger.info(`[SOCKET] Instructor ${user.name} muted student ${data.userId} in room ${roomName}`);
+    io.to(roomName).emit('student_muted', { userId: data.userId, isMuted: data.isMuted });
+  });
+
+  socket.on('kick_participant', (data: { classId: string; liveClassId?: string; userId: string }) => {
+    const user = socket.user;
+    if (!user || (user.role !== 'admin' && user.role !== 'instructor' && user.role !== 'mentor')) {
+      return;
+    }
+    const classId = data.liveClassId || data.classId;
+    const roomName = `live-class:${classId}`;
+    logger.info(`[SOCKET] Instructor ${user.name} kicked participant ${data.userId} from room ${roomName}`);
+
+    const roomMap = activeRoomPresences.get(classId);
+    if (roomMap) {
+      for (const [sId, participant] of roomMap.entries()) {
+        if (participant.userId === data.userId) {
+          const targetSocket = io.sockets.sockets?.get(sId);
+          if (targetSocket) {
+            targetSocket.emit('kicked', { message: 'You have been removed from this live class by the instructor.' });
+            targetSocket.leave(roomName);
+          }
+          roomMap.delete(sId);
+
+          const currentRoster = getRoomParticipants(classId);
+          io.to(roomName).emit('user_left', {
+            userId: participant.userId,
+            name: participant.name,
+            role: participant.role,
+          });
+          io.to(roomName).emit('liveClass:presence', {
+            onlineCount: currentRoster.length,
+            participants: currentRoster.map((p) => ({ userId: p.userId, name: p.name, role: p.role })),
+          });
+          io.to(roomName).emit('participants_update', {
+            count: currentRoster.length,
+            users: currentRoster.map((p) => ({ userId: p.userId, name: p.name, role: p.role })),
+          });
+          break;
+        }
+      }
+    }
+  });
+
+  // 7. WebRTC Track State Sync
+  socket.on('webrtc_track_change', (data: { classId: string; liveClassId?: string; userId?: string; isAudioOn: boolean; isVideoOn: boolean; isScreenSharing: boolean }) => {
+    const user = socket.user;
+    const classId = data.liveClassId || data.classId;
+    const roomName = `live-class:${classId}`;
+    socket.to(roomName).emit('webrtc_track_change', {
+      userId: user?.uid || user?.id || data.userId,
+      isAudioOn: data.isAudioOn,
+      isVideoOn: data.isVideoOn,
+      isScreenSharing: data.isScreenSharing,
+    });
+  });
+
+  // 8. Typing Indicator Sync
+  socket.on('typing_status', (data: { classId: string; liveClassId?: string; isTyping: boolean }) => {
+    const user = socket.user;
+    const classId = data.liveClassId || data.classId;
+    const roomName = `live-class:${classId}`;
+    socket.to(roomName).emit('typing_received', {
+      userName: user?.name || 'User',
+      isTyping: data.isTyping,
+    });
+  });
+
+  // Compatibility Handlers for Legacy Event Names
+  socket.on('join_class', async (data: { classId: string; liveClassId?: string; name?: string }) => {
+    const classId = data.liveClassId || data.classId;
+    socket.emit('liveClass:join', { liveClassId: classId, name: data.name });
+  });
+
+  socket.on('leave_class', (data: { classId: string; liveClassId?: string }) => {
+    const classId = data.liveClassId || data.classId;
+    socket.emit('liveClass:leave', { liveClassId: classId });
+  });
+
+  // 9. Handle Disconnection
   socket.on('disconnect', () => {
     activeRoomPresences.forEach((roomMap, classId) => {
       if (roomMap.has(socket.id)) {
@@ -202,12 +327,22 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
           participants: currentRoster.map((p) => ({ userId: p.userId, name: p.name, role: p.role })),
         });
 
+        io.to(roomName).emit('participants_update', {
+          count: currentRoster.length,
+          users: currentRoster.map((p) => ({ userId: p.userId, name: p.name, role: p.role })),
+        });
+
         if (leftParticipant) {
           io.to(roomName).emit('student:left', {
             userId: leftParticipant.userId,
             name: leftParticipant.name,
             role: leftParticipant.role,
             timestamp: new Date().toISOString(),
+          });
+          io.to(roomName).emit('user_left', {
+            userId: leftParticipant.userId,
+            name: leftParticipant.name,
+            role: leftParticipant.role,
           });
         }
       }

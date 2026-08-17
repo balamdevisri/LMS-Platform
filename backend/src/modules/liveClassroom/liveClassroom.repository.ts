@@ -1,4 +1,5 @@
 import { db, isFirebaseAdminInitialized } from '../../firebase';
+import { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import logger from '../../config/logger';
 
 export interface ILiveClassData {
@@ -313,7 +314,7 @@ export class LiveClassroomRepository {
       try {
         const snap = await db.collection('liveClasses').get();
         if (!snap.empty) {
-          return snap.docs.map((doc) => doc.data() as ILiveClassData);
+          return snap.docs.map((doc: QueryDocumentSnapshot) => doc.data() as ILiveClassData);
         }
       } catch (err) {
         logger.error('[REPO] Failed to fetch all liveClasses from Firestore:', err);
@@ -424,7 +425,7 @@ export class LiveClassroomRepository {
       try {
         const snap = await db.collection('liveClasses').doc(classId).collection('attendance').get();
         if (!snap.empty) {
-          return snap.docs.map((d) => d.data() as IAttendanceData);
+          return snap.docs.map((d: QueryDocumentSnapshot) => d.data() as IAttendanceData);
         }
       } catch (err) {
         logger.error('[REPO] Failed to get attendance from Firestore:', err);
@@ -462,7 +463,7 @@ export class LiveClassroomRepository {
       try {
         const snap = await db.collection('liveClasses').doc(classId).collection('chat').orderBy('createdAt', 'asc').get();
         if (!snap.empty) {
-          return snap.docs.map((d) => d.data() as IChatMessageData);
+          return snap.docs.map((d: QueryDocumentSnapshot) => d.data() as IChatMessageData);
         }
       } catch (err) {
         logger.error('[REPO] Failed to fetch chat messages from Firestore:', err);
@@ -539,7 +540,7 @@ export class LiveClassroomRepository {
       try {
         const snap = await db.collection('liveClasses').doc(classId).collection('questions').orderBy('createdAt', 'asc').get();
         if (!snap.empty) {
-          return snap.docs.map((d) => d.data() as IQuestionData);
+          return snap.docs.map((d: QueryDocumentSnapshot) => d.data() as IQuestionData);
         }
       } catch (err) {
         logger.error('[REPO] Failed to get questions from Firestore:', err);
@@ -627,7 +628,7 @@ export class LiveClassroomRepository {
       try {
         const snap = await db.collection('liveClasses').doc(classId).collection('polls').get();
         if (!snap.empty) {
-          return snap.docs.map((d) => d.data() as IPollData);
+          return snap.docs.map((d: QueryDocumentSnapshot) => d.data() as IPollData);
         }
       } catch (err) {
         logger.error('[REPO] Failed to get polls from Firestore:', err);
@@ -665,7 +666,7 @@ export class LiveClassroomRepository {
       try {
         const snap = await db.collection('liveClasses').doc(classId).collection('notes').get();
         if (!snap.empty) {
-          return snap.docs.map((d) => d.data() as INoteData);
+          return snap.docs.map((d: QueryDocumentSnapshot) => d.data() as INoteData);
         }
       } catch (err) {
         logger.error('[REPO] Failed to get notes from Firestore:', err);
@@ -703,7 +704,7 @@ export class LiveClassroomRepository {
       try {
         const snap = await db.collection('liveClasses').doc(classId).collection('resources').get();
         if (!snap.empty) {
-          return snap.docs.map((d) => d.data() as IResourceData);
+          return snap.docs.map((d: QueryDocumentSnapshot) => d.data() as IResourceData);
         }
       } catch (err) {
         logger.error('[REPO] Failed to get resources from Firestore:', err);
@@ -741,7 +742,7 @@ export class LiveClassroomRepository {
       try {
         const snap = await db.collection('liveClasses').doc(classId).collection('announcements').orderBy('createdAt', 'desc').get();
         if (!snap.empty) {
-          return snap.docs.map((d) => d.data() as IAnnouncementData);
+          return snap.docs.map((d: QueryDocumentSnapshot) => d.data() as IAnnouncementData);
         }
       } catch (err) {
         logger.error('[REPO] Failed to get announcements from Firestore:', err);
@@ -800,7 +801,7 @@ export class LiveClassroomRepository {
       try {
         const snap = await db.collection('liveClasses').doc(classId).collection('quizzes').orderBy('createdAt', 'desc').get();
         if (!snap.empty) {
-          return snap.docs.map((d) => d.data() as IQuizData);
+          return snap.docs.map((d: QueryDocumentSnapshot) => d.data() as IQuizData);
         }
       } catch (err) {
         logger.error('[REPO] Failed to get quizzes from Firestore:', err);
