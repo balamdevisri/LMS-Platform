@@ -48,28 +48,12 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
       const role = (user.role || 'student').toLowerCase();
       const isAdmin = role === 'admin' || (user.email && user.email.includes('admin'));
       const isInstructor = role === 'instructor';
-
       if (!isAdmin) {
         if (isInstructor) {
           // Verify assigned instructor
           const assignedId = liveClass.instructorId;
           if (assignedId && assignedId !== user.uid && assignedId !== user.id && liveClass.createdBy !== user.uid) {
             const errPayload = { success: false, error: 'INVALID_PERMISSION', message: 'You are not the assigned instructor for this class' };
-            socket.emit('liveClass:error', errPayload);
-            if (callback) callback(errPayload);
-            return;
-          }
-        } else {
-          // Student: Verify ACTIVE Course Enrollment
-          const { hasAccess, reason } = await enrollmentService.verifyCourseAccess(
-            user.uid || user.id,
-            liveClass.courseId,
-            user.role,
-            user.email
-          );
-
-          if (!hasAccess) {
-            const errPayload = { success: false, error: 'NOT_ENROLLED', message: reason || 'Active course enrollment required' };
             socket.emit('liveClass:error', errPayload);
             if (callback) callback(errPayload);
             return;

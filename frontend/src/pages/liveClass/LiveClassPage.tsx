@@ -14,7 +14,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { liveClassService, type LiveClass } from '@/services/liveClassService';
 import { useLiveClassSocket } from '@/hooks/useLiveClassSocket';
-import { YouTubePlayer } from '@/components/liveClass/YouTubePlayer';
+import { YouTubePlayer, extractYouTubeVideoId } from '@/components/liveClass/YouTubePlayer';
 import { LiveClassHeader } from '@/components/liveClass/LiveClassHeader';
 import { LiveClassInfo } from '@/components/liveClass/LiveClassInfo';
 import { LiveClassSidebar } from '@/components/liveClass/LiveClassSidebar';
@@ -90,11 +90,23 @@ export const LiveClassPage: React.FC = () => {
   }, [classId, user]);
 
   // Real-Time Synchronized Status
-  const normalizedStatus = (classStatus || liveClass?.status || '').toUpperCase();
+  const normalizedStatus = (classStatus || liveClass?.status || 'SCHEDULED').toUpperCase();
   const isLive = normalizedStatus === 'LIVE';
-  const isScheduled = normalizedStatus === 'SCHEDULED' || normalizedStatus === 'DRAFT';
   const isEnded = normalizedStatus === 'ENDED' || normalizedStatus === 'COMPLETED';
   const isCancelled = normalizedStatus === 'CANCELLED';
+  const isScheduled = !isLive && !isEnded && !isCancelled;
+
+  // Extract clean YouTube video ID from multiple potential fields
+  const resolvedVideoId = React.useMemo(() => {
+    if (!liveClass) return '';
+    return (
+      extractYouTubeVideoId(liveClass.youtubeVideoId) ||
+      extractYouTubeVideoId(liveClass.meetingUrl) ||
+      extractYouTubeVideoId((liveClass as any).videoUrl) ||
+      extractYouTubeVideoId((liveClass as any).streamUrl) ||
+      (liveClass.youtubeVideoId ? liveClass.youtubeVideoId.trim() : '')
+    );
+  }, [liveClass]);
 
   // Format Scheduled Date for Countdown / Not Started State
   const scheduledTimeText = React.useMemo(() => {
@@ -273,31 +285,6 @@ export const LiveClassPage: React.FC = () => {
         <div className="flex flex-col lg:flex-row gap-6 items-start">
           {/* Main Media & Info Stage */}
           <div className="flex-1 w-full space-y-6 min-w-0">
-            {/* 4. Not Started State Banner & Placeholder */}
-            {isScheduled && (
-              <div className="relative w-full aspect-video rounded-2xl bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border border-slate-800/80 p-8 flex flex-col items-center justify-center text-center shadow-2xl overflow-hidden backdrop-blur-md">
-                <div className="absolute inset-0 bg-radial from-amber-500/5 via-transparent to-transparent pointer-events-none" />
-                
-                <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mb-4 text-amber-400 shadow-inner">
-                  <Clock className="w-8 h-8 animate-pulse" />
-                </div>
-
-                <span className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-bold uppercase tracking-wider mb-2">
-                  Session Scheduled
-                </span>
-
-                <h3 className="text-2xl font-bold text-white mb-2">Live class hasn't started yet.</h3>
-                <p className="text-slate-400 text-sm max-w-md mb-6 leading-relaxed">
-                  Broadcast will go live at <strong className="text-white">{scheduledTimeText}</strong>. Please check back when the instructor initiates the stream.
-                </p>
-
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-xs font-semibold text-slate-300">
-                  <Sparkles className="w-4 h-4 text-amber-400" />
-                  Auto-sync active — Stream will play immediately when live
-                </div>
-              </div>
-            )}
-
             {/* Cancelled State Banner */}
             {isCancelled && (
               <div className="relative w-full aspect-video rounded-2xl bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border border-slate-800/80 p-8 flex flex-col items-center justify-center text-center shadow-2xl overflow-hidden backdrop-blur-md">
@@ -316,7 +303,7 @@ export const LiveClassPage: React.FC = () => {
               </div>
             )}
 
-            {/* 5. Ended State Banner & Placeholder */}
+            {/* Ended State Banner */}
             {isEnded && (
               <div className="relative w-full aspect-video rounded-2xl bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border border-slate-800/80 p-8 flex flex-col items-center justify-center text-center shadow-2xl overflow-hidden backdrop-blur-md">
                 <div className="w-16 h-16 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center mb-4 text-slate-400 shadow-inner">
@@ -344,14 +331,50 @@ export const LiveClassPage: React.FC = () => {
               </div>
             )}
 
-            {/* 6. Live State: Official YouTube Player Embed */}
-            {isLive && (
-              <YouTubePlayer
-                youtubeVideoId={liveClass.youtubeVideoId}
-                title={liveClass.title}
-                isLive={true}
-                status={liveClass.status}
-              />
+            {/* Active or Scheduled Video Player */}
+            {!isCancelled && !isEnded && (
+              <div className="space-y-3">
+                {isScheduled && resolvedVideoId && (
+                  <div className="flex items-center justify-between px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300">
+                    <div className="flex items-center gap-2 font-medium">
+                      <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span>Scheduled for <strong>{scheduledTimeText}</strong> — Video player ready</span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-[10px] font-bold uppercase tracking-wider">
+                      Standby
+                    </span>
+                  </div>
+                )}
+
+                {resolvedVideoId ? (
+                  <YouTubePlayer
+                    youtubeVideoId={resolvedVideoId}
+                    title={liveClass.title}
+                    isLive={isLive}
+                    status={normalizedStatus}
+                  />
+                ) : (
+                  <div className="relative w-full aspect-video rounded-2xl bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border border-slate-800/80 p-8 flex flex-col items-center justify-center text-center shadow-2xl overflow-hidden backdrop-blur-md">
+                    <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mb-4 text-amber-400 shadow-inner">
+                      <Clock className="w-8 h-8 animate-pulse" />
+                    </div>
+
+                    <span className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-bold uppercase tracking-wider mb-2">
+                      Awaiting Broadcast
+                    </span>
+
+                    <h3 className="text-2xl font-bold text-white mb-2">Live stream starting soon.</h3>
+                    <p className="text-slate-400 text-sm max-w-md mb-6 leading-relaxed">
+                      Scheduled time: <strong className="text-white">{scheduledTimeText}</strong>. The instructor will initiate the broadcast shortly.
+                    </p>
+
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-xs font-semibold text-slate-300">
+                      <Sparkles className="w-4 h-4 text-amber-400" />
+                      Auto-sync active — Stream will play immediately when live
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
 
             {/* 2. LiveClassInfo Component */}
