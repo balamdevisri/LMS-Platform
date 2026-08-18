@@ -3,6 +3,7 @@ import { Award, Copy, Printer, Share2, X, Check, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Certificate } from '../../services/achievementService';
 import { useAuth } from '@/contexts/AuthContext';
+import { API_BASE_URL } from '@/config/api';
 
 interface CertificatePreviewModalProps {
   certificate: Certificate;
@@ -18,25 +19,31 @@ export const CertificatePreviewModal: React.FC<CertificatePreviewModalProps> = (
   const [sharing, setSharing] = useState(false);
 
   // Dynamic student info fallback from auth context
-  const dynamicStudentName = certificate.studentName || userProfile?.name || user?.displayName || userProfile?.githubUsername || 'Student User';
-  const dynamicStudentId = certificate.studentId || (userProfile as any)?.studentId || (user?.uid ? `STU-${user.uid.substring(0, 6).toUpperCase()}` : 'STU-992104');
-  
-  // Dynamic course title lookup map based on courseId
+  const dynamicStudentName = 
+    certificate.studentName || 
+    userProfile?.name || 
+    user?.displayName || 
+    'Student Learner';
+
+  const dynamicStudentId = 
+    certificate.studentId || 
+    user?.uid || 
+    'student_kaizenq';
+
+  // Dynamic course title fallback from course mapping or certificate
   const courseTitleMap: Record<string, string> = {
     'course_linux_101': 'Linux Systems & Administration Mastery',
-    'linux-101': 'Linux Systems & Administration Mastery',
-    'linux-systems-administration-mastery': 'Linux Systems & Administration Mastery',
-    'linux': 'Linux Systems & Administration Mastery',
-    'git-github-mastery': 'Git & GitHub Mastery',
-    'git': 'Git & GitHub Mastery',
-    'database-management-system': 'Database Management System (DBMS): Beginner to Advanced',
-    'dbms': 'Database Management System (DBMS): Beginner to Advanced',
-    'dbms-101': 'Database Management System (DBMS): Beginner to Advanced',
-    'sql': 'Database Management System (DBMS): Beginner to Advanced',
+    'course_git_101': 'Git & GitHub Pro',
+    'course_kubernetes_101': 'Kubernetes Engine Production Mastery',
+    'course_react_101': 'Modern React Architecture',
+    'course_c_101': 'Complete C Programming Masterclass',
+    'course_python_101': 'Python 3 Programming Specialization',
+    'course_java_101': 'Java SE 21 Enterprise Developer'
   };
 
-  const dynamicCourseTitle = certificate.courseTitle || 
-    courseTitleMap[certificate.courseId] || 
+  const dynamicCourseTitle = 
+    certificate.courseTitle || 
+    (certificate as any).courseName || 
     courseTitleMap[certificate.courseId?.toLowerCase()] || 
     'Mastering Enterprise Technology & Systems Architecture';
 
@@ -44,15 +51,15 @@ export const CertificatePreviewModal: React.FC<CertificatePreviewModalProps> = (
 
   const safeVerificationId = certificate.verificationId || '';
   const verificationUrl = safeVerificationId
-    ? `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/verify/${safeVerificationId}?studentId=${dynamicStudentId}`
+    ? `${API_BASE_URL}/certificates/verify/${safeVerificationId}?studentId=${dynamicStudentId}`
     : '';
 
   const downloadUrl = safeVerificationId
-    ? `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/download?certificateId=${safeVerificationId}&studentId=${dynamicStudentId}&studentName=${encodeURIComponent(dynamicStudentName)}&courseTitle=${encodeURIComponent(dynamicCourseTitle)}&completionDate=${encodeURIComponent(dynamicDate)}&courseId=${certificate.courseId}`
+    ? `${API_BASE_URL}/certificates/download?certificateId=${safeVerificationId}&studentId=${dynamicStudentId}&studentName=${encodeURIComponent(dynamicStudentName)}&courseTitle=${encodeURIComponent(dynamicCourseTitle)}&completionDate=${encodeURIComponent(dynamicDate)}&courseId=${certificate.courseId}`
     : '';
 
   const previewUrl = safeVerificationId
-    ? `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/preview?certificateId=${safeVerificationId}&studentId=${dynamicStudentId}&studentName=${encodeURIComponent(dynamicStudentName)}&courseTitle=${encodeURIComponent(dynamicCourseTitle)}&completionDate=${encodeURIComponent(dynamicDate)}&courseId=${certificate.courseId}#toolbar=0&navpanes=0&scrollbar=0&view=Fit`
+    ? `${API_BASE_URL}/certificates/preview?certificateId=${safeVerificationId}&studentId=${dynamicStudentId}&studentName=${encodeURIComponent(dynamicStudentName)}&courseTitle=${encodeURIComponent(dynamicCourseTitle)}&completionDate=${encodeURIComponent(dynamicDate)}&courseId=${certificate.courseId}#toolbar=0&navpanes=0&scrollbar=0&view=Fit`
     : '';
 
   const handleCopyId = async () => {

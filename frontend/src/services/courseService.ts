@@ -9,8 +9,7 @@ import { reactCourseModules } from '@/data/reactCourseFullData';
 import { cCourseModules } from '@/data/cCourseFullData';
 import { pythonCourseModules } from '@/data/pythonCourseFullData';
 import { javaCourseModules } from '@/data/javaCourseFullData';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import { API_BASE_URL } from '@/config/api';
 
 const DEFAULT_COURSES: ICourse[] = [
   {

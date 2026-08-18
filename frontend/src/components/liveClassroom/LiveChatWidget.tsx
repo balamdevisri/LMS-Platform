@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Socket } from 'socket.io-client';
 import { Send, Pin, Reply, VolumeX, Sparkles, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
+import { API_BASE_URL } from '@/config/api';
 
 interface ChatMessage {
   id?: string;
@@ -49,7 +50,7 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
     // Fetch initial chat logs from database
     const fetchChatLogs = async () => {
       try {
-        const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const apiBaseUrl = API_BASE_URL;
         const res = await fetch(`${apiBaseUrl}/live-classroom/chat/${classId}`);
         const data = await res.json();
         if (data.success && Array.isArray(data.data)) {

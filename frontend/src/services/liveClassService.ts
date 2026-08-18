@@ -1,6 +1,7 @@
 import { db } from '@/firebase';
 import { collection, onSnapshot, query, doc, setDoc, updateDoc, deleteDoc, where } from 'firebase/firestore';
 import { adminNotificationService } from './adminNotificationService';
+import { API_BASE_URL } from '@/config/api';
 
 const generateSecureRoomId = (classId?: string) => `kaizenq-room-${classId || Date.now()}`;
 
@@ -432,7 +433,7 @@ class LiveClassService {
     token?: string,
     userMeta?: { uid?: string; role?: string; email?: string }
   ): Promise<{ success: boolean; liveClass?: LiveClass; status?: number; error?: string }> {
-    const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const apiBaseUrl = API_BASE_URL;
     const cleanId = encodeURIComponent(classId.trim());
 
     try {
@@ -989,7 +990,7 @@ class LiveClassService {
   // --- LIVE CONTROL CENTER REST API CLIENT HELPERS ---
 
   private getApiUrl(): string {
-    return import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    return API_BASE_URL;
   }
 
   async startClass(classId: string): Promise<{ success: boolean; data?: LiveClass; error?: string }> {

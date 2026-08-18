@@ -3,14 +3,19 @@ import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
 import { getAnalytics, isSupported, type Analytics } from 'firebase/analytics';
 
+const cleanEnv = (val?: string): string => {
+  if (!val) return '';
+  return val.trim().replace(/^["']|["']$/g, '');
+};
+
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyCKPJ4klGTGxdgTxC3Q93YiaTZixlI0vE0',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'shaivika-lms-ai.firebaseapp.com',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'shaivika-lms-ai',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'shaivika-lms-ai.firebasestorage.app',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '977716272905',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:977716272905:web:de0781e0988aecfc823dd8',
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || 'G-621GCQ0W26',
+  apiKey: cleanEnv(import.meta.env.VITE_FIREBASE_API_KEY) || 'AIzaSyCKPJ4klGTGxdgTxC3Q93YiaTZixlI0vE0',
+  authDomain: cleanEnv(import.meta.env.VITE_FIREBASE_AUTH_DOMAIN) || 'shaivika-lms-ai.firebaseapp.com',
+  projectId: cleanEnv(import.meta.env.VITE_FIREBASE_PROJECT_ID) || 'shaivika-lms-ai',
+  storageBucket: cleanEnv(import.meta.env.VITE_FIREBASE_STORAGE_BUCKET) || 'shaivika-lms-ai.firebasestorage.app',
+  messagingSenderId: cleanEnv(import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID) || '977716272905',
+  appId: cleanEnv(import.meta.env.VITE_FIREBASE_APP_ID) || '1:977716272905:web:de0781e0988aecfc823dd8',
+  measurementId: cleanEnv(import.meta.env.VITE_FIREBASE_MEASUREMENT_ID) || 'G-621GCQ0W26',
 };
 
 let app: FirebaseApp | null = null;
@@ -24,7 +29,7 @@ try {
     auth = getAuth(app);
     db = getFirestore(app);
 
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && firebaseConfig.measurementId) {
       isSupported()
         .then((supported) => {
           if (supported && app) {

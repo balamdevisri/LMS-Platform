@@ -9,8 +9,9 @@ import {
   deleteDoc,
   onSnapshot,
   query,
-  where
+  where,
 } from 'firebase/firestore';
+import { API_BASE_URL } from '@/config/api';
 
 export interface InstructorUser {
   id: string;
@@ -89,7 +90,7 @@ class InstructorService {
   async fetchFirestoreInstructorsDirectly(): Promise<InstructorUser[]> {
     const currentLocal = this.getLocalInstructors();
     try {
-      const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const apiBaseUrl = API_BASE_URL;
       // Always get a fresh token — never use expired cached token
       const token = await this.getFreshToken();
 
@@ -440,10 +441,11 @@ class InstructorService {
 
     // Dispatch approval email via Express Nodemailer SMTP Server
     try {
-      const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const apiBaseUrl = API_BASE_URL;
+      const token = await this.getFreshToken();
       await fetch(`${apiBaseUrl}/email/send`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
           eventType: 'INSTRUCTOR_APPROVAL',
           recipientEmail: newInstructor.email.toLowerCase().trim(),
@@ -505,10 +507,11 @@ class InstructorService {
             const name = data.name || data.fullName || 'Instructor';
             const email = data.email || '';
             
-            const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+            const apiBaseUrl = API_BASE_URL;
+            const token = await this.getFreshToken();
             const response = await fetch(`${apiBaseUrl}/email/send`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
               body: JSON.stringify({
                 eventType: 'INSTRUCTOR_APPROVAL',
                 recipientEmail: email.toLowerCase().trim(),
@@ -575,10 +578,11 @@ class InstructorService {
             const name = data.name || data.fullName || 'Instructor';
             const email = data.email || '';
 
-            const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+            const apiBaseUrl = API_BASE_URL;
+            const token = await this.getFreshToken();
             const response = await fetch(`${apiBaseUrl}/email/send`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
               body: JSON.stringify({
                 eventType: 'INSTRUCTOR_APPROVAL',
                 recipientEmail: email.toLowerCase().trim(),
@@ -634,7 +638,7 @@ class InstructorService {
 
     if (statusChanged) {
       try {
-        const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const apiBaseUrl = API_BASE_URL;
         await fetch(`${apiBaseUrl}/email/send`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

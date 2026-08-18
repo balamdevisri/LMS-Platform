@@ -18,6 +18,7 @@ const RightSidebar = lazy(() => import('./RightSidebar').then(m => ({ default: m
 const AIQuizPortal = lazy(() => import('../courses/AIQuizPortal').then(m => ({ default: m.AIQuizPortal })));
 const AITutorDrawer = lazy(() => import('./AITutorDrawer').then(m => ({ default: m.AITutorDrawer })));
 import { CertificatePreviewModal } from '../courses/CertificatePreviewModal';
+import { API_BASE_URL } from '@/config/api';
 import { CertificateService } from '@/services/achievementService';
 import { assignmentService } from '@/services/assignmentService';
 
@@ -424,7 +425,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       };
 
       // Sync state to backend before generation trigger
-      let syncRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/sync-state`, {
+      let syncRes = await fetch(`${API_BASE_URL}/certificates/sync-state`, {
         method: 'POST',
         headers: getHeaders(token),
         body: JSON.stringify({
@@ -444,7 +445,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         console.warn('Sync request unauthorized (token expired/invalid). Refreshing token...');
         try {
           token = await user.getIdToken(true);
-          syncRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/sync-state`, {
+          syncRes = await fetch(`${API_BASE_URL}/certificates/sync-state`, {
             method: 'POST',
             headers: getHeaders(token),
             body: JSON.stringify({
@@ -463,7 +464,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       }
 
       // Complete and deliver
-      let res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/complete-and-deliver`, {
+      let res = await fetch(`${API_BASE_URL}/certificates/complete-and-deliver`, {
         method: 'POST',
         headers: getHeaders(token),
         body: JSON.stringify({
@@ -487,7 +488,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         console.warn('Delivery request unauthorized (token expired/invalid). Refreshing token...');
         try {
           token = await user.getIdToken(true);
-          res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/complete-and-deliver`, {
+          res = await fetch(`${API_BASE_URL}/certificates/complete-and-deliver`, {
             method: 'POST',
             headers: getHeaders(token),
             body: JSON.stringify({

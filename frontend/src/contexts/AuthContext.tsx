@@ -19,6 +19,7 @@ import {
 import { doc, getDoc, setDoc, collection } from 'firebase/firestore';
 import { auth, db } from '@/firebase';
 import type { UserProfile, UserRole } from '@/types/user';
+import { API_BASE_URL } from '@/config/api';
 
 const syncStudent = async (profile: UserProfile) => {
   if (!db) return;
@@ -238,7 +239,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           // Dispatch instructor pending-approval email via SMTP backend
           try {
-            const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+            const apiBaseUrl = API_BASE_URL;
             await fetch(`${apiBaseUrl}/email/send`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -381,7 +382,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     password: string,
     role: UserRole = 'student'
   ): Promise<void> => {
-    const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const apiBaseUrl = API_BASE_URL;
     const endpoint = role === 'instructor' ? `${apiBaseUrl}/auth/signup/lecturer` : `${apiBaseUrl}/auth/signup/student`;
 
     console.log(`[SIGNUP] Dispatching ${role} registration to backend endpoint: ${endpoint}...`);

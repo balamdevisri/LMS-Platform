@@ -120,8 +120,11 @@ export const Login: React.FC = () => {
           <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-400 opacity-70 blur-md" />
           <div className="relative w-12 h-12 rounded-2xl bg-white/90 dark:bg-slate-950 border border-blue-100 dark:border-white/15 p-1 flex items-center justify-center shadow-lg shadow-blue-500/15">
             <img
-              src="/brand/kaizenq-logo.png"
+              src="/brand/kaizenq-logo.webp"
               alt="KaizenQ Logo"
+              width="48"
+              height="48"
+              decoding="async"
               className="w-full h-full object-contain drop-shadow-md"
             />
           </div>

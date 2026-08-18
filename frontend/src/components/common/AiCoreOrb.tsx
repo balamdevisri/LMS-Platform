@@ -308,8 +308,12 @@ export const AiCoreOrb: React.FC = React.memo(() => {
         {/* Branding Logo symbol — 3D metallic glossy KaizenQ Logo */}
         <div className="relative z-10 flex items-center justify-center transition-transform duration-500 group-hover:scale-110">
           <img
-            src="/brand/kaizenq-logo.png"
+            src="/brand/kaizenq-logo.webp"
             alt="KaizenQ 3D Emblem"
+            width="180"
+            height="120"
+            fetchPriority="high"
+            decoding="async"
             className="w-36 h-36 sm:w-44 sm:h-44 object-contain drop-shadow-[0_0_35px_rgba(56,189,248,0.65)] filter group-hover:drop-shadow-[0_0_55px_rgba(56,189,248,0.9)] transition-all duration-500"
           />
         </div>

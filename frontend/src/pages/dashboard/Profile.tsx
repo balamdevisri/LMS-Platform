@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { API_BASE_URL } from '@/config/api';
 import { toast } from 'sonner';
 import {
   Clock,
@@ -166,7 +167,7 @@ export const Profile: React.FC = () => {
       const studentName = userProfile?.name || user?.displayName || 'Scholar student';
 
       // 1. Query the student's certificates on backend to see if it's already there
-      const verifyRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/student/${studentEmail}`);
+      const verifyRes = await fetch(`${API_BASE_URL}/certificates/student/${studentEmail}`);
       if (verifyRes.ok) {
         const verifyData = await verifyRes.json();
         if (verifyData.success && Array.isArray(verifyData.data)) {
@@ -204,7 +205,7 @@ export const Profile: React.FC = () => {
         return h;
       };
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/complete-and-deliver`, {
+      const response = await fetch(`${API_BASE_URL}/certificates/complete-and-deliver`, {
         method: 'POST',
         headers: getHeaders(token),
         body: JSON.stringify({

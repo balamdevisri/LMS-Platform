@@ -11,11 +11,19 @@ interface CourseThumbnailProps {
 function getOptimizedImageSrc(src: string): string {
   if (!src) return '/assets/images/linux_course_thumbnail.webp';
   if (src.includes('images.unsplash.com')) {
-    const width = typeof window !== 'undefined' && window.innerWidth < 768 ? 480 : 800;
-    if (src.includes('w=')) {
-      return src.replace(/w=\d+/, `w=${width}`);
+    let cleanUrl = src;
+    if (cleanUrl.includes('w=')) {
+      cleanUrl = cleanUrl.replace(/w=\d+/, 'w=500');
+    } else {
+      cleanUrl = `${cleanUrl}${cleanUrl.includes('?') ? '&' : '?'}w=500`;
     }
-    return `${src}&w=${width}&auto=format&fit=crop&q=80`;
+    if (!cleanUrl.includes('fm=')) {
+      cleanUrl += '&fm=webp';
+    }
+    if (!cleanUrl.includes('q=')) {
+      cleanUrl += '&q=80';
+    }
+    return cleanUrl;
   }
   return src;
 }
@@ -30,15 +38,18 @@ export const CourseThumbnail: React.FC<CourseThumbnailProps> = ({
   const optimizedSrc = React.useMemo(() => getOptimizedImageSrc(src), [src]);
 
   return (
-    <div className={`relative overflow-hidden rounded-2xl group ${aspectRatio} ${className}`}>
+    <div className={`relative overflow-hidden rounded-2xl group min-h-[160px] bg-slate-900/10 dark:bg-zinc-800/50 ${aspectRatio} ${className}`}>
       <img
         src={optimizedSrc}
         alt={alt}
+        width="500"
+        height="281"
         loading="lazy"
+        decoding="async"
         className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
         onError={(e) => {
           (e.target as HTMLImageElement).src =
-            'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80';
+            'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500&fm=webp&auto=format&fit=crop&q=80';
         }}
       />
       <div className="absolute inset-0 bg-linear-to-t from-slate-950/80 via-slate-950/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity" />

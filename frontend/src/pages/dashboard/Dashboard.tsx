@@ -23,6 +23,7 @@ import {
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCourses } from '@/contexts/CourseContext';
+import { API_BASE_URL } from '@/config/api';
 import { CoursePlayerModal } from '../../components/courses/CoursePlayerModal';
 import { AssignmentPortal } from '@/components/courses/AssignmentPortal';
 import { AIAssistantPanel } from '@/components/ai/AIAssistantPanel';
@@ -431,7 +432,7 @@ export const Dashboard: React.FC = () => {
 
     const fetchAndSyncFromBackend = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/student/${studentEmail}`);
+        const response = await fetch(`${API_BASE_URL}/certificates/student/${studentEmail}`);
         if (response.ok) {
           const resData = await response.json();
           if (resData.success && Array.isArray(resData.data)) {
@@ -506,7 +507,7 @@ export const Dashboard: React.FC = () => {
             return h;
           };
 
-          let response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/complete-and-deliver`, {
+          let response = await fetch(`${API_BASE_URL}/certificates/complete-and-deliver`, {
             method: 'POST',
             headers: getHeaders(token),
             body: JSON.stringify({
@@ -531,7 +532,7 @@ export const Dashboard: React.FC = () => {
             console.warn('Sync request unauthorized (token expired/invalid). Refreshing token...');
             try {
               token = await user.getIdToken(true);
-              response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/complete-and-deliver`, {
+              response = await fetch(`${API_BASE_URL}/certificates/complete-and-deliver`, {
                 method: 'POST',
                 headers: getHeaders(token),
                 body: JSON.stringify({
@@ -595,7 +596,7 @@ export const Dashboard: React.FC = () => {
       const studentId = uid;
 
       // 1. Query the student's certificates on backend to see if it's already there
-      const verifyRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/student/${studentEmail}`);
+      const verifyRes = await fetch(`${API_BASE_URL}/certificates/student/${studentEmail}`);
       if (verifyRes.ok) {
         const verifyData = await verifyRes.json();
         if (verifyData.success && Array.isArray(verifyData.data)) {
@@ -634,7 +635,7 @@ export const Dashboard: React.FC = () => {
         return h;
       };
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/complete-and-deliver`, {
+      const response = await fetch(`${API_BASE_URL}/certificates/complete-and-deliver`, {
         method: 'POST',
         headers: getHeaders(token),
         body: JSON.stringify({
@@ -1554,7 +1555,7 @@ export const Dashboard: React.FC = () => {
                             </button>
                           ) : (
                             <a
-                              href={`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/download?certificateId=${cert.verificationId}&studentId=${cert.studentId}&studentName=${encodeURIComponent(cert.studentName)}&courseTitle=${encodeURIComponent(cert.courseTitle)}&completionDate=${encodeURIComponent(cert.completionDate)}`}
+                              href={`${API_BASE_URL}/certificates/download?certificateId=${cert.verificationId}&studentId=${cert.studentId}&studentName=${encodeURIComponent(cert.studentName)}&courseTitle=${encodeURIComponent(cert.courseTitle)}&completionDate=${encodeURIComponent(cert.completionDate)}`}
                               className="w-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
                             >
                               <Download className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
@@ -1572,7 +1573,7 @@ export const Dashboard: React.FC = () => {
                             </button>
                           ) : (
                             <a
-                              href={`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/verify/${cert.verificationId}?studentId=${cert.studentId}`}
+                              href={`${API_BASE_URL}/certificates/verify/${cert.verificationId}?studentId=${cert.studentId}`}
                               target="_blank"
                               rel="noreferrer"
                               className="w-full bg-slate-50 hover:bg-slate-100 dark:bg-slate-950 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer text-center"

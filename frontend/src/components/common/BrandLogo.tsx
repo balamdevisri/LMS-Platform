@@ -51,8 +51,12 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
         {/* Emblem */}
         <div className="relative w-full h-full rounded-2xl bg-white/90 dark:bg-slate-950 border border-blue-100 dark:border-white/15 p-1 flex items-center justify-center overflow-hidden shadow-lg shadow-blue-500/15 group-hover:scale-105 transition-transform duration-300">
           <img
-            src="/brand/kaizenq-logo.png"
+            src="/brand/kaizenq-logo.webp"
             alt="KaizenQ Logo"
+            width="44"
+            height="44"
+            fetchPriority="high"
+            decoding="async"
             className="w-full h-full object-contain drop-shadow-md"
           />
         </div>
