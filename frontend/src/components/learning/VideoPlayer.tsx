@@ -132,15 +132,29 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     if (effectiveProvider === 'youtube') {
       const match = videoUrl?.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
       const yId = match ? match[1] : '';
-      src = `https://www.youtube-nocookie.com/embed/${yId}?autoplay=1&enablejsapi=1`;
+      const originUrl = typeof window !== 'undefined' ? window.location.origin : '';
+      src = `https://www.youtube-nocookie.com/embed/${yId}?autoplay=1&controls=0&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&disablekb=1&playsinline=1&enablejsapi=1${originUrl ? `&origin=${encodeURIComponent(originUrl)}` : ''}`;
     } else if (effectiveProvider === 'vimeo') {
       const match = videoUrl?.match(/vimeo\.com\/(?:video\/)?([0-9]+)/);
       const vId = match ? match[1] : '';
-      src = `https://player.vimeo.com/video/${vId}?autoplay=1`;
+      src = `https://player.vimeo.com/video/${vId}?autoplay=1&title=0&byline=0&portrait=0`;
     }
 
     return (
-      <div className="w-full h-full relative aspect-video bg-black">
+      <div className="w-full h-full relative aspect-video bg-black select-none">
+        {/* Top Header Overlay Mask - Covers YouTube logo and title bar */}
+        <div className="absolute top-0 left-0 right-0 h-14 bg-gradient-to-b from-black/90 via-black/50 to-transparent z-10 px-4 py-2.5 flex items-center justify-between pointer-events-auto">
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-1 rounded-xl bg-sky-500/20 border border-sky-500/40 text-sky-400 text-[10px] font-extrabold tracking-wider">
+              SHAIVIKA PLAYER
+            </span>
+            <span className="text-xs font-bold text-white truncate max-w-xs">{title}</span>
+          </div>
+          <span className="px-2 py-0.5 rounded-full bg-slate-800/90 text-slate-300 text-[10px] font-bold">
+            HD 1080P
+          </span>
+        </div>
+
         <iframe
           src={src}
           title={title}

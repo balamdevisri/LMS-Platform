@@ -123,10 +123,11 @@ export class MediaService {
     const ytRegex = /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
     const ytMatch = url.match(ytRegex);
     if (ytMatch) {
+      const originUrl = typeof window !== 'undefined' ? window.location.origin : '';
       return {
         isValid: true,
         provider: 'youtube',
-        embedUrl: `https://www.youtube.com/embed/${ytMatch[1]}`
+        embedUrl: `https://www.youtube-nocookie.com/embed/${ytMatch[1]}?autoplay=0&controls=0&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&disablekb=1&playsinline=1&enablejsapi=1${originUrl ? `&origin=${encodeURIComponent(originUrl)}` : ''}`
       };
     }
 
@@ -137,7 +138,7 @@ export class MediaService {
       return {
         isValid: true,
         provider: 'vimeo',
-        embedUrl: `https://player.vimeo.com/video/${vimeoMatch[3]}`
+        embedUrl: `https://player.vimeo.com/video/${vimeoMatch[3]}?autoplay=0&title=0&byline=0&portrait=0`
       };
     }
 

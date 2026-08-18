@@ -30,6 +30,7 @@ import {
   PublishService
 } from '@/services/contentManagementService';
 import type { ResourceItem } from '@/services/contentManagementService';
+import { sanitizeAdminInput, sanitizeMarkdownContent } from '@/utils/adminDataSanitizer';
 
 // Initialize services
 const contentService = new ContentService();
@@ -85,6 +86,15 @@ export const AdminContentManagement: React.FC = () => {
   const saveLessonEdits = (updatedLesson: LearningUnitItem) => {
     if (!activeCourse || !activeModuleId || !activeTopicId) return;
 
+    const sanitized: LearningUnitItem = {
+      ...updatedLesson,
+      title: sanitizeAdminInput(updatedLesson.title),
+      description: sanitizeAdminInput(updatedLesson.description),
+      readingContent: updatedLesson.readingContent ? sanitizeMarkdownContent(updatedLesson.readingContent) : updatedLesson.readingContent,
+      assignmentInstructions: updatedLesson.assignmentInstructions ? sanitizeMarkdownContent(updatedLesson.assignmentInstructions) : updatedLesson.assignmentInstructions,
+      videoUrl: sanitizeAdminInput(updatedLesson.videoUrl)
+    };
+
     const nextModules = activeCourse.modules ? activeCourse.modules.map(m => {
       if (m.id !== activeModuleId) return m;
 
@@ -92,8 +102,8 @@ export const AdminContentManagement: React.FC = () => {
         if (t.id !== activeTopicId) return t;
 
         const nextUnits = t.learningUnits.map(u => {
-          if (u.id === updatedLesson.id) {
-            return updatedLesson;
+          if (u.id === sanitized.id) {
+            return sanitized;
           }
           return u;
         });
@@ -854,7 +864,13 @@ export const AdminContentManagement: React.FC = () => {
                     {selectedLesson.videoUrl && videoDetails && videoDetails.isValid && (
                       <div className="space-y-2">
                         <label className="text-slate-500 dark:text-slate-400 block">Streaming Preview Player</label>
-                        <div className="aspect-video w-full border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden bg-slate-900">
+                        <div className="aspect-video w-full border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden bg-slate-900 relative select-none">
+                          <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-black/90 via-black/50 to-transparent z-10 px-4 py-2 flex items-center justify-between pointer-events-auto">
+                            <span className="px-2.5 py-0.5 rounded-xl bg-sky-500/20 border border-sky-500/40 text-sky-400 text-[10px] font-extrabold">
+                              SHAIVIKA PLAYER
+                            </span>
+                            <span className="text-xs font-bold text-white truncate max-w-xs">{selectedLesson.title}</span>
+                          </div>
                           <iframe
                             title="Video Preview"
                             src={videoDetails.embedUrl}

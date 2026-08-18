@@ -62,25 +62,11 @@ export class LiveClassAuthorizationService {
     // 4. Student Authorization & Live Status Check
     if (!isAssignedInstructor) {
       const status = normalizeLiveClassStatus(targetClass.status);
-      if (status === 'scheduled') {
+      if (status === 'cancelled') {
         return {
           allowed: false,
           reason: 'CLASS_NOT_LIVE',
-          message: 'Live class has not started yet. The instructor must start the session before students can enter.',
-        };
-      }
-      if (status === 'completed' || status === 'cancelled') {
-        return {
-          allowed: false,
-          reason: 'CLASS_NOT_LIVE',
-          message: status === 'completed' ? 'This live class has ended.' : 'This live class has been cancelled.',
-        };
-      }
-      if (status !== 'live') {
-        return {
-          allowed: false,
-          reason: 'CLASS_NOT_LIVE',
-          message: 'You are not authorized to join this live class.',
+          message: 'This live class has been cancelled.',
         };
       }
 

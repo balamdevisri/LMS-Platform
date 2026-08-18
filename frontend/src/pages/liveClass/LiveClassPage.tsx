@@ -284,7 +284,6 @@ export const LiveClassPage: React.FC = () => {
               instructorName={liveClass.instructor?.name || liveClass.instructorName}
               scheduledTimeText={scheduledTimeText}
             />
-
             {/* Mobile-Only Tabbed Interactive Sidebar */}
             <div className="block lg:hidden">
               <LiveClassSidebar

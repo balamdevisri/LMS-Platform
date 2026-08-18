@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Edit, Loader2, Save } from 'lucide-react';
 import type { StudentUser } from '@/services/studentService';
+import { sanitizeAdminInput } from '@/utils/adminDataSanitizer';
 
 interface EditStudentModalProps {
   student: StudentUser | null;
@@ -44,23 +45,30 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
     e.preventDefault();
     setIsSubmitting(true);
     try {
+      const cleanName = sanitizeAdminInput(name);
+      const cleanEmail = sanitizeAdminInput(email);
+      const cleanBranch = sanitizeAdminInput(branch);
+      const cleanYear = sanitizeAdminInput(year);
+      const cleanCollege = sanitizeAdminInput(college);
+      const cleanPhone = sanitizeAdminInput(phone);
+      const cleanBio = sanitizeAdminInput(bio);
       const skills = skillsStr
         .split(',')
-        .map((s) => s.trim())
+        .map((s) => sanitizeAdminInput(s))
         .filter(Boolean);
 
       const updatedStudent: StudentUser = {
         ...student,
-        name,
-        fullName: name,
-        email,
-        branch,
-        year,
-        college,
-        phone,
+        name: cleanName,
+        fullName: cleanName,
+        email: cleanEmail,
+        branch: cleanBranch,
+        year: cleanYear,
+        college: cleanCollege,
+        phone: cleanPhone,
         status,
         isActive: status === 'Active',
-        bio,
+        bio: cleanBio,
         skills,
         updatedAt: new Date().toISOString(),
       };
