@@ -171,134 +171,19 @@ const QUESTIONS_STORAGE_KEY = 'kaizenq_live_questions_v4';
 const NOTES_STORAGE_KEY = 'kaizenq_live_notes_v4';
 const RESOURCES_STORAGE_KEY = 'kaizenq_live_resources_v4';
 
-const INITIAL_CLASSES: LiveClass[] = [
-  {
-    id: 'live_linux_kernel_1',
-    classId: 'live_linux_kernel_1',
-    title: 'Linux Kernel Monolithic Architecture & Memory Management',
-    description: 'Interactive deep dive into Linux kernel memory layout, virtual address translation, and page tables.',
-    courseId: 'course_linux_kernel',
-    courseName: 'Advanced Linux Kernel Engineering',
-    moduleId: 'mod_1',
-    moduleTitle: 'Module 1: Kernel Core Architecture',
-    lessonId: 'les_1',
-    lessonTitle: 'Lesson 1.2: Page Tables & Memory Allocation',
-    instructorId: 'inst_1',
-    instructorName: 'Prof. Manoj Acharya',
-    instructorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-    branch: 'CSE',
-    semester: 'Sem 5',
-    year: '3rd Year',
-    section: 'Sec A',
-    meetingProvider: 'kaizenq',
-    meetingRoomId: 'kaizenq-linux-kernel-batch-01',
-    meetingUrl: '/live-classroom/room/live_kernel_mem_1',
-    banner: 'https://images.unsplash.com/photo-1629654297299-c8506221ca97?w=1200&q=80',
-    thumbnail: 'https://images.unsplash.com/photo-1629654297299-c8506221ca97?w=400&q=80',
-    startTime: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-    endTime: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-    duration: 90,
-    status: 'Live',
-    isRecordingEnabled: true,
-    isQuizEnabled: true,
-    isPollEnabled: true,
-    isChatEnabled: true,
-    isAttendanceEnabled: true,
-    resourceDownloadEnabled: true,
-    certificateEligible: true,
-    maxParticipants: 100,
-    tags: ['Linux', 'Kernel', 'OS', 'Systems'],
-    difficulty: 'Advanced',
-    notesUrl: 'https://kaizenq.lms/notes/linux-kernel-mem.pdf',
-    createdBy: 'admin_sys',
-    createdAt: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: 'live_git_conflict_2',
-    classId: 'live_git_conflict_2',
-    title: 'Git Rebasing, Three-Way Merges & Conflict Sandboxes',
-    description: 'Hands-on interactive lab resolving complex merge conflicts, interactive rebasing, and reflog recovery.',
-    courseId: 'course_git_mastery',
-    courseName: 'Git & GitHub Mastery for Enterprise Systems',
-    moduleId: 'mod_2',
-    moduleTitle: 'Module 3: Advanced Branching & Rebasing',
-    lessonId: 'les_3',
-    lessonTitle: 'Lesson 3.4: Interactive Rebase Sandbox',
-    instructorId: 'inst_2',
-    instructorName: 'Dr. Ananya Rao',
-    instructorAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150',
-    branch: 'AI & DS',
-    semester: 'Sem 3',
-    year: '2nd Year',
-    section: 'Sec B',
-    meetingProvider: 'kaizenq',
-    meetingRoomId: 'kaizenq-git-mastery-batch-02',
-    meetingUrl: '/live-classroom/room/live_git_conflict_2',
-    banner: 'https://images.unsplash.com/photo-1556075798-4825dfaaf498?w=1200&q=80',
-    thumbnail: 'https://images.unsplash.com/photo-1556075798-4825dfaaf498?w=400&q=80',
-    startTime: new Date(Date.now() + 3 * 3600 * 1000).toISOString(),
-    endTime: new Date(Date.now() + 4.5 * 3600 * 1000).toISOString(),
-    duration: 90,
-    status: 'Scheduled',
-    isRecordingEnabled: true,
-    isQuizEnabled: true,
-    isPollEnabled: true,
-    isChatEnabled: true,
-    isAttendanceEnabled: true,
-    resourceDownloadEnabled: true,
-    certificateEligible: true,
-    maxParticipants: 150,
-    tags: ['Git', 'DevOps', 'Version Control'],
-    difficulty: 'Intermediate',
-    createdBy: 'admin_sys',
-    createdAt: new Date(Date.now() - 12 * 3600 * 1000).toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: 'live_ebpf_perf_3',
-    classId: 'live_ebpf_perf_3',
-    title: 'eBPF Tracing & Observability in Production Systems',
-    description: 'Production case study utilizing eBPF kprobes, tracepoints, and BPF Compiler Collection (BCC).',
-    courseId: 'course_linux_perf',
-    courseName: 'Linux Performance & eBPF Engineering',
-    moduleId: 'mod_4',
-    moduleTitle: 'Module 4: Runtime Analysis',
-    lessonId: 'les_8',
-    lessonTitle: 'Lesson 4.2: Writing Custom eBPF Programs',
-    instructorId: 'inst_1',
-    instructorName: 'Prof. Manoj Acharya',
-    instructorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-    branch: 'IT',
-    semester: 'Sem 7',
-    year: '4th Year',
-    section: 'Sec C',
-    meetingProvider: 'kaizenq',
-    meetingRoomId: 'kaizenq-ebpf-observability-batch-03',
-    meetingUrl: '/live-classroom/room/live_ebpf_perf_3',
-    banner: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1200&q=80',
-    thumbnail: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&q=80',
-    startTime: new Date(Date.now() - 26 * 3600 * 1000).toISOString(),
-    endTime: new Date(Date.now() - 24.5 * 3600 * 1000).toISOString(),
-    duration: 90,
-    status: 'Completed',
-    isRecordingEnabled: true,
-    isQuizEnabled: true,
-    isPollEnabled: true,
-    isChatEnabled: true,
-    isAttendanceEnabled: true,
-    resourceDownloadEnabled: true,
-    certificateEligible: true,
-    maxParticipants: 120,
-    tags: ['eBPF', 'Observability', 'Linux', 'Performance'],
-    difficulty: 'Advanced',
-    notesUrl: 'https://kaizenq.lms/notes/ebpf-tracing.pdf',
-    recordingUrl: 'https://meet.jit.si/kaizenq-ebpf-observability-batch-03#recording',
-    createdBy: 'admin_sys',
-    createdAt: new Date(Date.now() - 48 * 3600 * 1000).toISOString(),
-    updatedAt: new Date().toISOString()
-  }
-];
+const isMockLiveClass = (c: any): boolean => {
+  if (!c) return true;
+  const id = String(c.id || c.classId || '');
+  const courseId = String(c.courseId || '');
+  return (
+    id === 'live_linux_kernel_1' ||
+    id === 'live_git_conflict_2' ||
+    id === 'live_ebpf_perf_3' ||
+    courseId === 'course_linux_kernel' ||
+    courseId === 'course_git_mastery' ||
+    courseId === 'course_linux_perf'
+  );
+};
 
 class LiveClassService {
   private listeners: Array<(classes: LiveClass[]) => void> = [];
@@ -307,7 +192,12 @@ class LiveClassService {
   private getLocalClasses(): LiveClass[] {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((c) => !isMockLiveClass(c));
+        }
+      }
     } catch (e) {
       console.warn('Failed to parse live classes from localStorage:', e);
     }
@@ -318,14 +208,15 @@ class LiveClassService {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved !== null) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((c) => !isMockLiveClass(c));
+        }
       } catch (e) {
         console.warn('Failed to parse live classes from localStorage:', e);
       }
     }
-    // Seed INITIAL_CLASSES once if storage key does not exist yet
-    this.saveClasses(INITIAL_CLASSES);
-    return INITIAL_CLASSES;
+    return [];
   }
 
   saveClasses(classes: LiveClass[]) {
