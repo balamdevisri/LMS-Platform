@@ -280,6 +280,32 @@ export class CertificateDeliveryService {
               'k8s-unit-15-1', 'k8s-unit-15-2'
             ];
             rawLessons = rawLessons.filter((l: any) => k8sCanonicalLessonIds.includes(String(l.id)));
+          } else if (courseDoc.id === 'git-github-mastery-course-id') {
+            // Resolve canonical lesson/module IDs dynamically from the actual course structure
+            const canonicalLessonIds = new Set<string>();
+            const canonicalModuleIds = new Set<string>();
+            if (courseData && Array.isArray(courseData.modules)) {
+              courseData.modules.forEach((mod: any) => {
+                if (mod.id) canonicalModuleIds.add(String(mod.id));
+                if (Array.isArray(mod.lessons)) {
+                  mod.lessons.forEach((l: any) => {
+                    if (l.id) canonicalLessonIds.add(String(l.id));
+                  });
+                } else if (Array.isArray(mod.topics)) {
+                  mod.topics.forEach((topic: any) => {
+                    if (Array.isArray(topic.learningUnits)) {
+                      topic.learningUnits.forEach((unit: any) => {
+                        const uid = unit.id || unit.unitId;
+                        if (uid) canonicalLessonIds.add(String(uid));
+                      });
+                    }
+                  });
+                }
+              });
+            }
+            logger.info(`[AUTOMATED CERTIFICATE VALIDATION] Dynamically resolved ${canonicalLessonIds.size} canonical Git lessons and ${canonicalModuleIds.size} canonical modules.`);
+            rawLessons = rawLessons.filter((l: any) => canonicalLessonIds.has(String(l.id)));
+            expectedModules = expectedModules.filter((m: any) => canonicalModuleIds.has(String(m.id)));
           }
 
           rawLessons.sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
@@ -327,6 +353,13 @@ export class CertificateDeliveryService {
 
     const completedLessons = progressData.completedLessons || [];
     const incompleteLessons = expectedLessons.filter(l => !completedLessons.includes(String(l.id)));
+    
+    // Debug logging for canonical lesson checking
+    logger.info(`[AUTOMATED CERTIFICATE VALIDATION] Canonical lesson IDs being checked: ${expectedLessons.map(l => l.id).join(', ')}`);
+    if (incompleteLessons.length > 0) {
+      logger.info(`[AUTOMATED CERTIFICATE VALIDATION] Genuinely incomplete lesson IDs: ${incompleteLessons.map(l => l.id).join(', ')}`);
+    }
+
     const allLessonsDone = expectedLessons.length > 0 && incompleteLessons.length === 0;
     if (!allLessonsDone) {
       const incompleteIds = incompleteLessons.map(l => l.id).join(', ');
