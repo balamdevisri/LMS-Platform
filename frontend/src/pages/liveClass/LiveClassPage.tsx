@@ -384,16 +384,27 @@ export const LiveClassPage: React.FC = () => {
               </div>
             )}
 
+            {/* Mobile-Only Interactive Sidebar (Positioned right beneath video for immediate engagement) */}
+            <div className="block lg:hidden">
+              <LiveClassSidebar
+                classId={classId}
+                instructorName={liveClass.instructor?.name || liveClass.instructorName}
+                isLive={isLive}
+              />
+            </div>
+
             {/* 2. LiveClassInfo Component */}
             <LiveClassInfo liveClass={liveClass} />
           </div>
 
-          {/* 3. LiveClassSidebar Component */}
-          <LiveClassSidebar
-            classId={classId}
-            instructorName={liveClass.instructor?.name || liveClass.instructorName}
-            isLive={isLive}
-          />
+          {/* 3. Desktop-Only Sticky LiveClassSidebar Component */}
+          <div className="hidden lg:block w-96 shrink-0 sticky top-6">
+            <LiveClassSidebar
+              classId={classId}
+              instructorName={liveClass.instructor?.name || liveClass.instructorName}
+              isLive={isLive}
+            />
+          </div>
         </div>
       </main>
     </div>
