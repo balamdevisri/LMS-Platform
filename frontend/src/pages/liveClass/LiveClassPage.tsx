@@ -87,6 +87,13 @@ export const LiveClassPage: React.FC = () => {
 
   useEffect(() => {
     loadLiveClass();
+    const unsub = liveClassService.subscribeLiveClasses((classes) => {
+      const updated = classes.find((c) => c.id === classId || c.classId === classId);
+      if (updated) {
+        setLiveClass(updated);
+      }
+    });
+    return () => unsub();
   }, [classId, user]);
 
   // Real-Time Synchronized Status

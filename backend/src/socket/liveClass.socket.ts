@@ -160,12 +160,22 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
     }
 
     const { liveClassId, status } = data;
+    const normStatus = status.toUpperCase();
     const roomName = `live-class:${liveClassId}`;
+
+    // Persist status change in Firestore
+    try {
+      await liveClassroomService.updateLiveClass(liveClassId, {
+        status: (normStatus === 'LIVE' ? 'Live' : normStatus === 'ENDED' ? 'Completed' : 'Scheduled') as any,
+      });
+    } catch (e: any) {
+      logger.warn('[SOCKET] Live class status DB update notice:', e?.message);
+    }
 
     // Broadcast updated status to all sockets in the room
     io.to(roomName).emit('liveClass:status', {
       liveClassId,
-      status: status.toUpperCase(),
+      status: normStatus,
       updatedAt: new Date().toISOString(),
       updatedBy: user.name || user.email,
     });
