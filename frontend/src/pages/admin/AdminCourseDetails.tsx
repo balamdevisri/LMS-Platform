@@ -35,6 +35,7 @@ import {
   type QuizQuestion
 } from '@/contexts/CourseContext';
 import { gitCourseModules } from '@/data/gitCourseFullData';
+import { sanitizeAdminInput, sanitizeMarkdownContent } from '@/utils/adminDataSanitizer';
 
 export const AdminCourseDetails: React.FC = () => {
   const { courseId } = useParams<{ courseId: string }>();
@@ -698,7 +699,8 @@ export const AdminCourseDetails: React.FC = () => {
     return result.join('\n');
   };
 
-    let html = cleanMarkdownNewlines(md);
+    const sanitizedMd = sanitizeMarkdownContent(md);
+    let html = cleanMarkdownNewlines(sanitizedMd);
 
     // Escape basic HTML tags to prevent custom injected scripts
     html = html
@@ -979,12 +981,21 @@ export const AdminCourseDetails: React.FC = () => {
       return;
     }
 
+    const sanitizedUnit: LearningUnitItem = {
+      ...activeUnit,
+      title: sanitizeAdminInput(activeUnit.title),
+      description: sanitizeAdminInput(activeUnit.description),
+      readingContent: activeUnit.readingContent ? sanitizeMarkdownContent(activeUnit.readingContent) : activeUnit.readingContent,
+      assignmentInstructions: activeUnit.assignmentInstructions ? sanitizeMarkdownContent(activeUnit.assignmentInstructions) : activeUnit.assignmentInstructions,
+      videoUrl: sanitizeAdminInput(activeUnit.videoUrl)
+    };
+
     const updated = modules.map((m) => {
       if (m.id === drawerModuleId) {
         const nextTopics = m.topics.map((t) => {
           if (t.id === drawerTopicId) {
             const nextUnits = t.learningUnits.map((u) =>
-              u.id === activeUnit.id ? activeUnit : u
+              u.id === sanitizedUnit.id ? sanitizedUnit : u
             );
             return { ...t, learningUnits: nextUnits };
           }
@@ -1318,12 +1329,15 @@ export const AdminCourseDetails: React.FC = () => {
     }
   };
 
-  // Safe YouTube Embed cleaner
+  // Safe YouTube Embed cleaner with custom player parameters
   const getEmbedUrl = (url: string) => {
     if (!url) return '';
-    if (url.includes('youtube.com/embed/')) return url;
+    const originUrl = typeof window !== 'undefined' ? window.location.origin : '';
     const ytIdMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
-    return ytIdMatch ? `https://www.youtube.com/embed/${ytIdMatch[1]}` : url;
+    if (ytIdMatch) {
+      return `https://www.youtube-nocookie.com/embed/${ytIdMatch[1]}?autoplay=0&controls=0&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&disablekb=1&playsinline=1&enablejsapi=1${originUrl ? `&origin=${encodeURIComponent(originUrl)}` : ''}`;
+    }
+    return url;
   };
 
   return (
@@ -3023,7 +3037,13 @@ export const AdminCourseDetails: React.FC = () => {
                   {activeUnit.type === 'Video' && (
                     <div className="space-y-4">
                       {activeUnit.videoUrl ? (
-                        <div className="aspect-video w-full rounded-2xl overflow-hidden bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+                        <div className="aspect-video w-full rounded-2xl overflow-hidden bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm relative group select-none">
+                          <div className="absolute top-0 left-0 right-0 h-14 bg-gradient-to-b from-black/90 via-black/50 to-transparent z-10 px-4 py-2.5 flex items-center justify-between pointer-events-auto">
+                            <span className="px-2.5 py-1 rounded-xl bg-sky-500/20 border border-sky-500/40 text-sky-400 text-[10px] font-extrabold">
+                              SHAIVIKA PLAYER
+                            </span>
+                            <span className="text-xs font-bold text-white truncate max-w-xs">{activeUnit.title}</span>
+                          </div>
                           <iframe
                             src={getEmbedUrl(activeUnit.videoUrl)}
                             title={activeUnit.title}

@@ -8,6 +8,8 @@ interface EditUserModalProps {
   onSave: (updated: UserProfile) => Promise<void>;
 }
 
+import { sanitizeAdminInput } from '@/utils/adminDataSanitizer';
+
 export const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onSave }) => {
   const [fullName, setFullName] = useState(user.fullName || user.name || '');
   const [email, setEmail] = useState(user.email || '');
@@ -23,18 +25,27 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onS
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const parsedSkills = skills.split(',').map((s) => s.trim()).filter(Boolean);
+      const cleanName = sanitizeAdminInput(fullName);
+      const cleanEmail = sanitizeAdminInput(email);
+      const cleanBranch = sanitizeAdminInput(branch);
+      const cleanYear = sanitizeAdminInput(year);
+      const cleanBio = sanitizeAdminInput(bio);
+      const parsedSkills = skills
+        .split(',')
+        .map((s) => sanitizeAdminInput(s))
+        .filter(Boolean);
+
       await onSave({
         ...user,
-        fullName,
-        name: fullName,
-        email,
+        fullName: cleanName,
+        name: cleanName,
+        email: cleanEmail,
         role,
         status,
-        branch,
-        year,
+        branch: cleanBranch,
+        year: cleanYear,
         skills: parsedSkills,
-        bio,
+        bio: cleanBio,
       });
       onClose();
     } catch (e) {
