@@ -6,7 +6,7 @@ import { ThemeToggle } from './ThemeToggle';
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="bg-slate-50/80 dark:bg-slate-950 text-slate-600 dark:text-slate-400 pt-20 pb-12 border-t border-[#E6EEF9] dark:border-slate-800 relative overflow-hidden font-['Sora'] transition-colors duration-300">
+    <footer className="bg-slate-50/80 dark:bg-slate-950 text-slate-600 dark:text-slate-400 pt-20 pb-4 border-t border-[#E6EEF9] dark:border-slate-800 relative overflow-hidden font-['Sora'] transition-colors duration-300">
       
       {/* Background Subtle Glow */}
       <div className="absolute -bottom-10 right-1/4 w-96 h-96 bg-blue-500/5 dark:bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
@@ -170,6 +170,14 @@ export const Footer: React.FC = () => {
             </div>
           </div>
         </div>
+        
+        {/* Watermark */}
+        <div className="mt-6 text-center opacity-40 pointer-events-none select-none flex justify-center">
+          <p className="text-xs sm:text-sm font-bold tracking-[0.2em] uppercase text-slate-500 dark:text-slate-400">
+            Kaizen Q™ by Shaivika Groups
+          </p>
+        </div>
+
       </div>
     </footer>
   );
