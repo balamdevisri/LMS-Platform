@@ -344,12 +344,12 @@ export const LiveClassPage: React.FC = () => {
               </div>
             )}
 
-            {/* 6. Live State: Official YouTube Player Embed */}
-            {isLive && (
+            {/* 6. Live State: Custom YouTube Player Embed */}
+            {!isCancelled && !isEnded && (
               <YouTubePlayer
-                youtubeVideoId={liveClass.youtubeVideoId}
+                youtubeVideoId={liveClass.youtubeVideoId || 'jfKfPfyJRdk'}
                 title={liveClass.title}
-                isLive={true}
+                isLive={isLive || isScheduled}
                 status={liveClass.status}
               />
             )}

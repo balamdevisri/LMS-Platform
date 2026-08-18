@@ -31,7 +31,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   isLive = true,
   status,
 }) => {
-  const cleanVideoId = useMemo(() => extractYouTubeVideoId(youtubeVideoId), [youtubeVideoId]);
+  const cleanVideoId = useMemo(() => extractYouTubeVideoId(youtubeVideoId) || 'jfKfPfyJRdk', [youtubeVideoId]);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
