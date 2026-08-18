@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { dbmsLessonsData } from '@/data/dbmsLessonsData';
 import { LazyViewport } from './LazyViewport';
 import { ModulesTab } from './ModulesTab';
+import { PracticeSandbox } from './PracticeSandbox';
 
 const RightSidebar = lazy(() => import('./RightSidebar').then(m => ({ default: m.RightSidebar })));
 const AIQuizPortal = lazy(() => import('../courses/AIQuizPortal').then(m => ({ default: m.AIQuizPortal })));
@@ -228,6 +229,21 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
 
   const isGitCourse = courseTitle.toLowerCase().includes('git');
 
+  const [activeTab, setActiveTab] = useState<'content' | 'sandbox'>('content');
+
+  const isSandboxEligible = useMemo(() => {
+    const cid = String(courseId);
+    return [
+      'python-through-oops-course-id',
+      'java-through-oops-course-id',
+      'git-github-mastery-course-id',
+      'git-github-mastery',
+      'c-programming-course-id',
+      'kubernetes-complete-course-beginner-to-advanced',
+      'react-js-complete-course'
+    ].includes(cid);
+  }, [courseId]);
+
   const allLessons = useMemo(() => {
     return modules.flatMap((mod) => mod.lessons);
   }, [modules]);
@@ -301,6 +317,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       } catch {}
     }
     setScrollProgress(0);
+    setActiveTab('content');
     if (containerRef.current) {
       containerRef.current.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     }
@@ -670,6 +687,34 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       }
     }
 
+    if (isGitCourse) {
+      const mNum = activeIndex !== -1 ? activeIndex + 1 : 1;
+      
+      // 1. Slice contentStr from the start of the current Module's header
+      const currentRegex = new RegExp(`Module\\s+${mNum}\\s*:`, 'i');
+      const currentMatch = contentStr.match(currentRegex);
+      if (currentMatch && currentMatch.index !== undefined) {
+        contentStr = contentStr.substring(currentMatch.index);
+      }
+      
+      // 2. If there is a next lesson, grab its prefix content before the next Module's header
+      if (mNum < 15 && allLessons[activeIndex + 1]) {
+        const nextAny = allLessons[activeIndex + 1] as any;
+        const nextStr = nextAny.content || nextAny.readingContent || nextAny.description || '';
+        const nextRegex = new RegExp(`Module\\s+${mNum + 1}\\s*:`, 'i');
+        const nextMatch = nextStr.match(nextRegex);
+        let prefix = '';
+        if (nextMatch && nextMatch.index !== undefined) {
+          prefix = nextStr.substring(0, nextMatch.index);
+        } else {
+          prefix = nextStr;
+        }
+        if (prefix.trim()) {
+          contentStr = contentStr.trim() + '\n\n' + prefix.trim();
+        }
+      }
+    }
+
     const autoDuration = calculateEstimatedDuration(contentStr, initialCommands.length || 0);
 
     const generatedCommands = initialCommands.length > 0
@@ -693,7 +738,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       resources: generatedResources,
       downloads: generatedDownloads,
     } as any;
-  }, [currentLessonData, courseTitle]);
+  }, [currentLessonData, courseTitle, activeIndex, allLessons, isGitCourse]);
 
   const handleToggleComplete = useCallback(() => {
     if (!completedLessonIds.some((id) => String(id) === String(selectedLessonId))) {
@@ -953,44 +998,75 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         )}
 
         <main className="flex-1 min-w-0 space-y-8">
-          <LessonViewer
-            lesson={activeLessonFull}
-            isGitCourse={isGitCourse}
-            onMarkComplete={handleToggleComplete}
-            onNextLesson={handleNextLesson}
-            isCompleted={isCompleted}
-            isNightMode={isNightMode}
-            courseTitle={courseTitle}
-            courseId={String(courseId)}
-            isCourseFullyCompleted={isCourseFullyCompleted}
-          />
-
-          {/* AI Quiz Generator & Assessment Portal Section */}
-          <div className="pt-6 border-t border-slate-800/80 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="font-heading text-lg font-extrabold text-amber-400 flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-amber-400 animate-pulse" />
-                  <span>AI Quiz Generator & Adaptive Assessment</span>
-                </h2>
-                <p className="text-xs text-slate-400">
-                  Generate instant AI quizzes for <strong>{activeLessonFull.title}</strong> to test your mastery & claim XP!
-                </p>
-              </div>
+          {isSandboxEligible && (
+            <div className="flex border-b border-slate-800/80">
+              <button
+                onClick={() => setActiveTab('content')}
+                className={`py-3 px-6 font-extrabold text-sm border-b-2 transition-all cursor-pointer ${
+                  activeTab === 'content'
+                    ? 'border-cyan-400 text-cyan-400 font-black'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                Course Content
+              </button>
+              <button
+                onClick={() => setActiveTab('sandbox')}
+                className={`py-3 px-6 font-extrabold text-sm border-b-2 transition-all cursor-pointer ${
+                  activeTab === 'sandbox'
+                    ? 'border-cyan-400 text-cyan-400 font-black'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                Practice Sandbox
+              </button>
             </div>
+          )}
 
-            <LazyViewport placeholder={<QuizPortalSkeleton />}>
-              <Suspense fallback={<QuizPortalSkeleton />}>
-                <AIQuizPortal
-                  courseId={String(courseId)}
-                  courseTitle={courseTitle}
-                  lessonId={String(selectedLessonId)}
-                  lessonTitle={activeLessonFull.title}
-                  lessonContent={activeLessonFull.content}
-                />
-              </Suspense>
-            </LazyViewport>
-          </div>
+          {activeTab === 'sandbox' ? (
+            <PracticeSandbox courseId={String(courseId)} isNightMode={isNightMode} />
+          ) : (
+            <>
+              <LessonViewer
+                lesson={activeLessonFull}
+                isGitCourse={isGitCourse}
+                onMarkComplete={handleToggleComplete}
+                onNextLesson={handleNextLesson}
+                isCompleted={isCompleted}
+                isNightMode={isNightMode}
+                courseTitle={courseTitle}
+                courseId={String(courseId)}
+                isCourseFullyCompleted={isCourseFullyCompleted}
+              />
+
+              {/* AI Quiz Generator & Assessment Portal Section */}
+              <div className="pt-6 border-t border-slate-800/80 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="font-heading text-lg font-extrabold text-amber-400 flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 text-amber-400 animate-pulse" />
+                      <span>AI Quiz Generator & Adaptive Assessment</span>
+                    </h2>
+                    <p className="text-xs text-slate-400">
+                      Generate instant AI quizzes for <strong>{activeLessonFull.title}</strong> to test your mastery & claim XP!
+                    </p>
+                  </div>
+                </div>
+
+                <LazyViewport placeholder={<QuizPortalSkeleton />}>
+                  <Suspense fallback={<QuizPortalSkeleton />}>
+                    <AIQuizPortal
+                      courseId={String(courseId)}
+                      courseTitle={courseTitle}
+                      lessonId={String(selectedLessonId)}
+                      lessonTitle={activeLessonFull.title}
+                      lessonContent={activeLessonFull.content}
+                    />
+                  </Suspense>
+                </LazyViewport>
+              </div>
+            </>
+          )}
         </main>
 
         {/* Docked Right Sidebar or Floating Expand Button */}
