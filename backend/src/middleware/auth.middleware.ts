@@ -6,6 +6,7 @@ export interface AuthenticatedRequest extends Request {
     uid: string;
     email?: string;
     role?: string;
+    name?: string;
   };
 }
 
@@ -34,6 +35,7 @@ export const verifyFirebaseToken = async (
         uid: decodedToken.uid,
         email,
         role,
+        name: decodedToken.name || '',
       };
       next();
     } else {
@@ -50,9 +52,10 @@ export const verifyFirebaseToken = async (
             uid: decoded.user_id || decoded.sub || 'dev-user-id',
             email,
             role: isAdminEmail ? 'admin' : (decoded.role || 'student'),
+            name: decoded.name || '',
           };
         } else {
-          req.user = { uid: 'dev-user-id', email: 'dev@shaivika.ai', role: 'student' };
+          req.user = { uid: 'dev-user-id', email: 'dev@shaivika.ai', role: 'student', name: '' };
         }
       } catch {
         req.user = { uid: 'dev-user-id', email: 'dev@shaivika.ai', role: 'student' };

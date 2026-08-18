@@ -366,7 +366,7 @@ In Git, a branch is not a copy of directories or files; it is simply a lightweig
 * **Enforce Clean Merges:** Require passing test pipelines and approvals on Pull Requests before merging feature branches.
 * **Resolve Safely:** Never run manual conflict resolutions directly on the main production branch. Always merge/rebase main into your feature branch first, resolve conflict scopes, test locally, and push.
 * **Prune Branches:** Clean up stale pointers. Run \`git branch -d\` on local systems and prune remotes using \`git fetch --prune\` to keep repositories tidy.`;
-    } else {
+    } else if (titleLower.includes('internals') || titleLower.includes('architecture') || titleLower.includes('dag')) {
       enrichedMarkdown += `## 🏗️ Git Core Architecture & DAG Internals
 
 Git structures data as a content-addressable database. Every file, directory map, and history commit is serialized, compressed, and stored as an immutable object identified by its SHA-1 hash.
@@ -379,7 +379,7 @@ Git structures data as a content-addressable database. Every file, directory map
                        |
                        v
          [ Tree Object (Directory Layout) ]
-              /                 \\
+              /                 \
              v                   v
    [ Blob Object (File 1) ]   [ Blob Object (File 2) ]
 \`\`\`
@@ -405,7 +405,7 @@ Git structures data as a content-addressable database. Every file, directory map
 The Staging Index (stored in \`.git/index\`) acts as a prepared commit blueprint. When you run \`git status\`, Git performs a quick comparison between:
 * The filesystem metadata in your working directory and the index.
 * The index hashes and the current commit (HEAD) reference.
-This metadata comparison makes status updates extremely fast, even on codebases containing millions of lines.
+* This metadata comparison makes status updates extremely fast, even on codebases containing millions of lines.
 
 ---
 

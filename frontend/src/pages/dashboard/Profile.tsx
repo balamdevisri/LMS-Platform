@@ -78,6 +78,7 @@ export const Profile: React.FC = () => {
   const [streaks, setStreaks] = useState<StreakState | null>(null);
   const [stats, setStats] = useState<AchievementStats | null>(null);
   const [selectedCert, setSelectedCert] = useState<Certificate | null>(null);
+  const [loadingCertId, setLoadingCertId] = useState<string | null>(null);
 
   // Social coordinates local caching
   const [githubLink, setGithubLink] = useState(localStorage.getItem('shaivika_portfolio_github') || '');
@@ -148,6 +149,103 @@ export const Profile: React.FC = () => {
     setStreaks(statsService.getStreaks(userId));
     setStats(statsService.getStats(userId));
   }, [userId]);
+
+  const handleViewCertificate = async (cert: Certificate) => {
+    if (loadingCertId) return;
+    const isMock = String(cert.verificationId).startsWith('KQ-') || cert.verificationId === 'KQ-CERT-MOCK-ID';
+    if (!isMock) {
+      setSelectedCert(cert);
+      return;
+    }
+
+    setLoadingCertId(cert.courseId);
+    const toastId = toast.loading('Retrieving official verified certificate from registry...');
+    try {
+      const studentEmail = user?.email || userProfile?.email || 'shaivikagroups@gmail.com';
+      const studentId = userId;
+      const studentName = userProfile?.name || user?.displayName || 'Scholar student';
+
+      // 1. Query the student's certificates on backend to see if it's already there
+      const verifyRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/student/${studentEmail}`);
+      if (verifyRes.ok) {
+        const verifyData = await verifyRes.json();
+        if (verifyData.success && Array.isArray(verifyData.data)) {
+          const matched = verifyData.data.find((c: any) => String(c.courseId) === String(cert.courseId));
+          if (matched && matched.certificateId) {
+            const updated: Certificate = {
+              ...cert,
+              verificationId: matched.certificateId,
+              googleDriveLink: matched.pdfUrl || matched.googleDriveLink,
+            };
+            certificateService.saveExternalCertificate(studentId, updated);
+            
+            // Reload certs
+            setCerts(certificateService.getCertificates(studentId));
+            
+            toast.success('Certificate loaded successfully!', { id: toastId });
+            setSelectedCert(updated);
+            setLoadingCertId(null);
+            return;
+          }
+        }
+      }
+
+      // 2. Trigger generation
+      let token: string | null = null;
+      if (user) {
+        try {
+          token = await user.getIdToken();
+        } catch {}
+      }
+
+      const getHeaders = (t: string | null) => {
+        const h: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (t) h['Authorization'] = `Bearer ${t}`;
+        return h;
+      };
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/complete-and-deliver`, {
+        method: 'POST',
+        headers: getHeaders(token),
+        body: JSON.stringify({
+          studentId,
+          studentName,
+          studentEmail,
+          courseId: cert.courseId,
+          courseTitle: cert.courseTitle,
+          completionPercentage: 100,
+          instructorName: cert.instructorName || 'Shaivika Groups Board',
+          courseDuration: cert.courseDuration || '24 Hours',
+          modulesCount: cert.modulesCount || 8,
+          verificationId: cert.verificationId,
+          forceRegenerate: true
+        }),
+      });
+
+      const data = await response.json();
+      if (response.ok && data.success) {
+        const updated: Certificate = {
+          ...cert,
+          verificationId: data.certificateId,
+          googleDriveLink: data.googleDriveLink,
+        };
+        certificateService.saveExternalCertificate(studentId, updated);
+        
+        // Reload certs
+        setCerts(certificateService.getCertificates(studentId));
+
+        toast.success('Official Certificate generated successfully!', { id: toastId });
+        setSelectedCert(updated);
+      } else {
+        toast.error(data.error || 'Failed to retrieve official certificate.', { id: toastId });
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Network error. Failed to retrieve official certificate.', { id: toastId });
+    } finally {
+      setLoadingCertId(null);
+    }
+  };
 
   const level = getLevelForXP(xp);
   const levelTitle = getLevelTitle(level);
@@ -552,7 +650,7 @@ export const Profile: React.FC = () => {
                     </div>
 
                     <button
-                      onClick={() => setSelectedCert(c)}
+                      onClick={() => handleViewCertificate(c)}
                       className="py-1.5 px-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-cyan-500 rounded-xl text-[10px] font-bold text-slate-700 dark:text-slate-200 transition-all cursor-pointer whitespace-nowrap shadow-xs hover:text-blue-600 dark:hover:text-cyan-400"
                     >
                       View Verified

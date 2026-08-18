@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { dbmsLessonsData } from '@/data/dbmsLessonsData';
 import { LazyViewport } from './LazyViewport';
 import { ModulesTab } from './ModulesTab';
+import { PracticeSandbox } from './PracticeSandbox';
 
 const RightSidebar = lazy(() => import('./RightSidebar').then(m => ({ default: m.RightSidebar })));
 const AIQuizPortal = lazy(() => import('../courses/AIQuizPortal').then(m => ({ default: m.AIQuizPortal })));
@@ -187,6 +188,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
   userName: propName,
 }) => {
   const { user, userProfile } = useAuth();
+  const studentUid = user?.uid || userProfile?.uid || 'default_student';
   useCourseTimeTracker(String(courseId));
   const userAvatar = propAvatar || userProfile?.photoURL || user?.photoURL || undefined;
   const userName = propName && propName !== 'Student' ? propName : (user?.displayName || userProfile?.name || userProfile?.githubUsername || 'Student User');
@@ -227,6 +229,21 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
 
   const isGitCourse = courseTitle.toLowerCase().includes('git');
 
+  const [activeTab, setActiveTab] = useState<'content' | 'sandbox'>('content');
+
+  const isSandboxEligible = useMemo(() => {
+    const cid = String(courseId);
+    return [
+      'python-through-oops-course-id',
+      'java-through-oops-course-id',
+      'git-github-mastery-course-id',
+      'git-github-mastery',
+      'c-programming-course-id',
+      'kubernetes-complete-course-beginner-to-advanced',
+      'react-js-complete-course'
+    ].includes(cid);
+  }, [courseId]);
+
   const allLessons = useMemo(() => {
     return modules.flatMap((mod) => mod.lessons);
   }, [modules]);
@@ -260,7 +277,26 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
   const [activeCourseTab, setActiveCourseTab] = useState('modules');
   const [isAITutorOpen, setIsAITutorOpen] = useState(false);
   const [showCongrats, setShowCongrats] = useState(false);
-  const [generatedCert, setGeneratedCert] = useState<any>(null);
+  const [generatedCert, setGeneratedCert] = useState<any>(() => {
+    try {
+      const certService = new CertificateService();
+      const existing = certService.getCertificates(studentUid).find(c => String(c.courseId) === String(courseId));
+      if (existing && !String(existing.verificationId).startsWith('KQ-') && existing.verificationId !== 'KQ-CERT-MOCK-ID') {
+        return {
+          success: true,
+          certificateId: existing.verificationId,
+          googleDriveLink: existing.googleDriveLink || '',
+          completionDate: existing.completionDate,
+          studentId: existing.studentId,
+          studentName: existing.studentName,
+          courseTitle: existing.courseTitle,
+          modulesCount: existing.modulesCount,
+          courseDuration: existing.courseDuration,
+        };
+      }
+    } catch {}
+    return null;
+  });
   const [isGeneratingCert, setIsGeneratingCert] = useState(false);
 
   const [bookmarkedLessonIds, setBookmarkedLessonIds] = useState<(string | number)[]>(() => {
@@ -281,6 +317,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       } catch {}
     }
     setScrollProgress(0);
+    setActiveTab('content');
     if (containerRef.current) {
       containerRef.current.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     }
@@ -324,6 +361,185 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
     }
   }, [completedLessonIds, courseId]);
 
+  // Memoize quiz and assignment units
+  const { quizUnits, assignmentUnits } = useMemo(() => {
+    const quiz: any[] = [];
+    const assign: any[] = [];
+    modules.forEach((mod) => {
+      mod.lessons?.forEach((lesson) => {
+        const typeLower = (lesson.type || '').toLowerCase();
+        if (typeLower === 'quiz') quiz.push(lesson);
+        else if (typeLower === 'assignment') assign.push(lesson);
+      });
+    });
+    return { quizUnits: quiz, assignmentUnits: assign };
+  }, [modules]);
+
+  // Unified production trigger for certificate state synchronization & delivery
+  const triggerCertificateGeneration = useCallback(async () => {
+    if (isGeneratingCert) return;
+    setIsGeneratingCert(true);
+    const studentEmail = user?.email || userProfile?.email || 'shaivikagroups@gmail.com';
+    const studentName = userName;
+
+    try {
+      // Extract synced completed modules list
+      const completedModules = modules.filter(mod => 
+        mod.lessons?.every(l => completedLessonIds.some(cId => String(cId) === String(l.id)))
+      ).map(mod => String(mod.id));
+
+      // Extract synced quiz scores
+      const quizScores = quizUnits.map(q => {
+        const scoreDataRaw = localStorage.getItem(`lms_quiz_score_${q.id}`);
+        if (!scoreDataRaw) return null;
+        try {
+          const scoreData = JSON.parse(scoreDataRaw);
+          return { quizId: String(q.id), percentage: Number(scoreData.percentage) };
+        } catch {
+          return null;
+        }
+      }).filter(Boolean);
+
+      // Extract synced assignment submissions
+      const assignmentSubmissions = assignmentUnits.map(a => {
+        const submission = assignmentService.getStudentSubmission(a.id, studentUid);
+        return submission ? { assignmentId: String(a.id), status: submission.status } : null;
+      }).filter(Boolean);
+
+      let token: string | null = null;
+      if (user) {
+        try {
+          token = await user.getIdToken();
+        } catch (tErr) {
+          console.warn('Failed to fetch initial ID token:', tErr);
+        }
+      }
+
+      const getHeaders = (t: string | null) => {
+        const h: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (t) {
+          h['Authorization'] = `Bearer ${t}`;
+        }
+        return h;
+      };
+
+      // Sync state to backend before generation trigger
+      let syncRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/sync-state`, {
+        method: 'POST',
+        headers: getHeaders(token),
+        body: JSON.stringify({
+          studentId: studentUid,
+          courseId: String(courseId),
+          completedLessons: completedLessonIds.map(String),
+          completedModules,
+          quizScores,
+          assignmentSubmissions,
+        }),
+      });
+
+      let syncData = await syncRes.json();
+      const isSyncAuthError = syncRes.status === 401 || (syncData.error && String(syncData.error).toLowerCase().includes('firebase id token'));
+
+      if (isSyncAuthError && user) {
+        console.warn('Sync request unauthorized (token expired/invalid). Refreshing token...');
+        try {
+          token = await user.getIdToken(true);
+          syncRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/sync-state`, {
+            method: 'POST',
+            headers: getHeaders(token),
+            body: JSON.stringify({
+              studentId: studentUid,
+              courseId: String(courseId),
+              completedLessons: completedLessonIds.map(String),
+              completedModules,
+              quizScores,
+              assignmentSubmissions,
+            }),
+          });
+          syncData = await syncRes.json();
+        } catch (refreshErr) {
+          console.error('Failed to retry sync with refreshed ID token:', refreshErr);
+        }
+      }
+
+      // Complete and deliver
+      let res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/complete-and-deliver`, {
+        method: 'POST',
+        headers: getHeaders(token),
+        body: JSON.stringify({
+          studentId: studentUid,
+          studentName,
+          studentEmail,
+          courseId: String(courseId),
+          courseTitle,
+          completionPercentage: 100,
+          instructorName: 'Shaivika Groups Board',
+          courseDuration: '24 Hours',
+          modulesCount: modules.length || 8,
+          forceRegenerate: true
+        }),
+      });
+
+      let data = await res.json();
+      const isDeliverAuthError = res.status === 401 || (data.error && String(data.error).toLowerCase().includes('firebase id token'));
+
+      if (isDeliverAuthError && user) {
+        console.warn('Delivery request unauthorized (token expired/invalid). Refreshing token...');
+        try {
+          token = await user.getIdToken(true);
+          res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/complete-and-deliver`, {
+            method: 'POST',
+            headers: getHeaders(token),
+            body: JSON.stringify({
+              studentId: studentUid,
+              studentName,
+              studentEmail,
+              courseId: String(courseId),
+              courseTitle,
+              completionPercentage: 100,
+              instructorName: 'Shaivika Groups Board',
+              courseDuration: '24 Hours',
+              modulesCount: modules.length || 8,
+              forceRegenerate: true
+            }),
+          });
+          data = await res.json();
+        } catch (refreshErr) {
+          console.error('Failed to retry delivery with refreshed ID token:', refreshErr);
+        }
+      }
+
+      setIsGeneratingCert(false);
+      if (data.success) {
+        setGeneratedCert(data);
+        try {
+          const certService = new CertificateService();
+          certService.saveExternalCertificate(studentUid, {
+            id: data.certificateId || `cert_${courseId}_${Date.now()}`,
+            courseId: String(courseId),
+            courseTitle: courseTitle,
+            studentName,
+            instructorName: 'Shaivika Groups Board',
+            completionDate: data.completionDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+            googleDriveLink: data.googleDriveLink || '',
+            verificationId: data.certificateId,
+            studentId: data.studentId || `STU-${studentUid.substring(0, 6).toUpperCase()}`,
+          });
+        } catch (saveErr) {
+          console.warn('Error saving server certificate to local storage:', saveErr);
+        }
+        toast.success(`🎓 Official Certificate Generated! (Check Inbox)`);
+        setShowCongrats(true);
+      } else {
+        toast.error(data.error || 'Failed to generate certificate.');
+      }
+    } catch (err: any) {
+      setIsGeneratingCert(false);
+      console.error('Automated Certificate Delivery error:', err);
+      toast.error('Could not connect to certificate delivery service.');
+    }
+  }, [completedLessonIds, user, userProfile, userName, courseId, courseTitle, modules, quizUnits, assignmentUnits, studentUid, isGeneratingCert]);
+
   // Fully automated certificate generator trigger
   useEffect(() => {
     let active = true;
@@ -334,19 +550,6 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         completedLessonIds.some((cId) => String(cId) === String(l.id))
       );
       if (!allCourseLessonsDone) return;
-
-      // 2. All Quizzes Passed & All Assignments Submitted
-      const quizUnits: any[] = [];
-      const assignmentUnits: any[] = [];
-      modules.forEach((mod) => {
-        mod.lessons?.forEach((lesson) => {
-          const typeLower = (lesson.type || '').toLowerCase();
-          if (typeLower === 'quiz') quizUnits.push(lesson);
-          else if (typeLower === 'assignment') assignmentUnits.push(lesson);
-        });
-      });
-
-      const studentUid = user?.uid || userProfile?.uid || 'default_student';
 
       const allQuizzesPassed = quizUnits.every((quiz) => {
         const scoreDataRaw = localStorage.getItem(`lms_quiz_score_${quiz.id}`);
@@ -375,99 +578,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       if (alreadyGenerated) return;
 
       if (!active) return;
-      
-      setIsGeneratingCert(true);
-      const studentEmail = user?.email || userProfile?.email || 'shaivikagroups@gmail.com';
-      const studentId = (userProfile as any)?.studentId || (user?.uid ? `STU-${user.uid.substring(0, 6).toUpperCase()}` : 'STU-992104');
-      const studentName = userName;
-
-      // Extract synced completed modules list
-      const completedModules = modules.filter(mod => 
-        mod.lessons?.every(l => completedLessonIds.some(cId => String(cId) === String(l.id)))
-      ).map(mod => String(mod.id));
-
-      // Extract synced quiz scores
-      const quizScores = quizUnits.map(q => {
-        const scoreDataRaw = localStorage.getItem(`lms_quiz_score_${q.id}`);
-        if (!scoreDataRaw) return null;
-        try {
-          const scoreData = JSON.parse(scoreDataRaw);
-          return { quizId: String(q.id), percentage: Number(scoreData.percentage) };
-        } catch {
-          return null;
-        }
-      }).filter(Boolean);
-
-      // Extract synced assignment submissions
-      const assignmentSubmissions = assignmentUnits.map(a => {
-        const submission = assignmentService.getStudentSubmission(a.id, studentUid);
-        return submission ? { assignmentId: String(a.id), status: submission.status } : null;
-      }).filter(Boolean);
-
-      // Sync state to backend before generation trigger
-      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/sync-state`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          studentId: studentUid,
-          courseId: String(courseId),
-          completedLessons: completedLessonIds.map(String),
-          completedModules,
-          quizScores,
-          assignmentSubmissions,
-        }),
-      })
-      .then(() => {
-        return fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/complete-and-deliver`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            studentId: studentUid,
-            studentName,
-            studentEmail,
-            courseId: String(courseId),
-            courseTitle,
-            completionPercentage: 100,
-            instructorName: 'Shaivika Groups Board',
-            courseDuration: '24 Hours',
-            modulesCount: modules.length || 8,
-            forceRegenerate: true
-          }),
-        });
-      })
-      .then((res) => res.json())
-      .then((data) => {
-        if (!active) return;
-        setIsGeneratingCert(false);
-        if (data.success) {
-          setGeneratedCert(data);
-          try {
-            certService.saveExternalCertificate(studentUid, {
-              id: data.id || `cert_${courseId}_${Date.now()}`,
-              courseId: String(courseId),
-              courseTitle: data.courseTitle || courseTitle,
-              studentName: data.studentName || userName,
-              studentId: data.studentId || studentId,
-              instructorName: 'Shaivika Groups Board',
-              completionDate: data.completionDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
-              verificationId: data.certificateId,
-              courseDuration: '24 Hours',
-              modulesCount: modules.length || 8,
-              googleDriveLink: data.googleDriveLink,
-            });
-          } catch (saveErr) {
-            console.warn('Error saving server certificate to local storage:', saveErr);
-          }
-          toast.success(`🎓 Official Certificate Generated & Delivered to ${studentEmail}! (Check Inbox)`);
-          setShowCongrats(true);
-        } else {
-          toast.error(data.error || 'Failed to generate certificate.');
-        }
-      })
-      .catch((err) => {
-        if (active) setIsGeneratingCert(false);
-        console.error('Automated Certificate Delivery error:', err);
-      });
+      triggerCertificateGeneration();
     };
 
     checkAndTrigger();
@@ -477,7 +588,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       active = false;
       clearInterval(interval);
     };
-  }, [completedLessonIds, user, userProfile, userName, courseId, courseTitle, modules, allLessons]);
+  }, [completedLessonIds, studentUid, courseId, modules, allLessons, quizUnits, assignmentUnits, triggerCertificateGeneration]);
 
   useEffect(() => {
     try {
@@ -576,6 +687,34 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       }
     }
 
+    if (isGitCourse) {
+      const mNum = activeIndex !== -1 ? activeIndex + 1 : 1;
+      
+      // 1. Slice contentStr from the start of the current Module's header
+      const currentRegex = new RegExp(`Module\\s+${mNum}\\s*:`, 'i');
+      const currentMatch = contentStr.match(currentRegex);
+      if (currentMatch && currentMatch.index !== undefined) {
+        contentStr = contentStr.substring(currentMatch.index);
+      }
+      
+      // 2. If there is a next lesson, grab its prefix content before the next Module's header
+      if (mNum < 15 && allLessons[activeIndex + 1]) {
+        const nextAny = allLessons[activeIndex + 1] as any;
+        const nextStr = nextAny.content || nextAny.readingContent || nextAny.description || '';
+        const nextRegex = new RegExp(`Module\\s+${mNum + 1}\\s*:`, 'i');
+        const nextMatch = nextStr.match(nextRegex);
+        let prefix = '';
+        if (nextMatch && nextMatch.index !== undefined) {
+          prefix = nextStr.substring(0, nextMatch.index);
+        } else {
+          prefix = nextStr;
+        }
+        if (prefix.trim()) {
+          contentStr = contentStr.trim() + '\n\n' + prefix.trim();
+        }
+      }
+    }
+
     const autoDuration = calculateEstimatedDuration(contentStr, initialCommands.length || 0);
 
     const generatedCommands = initialCommands.length > 0
@@ -599,7 +738,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       resources: generatedResources,
       downloads: generatedDownloads,
     } as any;
-  }, [currentLessonData, courseTitle]);
+  }, [currentLessonData, courseTitle, activeIndex, allLessons, isGitCourse]);
 
   const handleToggleComplete = useCallback(() => {
     if (!completedLessonIds.some((id) => String(id) === String(selectedLessonId))) {
@@ -658,61 +797,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       );
 
       if (allCourseLessonsDone) {
-        setShowCongrats(true);
-        setIsGeneratingCert(true);
-        const studentEmail = user?.email || userProfile?.email || 'shaivikagroups@gmail.com';
-        const studentId = (userProfile as any)?.studentId || (user?.uid ? `STU-${user.uid.substring(0, 6).toUpperCase()}` : 'STU-992104');
-        const studentName = userName;
-
-        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/complete-and-deliver`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            studentId: studentUid,
-            studentName,
-            studentEmail,
-            courseId: String(courseId),
-            courseTitle,
-            completionPercentage: 100,
-            instructorName: 'Shaivika Groups Board',
-            courseDuration: '24 Hours',
-            modulesCount: modules.length || 8,
-            forceRegenerate: true
-          }),
-        })
-          .then((res) => res.json())
-          .then((data) => {
-            setIsGeneratingCert(false);
-            if (data.success) {
-              setGeneratedCert(data);
-              try {
-                const certService = new CertificateService();
-                certService.saveExternalCertificate(user?.uid || userProfile?.uid || 'default_student', {
-                  id: data.id || `cert_${courseId}_${Date.now()}`,
-                  courseId: String(courseId),
-                  courseTitle: data.courseTitle || courseTitle,
-                  studentName: data.studentName || userName,
-                  studentId: data.studentId || studentId,
-                  instructorName: 'Shaivika Groups Board',
-                  completionDate: data.completionDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
-                  verificationId: data.certificateId,
-                  courseDuration: '24 Hours',
-                  modulesCount: modules.length || 8,
-                  googleDriveLink: data.googleDriveLink,
-                });
-              } catch (saveErr) {
-                console.warn('Error saving server certificate to local storage:', saveErr);
-              }
-              toast.success(`🎓 Official Certificate Generated & Delivered to ${studentEmail}! (Check Google Drive & Inbox)`);
-            } else {
-              toast.error('Failed to auto-deliver certificate via email.');
-            }
-          })
-          .catch((err) => {
-            setIsGeneratingCert(false);
-            console.error('Automated Certificate Delivery error:', err);
-            toast.error('Could not connect to certificate delivery service.');
-          });
+        triggerCertificateGeneration();
       }
 
       toast.success(`🎉 Lesson complete! +50 XP awarded.`);
@@ -737,7 +822,6 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
     completedLessonIds.some((cId) => String(cId) === String(l.id))
   );
 
-  const studentUid = user?.uid || userProfile?.uid || 'default_student';
   const certService = useMemo(() => new CertificateService(), []);
   const currentCert = useMemo(() => {
     const certs = certService.getCertificates(studentUid);
@@ -773,55 +857,23 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
           // If certificate hasn't been generated yet, let's fetch it, otherwise open modal
           setShowCongrats(true);
           if (!generatedCert && !isGeneratingCert) {
-            setIsGeneratingCert(true);
-            const studentEmail = user?.email || userProfile?.email || 'shaivikagroups@gmail.com';
-            const studentId = (userProfile as any)?.studentId || (user?.uid ? `STU-${user.uid.substring(0, 6).toUpperCase()}` : 'STU-992104');
-            const studentName = userName;
-
-            fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/complete-and-deliver`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                studentId: studentUid,
-                studentName,
-                studentEmail,
-                courseId: String(courseId),
-                courseTitle,
-                completionPercentage: 100,
-                instructorName: 'Shaivika Groups Board',
-                courseDuration: '24 Hours',
-                modulesCount: modules.length || 8,
-                forceRegenerate: true
-              }),
-            })
-              .then((res) => res.json())
-              .then((data) => {
-                setIsGeneratingCert(false);
-                if (data.success) {
-                  setGeneratedCert(data);
-                  try {
-                    const certService = new CertificateService();
-                    certService.saveExternalCertificate(user?.uid || userProfile?.uid || 'default_student', {
-                      id: data.id || `cert_${courseId}_${Date.now()}`,
-                      courseId: String(courseId),
-                      courseTitle: data.courseTitle || courseTitle,
-                      studentName: data.studentName || userName,
-                      studentId: data.studentId || studentId,
-                      instructorName: 'Shaivika Groups Board',
-                      completionDate: data.completionDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
-                      verificationId: data.certificateId,
-                      courseDuration: '24 Hours',
-                      modulesCount: modules.length || 8,
-                      googleDriveLink: data.googleDriveLink,
-                    });
-                  } catch (saveErr) {
-                    console.warn('Error saving server certificate to local storage:', saveErr);
-                  }
-                }
-              })
-              .catch(() => {
-                setIsGeneratingCert(false);
+            const certService = new CertificateService();
+            const existing = certService.getCertificates(studentUid).find(c => String(c.courseId) === String(courseId));
+            if (existing && !String(existing.verificationId).startsWith('KQ-') && existing.verificationId !== 'KQ-CERT-MOCK-ID') {
+              setGeneratedCert({
+                success: true,
+                certificateId: existing.verificationId,
+                googleDriveLink: existing.googleDriveLink || '',
+                completionDate: existing.completionDate,
+                studentId: existing.studentId,
+                studentName: existing.studentName,
+                courseTitle: existing.courseTitle,
+                modulesCount: existing.modulesCount,
+                courseDuration: existing.courseDuration,
               });
+            } else {
+              triggerCertificateGeneration();
+            }
           }
         }}
       />
@@ -946,44 +998,75 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         )}
 
         <main className="flex-1 min-w-0 space-y-8">
-          <LessonViewer
-            lesson={activeLessonFull}
-            isGitCourse={isGitCourse}
-            onMarkComplete={handleToggleComplete}
-            onNextLesson={handleNextLesson}
-            isCompleted={isCompleted}
-            isNightMode={isNightMode}
-            courseTitle={courseTitle}
-            courseId={String(courseId)}
-            isCourseFullyCompleted={isCourseFullyCompleted}
-          />
-
-          {/* AI Quiz Generator & Assessment Portal Section */}
-          <div className="pt-6 border-t border-slate-800/80 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="font-heading text-lg font-extrabold text-amber-400 flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-amber-400 animate-pulse" />
-                  <span>AI Quiz Generator & Adaptive Assessment</span>
-                </h2>
-                <p className="text-xs text-slate-400">
-                  Generate instant AI quizzes for <strong>{activeLessonFull.title}</strong> to test your mastery & claim XP!
-                </p>
-              </div>
+          {isSandboxEligible && (
+            <div className="flex border-b border-slate-800/80">
+              <button
+                onClick={() => setActiveTab('content')}
+                className={`py-3 px-6 font-extrabold text-sm border-b-2 transition-all cursor-pointer ${
+                  activeTab === 'content'
+                    ? 'border-cyan-400 text-cyan-400 font-black'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                Course Content
+              </button>
+              <button
+                onClick={() => setActiveTab('sandbox')}
+                className={`py-3 px-6 font-extrabold text-sm border-b-2 transition-all cursor-pointer ${
+                  activeTab === 'sandbox'
+                    ? 'border-cyan-400 text-cyan-400 font-black'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                Practice Sandbox
+              </button>
             </div>
+          )}
 
-            <LazyViewport placeholder={<QuizPortalSkeleton />}>
-              <Suspense fallback={<QuizPortalSkeleton />}>
-                <AIQuizPortal
-                  courseId={String(courseId)}
-                  courseTitle={courseTitle}
-                  lessonId={String(selectedLessonId)}
-                  lessonTitle={activeLessonFull.title}
-                  lessonContent={activeLessonFull.content}
-                />
-              </Suspense>
-            </LazyViewport>
-          </div>
+          {activeTab === 'sandbox' ? (
+            <PracticeSandbox courseId={String(courseId)} isNightMode={isNightMode} />
+          ) : (
+            <>
+              <LessonViewer
+                lesson={activeLessonFull}
+                isGitCourse={isGitCourse}
+                onMarkComplete={handleToggleComplete}
+                onNextLesson={handleNextLesson}
+                isCompleted={isCompleted}
+                isNightMode={isNightMode}
+                courseTitle={courseTitle}
+                courseId={String(courseId)}
+                isCourseFullyCompleted={isCourseFullyCompleted}
+              />
+
+              {/* AI Quiz Generator & Assessment Portal Section */}
+              <div className="pt-6 border-t border-slate-800/80 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="font-heading text-lg font-extrabold text-amber-400 flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 text-amber-400 animate-pulse" />
+                      <span>AI Quiz Generator & Adaptive Assessment</span>
+                    </h2>
+                    <p className="text-xs text-slate-400">
+                      Generate instant AI quizzes for <strong>{activeLessonFull.title}</strong> to test your mastery & claim XP!
+                    </p>
+                  </div>
+                </div>
+
+                <LazyViewport placeholder={<QuizPortalSkeleton />}>
+                  <Suspense fallback={<QuizPortalSkeleton />}>
+                    <AIQuizPortal
+                      courseId={String(courseId)}
+                      courseTitle={courseTitle}
+                      lessonId={String(selectedLessonId)}
+                      lessonTitle={activeLessonFull.title}
+                      lessonContent={activeLessonFull.content}
+                    />
+                  </Suspense>
+                </LazyViewport>
+              </div>
+            </>
+          )}
         </main>
 
         {/* Docked Right Sidebar or Floating Expand Button */}
@@ -1058,20 +1141,20 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         </div>
       )}
 
-      {showCongrats && !isGeneratingCert && (
+      {showCongrats && !isGeneratingCert && generatedCert && (
         <CertificatePreviewModal
           certificate={{
-            id: generatedCert?.certificateId || 'KQ-CERT-MOCK-ID',
-            verificationId: generatedCert?.certificateId || generatedCert?.verificationId || 'KQ-CERT-MOCK-ID',
-            studentId: generatedCert?.studentId || (userProfile as any)?.studentId || (user?.uid ? `STU-${user.uid.substring(0, 6).toUpperCase()}` : 'STU-992104'),
-            studentName: generatedCert?.studentName || userName,
+            id: generatedCert.certificateId || 'KQ-CERT-MOCK-ID',
+            verificationId: generatedCert.certificateId || generatedCert.verificationId || 'KQ-CERT-MOCK-ID',
+            studentId: generatedCert.studentId || (userProfile as any)?.studentId || (user?.uid ? `STU-${user.uid.substring(0, 6).toUpperCase()}` : 'STU-992104'),
+            studentName: generatedCert.studentName || userName,
             courseId: String(courseId),
-            courseTitle: generatedCert?.courseTitle || courseTitle,
+            courseTitle: generatedCert.courseTitle || courseTitle,
             instructorName: 'Shaivika Groups Board',
-            completionDate: generatedCert?.completionDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
-            courseDuration: generatedCert?.courseDuration || '24 Hours',
-            modulesCount: generatedCert?.modulesCount || modules.length || 8,
-            googleDriveLink: generatedCert?.googleDriveLink,
+            completionDate: generatedCert.completionDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+            courseDuration: generatedCert.courseDuration || '24 Hours',
+            modulesCount: generatedCert.modulesCount || modules.length || 8,
+            googleDriveLink: generatedCert.googleDriveLink,
           }}
           onClose={() => setShowCongrats(false)}
         />
