@@ -184,6 +184,33 @@ const RippleButton: React.FC<RippleButtonProps> = ({ children, className = '', t
 };
 
 export const LandingPage: React.FC = () => {
+  // Demo Form state
+  const [demoForm, setDemoForm] = useState({ fullName: '', workEmail: '', institutionDetails: '' });
+  const [isSubmittingDemo, setIsSubmittingDemo] = useState(false);
+  const [demoStatus, setDemoStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
+  const handleDemoSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!demoForm.fullName || !demoForm.workEmail) return;
+    
+    setIsSubmittingDemo(true);
+    try {
+      await fetch("https://script.google.com/macros/s/AKfycbymyplApey5wf8qnE-gmXuiDQHcrdh9gKZdJKY-Bw_JxpfA20F4y2cPyaWgdqQlK9Vy/exec", {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify(demoForm),
+      });
+      setDemoStatus('success');
+      setDemoForm({ fullName: '', workEmail: '', institutionDetails: '' });
+    } catch (error) {
+      console.error("Form submit error", error);
+      setDemoStatus('error');
+    } finally {
+      setIsSubmittingDemo(false);
+      setTimeout(() => setDemoStatus('idle'), 6000);
+    }
+  };
+
   // FAQ state
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [catalogCourses, setCatalogCourses] = useState<ICourse[]>([]);
@@ -1268,32 +1295,63 @@ export const LandingPage: React.FC = () => {
 
             <div className="lg:col-span-7 bg-slate-950/70 p-6 sm:p-10 rounded-2xl border border-slate-800/80 shadow-2xl z-10 space-y-6">
               <h3 className="font-heading font-bold text-lg text-white">Request AI Demonstration</h3>
-              <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
+              <form onSubmit={handleDemoSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <input
                     type="text"
+                    required
+                    value={demoForm.fullName}
+                    onChange={(e) => setDemoForm({ ...demoForm, fullName: e.target.value })}
                     placeholder="Full Name"
                     className="bg-slate-900/60 border border-slate-800 focus:border-blue-500 focus:outline-hidden rounded-xl px-4 py-3.5 text-xs text-white placeholder-slate-500 transition-colors"
                   />
                   <input
                     type="email"
+                    required
+                    value={demoForm.workEmail}
+                    onChange={(e) => setDemoForm({ ...demoForm, workEmail: e.target.value })}
                     placeholder="Work Email"
                     className="bg-slate-900/60 border border-slate-800 focus:border-blue-500 focus:outline-hidden rounded-xl px-4 py-3.5 text-xs text-white placeholder-slate-500 transition-colors"
                   />
                 </div>
                 <textarea
                   rows={4}
+                  value={demoForm.institutionDetails}
+                  onChange={(e) => setDemoForm({ ...demoForm, institutionDetails: e.target.value })}
                   placeholder="Institution or team details & headcount..."
                   className="w-full bg-slate-900/60 border border-slate-800 focus:border-blue-500 focus:outline-hidden rounded-xl px-4 py-3.5 text-xs text-white placeholder-slate-500 transition-colors"
                 />
                 <RippleButton type="submit" className="btn-premium-primary w-full justify-center text-xs py-3.5 font-bold cursor-pointer text-white flex items-center gap-2 rounded-xl">
-                  <span>Submit Demo Inquiry</span>
-                  <Send className="w-4 h-4" />
+                  <span>{isSubmittingDemo ? 'Submitting...' : 'Submit Demo Inquiry'}</span>
+                  {!isSubmittingDemo && <Send className="w-4 h-4" />}
                 </RippleButton>
               </form>
             </div>
           </div>
         </section>
+
+        {/* Success Popup */}
+        <AnimatePresence>
+          {demoStatus === 'success' && (
+            <motion.div 
+              initial={{ opacity: 0, y: 50, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.9 }}
+              className="fixed bottom-10 right-10 z-50 bg-white dark:bg-zinc-900 border border-emerald-500/30 p-5 rounded-2xl shadow-2xl flex items-center gap-4 max-w-sm"
+            >
+              <div className="w-10 h-10 bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-500 shrink-0">
+                <Check className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-heading font-bold text-sm text-slate-900 dark:text-white">Request Sent Successfully!</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Our AI Architect will contact you shortly.</p>
+              </div>
+              <button onClick={() => setDemoStatus('idle')} className="absolute top-3 right-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
       </div>
     </BlueSmokeTheme>

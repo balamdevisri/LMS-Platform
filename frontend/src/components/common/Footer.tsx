@@ -1,10 +1,37 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Mail, ArrowRight, BookOpen, Terminal, Briefcase, Award } from 'lucide-react';
+import { Mail, ArrowRight, BookOpen, Terminal, Briefcase, Award, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { BrandLogo } from './BrandLogo';
 import { ThemeToggle } from './ThemeToggle';
 
 export const Footer: React.FC = () => {
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [isSubmittingNewsletter, setIsSubmittingNewsletter] = useState(false);
+  const [newsletterStatus, setNewsletterStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newsletterEmail) return;
+    
+    setIsSubmittingNewsletter(true);
+    try {
+      await fetch("https://script.google.com/macros/s/AKfycbwUY3ZK2CU9ndoUioMwJbzD9svnG23RVd6LVLOk_eYh8M-dZwRBBb6sVyPahz7nnILL2g/exec", {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({ workEmail: newsletterEmail }),
+      });
+      setNewsletterStatus('success');
+      setNewsletterEmail('');
+    } catch (error) {
+      console.error("Newsletter submit error", error);
+      setNewsletterStatus('error');
+    } finally {
+      setIsSubmittingNewsletter(false);
+      setTimeout(() => setNewsletterStatus('idle'), 6000);
+    }
+  };
+
   return (
     <footer className="bg-slate-50/80 dark:bg-slate-950 text-slate-600 dark:text-slate-400 pt-20 pb-4 border-t border-[#E6EEF9] dark:border-slate-800 relative overflow-hidden font-['Sora'] transition-colors duration-300">
       
@@ -27,21 +54,25 @@ export const Footer: React.FC = () => {
               <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest block mb-3">
                 Subscribe to AI Product Releases
               </span>
-              <form onSubmit={(e) => e.preventDefault()} className="flex items-center gap-2 max-w-md">
+              <form onSubmit={handleNewsletterSubmit} className="flex items-center gap-2 max-w-md">
                 <div className="relative flex-1">
                   <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-blue-500 dark:text-cyan-400" />
                   <input
                     type="email"
+                    required
+                    value={newsletterEmail}
+                    onChange={(e) => setNewsletterEmail(e.target.value)}
                     placeholder="Enter work email"
                     className="w-full bg-white dark:bg-slate-900 border border-[#E6EEF9] dark:border-slate-800 focus:border-blue-500 dark:focus:border-cyan-500 focus:outline-hidden rounded-xl py-3 pl-10 pr-3.5 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-colors"
                   />
                 </div>
                 <button
                   type="submit"
-                  className="btn-premium-primary text-white px-5 py-3 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs hover:shadow-md"
+                  disabled={isSubmittingNewsletter}
+                  className="btn-premium-primary text-white px-5 py-3 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs hover:shadow-md disabled:opacity-50"
                 >
-                  <span>Join</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <span>{isSubmittingNewsletter ? 'Joining...' : 'Join'}</span>
+                  {!isSubmittingNewsletter && <ArrowRight className="w-3.5 h-3.5" />}
                 </button>
               </form>
             </div>
@@ -177,6 +208,29 @@ export const Footer: React.FC = () => {
             Kaizen Q™ by Shaivika Groups
           </p>
         </div>
+
+        {/* Success Popup */}
+        <AnimatePresence>
+          {newsletterStatus === 'success' && (
+            <motion.div 
+              initial={{ opacity: 0, y: 50, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.9 }}
+              className="fixed bottom-10 left-10 z-50 bg-white dark:bg-zinc-900 border border-emerald-500/30 p-5 rounded-2xl shadow-2xl flex items-center gap-4 max-w-sm"
+            >
+              <div className="w-10 h-10 bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-500 shrink-0">
+                <Check className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-heading font-bold text-sm text-slate-900 dark:text-white">Subscribed Successfully!</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Welcome to our AI newsletter.</p>
+              </div>
+              <button onClick={() => setNewsletterStatus('idle')} className="absolute top-3 right-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
       </div>
     </footer>
