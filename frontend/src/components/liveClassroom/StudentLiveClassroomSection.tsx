@@ -5,17 +5,13 @@ import {
   Radio,
   Play,
   FileText,
-  Clock,
+  Crown,
+  ArrowRight,
 } from 'lucide-react';
-import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
-import { liveClassAuthorizationService } from '@/services/liveClassAuthorizationService';
 import { liveClassService, normalizeLiveClassStatus, type LiveClass } from '@/services/liveClassService';
-import { Crown, ArrowRight } from 'lucide-react';
 
 export const StudentLiveClassroomSection: React.FC = () => {
   const navigate = useNavigate();
-  const { user, userProfile } = useAuth();
   const [classes, setClasses] = useState<LiveClass[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<'today' | 'upcoming' | 'completed' | 'missed'>('today');
@@ -82,33 +78,7 @@ export const StudentLiveClassroomSection: React.FC = () => {
   };
 
   const handleJoinLive = (c: LiveClass) => {
-    const normStatus = normalizeLiveClassStatus(c.status);
-    if (normStatus === 'scheduled') {
-      toast.info('🕐 NOT STARTED: Waiting for instructor to start the live classroom.');
-      return;
-    }
-
-    if (normStatus === 'completed' || normStatus === 'cancelled') {
-      toast.info(normStatus === 'completed' ? '✓ CLASS COMPLETED: This live session has ended.' : '✕ CANCELLED: This live session was cancelled.');
-      return;
-    }
-
-    const authRes = liveClassAuthorizationService.authorizeLiveClassAccess(
-      c.id,
-      userProfile
-        ? { uid: userProfile.uid, role: userProfile.role, email: userProfile.email }
-        : user
-        ? { uid: user.uid, email: user.email || undefined }
-        : null,
-      c
-    );
-
-    if (!authRes.allowed) {
-      toast.error(authRes.message || 'You are not authorized to join this live class.');
-      return;
-    }
-
-    navigate(`/live-classroom/room/${c.id}`);
+    navigate(`/student/live-class/${c.id}`);
   };
 
   return (
@@ -316,29 +286,28 @@ export const StudentLiveClassroomSection: React.FC = () => {
 
                     <button
                       onClick={() => handleJoinLive(c)}
-                      disabled={isScheduled}
-                      className={`flex-1 py-2 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
+                      className={`flex-1 py-2 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm ${
                         isLiveNow
-                          ? 'bg-rose-600 hover:bg-rose-700 text-white cursor-pointer shadow-md shadow-rose-600/30 animate-pulse'
+                          ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/30 animate-pulse'
                           : isCompleted
-                          ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
-                          : 'bg-slate-100 dark:bg-zinc-800/80 text-slate-400 dark:text-zinc-500 border border-slate-200 dark:border-zinc-700 cursor-not-allowed opacity-80'
+                          ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                          : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-600/20'
                       }`}
                     >
                       {isLiveNow ? (
                         <>
                           <Play className="w-3.5 h-3.5 fill-current text-white" />
-                          <span>JOIN LIVE</span>
+                          <span>JOIN LIVE NOW</span>
                         </>
                       ) : isCompleted ? (
                         <>
                           <Play className="w-3.5 h-3.5 fill-current text-white" />
-                          <span>View Session</span>
+                          <span>View Recording</span>
                         </>
                       ) : (
                         <>
-                          <Clock className="w-3.5 h-3.5 text-slate-400" />
-                          <span>Waiting for instructor</span>
+                          <Video className="w-3.5 h-3.5 text-white" />
+                          <span>Enter Live Classroom</span>
                         </>
                       )}
                     </button>

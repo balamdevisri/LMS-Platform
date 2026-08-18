@@ -18,6 +18,7 @@ import {
   ExternalLink,
   Users,
   Layers,
+  Video,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -45,6 +46,7 @@ import { PracticeHub } from '../../components/courses/PracticeHub';
 import { InterviewPrep } from '../../components/courses/InterviewPrep';
 import { StudentLiveClassroomSection } from '../../components/liveClassroom/StudentLiveClassroomSection';
 import { SubscriptionSettings } from '../../components/settings/SubscriptionSettings';
+import { liveClassService, normalizeLiveClassStatus, type LiveClass } from '@/services/liveClassService';
 
 export const Dashboard: React.FC = () => {
   const { user, userProfile } = useAuth();
@@ -55,6 +57,16 @@ export const Dashboard: React.FC = () => {
   // Dynamic Courses State
   const [enrolledCourses, setEnrolledCourses] = useState<ICourse[]>([]);
   const [loadingCourses, setLoadingCourses] = useState(true);
+
+  // Real-time Live Classes State
+  const [liveClasses, setLiveClasses] = useState<LiveClass[]>([]);
+
+  useEffect(() => {
+    const unsubLive = liveClassService.subscribeLiveClasses((data) => {
+      setLiveClasses(data || []);
+    });
+    return () => unsubLive();
+  }, []);
 
   // Instructor Student Roster State
   const [allStudents, setAllStudents] = useState<StudentUser[]>([]);
@@ -995,23 +1007,59 @@ export const Dashboard: React.FC = () => {
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                          <Link
-                            to={`/course/${course.slug || course.id}`}
-                            className="btn-blue-primary text-xs py-2.5 justify-center font-bold flex items-center gap-1.5 rounded-xl shadow-sm"
-                          >
-                            <PlayCircle className="w-4 h-4" />
-                            <span>Continue Track</span>
-                          </Link>
+                        {(() => {
+                          const matchingLiveClass = liveClasses.find(
+                            (lc) =>
+                              String(lc.courseId) === String(course.id) ||
+                              (lc.courseName && course.title && lc.courseName.toLowerCase() === course.title.toLowerCase())
+                          );
 
-                          <Link
-                            to={`/student/live-class/class_react_101_live`}
-                            className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shadow-red-500/15"
-                          >
-                            <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-                            <span>Join Live Class</span>
-                          </Link>
-                        </div>
+                          const liveTargetUrl = matchingLiveClass
+                            ? `/student/live-class/${matchingLiveClass.id}`
+                            : `/dashboard/live-classroom`;
+                          const isClassLiveNow = matchingLiveClass && normalizeLiveClassStatus(matchingLiveClass.status) === 'live';
+                          const isClassScheduled = matchingLiveClass && normalizeLiveClassStatus(matchingLiveClass.status) === 'scheduled';
+
+                          return (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                              <Link
+                                to={`/course/${course.slug || course.id}`}
+                                className="btn-blue-primary text-xs py-2.5 justify-center font-bold flex items-center gap-1.5 rounded-xl shadow-sm"
+                              >
+                                <PlayCircle className="w-4 h-4" />
+                                <span>Continue Track</span>
+                              </Link>
+
+                              <Link
+                                to={liveTargetUrl}
+                                className={`py-2.5 px-3 rounded-xl font-extrabold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md ${
+                                  isClassLiveNow
+                                    ? 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white animate-pulse shadow-red-500/20'
+                                    : isClassScheduled
+                                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/20'
+                                    : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+                                }`}
+                              >
+                                {isClassLiveNow ? (
+                                  <>
+                                    <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+                                    <span>Live Class (Live Now)</span>
+                                  </>
+                                ) : isClassScheduled ? (
+                                  <>
+                                    <Video className="w-4 h-4 text-sky-300" />
+                                    <span>Join Live Class</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Video className="w-4 h-4 text-slate-400" />
+                                    <span>Live Classroom</span>
+                                  </>
+                                )}
+                              </Link>
+                            </div>
+                          );
+                        })()}
                       </div>
                     );
                   })}

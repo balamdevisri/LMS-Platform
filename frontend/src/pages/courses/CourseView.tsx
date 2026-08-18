@@ -306,7 +306,9 @@ export const CourseView: React.FC = () => {
           name: studentName,
         }}
         onPaymentSuccess={handleEnrollSuccess}
-        onNavigateToLiveClass={() => navigate('/admin/live-classes')}
+        onNavigateToLiveClass={() =>
+          navigate(userProfile?.role === 'admin' || userProfile?.role === 'instructor' ? '/admin/live-classes' : '/dashboard/live-classroom')
+        }
       />
     </>
   );
