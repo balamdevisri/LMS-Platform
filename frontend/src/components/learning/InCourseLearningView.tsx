@@ -261,7 +261,26 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
   const [activeCourseTab, setActiveCourseTab] = useState('modules');
   const [isAITutorOpen, setIsAITutorOpen] = useState(false);
   const [showCongrats, setShowCongrats] = useState(false);
-  const [generatedCert, setGeneratedCert] = useState<any>(null);
+  const [generatedCert, setGeneratedCert] = useState<any>(() => {
+    try {
+      const certService = new CertificateService();
+      const existing = certService.getCertificates(studentUid).find(c => String(c.courseId) === String(courseId));
+      if (existing && !String(existing.verificationId).startsWith('KQ-') && existing.verificationId !== 'KQ-CERT-MOCK-ID') {
+        return {
+          success: true,
+          certificateId: existing.verificationId,
+          googleDriveLink: existing.googleDriveLink || '',
+          completionDate: existing.completionDate,
+          studentId: existing.studentId,
+          studentName: existing.studentName,
+          courseTitle: existing.courseTitle,
+          modulesCount: existing.modulesCount,
+          courseDuration: existing.courseDuration,
+        };
+      }
+    } catch {}
+    return null;
+  });
   const [isGeneratingCert, setIsGeneratingCert] = useState(false);
 
   const [bookmarkedLessonIds, setBookmarkedLessonIds] = useState<(string | number)[]>(() => {
@@ -479,13 +498,15 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         try {
           const certService = new CertificateService();
           certService.saveExternalCertificate(studentUid, {
-            id: data.id || `cert_${courseId}_${Date.now()}`,
+            id: data.certificateId || `cert_${courseId}_${Date.now()}`,
             courseId: String(courseId),
-            courseName: courseTitle,
+            courseTitle: courseTitle,
             studentName,
-            issueDate: data.completionDate,
-            pdfUrl: data.googleDriveLink || '',
-            displayStudentId: `STU-${studentUid.substring(0, 6).toUpperCase()}`,
+            instructorName: 'Shaivika Groups Board',
+            completionDate: data.completionDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+            googleDriveLink: data.googleDriveLink || '',
+            verificationId: data.certificateId,
+            studentId: data.studentId || `STU-${studentUid.substring(0, 6).toUpperCase()}`,
           });
         } catch (saveErr) {
           console.warn('Error saving server certificate to local storage:', saveErr);
@@ -791,7 +812,23 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
           // If certificate hasn't been generated yet, let's fetch it, otherwise open modal
           setShowCongrats(true);
           if (!generatedCert && !isGeneratingCert) {
-            triggerCertificateGeneration();
+            const certService = new CertificateService();
+            const existing = certService.getCertificates(studentUid).find(c => String(c.courseId) === String(courseId));
+            if (existing && !String(existing.verificationId).startsWith('KQ-') && existing.verificationId !== 'KQ-CERT-MOCK-ID') {
+              setGeneratedCert({
+                success: true,
+                certificateId: existing.verificationId,
+                googleDriveLink: existing.googleDriveLink || '',
+                completionDate: existing.completionDate,
+                studentId: existing.studentId,
+                studentName: existing.studentName,
+                courseTitle: existing.courseTitle,
+                modulesCount: existing.modulesCount,
+                courseDuration: existing.courseDuration,
+              });
+            } else {
+              triggerCertificateGeneration();
+            }
           }
         }}
       />
@@ -1028,20 +1065,20 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         </div>
       )}
 
-      {showCongrats && !isGeneratingCert && (
+      {showCongrats && !isGeneratingCert && generatedCert && (
         <CertificatePreviewModal
           certificate={{
-            id: generatedCert?.certificateId || 'KQ-CERT-MOCK-ID',
-            verificationId: generatedCert?.certificateId || generatedCert?.verificationId || 'KQ-CERT-MOCK-ID',
-            studentId: generatedCert?.studentId || (userProfile as any)?.studentId || (user?.uid ? `STU-${user.uid.substring(0, 6).toUpperCase()}` : 'STU-992104'),
-            studentName: generatedCert?.studentName || userName,
+            id: generatedCert.certificateId || 'KQ-CERT-MOCK-ID',
+            verificationId: generatedCert.certificateId || generatedCert.verificationId || 'KQ-CERT-MOCK-ID',
+            studentId: generatedCert.studentId || (userProfile as any)?.studentId || (user?.uid ? `STU-${user.uid.substring(0, 6).toUpperCase()}` : 'STU-992104'),
+            studentName: generatedCert.studentName || userName,
             courseId: String(courseId),
-            courseTitle: generatedCert?.courseTitle || courseTitle,
+            courseTitle: generatedCert.courseTitle || courseTitle,
             instructorName: 'Shaivika Groups Board',
-            completionDate: generatedCert?.completionDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
-            courseDuration: generatedCert?.courseDuration || '24 Hours',
-            modulesCount: generatedCert?.modulesCount || modules.length || 8,
-            googleDriveLink: generatedCert?.googleDriveLink,
+            completionDate: generatedCert.completionDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+            courseDuration: generatedCert.courseDuration || '24 Hours',
+            modulesCount: generatedCert.modulesCount || modules.length || 8,
+            googleDriveLink: generatedCert.googleDriveLink,
           }}
           onClose={() => setShowCongrats(false)}
         />

@@ -439,6 +439,7 @@ export class CertificateService {
             .toUpperCase()
             .substring(0, 8);
 
+          const modulesCount = (p.course.modules && p.course.modules.length) || (p.course.syllabus && p.course.syllabus.length) || 8;
           const newCert: Certificate = {
             id: `cert_${courseIdStr}_${Date.now()}`,
             courseId: courseIdStr,
@@ -446,7 +447,8 @@ export class CertificateService {
             studentName,
             instructorName: p.course.instructor || 'Lead Instructor',
             completionDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
-            verificationId
+            verificationId,
+            modulesCount
           };
           certs.push(newCert);
           changed = true;

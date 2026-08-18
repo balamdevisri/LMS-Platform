@@ -1,10 +1,11 @@
 import { Request, Response } from 'express';
 import { db, adminAuth } from '../firebase';
-import { certificateDeliveryService } from '../services/certificate/CertificateDeliveryService';
-import { pdfCertificateGenerator } from '../services/certificate/PDFCertificateGenerator';
+import { certificateDeliveryService, cleanCourseTitleForCertificate } from '../services/certificate/CertificateDeliveryService';
+import { googleSlidesService } from '../services/certificate/GoogleSlidesService';
 import { qrCodeService } from '../services/certificate/QRCodeService';
 import { googleSheetsService } from '../services/certificate/GoogleSheetsService';
 import logger from '../config/logger';
+import { CourseService } from '../services/course/CourseService';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import {
   studentProgressCollection,
@@ -13,6 +14,36 @@ import {
 } from '../firebase/collections';
 
 export class CertificateController {
+  private async resolveCourseDoc(courseId: string): Promise<any> {
+    if (!courseId || !db) return null;
+    let courseDoc = await db.collection('courses').doc(courseId).get();
+    if (courseDoc.exists) return courseDoc;
+
+    let querySnap = await db.collection('courses').where('slug', '==', courseId).get();
+    if (!querySnap.empty) return querySnap.docs[0];
+
+    querySnap = await db.collection('courses').where('id', '==', courseId).get();
+    if (!querySnap.empty) return querySnap.docs[0];
+
+    const fallbackDocId = `${courseId}-course-id`;
+    courseDoc = await db.collection('courses').doc(fallbackDocId).get();
+    if (courseDoc.exists) return courseDoc;
+
+    // Special fallback for Linux Systems & Administration Mastery
+    if (courseId.toLowerCase().includes('linux')) {
+      const allCourses = await db.collection('courses').get();
+      for (const doc of allCourses.docs) {
+        const data = doc.data();
+        const slug = String(data.slug || '').toLowerCase();
+        const title = String(data.title || '').toLowerCase();
+        if (slug.includes('linux') || title.includes('linux')) {
+          return doc;
+        }
+      }
+    }
+    return null;
+  }
+
   /**
    * POST /api/certificates/complete-and-deliver
    * Triggered when student reaches 100% course completion
@@ -27,6 +58,7 @@ export class CertificateController {
         instructorName,
         courseDuration,
         modulesCount,
+        forceRegenerate,
       } = req.body;
 
       if (!studentId || !courseId || !courseTitle) {
@@ -111,6 +143,7 @@ export class CertificateController {
         instructorName,
         courseDuration,
         modulesCount: Number(modulesCount || 8),
+        forceRegenerate: forceRegenerate === true || forceRegenerate === 'true',
       };
 
       const result = await certificateDeliveryService.handleCourseCompletionAndDeliver(payload);
@@ -174,7 +207,8 @@ export class CertificateController {
         courseTitle,
         completionDate,
         courseDuration,
-        modulesCount
+        modulesCount,
+        courseId
       } = req.query;
 
       if (!certificateId || !studentId || !studentName || !courseTitle) {
@@ -182,20 +216,103 @@ export class CertificateController {
         return;
       }
 
+      let dynamicStudentName = String(studentName);
+      let dynamicCourseTitle = String(courseTitle);
+      let dynamicCourseDuration = String(courseDuration || '24 Hours');
+      let actualModulesCount = Number(modulesCount || 8);
+
+      if (db) {
+        try {
+          const studentDoc = await db.collection('users').doc(String(studentId)).get();
+          if (studentDoc.exists) {
+            const studentData = studentDoc.data();
+            if (studentData) {
+              dynamicStudentName = studentData.fullName || studentData.name || studentData.displayName || String(studentName);
+            }
+          }
+
+          if (courseId) {
+            const courseDoc = await this.resolveCourseDoc(String(courseId));
+            if (courseDoc && courseDoc.exists) {
+              const courseData = courseDoc.data();
+              if (courseData) {
+                dynamicCourseTitle = courseData.title || String(courseTitle);
+                dynamicCourseDuration = courseData.duration || String(courseDuration || '24 Hours');
+                
+                let count = 0;
+                if (Array.isArray(courseData.modules) && courseData.modules.length > 0) {
+                  count = courseData.modules.length;
+                } else if (Array.isArray(courseData.syllabus) && courseData.syllabus.length > 0) {
+                  count = courseData.syllabus.length;
+                } else {
+                  try {
+                    const modulesSnap = await db.collection('modules')
+                      .where('courseId', '==', courseDoc.id)
+                      .get();
+                    count = modulesSnap.size;
+                  } catch {}
+                }
+                if (count > 0) {
+                  actualModulesCount = count;
+                }
+              }
+            }
+          }
+        } catch (dbErr) {
+          logger.warn(`[DOWNLOAD CERTIFICATE] Failed to fetch student/course Firestore data: ${dbErr}`);
+        }
+      }
+
+      // Calculate achievement score from quiz attempts dynamically
+      let dynamicAchievement = 'Outstanding Achievement';
+      if (db) {
+        try {
+          const resolvedCourse = courseId ? await this.resolveCourseDoc(String(courseId)) : null;
+          const courseDocId = resolvedCourse ? resolvedCourse.id : String(courseId);
+          const courseIdsToCheck = Array.from(new Set([String(courseId), courseDocId]));
+
+          const quizAttempts = await quizAttemptsCollection()
+            .where('studentId', '==', String(studentId))
+            .where('courseId', 'in', courseIdsToCheck)
+            .get();
+          
+          if (!quizAttempts.empty) {
+            let totalScore = 0;
+            let count = 0;
+            quizAttempts.forEach((doc: any) => {
+              const attempt = doc.data();
+              if (typeof attempt.score === 'number') {
+                totalScore += attempt.score;
+                count++;
+              }
+            });
+            if (count > 0) {
+              const average = Math.round(totalScore / count);
+              dynamicAchievement = `Grade: ${average}% Completion Score`;
+            }
+          } else {
+            dynamicAchievement = '100% Score • Mastery';
+          }
+        } catch (qErr) {
+          logger.warn(`[DOWNLOAD CERTIFICATE] Failed to calculate quiz scores: ${qErr}`);
+        }
+      }
+
       const qrCodeBuffer = await qrCodeService.generateVerificationQRCodeBuffer(
         String(certificateId),
         String(studentId)
       );
 
-      const pdfBuffer = await pdfCertificateGenerator.generateCertificateBuffer({
+      const pdfBuffer = await googleSlidesService.generateCertificateFromTemplate({
         certificateId: String(certificateId),
         studentId: String(studentId),
-        studentName: String(studentName),
-        courseTitle: String(courseTitle),
+        studentName: dynamicStudentName,
+        courseTitle: cleanCourseTitleForCertificate(dynamicCourseTitle),
         instructorName: 'Shaivika Groups Board',
         completionDate: String(completionDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })),
-        courseDuration: String(courseDuration || '24 Hours'),
-        modulesCount: Number(modulesCount || 8),
+        courseDuration: dynamicCourseDuration,
+        modulesCount: actualModulesCount,
+        achievement: dynamicAchievement,
         qrCodeBuffer,
       });
 
@@ -205,6 +322,137 @@ export class CertificateController {
     } catch (err: any) {
       logger.error(`[DOWNLOAD CERTIFICATE] ❌ Exception: ${err?.message || err}`);
       res.status(500).send('Failed to generate download certificate.');
+    }
+  }
+
+  /**
+   * GET /api/certificates/preview
+   * Serves inline presentation of high-quality certificate PDF inside the browser iframe
+   */
+  public async previewCertificate(req: Request, res: Response): Promise<void> {
+    try {
+      const {
+        certificateId,
+        studentId,
+        studentName,
+        courseTitle,
+        completionDate,
+        courseDuration,
+        modulesCount,
+        courseId
+      } = req.query;
+
+      if (!certificateId || !studentId || !studentName || !courseTitle) {
+        res.status(400).send('Missing required query parameters: certificateId, studentId, studentName, courseTitle.');
+        return;
+      }
+
+      let dynamicStudentName = String(studentName);
+      let dynamicCourseTitle = String(courseTitle);
+      let dynamicCourseDuration = String(courseDuration || '24 Hours');
+      let actualModulesCount = Number(modulesCount || 8);
+
+      if (db) {
+        try {
+          const studentDoc = await db.collection('users').doc(String(studentId)).get();
+          if (studentDoc.exists) {
+            const studentData = studentDoc.data();
+            if (studentData) {
+              dynamicStudentName = studentData.fullName || studentData.name || studentData.displayName || String(studentName);
+            }
+          }
+
+          if (courseId) {
+            const courseDoc = await this.resolveCourseDoc(String(courseId));
+            if (courseDoc && courseDoc.exists) {
+              const courseData = courseDoc.data();
+              if (courseData) {
+                dynamicCourseTitle = courseData.title || String(courseTitle);
+                dynamicCourseDuration = courseData.duration || String(courseDuration || '24 Hours');
+                
+                let count = 0;
+                if (Array.isArray(courseData.modules) && courseData.modules.length > 0) {
+                  count = courseData.modules.length;
+                } else if (Array.isArray(courseData.syllabus) && courseData.syllabus.length > 0) {
+                  count = courseData.syllabus.length;
+                } else {
+                  try {
+                    const modulesSnap = await db.collection('modules')
+                      .where('courseId', '==', courseDoc.id)
+                      .get();
+                    count = modulesSnap.size;
+                  } catch {}
+                }
+                if (count > 0) {
+                  actualModulesCount = count;
+                }
+              }
+            }
+          }
+        } catch (dbErr) {
+          logger.warn(`[PREVIEW CERTIFICATE] Failed to fetch student/course Firestore data: ${dbErr}`);
+        }
+      }
+
+      // Calculate achievement score from quiz attempts dynamically
+      let dynamicAchievement = 'Outstanding Achievement';
+      if (db) {
+        try {
+          const resolvedCourse = courseId ? await this.resolveCourseDoc(String(courseId)) : null;
+          const courseDocId = resolvedCourse ? resolvedCourse.id : String(courseId);
+          const courseIdsToCheck = Array.from(new Set([String(courseId), courseDocId]));
+
+          const quizAttempts = await quizAttemptsCollection()
+            .where('studentId', '==', String(studentId))
+            .where('courseId', 'in', courseIdsToCheck)
+            .get();
+          
+          if (!quizAttempts.empty) {
+            let totalScore = 0;
+            let count = 0;
+            quizAttempts.forEach((doc: any) => {
+              const attempt = doc.data();
+              if (typeof attempt.score === 'number') {
+                totalScore += attempt.score;
+                count++;
+              }
+            });
+            if (count > 0) {
+              const average = Math.round(totalScore / count);
+              dynamicAchievement = `Grade: ${average}% Completion Score`;
+            }
+          } else {
+            dynamicAchievement = '100% Score • Mastery';
+          }
+        } catch (qErr) {
+          logger.warn(`[PREVIEW CERTIFICATE] Failed to calculate quiz scores: ${qErr}`);
+        }
+      }
+
+      const qrCodeBuffer = await qrCodeService.generateVerificationQRCodeBuffer(
+        String(certificateId),
+        String(studentId)
+      );
+
+      const pdfBuffer = await googleSlidesService.generateCertificateFromTemplate({
+        certificateId: String(certificateId),
+        studentId: String(studentId),
+        studentName: dynamicStudentName,
+        courseTitle: cleanCourseTitleForCertificate(dynamicCourseTitle),
+        instructorName: 'Shaivika Groups Board',
+        completionDate: String(completionDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })),
+        courseDuration: dynamicCourseDuration,
+        modulesCount: actualModulesCount,
+        achievement: dynamicAchievement,
+        qrCodeBuffer,
+      });
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'inline; filename="certificate-preview.pdf"');
+      res.send(pdfBuffer);
+    } catch (err: any) {
+      logger.error(`[PREVIEW CERTIFICATE] ❌ Exception: ${err?.message || err}`);
+      res.status(500).send('Failed to generate preview certificate.');
     }
   }
 

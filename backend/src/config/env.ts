@@ -5,6 +5,7 @@ import { z } from 'zod';
 // Load .env file from process cwd or root, then load/merge backend-specific .env
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../.env'), override: true });
 
 const envSchema = z.object({
   PORT: z.string().default('5000'),
@@ -33,8 +34,12 @@ const envSchema = z.object({
   GOOGLE_DRIVE_CLIENT_EMAIL: z.string().optional(),
   GOOGLE_DRIVE_PRIVATE_KEY: z.string().optional(),
   GOOGLE_DRIVE_FOLDER_ID: z.string().optional(),
+  GOOGLE_SLIDES_TEMPLATE_ID: z.string().default('18eIWNTbsA2X7Bmcq39N3lmaNSAvWYrwemRpfMFSnWh8'),
   GOOGLE_SHEET_ID: z.string().optional(),
   GOOGLE_SHEETS_SCRIPT_URL: z.string().default('https://script.google.com/macros/s/AKfycbykZnfc-ngEOADfuqclw6FZ08mh9CKuhv-niMf3awTy3lmyD309QDjl5zgwPJh713L-CQ/exec'),
+  GOOGLE_OAUTH_CLIENT_ID: z.string().optional(),
+  GOOGLE_OAUTH_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_OAUTH_REFRESH_TOKEN: z.string().optional(),
   MONGODB_URI: z.string().default('mongodb://localhost:27017/shaivika_live_classroom'),
   REDIS_URL: z.string().default('redis://localhost:6379'),
 });
