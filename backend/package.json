@@ -12,7 +12,8 @@
     "build": "node scripts/copy-shared.js && node -e \"fs.rmSync('dist', { recursive: true, force: true })\" && tsc",
     "start": "node dist/server.js",
     "test": "jest",
-    "seed:react": "npx ts-node src/scripts/seed-react-course.ts"
+    "seed:react": "npx ts-node src/scripts/seed-react-course.ts",
+    "oauth:gen": "npx ts-node scripts/generate-google-oauth-token.ts"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",

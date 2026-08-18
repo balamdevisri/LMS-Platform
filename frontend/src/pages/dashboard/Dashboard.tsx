@@ -87,6 +87,7 @@ export const Dashboard: React.FC = () => {
 
   // Certificate Modal State
   const [activePreviewCert, setActivePreviewCert] = useState<Certificate | null>(null);
+  const [loadingCertId, setLoadingCertId] = useState<string | null>(null);
 
   // Fetch courses and XP claims dynamically from courseService
   const activeUserId = user?.uid || 'default_student';
@@ -413,36 +414,217 @@ export const Dashboard: React.FC = () => {
   // Synchronize all saved certificates from local storage to Google Sheets backend registry
   React.useEffect(() => {
     const uid = userProfile?.uid || user?.uid || 'default_student';
-    
-    // Collect certificates from both active user and default student keys
-    const certsToSync: Certificate[] = [];
-    
-    const activeCerts = certificateService.getCertificates(uid);
-    if (Array.isArray(activeCerts)) certsToSync.push(...activeCerts);
-    
-    if (uid !== 'default_student') {
-      const defaultCerts = certificateService.getCertificates('default_student');
-      if (Array.isArray(defaultCerts)) {
-        defaultCerts.forEach((dc) => {
-          if (!certsToSync.some((c) => c.verificationId === dc.verificationId)) {
-            certsToSync.push(dc);
-          }
-        });
-      }
-    }
-
-    if (certsToSync.length === 0) return;
-
     const studentEmail = user?.email || userProfile?.email || 'shaivikagroups@gmail.com';
     const studentId = uid;
 
-    certsToSync.forEach((cert) => {
-      const syncKey = `shaivika_cert_synced_${cert.verificationId}`;
-      if (localStorage.getItem(syncKey) === 'true') return;
+    const fetchAndSyncFromBackend = async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/student/${studentEmail}`);
+        if (response.ok) {
+          const resData = await response.json();
+          if (resData.success && Array.isArray(resData.data)) {
+            resData.data.forEach((backendCert: any) => {
+              const mappedCert: Certificate = {
+                id: `cert_${backendCert.courseId}_${Date.now()}`,
+                courseId: backendCert.courseId,
+                courseTitle: backendCert.courseName || backendCert.courseTitle || 'Course',
+                studentName: backendCert.studentName,
+                studentId: backendCert.studentId,
+                instructorName: backendCert.instructorName || 'Shaivika Groups Board',
+                completionDate: backendCert.completionDate || backendCert.issueDate,
+                verificationId: backendCert.certificateId || backendCert.verificationId,
+                googleDriveLink: backendCert.pdfUrl || backendCert.googleDriveLink,
+              };
+              certificateService.saveExternalCertificate(studentId, mappedCert);
+              localStorage.setItem(`shaivika_cert_synced_${mappedCert.verificationId}`, 'true');
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to fetch certificates from backend registry:', err);
+      }
+    };
 
-      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/complete-and-deliver`, {
+    fetchAndSyncFromBackend().then(() => {
+      // Collect certificates from both active user and default student keys
+      const certsToSync: Certificate[] = [];
+      
+      const activeCerts = certificateService.getCertificates(uid);
+      if (Array.isArray(activeCerts)) certsToSync.push(...activeCerts);
+      
+      if (uid !== 'default_student') {
+        const defaultCerts = certificateService.getCertificates('default_student');
+        if (Array.isArray(defaultCerts)) {
+          defaultCerts.forEach((dc) => {
+            if (!certsToSync.some((c) => c.verificationId === dc.verificationId)) {
+              certsToSync.push(dc);
+            }
+          });
+        }
+      }
+
+      if (certsToSync.length === 0) return;
+
+      const syncCertificate = async (cert: any) => {
+        const isMockId = String(cert.verificationId).startsWith('KQ-');
+        const syncKey = `shaivika_cert_synced_${cert.verificationId}`;
+        if (localStorage.getItem(syncKey) === 'true' && !isMockId) return;
+
+        // Resolve actual modules count dynamically from course progress data
+        const progressItem = coursesProgress.find(p => String(p.course.id) === String(cert.courseId));
+        const actualModulesCount = (progressItem?.course?.modules && progressItem.course.modules.length) || 
+                                   (progressItem?.course?.syllabus && progressItem.course.syllabus.length) || 
+                                   cert.modulesCount || 8;
+
+        try {
+          let token: string | null = null;
+          if (user) {
+            try {
+              token = await user.getIdToken();
+            } catch (tErr) {
+              console.warn('Failed to fetch initial ID token:', tErr);
+            }
+          }
+
+          const getHeaders = (t: string | null) => {
+            const h: Record<string, string> = { 'Content-Type': 'application/json' };
+            if (t) {
+              h['Authorization'] = `Bearer ${t}`;
+            }
+            return h;
+          };
+
+          let response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/complete-and-deliver`, {
+            method: 'POST',
+            headers: getHeaders(token),
+            body: JSON.stringify({
+              studentId,
+              studentName,
+              studentEmail,
+              courseId: cert.courseId,
+              courseTitle: cert.courseTitle,
+              completionPercentage: 100,
+              instructorName: cert.instructorName || 'Shaivika Groups Board',
+              courseDuration: cert.courseDuration || '24 Hours',
+              modulesCount: actualModulesCount,
+              verificationId: cert.verificationId,
+              forceRegenerate: true
+            }),
+          });
+
+          let data = await response.json();
+          const isAuthError = response.status === 401 || (data.error && String(data.error).toLowerCase().includes('firebase id token'));
+
+          if (isAuthError && user) {
+            console.warn('Sync request unauthorized (token expired/invalid). Refreshing token...');
+            try {
+              token = await user.getIdToken(true);
+              response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/complete-and-deliver`, {
+                method: 'POST',
+                headers: getHeaders(token),
+                body: JSON.stringify({
+                  studentId,
+                  studentName,
+                  studentEmail,
+                  courseId: cert.courseId,
+                  courseTitle: cert.courseTitle,
+                  completionPercentage: 100,
+                  instructorName: cert.instructorName || 'Shaivika Groups Board',
+                  courseDuration: cert.courseDuration || '24 Hours',
+                  modulesCount: actualModulesCount,
+                  verificationId: cert.verificationId,
+                  forceRegenerate: true
+                }),
+              });
+              data = await response.json();
+            } catch (refreshErr) {
+              console.error('Failed to retry sync with refreshed ID token:', refreshErr);
+            }
+          }
+
+          if (response.ok && data && data.success) {
+            localStorage.setItem(syncKey, 'true');
+            localStorage.setItem(`shaivika_cert_synced_${data.certificateId}`, 'true');
+
+            // Update local certificate with the real backend data
+            const allCerts = certificateService.getCertificates(studentId);
+            const found = allCerts.find(c => c.courseId === cert.courseId);
+            if (found) {
+              found.verificationId = data.certificateId;
+              found.googleDriveLink = data.googleDriveLink;
+              found.modulesCount = actualModulesCount;
+              certificateService.saveExternalCertificate(studentId, found);
+            }
+          }
+        } catch (err) {
+          console.warn('Certificate registry sync error:', err);
+        }
+      };
+
+      certsToSync.forEach((cert) => {
+        syncCertificate(cert);
+      });
+    });
+  }, [earnedCerts, user, userProfile, studentName, certificateService]);
+
+  const handleViewCertificate = async (cert: Certificate) => {
+    if (loadingCertId) return;
+    const isMock = String(cert.verificationId).startsWith('KQ-') || cert.verificationId === 'KQ-CERT-MOCK-ID';
+    if (!isMock) {
+      setActivePreviewCert(cert);
+      return;
+    }
+
+    setLoadingCertId(cert.courseId);
+    const toastId = toast.loading('Retrieving official verified certificate from registry...');
+    try {
+      const uid = userProfile?.uid || user?.uid || 'default_student';
+      const studentEmail = user?.email || userProfile?.email || 'shaivikagroups@gmail.com';
+      const studentId = uid;
+
+      // 1. Query the student's certificates on backend to see if it's already there
+      const verifyRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/student/${studentEmail}`);
+      if (verifyRes.ok) {
+        const verifyData = await verifyRes.json();
+        if (verifyData.success && Array.isArray(verifyData.data)) {
+          const matched = verifyData.data.find((c: any) => String(c.courseId) === String(cert.courseId));
+          if (matched && matched.certificateId) {
+            const updated: Certificate = {
+              ...cert,
+              verificationId: matched.certificateId,
+              googleDriveLink: matched.pdfUrl || matched.googleDriveLink,
+            };
+            certificateService.saveExternalCertificate(studentId, updated);
+            toast.success('Certificate loaded successfully!', { id: toastId });
+            setActivePreviewCert(updated);
+            setLoadingCertId(null);
+            return;
+          }
+        }
+      }
+
+      // 2. Trigger generation
+      const progressItem = coursesProgress.find(p => String(p.course.id) === String(cert.courseId));
+      const actualModulesCount = (progressItem?.course?.modules && progressItem.course.modules.length) || 
+                                 (progressItem?.course?.syllabus && progressItem.course.syllabus.length) || 
+                                 cert.modulesCount || 8;
+
+      let token: string | null = null;
+      if (user) {
+        try {
+          token = await user.getIdToken();
+        } catch {}
+      }
+
+      const getHeaders = (t: string | null) => {
+        const h: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (t) h['Authorization'] = `Bearer ${t}`;
+        return h;
+      };
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/complete-and-deliver`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(token),
         body: JSON.stringify({
           studentId,
           studentName,
@@ -452,22 +634,33 @@ export const Dashboard: React.FC = () => {
           completionPercentage: 100,
           instructorName: cert.instructorName || 'Shaivika Groups Board',
           courseDuration: cert.courseDuration || '24 Hours',
-          modulesCount: cert.modulesCount || 8,
+          modulesCount: actualModulesCount,
           verificationId: cert.verificationId,
           forceRegenerate: true
         }),
-      })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data && data.success) {
-          localStorage.setItem(syncKey, 'true');
-        }
-      })
-      .catch((err) => {
-        console.warn('Certificate registry sync error:', err);
       });
-    });
-  }, [earnedCerts, user, userProfile, studentName, certificateService]);
+
+      const data = await response.json();
+      if (response.ok && data.success) {
+        const updated: Certificate = {
+          ...cert,
+          verificationId: data.certificateId,
+          googleDriveLink: data.googleDriveLink,
+          modulesCount: actualModulesCount,
+        };
+        certificateService.saveExternalCertificate(studentId, updated);
+        toast.success('Official Certificate generated successfully!', { id: toastId });
+        setActivePreviewCert(updated);
+      } else {
+        toast.error(data.error || 'Failed to retrieve official certificate.', { id: toastId });
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Network error. Failed to retrieve official certificate.', { id: toastId });
+    } finally {
+      setLoadingCertId(null);
+    }
+  };
 
   // Active courses (progress > 0 and < 100)
   let activeLearningCourses = coursesProgress.filter((c) => c.percentage > 0 && c.percentage < 100);
@@ -1296,30 +1489,50 @@ export const Dashboard: React.FC = () => {
 
                         <div className="grid grid-cols-1 gap-2 pt-2">
                           <button
-                            onClick={() => setActivePreviewCert(cert)}
+                            onClick={() => handleViewCertificate(cert)}
                             className="w-full bg-slate-900 hover:bg-slate-800 dark:bg-cyan-600 dark:hover:bg-cyan-500 text-white font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
                           >
                             <Award className="w-4 h-4 text-cyan-400 dark:text-white" />
                             <span>View Certificate</span>
                           </button>
 
-                          <a
-                            href={`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/download?certificateId=${cert.verificationId}&studentId=${cert.studentId}&studentName=${encodeURIComponent(cert.studentName)}&courseTitle=${encodeURIComponent(cert.courseTitle)}&completionDate=${encodeURIComponent(cert.completionDate)}`}
-                            className="w-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
-                          >
-                            <Download className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
-                            <span>Download PDF</span>
-                          </a>
+                          {String(cert.verificationId).startsWith('KQ-') || cert.verificationId === 'KQ-CERT-MOCK-ID' ? (
+                            <button
+                              disabled
+                              className="w-full bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl cursor-not-allowed flex items-center justify-center gap-1.5 border border-slate-200 dark:border-slate-700"
+                            >
+                              <Download className="w-4 h-4 text-slate-400" />
+                              <span>Download PDF (Sync Pending)</span>
+                            </button>
+                          ) : (
+                            <a
+                              href={`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/download?certificateId=${cert.verificationId}&studentId=${cert.studentId}&studentName=${encodeURIComponent(cert.studentName)}&courseTitle=${encodeURIComponent(cert.courseTitle)}&completionDate=${encodeURIComponent(cert.completionDate)}`}
+                              className="w-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                            >
+                              <Download className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
+                              <span>Download PDF</span>
+                            </a>
+                          )}
 
-                          <a
-                            href={`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/verify/${cert.verificationId}?studentId=${cert.studentId}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="w-full bg-slate-50 hover:bg-slate-100 dark:bg-slate-950 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer text-center"
-                          >
-                            <ExternalLink className="w-4 h-4 text-sky-500 dark:text-cyan-400" />
-                            <span>Verify Credential</span>
-                          </a>
+                          {String(cert.verificationId).startsWith('KQ-') || cert.verificationId === 'KQ-CERT-MOCK-ID' ? (
+                            <button
+                              disabled
+                              className="w-full bg-slate-50 dark:bg-slate-950 text-slate-400 dark:text-slate-500 font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl cursor-not-allowed flex items-center justify-center gap-1.5 border border-slate-200 dark:border-slate-800"
+                            >
+                              <ExternalLink className="w-4 h-4 text-slate-400" />
+                              <span>Verify Credential (Sync Pending)</span>
+                            </button>
+                          ) : (
+                            <a
+                              href={`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/verify/${cert.verificationId}?studentId=${cert.studentId}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="w-full bg-slate-50 hover:bg-slate-100 dark:bg-slate-950 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer text-center"
+                            >
+                              <ExternalLink className="w-4 h-4 text-sky-500 dark:text-cyan-400" />
+                              <span>Verify Credential</span>
+                            </a>
+                          )}
                         </div>
                       </div>
                     ))}

@@ -43,9 +43,16 @@ if (!getApps().length) {
         clientEmail: env.FIREBASE_CLIENT_EMAIL,
         privateKey: cleanPrivateKey,
       });
+      // Initialize default app for Firestore database access (connected to shaivika-ai-lms-platform)
       initializeApp({ credential });
       hasValidCredentials = true;
       console.log('🎉 Firebase Admin SDK initialized successfully!');
+
+      // Initialize secondary app specifically for verifying shaivika-lms-ai frontend auth tokens
+      initializeApp({
+        projectId: 'shaivika-lms-ai',
+      }, 'authApp');
+      console.log('🎉 Firebase Admin SDK authApp initialized successfully for shaivika-lms-ai!');
     } catch (err: any) {
       console.warn('⚠️ Firebase Admin Cert Initialization Notice:', err?.message || err);
     }
@@ -90,5 +97,7 @@ const createDbMock = (): Firestore => {
 
 export const isFirebaseAdminInitialized = (): boolean => getApps().length > 0 && hasValidCredentials;
 export const db = isFirebaseAdminInitialized() ? getFirestore() : (createDbMock() as Firestore);
-export const adminAuth = isFirebaseAdminInitialized() ? getAuth() : ({} as Auth);
+export const adminAuth = isFirebaseAdminInitialized()
+  ? getAuth(getApps().find(app => app.name === 'authApp') || getApps()[0])
+  : ({} as Auth);
 export const storage = isFirebaseAdminInitialized() ? getStorage() : ({} as Storage);

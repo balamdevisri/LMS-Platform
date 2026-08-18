@@ -93,19 +93,9 @@ export class GoogleSheetsService {
     }
   }
 
-  /**
-   * Appends a new certificate row to the Certificates registry sheet via the Google Apps Script Web App
-   */
   public async appendCertificateRow(data: CertificateRegistryData): Promise<boolean> {
     try {
       logger.info(`[GOOGLE SHEETS WEB APP] Appending Certificate ID ${data.certificateId} via HTTP POST...`);
-
-      // Check if it already exists to prevent duplicate entries
-      const existing = await this.getCertificateById(data.certificateId);
-      if (existing) {
-        logger.warn(`[GOOGLE SHEETS WEB APP] ⚠️ Certificate ID ${data.certificateId} already registered. Skipping append.`);
-        return false;
-      }
 
       const response = await fetch(this.scriptUrl, {
         method: 'POST',
@@ -124,12 +114,13 @@ export class GoogleSheetsService {
       const resText = await response.text();
       try {
         const resJson = JSON.parse(resText);
-        if (resJson && resJson.success === false) {
-          logger.error(`[GOOGLE SHEETS WEB APP] ❌ Apps Script reported failure: ${resJson.error || 'Unknown error'}`);
+        if (!resJson || resJson.success !== true) {
+          logger.error(`[GOOGLE SHEETS WEB APP] ❌ Apps Script reported failure: ${resJson?.error || 'Unknown error'}`);
           return false;
         }
-      } catch (e) {
-        // Plain text return ok
+      } catch (err: any) {
+        logger.error(`[GOOGLE SHEETS WEB APP] ❌ Failed to parse Apps Script response as JSON: ${err.message}. Response snippet: ${resText.substring(0, 200)}`);
+        return false;
       }
 
       logger.info(`[GOOGLE SHEETS WEB APP] 📝 Logged Certificate ${data.certificateId} successfully.`);
@@ -267,8 +258,68 @@ export class GoogleSheetsService {
       certificateStatus: raw.certificateStatus || raw.CertificateStatus || raw[8] || 'Issued',
       emailStatus: raw.emailStatus || raw.EmailStatus || raw[9] || 'Sent',
       generatedTimestamp: raw.generatedTimestamp || raw.GeneratedTimestamp || raw[10] || '',
-      downloadCount: Number(raw.downloadCount || raw.DownloadCount || raw[11] || 0),
     };
+  }
+
+  /**
+   * Cleans up wrong/test/duplicate certificate rows matching student email and course ID via Google Apps Script Web App
+   */
+  public async cleanupCertificateRows(studentEmail: string, courseId: string): Promise<boolean> {
+    try {
+      logger.info(`[GOOGLE SHEETS WEB APP] Triggering cleanup of duplicate/test certificate rows for ${studentEmail} in course ${courseId}...`);
+      const response = await fetch(this.scriptUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'cleanup',
+          studentEmail,
+          courseId,
+        }),
+      });
+
+      if (response.ok) {
+        const resText = await response.text();
+        const data = JSON.parse(resText);
+        if (data && data.success === true) {
+          logger.info(`[GOOGLE SHEETS WEB APP] ✅ Cleanup completed successfully (rows deleted: ${data.rowsDeleted}).`);
+          return true;
+        }
+      }
+      return false;
+    } catch (err: any) {
+      logger.warn(`[GOOGLE SHEETS WEB APP] cleanupCertificateRows notice/failed: ${err?.message || err}`);
+      return false;
+    }
+  }
+
+  /**
+   * Reset the sheet (delete all rows below row 1) and optionally insert one production row.
+   */
+  public async resetAndInitCertificateRegistry(data?: CertificateRegistryData): Promise<boolean> {
+    try {
+      logger.info(`[GOOGLE SHEETS WEB APP] Resetting registry sheet and seeding production row...`);
+      const response = await fetch(this.scriptUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'resetAndInit',
+          ...(data || {}),
+        }),
+      });
+
+      if (response.ok) {
+        const resText = await response.text();
+        const resJson = JSON.parse(resText);
+        if (resJson && resJson.success === true) {
+          logger.info(`[GOOGLE SHEETS WEB APP] ✅ ${resJson.message}`);
+          return true;
+        }
+      }
+      return false;
+    } catch (err: any) {
+      logger.error(`[GOOGLE SHEETS WEB APP] ❌ resetAndInitCertificateRegistry error: ${err?.message || err}`);
+      return false;
+    }
   }
 }
 

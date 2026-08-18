@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { ShieldCheck, ShieldAlert, Award, Calendar, User, BookOpen, Download, Loader2, ArrowLeft } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -27,6 +28,7 @@ export const VerifyCertificate: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [certificate, setCertificate] = useState<VerifiedCertificate | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     if (!certId) {
@@ -39,8 +41,43 @@ export const VerifyCertificate: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`${API_BASE_URL}/certificates/verify/${encodeURIComponent(certId)}`);
-        const data = await response.json();
+        let token: string | null = null;
+        if (user) {
+          try {
+            token = await user.getIdToken();
+          } catch (tErr) {
+            console.warn('Failed to fetch initial ID token:', tErr);
+          }
+        }
+
+        const getHeaders = (t: string | null) => {
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+          if (t) {
+            headers['Authorization'] = `Bearer ${t}`;
+          }
+          return headers;
+        };
+
+        let response = await fetch(`${API_BASE_URL}/certificates/verify/${encodeURIComponent(certId)}`, {
+          headers: getHeaders(token),
+        });
+
+        let data = await response.json();
+        const isAuthError = response.status === 401 || (data.error && String(data.error).toLowerCase().includes('firebase id token'));
+
+        if (isAuthError && user) {
+          console.warn('Verification request unauthorized (token expired/invalid). Refreshing token...');
+          try {
+            token = await user.getIdToken(true);
+            response = await fetch(`${API_BASE_URL}/certificates/verify/${encodeURIComponent(certId)}`, {
+              headers: getHeaders(token),
+            });
+            data = await response.json();
+          } catch (refreshErr) {
+            console.error('Failed to retry verification with refreshed ID token:', refreshErr);
+          }
+        }
+
         if (response.ok && data.success && data.data) {
           setCertificate(data.data);
         } else {
@@ -54,7 +91,7 @@ export const VerifyCertificate: React.FC = () => {
     };
 
     fetchVerification();
-  }, [certId]);
+  }, [certId, user]);
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col items-center justify-center p-4 sm:p-6 font-sans">
