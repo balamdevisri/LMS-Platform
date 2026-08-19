@@ -735,7 +735,8 @@ export class CertificateDeliveryService {
 
     // Direct download and verification URL preparation
     const downloadUrl = `${env.BACKEND_URL || 'http://localhost:5000'}/api/certificates/download?certificateId=${certificateId}&studentId=${payload.studentId}&studentName=${encodeURIComponent(payload.studentName)}&courseTitle=${encodeURIComponent(payload.courseTitle)}&completionDate=${encodeURIComponent(completionDate)}`;
-    const verifyUrl = `${env.FRONTEND_URL || 'http://localhost:5173'}/verify-certificate/${certificateId}?studentId=${payload.studentId}`;
+    const primaryFrontend = (env.FRONTEND_URL || 'https://www.kaizenq.in').split(',')[0].trim();
+    const verifyUrl = `${primaryFrontend}/verify-certificate/${certificateId}?studentId=${payload.studentId}`;
 
     // Step 4: Send Professional Email via Nodemailer SMTP with PDF Attachment & Direct Download Link
     const emailSubject = `Congratulations! Your Course Certificate is Ready`;

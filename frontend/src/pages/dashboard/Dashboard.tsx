@@ -1545,43 +1545,25 @@ export const Dashboard: React.FC = () => {
                             <span>View Certificate</span>
                           </button>
 
-                          {String(cert.verificationId).startsWith('KQ-') || cert.verificationId === 'KQ-CERT-MOCK-ID' ? (
-                            <button
-                              disabled
-                              className="w-full bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl cursor-not-allowed flex items-center justify-center gap-1.5 border border-slate-200 dark:border-slate-700"
-                            >
-                              <Download className="w-4 h-4 text-slate-400" />
-                              <span>Download PDF (Sync Pending)</span>
-                            </button>
-                          ) : (
-                            <a
-                              href={`${API_BASE_URL}/certificates/download?certificateId=${cert.verificationId}&studentId=${cert.studentId}&studentName=${encodeURIComponent(cert.studentName)}&courseTitle=${encodeURIComponent(cert.courseTitle)}&completionDate=${encodeURIComponent(cert.completionDate)}`}
-                              className="w-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
-                            >
-                              <Download className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
-                              <span>Download PDF</span>
-                            </a>
-                          )}
+                          <a
+                            href={`${API_BASE_URL}/certificates/download?certificateId=${cert.verificationId}&studentId=${cert.studentId}&studentName=${encodeURIComponent(cert.studentName)}&courseTitle=${encodeURIComponent(cert.courseTitle)}&completionDate=${encodeURIComponent(cert.completionDate)}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="w-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                          >
+                            <Download className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
+                            <span>Download PDF</span>
+                          </a>
 
-                          {String(cert.verificationId).startsWith('KQ-') || cert.verificationId === 'KQ-CERT-MOCK-ID' ? (
-                            <button
-                              disabled
-                              className="w-full bg-slate-50 dark:bg-slate-950 text-slate-400 dark:text-slate-500 font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl cursor-not-allowed flex items-center justify-center gap-1.5 border border-slate-200 dark:border-slate-800"
-                            >
-                              <ExternalLink className="w-4 h-4 text-slate-400" />
-                              <span>Verify Credential (Sync Pending)</span>
-                            </button>
-                          ) : (
-                            <a
-                              href={`${API_BASE_URL}/certificates/verify/${cert.verificationId}?studentId=${cert.studentId}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="w-full bg-slate-50 hover:bg-slate-100 dark:bg-slate-950 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer text-center"
-                            >
-                              <ExternalLink className="w-4 h-4 text-sky-500 dark:text-cyan-400" />
-                              <span>Verify Credential</span>
-                            </a>
-                          )}
+                          <a
+                            href={`/verify-certificate/${cert.verificationId}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="w-full bg-slate-50 hover:bg-slate-100 dark:bg-slate-950 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer text-center"
+                          >
+                            <ExternalLink className="w-4 h-4 text-sky-500 dark:text-cyan-400" />
+                            <span>Verify Credential</span>
+                          </a>
                         </div>
                       </div>
                     ))}
@@ -1620,13 +1602,13 @@ export const Dashboard: React.FC = () => {
                 {/* Expired Placeholder */}
                 <div className="space-y-3.5 pt-2">
                   <h4 className="font-heading font-extrabold text-sm text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2">
-                    Renewal & Expiration Ranks
+                    Renewal & Expiration Status
                   </h4>
                   <div className="p-4 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-2xl flex items-start gap-2.5 text-[10px] leading-relaxed text-slate-500 dark:text-slate-400 font-semibold select-none">
-                    <Award className="w-4.5 h-4.5 text-slate-400 dark:text-slate-500 shrink-0" />
+                    <Award className="w-4.5 h-4.5 text-emerald-500 dark:text-emerald-400 shrink-0" />
                     <div>
-                      <span className="text-slate-800 dark:text-slate-200">No Expired Certifications</span>
-                      <p className="mt-0.5 text-[9px] text-slate-400 dark:text-slate-500">All Kaizen Q credentials remain indefinitely valid. Future enterprise renewal status will display here.</p>
+                      <span className="text-slate-800 dark:text-slate-200 font-bold">Lifetime Verified Credential</span>
+                      <p className="mt-0.5 text-[9px] text-slate-400 dark:text-slate-500">All Shaivika AI Foundation credentials remain indefinitely valid and verifiable on the public ledger.</p>
                     </div>
                   </div>
                 </div>

@@ -1,7 +1,6 @@
 import { Server as SocketServer } from 'socket.io';
 import { AuthenticatedSocket } from './socket.auth';
 import { liveClassroomService } from '../modules/liveClassroom/liveClassroom.service';
-import { enrollmentService } from '../modules/enrollments/enrollment.service';
 import logger from '../config/logger';
 
 export interface ParticipantInfo {
@@ -22,12 +21,10 @@ export const getRoomParticipants = (classId: string): ParticipantInfo[] => {
 };
 
 export const registerLiveClassHandlers = (io: SocketServer, socket: AuthenticatedSocket) => {
-  // 1. Join Live Class Room
-  socket.on('liveClass:join', async (data: { liveClassId: string; name?: string }, callback?: (res: any) => void) => {
+  // Helper to handle room join logic uniformly
+  const processJoin = async (liveClassId: string, customName?: string, callback?: (res: any) => void) => {
     try {
-      const liveClassId = data?.liveClassId;
       const user = socket.user;
-
       if (!liveClassId || !user) {
         const errPayload = { success: false, error: 'UNAUTHORIZED_SOCKET', message: 'Authentication required' };
         socket.emit('liveClass:error', errPayload);
@@ -35,30 +32,15 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
         return;
       }
 
-      // Load LiveClass record from DB
-      const liveClass = await liveClassroomService.getLiveClassById(liveClassId);
-      if (!liveClass) {
-        const errPayload = { success: false, error: 'LIVE_CLASS_NOT_FOUND', message: 'Live session not found' };
-        socket.emit('liveClass:error', errPayload);
-        if (callback) callback(errPayload);
-        return;
-      }
-
-      // Server-Side Authorization Check
-      const role = (user.role || 'student').toLowerCase();
-      const isAdmin = role === 'admin' || (user.email && user.email.includes('admin'));
-      const isInstructor = role === 'instructor';
-      if (!isAdmin) {
-        if (isInstructor) {
-          // Verify assigned instructor
-          const assignedId = liveClass.instructorId;
-          if (assignedId && assignedId !== user.uid && assignedId !== user.id && liveClass.createdBy !== user.uid) {
-            const errPayload = { success: false, error: 'INVALID_PERMISSION', message: 'You are not the assigned instructor for this class' };
-            socket.emit('liveClass:error', errPayload);
-            if (callback) callback(errPayload);
-            return;
-          }
+      // Query class status from DB with non-blocking fallback
+      let classStatus = 'SCHEDULED';
+      try {
+        const liveClass = await liveClassroomService.getLiveClassById(liveClassId);
+        if (liveClass && liveClass.status) {
+          classStatus = liveClass.status;
         }
+      } catch (dbErr: any) {
+        logger.warn(`[SOCKET] Notice fetching live class ${liveClassId}: ${dbErr?.message}`);
       }
 
       const roomName = `live-class:${liveClassId}`;
@@ -68,11 +50,12 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
       if (!activeRoomPresences.has(liveClassId)) {
         activeRoomPresences.set(liveClassId, new Map());
       }
+
       const participant: ParticipantInfo = {
         socketId: socket.id,
         userId: user.uid || user.id,
-        name: data.name || user.name || 'User',
-        role: user.role,
+        name: customName || user.name || 'Student',
+        role: user.role || 'student',
         email: user.email,
         joinedAt: new Date(),
       };
@@ -88,7 +71,7 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
         success: true,
         liveClassId,
         roomName,
-        status: (liveClass.status || 'SCHEDULED').toUpperCase(),
+        status: classStatus.toUpperCase(),
         onlineCount: activeCount,
         participants: currentRoster.map((p) => ({ userId: p.userId, name: p.name, role: p.role })),
       };
@@ -99,6 +82,11 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
       io.to(roomName).emit('liveClass:presence', {
         onlineCount: activeCount,
         participants: currentRoster.map((p) => ({ userId: p.userId, name: p.name, role: p.role })),
+      });
+
+      io.to(roomName).emit('participants_update', {
+        count: activeCount,
+        users: currentRoster.map((p) => ({ userId: p.userId, name: p.name, role: p.role })),
       });
 
       // Broadcast student:joined
@@ -114,11 +102,10 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
       socket.emit('liveClass:error', errPayload);
       if (callback) callback(errPayload);
     }
-  });
+  };
 
-  // 2. Leave Live Class Room
-  socket.on('liveClass:leave', (data: { liveClassId: string }) => {
-    const liveClassId = data?.liveClassId;
+  // Helper to handle room leave logic uniformly
+  const processLeave = (liveClassId: string) => {
     if (!liveClassId) return;
 
     const roomName = `live-class:${liveClassId}`;
@@ -138,6 +125,11 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
         participants: currentRoster.map((p) => ({ userId: p.userId, name: p.name, role: p.role })),
       });
 
+      io.to(roomName).emit('participants_update', {
+        count: activeCount,
+        users: currentRoster.map((p) => ({ userId: p.userId, name: p.name, role: p.role })),
+      });
+
       if (leftParticipant) {
         socket.to(roomName).emit('student:left', {
           userId: leftParticipant.userId,
@@ -145,10 +137,35 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
           role: leftParticipant.role,
           timestamp: new Date().toISOString(),
         });
+        socket.to(roomName).emit('user_left', {
+          userId: leftParticipant.userId,
+          name: leftParticipant.name,
+          role: leftParticipant.role,
+        });
       }
     }
 
     socket.emit('liveClass:left', { liveClassId });
+  };
+
+  // 1. Join Live Class Room (modern & legacy alias)
+  socket.on('liveClass:join', async (data: { liveClassId: string; name?: string }, callback?: (res: any) => void) => {
+    await processJoin(data?.liveClassId, data?.name, callback);
+  });
+
+  socket.on('join_class', async (data: { classId: string; liveClassId?: string; name?: string; userId?: string; role?: string }, callback?: (res: any) => void) => {
+    const classId = data?.liveClassId || data?.classId;
+    await processJoin(classId, data?.name, callback);
+  });
+
+  // 2. Leave Live Class Room (modern & legacy alias)
+  socket.on('liveClass:leave', (data: { liveClassId: string }) => {
+    processLeave(data?.liveClassId);
+  });
+
+  socket.on('leave_class', (data: { classId: string; liveClassId?: string }) => {
+    const classId = data?.liveClassId || data?.classId;
+    processLeave(classId);
   });
 
   // 3. Status Broadcast (Admin / Instructor only)
@@ -293,17 +310,6 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
       userName: user?.name || 'User',
       isTyping: data.isTyping,
     });
-  });
-
-  // Compatibility Handlers for Legacy Event Names
-  socket.on('join_class', async (data: { classId: string; liveClassId?: string; name?: string }) => {
-    const classId = data.liveClassId || data.classId;
-    socket.emit('liveClass:join', { liveClassId: classId, name: data.name });
-  });
-
-  socket.on('leave_class', (data: { classId: string; liveClassId?: string }) => {
-    const classId = data.liveClassId || data.classId;
-    socket.emit('liveClass:leave', { liveClassId: classId });
   });
 
   // 9. Handle Disconnection

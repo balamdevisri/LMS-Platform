@@ -8,10 +8,12 @@ export class QRCodeService {
   public async generateVerificationQRCodeBuffer(
     certificateId: string,
     studentId: string,
-    verificationBaseUrl: string = (process.env.FRONTEND_URL || 'http://localhost:5173') + '/verify-certificate'
+    verificationBaseUrl?: string
   ): Promise<Buffer> {
     try {
-      const verificationUrl = `${verificationBaseUrl}/${certificateId}?studentId=${studentId}`;
+      const primaryFrontend = (process.env.FRONTEND_URL || 'https://www.kaizenq.in').split(',')[0].trim();
+      const baseUrl = verificationBaseUrl || `${primaryFrontend}/verify-certificate`;
+      const verificationUrl = `${baseUrl}/${certificateId}?studentId=${studentId}`;
 
       const qrBuffer = await QRCode.toBuffer(verificationUrl, {
         type: 'png',

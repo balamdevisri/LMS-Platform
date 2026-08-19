@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { FileText, Printer, Save, Sparkles, Plus, Trash2, Award, Briefcase, GraduationCap } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { FileText, Printer, Save, Sparkles, Plus, Trash2, Award, Briefcase, GraduationCap, RefreshCw, Wand2, Check } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { API_BASE_URL } from '@/config/api';
+import { CertificateService } from '@/services/achievementService';
 import { toast } from 'sonner';
 
 interface Experience {
@@ -17,18 +19,44 @@ interface Education {
 }
 
 export const ResumeBuilder: React.FC = () => {
-  const { userProfile } = useAuth();
+  const { user, userProfile } = useAuth();
+  const userId = userProfile?.uid || user?.uid || 'default_student';
 
-  // Populate from localstorage cache if available, else default to student credentials
+  const [fullName, setFullName] = useState(
+    localStorage.getItem('shaivika_resume_fullname') ||
+    userProfile?.name ||
+    user?.displayName ||
+    'Student Scholar'
+  );
+
+  const [email, setEmail] = useState(
+    localStorage.getItem('shaivika_resume_email') ||
+    userProfile?.email ||
+    user?.email ||
+    'scholar@shaivika.ai'
+  );
+
+  const [phone, setPhone] = useState(
+    localStorage.getItem('shaivika_resume_phone') || '+91 98765 43210'
+  );
+
+  const [location, setLocation] = useState(
+    localStorage.getItem('shaivika_resume_location') || 'Hyderabad, India'
+  );
+
+  const [jobTitle, setJobTitle] = useState(
+    localStorage.getItem('shaivika_resume_title') || 'Full Stack & AI Engineer'
+  );
+
   const [summary, setSummary] = useState(
     localStorage.getItem('shaivika_resume_summary') ||
-    'Highly motivated engineer specializing in system administration, database design, and version control architecture.'
+    'Dedicated engineering professional mastering system architecture, full stack React & Node.js development, and AI engineering practices at Shaivika AI Foundation LMS.'
   );
 
   const [skills, setSkills] = useState<string[]>(() => {
     const cached = localStorage.getItem('shaivika_resume_skills');
     if (cached) return JSON.parse(cached);
-    return ['Git & GitHub', 'Linux Kernel Systems', 'RDBMS Database Schema Normalization', 'Bash Scripting', 'SQL Queries Design'];
+    return ['React.js', 'TypeScript', 'Node.js Express', 'Python AI Engineering', 'Git & GitHub', 'Linux Systems', 'SQL Database Normalization'];
   });
 
   const [newSkill, setNewSkill] = useState('');
@@ -38,10 +66,10 @@ export const ResumeBuilder: React.FC = () => {
     if (cached) return JSON.parse(cached);
     return [
       {
-        role: 'LMS Platform Specialist Intern',
-        company: 'Shaivika Groups AI Labs',
+        role: 'AI & Full Stack Engineer Intern',
+        company: 'Shaivika AI Labs',
         duration: '2026 - Present',
-        desc: 'Implemented auto-validation scripts, optimized database schemas, and structured modular learning programs.',
+        desc: 'Implemented modular course learning systems, optimized database queries, and integrated real-time WebSocket speed leaderboard telemetry.',
       },
     ];
   });
@@ -51,46 +79,157 @@ export const ResumeBuilder: React.FC = () => {
     if (cached) return JSON.parse(cached);
     return [
       {
-        degree: 'Bachelor of Technology in Computer Science & Engineering',
-        school: 'University Institute of Technology',
+        degree: 'Bachelor of Technology in Computer Science & AI',
+        school: 'University Institute of Engineering & Technology',
         duration: '2023 - 2027',
       },
     ];
   });
 
+  const [certifications, setCertifications] = useState<string[]>(() => {
+    const cached = localStorage.getItem('shaivika_resume_certifications');
+    if (cached) return JSON.parse(cached);
+    return ['Shaivika AI Foundation: Full Stack React & Node.js Mastery'];
+  });
+
+  const [template, setTemplate] = useState<'modern' | 'classic' | 'minimal'>('modern');
   const [newRole, setNewRole] = useState({ role: '', company: '', duration: '', desc: '' });
   const [newEd, setNewEd] = useState({ degree: '', school: '', duration: '' });
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSave = () => {
+  // Load from backend on mount
+  useEffect(() => {
+    if (!userId) return;
+    fetch(`${API_BASE_URL}/resume/me?studentId=${userId}`)
+      .then(res => res.json())
+      .then(json => {
+        if (json.success && json.data) {
+          const d = json.data;
+          if (d.fullName) setFullName(d.fullName);
+          if (d.email) setEmail(d.email);
+          if (d.phone) setPhone(d.phone);
+          if (d.location) setLocation(d.location);
+          if (d.title) setJobTitle(d.title);
+          if (d.summary) setSummary(d.summary);
+          if (Array.isArray(d.skills) && d.skills.length > 0) setSkills(d.skills);
+          if (Array.isArray(d.experience) && d.experience.length > 0) setExperience(d.experience);
+          if (Array.isArray(d.education) && d.education.length > 0) setEducation(d.education);
+          if (Array.isArray(d.certifications) && d.certifications.length > 0) setCertifications(d.certifications);
+          if (d.template) setTemplate(d.template);
+        }
+      })
+      .catch(() => {});
+  }, [userId]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    // 1. LocalStorage
+    localStorage.setItem('shaivika_resume_fullname', fullName);
+    localStorage.setItem('shaivika_resume_email', email);
+    localStorage.setItem('shaivika_resume_phone', phone);
+    localStorage.setItem('shaivika_resume_location', location);
+    localStorage.setItem('shaivika_resume_title', jobTitle);
     localStorage.setItem('shaivika_resume_summary', summary);
     localStorage.setItem('shaivika_resume_skills', JSON.stringify(skills));
     localStorage.setItem('shaivika_resume_experience', JSON.stringify(experience));
     localStorage.setItem('shaivika_resume_education', JSON.stringify(education));
-    toast.success('💾 Resume draft saved to local storage.');
+    localStorage.setItem('shaivika_resume_certifications', JSON.stringify(certifications));
+
+    // 2. Database API
+    try {
+      let token: string | null = null;
+      if (user) {
+        try {
+          token = await user.getIdToken();
+        } catch {}
+      }
+
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      await fetch(`${API_BASE_URL}/resume/me`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({
+          studentId: userId,
+          fullName,
+          email,
+          phone,
+          location,
+          title: jobTitle,
+          summary,
+          skills,
+          experience,
+          education,
+          certifications,
+          template,
+        }),
+      });
+
+      toast.success('💾 Resume saved to cloud database & local workspace!');
+    } catch {
+      toast.success('💾 Resume saved locally.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleAutoImport = () => {
+    const certService = new CertificateService();
+    const realCerts = certService.getCertificates(userId);
+    
+    if (realCerts.length > 0) {
+      const importedCerts = realCerts.map(c => `Shaivika AI Foundation: ${c.courseTitle} (ID: ${c.verificationId})`);
+      setCertifications(importedCerts);
+      localStorage.setItem('shaivika_resume_certifications', JSON.stringify(importedCerts));
+    }
+
+    // Pull skills from portfolio if available
+    try {
+      const pSkillsRaw = localStorage.getItem('shaivika_portfolio_skills');
+      if (pSkillsRaw) {
+        const pSkills = JSON.parse(pSkillsRaw);
+        if (Array.isArray(pSkills) && pSkills.length > 0) {
+          const mergedSkills = Array.from(new Set([...skills, ...pSkills]));
+          setSkills(mergedSkills);
+          localStorage.setItem('shaivika_resume_skills', JSON.stringify(mergedSkills));
+        }
+      }
+    } catch {}
+
+    toast.success('⚡ Auto-imported verified certificates & skills into resume!');
   };
 
   const handleAddSkill = () => {
     if (newSkill.trim() && !skills.includes(newSkill.trim())) {
-      setSkills([...skills, newSkill.trim()]);
+      const updated = [...skills, newSkill.trim()];
+      setSkills(updated);
       setNewSkill('');
+      localStorage.setItem('shaivika_resume_skills', JSON.stringify(updated));
     }
   };
 
   const handleRemoveSkill = (index: number) => {
-    setSkills(skills.filter((_, i) => i !== index));
+    const updated = skills.filter((_, i) => i !== index);
+    setSkills(updated);
+    localStorage.setItem('shaivika_resume_skills', JSON.stringify(updated));
   };
 
   const handleAddExperience = () => {
     if (newRole.role && newRole.company) {
-      setExperience([...experience, newRole]);
+      const updated = [...experience, newRole];
+      setExperience(updated);
       setNewRole({ role: '', company: '', duration: '', desc: '' });
+      localStorage.setItem('shaivika_resume_experience', JSON.stringify(updated));
     }
   };
 
   const handleAddEducation = () => {
     if (newEd.degree && newEd.school) {
-      setEducation([...education, newEd]);
+      const updated = [...education, newEd];
+      setEducation(updated);
       setNewEd({ degree: '', school: '', duration: '' });
+      localStorage.setItem('shaivika_resume_education', JSON.stringify(updated));
     }
   };
 
@@ -135,16 +274,25 @@ export const ResumeBuilder: React.FC = () => {
             <span>Interactive Resume Builder</span>
           </h2>
           <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
-            Build and export a print-perfect professional developer resume.
+            Build and export a print-perfect professional developer resume with Shaivika verified credentials.
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-2.5">
+          <button
+            onClick={handleAutoImport}
+            className="px-3.5 py-2 text-xs font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer hover:bg-amber-100"
+            title="Auto-import verified certificates and skills"
+          >
+            <Wand2 className="w-4 h-4 text-amber-500" />
+            <span>Auto-Import Credentials</span>
+          </button>
           <button
             onClick={handleSave}
+            disabled={isSaving}
             className="px-4 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 rounded-xl flex items-center gap-2 transition-all cursor-pointer"
           >
             <Save className="w-4 h-4" />
-            <span>Save Draft</span>
+            <span>{isSaving ? 'Saving...' : 'Save Draft'}</span>
           </button>
           <button
             onClick={handlePrint}
@@ -159,6 +307,51 @@ export const ResumeBuilder: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
         {/* Left Column: Form Editor */}
         <div className="no-print space-y-6">
+          {/* Contact Details Editor */}
+          <div className="p-6 rounded-3xl border border-sky-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-4">
+            <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+              <span>Personal & Contact Info</span>
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase block mb-1">Full Name</label>
+                <input
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="w-full p-2.5 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white font-medium"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase block mb-1">Job / Target Title</label>
+                <input
+                  type="text"
+                  value={jobTitle}
+                  onChange={(e) => setJobTitle(e.target.value)}
+                  className="w-full p-2.5 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white font-medium"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase block mb-1">Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full p-2.5 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white font-medium"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase block mb-1">Phone</label>
+                <input
+                  type="text"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full p-2.5 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white font-medium"
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Summary Section */}
           <div className="p-6 rounded-3xl border border-sky-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-4">
             <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
@@ -302,16 +495,16 @@ export const ResumeBuilder: React.FC = () => {
           <div className="border-b-2 border-slate-900 pb-5 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
             <div>
               <h1 className="text-3xl font-black tracking-tight text-slate-900 uppercase">
-                {userProfile?.name || 'Student Graduate'}
+                {fullName}
               </h1>
               <span className="text-[11px] font-extrabold text-indigo-700 bg-indigo-50 border border-indigo-150 px-2.5 py-0.5 rounded-md uppercase tracking-wider mt-1.5 inline-block">
-                Verified Specialist
+                {jobTitle}
               </span>
             </div>
             <div className="text-right text-[11px] font-bold text-slate-500 space-y-0.5">
-              <div className="text-slate-900 font-extrabold">{userProfile?.email || 'student@kaizenq.edu'}</div>
-              <div>Portfolio: verify.kaizenq.edu/p/{(userProfile?.email || '').split('@')[0]}</div>
-              <div>Certification Authority: KaizenQ AI LMS Platform</div>
+              <div className="text-slate-900 font-extrabold">{email}</div>
+              <div>{phone} • {location}</div>
+              <div className="text-indigo-600 font-bold">Certification Authority: Shaivika AI Foundation LMS</div>
             </div>
           </div>
 
@@ -340,33 +533,24 @@ export const ResumeBuilder: React.FC = () => {
           </div>
 
           {/* Verified Certificates & Courses */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest border-b border-slate-200 pb-1 flex items-center gap-2">
-              <Award className="w-4 h-4 text-amber-500 fill-amber-500/10 shrink-0" />
-              <span>Verified LMS Certifications & Tracks</span>
-            </h4>
+          {certifications && certifications.length > 0 && (
             <div className="space-y-3">
-              {/* Default Dynamic listing of completions */}
-              <div className="flex justify-between text-xs">
-                <div>
-                  <div className="font-extrabold text-slate-900">Database Management System (DBMS): Beginner to Advanced</div>
-                  <div className="text-[10px] text-slate-500 font-medium mt-0.5">Credential ID: KQ-DBMS-{new Date().getFullYear()}-00281</div>
-                </div>
-                <div className="text-right text-[10px] font-bold text-slate-500">
-                  Status: Verified (100% Completed)
-                </div>
-              </div>
-              <div className="flex justify-between text-xs">
-                <div>
-                  <div className="font-extrabold text-slate-900">Git & GitHub Mastery</div>
-                  <div className="text-[10px] text-slate-500 font-medium mt-0.5">Credential ID: KQ-GIT-{new Date().getFullYear()}-00192</div>
-                </div>
-                <div className="text-right text-[10px] font-bold text-slate-500">
-                  Status: Verified (100% Completed)
-                </div>
+              <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest border-b border-slate-200 pb-1 flex items-center gap-2">
+                <Award className="w-4 h-4 text-amber-500 fill-amber-500/10 shrink-0" />
+                <span>Verified Shaivika AI Foundation Certifications</span>
+              </h4>
+              <div className="space-y-2">
+                {certifications.map((cert, idx) => (
+                  <div key={idx} className="flex justify-between text-xs items-center bg-slate-50 p-2 rounded-lg border border-slate-200">
+                    <div className="font-bold text-slate-900">{cert}</div>
+                    <span className="text-[9px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0">
+                      Verified
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
+          )}
 
           {/* Work Experience */}
           {experience.length > 0 && (

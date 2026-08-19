@@ -74,6 +74,7 @@ const AdminLiveClassroom = lazyLoad(() => import('@/pages/liveClassroom/AdminLiv
 const LiveClassroomScreen = lazyLoad(() => import('@/pages/liveClassroom/LiveClassroomScreen'), 'LiveClassroomScreen');
 const MentorAnalytics = lazyLoad(() => import('@/pages/liveClassroom/MentorAnalytics'), 'MentorAnalytics');
 const VerifyCertificate = lazyLoad(() => import('@/pages/certificates/VerifyCertificate'), 'VerifyCertificate');
+const PublicPortfolio = lazyLoad(() => import('@/pages/portfolio/PublicPortfolio'), 'PublicPortfolio');
 const LiveClassPage = lazyLoad(() => import('@/pages/liveClass/LiveClassPage'), 'LiveClassPage');
 const AdminLiveClassList = lazyLoad(() => import('@/pages/liveClassroom/AdminLiveClassList'), 'AdminLiveClassList');
 const AdminCreateLiveClass = lazyLoad(() => import('@/pages/liveClassroom/AdminCreateLiveClass'), 'AdminCreateLiveClass');
@@ -104,6 +105,7 @@ const router = createBrowserRouter([
       { path: 'course/:slug', element: <CourseView /> },
       { path: 'verify-certificate', element: <VerifyCertificate /> },
       { path: 'verify-certificate/:verificationId', element: <VerifyCertificate /> },
+      { path: 'portfolio/:handleOrId', element: <PublicPortfolio /> },
       { path: 'unauthorized', element: <Unauthorized /> },
     ],
   },

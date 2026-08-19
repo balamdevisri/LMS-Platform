@@ -382,7 +382,7 @@ export class CertificateService {
     if (existing) return existing;
 
     const hashInput = `${courseId}_${studentName}_${Date.now()}`;
-    const verificationId = 'KQ-' + Array.from(hashInput)
+    const verificationId = 'SAI-' + Array.from(hashInput)
       .reduce((hash, char) => 0 | (hash * 33 + char.charCodeAt(0)), 5381)
       .toString(16)
       .toUpperCase()
@@ -394,7 +394,7 @@ export class CertificateService {
       courseTitle,
       studentName,
       studentId: studentId || 'STU-' + verificationId.substring(3),
-      instructorName,
+      instructorName: instructorName || 'Shaivika AI Foundation Faculty',
       completionDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
       verificationId,
       courseDuration,
@@ -411,6 +411,7 @@ export class CertificateService {
 
     return newCert;
   }
+
   saveExternalCertificate(userId: string, cert: Certificate): void {
     const certs = this.getCertificates(userId);
     const index = certs.findIndex(c => c.courseId === cert.courseId);
@@ -433,7 +434,7 @@ export class CertificateService {
         const existing = certs.find(c => c.courseId === courseIdStr);
         if (!existing) {
           const hashInput = `${courseIdStr}_${studentName}_${Date.now()}`;
-          const verificationId = 'KQ-' + Math.abs(Array.from(hashInput)
+          const verificationId = 'SAI-' + Math.abs(Array.from(hashInput)
             .reduce((hash, char) => 0 | (hash * 33 + char.charCodeAt(0)), 5381))
             .toString(16)
             .toUpperCase()
@@ -445,7 +446,7 @@ export class CertificateService {
             courseId: courseIdStr,
             courseTitle: p.course.title,
             studentName,
-            instructorName: p.course.instructor || 'Lead Instructor',
+            instructorName: p.course.instructor || 'Shaivika AI Foundation Faculty',
             completionDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
             verificationId,
             modulesCount
@@ -530,10 +531,10 @@ export class AchievementService {
       } catch (e) {}
     }
     return {
-      dailyStreak: 3, // Mock starting streak for onboarding visual engagement
+      dailyStreak: 1, // Real initial active day streak
       weeklyStreak: 1,
-      longestStreak: 4,
-      lastActiveDate: new Date(Date.now() - 86400000).toISOString().split('T')[0] // yesterday
+      longestStreak: 1,
+      lastActiveDate: new Date().toISOString().split('T')[0] // today
     };
   }
 
@@ -562,7 +563,7 @@ export class AchievementService {
       const xpService = new XPService();
       xpService.addXP(XP_CONFIG.DAILY_LEARNING, 'Daily Streak Active', userId);
     } else {
-      // Streak broken
+      // Streak reset to 1
       state.dailyStreak = 1;
       toast.info('⏰ Welcome back! A new daily learning streak has started.');
     }
@@ -609,14 +610,14 @@ export class LeaderboardService {
       const isCurrent = (s.id === userId || s.uid === userId || s.email === userId);
       const studentXp = isCurrent
         ? Math.max(s.xp || 0, userXp)
-        : (s.xp || (s.learningScore ? s.learningScore * 25 : 350));
+        : (s.xp || 0);
 
       const badgesCount = isCurrent
         ? Math.max(Array.isArray(s.badges) ? s.badges.length : 0, userBadges)
-        : (Array.isArray(s.badges) ? s.badges.length : (typeof s.badgesCount === 'number' ? s.badgesCount : Math.min(Math.floor(studentXp / 300), 8)));
+        : (Array.isArray(s.badges) ? s.badges.length : (typeof s.badgesCount === 'number' ? s.badgesCount : 0));
 
       const coursesCompleted = s.completedCourses || s.courses || (studentXp >= 1000 ? 1 : 0);
-      const streak = isCurrent ? userStreak : ((s as any).streak || (s as any).dailyStreak || Math.max(1, (studentXp % 7) + 1));
+      const streak = isCurrent ? userStreak : ((s as any).streak || (s as any).dailyStreak || 1);
       const level = getLevelForXP(studentXp);
       const levelTitle = getLevelTitle(level);
 
@@ -628,8 +629,8 @@ export class LeaderboardService {
         id: s.id || s.uid,
         name: isCurrent ? `${s.name || loggedInName}` : (s.name || s.fullName || s.email?.split('@')[0] || 'Student Scholar'),
         avatarUrl: s.photoURL || s.profilePhoto || undefined,
-        college: s.college,
-        branch: s.branch,
+        college: s.college || 'Shaivika AI Foundation',
+        branch: s.branch || 'Computer Science & AI',
         xp: studentXp,
         badgesCount,
         coursesCompleted,
@@ -652,22 +653,13 @@ export class LeaderboardService {
         streak: userStreak,
         level,
         levelTitle: getLevelTitle(level),
-        isCurrentUser: true
+        isCurrentUser: true,
+        college: 'Shaivika AI Foundation',
+        branch: 'AI Engineering'
       });
     }
 
-    // Filter scaling logic
-    if (filter === 'weekly') {
-      cohort.forEach((c) => {
-        c.xp = Math.round(c.xp * 0.25);
-      });
-    } else if (filter === 'monthly') {
-      cohort.forEach((c) => {
-        c.xp = Math.round(c.xp * 0.70);
-      });
-    }
-
-    // Sort by XP
+    // Sort strictly by real XP descending
     cohort.sort((a, b) => b.xp - a.xp);
 
     // Assign Rank index

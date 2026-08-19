@@ -27,8 +27,7 @@ export const CertificatePreviewModal: React.FC<CertificatePreviewModalProps> = (
 
   const dynamicStudentId = 
     certificate.studentId || 
-    user?.uid || 
-    'student_kaizenq';
+    (user?.uid ? 'STU-' + user.uid.substring(0, 6).toUpperCase() : 'STU-9901');
 
   // Dynamic course title fallback from course mapping or certificate
   const courseTitleMap: Record<string, string> = {

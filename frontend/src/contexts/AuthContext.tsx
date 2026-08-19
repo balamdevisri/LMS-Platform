@@ -720,36 +720,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const resetPassword = async (email: string): Promise<void> => {
-    const backendUrls = [
-      'http://localhost:5000/api/auth/forgot-password',
-      '/api/auth/forgot-password',
-    ];
+    // Custom Nodemailer Gmail SMTP Dispatcher (Firebase Default Email Disabled)
+    const resetUrl = `${window.location.origin}/auth/login?reset=true&email=${encodeURIComponent(email.trim().toLowerCase())}`;
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+      });
 
-    for (const url of backendUrls) {
-      try {
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email.trim().toLowerCase() }),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          return data;
-        }
-      } catch (err) {
-        console.warn(`Forgot password Nodemailer backend notice for ${url}:`, err);
+      if (response.ok) {
+        return await response.json();
       }
+    } catch (err) {
+      console.warn('Backend forgot-password endpoint notice:', err);
     }
 
-    // Custom Gmail SMTP Dispatcher (Firebase Default Email Disabled)
-    const resetUrl = `${window.location.origin}/auth/login?reset=true&email=${encodeURIComponent(email)}`;
-    const apiBaseUrl = typeof window !== 'undefined' && window.location.hostname === 'localhost'
-      ? 'http://localhost:5000/api'
-      : '/api';
-
     try {
-      await fetch(`${apiBaseUrl}/email/send`, {
+      await fetch(`${API_BASE_URL}/email/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -764,7 +753,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }),
       });
     } catch (e) {
-      console.warn('Backend custom password reset notice:', e);
+      console.warn('Backend custom password reset fallback notice:', e);
     }
   };
 
@@ -774,13 +763,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const isInstructorRole = userProfile?.role === 'instructor';
       const name = userProfile?.fullName || userProfile?.name || email.split('@')[0];
       const verificationUrl = `${window.location.origin}/auth/login?verified=true&email=${encodeURIComponent(email)}`;
-      const apiBaseUrl = typeof window !== 'undefined' && window.location.hostname === 'localhost'
-        ? 'http://localhost:5000/api'
-        : '/api';
 
       try {
         if (isInstructorRole) {
-          await fetch(`${apiBaseUrl}/email/send`, {
+          await fetch(`${API_BASE_URL}/email/send`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -792,18 +778,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 department: 'Computer Science & System Architecture',
                 qualification: 'Pending Verification',
                 experience: 'Not yet specified',
+                verificationUrl,
               },
             }),
           });
         } else {
-          await fetch(`${apiBaseUrl}/email/send`, {
+          await fetch(`${API_BASE_URL}/email/send`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              eventType: 'EMAIL_VERIFICATION',
+              eventType: 'REGISTRATION_PENDING',
               recipientEmail: email.toLowerCase().trim(),
               payload: {
-                userName: name,
+                studentName: name,
                 email: email.toLowerCase().trim(),
                 verificationUrl,
                 expiresInMinutes: 30,
@@ -812,7 +799,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           });
         }
       } catch (e) {
-        console.warn('Backend custom email dispatch notice:', e);
+        console.warn('Backend verification email dispatch notice:', e);
       }
     }
   };
