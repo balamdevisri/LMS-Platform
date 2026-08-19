@@ -5,7 +5,7 @@ import { getAnalytics, isSupported, type Analytics } from 'firebase/analytics';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyCKPJ4klGTGxdgTxC3Q93YiaTZixlI0vE0',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'shaivika-lms-ai.firebaseapp.com',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'auth.kaizenq.in',
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'shaivika-lms-ai',
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'shaivika-lms-ai.firebasestorage.app',
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '977716272905',
