@@ -26,6 +26,7 @@ import {
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { liveClassService, normalizeLiveClassStatus, type LiveClass, type AttendanceRecord } from '@/services/liveClassService';
+import { LiveClassConfirmModal, type LiveClassActionType } from '@/components/liveClassroom/LiveClassConfirmModal';
 
 interface LivePollItem {
   id: string;
@@ -58,6 +59,9 @@ export const LiveClassroomDashboard: React.FC = () => {
   const [filter, setFilter] = useState<'today' | 'upcoming' | 'completed' | 'all'>('today');
 
   // Modal & Drawer States
+  const [confirmLiveClass, setConfirmLiveClass] = useState<LiveClass | null>(null);
+  const [confirmActionType, setConfirmActionType] = useState<LiveClassActionType>('enter');
+  const [isConfirmingLive, setIsConfirmingLive] = useState(false);
   const [uploadNotesModal, setUploadNotesModal] = useState<LiveClass | null>(null);
   const [uploadRecordingModal, setUploadRecordingModal] = useState<LiveClass | null>(null);
   const [attendanceClass, setAttendanceClass] = useState<LiveClass | null>(null);
@@ -174,6 +178,38 @@ export const LiveClassroomDashboard: React.FC = () => {
   const todayCount = useMemo(() => classes.filter((c) => isToday(c.startTime) || normalizeLiveClassStatus(c.status) === 'live').length, [classes]);
   const upcomingCount = useMemo(() => classes.filter((c) => new Date(c.startTime) > new Date() && normalizeLiveClassStatus(c.status) !== 'completed').length, [classes]);
   const completedCount = useMemo(() => classes.filter((c) => normalizeLiveClassStatus(c.status) === 'completed').length, [classes]);
+
+  const handleOpenEnterConfirm = (cls: LiveClass) => {
+    setConfirmActionType('enter');
+    setConfirmLiveClass(cls);
+  };
+
+  const handleOpenExitConfirm = (cls: LiveClass) => {
+    setConfirmActionType('exit');
+    setConfirmLiveClass(cls);
+  };
+
+  const handleConfirmLiveAction = async () => {
+    if (!confirmLiveClass) return;
+    setIsConfirmingLive(true);
+    try {
+      if (confirmActionType === 'enter') {
+        const isLiveNow = normalizeLiveClassStatus(confirmLiveClass.status) === 'live';
+        if (!isLiveNow && (userProfile?.role === 'admin' || userProfile?.role === 'instructor')) {
+          await liveClassService.startLiveClass(confirmLiveClass.id, userProfile?.uid);
+        }
+        navigate(`/live-classroom/room/${confirmLiveClass.id}`);
+      } else {
+        await liveClassService.endLiveClass(confirmLiveClass.id, userProfile?.uid, userProfile?.role);
+        toast.info('Session ended and status updated to Completed.');
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to complete live class action');
+    } finally {
+      setIsConfirmingLive(false);
+      setConfirmLiveClass(null);
+    }
+  };
 
   const handleStartClass = async (id: string) => {
     try {
@@ -414,15 +450,15 @@ export const LiveClassroomDashboard: React.FC = () => {
                       <>
                         <div className="flex items-center justify-between gap-2">
                           {isLiveNow ? (
-                            <button onClick={() => handleEndClass(c.id)} className="flex-1 py-2 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-md">
+                            <button onClick={() => handleOpenExitConfirm(c)} className="flex-1 py-2 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-md">
                               <StopCircle className="w-4 h-4" /><span>End Session</span>
                             </button>
                           ) : (
-                            <button onClick={() => handleStartClass(c.id)} className="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-md">
+                            <button onClick={() => handleOpenEnterConfirm(c)} className="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-md">
                               <Play className="w-4 h-4" /><span>Start Live</span>
                             </button>
                           )}
-                          <button onClick={() => navigate(`/live-classroom/room/${c.id}`)} className="py-2 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 dark:bg-cyan-600 dark:hover:bg-cyan-500 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-md">
+                          <button onClick={() => handleOpenEnterConfirm(c)} className="py-2 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 dark:bg-cyan-600 dark:hover:bg-cyan-500 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-md">
                             <ExternalLink className="w-4 h-4" /><span>Launch Room</span>
                           </button>
                         </div>
@@ -450,7 +486,7 @@ export const LiveClassroomDashboard: React.FC = () => {
                         </div>
                       </>
                     ) : (
-                      <button onClick={() => navigate(`/student/live-class/${c.id || c.classId}`)} className={`w-full py-3 px-4 rounded-2xl font-extrabold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all ${isLiveNow ? 'bg-rose-600 hover:bg-rose-700 text-white animate-bounce shadow-rose-600/30' : 'bg-blue-600 hover:bg-blue-700 dark:bg-cyan-600 dark:hover:bg-cyan-500 text-white shadow-blue-600/30'}`}>
+                      <button onClick={() => handleOpenEnterConfirm(c)} className={`w-full py-3 px-4 rounded-2xl font-extrabold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all ${isLiveNow ? 'bg-rose-600 hover:bg-rose-700 text-white animate-bounce shadow-rose-600/30' : 'bg-blue-600 hover:bg-blue-700 dark:bg-cyan-600 dark:hover:bg-cyan-500 text-white shadow-blue-600/30'}`}>
                         <Play className="w-4 h-4 fill-current" /><span>{isLiveNow ? '🔴 JOIN LIVE STREAM NOW' : 'ENTER LIVE CLASSROOM'}</span>
                       </button>
                     )}
@@ -709,6 +745,18 @@ export const LiveClassroomDashboard: React.FC = () => {
         </div>
       )}
 
+      {/* Live Class Enter / Exit Confirmation Modal */}
+      <LiveClassConfirmModal
+        isOpen={Boolean(confirmLiveClass)}
+        actionType={confirmActionType}
+        classTitle={confirmLiveClass?.title || 'Live Technical Session'}
+        courseName={confirmLiveClass?.courseName || 'AI Engineering Track'}
+        instructorName={confirmLiveClass?.instructorName || 'Faculty Lead'}
+        isInstructor={userProfile?.role === 'admin' || userProfile?.role === 'instructor'}
+        onConfirm={handleConfirmLiveAction}
+        onCancel={() => setConfirmLiveClass(null)}
+        isProcessing={isConfirmingLive}
+      />
     </div>
   );
 };

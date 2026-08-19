@@ -6,11 +6,14 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { BrandLogo } from './BrandLogo';
 import { ThemeToggle } from './ThemeToggle';
+import { LogoutConfirmModal } from './LogoutConfirmModal';
 
 export const Navbar: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [logoutModalOpen, setLogoutModalOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [activeHash, setActiveHash] = useState(window.location.hash);
   const [activePath, setActivePath] = useState(window.location.pathname);
 
@@ -77,14 +80,23 @@ export const Navbar: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleLogout = async () => {
+  const handleLogoutClick = () => {
+    setUserMenuOpen(false);
+    setMobileMenuOpen(false);
+    setLogoutModalOpen(true);
+  };
+
+  const handleConfirmLogout = async () => {
+    setIsLoggingOut(true);
     try {
       await logout();
       toast.success('Logged out successfully.');
-      setUserMenuOpen(false);
       navigate('/');
     } catch (err) {
       toast.error('Failed to log out.');
+    } finally {
+      setIsLoggingOut(false);
+      setLogoutModalOpen(false);
     }
   };
 
@@ -266,7 +278,7 @@ export const Navbar: React.FC = () => {
                     </Link>
 
                     <button
-                      onClick={handleLogout}
+                      onClick={handleLogoutClick}
                       className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-955/40 rounded-xl transition-colors text-left cursor-pointer"
                     >
                       <LogOut className="w-4 h-4 text-rose-500" />
@@ -360,11 +372,8 @@ export const Navbar: React.FC = () => {
                 </>
               ) : (
                 <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    handleLogout();
-                  }}
-                  className="w-full text-center py-2.5 text-xs font-bold text-rose-600 border border-rose-200 dark:border-rose-950 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                  onClick={handleLogoutClick}
+                  className="w-full text-center py-2.5 text-xs font-bold text-rose-600 border border-rose-200 dark:border-rose-950 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
                 >
                   Sign Out
                 </button>
@@ -373,6 +382,18 @@ export const Navbar: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Logout Confirmation Modal */}
+      <LogoutConfirmModal
+        isOpen={logoutModalOpen}
+        userName={userProfile?.name || user?.displayName || userProfile?.fullName || 'User'}
+        userEmail={userProfile?.email || user?.email || undefined}
+        userRole={userProfile?.role || 'student'}
+        userAvatar={userProfile?.photoURL || user?.photoURL || undefined}
+        onConfirm={handleConfirmLogout}
+        onCancel={() => setLogoutModalOpen(false)}
+        isProcessing={isLoggingOut}
+      />
     </header>
   );
 };

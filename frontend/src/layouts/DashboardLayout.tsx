@@ -28,6 +28,7 @@ import {
 import { toast } from 'sonner';
 import { BrandLogo } from '@/components/common/BrandLogo';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
+import { LogoutConfirmModal } from '@/components/common/LogoutConfirmModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { notificationService, type NotificationItem } from '@/services/notificationService';
 
@@ -37,6 +38,8 @@ export const DashboardLayout: React.FC = () => {
   const [notificationFilter, setNotificationFilter] = useState<'all' | 'unread' | 'learning' | 'system'>('all');
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [logoutModalOpen, setLogoutModalOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -425,7 +428,7 @@ export const DashboardLayout: React.FC = () => {
               </span>
             </div>
             <button
-              onClick={handleSignOut}
+              onClick={handleSignOutClick}
               className="text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 p-2 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer shrink-0"
               title="Sign Out"
             >
@@ -722,7 +725,7 @@ export const DashboardLayout: React.FC = () => {
                     <span>View Profile</span>
                   </Link>
                   <button
-                    onClick={handleSignOut}
+                    onClick={handleSignOutClick}
                     className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center gap-2 cursor-pointer transition-colors"
                   >
                     <LogOut className="w-3.5 h-3.5" />
@@ -738,6 +741,18 @@ export const DashboardLayout: React.FC = () => {
           <Outlet />
         </main>
       </div>
+
+      {/* Sign Out Confirmation Modal */}
+      <LogoutConfirmModal
+        isOpen={logoutModalOpen}
+        userName={userProfile?.name || user?.displayName || userProfile?.fullName || 'User'}
+        userEmail={userProfile?.email || user?.email || undefined}
+        userRole={userProfile?.role || 'student'}
+        userAvatar={userProfile?.photoURL || user?.photoURL || undefined}
+        onConfirm={handleConfirmSignOut}
+        onCancel={() => setLogoutModalOpen(false)}
+        isProcessing={isLoggingOut}
+      />
     </div>
   );
 };
