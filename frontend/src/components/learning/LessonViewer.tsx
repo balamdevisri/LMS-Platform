@@ -224,7 +224,67 @@ function getTabSectionData(title: string, courseId?: string): TabSectionData {
       ],
       preview: "Next lesson will explore advanced pointer mechanics, memory management, and data structures."
     };
-  } else {
+  } else if (cId === 'python-through-oops-course-id' || cId === 'python-through-oops' || cId.includes('python') || t.includes('python')) {
+    return {
+      introduction: "Python is a modern, high-level, general-purpose language supporting object-oriented, functional, and imperative programming paradigms.",
+      useCases: [
+        "Building production APIs and backend web services using Django, Flask, or FastAPI.",
+        "Developing machine learning models and data pipelines with TensorFlow, PyTorch, and Pandas.",
+        "Creating automation scripts, system utilities, and scrapers."
+      ],
+      practices: [
+        "Follow PEP 8 styling conventions for formatting, naming variables, and structuring code.",
+        "Always use context managers (with statements) to handle system resource lifecycles."
+      ],
+      mistakes: [
+        "Using mutable values like lists or dicts as default arguments in function definitions.",
+        "Confusing global scopes with local namespace closures or shadowing built-in functions."
+      ],
+      interview: [
+        { q: "What is the difference between list and tuple in Python?", a: "Lists are mutable, meaning they can be modified in-place, whereas tuples are immutable and memory-efficient." },
+        { q: "What is PEP 8 in Python?", a: "PEP 8 is the official style guide for Python code, detailing conventions for indentation, naming, comments, and spacing." }
+      ],
+      viva: [
+        { q: "How does Python handle memory management?", a: "Python uses automatic reference counting and a cyclic garbage collector to allocate and free object memory." },
+        { q: "What does the self keyword represent in Python classes?", a: "self represents the specific instance of the class, allowing access to instance attributes and methods." }
+      ],
+      trouble: [
+        "Fix IndentationError: Keep block spacing uniform (always use 4 spaces and do not mix with tabs).",
+        "Fix NameError: Ensure variables are defined in the correct scope before referencing them."
+      ],
+      preview: "Next lesson will explore object-oriented pillars, polymorphism, inheritance, and project applications."
+    };
+  } else if (cId === 'java-through-oops-course-id' || cId === 'java-through-oops' || cId.includes('java') || t.includes('java')) {
+    return {
+      introduction: "Java is a class-based, object-oriented, platform-independent language running on the Java Virtual Machine (JVM).",
+      useCases: [
+        "Enterprise-grade backend architectures, microservices (Spring Boot), and web servers.",
+        "Developing native Android applications and portable cross-platform software.",
+        "High-performance transactional systems, cloud storage engines, and financial platforms."
+      ],
+      practices: [
+        "Follow standard camelCase naming guidelines for classes, methods, and variables.",
+        "Always use try-with-resources statements to ensure automatic closure of I/O streams."
+      ],
+      mistakes: [
+        "Failing to check for null values, resulting in NullPointerException (NPE) errors.",
+        "Comparing string values using the == operator instead of the .equals() method."
+      ],
+      interview: [
+        { q: "What is the difference between JDK, JRE, and JVM?", a: "JVM executes bytecode. JRE provides the execution environment. JDK contains the JRE, JVM, and compiler tools (javac) for development." },
+        { q: "What is the difference between abstract classes and interfaces in Java?", a: "Abstract classes can hold state (instance fields) and non-final fields, whereas interfaces define contracts and generally contain only static final constants and default/static methods." }
+      ],
+      viva: [
+        { q: "Which class is the parent of all classes in Java?", a: "The java.lang.Object class." },
+        { q: "What is dynamic method dispatch in Java?", a: "It is the mechanism where a call to an overridden method is resolved at runtime rather than compile time." }
+      ],
+      trouble: [
+        "Fix NullPointerException: Verify reference variables are properly instantiated before invoking methods on them.",
+        "Fix compilation errors: Ensure class names perfectly match their source file names and all syntax brackets are correctly closed."
+      ],
+      preview: "Next lesson will cover OOP design structures, exception handling, interfaces, and collection frameworks."
+    };
+  } else if (cId === 'course_linux_101' || cId === 'linux-essentials' || cId === '1' || cId.includes('linux') || t.includes('linux') || t.includes('bash') || t.includes('kernel')) {
     return {
       introduction: "Linux systems power 96.4% of the world's top 1 million web servers. Understanding systems administration is critical for building scalable cloud services.",
       useCases: [
@@ -253,6 +313,34 @@ function getTabSectionData(title: string, courseId?: string): TabSectionData {
         "Inspect authorization logs: tail -n 50 /var/log/auth.log"
       ],
       preview: "Next lesson will cover advanced process administration and automation scripts."
+    };
+  } else {
+    return {
+      introduction: "Enhance your technical skillset with hands-on practice, coding compiler environments, and interactive project challenge labs.",
+      useCases: [
+        "Developing scalable software systems and resolving real-world engineering challenges.",
+        "Familiarizing yourself with key syntax conventions, architectures, and design patterns.",
+        "Preparing for technical interviews, viva questions, and production deployments."
+      ],
+      practices: [
+        "Review syntax guidelines and documentation references before starting practical labs.",
+        "Track performance metrics, debug logs, and output parameters carefully during execution."
+      ],
+      mistakes: [
+        "Skipping safety protocols and isolated test deployments.",
+        "Hardcoding configurations instead of designing modular and adaptable systems."
+      ],
+      interview: [
+        { q: "What is the key to mastering this technology?", a: "Consistent hands-on practice, code compilation checks, and building mini-projects to solidify core theory concepts." }
+      ],
+      viva: [
+        { q: "What is the recommended approach to solving coding exercises?", a: "Analyze requirements, design modular steps, implement logic, and verify edge-cases with test runs." }
+      ],
+      trouble: [
+        "Review the official study vault reference PDFs and docs.",
+        "Check error outputs, verify compiler messages, and inspect system log files."
+      ],
+      preview: "Next lesson will explore advanced concepts, frameworks, and practical project builds."
     };
   }
 }
