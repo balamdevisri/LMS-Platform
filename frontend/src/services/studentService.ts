@@ -106,6 +106,12 @@ class StudentService {
 
     const statusVal = data.status || (data.isActive === false ? 'Suspended' : 'Active');
 
+    const calculatedXp = typeof data.xp === 'number'
+      ? data.xp
+      : (typeof data.points === 'number'
+          ? data.points
+          : (typeof data.learningScore === 'number' ? data.learningScore * 20 : 350));
+
     return {
       id,
       uid: id,
@@ -126,6 +132,8 @@ class StudentService {
       completedCourses: data.completedCourses || data.completedCoursesCount || 0,
       currentCourse: data.currentCourse || 'Linux Systems & Administration Mastery',
       learningScore: data.learningScore || data.learningProgressPercent || 85,
+      xp: calculatedXp,
+      points: calculatedXp,
       provider: isGithub ? 'github.com' : (data.provider || 'password'),
       githubUsername: data.githubUsername || (isGithub ? email.split('@')[0] : undefined),
       branch: data.branch || 'AI & Computer Science',
@@ -206,32 +214,50 @@ class StudentService {
   }
 
   /**
-   * Directly fetch all students from Firestore users collection.
+   * Directly fetch all students from Firestore students and users collections.
    */
   async fetchFirestoreStudentsDirectly(): Promise<StudentUser[]> {
     const currentLocal = this.getLocalStudents();
     if (!db) return currentLocal;
 
     try {
-      const studentsRef = collection(db, 'students');
-      const querySnapshot = await getDocs(studentsRef);
       const firestoreStudents: StudentUser[] = [];
+      const studentsRef = collection(db, 'students');
+      const usersRef = collection(db, 'users');
 
-      querySnapshot.forEach((docSnap: any) => {
-        const data = docSnap.data();
-        firestoreStudents.push(this.normalizeStudentData({ ...data, id: docSnap.id, uid: docSnap.id }));
-      });
+      const [studentsSnap, usersSnap] = await Promise.all([
+        getDocs(studentsRef).catch(() => null),
+        getDocs(usersRef).catch(() => null),
+      ]);
+
+      if (studentsSnap) {
+        studentsSnap.forEach((docSnap: any) => {
+          const data = docSnap.data();
+          if (!this.isMockUser(data)) {
+            firestoreStudents.push(this.normalizeStudentData({ ...data, id: docSnap.id, uid: docSnap.id }));
+          }
+        });
+      }
+
+      if (usersSnap) {
+        usersSnap.forEach((docSnap: any) => {
+          const data = docSnap.data();
+          const role = (data.role || 'student').toLowerCase();
+          if (role !== 'admin' && !this.isMockUser(data)) {
+            firestoreStudents.push(this.normalizeStudentData({ ...data, id: docSnap.id, uid: docSnap.id }));
+          }
+        });
+      }
 
       const combinedMap = new Map<string, StudentUser>();
-      firestoreStudents.forEach((st) => combinedMap.set(st.id, st));
+      firestoreStudents.forEach((st) => combinedMap.set((st.email || st.id).toLowerCase(), st));
       currentLocal.forEach((st) => {
-        if (!combinedMap.has(st.id)) combinedMap.set(st.id, st);
+        const key = (st.email || st.id).toLowerCase();
+        if (!combinedMap.has(key)) combinedMap.set(key, st);
       });
 
       const finalStudents = Array.from(combinedMap.values()).sort((a, b) => {
-        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return timeB - timeA;
+        return (b.xp || 0) - (a.xp || 0);
       });
 
       this.saveLocalStudents(finalStudents);
@@ -281,24 +307,22 @@ class StudentService {
           
           snapshot.forEach((docSnap) => {
             const data = docSnap.data();
-            firestoreStudents.push(this.normalizeStudentData({ ...data, id: docSnap.id, uid: docSnap.id }));
+            if (!this.isMockUser(data)) {
+              firestoreStudents.push(this.normalizeStudentData({ ...data, id: docSnap.id, uid: docSnap.id }));
+            }
           });
 
           const currentLocal = this.getLocalStudents();
           const combinedMap = new Map<string, StudentUser>();
 
-          firestoreStudents.forEach((st) => combinedMap.set(st.id, st));
+          firestoreStudents.forEach((st) => combinedMap.set((st.email || st.id).toLowerCase(), st));
           currentLocal.forEach((st) => {
-            if (!combinedMap.has(st.id)) combinedMap.set(st.id, st);
-          });
-          DEFAULT_STUDENTS.forEach((st) => {
-            if (!combinedMap.has(st.id)) combinedMap.set(st.id, st);
+            const key = (st.email || st.id).toLowerCase();
+            if (!combinedMap.has(key)) combinedMap.set(key, st);
           });
 
           const finalStudents = Array.from(combinedMap.values()).sort((a, b) => {
-            const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-            const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-            return timeB - timeA;
+            return (b.xp || 0) - (a.xp || 0);
           });
 
           localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(finalStudents));
