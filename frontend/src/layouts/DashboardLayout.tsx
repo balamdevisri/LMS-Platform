@@ -102,12 +102,21 @@ export const DashboardLayout: React.FC = () => {
     toast.info('All notifications cleared.');
   };
 
-  const handleSignOut = async () => {
+  const handleSignOutClick = () => {
+    setProfileOpen(false);
+    setLogoutModalOpen(true);
+  };
+
+  const handleConfirmSignOut = async () => {
+    setIsLoggingOut(true);
     try {
       await logout();
       navigate('/auth/login');
     } catch (e) {
       console.warn('Sign out notice:', e);
+    } finally {
+      setIsLoggingOut(false);
+      setLogoutModalOpen(false);
     }
   };
 
