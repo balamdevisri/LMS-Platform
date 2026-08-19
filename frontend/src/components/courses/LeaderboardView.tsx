@@ -13,7 +13,9 @@ import {
   Sparkles,
   Zap,
   TrendingUp,
-  GraduationCap
+  GraduationCap,
+  Github,
+  ExternalLink
 } from 'lucide-react';
 import { LeaderboardService } from '../../services/achievementService';
 import type { LeaderboardEntry } from '../../services/achievementService';
@@ -298,22 +300,23 @@ export const LeaderboardView: React.FC = () => {
         </div>
       </div>
 
-      {/* ── Active User Spotlight Banner ────────────────────────────── */}
-      {currentUserEntry && (
+        {/* ── Active User Spotlight Banner ────────────────────────────── */}
         <div className="p-5 rounded-3xl bg-linear-to-r from-sky-600 via-blue-600 to-indigo-700 text-white shadow-lg shadow-sky-500/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 border border-sky-400/30">
           <div className="flex items-center gap-4">
             <div className="relative">
-              {userProfile?.photoURL || user?.photoURL ? (
-                <img
-                  src={userProfile?.photoURL || user?.photoURL || ''}
-                  alt={currentUserEntry.name}
-                  className="w-14 h-14 rounded-2xl object-cover border-2 border-white/80 shadow-md"
-                />
-              ) : (
-                <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center font-heading font-extrabold text-xl border-2 border-white/40">
-                  {currentUserEntry.name.charAt(0)}
-                </div>
-              )}
+              <img
+                src={currentUserEntry.avatarUrl || userProfile?.photoURL || user?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUserEntry.name)}&background=0284c7&color=fff&bold=true`}
+                alt={currentUserEntry.name}
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  if (currentUserEntry.githubUsername && !target.src.includes('github.com')) {
+                    target.src = `https://github.com/${currentUserEntry.githubUsername}.png?size=200`;
+                  } else {
+                    target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUserEntry.name)}&background=0284c7&color=fff&bold=true`;
+                  }
+                }}
+                className="w-14 h-14 rounded-2xl object-cover border-2 border-white/80 shadow-md bg-slate-900"
+              />
               <span className="absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded-md bg-amber-400 text-slate-950 font-black text-[9px] shadow-xs">
                 #{currentUserEntry.rank}
               </span>
@@ -325,6 +328,18 @@ export const LeaderboardView: React.FC = () => {
                 <span className="px-2 py-0.5 rounded-full bg-white/20 text-white text-[10px] font-bold backdrop-blur-xs">
                   Your Standing
                 </span>
+                {currentUserEntry.githubUsername && (
+                  <a
+                    href={`https://github.com/${currentUserEntry.githubUsername}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-900/60 hover:bg-slate-900 text-sky-200 hover:text-white border border-white/20 text-[9px] font-mono font-bold transition-all shadow-xs"
+                    title="View GitHub Profile"
+                  >
+                    <Github className="w-2.5 h-2.5" />
+                    <span>@{currentUserEntry.githubUsername}</span>
+                  </a>
+                )}
                 {currentUserEntry.levelTitle && (
                   <span className="px-2 py-0.5 rounded-full bg-amber-400/30 text-amber-200 border border-amber-300/40 text-[9px] font-extrabold">
                     Level {currentUserEntry.level || 1} • {currentUserEntry.levelTitle}
@@ -375,17 +390,34 @@ export const LeaderboardView: React.FC = () => {
               </span>
             </div>
             <div className="relative mt-4">
-              {topThree[1].avatarUrl ? (
-                <img src={topThree[1].avatarUrl} alt={topThree[1].name} className="w-16 h-16 rounded-2xl object-cover border-2 border-slate-300 dark:border-slate-700 shadow-sm" />
-              ) : (
-                <div className="w-16 h-16 rounded-2xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center font-extrabold text-xl shadow-sm">
-                  {topThree[1].name.charAt(0)}
-                </div>
-              )}
+              <img
+                src={topThree[1].avatarUrl || (topThree[1].githubUsername ? `https://github.com/${topThree[1].githubUsername}.png?size=200` : `https://ui-avatars.com/api/?name=${encodeURIComponent(topThree[1].name)}&background=64748b&color=fff&bold=true`)}
+                alt={topThree[1].name}
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  if (topThree[1].githubUsername && !target.src.includes('github.com')) {
+                    target.src = `https://github.com/${topThree[1].githubUsername}.png?size=200`;
+                  } else {
+                    target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(topThree[1].name)}&background=64748b&color=fff&bold=true`;
+                  }
+                }}
+                className="w-16 h-16 rounded-2xl object-cover border-2 border-slate-300 dark:border-slate-700 shadow-sm bg-slate-800"
+              />
             </div>
             <div>
               <h4 className="font-heading font-extrabold text-sm text-slate-900 dark:text-white truncate max-w-[180px]">{topThree[1].name}</h4>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate max-w-[180px]">{topThree[1].college || 'Shaivika AI Foundation'}</p>
+              {topThree[1].githubUsername && (
+                <a
+                  href={`https://github.com/${topThree[1].githubUsername}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-[10px] font-mono text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-cyan-400 transition-colors mt-0.5"
+                >
+                  <Github className="w-3 h-3" />
+                  <span>@{topThree[1].githubUsername}</span>
+                </a>
+              )}
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate max-w-[180px] mt-0.5">{topThree[1].college || 'Shaivika AI Foundation'}</p>
               {topThree[1].levelTitle && (
                 <span className="inline-block mt-1 text-[9px] font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
                   {topThree[1].levelTitle}
@@ -406,17 +438,34 @@ export const LeaderboardView: React.FC = () => {
               </span>
             </div>
             <div className="relative mt-4">
-              {topThree[0].avatarUrl ? (
-                <img src={topThree[0].avatarUrl} alt={topThree[0].name} className="w-20 h-20 rounded-3xl object-cover border-4 border-amber-400 shadow-md shadow-amber-500/20" />
-              ) : (
-                <div className="w-20 h-20 rounded-3xl bg-linear-to-tr from-amber-400 to-amber-500 text-white flex items-center justify-center font-extrabold text-2xl shadow-md shadow-amber-500/20">
-                  {topThree[0].name.charAt(0)}
-                </div>
-              )}
+              <img
+                src={topThree[0].avatarUrl || (topThree[0].githubUsername ? `https://github.com/${topThree[0].githubUsername}.png?size=200` : `https://ui-avatars.com/api/?name=${encodeURIComponent(topThree[0].name)}&background=f59e0b&color=fff&bold=true`)}
+                alt={topThree[0].name}
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  if (topThree[0].githubUsername && !target.src.includes('github.com')) {
+                    target.src = `https://github.com/${topThree[0].githubUsername}.png?size=200`;
+                  } else {
+                    target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(topThree[0].name)}&background=f59e0b&color=fff&bold=true`;
+                  }
+                }}
+                className="w-20 h-20 rounded-3xl object-cover border-4 border-amber-400 shadow-md shadow-amber-500/20 bg-slate-900"
+              />
             </div>
             <div>
               <h4 className="font-heading font-extrabold text-base text-slate-900 dark:text-white truncate max-w-[200px]">{topThree[0].name}</h4>
-              <p className="text-xs text-amber-800 dark:text-amber-300 font-semibold truncate max-w-[200px]">{topThree[0].college || 'Shaivika AI Foundation Institute'}</p>
+              {topThree[0].githubUsername && (
+                <a
+                  href={`https://github.com/${topThree[0].githubUsername}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-[11px] font-mono font-bold text-amber-700 dark:text-amber-300 hover:underline transition-colors mt-0.5"
+                >
+                  <Github className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                  <span>@{topThree[0].githubUsername}</span>
+                </a>
+              )}
+              <p className="text-xs text-amber-800 dark:text-amber-300 font-semibold truncate max-w-[200px] mt-0.5">{topThree[0].college || 'Shaivika AI Foundation Institute'}</p>
               {topThree[0].levelTitle && (
                 <span className="inline-block mt-1 text-[10px] font-extrabold text-amber-900 dark:text-amber-300 bg-amber-200/60 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-700 px-2.5 py-0.5 rounded-md">
                   Level {topThree[0].level || 1} • {topThree[0].levelTitle}
@@ -437,17 +486,34 @@ export const LeaderboardView: React.FC = () => {
               </span>
             </div>
             <div className="relative mt-4">
-              {topThree[2].avatarUrl ? (
-                <img src={topThree[2].avatarUrl} alt={topThree[2].name} className="w-16 h-16 rounded-2xl object-cover border-2 border-amber-600/30 dark:border-amber-700/40 shadow-sm" />
-              ) : (
-                <div className="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 flex items-center justify-center font-extrabold text-xl shadow-sm">
-                  {topThree[2].name.charAt(0)}
-                </div>
-              )}
+              <img
+                src={topThree[2].avatarUrl || (topThree[2].githubUsername ? `https://github.com/${topThree[2].githubUsername}.png?size=200` : `https://ui-avatars.com/api/?name=${encodeURIComponent(topThree[2].name)}&background=d97706&color=fff&bold=true`)}
+                alt={topThree[2].name}
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  if (topThree[2].githubUsername && !target.src.includes('github.com')) {
+                    target.src = `https://github.com/${topThree[2].githubUsername}.png?size=200`;
+                  } else {
+                    target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(topThree[2].name)}&background=d97706&color=fff&bold=true`;
+                  }
+                }}
+                className="w-16 h-16 rounded-2xl object-cover border-2 border-amber-600/30 dark:border-amber-700/40 shadow-sm bg-slate-800"
+              />
             </div>
             <div>
               <h4 className="font-heading font-extrabold text-sm text-slate-900 dark:text-white truncate max-w-[180px]">{topThree[2].name}</h4>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate max-w-[180px]">{topThree[2].college || 'Shaivika AI Foundation'}</p>
+              {topThree[2].githubUsername && (
+                <a
+                  href={`https://github.com/${topThree[2].githubUsername}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-[10px] font-mono text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors mt-0.5"
+                >
+                  <Github className="w-3 h-3" />
+                  <span>@{topThree[2].githubUsername}</span>
+                </a>
+              )}
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate max-w-[180px] mt-0.5">{topThree[2].college || 'Shaivika AI Foundation'}</p>
               {topThree[2].levelTitle && (
                 <span className="inline-block mt-1 text-[9px] font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
                   {topThree[2].levelTitle}
@@ -505,25 +571,19 @@ export const LeaderboardView: React.FC = () => {
                     {/* Name & Avatar */}
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-3">
-                        {entry.avatarUrl ? (
-                          <img
-                            src={entry.avatarUrl}
-                            alt={entry.name}
-                            className="w-9 h-9 rounded-xl object-cover border border-sky-200 dark:border-slate-700 shadow-xs shrink-0"
-                          />
-                        ) : (
-                          <div
-                            className={`w-9 h-9 rounded-xl font-bold flex items-center justify-center text-xs shrink-0 select-none shadow-xs ${
-                              entry.isCurrentUser
-                                ? 'bg-sky-600 text-white'
-                                : entry.rank === 1
-                                ? 'bg-amber-100 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300'
-                                : 'bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
-                            }`}
-                          >
-                            {entry.name.charAt(0)}
-                          </div>
-                        )}
+                        <img
+                          src={entry.avatarUrl || (entry.githubUsername ? `https://github.com/${entry.githubUsername}.png?size=200` : `https://ui-avatars.com/api/?name=${encodeURIComponent(entry.name)}&background=0284c7&color=fff&bold=true`)}
+                          alt={entry.name}
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            if (entry.githubUsername && !target.src.includes('github.com')) {
+                              target.src = `https://github.com/${entry.githubUsername}.png?size=200`;
+                            } else {
+                              target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(entry.name)}&background=0284c7&color=fff&bold=true`;
+                            }
+                          }}
+                          className="w-10 h-10 rounded-xl object-cover border border-sky-200 dark:border-slate-700 shadow-xs shrink-0 bg-slate-900"
+                        />
 
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">
@@ -539,6 +599,17 @@ export const LeaderboardView: React.FC = () => {
                               </span>
                             )}
                           </div>
+                          {entry.githubUsername && (
+                            <a
+                              href={`https://github.com/${entry.githubUsername}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-[10px] font-mono text-slate-400 hover:text-blue-600 dark:hover:text-cyan-400 transition-colors mt-0.5"
+                            >
+                              <Github className="w-2.5 h-2.5" />
+                              <span>@{entry.githubUsername}</span>
+                            </a>
+                          )}
                         </div>
                       </div>
                     </td>

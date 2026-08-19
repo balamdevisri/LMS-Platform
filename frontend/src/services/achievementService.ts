@@ -52,6 +52,8 @@ export interface LeaderboardEntry {
   id?: string;
   name: string;
   avatarUrl?: string;
+  githubUsername?: string;
+  githubUrl?: string;
   college?: string;
   branch?: string;
   xp: number;
@@ -605,6 +607,26 @@ export class LeaderboardService {
     const cohort: Omit<LeaderboardEntry, 'rank'>[] = [];
     let currentUserIncluded = false;
 
+    const extractGithubInfo = (s: any, isCurr: boolean) => {
+      let ghUser: string | undefined = undefined;
+      if (s.github) ghUser = String(s.github).replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '');
+      else if (s.githubUrl) ghUser = String(s.githubUrl).replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '');
+      else if (s.githubProfile?.login) ghUser = String(s.githubProfile.login);
+      else if (isCurr) {
+        const storedGh = localStorage.getItem('shaivika_portfolio_github') || localStorage.getItem('shaivika_portfolio_handle');
+        if (storedGh) ghUser = storedGh.replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '');
+      }
+
+      if (!ghUser && s.email && s.email.includes('@')) {
+        ghUser = s.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_-]/g, '');
+      }
+
+      const avatar = s.photoURL || s.profilePhoto || (ghUser ? `https://github.com/${ghUser}.png?size=200` : `https://ui-avatars.com/api/?name=${encodeURIComponent(s.name || s.fullName || 'Scholar')}&background=0284c7&color=fff&bold=true`);
+      const ghUrl = ghUser ? `https://github.com/${ghUser}` : undefined;
+
+      return { ghUser, ghUrl, avatar };
+    };
+
     // Map real registered students
     students.forEach((s) => {
       const isCurrent = (s.id === userId || s.uid === userId || s.email === userId);
@@ -634,10 +656,14 @@ export class LeaderboardService {
         currentUserIncluded = true;
       }
 
+      const { ghUser, ghUrl, avatar } = extractGithubInfo(s, isCurrent);
+
       cohort.push({
         id: s.id || s.uid,
         name: isCurrent ? `${s.name || loggedInName}` : (s.name || s.fullName || s.email?.split('@')[0] || 'Student Scholar'),
-        avatarUrl: s.photoURL || s.profilePhoto || undefined,
+        avatarUrl: avatar,
+        githubUsername: ghUser,
+        githubUrl: ghUrl,
         college: s.college || 'Shaivika AI Foundation',
         branch: s.branch || 'Computer Science & AI',
         xp: effectiveXp,
@@ -662,9 +688,14 @@ export class LeaderboardService {
       }
 
       const level = getLevelForXP(userXp);
+      const { ghUser, ghUrl, avatar } = extractGithubInfo({ name: loggedInName, email: userId }, true);
+
       cohort.push({
         id: userId,
         name: loggedInName,
+        avatarUrl: avatar,
+        githubUsername: ghUser,
+        githubUrl: ghUrl,
         xp: effectiveXp,
         badgesCount: userBadges,
         coursesCompleted: userXp >= 2000 ? 1 : 0,
