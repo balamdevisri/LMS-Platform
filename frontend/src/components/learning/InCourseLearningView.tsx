@@ -18,6 +18,7 @@ const RightSidebar = lazy(() => import('./RightSidebar').then(m => ({ default: m
 const AIQuizPortal = lazy(() => import('../courses/AIQuizPortal').then(m => ({ default: m.AIQuizPortal })));
 const AITutorDrawer = lazy(() => import('./AITutorDrawer').then(m => ({ default: m.AITutorDrawer })));
 import { CertificatePreviewModal } from '../courses/CertificatePreviewModal';
+import { CourseActionConfirmModal } from '../courses/CourseActionConfirmModal';
 import { API_BASE_URL } from '@/config/api';
 import { CertificateService } from '@/services/achievementService';
 import { assignmentService } from '@/services/assignmentService';
@@ -277,6 +278,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeCourseTab, setActiveCourseTab] = useState('modules');
   const [isAITutorOpen, setIsAITutorOpen] = useState(false);
+  const [isExitConfirmOpen, setIsExitConfirmOpen] = useState(false);
   const [showCongrats, setShowCongrats] = useState(false);
   const [generatedCert, setGeneratedCert] = useState<any>(() => {
     try {
@@ -848,7 +850,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         onNextLesson={handleNextLesson}
         hasPrevLesson={hasPrevLesson}
         hasNextLesson={hasNextLesson}
-        onBackToCourseDetails={onBackToCourseDetails}
+        onBackToCourseDetails={() => setIsExitConfirmOpen(true)}
         userAvatar={userAvatar}
         userName={userName}
         isNightMode={isNightMode}
@@ -919,7 +921,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         onSelectCourseTab={(tabKey) => {
           setActiveCourseTab(tabKey);
           if (tabKey === 'overview') {
-            onBackToCourseDetails();
+            setIsExitConfirmOpen(true);
           }
         }}
         isNightMode={isNightMode}
@@ -1160,6 +1162,21 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
           onClose={() => setShowCongrats(false)}
         />
       )}
+
+      {/* Course Exit Confirmation Modal */}
+      <CourseActionConfirmModal
+        isOpen={isExitConfirmOpen}
+        actionType="exit"
+        courseTitle={courseTitle}
+        courseCategory="Engineering Track"
+        currentProgress={progressPercent}
+        currentLessonTitle={activeLessonFull.title}
+        onConfirm={() => {
+          setIsExitConfirmOpen(false);
+          onBackToCourseDetails();
+        }}
+        onCancel={() => setIsExitConfirmOpen(false)}
+      />
     </div>
   );
 };
