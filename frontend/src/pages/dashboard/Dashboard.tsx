@@ -1700,25 +1700,21 @@ export const Dashboard: React.FC = () => {
       )}
 
       {isAiPanelOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 font-['Sora'] animate-in fade-in duration-200">
-          <div className="relative w-full max-w-3xl h-[88vh] max-h-190 rounded-3xl overflow-hidden bg-white shadow-2xl border border-slate-200 flex flex-col animate-in zoom-in-95 duration-200">
-            <AIAssistantPanel
-              courseId={aiLessonContext?.courseId || defaultAiContext.courseId}
-              courseTitle={aiLessonContext?.courseTitle || defaultAiContext.courseTitle}
-              moduleId={aiLessonContext?.moduleId || defaultAiContext.moduleId}
-              moduleTitle={aiLessonContext?.moduleTitle || defaultAiContext.moduleTitle}
-              topicId={aiLessonContext?.id || defaultAiContext.id}
-              topicTitle={aiLessonContext?.title || defaultAiContext.title}
-              lessonId={aiLessonContext?.id || defaultAiContext.id}
-              lessonTitle={aiLessonContext?.title || defaultAiContext.title}
-              lessonType={aiLessonContext?.type || defaultAiContext.type}
-              lessonContent={aiLessonContext?.content || defaultAiContext.content}
-              isOpen={isAiPanelOpen}
-              onClose={() => setIsAiPanelOpen(false)}
-              isModal={true}
-            />
-          </div>
-        </div>
+        <AIAssistantPanel
+          courseId={aiLessonContext?.courseId || defaultAiContext.courseId}
+          courseTitle={aiLessonContext?.courseTitle || defaultAiContext.courseTitle}
+          moduleId={aiLessonContext?.moduleId || defaultAiContext.moduleId}
+          moduleTitle={aiLessonContext?.moduleTitle || defaultAiContext.moduleTitle}
+          topicId={aiLessonContext?.id || defaultAiContext.id}
+          topicTitle={aiLessonContext?.title || defaultAiContext.title}
+          lessonId={aiLessonContext?.id || defaultAiContext.id}
+          lessonTitle={aiLessonContext?.title || defaultAiContext.title}
+          lessonType={aiLessonContext?.type || defaultAiContext.type}
+          lessonContent={aiLessonContext?.content || defaultAiContext.content}
+          isOpen={isAiPanelOpen}
+          onClose={() => setIsAiPanelOpen(false)}
+          isModal={true}
+        />
       )}
 
 

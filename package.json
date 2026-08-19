@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "concurrently \"npm run dev --workspace=backend\" \"npm run dev --workspace=frontend\"",
     "build": "npm run build --workspace=backend && npm run build --workspace=frontend",
+    "start": "npm run start --workspace=backend",
     "frontend": "npm run dev --workspace=frontend",
     "backend": "npm run dev --workspace=backend"
   },
@@ -17,5 +18,9 @@
   },
   "dependencies": {
     "googleapis": "^174.0.0"
+  },
+  "engines": {
+    "node": "22.x",
+    "npm": ">=10.0.0"
   }
 }

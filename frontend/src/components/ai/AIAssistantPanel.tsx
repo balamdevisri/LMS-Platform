@@ -15,6 +15,8 @@ import {
   FileText,
   ChevronRight,
   Minimize2,
+  Maximize2,
+  X,
   CheckCircle2,
   Globe,
   Gauge,
@@ -70,6 +72,7 @@ export const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
 
   // --- RESIZE & LAYOUT STATES ---
   const [panelWidth, setPanelWidth] = useState<number>(400);
+  const [isFull, setIsFull] = useState(false);
   const isResizingRef = useRef(false);
 
   // --- AI TABS SYSTEM ---
@@ -141,7 +144,7 @@ export const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
       }
     } else {
       // Default welcome context
-      let welcomeText = `Hello! I am your Shaivika AI Learning Assistant. 🧠\n\nI have loaded the syllabus context for "**${lessonTitle}**" (${lessonType.toUpperCase()} lesson).\n\nAsk me anything about this topic, translate explanations, or explore custom summaries, quiz modules, and revision logs!`;
+      let welcomeText = `Hello! I am your KaizenQ AI Learning Assistant. 🧠\n\nI have loaded the syllabus context for "**${lessonTitle}**" (${lessonType.toUpperCase()} lesson).\n\nAsk me anything about this topic, translate explanations, or explore custom summaries, quiz modules, and revision logs!`;
       if (hasChallenge) {
         welcomeText += `\n\n💻 **Practice Lab Challenge Enabled**: This topic contains a coding challenge! Try asking me:\n- *"Explain my code"*\n- *"Find bugs in my solution"*\n- *"Suggest optimizations"*\n- *"Explain space complexity"*`;
       }
@@ -481,20 +484,10 @@ export const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
 
   if (!isOpen) return null;
 
-  // Layout & UI Style mapping
-  const panelStyles = isModal
-    ? `w-full h-full bg-white dark:bg-zinc-950 flex flex-col justify-between relative select-text`
-    : isDocked
-    ? `shrink-0 border-l border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 flex flex-col justify-between h-[calc(100vh-64px)] relative select-text transition-all`
-    : `fixed right-0 top-16 bottom-0 z-40 bg-white dark:bg-zinc-950 border-l border-slate-200 dark:border-zinc-800 shadow-2xl flex flex-col justify-between h-[calc(100vh-64px)] relative select-text transition-all`;
-
-  return (
-    <aside
-      style={!isModal ? { width: `${panelWidth}px` } : undefined}
-      className={`${panelStyles} max-w-full font-['Sora']`}
-    >
-      {/* ------------------- RESIZE DRAG HANDLE (Desktop only) ------------------- */}
-      {!isModal && (
+  const panelBody = (
+    <>
+      {/* ------------------- RESIZE DRAG HANDLE (Desktop side-panel only) ------------------- */}
+      {!isModal && !isFull && (
         <div
           onMouseDown={handleMouseDown}
           className="hidden md:block w-1.5 hover:bg-emerald-500 cursor-col-resize absolute left-0 top-0 bottom-0 z-20 transition-colors"
@@ -504,14 +497,14 @@ export const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
 
       {/* ------------------- HEADER ------------------- */}
       <header className="p-4 bg-slate-900 dark:bg-black text-white flex items-center justify-between border-b border-slate-800 dark:border-zinc-900 shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-linear-to-tr from-sky-600 to-indigo-500 flex items-center justify-center shadow-md">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 rounded-xl bg-linear-to-tr from-sky-600 to-indigo-500 flex items-center justify-center shadow-md shrink-0">
             <Bot className="w-4.5 h-4.5 text-white" />
           </div>
-          <div>
-            <h3 className="font-heading font-extrabold text-xs flex items-center gap-1.5">
+          <div className="min-w-0">
+            <h3 className="font-heading font-extrabold text-xs flex items-center gap-1.5 truncate">
               KaizenQ AI Studio
-              <span className="bg-emerald-500/20 text-emerald-400 text-[9px] px-1.5 py-0.5 rounded-full font-mono font-bold">
+              <span className="bg-emerald-500/20 text-emerald-400 text-[9px] px-1.5 py-0.5 rounded-full font-mono font-bold shrink-0">
                 GPT-4o
               </span>
             </h3>
@@ -519,16 +512,31 @@ export const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Full Screen Toggle / Minimize to Normal State */}
+          <button
+            onClick={() => setIsFull(!isFull)}
+            title={isFull ? "Restore to Normal Mode" : "Expand to Full Screen"}
+            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 dark:hover:bg-zinc-900 transition-all cursor-pointer flex items-center gap-1"
+          >
+            {isFull ? (
+              <Minimize2 className="w-4 h-4 text-sky-400 animate-pulse" />
+            ) : (
+              <Maximize2 className="w-4 h-4" />
+            )}
+          </button>
+
+          {/* Close Panel */}
           <button
             onClick={onClose}
-            title="Minimize Panel"
-            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 dark:hover:bg-zinc-900 transition-colors cursor-pointer"
+            title="Close AI Tutor"
+            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 dark:hover:bg-zinc-900 transition-all cursor-pointer"
           >
-            <Minimize2 className="w-4 h-4" />
+            <X className="w-4 h-4" />
           </button>
         </div>
       </header>
+
 
       {/* ------------------- LESSON CONTEXT CARD ------------------- */}
       <div className="bg-slate-50 dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-800 px-4 py-2 flex items-center justify-between gap-3 text-[10px] text-slate-500 dark:text-zinc-400 font-mono shrink-0">
@@ -570,6 +578,7 @@ export const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
 
       {/* ------------------- MAIN CONTENT TABS PANEL ------------------- */}
       <div className="flex-1 overflow-y-auto p-4 bg-slate-50/50 dark:bg-zinc-900/20 space-y-4">
+
         
         {/* ================= TAB 1: TUTOR CHAT INTERFACE ================= */}
         {activeSubTab === 'chat' && (
@@ -1349,80 +1358,141 @@ export const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
 
       {/* ------------------- FOOTER INPUT / CHAT CONTROLS ------------------- */}
       <footer className="p-4 bg-white dark:bg-zinc-950 border-t border-slate-200 dark:border-zinc-800 shrink-0 space-y-3">
-        {activeSubTab === 'chat' ? (
-          <>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleSendMessage();
-              }}
-              className="flex items-center gap-2"
-            >
-              <input
-                type="text"
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                placeholder="Ask your tutor anything..."
-                className="flex-1 bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-medium text-slate-900 dark:text-zinc-105 focus:outline-hidden focus:border-purple-650"
-              />
-              <button
-                type="submit"
-                disabled={!inputMessage.trim()}
-                className="bg-slate-900 dark:bg-zinc-800 hover:bg-slate-800 disabled:opacity-50 text-white p-2.5 rounded-xl transition-all shadow-md shrink-0 cursor-pointer"
+          {activeSubTab === 'chat' ? (
+            <>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSendMessage();
+                }}
+                className="flex items-center gap-2"
               >
-                <CornerDownLeft className="w-4 h-4" />
-              </button>
-            </form>
-
-            {/* Chat utilities */}
-            <div className="flex items-center justify-between text-[10px] text-slate-450 px-1 border-t border-slate-100 dark:border-zinc-850 pt-2.5">
-              <button
-                onClick={handleClearConversation}
-                className="hover:text-slate-750 dark:hover:text-zinc-300 cursor-pointer flex items-center gap-1 font-bold"
-              >
-                <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-                <span>Clear Chat</span>
-              </button>
-
-              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  placeholder="Ask your tutor anything..."
+                  className="flex-1 bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-medium text-slate-900 dark:text-zinc-105 focus:outline-hidden focus:border-purple-650"
+                />
                 <button
-                  onClick={handleRegenerateResponse}
+                  type="submit"
+                  disabled={!inputMessage.trim()}
+                  className="bg-slate-900 dark:bg-zinc-800 hover:bg-slate-800 disabled:opacity-50 text-white p-2.5 rounded-xl transition-all shadow-md shrink-0 cursor-pointer"
+                >
+                  <CornerDownLeft className="w-4 h-4" />
+                </button>
+              </form>
+
+              {/* Chat utilities */}
+              <div className="flex items-center justify-between text-[10px] text-slate-450 px-1 border-t border-slate-100 dark:border-zinc-850 pt-2.5">
+                <button
+                  onClick={handleClearConversation}
                   className="hover:text-slate-750 dark:hover:text-zinc-300 cursor-pointer flex items-center gap-1 font-bold"
                 >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  <span>Regenerate</span>
+                  <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                  <span>Clear Chat</span>
                 </button>
-                <span className="text-slate-200">|</span>
-                <div className="relative group">
-                  <button className="hover:text-slate-750 dark:hover:text-zinc-300 cursor-pointer flex items-center gap-1 font-bold">
-                    <Download className="w-3.5 h-3.5" />
-                    <span>Export</span>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleRegenerateResponse}
+                    className="hover:text-slate-750 dark:hover:text-zinc-300 cursor-pointer flex items-center gap-1 font-bold"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Regenerate</span>
                   </button>
-                  {/* Export dropdown */}
-                  <div className="absolute right-0 bottom-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl py-1.5 shadow-lg hidden group-hover:block w-28 text-left z-30 font-bold">
-                    <button
-                      onClick={handleExportMarkdown}
-                      className="w-full py-1.5 px-3 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-300 block text-xs cursor-pointer"
-                    >
-                      Export .MD
+                  <span className="text-slate-200">|</span>
+                  <div className="relative group">
+                    <button className="hover:text-slate-750 dark:hover:text-zinc-300 cursor-pointer flex items-center gap-1 font-bold">
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Export</span>
                     </button>
-                    <button
-                      onClick={handleExportTxt}
-                      className="w-full py-1.5 px-3 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-300 block text-xs cursor-pointer"
-                    >
-                      Export .TXT
-                    </button>
+                    {/* Export dropdown */}
+                    <div className="absolute right-0 bottom-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl py-1.5 shadow-lg hidden group-hover:block w-28 text-left z-30 font-bold">
+                      <button
+                        onClick={handleExportMarkdown}
+                        className="w-full py-1.5 px-3 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-300 block text-xs cursor-pointer"
+                      >
+                        Export .MD
+                      </button>
+                      <button
+                        onClick={handleExportTxt}
+                        className="w-full py-1.5 px-3 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-300 block text-xs cursor-pointer"
+                      >
+                        Export .TXT
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
+            </>
+          ) : (
+            <div className="text-center text-[10px] text-slate-400 font-mono py-1">
+              Study Assistant Hub • Active context sync
             </div>
-          </>
-        ) : (
-          <div className="text-center text-[10px] text-slate-400 font-mono py-1">
-            Study Assistant Hub • Active context sync
-          </div>
-        )}
-      </footer>
-    </aside>
+          )}
+        </footer>
+    </>
+  );
+
+  // Full Screen Immersive Mode
+  if (isFull) {
+    return (
+      <div className="fixed inset-0 z-50 w-screen h-screen bg-slate-950/80 backdrop-blur-sm flex flex-col font-['Sora'] animate-in fade-in duration-200 select-text">
+        <aside className="w-full h-full flex flex-col justify-between bg-white dark:bg-zinc-950 overflow-hidden">
+          {panelBody}
+        </aside>
+      </div>
+    );
+  }
+
+  // Centered Modal Dialog Mode
+  if (isModal) {
+    return (
+      <div
+        className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 font-['Sora'] animate-in fade-in duration-200 select-text"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
+      >
+        <aside
+          className="relative w-full max-w-3xl h-[88vh] max-h-190 rounded-3xl overflow-hidden bg-white dark:bg-zinc-950 shadow-2xl border border-slate-200 dark:border-zinc-800 flex flex-col animate-in zoom-in-95 duration-200 select-text"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {panelBody}
+        </aside>
+      </div>
+    );
+  }
+
+  // Docked In-Line Mode (e.g. inside course player side by side)
+  if (isDocked) {
+    return (
+      <aside
+        style={{ width: `${panelWidth}px` }}
+        className="relative shrink-0 border-l border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 flex flex-col justify-between h-full select-text transition-all max-w-full font-['Sora']"
+      >
+        {panelBody}
+      </aside>
+    );
+  }
+
+  // Floating Side Drawer Mode
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-xs flex justify-end font-['Sora'] animate-in fade-in duration-200 select-text"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <aside
+        style={{ width: `${panelWidth}px` }}
+        className="relative h-full bg-white dark:bg-zinc-950 border-l border-slate-200 dark:border-zinc-800 shadow-2xl flex flex-col justify-between select-text transition-all max-w-full"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {panelBody}
+      </aside>
+    </div>
   );
 };
+
