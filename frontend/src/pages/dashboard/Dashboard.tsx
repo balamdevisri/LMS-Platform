@@ -42,6 +42,7 @@ import { studentService, type StudentUser } from '@/services/studentService';
 import { AnalyticsDashboard } from '../../components/courses/AnalyticsDashboard';
 import { LeaderboardView } from '../../components/courses/LeaderboardView';
 import { ResumeBuilder } from '../../components/courses/ResumeBuilder';
+import { PortfolioBuilder } from '../../components/portfolio/PortfolioBuilder';
 import { CareerRoadmap } from '../../components/courses/CareerRoadmap';
 import { PracticeHub } from '../../components/courses/PracticeHub';
 import { InterviewPrep } from '../../components/courses/InterviewPrep';
@@ -751,6 +752,8 @@ export const Dashboard: React.FC = () => {
     analytics: 'Learning Analytics',
     leaderboard: 'Cohort Leaderboard',
     'resume-builder': 'Resume Builder',
+    'portfolio-builder': 'Developer Portfolio Builder',
+    portfolio: 'Developer Portfolio Builder',
     'career-roadmap': 'Career Roadmap',
     'practice-hub': 'Practice Hub',
     'interview-prep': 'Interview Prep',
@@ -1640,6 +1643,11 @@ export const Dashboard: React.FC = () => {
       {/* ------------------- 12. RESUME BUILDER TAB ------------------- */}
       {currentTab === 'resume-builder' && (
         <ResumeBuilder />
+      )}
+
+      {/* ------------------- 12B. DEVELOPER PORTFOLIO BUILDER TAB ------------------- */}
+      {(currentTab === 'portfolio-builder' || currentTab === 'portfolio') && (
+        <PortfolioBuilder />
       )}
 
       {/* ------------------- 13. CAREER ROADMAP TAB ------------------- */}

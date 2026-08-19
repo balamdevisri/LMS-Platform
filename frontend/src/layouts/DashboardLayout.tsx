@@ -24,6 +24,7 @@ import {
   HelpCircle,
   Video,
   Sparkles,
+  Globe,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { BrandLogo } from '@/components/common/BrandLogo';
@@ -205,7 +206,7 @@ export const DashboardLayout: React.FC = () => {
       title: 'CAREER DEVELOPMENT',
       accent: 'text-emerald-600 dark:text-emerald-400',
       items: [
-        { name: 'My Portfolio', href: '/profile', icon: UserCheck, isPremium: true },
+        { name: 'Portfolio Builder', href: '/dashboard?tab=portfolio-builder', icon: Globe, isPremium: true },
         { name: 'Resume Builder', href: '/dashboard?tab=resume-builder', icon: FileText, isPremium: true },
         { name: 'Career Roadmap', href: '/dashboard?tab=career-roadmap', icon: Map },
         { name: 'Certificates', href: '/dashboard?tab=certificates', icon: Award },
