@@ -7,14 +7,20 @@ const cleanEnv = (val?: string): string => {
   return val.trim().replace(/^["']|["']$/g, '');
 };
 
+const rawAppId = cleanEnv(import.meta.env.VITE_FIREBASE_APP_ID) || '1:977716272905:web:de0781e0988aecfc823dd8';
+const safeAppId = rawAppId.startsWith('1:') ? rawAppId : `1:${rawAppId}`;
+
+const rawAuthDomain = cleanEnv(import.meta.env.VITE_FIREBASE_AUTH_DOMAIN);
+const safeAuthDomain = (!rawAuthDomain || rawAuthDomain.includes('auth.kaizenq.in'))
+  ? 'shaivika-lms-ai.firebaseapp.com'
+  : rawAuthDomain;
+
 const firebaseConfig = {
   apiKey:
     cleanEnv(import.meta.env.VITE_FIREBASE_API_KEY) ||
     'AIzaSyCKPJ4klGTGxdgTxC3Q93YiaTZixlI0vE0',
 
-  authDomain:
-    cleanEnv(import.meta.env.VITE_FIREBASE_AUTH_DOMAIN) ||
-    'shaivika-lms-ai.firebaseapp.com',
+  authDomain: safeAuthDomain,
 
   projectId:
     cleanEnv(import.meta.env.VITE_FIREBASE_PROJECT_ID) ||
@@ -28,9 +34,7 @@ const firebaseConfig = {
     cleanEnv(import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID) ||
     '977716272905',
 
-  appId:
-    cleanEnv(import.meta.env.VITE_FIREBASE_APP_ID) ||
-    '1:977716272905:web:de0781e0988aecfc823dd8',
+  appId: safeAppId,
 };
 
 let app: FirebaseApp;
@@ -45,9 +49,11 @@ try {
   auth = getAuth(app);
   db = getFirestore(app);
 
-  if (import.meta.env.DEV) {
-    console.log('🔥 [BUILD AUDIT] KaizenQ Firebase cleanup v2 initialized:', {
-      projectId: firebaseConfig.projectId,
+  if (typeof window !== 'undefined') {
+    console.log('[KAIZENQ BUILD AUDIT]', {
+      environment: import.meta.env.MODE,
+      buildVersion: 'firebase-cleanup-v3',
+      firebaseProject: firebaseConfig.projectId,
       authDomain: firebaseConfig.authDomain,
       appId: firebaseConfig.appId,
     });
