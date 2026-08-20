@@ -1205,55 +1205,125 @@ export const Dashboard: React.FC = () => {
                         </div>
 
                         {(() => {
-                          const matchingLiveClass = liveClasses.find(
-                            (lc) =>
-                              String(lc.courseId) === String(course.id) ||
-                              (lc.courseName && course.title && lc.courseName.toLowerCase() === course.title.toLowerCase())
-                          );
+                          const courseTitleClean = (course.title || '').toLowerCase().trim();
+                          const courseSlugClean = (course.slug || '').toLowerCase().trim();
+                          const courseIdStr = String(course.id || '');
+
+                          const isCourseMatch = (lc: LiveClass) => {
+                            const lcCourseId = String(lc.courseId || '');
+                            const lcCourseName = (lc.courseName || '').toLowerCase().trim();
+                            const lcTitle = (lc.title || '').toLowerCase().trim();
+
+                            if (lcCourseId === courseIdStr || (courseSlugClean && lcCourseId === courseSlugClean)) return true;
+                            if (lcCourseName && courseTitleClean && (lcCourseName === courseTitleClean || lcCourseName.includes(courseTitleClean) || courseTitleClean.includes(lcCourseName))) return true;
+                            if (lcTitle && courseTitleClean && (lcTitle.includes(courseTitleClean) || (courseTitleClean.length > 4 && lcTitle.includes(courseTitleClean.slice(0, 7))))) return true;
+                            
+                            // Keyword matching
+                            if (courseTitleClean.includes('react') && (lcCourseName.includes('react') || lcTitle.includes('react'))) return true;
+                            if (courseTitleClean.includes('python') && (lcCourseName.includes('python') || lcTitle.includes('python'))) return true;
+                            if (courseTitleClean.includes('cloud') && (lcCourseName.includes('cloud') || lcTitle.includes('cloud') || lcTitle.includes('devops'))) return true;
+                            if (courseTitleClean.includes('cyber') && (lcCourseName.includes('cyber') || lcTitle.includes('cyber') || lcTitle.includes('security'))) return true;
+                            if (courseTitleClean.includes('linux') && (lcCourseName.includes('linux') || lcTitle.includes('linux') || lcTitle.includes('shell'))) return true;
+                            if (courseTitleClean.includes('sql') && (lcCourseName.includes('sql') || lcTitle.includes('sql') || lcTitle.includes('database'))) return true;
+                            return false;
+                          };
+
+                          // 1. Highest priority: Live class actively broadcasting for this course
+                          let matchingLiveClass = liveClasses.find((lc) => normalizeLiveClassStatus(lc.status) === 'live' && isCourseMatch(lc));
+
+                          // 2. Second priority: Any live class actively broadcasting in the platform
+                          if (!matchingLiveClass) {
+                            matchingLiveClass = liveClasses.find((lc) => normalizeLiveClassStatus(lc.status) === 'live');
+                          }
+
+                          // 3. Third priority: Scheduled live class for this course
+                          if (!matchingLiveClass) {
+                            matchingLiveClass = liveClasses.find((lc) => normalizeLiveClassStatus(lc.status) === 'scheduled' && isCourseMatch(lc));
+                          }
+
+                          // 4. Fourth priority: Any scheduled live class
+                          if (!matchingLiveClass) {
+                            matchingLiveClass = liveClasses.find((lc) => normalizeLiveClassStatus(lc.status) === 'scheduled');
+                          }
+
+                          const isClassLiveNow = matchingLiveClass ? normalizeLiveClassStatus(matchingLiveClass.status) === 'live' : false;
+                          const isClassScheduled = matchingLiveClass ? normalizeLiveClassStatus(matchingLiveClass.status) === 'scheduled' : false;
 
                           const liveTargetUrl = matchingLiveClass
                             ? `/student/live-class/${matchingLiveClass.id}`
                             : `/dashboard/live-classroom`;
-                          const isClassLiveNow = matchingLiveClass && normalizeLiveClassStatus(matchingLiveClass.status) === 'live';
-                          const isClassScheduled = matchingLiveClass && normalizeLiveClassStatus(matchingLiveClass.status) === 'scheduled';
 
                           return (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                              <Link
-                                to={`/course/${course.slug || course.id}`}
-                                className="btn-blue-primary text-xs py-2.5 justify-center font-bold flex items-center gap-1.5 rounded-xl shadow-sm"
-                              >
-                                <PlayCircle className="w-4 h-4" />
-                                <span>Continue Track</span>
-                              </Link>
+                            <div className="space-y-3 pt-1">
+                              {/* Dynamic Live Classroom Alert Strip when Live Now */}
+                              {isClassLiveNow && matchingLiveClass && (
+                                <div className="p-3 rounded-2xl bg-gradient-to-r from-red-500/15 via-rose-500/10 to-red-500/15 dark:from-red-950/50 dark:via-rose-950/30 dark:to-red-950/50 border-2 border-red-500/40 dark:border-red-500/60 flex items-center justify-between gap-3 shadow-md shadow-red-500/10 animate-pulse">
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-red-600 to-rose-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-red-500/40">
+                                      <Video className="w-4 h-4 text-white animate-pulse" />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-[9px] font-black uppercase tracking-wider text-white bg-red-600 px-2 py-0.5 rounded-md">
+                                          LIVE CLASS IN SESSION
+                                        </span>
+                                      </div>
+                                      <p className="text-xs font-heading font-black text-slate-900 dark:text-white truncate mt-0.5">
+                                        {matchingLiveClass.title}
+                                      </p>
+                                      <p className="text-[10px] text-red-600 dark:text-red-300 font-semibold truncate">
+                                        Instructor: {matchingLiveClass.instructorName || 'Lead Faculty'} • Live Hands-on
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Link
+                                    to={liveTargetUrl}
+                                    className="px-3 py-1.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white text-xs font-black rounded-xl shadow-md shadow-red-500/30 flex items-center gap-1 shrink-0 transition-transform active:scale-95 cursor-pointer"
+                                  >
+                                    <span>Join</span>
+                                    <ChevronRight className="w-3.5 h-3.5" />
+                                  </Link>
+                                </div>
+                              )}
 
-                              <Link
-                                to={liveTargetUrl}
-                                className={`py-2.5 px-3 rounded-xl font-extrabold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md ${
-                                  isClassLiveNow
-                                    ? 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white animate-pulse shadow-red-500/20'
-                                    : isClassScheduled
-                                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/20'
-                                    : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
-                                }`}
-                              >
-                                {isClassLiveNow ? (
-                                  <>
-                                    <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-                                    <span>Live Class (Live Now)</span>
-                                  </>
-                                ) : isClassScheduled ? (
-                                  <>
-                                    <Video className="w-4 h-4 text-sky-300" />
-                                    <span>Join Live Class</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Video className="w-4 h-4 text-slate-400" />
-                                    <span>Live Classroom</span>
-                                  </>
-                                )}
-                              </Link>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <Link
+                                  to={`/course/${course.slug || course.id}`}
+                                  className="btn-blue-primary text-xs py-2.5 justify-center font-bold flex items-center gap-1.5 rounded-xl shadow-sm cursor-pointer"
+                                >
+                                  <PlayCircle className="w-4 h-4" />
+                                  <span>Continue Track</span>
+                                </Link>
+
+                                <Link
+                                  to={liveTargetUrl}
+                                  className={`py-2.5 px-3 rounded-xl font-heading font-black text-xs flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer ${
+                                    isClassLiveNow
+                                      ? 'bg-gradient-to-r from-red-600 via-rose-600 to-red-600 hover:from-red-500 hover:to-rose-500 text-white shadow-lg shadow-red-500/30 ring-2 ring-red-400/50 hover:scale-102 active:scale-95 select-none animate-pulse'
+                                      : isClassScheduled
+                                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/20 hover:scale-102 active:scale-95'
+                                      : 'bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-slate-100 border border-slate-700 hover:scale-102 active:scale-95'
+                                  }`}
+                                >
+                                  {isClassLiveNow ? (
+                                    <>
+                                      <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+                                      <Video className="w-4 h-4 text-white animate-pulse" />
+                                      <span>🔴 Join Live Class (LIVE NOW)</span>
+                                    </>
+                                  ) : isClassScheduled ? (
+                                    <>
+                                      <Video className="w-4 h-4 text-sky-300" />
+                                      <span>Live Classroom ({matchingLiveClass?.startTime ? new Date(matchingLiveClass.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Upcoming'})</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Video className="w-4 h-4 text-slate-400" />
+                                      <span>Live Classroom</span>
+                                    </>
+                                  )}
+                                </Link>
+                              </div>
                             </div>
                           );
                         })()}
