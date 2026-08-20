@@ -1210,53 +1210,54 @@ export const Dashboard: React.FC = () => {
                           const courseIdStr = String(course.id || '');
 
                           const isCourseMatch = (lc: LiveClass) => {
-                            const lcCourseId = String(lc.courseId || '');
+                            const lcCourseId = String(lc.courseId || '').trim();
                             const lcCourseName = (lc.courseName || '').toLowerCase().trim();
                             const lcTitle = (lc.title || '').toLowerCase().trim();
 
-                            if (lcCourseId === courseIdStr || (courseSlugClean && lcCourseId === courseSlugClean)) return true;
+                            if (lcCourseId && (lcCourseId === courseIdStr || (courseSlugClean && lcCourseId === courseSlugClean))) return true;
                             if (lcCourseName && courseTitleClean && (lcCourseName === courseTitleClean || lcCourseName.includes(courseTitleClean) || courseTitleClean.includes(lcCourseName))) return true;
-                            if (lcTitle && courseTitleClean && (lcTitle.includes(courseTitleClean) || (courseTitleClean.length > 4 && lcTitle.includes(courseTitleClean.slice(0, 7))))) return true;
+                            if (lcTitle && courseTitleClean && (lcTitle.includes(courseTitleClean) || (courseTitleClean.length > 5 && lcTitle.includes(courseTitleClean.slice(0, 8))))) return true;
                             
-                            // Keyword matching
-                            if (courseTitleClean.includes('react') && (lcCourseName.includes('react') || lcTitle.includes('react'))) return true;
-                            if (courseTitleClean.includes('python') && (lcCourseName.includes('python') || lcTitle.includes('python'))) return true;
-                            if (courseTitleClean.includes('cloud') && (lcCourseName.includes('cloud') || lcTitle.includes('cloud') || lcTitle.includes('devops'))) return true;
-                            if (courseTitleClean.includes('cyber') && (lcCourseName.includes('cyber') || lcTitle.includes('cyber') || lcTitle.includes('security'))) return true;
-                            if (courseTitleClean.includes('linux') && (lcCourseName.includes('linux') || lcTitle.includes('linux') || lcTitle.includes('shell'))) return true;
-                            if (courseTitleClean.includes('sql') && (lcCourseName.includes('sql') || lcTitle.includes('sql') || lcTitle.includes('database'))) return true;
+                            // Keyword matching for specific tech stacks
+                            const extractKeywords = (t: string) => {
+                              const words = t.toLowerCase().split(/[^a-z0-9+#]+/);
+                              return words.filter(w => ['react', 'python', 'java', 'c', 'cpp', 'cloud', 'aws', 'devops', 'cyber', 'security', 'linux', 'sql', 'git', 'docker', 'ai', 'data'].includes(w));
+                            };
+                            const courseKw = extractKeywords(courseTitleClean);
+                            const lcKw = [...extractKeywords(lcCourseName), ...extractKeywords(lcTitle)];
+                            if (courseKw.length > 0 && lcKw.length > 0) {
+                              return courseKw.some(k => lcKw.includes(k));
+                            }
                             return false;
                           };
 
-                          // 1. Highest priority: Live class actively broadcasting for this course
-                          let matchingLiveClass = liveClasses.find((lc) => normalizeLiveClassStatus(lc.status) === 'live' && isCourseMatch(lc));
+                          // Filter live classes belonging specifically to THIS course
+                          const courseLiveClasses = liveClasses.filter((lc) => isCourseMatch(lc));
 
-                          // 2. Second priority: Any live class actively broadcasting in the platform
-                          if (!matchingLiveClass) {
-                            matchingLiveClass = liveClasses.find((lc) => normalizeLiveClassStatus(lc.status) === 'live');
-                          }
+                          // 1. Strictly LIVE NOW for this course
+                          const liveClassNow = courseLiveClasses.find((lc) => normalizeLiveClassStatus(lc.status) === 'live');
 
-                          // 3. Third priority: Scheduled live class for this course
-                          if (!matchingLiveClass) {
-                            matchingLiveClass = liveClasses.find((lc) => normalizeLiveClassStatus(lc.status) === 'scheduled' && isCourseMatch(lc));
-                          }
+                          // 2. Scheduled upcoming session for this course
+                          const scheduledClass = courseLiveClasses.find((lc) => normalizeLiveClassStatus(lc.status) === 'scheduled');
 
-                          // 4. Fourth priority: Any scheduled live class
-                          if (!matchingLiveClass) {
-                            matchingLiveClass = liveClasses.find((lc) => normalizeLiveClassStatus(lc.status) === 'scheduled');
-                          }
+                          // 3. Completed past sessions for this course
+                          const completedClasses = courseLiveClasses.filter((lc) => normalizeLiveClassStatus(lc.status) === 'completed');
 
-                          const isClassLiveNow = matchingLiveClass ? normalizeLiveClassStatus(matchingLiveClass.status) === 'live' : false;
-                          const isClassScheduled = matchingLiveClass ? normalizeLiveClassStatus(matchingLiveClass.status) === 'scheduled' : false;
+                          const isClassLiveNow = Boolean(liveClassNow);
+                          const isClassScheduled = Boolean(scheduledClass);
 
-                          const liveTargetUrl = matchingLiveClass
-                            ? `/student/live-class/${matchingLiveClass.id}`
+                          const liveTargetUrl = liveClassNow
+                            ? `/student/live-class/${liveClassNow.id}`
+                            : scheduledClass
+                            ? `/student/live-class/${scheduledClass.id}`
+                            : completedClasses.length > 0
+                            ? `/student/live-class/${completedClasses[0].id}`
                             : `/dashboard/live-classroom`;
 
                           return (
                             <div className="space-y-3 pt-1">
-                              {/* Dynamic Live Classroom Alert Strip when Live Now */}
-                              {isClassLiveNow && matchingLiveClass && (
+                              {/* 1. Dynamic Live Classroom Alert Strip when Live Now */}
+                              {isClassLiveNow && liveClassNow && (
                                 <div className="p-3 rounded-2xl bg-gradient-to-r from-red-500/15 via-rose-500/10 to-red-500/15 dark:from-red-950/50 dark:via-rose-950/30 dark:to-red-950/50 border-2 border-red-500/40 dark:border-red-500/60 flex items-center justify-between gap-3 shadow-md shadow-red-500/10 animate-pulse">
                                   <div className="flex items-center gap-2.5 min-w-0">
                                     <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-red-600 to-rose-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-red-500/40">
@@ -1269,10 +1270,10 @@ export const Dashboard: React.FC = () => {
                                         </span>
                                       </div>
                                       <p className="text-xs font-heading font-black text-slate-900 dark:text-white truncate mt-0.5">
-                                        {matchingLiveClass.title}
+                                        {liveClassNow.title}
                                       </p>
                                       <p className="text-[10px] text-red-600 dark:text-red-300 font-semibold truncate">
-                                        Instructor: {matchingLiveClass.instructorName || 'Lead Faculty'} • Live Hands-on
+                                        Instructor: {liveClassNow.instructorName || 'Lead Faculty'} • Live Hands-on
                                       </p>
                                     </div>
                                   </div>
@@ -1282,6 +1283,23 @@ export const Dashboard: React.FC = () => {
                                   >
                                     <span>Join</span>
                                     <ChevronRight className="w-3.5 h-3.5" />
+                                  </Link>
+                                </div>
+                              )}
+
+                              {/* 2. Past Completed Sessions / Recordings Strip */}
+                              {!isClassLiveNow && completedClasses.length > 0 && (
+                                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 text-xs">
+                                  <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                                    <span>Past Live Sessions ({completedClasses.length} completed)</span>
+                                  </span>
+                                  <Link
+                                    to={liveTargetUrl}
+                                    className="text-blue-600 dark:text-cyan-400 hover:text-blue-700 dark:hover:text-cyan-300 font-extrabold text-[11px] flex items-center gap-1 transition-colors"
+                                  >
+                                    <span>Watch Recordings</span>
+                                    <ChevronRight className="w-3 h-3" />
                                   </Link>
                                 </div>
                               )}
@@ -1302,6 +1320,8 @@ export const Dashboard: React.FC = () => {
                                       ? 'bg-gradient-to-r from-red-600 via-rose-600 to-red-600 hover:from-red-500 hover:to-rose-500 text-white shadow-lg shadow-red-500/30 ring-2 ring-red-400/50 hover:scale-102 active:scale-95 select-none animate-pulse'
                                       : isClassScheduled
                                       ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/20 hover:scale-102 active:scale-95'
+                                      : completedClasses.length > 0
+                                      ? 'bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 hover:scale-102 active:scale-95'
                                       : 'bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-slate-100 border border-slate-700 hover:scale-102 active:scale-95'
                                   }`}
                                 >
@@ -1314,7 +1334,12 @@ export const Dashboard: React.FC = () => {
                                   ) : isClassScheduled ? (
                                     <>
                                       <Video className="w-4 h-4 text-sky-300" />
-                                      <span>Live Classroom ({matchingLiveClass?.startTime ? new Date(matchingLiveClass.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Upcoming'})</span>
+                                      <span>Live Classroom ({scheduledClass?.startTime ? new Date(scheduledClass.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Upcoming'})</span>
+                                    </>
+                                  ) : completedClasses.length > 0 ? (
+                                    <>
+                                      <Video className="w-4 h-4 text-emerald-400" />
+                                      <span>Past Sessions & Recordings</span>
                                     </>
                                   ) : (
                                     <>
