@@ -29,6 +29,54 @@ const GithubIcon: React.FC<{ className?: string }> = ({ className = 'w-3.5 h-3.5
   </svg>
 );
 
+const StudentAvatar: React.FC<{
+  name: string;
+  avatarUrl?: string | null;
+  className?: string;
+}> = ({ name, avatarUrl, className = 'w-10 h-10 rounded-2xl' }) => {
+  const [imgError, setImgError] = useState(false);
+
+  const getInitials = (n: string) => {
+    if (!n) return 'SC';
+    const parts = n.trim().split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return n.slice(0, 2).toUpperCase();
+  };
+
+  const getGradientForName = (n: string) => {
+    const gradients = [
+      'from-blue-600 to-indigo-600',
+      'from-purple-600 to-pink-600',
+      'from-emerald-500 to-teal-600',
+      'from-amber-500 to-orange-600',
+      'from-rose-500 to-red-600',
+      'from-cyan-500 to-blue-600',
+      'from-violet-600 to-purple-700',
+    ];
+    const code = Array.from(n || 'Student').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+    return gradients[code % gradients.length];
+  };
+
+  if (!avatarUrl || imgError) {
+    return (
+      <div
+        className={`${className} bg-gradient-to-tr ${getGradientForName(name)} text-white font-extrabold flex items-center justify-center text-xs shadow-inner select-none shrink-0 border border-white/20`}
+      >
+        <span>{getInitials(name)}</span>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={avatarUrl}
+      alt={name}
+      onError={() => setImgError(true)}
+      className={`${className} object-cover bg-slate-800 shrink-0`}
+    />
+  );
+};
+
 export const LeaderboardView: React.FC = () => {
   const { user, userProfile } = useAuth();
   const currentUserId = user?.uid || 'default_student';
@@ -47,7 +95,9 @@ export const LeaderboardView: React.FC = () => {
   useEffect(() => {
     setIsRefreshing(true);
     const unsubscribe = leaderboardService.subscribeToLeaderboard(filter, currentUserId, (liveData) => {
-      setEntries(liveData);
+      if (liveData && liveData.length > 0) {
+        setEntries(liveData);
+      }
       setIsRefreshing(false);
       setLastSyncTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
     });
@@ -87,10 +137,12 @@ export const LeaderboardView: React.FC = () => {
         const trackStr = (e.track || '').toLowerCase();
         const branchStr = (e.branch || '').toLowerCase();
         const collegeStr = (e.college || '').toLowerCase();
-        if (selectedTrack === 'ai') return trackStr.includes('ai') || branchStr.includes('ai') || branchStr.includes('python') || collegeStr.includes('ai');
+        if (selectedTrack === 'ai') return trackStr.includes('ai') || trackStr.includes('python') || branchStr.includes('ai') || branchStr.includes('python') || collegeStr.includes('ai');
         if (selectedTrack === 'web') return trackStr.includes('web') || trackStr.includes('react') || branchStr.includes('web') || branchStr.includes('react') || branchStr.includes('cs');
         if (selectedTrack === 'cloud') return trackStr.includes('cloud') || trackStr.includes('devops') || branchStr.includes('cloud') || branchStr.includes('devops');
         if (selectedTrack === 'cyber') return trackStr.includes('cyber') || trackStr.includes('security') || branchStr.includes('security');
+        if (selectedTrack === 'linux') return trackStr.includes('linux') || trackStr.includes('kernel') || trackStr.includes('system') || branchStr.includes('linux');
+        if (selectedTrack === 'sql') return trackStr.includes('sql') || trackStr.includes('db') || trackStr.includes('database') || branchStr.includes('sql');
         return true;
       });
     }
@@ -291,10 +343,12 @@ export const LeaderboardView: React.FC = () => {
         </span>
         {[
           { id: 'all', label: '🌟 All Tracks' },
-          { id: 'web', label: '⚛️ React & Full-Stack' },
-          { id: 'ai', label: '🧠 Python & AI Engineering' },
+          { id: 'web', label: '⚛️ React & Web' },
+          { id: 'ai', label: '🧠 Python & AI' },
           { id: 'cloud', label: '☁️ Cloud Architecture' },
-          { id: 'cyber', label: '🛡️ Cybersecurity' }
+          { id: 'cyber', label: '🛡️ Cybersecurity' },
+          { id: 'linux', label: '🐧 Linux & Systems' },
+          { id: 'sql', label: '🗄️ SQL & Databases' }
         ].map((t) => (
           <button
             key={t.id}
@@ -359,10 +413,10 @@ export const LeaderboardView: React.FC = () => {
           <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
             <div className="flex items-center gap-4.5">
               <div className="relative shrink-0">
-                <img
-                  src={currentUserEntry.avatarUrl || userProfile?.photoURL || user?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUserEntry.name)}&background=0284c7&color=fff&bold=true`}
-                  alt={currentUserEntry.name}
-                  className="w-16 h-16 rounded-2xl object-cover border-2 border-white shadow-lg bg-slate-900"
+                <StudentAvatar
+                  name={currentUserEntry.name}
+                  avatarUrl={currentUserEntry.avatarUrl || userProfile?.photoURL || user?.photoURL}
+                  className="w-16 h-16 rounded-2xl border-2 border-white shadow-lg"
                 />
                 <span className="absolute -bottom-1.5 -right-1.5 px-2 py-0.5 rounded-lg bg-amber-400 text-slate-950 font-black text-[10px] shadow-md ring-2 ring-white">
                   #{currentUserEntry.rank}
@@ -464,10 +518,10 @@ export const LeaderboardView: React.FC = () => {
               </span>
             </div>
             <div className="relative mt-3">
-              <img
-                src={topThree[1].avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(topThree[1].name)}&background=64748b&color=fff&bold=true`}
-                alt={topThree[1].name}
-                className="w-18 h-18 rounded-2xl object-cover border-3 border-slate-300 dark:border-slate-600 shadow-md bg-slate-800 group-hover:scale-105 transition-transform"
+              <StudentAvatar
+                name={topThree[1].name}
+                avatarUrl={topThree[1].avatarUrl}
+                className="w-18 h-18 rounded-2xl border-3 border-slate-300 dark:border-slate-600 shadow-md group-hover:scale-105 transition-transform"
               />
             </div>
             <div>
@@ -512,10 +566,10 @@ export const LeaderboardView: React.FC = () => {
 
             <div className="relative mt-4">
               <div className="absolute -inset-1 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 rounded-3xl blur-sm opacity-70 group-hover:opacity-100 transition-opacity animate-pulse" />
-              <img
-                src={topThree[0].avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(topThree[0].name)}&background=f59e0b&color=fff&bold=true`}
-                alt={topThree[0].name}
-                className="relative w-22 h-22 rounded-3xl object-cover border-4 border-amber-300 shadow-xl bg-slate-900 group-hover:scale-105 transition-transform"
+              <StudentAvatar
+                name={topThree[0].name}
+                avatarUrl={topThree[0].avatarUrl}
+                className="relative w-22 h-22 rounded-3xl border-4 border-amber-300 shadow-xl group-hover:scale-105 transition-transform"
               />
             </div>
 
@@ -557,10 +611,10 @@ export const LeaderboardView: React.FC = () => {
               </span>
             </div>
             <div className="relative mt-3">
-              <img
-                src={topThree[2].avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(topThree[2].name)}&background=d97706&color=fff&bold=true`}
-                alt={topThree[2].name}
-                className="w-18 h-18 rounded-2xl object-cover border-3 border-amber-600/40 dark:border-amber-700/50 shadow-md bg-slate-800 group-hover:scale-105 transition-transform"
+              <StudentAvatar
+                name={topThree[2].name}
+                avatarUrl={topThree[2].avatarUrl}
+                className="w-18 h-18 rounded-2xl border-3 border-amber-600/40 dark:border-amber-700/50 shadow-md group-hover:scale-105 transition-transform"
               />
             </div>
             <div>
@@ -632,10 +686,10 @@ export const LeaderboardView: React.FC = () => {
                     {/* Name & Avatar */}
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-3.5">
-                        <img
-                          src={entry.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(entry.name)}&background=0284c7&color=fff&bold=true`}
-                          alt={entry.name}
-                          className="w-10 h-10 rounded-xl object-cover border border-sky-200 dark:border-slate-700 shadow-xs shrink-0 bg-slate-900 group-hover:scale-105 transition-transform"
+                        <StudentAvatar
+                          name={entry.name}
+                          avatarUrl={entry.avatarUrl}
+                          className="w-10 h-10 rounded-xl border border-sky-200 dark:border-slate-700 shadow-xs shrink-0 group-hover:scale-105 transition-transform"
                         />
 
                         <div className="min-w-0">
@@ -733,10 +787,10 @@ export const LeaderboardView: React.FC = () => {
               {/* Header */}
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-3.5">
-                  <img
-                    src={selectedScholar.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedScholar.name)}&background=0284c7&color=fff&bold=true`}
-                    alt={selectedScholar.name}
-                    className="w-14 h-14 rounded-2xl object-cover border-2 border-slate-700 shadow-md bg-slate-800"
+                  <StudentAvatar
+                    name={selectedScholar.name}
+                    avatarUrl={selectedScholar.avatarUrl}
+                    className="w-14 h-14 rounded-2xl border-2 border-slate-700 shadow-md"
                   />
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">

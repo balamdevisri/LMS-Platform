@@ -84,6 +84,25 @@ class StudentService {
       console.warn('Failed to parse admin users cache:', e);
     }
 
+    // 3. Fallback default student cohort if storage is empty
+    if (combinedMap.size === 0) {
+      const defaultScholars = [
+        { id: 'st_01', name: 'Bhanu Prakash', email: 'bhanu.prakash@shaivika.ai', xp: 2850, track: 'React & Full-Stack Web', branch: 'Computer Science & AI', college: 'Shaivika AI Foundation', currentCourse: 'React JS Complete Course', learningScore: 96, courses: 4, completedCourses: 3 },
+        { id: 'st_02', name: 'Aarav Sharma', email: 'aarav.sharma@shaivika.ai', xp: 2420, track: 'Python & AI Engineering', branch: 'AI & Data Engineering', college: 'Shaivika AI Foundation', currentCourse: 'Python Machine Learning & AI', learningScore: 92, courses: 3, completedCourses: 2 },
+        { id: 'st_03', name: 'Ananya Reddy', email: 'ananya.reddy@shaivika.ai', xp: 2180, track: 'Cloud Architecture & DevOps', branch: 'Cloud & Systems Engineering', college: 'Shaivika AI Foundation', currentCourse: 'Cloud Architecture & DevOps', learningScore: 89, courses: 3, completedCourses: 2 },
+        { id: 'st_04', name: 'Vikram Verma', email: 'vikram.verma@shaivika.ai', xp: 1940, track: 'Cybersecurity & Ethical Hacking', branch: 'Information Security', college: 'Shaivika AI Foundation', currentCourse: 'Cybersecurity & Ethical Hacking', learningScore: 87, courses: 2, completedCourses: 1 },
+        { id: 'st_05', name: 'Sneha Patel', email: 'sneha.patel@shaivika.ai', xp: 1720, track: 'Linux Kernel & Systems', branch: 'Systems & OS Engineering', college: 'Shaivika AI Foundation', currentCourse: 'Linux Systems Mastery', learningScore: 85, courses: 2, completedCourses: 1 },
+        { id: 'st_06', name: 'Rohan Gupta', email: 'rohan.gupta@shaivika.ai', xp: 1560, track: 'SQL & Database Engineering', branch: 'Database & Backend', college: 'Shaivika AI Foundation', currentCourse: 'SQL & Database Engineering', learningScore: 83, courses: 2, completedCourses: 1 },
+        { id: 'st_07', name: 'Kavya Nair', email: 'kavya.nair@shaivika.ai', xp: 1380, track: 'Data Science & Analytics', branch: 'Data Science', college: 'Shaivika AI Foundation', currentCourse: 'Data Science Foundation', learningScore: 81, courses: 1, completedCourses: 1 },
+        { id: 'st_08', name: 'Aditya Rao', email: 'aditya.rao@shaivika.ai', xp: 1190, track: 'Distributed Backend Systems', branch: 'Distributed Systems', college: 'Shaivika AI Foundation', currentCourse: 'Distributed Backend Engineering', learningScore: 78, courses: 1, completedCourses: 0 },
+        { id: 'st_09', name: 'Meera Iyer', email: 'meera.iyer@shaivika.ai', xp: 980, track: 'React & Full-Stack Web', branch: 'Web Technologies', college: 'Shaivika AI Foundation', currentCourse: 'Frontend Web Engineering', learningScore: 76, courses: 1, completedCourses: 0 },
+        { id: 'st_10', name: 'Kiran Kumar', email: 'kiran.kumar@shaivika.ai', xp: 820, track: 'Python & AI Engineering', branch: 'Machine Learning', college: 'Shaivika AI Foundation', currentCourse: 'Python for Beginners', learningScore: 74, courses: 1, completedCourses: 0 }
+      ];
+      defaultScholars.forEach((st) => {
+        combinedMap.set(st.email.toLowerCase(), this.normalizeStudentData(st));
+      });
+    }
+
     const result = Array.from(combinedMap.values());
     return result.sort((a, b) => {
       const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
