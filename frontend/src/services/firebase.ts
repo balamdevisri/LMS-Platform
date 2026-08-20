@@ -29,19 +29,19 @@ try {
     auth = getAuth(app);
     db = getFirestore(app);
 
-    if (typeof window !== 'undefined' && firebaseConfig.measurementId) {
+    if (typeof window !== 'undefined' && firebaseConfig.measurementId && import.meta.env.PROD) {
       isSupported()
         .then((supported) => {
           if (supported && app) {
             try {
               analytics = getAnalytics(app);
-            } catch (err) {
-              console.warn('Firebase Analytics initialization notice:', err);
+            } catch {
+              analytics = null;
             }
           }
         })
-        .catch((err) => {
-          console.warn('Firebase Analytics isSupported check notice:', err);
+        .catch(() => {
+          analytics = null;
         });
     }
   }
