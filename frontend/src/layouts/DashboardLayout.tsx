@@ -206,7 +206,7 @@ export const DashboardLayout: React.FC = () => {
       accent: 'text-cyan-600 dark:text-cyan-400',
       items: [
         { name: 'Learning Analytics', href: '/dashboard?tab=analytics', icon: BarChart3 },
-        { name: 'Leaderboard', href: '/dashboard?tab=leaderboard', icon: Trophy },
+        { name: 'Leaderboard', href: '/dashboard/leaderboard', icon: Trophy },
         { name: 'Practice Hub', href: '/dashboard?tab=practice-hub', icon: Terminal },
         { name: 'Interview Prep', href: '/dashboard?tab=interview-prep', icon: HelpCircle },
       ],

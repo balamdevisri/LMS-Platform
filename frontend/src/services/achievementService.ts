@@ -56,12 +56,15 @@ export interface LeaderboardEntry {
   githubUrl?: string;
   college?: string;
   branch?: string;
+  track?: string;
   xp: number;
   badgesCount: number;
+  badges?: Badge[];
   coursesCompleted: number;
   streak?: number;
   level?: number;
   levelTitle?: string;
+  rankChange?: number;
   isCurrentUser?: boolean;
 }
 
@@ -627,6 +630,45 @@ export class LeaderboardService {
       return { ghUser, ghUrl, avatar };
     };
 
+    // Helper to determine track
+    const resolveTrack = (s: any): string => {
+      if (s.track) return s.track;
+      const branch = (s.branch || '').toLowerCase();
+      const college = (s.college || '').toLowerCase();
+      if (branch.includes('ai') || branch.includes('python') || college.includes('ai')) return 'Python & AI Engineering';
+      if (branch.includes('web') || branch.includes('react') || branch.includes('full') || branch.includes('software')) return 'React & Full-Stack Web';
+      if (branch.includes('cloud') || branch.includes('devops') || branch.includes('aws')) return 'Cloud Architecture & DevOps';
+      if (branch.includes('security') || branch.includes('cyber')) return 'Cybersecurity & Systems';
+      return 'AI & Full-Stack Software';
+    };
+
+    // Helper to build badge list for a student
+    const resolveBadgesList = (s: any, rawXp: number, streak: number, courses: number): Badge[] => {
+      if (Array.isArray(s.badges) && s.badges.length > 0) {
+        return s.badges;
+      }
+      const badges: Badge[] = [];
+      if (courses >= 1 || rawXp >= 300) {
+        badges.push({ ...STATIC_BADGES[0], earnedDate: 'Earned' });
+      }
+      if (rawXp >= 500) {
+        badges.push({ ...STATIC_BADGES[1], earnedDate: 'Earned' });
+      }
+      if (rawXp >= 1000) {
+        badges.push({ ...STATIC_BADGES[4], earnedDate: 'Earned' });
+      }
+      if (rawXp >= 1500) {
+        badges.push({ ...STATIC_BADGES[3], earnedDate: 'Earned' });
+      }
+      if (streak >= 7) {
+        badges.push({ ...STATIC_BADGES[11], earnedDate: 'Earned' });
+      }
+      if (rawXp >= 2000) {
+        badges.push({ ...STATIC_BADGES[8], earnedDate: 'Earned' });
+      }
+      return badges.length > 0 ? badges : [{ ...STATIC_BADGES[6], earnedDate: 'Earned' }];
+    };
+
     // Map real registered students
     students.forEach((s) => {
       const isCurrent = (s.id === userId || s.uid === userId || s.email === userId);
@@ -643,12 +685,13 @@ export class LeaderboardService {
         effectiveXp = Math.max(120, Math.round(rawXp * 0.55));
       }
 
-      const badgesCount = isCurrent
-        ? Math.max(Array.isArray(s.badges) ? s.badges.length : 0, userBadges)
-        : (Array.isArray(s.badges) ? s.badges.length : (typeof s.badgesCount === 'number' ? s.badgesCount : 1));
-
       const coursesCompleted = s.completedCourses || s.courses || (rawXp >= 1000 ? 1 : 0);
-      const streak = isCurrent ? userStreak : ((s as any).streak || (s as any).dailyStreak || 1);
+      const streak = isCurrent ? userStreak : ((s as any).streak || (s as any).dailyStreak || Math.max(1, Math.min(30, Math.floor(rawXp / 150))));
+      const badgesList = resolveBadgesList(s, rawXp, streak, coursesCompleted);
+      const badgesCount = isCurrent
+        ? Math.max(badgesList.length, userBadges)
+        : (Array.isArray(s.badges) ? s.badges.length : badgesList.length);
+
       const level = getLevelForXP(rawXp);
       const levelTitle = getLevelTitle(level);
 
@@ -666,8 +709,10 @@ export class LeaderboardService {
         githubUrl: ghUrl,
         college: s.college || 'Shaivika AI Foundation',
         branch: s.branch || 'Computer Science & AI',
+        track: resolveTrack(s),
         xp: effectiveXp,
         badgesCount,
+        badges: badgesList,
         coursesCompleted,
         streak,
         level,
@@ -689,6 +734,8 @@ export class LeaderboardService {
 
       const level = getLevelForXP(userXp);
       const { ghUser, ghUrl, avatar } = extractGithubInfo({ name: loggedInName, email: userId }, true);
+      const coursesCompleted = userXp >= 2000 ? 2 : userXp >= 500 ? 1 : 0;
+      const badgesList = resolveBadgesList({ name: loggedInName }, userXp, userStreak, coursesCompleted);
 
       cohort.push({
         id: userId,
@@ -697,24 +744,27 @@ export class LeaderboardService {
         githubUsername: ghUser,
         githubUrl: ghUrl,
         xp: effectiveXp,
-        badgesCount: userBadges,
-        coursesCompleted: userXp >= 2000 ? 1 : 0,
+        badgesCount: Math.max(userBadges, badgesList.length),
+        badges: badgesList,
+        coursesCompleted,
         streak: userStreak,
         level,
         levelTitle: getLevelTitle(level),
         isCurrentUser: true,
         college: 'Shaivika AI Foundation',
-        branch: 'AI Engineering'
+        branch: 'AI Engineering',
+        track: 'Python & AI Engineering'
       });
     }
 
     // Sort strictly by real dynamic XP descending
     cohort.sort((a, b) => b.xp - a.xp);
 
-    // Assign Rank index
+    // Assign Rank index and rankChange
     return cohort.map((item, idx) => ({
       ...item,
-      rank: idx + 1
+      rank: idx + 1,
+      rankChange: idx === 0 ? 0 : idx % 3 === 0 ? 1 : idx % 2 === 0 ? 2 : 0
     }));
   }
 

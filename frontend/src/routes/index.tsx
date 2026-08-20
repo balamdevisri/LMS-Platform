@@ -56,6 +56,7 @@ const VerifyEmail = lazyLoad(() => import('@/pages/auth/VerifyEmail'), 'VerifyEm
 const Unauthorized = lazyLoad(() => import('@/pages/auth/Unauthorized'), 'Unauthorized');
 const Dashboard = lazyLoad(() => import('@/pages/dashboard/Dashboard'), 'Dashboard');
 const PracticeLabPage = lazyLoad(() => import('@/pages/dashboard/PracticeLabPage'), 'PracticeLabPage');
+const LeaderboardPage = lazyLoad(() => import('@/pages/dashboard/LeaderboardPage'), 'LeaderboardPage');
 const Profile = lazyLoad(() => import('@/pages/dashboard/Profile'), 'Profile');
 const CoursesList = lazyLoad(() => import('@/pages/courses/CoursesList'), 'CoursesList');
 const CourseView = lazyLoad(() => import('@/pages/courses/CourseView'), 'CourseView');
@@ -143,6 +144,8 @@ const router = createBrowserRouter([
     ),
     children: [
       { path: 'dashboard', element: <Dashboard /> },
+      { path: 'dashboard/leaderboard', element: <LeaderboardPage /> },
+      { path: 'leaderboard', element: <LeaderboardPage /> },
       { path: 'dashboard/practice-lab', element: <PracticeLabPage /> },
       { path: 'dashboard/courses', element: <CoursesList /> },
       { path: 'dashboard/course/:slug', element: <CourseView /> },
