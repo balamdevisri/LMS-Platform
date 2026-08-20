@@ -247,6 +247,9 @@ const handleUserApprove = async (req: Request, res: Response) => {
     batch.set(userRef, approvePayload, { merge: true });
     if (role === 'instructor') {
       batch.set(instRef, approvePayload, { merge: true });
+    } else if (role === 'student') {
+      const studentRef = db.collection('students').doc(userId);
+      batch.set(studentRef, approvePayload, { merge: true });
     }
 
     const auditRef = db.collection('auditLogs').doc();
@@ -302,13 +305,12 @@ const handleUserApprove = async (req: Request, res: Response) => {
 };
 
 /**
- * POST /api/admin/user/:id/reject
  * Reject student or instructor user in central `users` collection
  */
 const handleUserReject = async (req: Request, res: Response) => {
   try {
     const userId = String(req.params.id);
-    const { reason } = req.body;
+    const { reason } = req.body || {};
     const now = new Date().toISOString();
     const adminUid = (req as any).user?.uid || 'admin';
 
@@ -344,6 +346,9 @@ const handleUserReject = async (req: Request, res: Response) => {
     batch.set(userRef, rejectPayload, { merge: true });
     if (role === 'instructor') {
       batch.set(instRef, rejectPayload, { merge: true });
+    } else if (role === 'student') {
+      const studentRef = db.collection('students').doc(userId);
+      batch.set(studentRef, rejectPayload, { merge: true });
     }
 
     const auditRef = db.collection('auditLogs').doc();
@@ -386,13 +391,63 @@ const handleUserReject = async (req: Request, res: Response) => {
   }
 };
 
-// All approve/reject routes are protected by verifyFirebaseToken + requireRole('admin')
+/**
+ * Delete student, instructor, or user from Firestore and Firebase Auth
+ */
+const handleUserDelete = async (req: Request, res: Response) => {
+  try {
+    const userId = String(req.params.id);
+    if (!userId) {
+      return res.status(400).json({ success: false, error: 'User ID is required' });
+    }
+
+    if (db) {
+      await Promise.allSettled([
+        db.collection('users').doc(userId).delete(),
+        db.collection('students').doc(userId).delete(),
+        db.collection('instructors').doc(userId).delete(),
+      ]);
+    }
+
+    if (adminAuth) {
+      try {
+        await adminAuth.deleteUser(userId);
+      } catch (authErr: any) {
+        console.warn(`[Admin Delete] Firebase Auth notice for ${userId}:`, authErr?.message || authErr);
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `User ${userId} deleted successfully from database and auth records.`,
+      data: { id: userId },
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || err });
+  }
+};
+
+// All approve/reject/delete routes with singular/plural support
 router.post('/user/:id/approve', verifyFirebaseToken as any, requireRole('admin') as any, handleUserApprove as any);
-router.post('/user/:id/reject', verifyFirebaseToken as any, requireRole('admin') as any, handleUserReject as any);
+router.post('/users/:id/approve', verifyFirebaseToken as any, requireRole('admin') as any, handleUserApprove as any);
+router.post('/student/:id/approve', verifyFirebaseToken as any, requireRole('admin') as any, handleUserApprove as any);
 router.post('/students/:id/approve', verifyFirebaseToken as any, requireRole('admin') as any, handleUserApprove as any);
-router.post('/students/:id/reject', verifyFirebaseToken as any, requireRole('admin') as any, handleUserReject as any);
+router.post('/instructor/:id/approve', verifyFirebaseToken as any, requireRole('admin') as any, handleUserApprove as any);
 router.post('/instructors/:id/approve', verifyFirebaseToken as any, requireRole('admin') as any, handleUserApprove as any);
+
+router.post('/user/:id/reject', verifyFirebaseToken as any, requireRole('admin') as any, handleUserReject as any);
+router.post('/users/:id/reject', verifyFirebaseToken as any, requireRole('admin') as any, handleUserReject as any);
+router.post('/student/:id/reject', verifyFirebaseToken as any, requireRole('admin') as any, handleUserReject as any);
+router.post('/students/:id/reject', verifyFirebaseToken as any, requireRole('admin') as any, handleUserReject as any);
+router.post('/instructor/:id/reject', verifyFirebaseToken as any, requireRole('admin') as any, handleUserReject as any);
 router.post('/instructors/:id/reject', verifyFirebaseToken as any, requireRole('admin') as any, handleUserReject as any);
+
+router.delete('/user/:id', verifyFirebaseToken as any, requireRole('admin') as any, handleUserDelete as any);
+router.delete('/users/:id', verifyFirebaseToken as any, requireRole('admin') as any, handleUserDelete as any);
+router.delete('/student/:id', verifyFirebaseToken as any, requireRole('admin') as any, handleUserDelete as any);
+router.delete('/students/:id', verifyFirebaseToken as any, requireRole('admin') as any, handleUserDelete as any);
+router.delete('/instructor/:id', verifyFirebaseToken as any, requireRole('admin') as any, handleUserDelete as any);
+router.delete('/instructors/:id', verifyFirebaseToken as any, requireRole('admin') as any, handleUserDelete as any);
 
 /**
  * POST /api/admin/sync-auth-users
