@@ -19,6 +19,7 @@ import {
   Users,
   Layers,
   Video,
+  Calendar,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -115,7 +116,11 @@ export const Dashboard: React.FC = () => {
       setRealtimeSec(courseTimeService.getTotalActiveSeconds(activeUserId));
     };
     window.addEventListener('shaivika_time_updated', handleTimeUpdate);
-    return () => window.removeEventListener('shaivika_time_updated', handleTimeUpdate);
+    window.addEventListener('shaivika_ai_prompt_logged', handleTimeUpdate);
+    return () => {
+      window.removeEventListener('shaivika_time_updated', handleTimeUpdate);
+      window.removeEventListener('shaivika_ai_prompt_logged', handleTimeUpdate);
+    };
   }, [activeUserId]);
 
   const loadDashboardData = useCallback(async () => {
@@ -383,34 +388,20 @@ export const Dashboard: React.FC = () => {
 
   // Analytics Metrics
   const liveHoursCompleted = coursesProgress.reduce((acc, c) => acc + c.completedDurationHours, 0);
-  const totalActiveLearningHours = Number(Math.max(realtimeSec / 3600, liveHoursCompleted).toFixed(1));
 
-  // Dynamic study time calculation per day from real student course active tracking
+  // Dynamic study time & AI engagement calculation per day from real rolling calendar dates
   const weeklyChartData = React.useMemo(() => {
-    if (chartTimeframe === '7d') {
-      const breakdown = courseTimeService.getWeeklyHoursBreakdown(activeUserId);
-      const maxVal = Math.max(...breakdown.map((d) => d.hours), 0.1);
-      return breakdown.map((d) => ({
-        day: d.day,
-        hours: d.hours,
-        heightPercent: d.hours > 0 ? Math.max(15, Math.round((d.hours / maxVal) * 100)) : 5,
-      }));
-    }
+    const daysCount = chartTimeframe === '7d' ? 7 : 30;
+    const metrics = courseTimeService.getRollingDailyMetrics(activeUserId, daysCount);
+    const maxVal = Math.max(...metrics.map((d) => d.hours), 0.1);
 
-    // 30-Day view breakdown dynamically calculated from course units & active learning
-    const totalHours = totalActiveLearningHours;
-    const weeks = [
-      { day: 'Week 1', hours: Number((totalHours * 0.2).toFixed(1)) },
-      { day: 'Week 2', hours: Number((totalHours * 0.25).toFixed(1)) },
-      { day: 'Week 3', hours: Number((totalHours * 0.3).toFixed(1)) },
-      { day: 'Week 4', hours: Number((totalHours * 0.35).toFixed(1)) },
-    ];
-    const maxWeekVal = Math.max(...weeks.map((w) => w.hours), 0.1);
-    return weeks.map((w) => ({
-      ...w,
-      heightPercent: w.hours > 0 ? Math.max(20, Math.round((w.hours / maxWeekVal) * 100)) : 5,
+    return metrics.map((d) => ({
+      ...d,
+      day: d.isToday ? 'Today' : d.dayName,
+      displayDate: d.shortDate,
+      heightPercent: d.hours > 0 ? Math.max(15, Math.round((d.hours / maxVal) * 100)) : 6,
     }));
-  }, [chartTimeframe, realtimeSec, totalActiveLearningHours, activeUserId]);
+  }, [chartTimeframe, realtimeSec, activeUserId]);
   
 
 
@@ -1366,11 +1357,22 @@ export const Dashboard: React.FC = () => {
             <div className="lg:col-span-12 p-6 rounded-3xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 space-y-4 shadow-3xs">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h3 className="font-heading font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
-                    <Activity className="w-4.5 h-4.5 text-purple-600 dark:text-purple-400" />
-                    <span>Study Hours & AI Engagement</span>
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-zinc-400 font-medium">Hover over any bar to inspect daily study hours & AI mentor prompt count</p>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-heading font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                      <Activity className="w-4.5 h-4.5 text-purple-600 dark:text-purple-400" />
+                      <span>Study Hours & AI Engagement</span>
+                    </h3>
+                    <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      Live Real-Time
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-zinc-400 font-medium mt-0.5">
+                    <Calendar className="w-3.5 h-3.5 text-purple-500" />
+                    <span>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                    <span>•</span>
+                    <span>Hover over any bar to inspect daily study hours & AI prompt count</span>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -1404,57 +1406,93 @@ export const Dashboard: React.FC = () => {
                 
                 {/* Active Tooltip Details */}
                 {hoveredDayIndex !== null && weeklyChartData[hoveredDayIndex] && (
-                  <div className="p-3 bg-white dark:bg-zinc-900 border border-purple-200 dark:border-purple-800/80 rounded-2xl flex items-center justify-between shadow-md animate-in fade-in duration-150">
+                  <div className="p-3 bg-white dark:bg-zinc-900 border border-purple-200 dark:border-purple-800/80 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-md animate-in fade-in duration-150">
                     <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-purple-600 animate-pulse" />
-                      <span className="font-extrabold text-xs text-slate-900 dark:text-zinc-100">
-                        {weeklyChartData[hoveredDayIndex].day} Activity Metrics:
-                      </span>
+                      <span className={`w-2.5 h-2.5 rounded-full ${weeklyChartData[hoveredDayIndex].isToday ? 'bg-emerald-500 animate-ping' : 'bg-purple-600'}`} />
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-extrabold text-xs text-slate-900 dark:text-zinc-100">
+                          {weeklyChartData[hoveredDayIndex].fullDayName}, {weeklyChartData[hoveredDayIndex].formattedDate}
+                        </span>
+                        {weeklyChartData[hoveredDayIndex].isToday && (
+                          <span className="text-[9px] font-black uppercase text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                            Today • Active
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center gap-4 text-xs">
-                      <span className="font-bold text-slate-700 dark:text-zinc-300">
-                        ⏱️ <strong className="text-purple-600 dark:text-purple-400">{weeklyChartData[hoveredDayIndex].hours} hrs</strong> total study time
+                      <span className="font-bold text-slate-700 dark:text-zinc-300 flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                        <span>Study Time: <strong className="text-purple-600 dark:text-purple-400">{weeklyChartData[hoveredDayIndex].hours} hrs</strong> ({weeklyChartData[hoveredDayIndex].formattedDuration})</span>
+                      </span>
+                      <span className="font-bold text-slate-700 dark:text-zinc-300 flex items-center gap-1">
+                        <Bot className="w-3.5 h-3.5 text-indigo-500" />
+                        <span>AI Mentorship: <strong className="text-indigo-600 dark:text-indigo-400">{weeklyChartData[hoveredDayIndex].aiPrompts} prompts</strong></span>
                       </span>
                     </div>
                   </div>
                 )}
 
                 {/* Bars Grid */}
-                <div className="h-44 flex items-end justify-between gap-3 pt-6 px-2">
+                <div className={`h-48 flex items-end justify-between ${chartTimeframe === '7d' ? 'gap-3 sm:gap-6 px-2' : 'gap-1 px-1 overflow-x-auto pb-1 scrollbar-none'}`}>
                   {weeklyChartData.map((item, idx) => {
                     const isHovered = hoveredDayIndex === idx;
                     return (
                       <div
-                        key={item.day}
+                        key={item.dateStr}
                         onMouseEnter={() => setHoveredDayIndex(idx)}
-                        className="flex-1 flex flex-col items-center gap-2 h-full justify-end group cursor-pointer"
+                        className={`flex-1 flex flex-col items-center gap-1.5 h-full justify-end group cursor-pointer ${
+                          chartTimeframe === '30d' ? 'min-w-[28px]' : ''
+                        }`}
                       >
-                        <span className={`text-[10px] font-extrabold transition-colors ${
-                          isHovered ? 'text-purple-600 dark:text-purple-400 scale-110' : 'text-slate-400 dark:text-zinc-500'
+                        <span className={`text-[10px] font-extrabold transition-all duration-200 ${
+                          isHovered 
+                            ? 'text-purple-600 dark:text-purple-400 scale-110 font-black' 
+                            : item.isToday
+                            ? 'text-purple-600 dark:text-cyan-400 font-black'
+                            : 'text-slate-400 dark:text-zinc-500'
                         }`}>
                           {item.hours}h
                         </span>
 
-                        <div className="w-full max-w-[48px] bg-slate-200/80 dark:bg-zinc-800/80 rounded-2xl h-full flex items-end p-1 transition-all overflow-hidden relative">
+                        <div className={`w-full ${chartTimeframe === '7d' ? 'max-w-[54px]' : 'max-w-[32px]'} bg-slate-200/80 dark:bg-zinc-800/80 rounded-2xl h-full flex items-end p-1 transition-all overflow-hidden relative ${
+                          item.isToday ? 'ring-2 ring-purple-500/50 dark:ring-cyan-500/50 shadow-md shadow-purple-500/10' : ''
+                        }`}>
                           <div
                             className={`w-full rounded-xl transition-all duration-500 relative ${
                               isHovered
-                                ? 'bg-linear-to-t from-purple-600 via-indigo-600 to-sky-500 shadow-lg shadow-purple-500/30'
-                                : 'bg-linear-to-t from-purple-600/80 to-indigo-500/70 group-hover:from-purple-600 group-hover:to-indigo-500'
+                                ? 'bg-gradient-to-t from-purple-600 via-indigo-600 to-sky-400 shadow-lg shadow-purple-500/30'
+                                : item.isToday
+                                ? 'bg-gradient-to-t from-purple-600 via-indigo-500 to-cyan-400 shadow-md shadow-purple-500/20 animate-pulse'
+                                : 'bg-gradient-to-t from-purple-600/70 to-indigo-500/60 group-hover:from-purple-600 group-hover:to-indigo-500'
                             }`}
                             style={{ height: `${item.heightPercent}%` }}
                           >
-                            {isHovered && (
+                            {(isHovered || item.isToday) && (
                               <div className="absolute top-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-white rounded-full animate-ping" />
                             )}
                           </div>
                         </div>
 
-                        <span className={`text-xs font-bold transition-colors ${
-                          isHovered ? 'text-purple-600 dark:text-purple-400' : 'text-slate-600 dark:text-zinc-400'
-                        }`}>
-                          {item.day}
-                        </span>
+                        <div className="flex flex-col items-center">
+                          <span className={`text-xs font-bold transition-colors ${
+                            isHovered 
+                              ? 'text-purple-600 dark:text-purple-400 font-extrabold' 
+                              : item.isToday 
+                              ? 'text-purple-600 dark:text-cyan-300 font-extrabold' 
+                              : 'text-slate-700 dark:text-zinc-300'
+                          }`}>
+                            {item.day}
+                          </span>
+                          <span className={`text-[9px] font-medium transition-colors ${
+                            item.isToday ? 'text-purple-600 dark:text-cyan-400 font-bold' : 'text-slate-400 dark:text-zinc-500'
+                          }`}>
+                            {item.displayDate}
+                          </span>
+                          {item.isToday && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-purple-600 dark:bg-cyan-400 mt-0.5 animate-pulse" />
+                          )}
+                        </div>
                       </div>
                     );
                   })}

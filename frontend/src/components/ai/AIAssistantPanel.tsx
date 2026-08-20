@@ -30,6 +30,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { mockAIProvider, type AIChatMessage, type LessonSummary, type PracticeQuestion, type InterviewPrepQuestion, type SmartRecommendations, type AIFlashcard, type WeakTopicItem } from '@/services/aiProvider';
 import { ChallengeProvider } from '@/services/practice/practiceEngine';
+import { courseTimeService } from '@/services/courseTimeService';
 
 interface AIAssistantPanelProps {
   courseId: string;
@@ -225,6 +226,11 @@ export const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
     if (!text.trim()) return;
 
     if (!customText) setInputMessage('');
+
+    // Track AI prompt metric dynamically for active user
+    try {
+      courseTimeService.trackAIPrompt(user?.uid || 'default_student');
+    } catch {}
 
     const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const userMsg: AIChatMessage = {
