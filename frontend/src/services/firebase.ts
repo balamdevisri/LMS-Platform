@@ -31,10 +31,6 @@ const firebaseConfig = {
   appId:
     cleanEnv(import.meta.env.VITE_FIREBASE_APP_ID) ||
     '1:977716272905:web:de0781e0988aecfc823dd8',
-
-  measurementId:
-    cleanEnv(import.meta.env.VITE_FIREBASE_MEASUREMENT_ID) ||
-    'G-621GCQ0W26',
 };
 
 let app: FirebaseApp;
@@ -49,11 +45,13 @@ try {
   auth = getAuth(app);
   db = getFirestore(app);
 
-  console.log('🔥 Firebase initialized:', {
-    projectId: firebaseConfig.projectId,
-    authDomain: firebaseConfig.authDomain,
-    appId: firebaseConfig.appId,
-  });
+  if (import.meta.env.DEV) {
+    console.log('🔥 [BUILD AUDIT] KaizenQ Firebase cleanup v2 initialized:', {
+      projectId: firebaseConfig.projectId,
+      authDomain: firebaseConfig.authDomain,
+      appId: firebaseConfig.appId,
+    });
+  }
 } catch (error) {
   console.error('❌ Firebase initialization failed:', error);
   throw error;
