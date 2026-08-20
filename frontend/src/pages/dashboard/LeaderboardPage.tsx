@@ -1,10 +1,43 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Trophy, ChevronRight, Sparkles, Flame, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Trophy, ChevronRight, Sparkles, Flame, ShieldCheck, Zap } from 'lucide-react';
 import { LeaderboardView } from '../../components/courses/LeaderboardView';
+import { XPService, AchievementService } from '../../services/achievementService';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const LeaderboardPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const currentUserId = user?.uid || 'default_student';
+
+  const [dynamicXp, setDynamicXp] = useState<number>(0);
+  const [dynamicStreak, setDynamicStreak] = useState<number>(1);
+
+  useEffect(() => {
+    const xpService = new XPService();
+    const achievementService = new AchievementService();
+
+    const updateMetrics = () => {
+      setDynamicXp(xpService.getXPPoints(currentUserId));
+      setDynamicStreak(achievementService.getStreaks(currentUserId).dailyStreak);
+    };
+
+    updateMetrics();
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('shaivika_xp_updated', updateMetrics);
+      window.addEventListener('shaivika_student_updated', updateMetrics);
+      window.addEventListener('storage', updateMetrics);
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('shaivika_xp_updated', updateMetrics);
+        window.removeEventListener('shaivika_student_updated', updateMetrics);
+        window.removeEventListener('storage', updateMetrics);
+      }
+    };
+  }, [currentUserId]);
 
   return (
     <div className="space-y-6 text-slate-900 dark:text-slate-100 font-['Sora'] max-w-7xl mx-auto pb-12 animate-in fade-in duration-300">
@@ -60,9 +93,15 @@ export const LeaderboardPage: React.FC = () => {
 
         <div className="flex items-center gap-3 shrink-0 text-xs font-mono">
           <div className="px-3.5 py-2 rounded-2xl bg-white/10 border border-white/15 text-center">
-            <span className="text-[10px] text-slate-300 block font-sans font-bold uppercase">Streak Multiplier</span>
+            <span className="text-[10px] text-slate-300 block font-sans font-bold uppercase">Your Live Points</span>
+            <span className="font-extrabold text-amber-300 text-sm flex items-center justify-center gap-1">
+              <Zap className="w-3.5 h-3.5 text-amber-400" /> {dynamicXp.toLocaleString()} pts
+            </span>
+          </div>
+          <div className="px-3.5 py-2 rounded-2xl bg-white/10 border border-white/15 text-center">
+            <span className="text-[10px] text-slate-300 block font-sans font-bold uppercase">Active Streak</span>
             <span className="font-extrabold text-orange-400 text-sm flex items-center justify-center gap-1">
-              <Flame className="w-3.5 h-3.5 text-orange-500" /> +15% XP Boost
+              <Flame className="w-3.5 h-3.5 text-orange-500" /> {dynamicStreak} Days (+15% XP)
             </span>
           </div>
           <div className="px-3.5 py-2 rounded-2xl bg-white/10 border border-white/15 text-center">
