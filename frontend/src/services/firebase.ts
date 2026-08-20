@@ -35,6 +35,7 @@ const firebaseConfig = {
     '977716272905',
 
   appId: safeAppId,
+  measurementId: cleanEnv(import.meta.env.VITE_FIREBASE_MEASUREMENT_ID) || 'G-621GCQ0W26',
 };
 
 let app: FirebaseApp;

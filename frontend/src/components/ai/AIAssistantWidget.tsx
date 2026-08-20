@@ -15,7 +15,7 @@ export const AIAssistantWidget: React.FC = () => {
     {
       id: '1',
       sender: 'ai',
-      text: 'Hello! I am your Shaivika AI Tutor. Ask me anything about your enrolled courses, practice quizzes, or request code debugging assistance!',
+      text: 'Hello! I am your KaizenQ AI Tutor. Ask me anything about your enrolled courses, practice quizzes, or request code debugging assistance!',
       timestamp: 'Just now',
     },
   ]);
@@ -30,7 +30,7 @@ export const AIAssistantWidget: React.FC = () => {
       const welcomeMsg: ChatMessage = {
         id: Date.now().toString(),
         sender: 'ai',
-        text: `Hello! I am your Shaivika AI Tutor. I have loaded the context of the lesson: "${detail.lessonTitle}".\n\nAsk me anything about it, and I will answer using the lesson content!`,
+        text: `Hello! I am your KaizenQ AI Tutor. I have loaded the context of the lesson: "${detail.lessonTitle}".\n\nAsk me anything about it, and I will answer using the lesson content!`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       
@@ -113,7 +113,7 @@ export const AIAssistantWidget: React.FC = () => {
         className={`fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-linear-to-tr from-sky-600 via-blue-600 to-indigo-600 text-white shadow-xl shadow-sky-500/30 flex items-center justify-center hover:scale-110 transition-all duration-300 ${
           isOpen ? 'hidden' : 'flex'
         }`}
-        title="Open Shaivika AI Tutor"
+        title="Open KaizenQ AI Tutor"
       >
         <div className="relative">
           <Bot className="w-7 h-7" />
@@ -133,7 +133,7 @@ export const AIAssistantWidget: React.FC = () => {
               </div>
               <div>
                 <h3 className="font-heading font-bold text-sm flex items-center gap-1.5">
-                  Shaivika AI Tutor
+                  KaizenQ AI Tutor
                   <span className="px-2 py-0.5 text-[10px] bg-white/20 text-white rounded-full font-sans border border-white/30">
                     GPT-4o Engine
                   </span>

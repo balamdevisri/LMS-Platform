@@ -1,1 +1,1 @@
-export const APP_NAME = 'SHAIVIKA LMS AI';
+export const APP_NAME = 'KaizenQ LMS AI';
