@@ -521,7 +521,7 @@ export const LeaderboardView: React.FC = () => {
 
             <div>
               <h4 className="font-heading font-black text-lg text-slate-900 dark:text-white truncate max-w-[220px]">{topThree[0].name}</h4>
-              <p className="text-xs text-amber-800 dark:text-amber-300 font-bold truncate max-w-[220px] mt-0.5">{topThree[0].track || 'Python & AI Engineering'}</p>
+              <p className="text-xs text-amber-800 dark:text-amber-300 font-bold truncate max-w-[220px] mt-0.5">{topThree[0].track || topThree[0].branch || 'Software Track'}</p>
               
               <div className="flex items-center justify-center gap-2 mt-2.5 flex-wrap">
                 {topThree[0].streak && (
@@ -662,7 +662,7 @@ export const LeaderboardView: React.FC = () => {
                     {/* Track & College */}
                     <td className="py-3.5 px-4 text-[11px] font-normal">
                       <div className="font-bold text-slate-800 dark:text-slate-200 truncate max-w-[200px]">
-                        {entry.track || entry.branch || 'AI Engineering'}
+                        {entry.track || entry.branch || 'Software Engineering'}
                       </div>
                       <div className="text-[10px] text-slate-400 dark:text-slate-500 truncate max-w-[200px]">
                         {entry.college || 'Shaivika AI Foundation'}

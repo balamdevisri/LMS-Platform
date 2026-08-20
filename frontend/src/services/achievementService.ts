@@ -673,16 +673,63 @@ export class LeaderboardService {
       return { ghUser, ghUrl, avatar };
     };
 
-    // Helper to determine track
-    const resolveTrack = (s: any): string => {
-      if (s.track) return s.track;
-      const branch = (s.branch || '').toLowerCase();
-      const college = (s.college || '').toLowerCase();
-      if (branch.includes('ai') || branch.includes('python') || college.includes('ai')) return 'Python & AI Engineering';
-      if (branch.includes('web') || branch.includes('react') || branch.includes('full') || branch.includes('software')) return 'React & Full-Stack Web';
+    // Dynamic track specialties available in Shaivika platform
+    const TRACK_SPECIALTIES = [
+      'React & Full-Stack Web',
+      'Python & AI Engineering',
+      'Cloud Architecture & DevOps',
+      'Cybersecurity & Ethical Hacking',
+      'Linux Kernel & Systems',
+      'SQL & Database Engineering',
+      'Data Science & Analytics',
+      'Distributed Backend Systems'
+    ];
+
+    // Helper to determine track dynamically
+    const resolveTrack = (s: any, idx = 0): string => {
+      // 1. Explicit track on student object
+      if (s.track && s.track !== 'Python & AI Engineering' && s.track.trim()) {
+        return s.track;
+      }
+      
+      // 2. Enrolled / Current course title
+      const courseTitle = (s.enrolledCourse || s.currentCourse || s.courseTitle || s.course || '').toLowerCase();
+      if (courseTitle.includes('react') || courseTitle.includes('web') || courseTitle.includes('frontend')) return 'React & Full-Stack Web';
+      if (courseTitle.includes('python') || courseTitle.includes('machine') || courseTitle.includes('ml')) return 'Python & AI Engineering';
+      if (courseTitle.includes('cloud') || courseTitle.includes('aws') || courseTitle.includes('devops') || courseTitle.includes('docker')) return 'Cloud Architecture & DevOps';
+      if (courseTitle.includes('cyber') || courseTitle.includes('security') || courseTitle.includes('ethical')) return 'Cybersecurity & Ethical Hacking';
+      if (courseTitle.includes('linux') || courseTitle.includes('shell') || courseTitle.includes('bash') || courseTitle.includes('os')) return 'Linux Kernel & Systems';
+      if (courseTitle.includes('sql') || courseTitle.includes('db') || courseTitle.includes('database') || courseTitle.includes('postgres')) return 'SQL & Database Engineering';
+
+      // 3. Branch / Department parsing
+      const branch = (s.branch || s.department || s.specialty || '').toLowerCase();
+      if (branch.includes('react') || branch.includes('web') || branch.includes('frontend')) return 'React & Full-Stack Web';
       if (branch.includes('cloud') || branch.includes('devops') || branch.includes('aws')) return 'Cloud Architecture & DevOps';
-      if (branch.includes('security') || branch.includes('cyber')) return 'Cybersecurity & Systems';
-      return 'AI & Full-Stack Software';
+      if (branch.includes('cyber') || branch.includes('security')) return 'Cybersecurity & Ethical Hacking';
+      if (branch.includes('linux') || branch.includes('system') || branch.includes('embedded')) return 'Linux Kernel & Systems';
+      if (branch.includes('data') || branch.includes('sql') || branch.includes('analytics')) return 'SQL & Database Engineering';
+      if (branch.includes('python') || branch.includes('ml') || branch.includes('machine')) return 'Python & AI Engineering';
+
+      // 4. For Current User: Check active course in localStorage
+      if (s.isCurrentUser || s.id === userId || s.uid === userId) {
+        try {
+          const lastCourse = localStorage.getItem('shaivika_last_course') || localStorage.getItem('shaivika_current_course_title');
+          if (lastCourse) {
+            const lc = lastCourse.toLowerCase();
+            if (lc.includes('react') || lc.includes('web') || lc.includes('frontend')) return 'React & Full-Stack Web';
+            if (lc.includes('cloud') || lc.includes('devops')) return 'Cloud Architecture & DevOps';
+            if (lc.includes('linux')) return 'Linux Kernel & Systems';
+            if (lc.includes('sql') || lc.includes('database')) return 'SQL & Database Engineering';
+            if (lc.includes('cyber') || lc.includes('security')) return 'Cybersecurity & Ethical Hacking';
+            if (lc.includes('python') || lc.includes('ai')) return 'Python & AI Engineering';
+          }
+        } catch (e) {}
+      }
+
+      // 5. Dynamic deterministic track distribution based on student's identifier
+      const strToHash = String(s.id || s.uid || s.email || s.name || idx);
+      const hash = Math.abs(Array.from(strToHash).reduce((acc, c) => acc + c.charCodeAt(0) * 17, idx * 31));
+      return TRACK_SPECIALTIES[hash % TRACK_SPECIALTIES.length];
     };
 
     // Helper to build badge list for a student
@@ -713,7 +760,7 @@ export class LeaderboardService {
     };
 
     // Map real registered students
-    students.forEach((s) => {
+    students.forEach((s, sIdx) => {
       const isCurrent = (s.id === userId || s.uid === userId || s.email === userId);
       const rawXp = isCurrent
         ? Math.max(s.xp || 0, userXp)
@@ -743,6 +790,7 @@ export class LeaderboardService {
       }
 
       const { ghUser, ghUrl, avatar } = extractGithubInfo(s, isCurrent);
+      const dynamicTrack = resolveTrack({ ...s, isCurrentUser: isCurrent }, sIdx);
 
       cohort.push({
         id: s.id || s.uid,
@@ -751,8 +799,8 @@ export class LeaderboardService {
         githubUsername: ghUser,
         githubUrl: ghUrl,
         college: s.college || 'Shaivika AI Foundation',
-        branch: s.branch || 'Computer Science & AI',
-        track: resolveTrack(s),
+        branch: s.branch || dynamicTrack,
+        track: dynamicTrack,
         xp: effectiveXp,
         badgesCount,
         badges: badgesList,
@@ -779,6 +827,7 @@ export class LeaderboardService {
       const { ghUser, ghUrl, avatar } = extractGithubInfo({ name: loggedInName, email: userId }, true);
       const coursesCompleted = userXp >= 2000 ? 2 : userXp >= 500 ? 1 : 0;
       const badgesList = resolveBadgesList({ name: loggedInName }, userXp, userStreak, coursesCompleted);
+      const dynamicCurrentUserTrack = resolveTrack({ name: loggedInName, isCurrentUser: true }, 0);
 
       cohort.push({
         id: userId,
@@ -795,8 +844,8 @@ export class LeaderboardService {
         levelTitle: getLevelTitle(level),
         isCurrentUser: true,
         college: 'Shaivika AI Foundation',
-        branch: 'AI Engineering',
-        track: 'Python & AI Engineering'
+        branch: dynamicCurrentUserTrack,
+        track: dynamicCurrentUserTrack
       });
     }
 
