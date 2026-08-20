@@ -14,17 +14,12 @@ import {
   Zap,
   TrendingUp,
   GraduationCap,
-  ChevronRight,
   X,
   ExternalLink,
   ShieldCheck,
-  CheckCircle2,
   Medal,
-  Target,
-  ArrowUpRight,
-  FlameKindling
 } from 'lucide-react';
-import { LeaderboardService, type LeaderboardEntry, type Badge } from '../../services/achievementService';
+import { LeaderboardService, type LeaderboardEntry } from '../../services/achievementService';
 import { useAuth } from '@/contexts/AuthContext';
 
 const GithubIcon: React.FC<{ className?: string }> = ({ className = 'w-3.5 h-3.5' }) => (
@@ -195,7 +190,22 @@ export const LeaderboardView: React.FC = () => {
 
   return (
     <div className="space-y-6 font-['Sora'] text-slate-800 dark:text-slate-100 animate-in fade-in duration-300">
-      
+      {/* Celebration Banner when Champion is clicked */}
+      <AnimatePresence>
+        {showConfetti && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 text-amber-950 font-heading font-black text-xs sm:text-sm text-center shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2 select-none"
+          >
+            <Sparkles className="w-4 h-4 animate-spin" />
+            <span>🎉 All Hail the Cohort Champion! Keep learning & climbing the leaderboard! 🚀👑</span>
+            <Sparkles className="w-4 h-4 animate-spin" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ── Top Header & Real-time Live Controls ─────────────────────────────── */}
       <div className="relative overflow-hidden bg-white dark:bg-slate-900/90 border border-sky-100 dark:border-slate-800 p-6 sm:p-7 rounded-3xl shadow-sm backdrop-blur-xl flex flex-col lg:flex-row lg:items-center justify-between gap-6 transition-colors">
         {/* Glow ambient background */}
