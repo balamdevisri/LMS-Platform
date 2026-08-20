@@ -1,22 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
-  Award,
   Globe,
   ExternalLink,
-  Zap,
-  CheckCircle2,
   Code,
-  Terminal,
-  BookOpen,
-  Calendar,
-  Share2,
   Copy,
   Check,
-  Flame,
   ArrowLeft,
   Sparkles,
-  Layers,
   GraduationCap,
   Briefcase
 } from 'lucide-react';
@@ -148,7 +139,6 @@ export const PublicPortfolio: React.FC = () => {
 
   const {
     name = 'Student Scholar',
-    email = '',
     bio = '',
     githubLink = '',
     linkedinLink = '',

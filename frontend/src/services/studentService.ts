@@ -26,8 +26,6 @@ export interface StudentUser extends UserProfile {
 const LOCAL_STORAGE_KEY = 'shaivika_realtime_students_v3';
 import { API_BASE_URL } from '@/config/api';
 
-const DEFAULT_STUDENTS: StudentUser[] = [];
-
 class StudentService {
   private isMockUser(st: any): boolean {
     const id = String(st.id || st.uid || '');
@@ -150,7 +148,6 @@ class StudentService {
       currentCourse: data.currentCourse || 'Linux Systems & Administration Mastery',
       learningScore: data.learningScore || data.learningProgressPercent || 85,
       xp: calculatedXp,
-      points: calculatedXp,
       provider: isGithub ? 'github.com' : (data.provider || 'password'),
       githubUsername: calculatedUsername,
       branch: data.branch || 'AI & Computer Science',

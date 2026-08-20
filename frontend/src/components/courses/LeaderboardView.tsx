@@ -13,8 +13,7 @@ import {
   Sparkles,
   Zap,
   TrendingUp,
-  GraduationCap,
-  ExternalLink
+  GraduationCap
 } from 'lucide-react';
 import { LeaderboardService } from '../../services/achievementService';
 import type { LeaderboardEntry } from '../../services/achievementService';

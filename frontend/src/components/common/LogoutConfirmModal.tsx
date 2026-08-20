@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LogOut, ShieldAlert, Sparkles, X, ArrowRight, User } from 'lucide-react';
+import { LogOut, ShieldAlert, X, ArrowRight } from 'lucide-react';
 
 export interface LogoutConfirmModalProps {
   isOpen: boolean;

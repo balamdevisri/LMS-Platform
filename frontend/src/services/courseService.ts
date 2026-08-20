@@ -1604,6 +1604,24 @@ class CourseService {
 
     return null;
   }
+
+  getCourseProgressPercent(courseId: string, userId = 'default_student'): number {
+    try {
+      const saved = localStorage.getItem(`shaivika_course_progress_${userId}_${courseId}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (typeof parsed.percent === 'number') return parsed.percent;
+        if (typeof parsed.percentage === 'number') return parsed.percentage;
+        if (typeof parsed.progress === 'number') return parsed.progress;
+      }
+      const generic = localStorage.getItem(`course_progress_${courseId}`);
+      if (generic) {
+        const val = Number(generic);
+        if (!isNaN(val)) return val;
+      }
+    } catch (e) {}
+    return 0;
+  }
 }
 
 export const courseService = new CourseService();

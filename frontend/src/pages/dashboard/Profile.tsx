@@ -22,7 +22,6 @@ import {
   Copy,
   Check,
   Eye,
-  ShieldCheck,
   X
 } from 'lucide-react';
 import {
@@ -295,6 +294,35 @@ export const Profile: React.FC = () => {
       toast.error('Network error. Failed to retrieve official certificate.', { id: toastId });
     } finally {
       setLoadingCertId(null);
+    }
+  };
+
+  const handleSaveSocials = async () => {
+    try {
+      localStorage.setItem('shaivika_portfolio_github', githubLink);
+      localStorage.setItem('shaivika_portfolio_linkedin', linkedinLink);
+      localStorage.setItem('shaivika_portfolio_website', websiteLink);
+      localStorage.setItem('shaivika_portfolio_bio', bio);
+      if (userId) {
+        await fetch(`${API_BASE_URL}/portfolio/me`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            studentId: userId,
+            githubLink,
+            linkedinLink,
+            websiteLink,
+            bio,
+            skills,
+            projects,
+            customHandle,
+            isPublished
+          })
+        });
+      }
+      toast.success('Coordinates & bio updated successfully!');
+    } catch (e) {
+      toast.info('Coordinates saved locally.');
     }
   };
 

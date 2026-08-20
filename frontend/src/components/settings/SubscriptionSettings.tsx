@@ -6,12 +6,10 @@ import {
   CheckCircle2,
   AlertCircle,
   ArrowUpRight,
-  Download,
   Receipt,
   Plus,
   QrCode,
   Smartphone,
-  Check,
   X,
   RefreshCw,
   ShieldCheck
@@ -48,7 +46,6 @@ export const SubscriptionSettings: React.FC = () => {
     if (cached) return JSON.parse(cached);
     return ['shaivika.student@okhdfcbank', 'scholar@upi'];
   });
-  const [activePaymentMethod, setActivePaymentMethod] = useState<'upi' | 'card'>('upi');
   const [qrModalOpen, setQrModalOpen] = useState(false);
 
   // Fetch real payment transactions from backend & Firestore

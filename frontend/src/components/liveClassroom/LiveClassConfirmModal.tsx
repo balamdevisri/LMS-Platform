@@ -4,15 +4,12 @@ import {
   Video,
   LogOut,
   Radio,
-  Sparkles,
   Users,
   Clock,
   ShieldCheck,
   X,
   ArrowRight,
-  CheckCircle2,
-  Mic,
-  Camera
+  CheckCircle2
 } from 'lucide-react';
 
 export type LiveClassActionType = 'enter' | 'exit';
@@ -118,6 +115,12 @@ export const LiveClassConfirmModal: React.FC<LiveClassConfirmModalProps> = ({
               <span className="font-bold text-slate-400">Class Topic:</span>
               <span className="font-bold text-sky-300 truncate max-w-64">{classTitle}</span>
             </div>
+            {courseName && (
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-slate-400">Course Track:</span>
+                <span className="font-semibold text-slate-200 truncate max-w-64">{courseName}</span>
+              </div>
+            )}
             <div className="flex items-center justify-between text-xs">
               <span className="font-bold text-slate-400">Mentor / Lead:</span>
               <span className="font-semibold text-white">{instructorName}</span>

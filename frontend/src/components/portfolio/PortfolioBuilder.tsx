@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   Globe,
   Sparkles,
@@ -17,14 +16,9 @@ import {
   Code,
   Briefcase,
   GraduationCap,
-  Mail,
   Phone,
-  MapPin,
-  Flame,
   Palette,
-  CheckCircle2,
   Radio,
-  QrCode,
   Smartphone,
   Tablet,
   Monitor,
@@ -33,8 +27,7 @@ import {
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { API_BASE_URL } from '@/config/api';
-import { CertificateService, XPService, AchievementService } from '@/services/achievementService';
-import { useNavigate } from 'react-router-dom';
+import { CertificateService } from '@/services/achievementService';
 
 const Github: React.FC<{ className?: string }> = ({ className = 'w-4 h-4' }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -79,7 +72,6 @@ export interface PortfolioEducation {
 
 export const PortfolioBuilder: React.FC = () => {
   const { user, userProfile } = useAuth();
-  const navigate = useNavigate();
   const userId = user?.uid || 'default_student';
 
   // 1. Core Profile Identity State
@@ -95,9 +87,7 @@ export const PortfolioBuilder: React.FC = () => {
     );
   });
   const [email, setEmail] = useState(user?.email || '');
-  const [phone, setPhone] = useState(userProfile?.phone || '');
   const [location, setLocation] = useState('Hyderabad, India');
-  const [avatarUrl, setAvatarUrl] = useState(userProfile?.photoURL || user?.photoURL || '');
   const [aboutBio, setAboutBio] = useState(
     'Passionate technologist mastering Linux kernel systems, distributed cloud platforms, and generative AI foundations. Certified by Shaivika AI Foundation with proven project implementations.'
   );
@@ -158,7 +148,7 @@ export const PortfolioBuilder: React.FC = () => {
   });
 
   // 5. Work Experience & Education
-  const [experiences, setExperiences] = useState<PortfolioExperience[]>([
+  const [experiences] = useState<PortfolioExperience[]>([
     {
       id: 'e1',
       role: 'Junior Cloud & AI Intern',
@@ -168,7 +158,7 @@ export const PortfolioBuilder: React.FC = () => {
     },
   ]);
 
-  const [educations, setEducations] = useState<PortfolioEducation[]>([
+  const [educations] = useState<PortfolioEducation[]>([
     {
       id: 'ed1',
       degree: 'B.Tech in Computer Science & AI',
@@ -196,14 +186,11 @@ export const PortfolioBuilder: React.FC = () => {
 
   // LMS Telemetry data
   const [userCertificates, setUserCertificates] = useState<any[]>([]);
-  const [userXp, setUserXp] = useState(1500);
 
   // Load from backend & local storage on mount
   useEffect(() => {
     const certService = new CertificateService();
-    const xpService = new XPService();
     setUserCertificates(certService.getCertificates(userId));
-    setUserXp(xpService.getXPPoints(userId));
 
     // Fetch cloud portfolio if available
     fetch(`${API_BASE_URL}/portfolio/me?studentId=${userId}`)
@@ -235,8 +222,6 @@ export const PortfolioBuilder: React.FC = () => {
   const handleAutoImportLMS = () => {
     const certService = new CertificateService();
     const certs = certService.getCertificates(userId);
-    const xpService = new XPService();
-    const pts = xpService.getXPPoints(userId);
 
     const importedSkills = new Set(skills);
     importedSkills.add('Linux Systems');
@@ -247,7 +232,6 @@ export const PortfolioBuilder: React.FC = () => {
 
     setSkills(Array.from(importedSkills));
     setUserCertificates(certs);
-    setUserXp(pts);
 
     toast.success(`⚡ Auto-imported ${certs.length} verified certificates and updated skills from Kaizen Q LMS!`);
   };
@@ -346,7 +330,7 @@ export const PortfolioBuilder: React.FC = () => {
       githubUrl,
       linkedinUrl,
       websiteUrl,
-      phone,
+      phone: userProfile?.phone || '',
       location,
       skills,
       projects,
@@ -385,21 +369,6 @@ export const PortfolioBuilder: React.FC = () => {
     setCopiedUrl(true);
     toast.success('📋 Public portfolio URL copied to clipboard!');
     setTimeout(() => setCopiedUrl(false), 2000);
-  };
-
-  const getAccentGlow = () => {
-    switch (accentColor) {
-      case 'purple':
-        return 'from-purple-600 to-indigo-600';
-      case 'emerald':
-        return 'from-emerald-600 to-teal-600';
-      case 'amber':
-        return 'from-amber-600 to-orange-600';
-      case 'rose':
-        return 'from-rose-600 to-red-600';
-      default:
-        return 'from-cyan-600 to-blue-600';
-    }
   };
 
   return (

@@ -211,25 +211,6 @@ export const LiveClassroomDashboard: React.FC = () => {
     }
   };
 
-  const handleStartClass = async (id: string) => {
-    try {
-      await liveClassService.startLiveClass(id, userProfile?.uid);
-      toast.success('🔴 Class status updated to LIVE! Opening Live Classroom...');
-      navigate(`/live-classroom/room/${id}`);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to start live class');
-    }
-  };
-
-  const handleEndClass = async (id: string) => {
-    try {
-      await liveClassService.endLiveClass(id, userProfile?.uid, userProfile?.role);
-      toast.info('Session ended and status updated to Completed.');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to end live class');
-    }
-  };
-
   const handleDeleteClass = async (id: string, title: string) => {
     if (!window.confirm(`Are you sure you want to remove the live class "${title}"?`)) return;
     try {

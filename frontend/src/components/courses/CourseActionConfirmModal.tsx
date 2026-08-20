@@ -6,10 +6,6 @@ import {
   LogOut,
   Sparkles,
   CheckCircle2,
-  Clock,
-  BookOpen,
-  Award,
-  ShieldCheck,
   X,
   ArrowRight
 } from 'lucide-react';

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Printer, Save, Sparkles, Plus, Trash2, Award, Briefcase, GraduationCap, RefreshCw, Wand2, Check } from 'lucide-react';
+import { FileText, Printer, Save, Sparkles, Plus, Trash2, Award, Briefcase, GraduationCap, Wand2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { API_BASE_URL } from '@/config/api';
 import { CertificateService } from '@/services/achievementService';
