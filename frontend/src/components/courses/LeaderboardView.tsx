@@ -301,7 +301,8 @@ export const LeaderboardView: React.FC = () => {
       </div>
 
         {/* ── Active User Spotlight Banner ────────────────────────────── */}
-        <div className="p-5 rounded-3xl bg-linear-to-r from-sky-600 via-blue-600 to-indigo-700 text-white shadow-lg shadow-sky-500/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 border border-sky-400/30">
+        {currentUserEntry && (
+          <div className="p-5 rounded-3xl bg-linear-to-r from-sky-600 via-blue-600 to-indigo-700 text-white shadow-lg shadow-sky-500/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 border border-sky-400/30">
           <div className="flex items-center gap-4">
             <div className="relative">
               <img
