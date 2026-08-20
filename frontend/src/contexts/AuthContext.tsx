@@ -629,25 +629,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     provider.addScope('user:email');
     provider.addScope('read:user');
 
-    console.log('🔍 [AUTH AUDIT] Starting GitHub OAuth flow...', {
-      currentUser: auth.currentUser ? { uid: auth.currentUser.uid, email: auth.currentUser.email } : null,
-      projectId: auth.app.options.projectId,
-    });
+    if (import.meta.env.DEV) {
+      console.log('🔍 [AUTH AUDIT] Starting GitHub OAuth flow...', {
+        currentUser: auth.currentUser ? { uid: auth.currentUser.uid, email: auth.currentUser.email } : null,
+        projectId: auth.app.options.projectId,
+        authDomain: auth.app.options.authDomain,
+      });
+    }
 
     try {
       // 1. If user is ALREADY signed in (e.g. Email/Password user connecting GitHub)
       if (auth.currentUser) {
         try {
-          console.log('🔗 [AUTH AUDIT] Attempting linkWithPopup for active user session:', auth.currentUser.email);
+          if (import.meta.env.DEV) {
+            console.log('🔗 [AUTH AUDIT] Attempting linkWithPopup for active user session:', auth.currentUser.email);
+          }
           const linkResult = await linkWithPopup(auth.currentUser, provider);
           const additionalInfo = getAdditionalUserInfo(linkResult);
           const githubUsername = additionalInfo?.username || (linkResult.user as any).reloadUserInfo?.screenName;
-          console.log('✅ [AUTH AUDIT] linkWithPopup succeeded! GitHub handle:', githubUsername);
+          if (import.meta.env.DEV) {
+            console.log('✅ [AUTH AUDIT] linkWithPopup succeeded! GitHub handle:', githubUsername);
+          }
 
           const profile = await fetchUserProfile(linkResult.user, githubUsername, targetRole);
           return profile;
         } catch (linkErr: any) {
-          console.warn('⚠️ [AUTH AUDIT] linkWithPopup notice:', linkErr?.code, linkErr?.message);
+          if (import.meta.env.DEV) {
+            console.warn('⚠️ [AUTH AUDIT] linkWithPopup notice:', linkErr?.code, linkErr?.message);
+          }
           if (linkErr.code === 'auth/credential-already-in-use') {
             throw new Error('This GitHub account is already linked to another user profile.');
           }
@@ -656,15 +665,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // 2. Standard OAuth Sign-in flow
       try {
+        if (import.meta.env.DEV) {
+          console.log('🚀 [AUTH AUDIT] Opening GitHub OAuth popup...');
+        }
         const result = await signInWithPopup(auth, provider);
         const additionalInfo = getAdditionalUserInfo(result);
         const githubUsername = additionalInfo?.username || (result.user as any).reloadUserInfo?.screenName;
 
-        console.log('✅ [AUTH AUDIT] GitHub OAuth sign-in succeeded:', {
-          uid: result.user.uid,
-          email: result.user.email,
-          githubUsername,
-        });
+        if (import.meta.env.DEV) {
+          console.log('✅ [AUTH AUDIT] GitHub OAuth sign-in succeeded:', {
+            uid: result.user.uid,
+            email: result.user.email,
+            githubUsername,
+          });
+        }
 
         const profile = await fetchUserProfile(result.user, githubUsername, targetRole);
         if (profile) {
@@ -693,11 +707,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         return profile;
       } catch (error: any) {
-        console.error('🚨 [AUTH AUDIT] signInWithPopup error caught:', {
-          code: error.code,
-          message: error.message,
-          email: error.customData?.email || error.email,
-        });
+        if (import.meta.env.DEV) {
+          console.error('🚨 [AUTH AUDIT] signInWithPopup error caught:', {
+            code: error.code,
+            message: error.message,
+            email: error.customData?.email || error.email,
+          });
+        }
 
         if (error.code === 'auth/account-exists-with-different-credential') {
           const pendingCred = GithubAuthProvider.credentialFromError(error);
@@ -707,9 +723,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (email && auth) {
             try {
               existingMethods = await fetchSignInMethodsForEmail(auth, email);
-              console.log('📋 [AUTH AUDIT] Existing sign-in methods for email:', email, existingMethods);
+              if (import.meta.env.DEV) {
+                console.log('📋 [AUTH AUDIT] Existing sign-in methods for email:', email, existingMethods);
+              }
             } catch (fetchErr) {
-              console.warn('⚠️ [AUTH AUDIT] fetchSignInMethodsForEmail notice:', fetchErr);
+              if (import.meta.env.DEV) {
+                console.warn('⚠️ [AUTH AUDIT] fetchSignInMethodsForEmail notice:', fetchErr);
+              }
             }
           }
 
@@ -733,6 +753,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           customErr.pendingCredential = pendingCred;
           throw customErr;
         }
+
+        if (error.code === 'auth/popup-closed-by-user') {
+          const customErr: any = new Error('GitHub sign-in was cancelled or the popup window was closed before completing authorization.');
+          customErr.code = 'auth/popup-closed-by-user';
+          throw customErr;
+        }
+
+        if (error.code === 'auth/popup-blocked') {
+          const customErr: any = new Error('The sign-in popup was blocked by your browser. Please allow popups for this website and try again.');
+          customErr.code = 'auth/popup-blocked';
+          throw customErr;
+        }
+
+        if (error.code === 'auth/unauthorized-domain') {
+          const customErr: any = new Error(`Domain "${window.location.hostname}" is not authorized in Firebase Authentication. Please add it to Firebase Console -> Authentication -> Settings -> Authorized domains.`);
+          customErr.code = 'auth/unauthorized-domain';
+          throw customErr;
+        }
+
+        if (error.code === 'auth/operation-not-allowed') {
+          const customErr: any = new Error('GitHub sign-in provider is not enabled in Firebase Console. Please enable it under Authentication -> Sign-in method.');
+          customErr.code = 'auth/operation-not-allowed';
+          throw customErr;
+        }
+
+        if (error.code === 'auth/timeout' || error.code === 'auth/popup-timeout') {
+          const customErr: any = new Error('GitHub authentication timed out. Please check your network connection and try again.');
+          customErr.code = 'auth/popup-timeout';
+          throw customErr;
+        }
+
         throw error;
       }
     } finally {
