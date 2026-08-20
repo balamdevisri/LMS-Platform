@@ -25,16 +25,57 @@ const syncStudent = async (profile: UserProfile) => {
   if (!db) return;
   try {
     const studentRef = doc(db, 'students', profile.uid);
+    const photoURL = profile.photoURL || profile.profilePhoto || (profile.githubUsername ? `https://github.com/${profile.githubUsername}.png?size=200` : '');
+    const isGithub = profile.provider === 'github.com' || profile.providerId === 'github.com' || Boolean(profile.githubUsername) || (typeof photoURL === 'string' && photoURL.includes('github'));
+
     await setDoc(studentRef, {
       ...profile,
       id: profile.uid,
+      uid: profile.uid,
       name: profile.fullName || profile.name || 'Student',
       email: profile.email,
+      photoURL,
+      profilePhoto: photoURL,
+      provider: isGithub ? 'github.com' : (profile.provider || 'password'),
+      providerId: isGithub ? 'github.com' : (profile.providerId || 'password'),
+      githubUsername: profile.githubUsername,
+      github: profile.github || (profile.githubUsername ? `https://github.com/${profile.githubUsername}` : ''),
+      githubUrl: (profile as any).githubUrl || (profile.githubUsername ? `https://github.com/${profile.githubUsername}` : ''),
       joined: profile.createdAt || new Date().toISOString(),
       courses: profile.enrolledCoursesCount || 1,
       status: profile.status || 'Active',
       updatedAt: new Date().toISOString(),
     }, { merge: true });
+
+    // Update local cache
+    try {
+      const localRaw = localStorage.getItem('shaivika_realtime_students_v3');
+      let localList: any[] = [];
+      if (localRaw) localList = JSON.parse(localRaw);
+      if (Array.isArray(localList)) {
+        const idx = localList.findIndex((s) => s.id === profile.uid || s.uid === profile.uid || s.email === profile.email);
+        const item = {
+          ...profile,
+          id: profile.uid,
+          uid: profile.uid,
+          name: profile.fullName || profile.name || 'Student',
+          photoURL,
+          profilePhoto: photoURL,
+          provider: isGithub ? 'github.com' : 'password',
+          githubUsername: profile.githubUsername,
+          github: profile.github || (profile.githubUsername ? `https://github.com/${profile.githubUsername}` : ''),
+        };
+        if (idx >= 0) {
+          localList[idx] = { ...localList[idx], ...item };
+        } else {
+          localList.unshift(item);
+        }
+        localStorage.setItem('shaivika_realtime_students_v3', JSON.stringify(localList));
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('shaivika_student_updated'));
+        }
+      }
+    } catch (e) {}
   } catch (e) {
     console.warn('Sync student notice:', e);
   }
@@ -160,6 +201,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const isApproved = isAdmin ? true : (data.approved !== undefined ? data.approved : (data.status === 'active' || data.status === 'Active' || data.status === 'approved'));
         const currentStatus = data.status || (isAdmin ? 'active' : 'pending');
 
+        const resolvedGithubUsername = data.githubUsername || calculatedUsername;
+        const resolvedPhotoURL = data.photoURL || firebaseUser.photoURL || (resolvedGithubUsername ? `https://github.com/${resolvedGithubUsername}.png?size=200` : null);
+        const isGithubUser = isGithub || data.provider === 'github.com' || data.providerId === 'github.com' || Boolean(resolvedGithubUsername);
+
         const profileData: UserProfile = {
           ...data,
           ...baseProfileData,
@@ -167,14 +212,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           approved: isApproved,
           status: currentStatus,
           isActive: data.isActive !== undefined ? data.isActive : true,
+          provider: isGithubUser ? 'github.com' : (data.provider || 'password'),
+          providerId: isGithubUser ? 'github.com' : (data.providerId || 'password'),
           phone: data.phone || '',
-          github: data.github || (calculatedUsername ? `https://github.com/${calculatedUsername}` : ''),
+          githubUsername: resolvedGithubUsername,
+          github: data.github || (resolvedGithubUsername ? `https://github.com/${resolvedGithubUsername}` : ''),
           linkedin: data.linkedin || '',
           branch: data.branch || 'AI & Computer Science',
           semester: (data as any).semester || '1st Semester',
-          photoURL: data.photoURL || firebaseUser.photoURL || null,
+          photoURL: resolvedPhotoURL,
+          profilePhoto: resolvedPhotoURL,
           lastLogin: new Date().toISOString(),
         };
+
+        if (finalRole === 'student') {
+          await syncStudent(profileData);
+        }
 
         setUserProfile(profileData);
         return profileData;

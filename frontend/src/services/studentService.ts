@@ -98,11 +98,28 @@ class StudentService {
     const email = data.email || '';
     const id = data.id || data.uid || `st_${Date.now()}`;
     const name = data.name || data.fullName || data.displayName || email.split('@')[0] || 'Student User';
-    const photoURL = data.photoURL || data.profilePhoto || data.avatar || '';
+    
+    // Extract GitHub user handle from various possible fields
+    const rawGithubUser =
+      data.githubUsername ||
+      data.githubHandle ||
+      (data.github ? String(data.github).replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '') : undefined) ||
+      (data.githubUrl ? String(data.githubUrl).replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '') : undefined);
+
     const isGithub =
       data.provider === 'github.com' ||
       data.providerId === 'github.com' ||
-      photoURL.includes('githubusercontent');
+      data.authProvider === 'github.com' ||
+      Boolean(rawGithubUser) ||
+      (typeof data.photoURL === 'string' && data.photoURL.includes('github'));
+
+    const calculatedUsername = rawGithubUser || (isGithub && email.includes('@') ? email.split('@')[0].toLowerCase().replace(/[^a-z0-9_-]/g, '') : undefined);
+    
+    const photoURL =
+      data.photoURL ||
+      data.profilePhoto ||
+      data.avatar ||
+      (calculatedUsername ? `https://github.com/${calculatedUsername}.png?size=200` : '');
 
     const statusVal = data.status || (data.isActive === false ? 'Suspended' : 'Active');
 
@@ -135,12 +152,13 @@ class StudentService {
       xp: calculatedXp,
       points: calculatedXp,
       provider: isGithub ? 'github.com' : (data.provider || 'password'),
-      githubUsername: data.githubUsername || (isGithub ? email.split('@')[0] : undefined),
+      githubUsername: calculatedUsername,
       branch: data.branch || 'AI & Computer Science',
       year: data.year || '1st Year',
       college: data.college || 'Shaivika AI Foundation Institute',
       phone: data.phone || '',
-      github: data.github || (isGithub ? `https://github.com/${data.githubUsername || email.split('@')[0]}` : undefined),
+      github: data.github || (calculatedUsername ? `https://github.com/${calculatedUsername}` : undefined),
+      githubUrl: data.githubUrl || (calculatedUsername ? `https://github.com/${calculatedUsername}` : undefined),
       linkedin: data.linkedin || '',
       portfolio: data.portfolio || '',
       bio: data.bio || 'Enthusiastic KaizenQ learner mastering Linux, AI, and DevOps.',
@@ -300,33 +318,44 @@ class StudentService {
 
     try {
       const studentsRef = collection(db, 'students');
-      const unsubscribe = onSnapshot(
+      const usersRef = collection(db, 'users');
+
+      let firestoreStudentDocs: StudentUser[] = [];
+      let firestoreUserDocs: StudentUser[] = [];
+
+      const emitCombined = () => {
+        const currentLocal = this.getLocalStudents();
+        const combinedMap = new Map<string, StudentUser>();
+
+        firestoreStudentDocs.forEach((st) => combinedMap.set((st.email || st.id || st.uid).toLowerCase(), st));
+        firestoreUserDocs.forEach((st) => {
+          const key = (st.email || st.id || st.uid).toLowerCase();
+          if (!combinedMap.has(key)) combinedMap.set(key, st);
+        });
+        currentLocal.forEach((st) => {
+          const key = (st.email || st.id || st.uid).toLowerCase();
+          if (!combinedMap.has(key)) combinedMap.set(key, st);
+        });
+
+        const finalStudents = Array.from(combinedMap.values()).sort((a, b) => {
+          return (b.xp || 0) - (a.xp || 0);
+        });
+
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(finalStudents));
+        callback(finalStudents);
+      };
+
+      const unsubStudents = onSnapshot(
         studentsRef,
         (snapshot) => {
-          const firestoreStudents: StudentUser[] = [];
-          
+          firestoreStudentDocs = [];
           snapshot.forEach((docSnap) => {
             const data = docSnap.data();
             if (!this.isMockUser(data)) {
-              firestoreStudents.push(this.normalizeStudentData({ ...data, id: docSnap.id, uid: docSnap.id }));
+              firestoreStudentDocs.push(this.normalizeStudentData({ ...data, id: docSnap.id, uid: docSnap.id }));
             }
           });
-
-          const currentLocal = this.getLocalStudents();
-          const combinedMap = new Map<string, StudentUser>();
-
-          firestoreStudents.forEach((st) => combinedMap.set((st.email || st.id).toLowerCase(), st));
-          currentLocal.forEach((st) => {
-            const key = (st.email || st.id).toLowerCase();
-            if (!combinedMap.has(key)) combinedMap.set(key, st);
-          });
-
-          const finalStudents = Array.from(combinedMap.values()).sort((a, b) => {
-            return (b.xp || 0) - (a.xp || 0);
-          });
-
-          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(finalStudents));
-          callback(finalStudents);
+          emitCombined();
         },
         (error) => {
           console.warn('Realtime Firestore students listener notice:', error);
@@ -334,8 +363,27 @@ class StudentService {
         }
       );
 
+      const unsubUsers = onSnapshot(
+        usersRef,
+        (snapshot) => {
+          firestoreUserDocs = [];
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            const role = (data.role || 'student').toLowerCase();
+            if (role !== 'admin' && !this.isMockUser(data)) {
+              firestoreUserDocs.push(this.normalizeStudentData({ ...data, id: docSnap.id, uid: docSnap.id }));
+            }
+          });
+          emitCombined();
+        },
+        (error) => {
+          console.warn('Realtime Firestore users listener notice:', error);
+        }
+      );
+
       return () => {
-        if (unsubscribe) unsubscribe();
+        if (unsubStudents) unsubStudents();
+        if (unsubUsers) unsubUsers();
         if (typeof window !== 'undefined') {
           window.removeEventListener('shaivika_student_updated', handleUpdate);
           window.removeEventListener('storage', handleUpdate);
