@@ -1,7 +1,7 @@
 import { adminAuth, db } from '../../firebase';
 import { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import { GitHubService } from '../../services/github/GitHubService';
-import { EmailService } from '../../services/email/EmailService';
+import { emailService } from '../../services/email/EmailService';
 import { EmailEventType } from '../../types/emailTypes';
 import logger from '../../config/logger';
 import {
@@ -9,8 +9,6 @@ import {
   StudentApproveInput,
   StudentRejectInput,
 } from '../../validators/student.validator';
-
-const emailService = new EmailService();
 
 export class StudentService {
   /**

@@ -60,29 +60,7 @@ export class LiveClassroomService {
       return { isEnrolled: true };
     }
 
-    // 2. Check MongoDB Enrollment Collection
-    try {
-      const { Enrollment } = await import('../../models/mongo/payment.model');
-      const mongoEnroll = await Enrollment.findOne({
-        studentId: userId,
-        courseId,
-      });
-
-      if (mongoEnroll) {
-        if (mongoEnroll.status === 'ACTIVE') {
-          return { isEnrolled: true };
-        } else {
-          return {
-            isEnrolled: false,
-            reason: `Your course enrollment is ${mongoEnroll.status.toLowerCase()}. Please contact support.`,
-          };
-        }
-      }
-    } catch (mongoErr) {
-      logger.warn('[LiveClassroomService] MongoDB enrollment check warning:', mongoErr);
-    }
-
-    // 3. Firestore database verification
+    // 2. Direct Firestore Database Verification
     if (isFirebaseAdminInitialized()) {
       try {
         // A. Check student_progress collection

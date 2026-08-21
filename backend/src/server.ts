@@ -5,7 +5,6 @@ import './firebase';
 import { CourseService } from './services/course/CourseService';
 import http from 'http';
 import { Server as SocketServer } from 'socket.io';
-import { connectMongo } from './config/mongo';
 import { connectRedis } from './config/redis';
 import { setupSocketServer } from './socket/socket.server';
 
@@ -57,9 +56,15 @@ server.listen(PORT, async () => {
   logger.info(`🌐 Listening on PORT: ${PORT}`);
   logger.info(`🔗 Health Check Endpoint: http://localhost:${PORT}/health`);
 
-  // Initialize MongoDB and Redis Connections
-  await connectMongo();
+  // Initialize Redis Connection (if configured)
   await connectRedis();
+
+  // Controlled Startup SMTP Verification (Non-blocking with backoff & rate-limit safety)
+  import('./services/email/EmailService')
+    .then(({ emailService }) => {
+      emailService.verifyTransporterAsync().catch(() => {});
+    })
+    .catch((e) => logger.warn('[SMTP] EmailService startup import notice:', e));
 
   try {
     const courseService = new CourseService();

@@ -80,8 +80,11 @@ export interface CourseEnrollmentPayload {
   studentName: string;
   email: string;
   courseTitle: string;
-  courseId: string;
+  courseId?: string;
   instructorName?: string;
+  courseDuration?: string;
+  certificateAvailable?: boolean;
+  enrollmentId?: string;
   courseUrl?: string;
 }
 

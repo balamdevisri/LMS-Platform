@@ -91,7 +91,7 @@ export const Dashboard: React.FC = () => {
 
   // AI Course Search & Weakness Analyzer States
   const [aiSearchQuery, setAiSearchQuery] = useState('');
-  const [aiSearchResults, setAiSearchResults] = useState<ICourse[]>([]);
+  const [aiSearchResults, setAiSearchResults] = useState<any[]>([]);
   const [isAiSearching, setIsAiSearching] = useState(false);
   const [weakTopics, setWeakTopics] = useState<any[]>([]);
 
@@ -114,6 +114,7 @@ export const Dashboard: React.FC = () => {
     setWeakTopics([]);
   }, []);
 
+  const weakTopics = useMemo<any[]>(() => [], []);
   const badgeService = useMemo(() => new BadgeService(), []);
   const streakService = useMemo(() => new AchievementService(), []);
 
@@ -130,6 +131,24 @@ export const Dashboard: React.FC = () => {
     return new Set(list.map((b: any) => b.id));
   }, [badgeService, user?.uid]);
 
+  const handleAiSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!aiSearchQuery.trim()) {
+      setAiSearchResults([]);
+      return;
+    }
+    setIsAiSearching(true);
+    const query = aiSearchQuery.toLowerCase();
+    setTimeout(() => {
+      const matches = courses.filter((c) =>
+        c.title.toLowerCase().includes(query) ||
+        (c.description && c.description.toLowerCase().includes(query)) ||
+        (c.category && c.category.toLowerCase().includes(query))
+      );
+      setAiSearchResults(matches);
+      setIsAiSearching(false);
+    }, 400);
+  };
   // Completed courses check (only 100% completed courses unlock certificates)
   const completedCourses = enrolledCourses.filter((course) => {
     const checkpoint = courseService.getCourseCheckpoint(course.id, user?.uid || 'default_student');
@@ -608,7 +627,6 @@ export const Dashboard: React.FC = () => {
     const studentId = uid;
 
     const fetchAndSyncFromBackend = async () => {
-      const apiBase = import.meta.env.VITE_API_URL || '/api';
       try {
         const response = await fetch(`${apiBase}/certificates/student/${studentEmail}`);
         if (!response.ok) {
@@ -617,6 +635,8 @@ export const Dashboard: React.FC = () => {
         }
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
+        const response = await fetch(`${API_BASE_URL}/certificates/student/${studentEmail}`);
+        if (response.ok) {
           const resData = await response.json();
           if (resData.success && Array.isArray(resData.data)) {
             resData.data.forEach((backendCert: any) => {
@@ -635,6 +655,8 @@ export const Dashboard: React.FC = () => {
               localStorage.setItem(`shaivika_cert_synced_${mappedCert.verificationId}`, 'true');
             });
           }
+        } else {
+          console.warn(`[Dashboard Sync] Response error: ${response.statusText}`);
         }
       } catch (err) {
         console.warn('Failed to fetch certificates from backend registry:', err);
@@ -833,6 +855,8 @@ export const Dashboard: React.FC = () => {
       };
 
       const verifyRes = await fetch(`${apiBase}/certificates/student/${studentEmail}`);
+      // 1. Query the student's certificates on backend to see if it's already there
+      const verifyRes = await fetch(`${API_BASE_URL}/certificates/student/${studentEmail}`);
       if (verifyRes.ok) {
         const contentType = verifyRes.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {

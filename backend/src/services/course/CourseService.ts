@@ -5,7 +5,6 @@ import { ApiError } from '../../utils/ApiError';
 import { fromDocument, handleFirestoreError, toDocument } from '../../utils/firestore';
 import { FieldValue, Query } from 'firebase-admin/firestore';
 import { db } from '../../firebase';
-import { LiveClass } from '../../models/mongo/liveClassroom.model';
 import { cSyllabusNotes } from './cSyllabusData';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -174,11 +173,16 @@ export class CourseService {
         await docRef.delete();
       }
 
-      // 8. Mongo Live Class Schedules
+      // 8. Clean up Firestore Live Class Schedules
       try {
-        await LiveClass.deleteMany({ courseId: id }).catch(() => null);
-      } catch (mongoErr) {
-        console.warn('Failed to clean Mongo live classes for course:', mongoErr);
+        const liveSnap = await db.collection('live_classes').where('courseId', '==', id).get().catch(() => null);
+        if (liveSnap && !liveSnap.empty) {
+          const liveBatch = db.batch();
+          liveSnap.docs.forEach((d) => liveBatch.delete(d.ref));
+          await liveBatch.commit();
+        }
+      } catch (liveErr) {
+        console.warn('Failed to clean live classes for course:', liveErr);
       }
 
       return true;

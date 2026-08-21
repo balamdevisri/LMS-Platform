@@ -351,17 +351,21 @@ export const buildCourseEnrollmentTemplate = (
   payload: CourseEnrollmentPayload
 ): { subject: string; html: string } => {
   const subject = `Enrollment Confirmed: ${payload.courseTitle} 🎓`;
-  const ctaUrl = payload.courseUrl || `https://www.kaizenq.in/courses/${payload.courseId}`;
+  const ctaUrl = payload.courseUrl || (payload.courseId ? `https://www.kaizenq.in/courses/${payload.courseId}` : 'https://www.kaizenq.in/dashboard');
 
   const contentHtml = `
-    <h1 class="h1-title">You're Enrolled! 🎉</h1>
+    <h1 class="h1-title">Enrollment Confirmed! 🎉</h1>
     <p class="p-text">Hi <strong>${payload.studentName}</strong>,</p>
-    <p class="p-text">Your enrollment in <strong>${payload.courseTitle}</strong> is now active. Get ready to build real-world skills with interactive modules and live AI assistance.</p>
+    <p class="p-text">Your enrollment in <strong>${payload.courseTitle}</strong> has been successfully confirmed. You now have full access to interactive sandbox labs, lecture modules, quizzes, and 24/7 AI mentor assistance.</p>
 
     <div class="metric-box">
-      <div class="metric-label">Enrolled Course</div>
-      <div class="metric-value">${payload.courseTitle}</div>
-      ${payload.instructorName ? `<p style="font-size: 13px; color: #475569; margin-top: 6px;">Instructor: ${payload.instructorName}</p>` : ''}
+      <div class="metric-label">Course Details</div>
+      <div class="metric-value" style="font-size: 16px; margin-bottom: 6px;">${payload.courseTitle}</div>
+      <div style="font-size: 13px; color: #475569; line-height: 1.6;">
+        <div>⏱️ <strong>Estimated Duration:</strong> ${payload.courseDuration || 'Self-Paced Track (20-40 Hours)'}</div>
+        <div>📜 <strong>Certificate Status:</strong> ${payload.certificateAvailable !== false ? '✅ Verified ISO Digital Certificate Included upon 100% completion' : 'Audit Track'}</div>
+        ${payload.instructorName ? `<div>👨‍🏫 <strong>Instructor:</strong> ${payload.instructorName}</div>` : ''}
+      </div>
     </div>
   `;
 
@@ -371,7 +375,7 @@ export const buildCourseEnrollmentTemplate = (
       title: subject,
       preheader: `You are now enrolled in ${payload.courseTitle}`,
       contentHtml,
-      ctaText: 'Start Learning Now',
+      ctaText: 'Open Course',
       ctaUrl,
     }),
   };

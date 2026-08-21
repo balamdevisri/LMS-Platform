@@ -1,82 +1,65 @@
-import { Enrollment, IEnrollment, EnrollmentStatus, AccessType } from '../../models/mongo/payment.model';
 import { db, isFirebaseAdminInitialized } from '../../firebase';
 import { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import { CourseService } from '../../services/course/CourseService';
-import { EmailService } from '../../services/email/EmailService';
-import { EmailEventType } from '../../types/emailTypes';
+import { emailService } from '../../services/email/EmailService';
+import { IEnrollment, AccessType } from '../../types/payment.types';
 import logger from '../../config/logger';
 
 const courseService = new CourseService();
-const emailService = new EmailService();
 
 export class EnrollmentService {
   /**
-   * Find all active course enrollments for a given student
+   * Find all active course enrollments for a given student from Firestore
    */
   public async getStudentEnrollments(studentId: string): Promise<IEnrollment[]> {
-    if (!studentId) return [];
+    if (!studentId || !isFirebaseAdminInitialized()) return [];
 
     try {
-      // 1. Fetch from MongoDB
-      const mongoEnrollments = await Enrollment.find({ studentId }).sort({ createdAt: -1 });
-      if (mongoEnrollments && mongoEnrollments.length > 0) {
-        return mongoEnrollments;
+      const snap = await db.collection('enrollments').where('studentId', '==', studentId).get();
+      if (!snap.empty) {
+        return snap.docs.map((d: QueryDocumentSnapshot) => ({ id: d.id, ...d.data() } as IEnrollment));
       }
     } catch (err) {
-      logger.warn('[EnrollmentService] MongoDB getStudentEnrollments fallback:', err);
-    }
-
-    // 2. Fallback to Firestore if MongoDB returned no results or is unavailable
-    if (isFirebaseAdminInitialized()) {
-      try {
-        const snap = await db.collection('enrollments').where('studentId', '==', studentId).get();
-        if (!snap.empty) {
-          return snap.docs.map((d: QueryDocumentSnapshot) => ({ id: d.id, ...d.data() } as any));
-        }
-      } catch (err) {
-        logger.warn('[EnrollmentService] Firestore getStudentEnrollments fallback notice:', err);
-      }
+      logger.warn('[EnrollmentService] Firestore getStudentEnrollments notice:', err);
     }
 
     return [];
   }
 
   /**
-   * Find specific enrollment by student ID and course ID
+   * Find specific enrollment by student ID and course ID from Firestore
    */
   public async getEnrollment(studentId: string, courseId: string): Promise<IEnrollment | null> {
-    if (!studentId || !courseId) return null;
+    if (!studentId || !courseId || !isFirebaseAdminInitialized()) return null;
 
     try {
-      const enrollment = await Enrollment.findOne({ studentId, courseId });
-      if (enrollment) return enrollment;
-    } catch (err) {
-      logger.warn('[EnrollmentService] MongoDB getEnrollment fallback:', err);
-    }
-
-    if (isFirebaseAdminInitialized()) {
-      try {
-        const snap = await db
-          .collection('enrollments')
-          .where('studentId', '==', studentId)
-          .where('courseId', '==', courseId)
-          .limit(1)
-          .get();
-
-        if (!snap.empty) {
-          const doc: QueryDocumentSnapshot = snap.docs[0];
-          return { id: doc.id, ...doc.data() } as any;
-        }
-      } catch (err) {
-        logger.warn('[EnrollmentService] Firestore getEnrollment fallback notice:', err);
+      const enrollDocId = `${studentId}_${courseId}`;
+      const docRef = await db.collection('enrollments').doc(enrollDocId).get();
+      if (docRef.exists) {
+        return { id: docRef.id, ...docRef.data() } as IEnrollment;
       }
+
+      // Secondary query in case document ID is formatted differently
+      const snap = await db
+        .collection('enrollments')
+        .where('studentId', '==', studentId)
+        .where('courseId', '==', courseId)
+        .limit(1)
+        .get();
+
+      if (!snap.empty) {
+        const doc: QueryDocumentSnapshot = snap.docs[0];
+        return { id: doc.id, ...doc.data() } as IEnrollment;
+      }
+    } catch (err) {
+      logger.warn('[EnrollmentService] Firestore getEnrollment notice:', err);
     }
 
     return null;
   }
 
   /**
-   * Create or activate course enrollment server-side
+   * Create or activate course enrollment in Firestore
    */
   public async createEnrollment(data: {
     studentId: string;
@@ -94,18 +77,6 @@ export class EnrollmentService {
     if (existing) {
       if (existing.status === 'ACTIVE') {
         return { enrollment: existing, alreadyEnrolled: true };
-      } else {
-        // Reactivate suspended / cancelled enrollment
-        try {
-          existing.status = 'ACTIVE';
-          if (paymentId) existing.paymentId = paymentId;
-          existing.accessType = accessType;
-          existing.enrolledAt = new Date();
-          await (existing as any).save();
-          return { enrollment: existing, alreadyEnrolled: false };
-        } catch (e) {
-          logger.warn('[EnrollmentService] Failed to reactivate MongoDB enrollment:', e);
-        }
       }
     }
 
@@ -118,59 +89,29 @@ export class EnrollmentService {
       }
     } catch (e) {}
 
-    // 3. Create MongoDB Enrollment Record
-    let createdDoc: any;
-    try {
-      createdDoc = await Enrollment.create({
-        studentId,
-        studentEmail: studentEmail || '',
-        studentName: studentName || 'Student',
-        courseId,
-        courseTitle: courseTitle || courseId,
-        paymentId: paymentId || undefined,
-        status: 'ACTIVE',
-        accessType,
-        enrolledAt: new Date(),
-        progressPercentage: 0,
-        completedLessons: [],
-        lastAccessedAt: new Date(),
-      });
-    } catch (err: any) {
-      // Handle race-condition duplicate key error
-      if (err.code === 11000) {
-        const found = await this.getEnrollment(studentId, courseId);
-        return { enrollment: found, alreadyEnrolled: true };
-      }
-      logger.error('[EnrollmentService] MongoDB create error:', err);
-      createdDoc = {
-        id: `enr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-        studentId,
-        courseId,
-        paymentId,
-        status: 'ACTIVE',
-        accessType,
-        enrolledAt: new Date(),
-      };
-    }
+    const enrollDocId = `${studentId}_${courseId}`;
+    const enrollmentPayload: IEnrollment = {
+      id: enrollDocId,
+      studentId,
+      studentEmail: studentEmail || '',
+      studentName: studentName || 'Student',
+      courseId,
+      courseTitle: courseTitle || courseId,
+      paymentId: paymentId || undefined,
+      status: 'ACTIVE',
+      accessType,
+      enrolledAt: new Date().toISOString(),
+      progressPercentage: 0,
+      completedLessons: [],
+      lastAccessedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
 
-    // 4. Sync to Firestore (enrollments collection + user profile enrolledCourses + student_progress)
+    // 3. Save to Firestore (enrollments collection + user profile enrolledCourses + student_progress)
     if (isFirebaseAdminInitialized()) {
       try {
-        const enrollDocId = `${studentId}_${courseId}`;
-        const firestorePayload = {
-          studentId,
-          userId: studentId,
-          courseId,
-          courseTitle: courseTitle || courseId,
-          paymentId: paymentId || null,
-          status: 'ACTIVE',
-          accessType,
-          enrolledAt: new Date().toISOString(),
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-
-        await db.collection('enrollments').doc(enrollDocId).set(firestorePayload, { merge: true });
+        await db.collection('enrollments').doc(enrollDocId).set(enrollmentPayload, { merge: true });
 
         // Initialize student_progress document
         await db.collection('student_progress').doc(enrollDocId).set(
@@ -204,25 +145,24 @@ export class EnrollmentService {
       }
     }
 
-    // 5. Send Email Confirmation
+    // 4. Send Course Enrollment Confirmation Email (Asynchronous & Non-Blocking)
     if (studentEmail) {
       emailService
-        .sendEventEmail(
-          EmailEventType.COURSE_ENROLLMENT,
+        .sendCourseEnrollmentEmail({
+          studentName: studentName || 'Student',
           studentEmail,
-          {
-            studentName: studentName || 'Student',
-            courseTitle: courseTitle || 'Full Stack Track',
-            courseUrl: `/courses/${courseId}`,
-            enrolledAt: new Date().toLocaleDateString(),
-          } as any
-        )
+          courseTitle: courseTitle || 'Full Stack Track',
+          courseId,
+          courseUrl: `https://www.kaizenq.in/courses/${courseId}`,
+          certificateAvailable: true,
+          enrollmentId: enrollDocId,
+        })
         .catch((emailErr: any) => {
-          logger.warn('[EnrollmentService] Email delivery warning:', emailErr);
+          logger.warn('[EnrollmentService] Email delivery notice (non-blocking):', emailErr?.message || emailErr);
         });
     }
 
-    return { enrollment: createdDoc, alreadyEnrolled: false };
+    return { enrollment: enrollmentPayload, alreadyEnrolled: false };
   }
 
   /**
@@ -252,22 +192,71 @@ export class EnrollmentService {
       return { hasAccess: true, enrollment };
     }
 
-    if (enrollment && enrollment.status !== 'ACTIVE') {
-      return {
-        hasAccess: false,
-        reason: `Your enrollment is currently ${enrollment.status.toLowerCase()}. Please contact support.`,
-      };
-    }
-
-    // 3. Fallback dev users
-    if (studentId === 'dev-user-id' || studentId.startsWith('usr_') || studentId === 'default_student') {
-      return { hasAccess: true };
-    }
-
     return {
       hasAccess: false,
-      reason: 'You are not enrolled in this course.',
+      reason: 'You do not have an active enrollment for this course.',
     };
+  }
+
+  /**
+   * Update student lesson completion progress
+   */
+  public async updateLessonProgress(data: {
+    studentId: string;
+    courseId: string;
+    lessonId: string;
+    totalLessonsInCourse?: number;
+  }): Promise<{ success: boolean; progressPercentage: number }> {
+    const { studentId, courseId, lessonId, totalLessonsInCourse = 1 } = data;
+    const enrollDocId = `${studentId}_${courseId}`;
+
+    if (!isFirebaseAdminInitialized()) {
+      return { success: true, progressPercentage: 100 };
+    }
+
+    try {
+      const docRef = db.collection('enrollments').doc(enrollDocId);
+      const doc = await docRef.get();
+      let completedLessons: string[] = [];
+
+      if (doc.exists) {
+        completedLessons = doc.data()?.completedLessons || [];
+      }
+
+      if (!completedLessons.includes(lessonId)) {
+        completedLessons.push(lessonId);
+      }
+
+      const progressPercentage = Math.min(
+        100,
+        Math.round((completedLessons.length / Math.max(1, totalLessonsInCourse)) * 100)
+      );
+
+      await docRef.set(
+        {
+          completedLessons,
+          progressPercentage,
+          lastAccessedAt: new Date().toISOString(),
+          status: progressPercentage === 100 ? 'COMPLETED' : 'ACTIVE',
+        },
+        { merge: true }
+      );
+
+      // Sync with student_progress
+      await db.collection('student_progress').doc(enrollDocId).set(
+        {
+          completedLessons,
+          progress: progressPercentage,
+          lastAccessed: new Date().toISOString(),
+        },
+        { merge: true }
+      );
+
+      return { success: true, progressPercentage };
+    } catch (err) {
+      logger.error('[EnrollmentService] updateLessonProgress error:', err);
+      return { success: false, progressPercentage: 0 };
+    }
   }
 }
 

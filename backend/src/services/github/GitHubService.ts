@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { GITHUB_URL_REGEX } from '../../validators/student.validator';
 
 export interface GitHubUserProfileData {
@@ -51,15 +50,25 @@ export class GitHubService {
    */
   public static async fetchUserProfile(username: string): Promise<GitHubUserProfileData> {
     try {
-      const response = await axios.get(`https://api.github.com/users/${username}`, {
+      const response = await fetch(`https://api.github.com/users/${encodeURIComponent(username)}`, {
         headers: {
           Accept: 'application/vnd.github.v3+json',
           'User-Agent': 'KaizenQ-LMS-Platform',
         },
-        timeout: 10000,
+        signal: AbortSignal.timeout(10000),
       });
 
-      const data = response.data;
+      if (response.status === 404) {
+        throw new Error('Invalid GitHub Profile');
+      }
+      if (response.status === 403) {
+        throw new Error('GitHub API rate limit exceeded. Please try again in a few minutes.');
+      }
+      if (!response.ok) {
+        throw new Error(`GitHub API Error: ${response.status} ${response.statusText}`);
+      }
+
+      const data: any = await response.json();
       return {
         username: data.login,
         profileUrl: data.html_url || `https://github.com/${data.login}`,
@@ -76,12 +85,6 @@ export class GitHubService {
         lastUpdated: data.updated_at || new Date().toISOString(),
       };
     } catch (error: any) {
-      if (error.response?.status === 404) {
-        throw new Error('Invalid GitHub Profile');
-      }
-      if (error.response?.status === 403) {
-        throw new Error('GitHub API rate limit exceeded. Please try again in a few minutes.');
-      }
       throw new Error(error.message || 'Failed to fetch GitHub profile data');
     }
   }
@@ -92,24 +95,29 @@ export class GitHubService {
    */
   public static async fetchUserRepos(username: string): Promise<GitHubRepoData[]> {
     try {
-      const response = await axios.get(`https://api.github.com/users/${username}/repos`, {
-        params: {
-          sort: 'updated',
-          direction: 'desc',
-          per_page: 10,
-        },
+      const url = new URL(`https://api.github.com/users/${encodeURIComponent(username)}/repos`);
+      url.searchParams.set('sort', 'updated');
+      url.searchParams.set('direction', 'desc');
+      url.searchParams.set('per_page', '10');
+
+      const response = await fetch(url.toString(), {
         headers: {
           Accept: 'application/vnd.github.v3+json',
           'User-Agent': 'KaizenQ-LMS-Platform',
         },
-        timeout: 10000,
+        signal: AbortSignal.timeout(10000),
       });
 
-      if (!Array.isArray(response.data)) {
+      if (!response.ok) {
         return [];
       }
 
-      return response.data.map((repo: any) => ({
+      const data = await response.json();
+      if (!Array.isArray(data)) {
+        return [];
+      }
+
+      return data.map((repo: any) => ({
         name: repo.name || '',
         description: repo.description || '',
         stars: repo.stargazers_count || 0,

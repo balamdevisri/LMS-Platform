@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { Payment, IPayment, PaymentStatus } from '../../models/mongo/payment.model';
+import { IPayment, PaymentStatus } from '../../types/payment.types';
 import { enrollmentService } from '../enrollments/enrollment.service';
 import { CourseService } from '../../services/course/CourseService';
 import { db, isFirebaseAdminInitialized } from '../../firebase';
@@ -11,8 +11,7 @@ const PAYMENT_SECRET_KEY = env.JWT_SECRET || 'shaivika_payment_hmac_secret_2026'
 
 export class PaymentService {
   /**
-   * 1. Create Payment Order
-   * Server loads course from database, verifies price, checks duplicate enrollment, and generates order.
+   * 1. Create Payment Order in Firestore
    */
   public async createOrder(data: {
     studentId: string;
@@ -47,7 +46,7 @@ export class PaymentService {
       };
     }
 
-    // 2. Fetch Course from database (NEVER trust frontend price)
+    // 2. Fetch Course from Firestore (NEVER trust frontend price)
     let course: any = null;
     try {
       course = await courseService.getCourseById(courseId);
@@ -88,54 +87,31 @@ export class PaymentService {
     // 4. Generate Unique Secure Order ID
     const orderId = `kq_ord_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
 
-    // 5. Create Pending Payment Record in MongoDB
-    let paymentRecord: any;
-    try {
-      paymentRecord = await Payment.create({
-        studentId,
-        studentEmail: studentEmail || '',
-        studentName: studentName || 'Student',
+    // 5. Create Pending Payment Record in Firestore
+    const paymentRecord: IPayment = {
+      id: orderId,
+      studentId,
+      studentEmail: studentEmail || '',
+      studentName: studentName || 'Student',
+      courseId,
+      courseTitle,
+      orderId,
+      amount: coursePrice,
+      currency: 'INR',
+      status: 'PENDING',
+      provider: 'shaivika_pay',
+      metadata: {
         courseId,
         courseTitle,
-        orderId,
-        amount: coursePrice,
-        currency: 'INR',
-        status: 'PENDING',
-        provider: 'shaivika_pay',
-        metadata: {
-          courseId,
-          courseTitle,
-          studentId,
-        },
-      });
-    } catch (dbErr) {
-      logger.error('[PaymentService] MongoDB create payment error:', dbErr);
-      paymentRecord = {
-        id: `pay_${Date.now()}`,
-        orderId,
-        amount: coursePrice,
-        currency: 'INR',
-        status: 'PENDING',
-      };
-    }
+        studentId,
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
 
-    // 6. Sync Pending Payment to Firestore
     if (isFirebaseAdminInitialized()) {
       try {
-        await db.collection('payments').doc(orderId).set({
-          studentId,
-          studentEmail: studentEmail || '',
-          studentName: studentName || '',
-          courseId,
-          courseTitle,
-          orderId,
-          amount: coursePrice,
-          currency: 'INR',
-          status: 'PENDING',
-          provider: 'shaivika_pay',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        });
+        await db.collection('payments').doc(orderId).set(paymentRecord);
       } catch (fsErr) {
         logger.warn('[PaymentService] Firestore payment log warning:', fsErr);
       }
@@ -152,13 +128,12 @@ export class PaymentService {
         title: courseTitle,
         price: coursePrice,
       },
-      paymentId: paymentRecord?.id || paymentRecord?._id,
+      paymentId: orderId,
     };
   }
 
   /**
-   * 2. Verify Payment Server-Side
-   * Validates cryptographic signature, order details, prevents duplicate activation, and creates paid enrollment.
+   * 2. Verify Payment Server-Side via Firestore
    */
   public async verifyPayment(data: {
     orderId: string;
@@ -181,11 +156,11 @@ export class PaymentService {
       return { success: false, error: 'orderId and studentId are required for payment verification' };
     }
 
-    // 1. Fetch Payment Record from MongoDB or Firestore
-    let payment = await Payment.findOne({ orderId });
-    let courseId = data.courseId || payment?.courseId;
+    // 1. Fetch Payment Record from Firestore
+    let payment: any = null;
+    let courseId = data.courseId;
 
-    if (!payment && isFirebaseAdminInitialized()) {
+    if (isFirebaseAdminInitialized()) {
       const snap = await db.collection('payments').doc(orderId).get().catch(() => null);
       if (snap && snap.exists) {
         payment = snap.data() as any;
@@ -202,11 +177,11 @@ export class PaymentService {
       return { success: false, error: 'Payment authorization mismatch: Unauthorized student' };
     }
 
-    courseId = courseId || payment.courseId;
+    const finalCourseId = (courseId || payment.courseId || '').trim();
 
     // 2. Check if Payment was already verified as SUCCESS (Idempotent response)
     if (payment.status === 'SUCCESS') {
-      const existingEnrollment = await enrollmentService.getEnrollment(studentId, courseId);
+      const existingEnrollment = await enrollmentService.getEnrollment(studentId, finalCourseId);
       return {
         success: true,
         alreadyEnrolled: true,
@@ -227,48 +202,26 @@ export class PaymentService {
       : true; // Allow simulated gateway token for dev
 
     if (!isSignatureValid) {
-      // Mark as Failed
-      if (typeof (payment as any).save === 'function') {
-        payment.status = 'FAILED';
-        await (payment as any).save();
+      if (isFirebaseAdminInitialized()) {
+        await db.collection('payments').doc(orderId).set({ status: 'FAILED', updatedAt: new Date().toISOString() }, { merge: true });
       }
       return { success: false, error: 'Payment verification failed: Invalid transaction signature' };
     }
 
-    // 4. Update Payment to SUCCESS
-    const paidAt = new Date();
-    try {
-      if (typeof (payment as any).save === 'function') {
-        payment.status = 'SUCCESS';
-        payment.transactionId = transactionId;
-        payment.signature = signature || expectedSignature;
-        payment.paidAt = paidAt;
-        await (payment as any).save();
-      } else {
-        await Payment.updateOne(
-          { orderId },
-          {
-            $set: {
-              status: 'SUCCESS',
-              transactionId,
-              signature: signature || expectedSignature,
-              paidAt,
-            },
-          }
-        );
-      }
-    } catch (saveErr) {
-      logger.error('[PaymentService] Failed to update payment status in MongoDB:', saveErr);
-    }
+    // 4. Update Payment to SUCCESS in Firestore
+    const paidAt = new Date().toISOString();
+    payment.status = 'SUCCESS';
+    payment.transactionId = transactionId;
+    payment.signature = signature || expectedSignature;
+    payment.paidAt = paidAt;
 
-    // Sync SUCCESS status to Firestore
     if (isFirebaseAdminInitialized()) {
       try {
         await db.collection('payments').doc(orderId).set(
           {
             status: 'SUCCESS',
             transactionId,
-            paidAt: paidAt.toISOString(),
+            paidAt,
             updatedAt: new Date().toISOString(),
           },
           { merge: true }
@@ -278,13 +231,13 @@ export class PaymentService {
       }
     }
 
-    // 5. Create / Activate Paid Enrollment Server-Side
+    // 5. Create / Activate Paid Enrollment Server-Side in Firestore
     const { enrollment, alreadyEnrolled } = await enrollmentService.createEnrollment({
       studentId,
       studentEmail: studentEmail || payment.studentEmail,
       studentName: studentName || payment.studentName,
-      courseId,
-      paymentId: payment._id?.toString() || payment.id || orderId,
+      courseId: finalCourseId,
+      paymentId: orderId,
       accessType: 'PAID',
       courseTitle: payment.courseTitle,
     });
@@ -299,7 +252,6 @@ export class PaymentService {
 
   /**
    * 3. Webhook Handler
-   * Idempotent webhook processing for payment gateway callbacks
    */
   public async handleWebhook(event: any, signature?: string): Promise<{ success: boolean; message: string }> {
     const { event: eventType, payload } = event || {};
@@ -322,7 +274,9 @@ export class PaymentService {
     }
 
     if (eventType === 'payment.failed') {
-      await Payment.updateOne({ orderId }, { $set: { status: 'FAILED' } });
+      if (isFirebaseAdminInitialized()) {
+        await db.collection('payments').doc(orderId).set({ status: 'FAILED', updatedAt: new Date().toISOString() }, { merge: true });
+      }
       return { success: true, message: 'Payment marked as failed' };
     }
 
@@ -330,7 +284,7 @@ export class PaymentService {
   }
 
   /**
-   * 4. Get Payment by ID / Order ID
+   * 4. Get Payment by ID / Order ID from Firestore
    */
   public async getPayment(
     paymentOrOrderId: string,
@@ -338,51 +292,30 @@ export class PaymentService {
     userRole?: string
   ): Promise<IPayment | null> {
     const isAdmin = userRole === 'admin';
-    const query: any = {
-      $or: [{ orderId: paymentOrOrderId }, { _id: paymentOrOrderId }, { id: paymentOrOrderId }],
-    };
 
-    if (!isAdmin) {
-      query.studentId = studentId;
+    if (!isFirebaseAdminInitialized()) return null;
+
+    try {
+      const doc = await db.collection('payments').doc(paymentOrOrderId).get();
+      if (doc.exists) {
+        const data = { id: doc.id, ...doc.data() } as IPayment;
+        if (isAdmin || data.studentId === studentId) {
+          return data;
+        }
+      }
+    } catch (e) {
+      logger.warn('[PaymentService] getPayment notice:', e);
     }
 
-    const payment = await Payment.findOne(query);
-    return payment;
+    return null;
   }
 
   /**
-   * 5. Get Student Payment History
+   * 5. Get Student Payment History from Firestore
    */
   public async getStudentPaymentHistory(studentId: string): Promise<any[]> {
     const historyMap = new Map<string, any>();
 
-    // 1. Fetch from MongoDB
-    try {
-      const mongoPayments = await Payment.find({
-        $or: [{ studentId }, { studentEmail: studentId }],
-      }).sort({ createdAt: -1 });
-
-      mongoPayments.forEach((p: any) => {
-        const id = p.orderId || p._id?.toString() || p.id;
-        historyMap.set(id, {
-          id,
-          orderId: p.orderId,
-          transactionId: p.transactionId || id,
-          courseId: p.courseId,
-          courseTitle: p.courseTitle || 'Scholar Course Track',
-          amount: p.amount || 0,
-          currency: p.currency || 'INR',
-          status: p.status || 'SUCCESS',
-          paymentMethod: p.paymentMethod || 'UPI / Online Card',
-          paidAt: p.paidAt || p.createdAt || new Date().toISOString(),
-          createdAt: p.createdAt || new Date().toISOString(),
-        });
-      });
-    } catch (mErr) {
-      logger.warn('[PaymentService] MongoDB payments lookup notice:', mErr);
-    }
-
-    // 2. Fetch from Firestore
     if (isFirebaseAdminInitialized() && db) {
       try {
         const snap = await db.collection('payments')
@@ -402,7 +335,7 @@ export class PaymentService {
               amount: d.amount || 0,
               currency: d.currency || 'INR',
               status: d.status || 'SUCCESS',
-              paymentMethod: d.paymentMethod || 'UPI Instant',
+              paymentMethod: d.paymentMethod || 'Online Payment',
               paidAt: d.paidAt || d.createdAt || new Date().toISOString(),
               createdAt: d.createdAt || new Date().toISOString(),
             });

@@ -134,6 +134,7 @@ export class CertificateController {
       const fallbackEmail = req.user?.email || req.body.studentEmail;
 
       // Resolve student profile from Firestore users/students collection
+      // Resolve student profile from Firestore users collection
       let studentName = bodyStudentName || '';
       let studentEmail = bodyStudentEmail || '';
       let resolvedStudentId = studentId;
@@ -150,6 +151,7 @@ export class CertificateController {
             if (!displayName) {
               logger.error(`[CERTIFICATE CONTROLLER] ❌ Cannot auto-create profile: name claim/body name is missing for UID ${studentId}.`);
             } else {
+            if (displayName) {
               const newProfile = {
                 uid: studentId,
                 fullName: displayName,
@@ -166,15 +168,15 @@ export class CertificateController {
               logger.info(`[CERTIFICATE CONTROLLER] Automatically created student profile in database for ${studentId} (${email}) using verified claims.`);
               
               userData = await this.resolveStudentData(studentId, fallbackEmail);
+            } else {
+              logger.error(`[CERTIFICATE CONTROLLER] ❌ Cannot auto-create profile: name claim/body name is missing for UID ${studentId}.`);
             }
           }
 
           if (userData) {
-            studentName = userData.fullName || userData.name || '';
-            studentEmail = userData.email || '';
-            resolvedStudentId = userData.uid || userData.id || studentId;
             studentName = userData.fullName || userData.name || studentName || '';
             studentEmail = userData.email || studentEmail || '';
+            resolvedStudentId = userData.uid || userData.id || studentId;
           }
         } catch (dbErr: any) {
           logger.error(`[CERTIFICATE CONTROLLER] Error resolving profile: ${dbErr?.message}`);

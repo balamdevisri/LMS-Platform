@@ -2,11 +2,10 @@ import { Router, Request, Response } from 'express';
 import { db, adminAuth } from '../firebase';
 import { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import { verifyFirebaseToken, requireRole } from '../middleware/auth.middleware';
-import { EmailService } from '../services/email/EmailService';
+import { emailService } from '../services/email/EmailService';
 import { EmailEventType } from '../types/emailTypes';
 
 const router = Router();
-const emailService = new EmailService();
 
 /**
  * Enterprise Admin Dashboard Routes

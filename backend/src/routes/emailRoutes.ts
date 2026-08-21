@@ -20,24 +20,32 @@ const sendEmailSchema = z.object({
   payload: z.record(z.any()),
 });
 
+router.get('/status', (_req: Request, res: Response) => {
+  return res.json({
+    success: true,
+    transporter: emailService.getTransporterStatus(),
+  });
+});
+
 router.get('/test-email', async (req: Request, res: Response) => {
   try {
-    const targetEmail = (req.query.email as string) || (req.body && req.body.email) || env.SMTP_EMAIL || 'shaivikagroups@gmail.com';
+    const targetEmail = (req.query.email as string) || (req.body && req.body.email) || env.SMTP_EMAIL || 'kaizenqlms@gmail.com';
     const result = await emailService.sendDirectHtmlEmail(
       targetEmail,
-      'SMTP Test',
-      '<h1>KaizenQ AI LMS</h1><p>Hello Mawa</p>',
-      'Hello Mawa'
+      'KaizenQ Direct SMTP Test',
+      '<!DOCTYPE html><html><body style="font-family: Arial; padding: 20px;"><h1 style="color: #2563eb;">KaizenQ Direct SMTP</h1><p>SMTP email automation operational on <strong>kaizenq.in</strong> via no-reply@kaizenq.in.</p></body></html>',
+      'KaizenQ Direct SMTP operational on kaizenq.in'
     );
 
     const info = {
+      success: result.success,
       accepted: result.accepted || [targetEmail],
       rejected: result.rejected || [],
       response: result.response || '250 OK',
       messageId: result.messageId || null,
+      from: emailService.fromAddress,
     };
 
-    console.log(info);
     return res.json(info);
   } catch (err: any) {
     console.error(err);
@@ -123,10 +131,10 @@ router.post('/test', verifyFirebaseToken as any, requireRole('admin') as any, as
       EmailEventType.STUDENT_REGISTRATION,
       targetEmail,
       {
-        studentName: 'Shaivika Tester',
+        studentName: 'KaizenQ Scholar',
         email: targetEmail,
-        verificationLink: 'https://shaivika.com/verify?token=demo_test_token_123',
-        dashboardUrl: 'https://shaivika.com/dashboard',
+        verificationLink: 'https://www.kaizenq.in/auth/login?verified=true',
+        dashboardUrl: 'https://www.kaizenq.in/dashboard',
       }
     );
 

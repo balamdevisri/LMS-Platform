@@ -32,7 +32,7 @@ export class AdminController {
 
       const studentData = docSnap.data() || {};
       const now = new Date().toISOString();
-      const approvedBy = (req as any).user?.email || 'admin@shaivika.com';
+      const approvedBy = (req as any).user?.email || 'admin@kaizenq.in';
 
       const updatePayload = {
         approved: true,
@@ -44,14 +44,14 @@ export class AdminController {
       await docRef.update(updatePayload);
       await userRef.update(updatePayload).catch(() => null);
 
-      // Trigger approval email
+      // Trigger approval email via Direct SMTP
       await emailService.sendEventEmail(
         EmailEventType.REGISTRATION_APPROVED,
         studentData.email,
         {
           studentName: studentData.fullName || studentData.name || 'Student',
           email: studentData.email,
-          dashboardUrl: 'https://shaivika-lms.vercel.app/auth/login',
+          dashboardUrl: 'https://www.kaizenq.in/auth/login',
         }
       );
 
@@ -67,7 +67,7 @@ export class AdminController {
   }
 
   /**
-   * Flow 4: Admin Approves Lecturer
+   * Flow 4: Admin Approves Lecturer / Instructor
    */
   public async approveLecturer(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -93,7 +93,7 @@ export class AdminController {
 
       const lecturerData = docSnap.data() || {};
       const now = new Date().toISOString();
-      const approvedBy = (req as any).user?.email || 'admin@shaivika.com';
+      const approvedBy = (req as any).user?.email || 'admin@kaizenq.in';
 
       const updatePayload = {
         approved: true,
@@ -105,15 +105,11 @@ export class AdminController {
       await docRef.update(updatePayload);
       await userRef.update(updatePayload).catch(() => null);
 
-      // Trigger approval email
-      await emailService.sendEventEmail(
-        EmailEventType.LECTURER_APPROVED,
+      // Trigger approval email via Direct SMTP
+      await emailService.sendInstructorApprovalEmail(
         lecturerData.email,
-        {
-          lecturerName: lecturerData.name || lecturerData.fullName || 'Faculty Member',
-          email: lecturerData.email,
-          dashboardUrl: 'https://shaivika-lms.vercel.app/auth/login',
-        }
+        lecturerData.name || lecturerData.fullName || 'Faculty Member',
+        'https://www.kaizenq.in/auth/login'
       );
 
       res.status(200).json({

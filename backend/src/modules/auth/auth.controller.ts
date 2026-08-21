@@ -1,10 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { adminAuth, db } from '../../firebase';
-import { EmailService } from '../../services/email/EmailService';
+import { emailService } from '../../services/email/EmailService';
 import { EmailEventType } from '../../types/emailTypes';
 import logger from '../../config/logger';
-
-const emailService = new EmailService();
 
 export class AuthController {
   /**
@@ -443,7 +441,7 @@ export class AuthController {
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    let resetUrl = `https://shaivika-lms.vercel.app/auth/login?reset=true&email=${encodeURIComponent(normalizedEmail)}`;
+    let resetUrl = `https://www.kaizenq.in/auth/login?reset=true&email=${encodeURIComponent(normalizedEmail)}`;
     try {
       if (adminAuth && typeof adminAuth.generatePasswordResetLink === 'function') {
         resetUrl = await adminAuth.generatePasswordResetLink(normalizedEmail);
@@ -455,22 +453,18 @@ export class AuthController {
     logger.info(`[Auth] Generated password reset link for: ${normalizedEmail}`);
 
     try {
-      const emailResult = await emailService.sendEventEmail(
-        EmailEventType.PASSWORD_RESET,
+      const emailResult = await emailService.sendPasswordResetEmail(
         normalizedEmail,
-        {
-          userName: normalizedEmail.split('@')[0],
-          email: normalizedEmail,
-          resetUrl,
-          expiresInMinutes: 15,
-        }
+        normalizedEmail.split('@')[0],
+        resetUrl,
+        15
       );
 
-      logger.info(`[Auth] Password reset email dispatched via SMTP: ${emailResult.success}`);
+      logger.info(`[Auth] Password reset email dispatched via Direct SMTP: ${emailResult.success}`);
 
       res.status(200).json({
         success: true,
-        message: 'Password reset link sent successfully via Nodemailer SMTP.',
+        message: 'Password reset link sent successfully via Nodemailer Direct SMTP.',
         emailResult,
       });
     } catch (err: any) {
