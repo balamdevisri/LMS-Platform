@@ -33,6 +33,9 @@ export const ChallengeArena: React.FC<ChallengeArenaProps> = ({
   const [showFeedback, setShowFeedback] = useState<'idle' | 'correct' | 'incorrect'>('idle');
   const [showHint, setShowHint] = useState(false);
 
+  const [showXPClaimedFeedback, setShowXPClaimedFeedback] = useState(false);
+  const isInitialCompletedRef = React.useRef(isCompleted);
+
   // Initialize and reset states when the challenge changes
   useEffect(() => {
     setStudentInput(challenge.placeholder || '');
@@ -40,12 +43,25 @@ export const ChallengeArena: React.FC<ChallengeArenaProps> = ({
     setOrderedSelection([]);
     setShowFeedback(isCompleted ? 'correct' : 'idle');
     setShowHint(false);
+    isInitialCompletedRef.current = isCompleted;
+    setShowXPClaimedFeedback(false);
 
     if (challenge.type === 'ordering' && challenge.options) {
       // Shuffle options for the ordering challenge
       setShuffledOptions([...challenge.options].sort(() => Math.random() - 0.5));
     }
-  }, [challenge, isCompleted]);
+  }, [challenge]);
+
+  useEffect(() => {
+    if (isCompleted && !isInitialCompletedRef.current) {
+      setShowXPClaimedFeedback(true);
+      const timer = setTimeout(() => {
+        setShowXPClaimedFeedback(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+    isInitialCompletedRef.current = isCompleted;
+  }, [isCompleted]);
 
   const handleOptionClick = (opt: string) => {
     if (isCompleted || showFeedback === 'correct') return;
@@ -360,8 +376,49 @@ export const ChallengeArena: React.FC<ChallengeArenaProps> = ({
             {/* Correct Feedback Screen */}
             {(isCompleted || showFeedback === 'correct') && (
               <div className="bg-emerald-950/20 border border-emerald-500/50 rounded-2xl p-5 text-center animate-in zoom-in-95 duration-200 space-y-4">
+                <style>{`
+                  @keyframes xpFloat {
+                    0% {
+                      opacity: 0;
+                      transform: translate(-50%, 10px);
+                    }
+                    15% {
+                      opacity: 1;
+                      transform: translate(-50%, -10px);
+                    }
+                    85% {
+                      opacity: 1;
+                      transform: translate(-50%, -10px);
+                    }
+                    100% {
+                      opacity: 0;
+                      transform: translate(-50%, -25px);
+                    }
+                  }
+                  .animate-xp-float {
+                    animation: xpFloat 2s ease-out forwards;
+                  }
+                  @keyframes checkPulse {
+                    0% { transform: scale(1); }
+                    50% { transform: scale(1.15); filter: drop-shadow(0 0 8px rgba(16,185,129,0.7)); }
+                    100% { transform: scale(1); }
+                  }
+                  .animate-check-pulse {
+                    animation: checkPulse 0.5s ease-out;
+                  }
+                  @media (prefers-reduced-motion: reduce) {
+                    .animate-xp-float {
+                      animation: none;
+                      opacity: 1;
+                      transform: translate(-50%, -10px);
+                    }
+                    .animate-check-pulse {
+                      animation: none;
+                    }
+                  }
+                `}</style>
                 <div className="flex items-center justify-center gap-2 text-emerald-400 font-black text-sm uppercase tracking-widest">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-400 fill-emerald-400/20" />
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400 fill-emerald-400/20 animate-check-pulse" />
                   <span>✓ CHALLENGE COMPLETE</span>
                 </div>
                 
@@ -374,17 +431,16 @@ export const ChallengeArena: React.FC<ChallengeArenaProps> = ({
                 <div className="text-white text-xs font-sans font-medium">
                   Excellent work. Challenge protocol successfully mastered.
                 </div>
-                <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center items-center">
+                <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center items-center relative">
                   <button
                     onClick={() => {
                       if (!isCompleted) {
                         onToggleComplete();
-                        soundService.play('success');
                         toast.success('🎉 +50 XP Claimed! Lesson marked as completed!');
                       }
                     }}
                     disabled={isCompleted}
-                    className={`py-2.5 px-5 rounded-xl font-extrabold text-xs flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer w-full sm:w-auto ${
+                    className={`py-2.5 px-5 rounded-xl font-extrabold text-xs flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer w-full sm:w-auto relative ${
                       isCompleted
                         ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 cursor-default'
                         : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-955 font-black shadow-lg shadow-amber-500/30 hover:scale-105 active:scale-95'
@@ -402,6 +458,13 @@ export const ChallengeArena: React.FC<ChallengeArenaProps> = ({
                       </>
                     )}
                   </button>
+
+                  {showXPClaimedFeedback && (
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-amber-500 text-slate-955 text-[10px] font-black py-1 px-2.5 rounded-full flex items-center gap-1 shadow-md uppercase tracking-wider select-none pointer-events-none animate-xp-float z-50">
+                      <Zap className="w-3 h-3 fill-slate-950" />
+                      <span>⚡ +50 XP CLAIMED</span>
+                    </div>
+                  )}
 
                   {hasNextLesson && (
                     <button

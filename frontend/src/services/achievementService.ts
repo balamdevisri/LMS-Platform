@@ -197,6 +197,12 @@ export class XPService {
         }
       } catch (e) {}
     }
+    const currentPts = localStorage.getItem(this.pointsKey);
+    if (currentPts) {
+      return parseInt(currentPts, 10);
+    }
+    const val = localStorage.getItem(`${this.xpKeyPrefix}${userId}`);
+    return val ? parseInt(val, 10) : 150;
 
     let maxFound = 0;
 
