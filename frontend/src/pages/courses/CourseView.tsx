@@ -7,6 +7,8 @@ import { toast } from 'sonner';
 import { CourseDetailsPage } from '@/components/learning/CourseDetailsPage';
 import { InCourseLearningView } from '@/components/learning/InCourseLearningView';
 import { PaymentCheckoutModal } from '@/components/payment/PaymentCheckoutModal';
+import { SEOHead } from '@/components/seo/SEOHead';
+import { CourseSchema as StructuredCourseSchema } from '@/components/seo/StructuredData';
 
 const mapCourseModulesToPlayerModules = (modules?: any[]): any[] => {
   if (!modules) return [];
@@ -297,6 +299,17 @@ export const CourseView: React.FC = () => {
 
   return (
     <>
+      <SEOHead 
+        title={activeCourseData.title}
+        description={activeCourseData.subtitle || `Learn ${activeCourseData.title} with Kaizen Q.`}
+        ogType="course"
+        ogImage={activeCourseData.thumbnail}
+      />
+      <StructuredCourseSchema 
+        name={activeCourseData.title}
+        description={activeCourseData.subtitle || `Learn ${activeCourseData.title} with Kaizen Q.`}
+        url={`https://www.kaizenq.in/course/${activeCourseData.id}`}
+      />
       <CourseDetailsPage
         course={activeCourseData}
         onStartLearning={handleStartLearning}

@@ -54,6 +54,7 @@ const StudentSignup = lazyLoad(() => import('@/pages/StudentSignup'), 'StudentSi
 const ForgotPassword = lazyLoad(() => import('@/pages/auth/ForgotPassword'), 'ForgotPassword');
 const VerifyEmail = lazyLoad(() => import('@/pages/auth/VerifyEmail'), 'VerifyEmail');
 const Unauthorized = lazyLoad(() => import('@/pages/auth/Unauthorized'), 'Unauthorized');
+const LmsHub = lazyLoad(() => import('@/pages/lms/LmsHub').then(m => ({ LmsHub: m.LmsHub })), 'LmsHub');
 const Dashboard = lazyLoad(() => import('@/pages/dashboard/Dashboard'), 'Dashboard');
 const PracticeLabPage = lazyLoad(() => import('@/pages/dashboard/PracticeLabPage'), 'PracticeLabPage');
 const LeaderboardPage = lazyLoad(() => import('@/pages/dashboard/LeaderboardPage'), 'LeaderboardPage');
@@ -107,6 +108,7 @@ const router = createBrowserRouter([
       { path: 'verify-certificate', element: <VerifyCertificate /> },
       { path: 'verify-certificate/:verificationId', element: <VerifyCertificate /> },
       { path: 'portfolio/:handleOrId', element: <PublicPortfolio /> },
+      { path: 'lms', element: <LmsHub /> },
       { path: 'unauthorized', element: <Unauthorized /> },
     ],
   },

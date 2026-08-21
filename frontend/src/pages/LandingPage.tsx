@@ -29,6 +29,8 @@ import { AiCoreOrb } from '@/components/common/AiCoreOrb';
 import { courseService } from '@/services/courseService';
 import type { ICourse } from '../../../shared/types/course';
 import { CheckoutModal } from '../components/courses/CheckoutModal';
+import { SEOHead } from '@/components/seo/SEOHead';
+import { OrganizationSchema } from '@/components/seo/StructuredData';
 
 // Custom Animated Counter Component
 const AnimatedCounter: React.FC<{ value: number; suffix?: string; prefix?: string }> = ({ value, suffix = '', prefix = '' }) => {
@@ -545,6 +547,11 @@ export const LandingPage: React.FC = () => {
 
   return (
     <BlueSmokeTheme>
+      <SEOHead 
+        title="Modern Global Learning Platform" 
+        description="Kaizen Q is a modern LMS and global online learning platform designed to help learners build practical technology and career skills."
+      />
+      <OrganizationSchema />
       
       {/* Inject custom micro-keyframes directly in React */}
       <style>{`

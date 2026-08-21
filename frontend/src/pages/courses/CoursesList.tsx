@@ -13,7 +13,9 @@ import { EmptyState } from '../../components/courses/EmptyState';
 import { LoadingSkeleton } from '../../components/courses/LoadingSkeleton';
 import { LayoutGrid, List as ListIcon, Star, Flame, PlayCircle, CheckCircle2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
+import { SEOHead } from '../../components/seo/SEOHead';
 
 // ─── Quick Filter Tabs ───────────────────────────────────────────────────────
 type QuickFilter = 'all' | 'recommended' | 'trending' | 'continue' | 'completed' | 'new';
@@ -156,7 +158,12 @@ export const CoursesList: React.FC = () => {
   ).length;
 
   return (
-    <div className="space-y-6 font-['Sora'] text-slate-900 dark:text-zinc-100 max-w-7xl mx-auto pb-16">
+    <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 font-sans transition-colors duration-300">
+      <SEOHead 
+        title="Online Courses & Skill Development"
+        description="Explore Kaizen Q's premium online courses in Artificial Intelligence, Python, Data Science, and Career Skills. Learn technology online with practical courses."
+        keywords="online courses, AI courses, learn technology online, Python course, skill development courses"
+      />
 
       {/* ── Page Header ──────────────────────────────────────────────────────── */}
       <CourseHeader

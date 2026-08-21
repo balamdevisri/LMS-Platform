@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Sparkles, CheckCircle2, GraduationCap, BookOpen, Bot, Star, ArrowLeft } from 'lucide-react';
 import { BrandLogo } from '@/components/common/BrandLogo';
 import { BlueSmokeTheme } from '@/components/common/BlueSmokeTheme';
+import { SEOHead } from '@/components/seo/SEOHead';
 
 // Counter component for statistics count-up animation
 const Counter: React.FC<{ value: string }> = ({ value }) => {
@@ -109,6 +110,11 @@ export const AuthLayout: React.FC = () => {
 
   return (
     <BlueSmokeTheme>
+      <SEOHead 
+        title="Authentication"
+        description="Login or register for Kaizen Q"
+        noindex={true}
+      />
       <div className="min-h-screen w-full bg-transparent text-slate-900 flex flex-col lg:flex-row font-['Sora'] selection:bg-blue-500 selection:text-white select-none relative overflow-hidden">
         
         {/* Floating Glass Badges */}
