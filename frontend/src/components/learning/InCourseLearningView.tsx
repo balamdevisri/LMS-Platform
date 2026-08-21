@@ -884,6 +884,23 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       // 2. Learning Streak calculation
       statsService.checkAndUpdateStreak(activeUserId);
 
+      // Track Daily Mission Progress
+      try {
+        const todayStr = new Date().toLocaleDateString('en-CA');
+        const dailyKey = `shaivika_daily_mission_${activeUserId}_${todayStr}`;
+        const rawDaily = localStorage.getItem(dailyKey);
+        let dailyData = { completedLessonIds: [] as string[], rewardClaimed: false };
+        if (rawDaily) {
+          try { dailyData = JSON.parse(rawDaily); } catch (e) {}
+        }
+        if (!dailyData.completedLessonIds.includes(String(selectedLessonId))) {
+          dailyData.completedLessonIds.push(String(selectedLessonId));
+          localStorage.setItem(dailyKey, JSON.stringify(dailyData));
+        }
+      } catch (err) {
+        console.error('Failed to update daily mission progress:', err);
+      }
+
       // 4. Check if all lessons in the course are completed (100% Course Completion)
       const allCourseLessonsDone = allLessons.every((l) =>
         updated.some((cId) => String(cId) === String(l.id))
