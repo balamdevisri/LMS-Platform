@@ -1,9 +1,8 @@
 import { Request, Response } from 'express';
 import Stripe from 'stripe';
 import { env } from '../config/env';
-import { Payment, Enrollment } from '../models/mongo/payment.model';
+import { db, isFirebaseAdminInitialized } from '../firebase';
 import { emailService } from '../services/email/EmailService';
-import mongoose from 'mongoose';
 
 const stripeKey = process.env.STRIPE_SECRET_KEY || env.STRIPE_SECRET_KEY || '';
 const stripe = new Stripe(stripeKey, {
@@ -55,8 +54,7 @@ export class PaymentController {
         else if (numCourses === 5) totalAmount = BUNDLE_PRICES[5];
         else if (numCourses >= 8) totalAmount = BUNDLE_PRICES[8];
         else {
-          // If 4 courses, take 3 bundle + 1 individual (mock logic for simplicity) or just generic bundle
-          totalAmount = numCourses * 199; // simplified fallback
+          totalAmount = numCourses * 199; // fallback
         }
       }
 
@@ -65,19 +63,24 @@ export class PaymentController {
       
       const orderId = `order_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
-      // Create Payment records in PENDING state
-      for (const courseId of courseIds) {
-        await Payment.create({
-          studentId,
-          studentEmail,
-          studentName,
-          courseId,
-          orderId,
-          amount: numCourses === 1 ? totalAmount : (totalAmount / numCourses),
-          currency: 'INR',
-          status: 'PENDING',
-          provider: 'stripe'
-        });
+      // Create Payment records in PENDING state in Firestore
+      if (isFirebaseAdminInitialized()) {
+        for (const courseId of courseIds) {
+          const courseAmount = numCourses === 1 ? totalAmount : (totalAmount / numCourses);
+          await db.collection('payments').doc(`${orderId}_${courseId}`).set({
+            studentId,
+            studentEmail: studentEmail || '',
+            studentName: studentName || '',
+            courseId,
+            orderId,
+            amount: courseAmount,
+            currency: 'INR',
+            status: 'PENDING',
+            provider: 'stripe',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          });
+        }
       }
 
       const session = await stripe.checkout.sessions.create({
@@ -96,13 +99,13 @@ export class PaymentController {
           },
         ],
         mode: 'payment',
-        success_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard?payment_success=true&order_id=${orderId}`,
-        cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard?payment_canceled=true`,
+        success_url: `${process.env.FRONTEND_URL || 'https://www.kaizenq.in'}/dashboard?payment_success=true&order_id=${orderId}`,
+        cancel_url: `${process.env.FRONTEND_URL || 'https://www.kaizenq.in'}/dashboard?payment_canceled=true`,
         client_reference_id: orderId,
         metadata: {
           studentId,
-          studentEmail,
-          studentName,
+          studentEmail: studentEmail || '',
+          studentName: studentName || '',
           courseIds: courseIds.join(','),
           orderId,
         },
@@ -120,7 +123,6 @@ export class PaymentController {
     let event: Stripe.Event;
 
     try {
-      // Note: req.body must be raw for signature validation, use body-parser raw in routes
       event = stripe.webhooks.constructEvent(
         req.body,
         sig,
@@ -137,39 +139,57 @@ export class PaymentController {
       
       const { studentId, studentEmail, studentName, courseIds, orderId } = session.metadata || {};
       
-      if (orderId && courseIds && studentId) {
+      if (orderId && courseIds && studentId && isFirebaseAdminInitialized()) {
         const courseArray = courseIds.split(',');
         
         try {
-          // Update payments to SUCCESS
-          await Payment.updateMany(
-            { orderId },
-            { 
-              $set: { 
-                status: 'SUCCESS', 
-                transactionId: session.payment_intent as string,
-                paidAt: new Date()
-              } 
-            }
-          );
+          const nowIso = new Date().toISOString();
           
-          // Create Enrollments
           for (const courseId of courseArray) {
-            // Upsert enrollment
-            await Enrollment.findOneAndUpdate(
-              { studentId, courseId },
+            const paymentDocId = `${orderId}_${courseId}`;
+            await db.collection('payments').doc(paymentDocId).set(
               {
-                $set: {
-                  studentEmail,
-                  studentName,
-                  paymentId: orderId,
-                  status: 'ACTIVE',
-                  accessType: 'PAID',
-                  enrolledAt: new Date(),
-                }
+                status: 'SUCCESS',
+                transactionId: (session.payment_intent as string) || session.id,
+                paidAt: nowIso,
+                updatedAt: nowIso,
               },
-              { upsert: true, new: true }
+              { merge: true }
             );
+
+            // Upsert enrollment in Firestore
+            const enrollDocId = `${studentId}_${courseId}`;
+            await db.collection('enrollments').doc(enrollDocId).set(
+              {
+                studentId,
+                studentEmail: studentEmail || '',
+                studentName: studentName || '',
+                courseId,
+                paymentId: orderId,
+                status: 'ACTIVE',
+                accessType: 'PAID',
+                enrolledAt: nowIso,
+                updatedAt: nowIso,
+              },
+              { merge: true }
+            );
+
+            // Send confirmation email asynchronously
+            if (studentEmail) {
+              emailService
+                .sendCourseEnrollmentEmail({
+                  studentName: studentName || 'Student',
+                  studentEmail,
+                  courseTitle: courseId.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+                  courseId,
+                  courseUrl: `https://www.kaizenq.in/courses/${courseId}`,
+                  certificateAvailable: true,
+                  enrollmentId: enrollDocId,
+                })
+                .catch((emailErr) => {
+                  console.warn('[PaymentController] Stripe webhook email notice:', emailErr?.message || emailErr);
+                });
+            }
           }
         } catch (dbError) {
           console.error('Database error during webhook processing:', dbError);
@@ -195,35 +215,42 @@ export class PaymentController {
       }
 
       const orderId = `free_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      const nowIso = new Date().toISOString();
 
       for (const courseId of courseIds) {
-        await Payment.create({
-          studentId,
-          studentEmail,
-          studentName,
-          courseId,
-          orderId,
-          amount: 0,
-          currency: 'INR',
-          status: 'SUCCESS',
-          provider: 'free_grant',
-          paidAt: new Date()
-        });
+        if (isFirebaseAdminInitialized()) {
+          const paymentDocId = `${orderId}_${courseId}`;
+          await db.collection('payments').doc(paymentDocId).set({
+            studentId,
+            studentEmail: studentEmail || '',
+            studentName: studentName || '',
+            courseId,
+            orderId,
+            amount: 0,
+            currency: 'INR',
+            status: 'SUCCESS',
+            provider: 'free_grant',
+            paidAt: nowIso,
+            createdAt: nowIso,
+            updatedAt: nowIso,
+          });
 
-        await Enrollment.findOneAndUpdate(
-          { studentId, courseId },
-          {
-            $set: {
-              studentEmail,
-              studentName,
+          const enrollDocId = `${studentId}_${courseId}`;
+          await db.collection('enrollments').doc(enrollDocId).set(
+            {
+              studentId,
+              studentEmail: studentEmail || '',
+              studentName: studentName || '',
+              courseId,
               paymentId: orderId,
               status: 'ACTIVE',
               accessType: 'FREE',
-              enrolledAt: new Date(),
-            }
-          },
-          { upsert: true, new: true }
-        );
+              enrolledAt: nowIso,
+              updatedAt: nowIso,
+            },
+            { merge: true }
+          );
+        }
 
         // Asynchronous non-blocking confirmation email with idempotency
         if (studentEmail) {

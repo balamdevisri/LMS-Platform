@@ -45,7 +45,6 @@ const envSchema = z.object({
   GOOGLE_OAUTH_CLIENT_ID: z.string().optional(),
   GOOGLE_OAUTH_CLIENT_SECRET: z.string().optional(),
   GOOGLE_OAUTH_REFRESH_TOKEN: z.string().optional(),
-  MONGODB_URI: z.string().default('mongodb://localhost:27017/shaivika_live_classroom'),
   REDIS_URL: z.string().default('redis://localhost:6379'),
 });
 
