@@ -18,7 +18,7 @@ class SoundService {
     }
   }
 
-  public play(type: 'select' | 'success' | 'xp' | 'badge' | 'error' | 'unlock'): void {
+  public play(type: 'select' | 'success' | 'xp' | 'badge' | 'error' | 'unlock' | 'mission' | 'course'): void {
     if (this.isMuted()) return;
 
     try {
@@ -123,6 +123,50 @@ class SoundService {
           playTone(659.25, 0.06, 0.1); // E5
           playTone(783.99, 0.12, 0.1); // G5
           playTone(1046.5, 0.18, 0.35); // C6
+          break;
+        }
+        case 'mission': {
+          // Rising major scale melody/fanfare
+          const playTone = (freq: number, delay: number, duration: number) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, ctx.currentTime + delay);
+            gain.gain.setValueAtTime(0.04, ctx.currentTime + delay);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + duration);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(ctx.currentTime + delay);
+            osc.stop(ctx.currentTime + delay + duration);
+          };
+          playTone(523.25, 0, 0.12); // C5
+          playTone(659.25, 0.06, 0.12); // E5
+          playTone(783.99, 0.12, 0.12); // G5
+          playTone(1046.5, 0.18, 0.15); // C6
+          playTone(1318.5, 0.24, 0.3); // E6
+          break;
+        }
+        case 'course': {
+          // Full triumphant chord progression / fanfare
+          const playTone = (freq: number, delay: number, duration: number) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, ctx.currentTime + delay);
+            gain.gain.setValueAtTime(0.04, ctx.currentTime + delay);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + duration);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(ctx.currentTime + delay);
+            osc.stop(ctx.currentTime + delay + duration);
+          };
+          playTone(523.25, 0, 0.15); // C5
+          playTone(659.25, 0.05, 0.15); // E5
+          playTone(783.99, 0.1, 0.15); // G5
+          playTone(1046.5, 0.15, 0.15); // C6
+          playTone(1318.5, 0.2, 0.15); // E6
+          playTone(1568.0, 0.25, 0.2); // G6
+          playTone(2093.0, 0.3, 0.45); // C7
           break;
         }
       }

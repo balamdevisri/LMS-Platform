@@ -889,6 +889,11 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       // 2. Learning Streak calculation
       statsService.checkAndUpdateStreak(activeUserId);
 
+      // 4. Check if all lessons in the course are completed (100% Course Completion)
+      const allCourseLessonsDone = allLessons.every((l) =>
+        updated.some((cId) => String(cId) === String(l.id))
+      );
+
       // 3. Check if completing this lesson completes a full module (Mission)
       const currentModule = modules.find((m) =>
         m.lessons.some((l) => String(l.id) === String(selectedLessonId))
@@ -917,17 +922,16 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
           );
           statsService.incrementStat('modulesCompleted' as any, 1, activeUserId);
           toast.success(`🎯 MISSION COMPLETE! +50 XP BONUS`);
+          if (!allCourseLessonsDone) {
+            soundService.play('mission');
+          }
         }
       }
-
-      // 4. Check if all lessons in the course are completed (100% Course Completion)
-      const allCourseLessonsDone = allLessons.every((l) =>
-        updated.some((cId) => String(cId) === String(l.id))
-      );
 
       if (allCourseLessonsDone) {
         statsService.incrementStat('coursesCompleted', 1, activeUserId);
         triggerCertificateGeneration();
+        soundService.play('course');
       }
 
       // Check for badge unlocks
@@ -935,8 +939,10 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       const newBadges = afterBadges.filter(b => !beforeBadges.some(old => old.id === b.id));
       if (newBadges.length > 0) {
         setUnlockedBadge(newBadges[0]);
+        soundService.play('badge');
       }
 
+      soundService.play('xp');
       toast.success(`🎉 Challenge complete! +${earnedXP} XP awarded.`);
     }
   }, [completedLessonIds, selectedLessonId, user, userProfile, userName, activeLessonFull, courseId, courseTitle, modules, allLessons, getXPRewardForDifficulty]);
