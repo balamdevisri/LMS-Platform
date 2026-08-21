@@ -28,7 +28,7 @@ const envSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   SMTP_EMAIL: z.string().default('kaizenqlms@gmail.com'),
-  SMTP_PASSWORD: z.string().default('gmjv leoa tadp vdyg'),
+  SMTP_PASSWORD: z.string().default('idmo ibzr evgx dtwe'),
   SMTP_FROM_EMAIL: z.string().default('no-reply@kaizenq.in'),
   SMTP_FROM_NAME: z.string().default('KaizenQ'),
   SMTP_FROM: z.string().default('KaizenQ <no-reply@kaizenq.in>'),
