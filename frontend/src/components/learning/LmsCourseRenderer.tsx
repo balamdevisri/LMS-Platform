@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { CodeBlock } from './CodeBlock';
-import { Sparkles, Terminal, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Sparkles, CheckCircle2, AlertTriangle, Lightbulb } from 'lucide-react';
 
 interface LmsCourseRendererProps {
   content: string;
@@ -443,8 +443,8 @@ const FlowchartRenderer: React.FC<{ lines: string[]; isNightMode: boolean }> = (
     return (
       <pre className={`p-4 rounded-2xl border overflow-x-auto font-mono text-xs leading-relaxed my-4 ${
         isNightMode 
-          ? 'bg-slate-950 border-slate-800 text-cyan-300' 
-          : 'bg-sky-50/30 border-sky-100 text-sky-900'
+          ? 'bg-slate-950 border-slate-800 text-primary' 
+          : 'bg-sky-50/30 border-sky-100 text-primary'
       }`}>
         {lines.join('\n')}
       </pre>
@@ -490,12 +490,12 @@ const FlowchartRenderer: React.FC<{ lines: string[]; isNightMode: boolean }> = (
       {finalBlocks.map((block, idx) => (
         <React.Fragment key={idx}>
           <div className={`px-5 py-3 rounded-2xl border text-sm font-semibold font-mono tracking-wide ${
-            isNightMode ? 'bg-slate-900 border-slate-800 text-cyan-300' : 'bg-sky-50 border-sky-100 text-sky-850'
+            isNightMode ? 'bg-slate-900 border-slate-800 text-primary' : 'bg-sky-50 border-sky-100 text-primary'
           } shadow-sm max-w-md text-center`}>
             {block}
           </div>
           {idx < finalBlocks.length - 1 && (
-            <div className={`text-xl ${isNightMode ? 'text-cyan-400' : 'text-sky-500'} font-bold`}>↓</div>
+            <div className="text-xl text-primary font-bold">↓</div>
           )}
         </React.Fragment>
       ))}
@@ -558,10 +558,10 @@ const QuestionCard: React.FC<{ question: string; answer: string[]; isNightMode: 
         {/* Bold/highlighted Question Heading */}
         <h4 className={`text-base sm:text-lg font-heading font-bold px-4 py-2.5 rounded-xl border flex items-start gap-2.5 ${
           isNightMode 
-            ? 'bg-slate-900/80 border-slate-800 text-cyan-300 shadow-sm shadow-cyan-950/20' 
-            : 'bg-sky-50/50 border-sky-100/80 text-sky-900 shadow-sm shadow-sky-100/10'
+            ? 'bg-slate-900/80 border-slate-800 text-primary shadow-sm shadow-[0_0_8px_var(--kq-glow)]' 
+            : 'bg-sky-50/50 border-sky-100/80 text-primary shadow-sm shadow-sky-100/10'
         }`}>
-          <span className="shrink-0 text-cyan-500">❓</span>
+          <span className="shrink-0 text-primary">❓</span>
           <span>{question}</span>
         </h4>
         
@@ -585,10 +585,10 @@ const QuestionCard: React.FC<{ question: string; answer: string[]; isNightMode: 
       <div className="my-6 space-y-3">
         <h4 className={`text-base sm:text-lg font-heading font-bold px-4 py-2.5 rounded-xl border flex items-start gap-2.5 ${
           isNightMode 
-            ? 'bg-slate-900/80 border-slate-800 text-cyan-300 shadow-sm shadow-cyan-950/20' 
-            : 'bg-sky-50/50 border-sky-100/80 text-sky-900 shadow-sm shadow-sky-100/10'
+            ? 'bg-slate-900/80 border-slate-800 text-primary shadow-sm shadow-[0_0_8px_var(--kq-glow)]' 
+            : 'bg-sky-50/50 border-sky-100/80 text-primary shadow-sm shadow-sky-100/10'
         }`}>
-          <span className="shrink-0 text-cyan-500">❓</span>
+          <span className="shrink-0 text-primary">❓</span>
           <span>{question}</span>
         </h4>
         <div className={`pl-4 text-xs sm:text-sm leading-relaxed ${
@@ -636,7 +636,7 @@ const QuestionCard: React.FC<{ question: string; answer: string[]; isNightMode: 
               const cleanText = trimmedAns.replace(/^[-*•●]\s*/, '');
               return (
                 <div key={idx} className="flex items-start gap-2 ml-2 my-1.5">
-                  <CheckCircle2 className={`w-3.5 h-3.5 shrink-0 mt-0.5 ${isNightMode ? 'text-cyan-400' : 'text-sky-500'}`} />
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5 text-primary" />
                   <span>
                     {formatInlineStyles(cleanText, isNightMode)}
                   </span>
@@ -659,7 +659,7 @@ const QuestionCard: React.FC<{ question: string; answer: string[]; isNightMode: 
     <div className={`my-5 p-5 rounded-2xl border shadow-sm ${
       isNightMode ? 'bg-slate-900/60 border-slate-800' : 'bg-sky-50/20 border-sky-100/80'
     }`}>
-      <div className={`font-bold text-sm sm:text-base flex items-start gap-2 ${isNightMode ? 'text-cyan-300' : 'text-sky-800'}`}>
+      <div className="font-bold text-sm sm:text-base flex items-start gap-2 text-primary">
         <span className="shrink-0">❓</span>
         <span>{question}</span>
       </div>
@@ -699,7 +699,7 @@ const QuestionCard: React.FC<{ question: string; answer: string[]; isNightMode: 
             const cleanText = trimmedAns.replace(/^[-*•●]\s*/, '');
             return (
               <div key={idx} className="flex items-start gap-2 ml-2 my-1.5">
-                <CheckCircle2 className={`w-3.5 h-3.5 shrink-0 mt-0.5 ${isNightMode ? 'text-cyan-400' : 'text-sky-500'}`} />
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5 text-primary" />
                 <span>
                   {isInlineAnswer && <strong className="font-semibold text-slate-800 dark:text-slate-250 mr-1.5">Answer:</strong>}
                   {formatInlineStyles(cleanText, isNightMode)}
@@ -1291,72 +1291,84 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
       {/* Render Parsed Blocks */}
       <div className="space-y-4">
         {blocks.map((block, idx) => {
+          const style = { animationDelay: `${Math.min(300, idx * 25)}ms` };
+          
+          let blockContent = null;
           switch (block.type) {
             case 'heading':
               const isSubSub = block.level >= 3;
               if (isSubSub) {
-                return (
+                blockContent = (
                   <h4
-                    key={idx}
-                    className={`text-base sm:text-lg font-heading font-bold mt-5 mb-2 flex items-center gap-1.5 ${
-                      isNightMode ? 'text-slate-350' : 'text-slate-800'
-                    }`}
+                    className="text-base sm:text-lg font-heading font-bold mt-5 mb-2 flex items-center gap-1.5 text-primary/90"
                   >
                     <span>{block.text}</span>
                   </h4>
                 );
+              } else {
+                const headingNum = String(idx + 1).padStart(2, '0');
+                blockContent = (
+                  <div className="mt-8 mb-4 space-y-2">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-black font-mono text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
+                        {headingNum}
+                      </span>
+                      <div className="h-px bg-slate-800/80 flex-1 relative">
+                        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_var(--color-primary)]" />
+                      </div>
+                    </div>
+                    <h2 
+                      className="text-xl sm:text-2xl font-black text-primary tracking-tight uppercase font-sans"
+                      style={{ textShadow: '0 0 8px var(--kq-glow)' }}
+                    >
+                      {block.text}
+                    </h2>
+                  </div>
+                );
               }
-              return (
-                <h2
-                  key={idx}
-                  className={`text-2xl sm:text-3xl font-heading font-extrabold mt-8 mb-4 border-b pb-3 flex items-center gap-2.5 ${
-                    isNightMode ? 'text-white border-slate-800' : 'text-slate-900 border-sky-100'
-                  }`}
-                >
-                  <Sparkles className="w-6 h-6 text-cyan-450 shrink-0" />
-                  <span>{block.text}</span>
-                </h2>
-              );
+              break;
+
             case 'subheading':
-              return (
+              blockContent = (
                 <h3
-                  key={idx}
-                  className={`text-lg sm:text-xl font-heading font-bold mt-6 mb-3 flex items-center gap-2 ${
-                    isNightMode ? 'text-cyan-300' : 'text-sky-850'
-                  }`}
+                  className="text-md sm:text-lg font-heading font-black mt-6 mb-3 flex items-center gap-2 border-l-2 border-primary pl-2.5 text-primary"
+                  style={{ textShadow: '0 0 6px var(--kq-glow)' }}
                 >
-                  <Terminal className="w-5 h-5 text-cyan-400 shrink-0" />
                   <span>{block.text}</span>
                 </h3>
               );
+              break;
+
             case 'code':
-              return (
+              blockContent = (
                 <CodeBlock
-                  key={idx}
                   code={block.code}
                   language={block.lang || (isGit ? 'bash' : (isK8s ? 'yaml' : (isReact ? 'jsx' : 'python')))}
                 />
               );
+              break;
+
             case 'flowchart':
-              return (
+              blockContent = (
                 <FlowchartRenderer
-                  key={idx}
                   lines={block.lines}
                   isNightMode={isNightMode}
                 />
               );
+              break;
+
             case 'table':
-              return (
+              blockContent = (
                 <TableRenderer
-                  key={idx}
                   lines={block.lines}
                   isNightMode={isNightMode}
                 />
               );
+              break;
+
             case 'question':
-              return (
+              blockContent = (
                 <QuestionCard
-                  key={idx}
                   question={block.question}
                   answer={block.answer}
                   isNightMode={isNightMode}
@@ -1365,49 +1377,73 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
                   isReact={isReact}
                 />
               );
+              break;
+
             case 'bullet':
               const isCross = block.isCross;
-              return (
-                <div key={idx} className="flex items-start gap-2.5 ml-3 my-2 text-sm sm:text-base leading-relaxed">
+              blockContent = (
+                <div className="flex items-start gap-2.5 ml-3 my-2 text-sm sm:text-base leading-relaxed">
                   {isCross ? (
                     <span className="shrink-0 mt-0.5 text-base">❌</span>
                   ) : (
-                    <CheckCircle2 className={`w-4 h-4 shrink-0 mt-1 ${isNightMode ? 'text-cyan-400' : 'text-sky-500'}`} />
+                    <CheckCircle2 className="w-4 h-4 shrink-0 mt-1 text-primary" />
                   )}
                   <span className={isNightMode ? 'text-slate-200' : 'text-slate-700'}>
                     {formatInlineStyles(block.text, isNightMode)}
                   </span>
                 </div>
               );
+              break;
+
             case 'example':
-              return (
+              blockContent = (
                 <div
-                  key={idx}
-                  className={`p-4 rounded-2xl border flex items-start gap-3 my-4 leading-relaxed ${
-                    isNightMode ? 'bg-sky-950/20 border-sky-900/50 text-cyan-200' : 'bg-sky-50/50 border-sky-100 text-sky-850'
+                  className={`p-5 rounded-2xl border my-4 leading-relaxed transition-all ${
+                    isNightMode ? 'bg-primary/5 border-primary/20 text-slate-100' : 'bg-primary/5 border-primary/10 text-slate-800'
                   }`}
                 >
-                  <Sparkles className="w-5 h-5 shrink-0 mt-0.5 text-cyan-500" />
-                  <span className="text-sm font-medium">{formatInlineStyles(block.text, isNightMode)}</span>
+                  <div className="flex items-center gap-2 mb-3 text-[10px] font-black uppercase tracking-widest text-primary font-mono">
+                    <Sparkles className="w-3.5 h-3.5 text-primary" />
+                    <span>💡 EXAMPLE MISSION</span>
+                  </div>
+                  <div className="text-sm font-medium leading-relaxed">
+                    {formatInlineStyles(block.text, isNightMode)}
+                  </div>
                 </div>
               );
+              break;
+
             case 'note':
-              return (
+              const isWarning = block.text.toLowerCase().startsWith('warning:') || block.text.toLowerCase().startsWith('mistake:') || block.text.toLowerCase().startsWith('important:');
+              blockContent = (
                 <div
-                  key={idx}
-                  className={`p-4 rounded-2xl border flex items-start gap-3 my-4 leading-relaxed ${
-                    isNightMode ? 'bg-amber-950/20 border-amber-900/50 text-amber-200' : 'bg-amber-50/50 border-amber-100 text-amber-800'
+                  className={`p-4 rounded-2xl border flex items-start gap-3 my-4 leading-relaxed transition-all ${
+                    isWarning
+                      ? 'bg-rose-950/15 border-rose-900/50 text-rose-200'
+                      : 'bg-amber-950/15 border-amber-900/50 text-amber-200'
                   }`}
                 >
-                  <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-amber-500" />
-                  <span className="text-sm font-medium">{formatInlineStyles(block.text, isNightMode)}</span>
+                  {isWarning ? (
+                    <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-rose-500" />
+                  ) : (
+                    <Lightbulb className="w-5 h-5 shrink-0 mt-0.5 text-amber-500" />
+                  )}
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black uppercase tracking-widest font-mono block">
+                      {isWarning ? '⚠️ WARNING / IMPORTANT' : '💡 TIP / BEST PRACTICE'}
+                    </span>
+                    <span className="text-sm font-medium">
+                      {formatInlineStyles(block.text.replace(/^(note|warning|mistake|tip|important):\s*/i, ''), isNightMode)}
+                    </span>
+                  </div>
                 </div>
               );
+              break;
+
             case 'text':
             default:
-              return (
+              blockContent = (
                 <p
-                  key={idx}
                   className={`text-sm sm:text-base leading-relaxed my-3 font-normal ${
                     isNightMode ? 'text-slate-200' : 'text-slate-700'
                   }`}
@@ -1415,7 +1451,14 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
                   {formatInlineStyles(block.text, isNightMode)}
                 </p>
               );
+              break;
           }
+
+          return (
+            <div key={idx} className="animate-slide-up opacity-0" style={style}>
+              {blockContent}
+            </div>
+          );
         })}
       </div>
     </div>

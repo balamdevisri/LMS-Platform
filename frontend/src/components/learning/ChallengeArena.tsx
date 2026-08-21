@@ -128,38 +128,58 @@ export const ChallengeArena: React.FC<ChallengeArenaProps> = ({
       <div className="flex items-center justify-between border-b border-slate-900 pb-4">
         <button
           onClick={onBackToMap}
-          className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 border border-slate-800 hover:border-cyan-500 hover:text-cyan-400 text-slate-400 text-xs font-black rounded-xl cursor-pointer transition-all active:scale-95"
+          className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 border border-slate-800 hover:border-primary hover:text-primary text-slate-400 text-xs font-black rounded-xl cursor-pointer transition-all active:scale-95"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>◀ MISSION MAP</span>
         </button>
         <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-widest bg-slate-950 px-3 py-1 rounded-md border border-slate-900">
-          🎯 PRACTICE ONLY
+          🎯 PRACTICE ACTIVE
         </span>
       </div>
 
       {/* Challenge Title HUD */}
-      <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-6 relative overflow-hidden backdrop-blur-md">
-        <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/5 to-transparent pointer-events-none" />
-        <span className="text-[9px] font-black uppercase text-cyan-400 tracking-widest font-mono bg-cyan-950/40 border border-cyan-900/50 px-2 py-0.5 rounded">
-          MISSION {challenge.missionNum} • CHALLENGE {challenge.challengeNum}
-        </span>
-        <h2 className="text-xl font-black text-white mt-3 font-sans tracking-tight">
-          {challenge.title}
-        </h2>
+      <div className="bg-slate-900/50 border border-slate-805 rounded-3xl p-6 relative overflow-hidden backdrop-blur-md">
+        <div className="absolute inset-0 bg-radial-gradient(circle at center right, rgba(249,115,22,0.06), transparent) pointer-events-none" />
+        
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <span className="text-[9px] font-black uppercase text-primary tracking-widest font-mono bg-primary/10 border border-primary/20 px-2.5 py-1 rounded">
+              🎯 MISSION {challenge.missionNum} • LEVEL {challenge.missionNum}
+            </span>
+            <h2 
+              className="text-xl sm:text-2xl font-black text-primary mt-1 font-sans tracking-tight uppercase"
+              style={{ textShadow: '0 0 8px var(--kq-glow)' }}
+            >
+              {challenge.title}
+            </h2>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            <span className="px-2.5 py-1 text-[10px] font-black bg-slate-950 border border-slate-850 rounded-lg text-amber-500 font-mono">
+              ⚡ +50 XP
+            </span>
+            <span className="px-2.5 py-1 text-[10px] font-black bg-slate-950 border border-slate-850 rounded-lg text-slate-400 font-mono">
+              ⏱ {(challenge as any).duration || '15 mins'}
+            </span>
+            <span className="px-2.5 py-1 text-[10px] font-black bg-primary text-slate-950 rounded-lg font-mono animate-pulse uppercase tracking-wider">
+              ⚡ CURRENT
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Arena Grid Details */}
       <div className="grid grid-cols-1 lg:grid-cols-[68%_minmax(0,1fr)] gap-8 items-start">
         
         {/* Left Column: Learn & See Example */}
-        <div className="space-y-6">
+        <div className="space-y-6 animate-in fade-in duration-500">
           {/* Learn Section */}
-          <div className="bg-slate-950/60 border border-slate-900 rounded-3xl p-5 space-y-3">
-            <h3 className="text-xs font-extrabold uppercase tracking-wider text-cyan-400 border-b border-slate-900 pb-2 flex items-center gap-1.5">
+          <div className="bg-slate-955/20 border border-slate-850 rounded-3xl p-5 space-y-3">
+            <h3 className="text-xs font-black uppercase tracking-widest text-primary border-b border-slate-850/60 pb-2 flex items-center gap-1.5 font-mono">
               <span>📖 LEARN</span>
             </h3>
-            <div className="text-slate-355 text-xs leading-relaxed font-sans font-medium">
+            <div className="text-slate-350 text-xs leading-relaxed font-sans font-medium">
               <MarkdownRenderer
                 content={lessonContent}
                 isNightMode={true}
@@ -169,30 +189,44 @@ export const ChallengeArena: React.FC<ChallengeArenaProps> = ({
           </div>
 
           {/* Example Section */}
-          <div className="bg-slate-950/60 border border-slate-900 rounded-3xl p-5 space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-900 pb-2">
-              <h3 className="text-xs font-extrabold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+          <div className="bg-slate-955/20 border border-slate-850 rounded-3xl p-5 space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-850/60 pb-2">
+              <h3 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-1.5 font-mono">
                 <span>🎯 SEE EXAMPLE</span>
               </h3>
               <button
                 onClick={copyExampleCode}
-                className="text-[9px] text-slate-500 hover:text-white flex items-center gap-1 border border-slate-900 px-2 py-0.5 rounded cursor-pointer active:scale-95 transition-all"
+                className="text-[9px] text-slate-500 hover:text-white flex items-center gap-1 border border-slate-850 px-2 py-0.5 rounded cursor-pointer active:scale-95 transition-all font-mono"
                 title="Copy code to clipboard"
               >
                 <Copy className="w-3 h-3" />
                 <span>Copy</span>
               </button>
             </div>
-            <pre className="bg-slate-950 border border-slate-900 rounded-xl p-3.5 text-xs text-cyan-400 overflow-x-auto leading-relaxed shadow-inner">
+            <pre className="bg-slate-950 border border-slate-850 rounded-xl p-3.5 text-xs text-primary/90 overflow-x-auto leading-relaxed shadow-inner font-mono">
               <code>{challenge.exampleCode}</code>
             </pre>
+          </div>
+
+          {/* Knowledge Check Progression Card */}
+          <div className="p-6 rounded-3xl border border-dashed border-slate-800 bg-slate-950/30 flex flex-col items-center text-center gap-3">
+            <span className="text-[10px] uppercase font-black tracking-widest text-primary font-mono bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-md">
+              🎯 KNOWLEDGE CHECK
+            </span>
+            <p className="text-xs text-slate-400 font-medium max-w-sm font-sans">
+              You have completed the reading portion. Time to apply your knowledge in the practice console!
+            </p>
+            <div className="flex items-center gap-2 font-mono">
+              <span className="text-slate-505 font-black text-[10px] uppercase tracking-wider">🧪 TRY IT OUT</span>
+              <span className="animate-bounce text-slate-400">↓</span>
+            </div>
           </div>
         </div>
 
         {/* Right Column: Try, Check & Feedback */}
         <div className="space-y-6 lg:sticky lg:top-36">
-          <div className="bg-slate-950/60 border border-slate-900 rounded-3xl p-5 space-y-4">
-            <h3 className="text-xs font-extrabold uppercase tracking-wider text-amber-400 border-b border-slate-900 pb-2 flex items-center gap-1.5">
+          <div className="bg-slate-955/20 border border-slate-850 rounded-3xl p-5 space-y-4">
+            <h3 className="text-xs font-black uppercase tracking-widest text-secondary border-b border-slate-850/60 pb-2 flex items-center gap-1.5 font-mono">
               <span>💻 TRY IT OUT</span>
             </h3>
             <div className="text-xs text-slate-300 font-sans font-medium mb-2 leading-relaxed">
@@ -204,7 +238,7 @@ export const ChallengeArena: React.FC<ChallengeArenaProps> = ({
               
               {/* Case 1: Multiple Choice */}
               {challenge.type === 'multiple-choice' && challenge.options && (
-                <div className="space-y-2.5">
+                <div className="space-y-2.5 font-sans">
                   {challenge.options.map((opt, idx) => {
                     const isSelected = selectedOption === opt;
                     return (
@@ -212,16 +246,16 @@ export const ChallengeArena: React.FC<ChallengeArenaProps> = ({
                         key={idx}
                         onClick={() => handleOptionClick(opt)}
                         disabled={isCompleted || showFeedback === 'correct'}
-                        className={`w-full p-3.5 text-left rounded-xl border text-xs font-sans transition-all active:scale-99 cursor-pointer flex items-center gap-3 ${
+                        className={`w-full p-3.5 text-left rounded-xl border text-xs transition-all active:scale-99 cursor-pointer flex items-center gap-3 ${
                           isSelected
-                            ? 'bg-cyan-950/20 border-cyan-400 text-white font-bold shadow-[0_0_12px_rgba(6,182,212,0.15)]'
-                            : 'bg-slate-900/40 border-slate-900 text-slate-400 hover:border-slate-800 hover:text-slate-200'
+                            ? 'bg-primary/10 border-primary text-white font-bold shadow-[0_0_12px_var(--kq-glow)]'
+                            : 'bg-slate-900/40 border-slate-850 text-slate-400 hover:border-slate-700 hover:text-slate-200'
                         }`}
                       >
                         <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
-                          isSelected ? 'border-cyan-400 bg-cyan-500/20' : 'border-slate-700'
+                          isSelected ? 'border-primary bg-primary/20' : 'border-slate-700'
                         }`}>
-                          {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />}
+                          {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
                         </div>
                         <span>{opt}</span>
                       </button>
@@ -242,7 +276,7 @@ export const ChallengeArena: React.FC<ChallengeArenaProps> = ({
                     onChange={(e) => setStudentInput(e.target.value)}
                     disabled={isCompleted || showFeedback === 'correct'}
                     rows={4}
-                    className="w-full bg-transparent p-4 outline-hidden text-cyan-300 text-xs font-mono border-0 focus:ring-0 resize-none leading-relaxed placeholder:text-slate-800"
+                    className="w-full bg-transparent p-4 outline-hidden text-primary text-xs font-mono border-0 focus:ring-0 resize-none leading-relaxed placeholder:text-slate-800"
                     placeholder={challenge.placeholder}
                   />
                 </div>
@@ -255,7 +289,7 @@ export const ChallengeArena: React.FC<ChallengeArenaProps> = ({
                     <span>cli_terminal_session.sh</span>
                   </div>
                   <div className="p-3.5 flex items-center gap-2">
-                    <span className="text-cyan-400 font-bold text-xs shrink-0 select-none">
+                    <span className="text-primary font-bold text-xs shrink-0 select-none">
                       $
                     </span>
                     <input
@@ -264,7 +298,7 @@ export const ChallengeArena: React.FC<ChallengeArenaProps> = ({
                       onChange={(e) => setStudentInput(e.target.value)}
                       disabled={isCompleted || showFeedback === 'correct'}
                       placeholder="Type command here..."
-                      className="flex-1 bg-transparent border-0 outline-hidden focus:ring-0 text-cyan-300 text-xs font-mono placeholder:text-slate-850 p-0"
+                      className="flex-1 bg-transparent border-0 outline-hidden focus:ring-0 text-primary text-xs font-mono placeholder:text-slate-855 p-0"
                     />
                   </div>
                 </div>
@@ -289,12 +323,12 @@ export const ChallengeArena: React.FC<ChallengeArenaProps> = ({
                           disabled={isCompleted || showFeedback === 'correct'}
                           className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all active:scale-95 cursor-pointer select-none flex items-center gap-2 ${
                             isSelected
-                              ? 'bg-cyan-950/30 border-cyan-400 text-cyan-400'
+                              ? 'bg-primary/10 border-primary text-primary'
                               : 'bg-slate-900/60 border-slate-900 text-slate-450 hover:border-slate-800'
                           }`}
                         >
                           {isSelected && (
-                            <span className="bg-cyan-500 text-slate-950 px-1 py-0.25 text-[9px] rounded font-black">
+                            <span className="bg-primary text-slate-950 px-1 py-0.25 text-[9px] rounded font-black">
                               {displayNum}
                             </span>
                           )}
@@ -311,7 +345,7 @@ export const ChallengeArena: React.FC<ChallengeArenaProps> = ({
                         orderedSelection.map((val, idx) => (
                           <div key={idx} className="flex items-center gap-1.5 text-xs text-white">
                             {idx > 0 && <span className="text-slate-600">➔</span>}
-                            <span className="bg-slate-900 border border-slate-800 px-2 py-0.5 rounded font-black text-cyan-400">
+                            <span className="bg-slate-900 border border-slate-800 px-2 py-0.5 rounded font-black text-primary">
                               {val}
                             </span>
                           </div>
@@ -341,7 +375,7 @@ export const ChallengeArena: React.FC<ChallengeArenaProps> = ({
               <div className="pt-2 flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={handleCheckAnswer}
-                  className="flex-1 py-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl cursor-pointer transition-all active:scale-95 shadow-[0_0_15px_rgba(6,182,212,0.35)]"
+                  className="flex-1 py-3 bg-primary hover:brightness-110 text-slate-955 font-black text-xs uppercase tracking-wider rounded-xl cursor-pointer transition-all active:scale-95 shadow-[0_0_15px_var(--kq-glow)]"
                 >
                   [ CHECK CHALLENGE ]
                 </button>
@@ -469,7 +503,7 @@ export const ChallengeArena: React.FC<ChallengeArenaProps> = ({
                   {hasNextLesson && (
                     <button
                       onClick={onNextLesson}
-                      className="px-6 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1.5 shadow-[0_0_15px_rgba(6,182,212,0.35)] active:scale-95 transition-all cursor-pointer font-bold"
+                      className="px-6 py-2.5 bg-primary hover:brightness-110 text-slate-955 font-black rounded-xl text-xs flex items-center gap-1.5 shadow-[0_0_15px_var(--kq-glow)] active:scale-95 transition-all cursor-pointer font-bold"
                     >
                       <span>Next Challenge ➔</span>
                     </button>

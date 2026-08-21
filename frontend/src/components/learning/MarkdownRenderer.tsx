@@ -1,6 +1,6 @@
 import React from 'react';
 import { CodeBlock } from './CodeBlock';
-import { Sparkles, CheckCircle2, FileText, Terminal } from 'lucide-react';
+import { Sparkles, CheckCircle2, Terminal, AlertTriangle, Lightbulb } from 'lucide-react';
 
 import { LmsCourseRenderer } from './LmsCourseRenderer';
 
@@ -697,10 +697,11 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
         elements.push(
           <h2
             key={index}
-            className={`text-2xl sm:text-3xl font-heading font-extrabold mt-8 mb-4 border-b pb-3 flex items-center gap-2.5 ${isNightMode ? 'text-white border-slate-800' : 'text-slate-900 border-sky-100'
+            className={`text-2xl sm:text-3xl font-heading font-extrabold mt-8 mb-4 border-b pb-3 flex items-center gap-2.5 text-primary ${isNightMode ? 'border-slate-800' : 'border-sky-100'
               }`}
+            style={{ textShadow: '0 0 8px var(--kq-glow)' }}
           >
-            <Sparkles className="w-6 h-6 text-cyan-455 shrink-0" />
+            <Sparkles className="w-6 h-6 text-primary shrink-0" />
             <span>{cleanHeading}</span>
           </h2>
         );
@@ -733,10 +734,10 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
             </div>
             {altText && (
               <figcaption
-                className={`text-center text-xs font-mono font-semibold pt-3 pb-1 flex items-center justify-center gap-1.5 ${isNightMode ? 'text-cyan-300' : 'text-sky-700'
+                className={`text-center text-xs font-mono font-semibold pt-3 pb-1 flex items-center justify-center gap-1.5 ${isNightMode ? 'text-primary' : 'text-primary'
                   }`}
               >
-                <Sparkles className={`w-3.5 h-3.5 ${isNightMode ? 'text-cyan-400' : 'text-sky-500'}`} />
+                <Sparkles className="w-3.5 h-3.5 text-primary" />
                 <span>{altText}</span>
               </figcaption>
             )}
@@ -752,12 +753,12 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
           <div key={`flowchart-${index}`} className="flex flex-col items-center gap-2 my-6">
             {steps.map((step, sidx) => (
               <React.Fragment key={sidx}>
-                <div className={`px-5 py-3 rounded-2xl border text-sm font-semibold font-mono tracking-wide ${isNightMode ? 'bg-slate-900 border-slate-800 text-cyan-300' : 'bg-sky-50 border-sky-100 text-sky-850'
+                <div className={`px-5 py-3 rounded-2xl border text-sm font-semibold font-mono tracking-wide ${isNightMode ? 'bg-slate-900 border-slate-800 text-primary' : 'bg-sky-50 border-sky-100 text-primary'
                   } shadow-sm max-w-md text-center`}>
                   {step}
                 </div>
                 {sidx < steps.length - 1 && (
-                  <div className={`text-xl ${isNightMode ? 'text-cyan-400' : 'text-sky-500'} font-bold`}>↓</div>
+                  <div className="text-xl text-primary font-bold">↓</div>
                 )}
               </React.Fragment>
             ))}
@@ -787,10 +788,11 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
         elements.push(
           <h2
             key={index}
-            className={`text-2xl sm:text-3xl font-heading font-extrabold mt-8 mb-4 border-b pb-3 flex items-center gap-2.5 ${isNightMode ? 'text-white border-slate-800' : 'text-slate-900 border-sky-100'
+            className={`text-2xl sm:text-3xl font-heading font-extrabold mt-8 mb-4 border-b pb-3 flex items-center gap-2.5 text-primary ${isNightMode ? 'border-slate-800' : 'border-sky-100'
               }`}
+            style={{ textShadow: '0 0 8px var(--kq-glow)' }}
           >
-            <Sparkles className="w-6 h-6 text-cyan-450 shrink-0" />
+            <Sparkles className="w-6 h-6 text-primary shrink-0" />
             <span>{cleanHeading}</span>
           </h2>
         );
@@ -803,10 +805,11 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
         elements.push(
           <h2
             key={index}
-            className={`text-2xl sm:text-3xl font-heading font-extrabold mt-8 mb-4 border-b pb-3 flex items-center gap-2.5 ${isNightMode ? 'text-white border-slate-800' : 'text-slate-900 border-sky-100'
+            className={`text-2xl sm:text-3xl font-heading font-extrabold mt-8 mb-4 border-b pb-3 flex items-center gap-2.5 text-primary ${isNightMode ? 'border-slate-800' : 'border-sky-100'
               }`}
+            style={{ textShadow: '0 0 8px var(--kq-glow)' }}
           >
-            <Sparkles className="w-6 h-6 text-cyan-450 shrink-0" />
+            <Sparkles className="w-6 h-6 text-primary shrink-0" />
             <span>{trimmed}</span>
           </h2>
         );
@@ -823,10 +826,10 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
           elements.push(
             <h3
               key={index}
-              className={`text-lg sm:text-xl font-heading font-bold mt-6 mb-3 flex items-center gap-2 ${isNightMode ? 'text-cyan-300' : 'text-sky-850'
-                }`}
+              className="text-lg sm:text-xl font-heading font-bold mt-6 mb-3 flex items-center gap-2 text-primary"
+              style={{ textShadow: '0 0 6px var(--kq-glow)' }}
             >
-              <Terminal className="w-5 h-5 text-cyan-400 shrink-0" />
+              <Terminal className="w-5 h-5 text-primary shrink-0" />
               <span>1.26 Important Terms</span>
             </h3>
           );
@@ -851,7 +854,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
                 className={`ml-6 my-2 text-sm sm:text-base flex items-start gap-2 leading-relaxed ${isNightMode ? 'text-slate-200' : 'text-slate-700'
                   }`}
               >
-                <CheckCircle2 className={`w-4 h-4 shrink-0 mt-1 ${isNightMode ? 'text-cyan-400' : 'text-sky-500'}`} />
+                <CheckCircle2 className="w-4 h-4 shrink-0 mt-1 text-primary" />
                 <span>
                   <strong className="font-semibold text-slate-800 dark:text-slate-250 mr-1.5">{t.term}</strong>
                   <span className="mx-1.5 text-slate-400">—</span>
@@ -866,10 +869,10 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
         elements.push(
           <h3
             key={index}
-            className={`text-lg sm:text-xl font-heading font-bold mt-6 mb-3 flex items-center gap-2 ${isNightMode ? 'text-cyan-300' : 'text-sky-850'
-              }`}
+            className="text-lg sm:text-xl font-heading font-bold mt-6 mb-3 flex items-center gap-2 text-primary"
+            style={{ textShadow: '0 0 6px var(--kq-glow)' }}
           >
-            <Terminal className="w-5 h-5 text-cyan-400 shrink-0" />
+            <Terminal className="w-5 h-5 text-primary shrink-0" />
             <span>{cleanSubheading}</span>
           </h3>
         );
@@ -884,10 +887,10 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
         const qText = qMatch[2];
         elements.push(
           <h4 key={`q-${index}`} className={`text-base sm:text-lg font-heading font-bold px-4 py-2.5 rounded-xl border flex items-start gap-2.5 my-4 ${isNightMode
-            ? 'bg-slate-900/80 border-slate-800 text-cyan-300 shadow-sm shadow-cyan-950/20'
-            : 'bg-sky-50/50 border-sky-100/80 text-sky-900 shadow-sm shadow-sky-100/10'
+            ? 'bg-slate-900/80 border-slate-800 text-primary shadow-sm shadow-[0_0_8px_var(--kq-glow)]'
+            : 'bg-sky-50/50 border-sky-100/80 text-primary shadow-sm shadow-sky-100/10'
             }`}>
-            <span className="shrink-0 text-cyan-500">❓</span>
+            <span className="shrink-0 text-primary">❓</span>
             <span>Q{qNum}. {qText}</span>
           </h4>
         );
@@ -921,7 +924,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
             className={`ml-4 my-2 text-sm sm:text-base flex items-start gap-2 leading-relaxed ${isNightMode ? 'text-slate-200' : 'text-slate-700'
               }`}
           >
-            <CheckCircle2 className={`w-4 h-4 shrink-0 mt-1 ${isNightMode ? 'text-cyan-400' : 'text-sky-500'}`} />
+            <CheckCircle2 className="w-4 h-4 shrink-0 mt-1 text-primary" />
             <span>{renderInlineStyles(cleanText, isNightMode)}</span>
           </li>
         );
@@ -943,16 +946,24 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
       inTable = false;
     }
 
+    const style = { animationDelay: `${Math.min(300, index * 25)}ms` };
+    const pushElement = (el: React.ReactNode) => {
+      elements.push(
+        <div key={index} className="animate-slide-up opacity-0" style={style}>
+          {el}
+        </div>
+      );
+    };
+
     // Markdown Images: ![alt](url)
     const imgMatch = line.trim().match(/^!\[(.*?)\]\((.*?)\)$/);
     if (imgMatch) {
       const altText = imgMatch[1];
       const imgSrc = imgMatch[2];
-      elements.push(
+      pushElement(
         <figure
-          key={index}
           className={`my-6 rounded-3xl overflow-hidden p-3 shadow-xl backdrop-blur-xl border ${isNightMode
-            ? 'bg-slate-900 border-slate-800 shadow-slate-950/50'
+            ? 'bg-slate-900/60 border-slate-800 shadow-slate-950/50'
             : 'bg-white border-sky-100 shadow-sky-500/5'
             }`}
         >
@@ -968,10 +979,10 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
           </div>
           {altText && (
             <figcaption
-              className={`text-center text-xs font-mono font-semibold pt-3 pb-1 flex items-center justify-center gap-1.5 ${isNightMode ? 'text-cyan-300' : 'text-sky-700'
+              className={`text-center text-xs font-mono font-semibold pt-3 pb-1 flex items-center justify-center gap-1.5 ${isNightMode ? 'text-primary' : 'text-primary'
                 }`}
             >
-              <Sparkles className={`w-3.5 h-3.5 ${isNightMode ? 'text-cyan-400' : 'text-sky-500'}`} />
+              <Sparkles className="w-3.5 h-3.5 text-primary" />
               <span>{altText}</span>
             </figcaption>
           )}
@@ -982,29 +993,38 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
 
     // Headers
     if (trimmed.startsWith('### ')) {
-      elements.push(
-        <h3
-          key={index}
-          className={`text-xl sm:text-2xl font-heading font-extrabold mt-8 mb-3 flex items-center gap-2 border-b pb-2 ${isNightMode ? 'text-white border-slate-800' : 'text-slate-900 border-sky-100'
-            }`}
-        >
-          <Sparkles className={`w-5 h-5 ${isNightMode ? 'text-cyan-400' : 'text-sky-500'}`} />
-          {trimmed.replace('### ', '')}
-        </h3>
+      const headingNum = String(elements.length + 1).padStart(2, '0');
+      const headerText = trimmed.replace('### ', '').trim();
+      pushElement(
+        <div className="mt-8 mb-4 space-y-2">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-black font-mono text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
+              {headingNum}
+            </span>
+            <div className="h-px bg-slate-800/80 flex-1 relative">
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_var(--color-primary)]" />
+            </div>
+          </div>
+          <h2 
+            className="text-xl sm:text-2xl font-black text-primary tracking-tight uppercase font-sans"
+            style={{ textShadow: '0 0 8px var(--kq-glow)' }}
+          >
+            {headerText}
+          </h2>
+        </div>
       );
       return;
     }
 
     if (trimmed.startsWith('#### ')) {
-      elements.push(
-        <h4
-          key={index}
-          className={`text-lg font-heading font-bold mt-6 mb-2 flex items-center gap-2 ${isNightMode ? 'text-cyan-300' : 'text-sky-700'
-            }`}
+      const subHeadingText = trimmed.replace('#### ', '').trim();
+      pushElement(
+        <h3 
+          className="text-md sm:text-lg font-heading font-black mt-6 mb-3 flex items-center gap-2 border-l-2 border-primary pl-2.5 text-primary"
+          style={{ textShadow: '0 0 6px var(--kq-glow)' }}
         >
-          <FileText className={`w-4 h-4 ${isNightMode ? 'text-cyan-400' : 'text-sky-500'}`} />
-          {trimmed.replace('#### ', '')}
-        </h4>
+          <span>{subHeadingText}</span>
+        </h3>
       );
       return;
     }
@@ -1013,10 +1033,14 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
     if (line.startsWith('> [!NOTE]') || line.startsWith('> [!TIP]')) {
       const cleanText = line.replace(/^>\s*\[!(NOTE|TIP)\]\s*/, '');
       if (cleanText.trim()) {
-        elements.push(
-          <p key={index} className={`my-3 text-sm leading-relaxed font-medium ${isNightMode ? 'text-cyan-200' : 'text-slate-700'}`}>
-            {cleanText}
-          </p>
+        pushElement(
+          <div className="p-4 rounded-2xl border flex items-start gap-3 my-4 leading-relaxed bg-amber-950/15 border-amber-900/50 text-amber-200">
+            <Lightbulb className="w-5 h-5 shrink-0 mt-0.5 text-amber-500" />
+            <div className="space-y-1">
+              <span className="text-[10px] font-black uppercase tracking-widest font-mono block">💡 TIP / BEST PRACTICE</span>
+              <span className="text-sm font-medium">{renderInlineStyles(cleanText, isNightMode)}</span>
+            </div>
+          </div>
         );
       }
       return;
@@ -1025,10 +1049,14 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
     if (line.startsWith('> [!WARNING]') || line.startsWith('> [!IMPORTANT]')) {
       const cleanText = line.replace(/^>\s*\[!(WARNING|IMPORTANT)\]\s*/, '');
       if (cleanText.trim()) {
-        elements.push(
-          <p key={index} className={`my-3 text-sm leading-relaxed font-medium ${isNightMode ? 'text-amber-200' : 'text-slate-700'}`}>
-            {cleanText}
-          </p>
+        pushElement(
+          <div className="p-4 rounded-2xl border flex items-start gap-3 my-4 leading-relaxed bg-rose-950/15 border-rose-900/50 text-rose-200">
+            <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-rose-500" />
+            <div className="space-y-1">
+              <span className="text-[10px] font-black uppercase tracking-widest font-mono block">⚠️ WARNING / IMPORTANT</span>
+              <span className="text-sm font-medium">{renderInlineStyles(cleanText, isNightMode)}</span>
+            </div>
+          </div>
         );
       }
       return;
@@ -1037,15 +1065,13 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
     // Bullet points
     if (line.startsWith('- ') || line.startsWith('* ')) {
       const text = line.replace(/^[-*]\s*/, '');
-      elements.push(
-        <li
-          key={index}
-          className={`ml-4 my-2 text-sm sm:text-base flex items-start gap-2 leading-relaxed ${isNightMode ? 'text-slate-200' : 'text-slate-700'
-            }`}
-        >
-          <CheckCircle2 className={`w-4 h-4 shrink-0 mt-1 ${isNightMode ? 'text-cyan-400' : 'text-sky-500'}`} />
-          <span>{renderInlineStyles(text, isNightMode)}</span>
-        </li>
+      pushElement(
+        <div className="flex items-start gap-2.5 ml-3 my-2 text-sm sm:text-base leading-relaxed">
+          <CheckCircle2 className="w-4 h-4 shrink-0 mt-1 text-primary" />
+          <span className={isNightMode ? 'text-slate-200' : 'text-slate-700'}>
+            {renderInlineStyles(text, isNightMode)}
+          </span>
+        </div>
       );
       return;
     }
@@ -1057,19 +1083,19 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
     }
 
     // Normal paragraph
-    elements.push(
-      <p
-        key={index}
-        className={`text-sm sm:text-base leading-relaxed my-2 ${isNightMode ? 'text-slate-200' : 'text-slate-700'
-          }`}
-      >
+    pushElement(
+      <p className={`text-sm sm:text-base leading-relaxed my-2 ${isNightMode ? 'text-slate-200' : 'text-slate-700'}`}>
         {renderInlineStyles(line, isNightMode)}
       </p>
     );
   });
 
   if (inTable) {
-    elements.push(renderTable(tableBuffer, lines.length, isNightMode));
+    elements.push(
+      <div key={`table-wrapper-${lines.length}`} className="animate-slide-up opacity-0" style={{ animationDelay: `${Math.min(300, lines.length * 25)}ms` }}>
+        {renderTable(tableBuffer, lines.length, isNightMode)}
+      </div>
+    );
   }
 
   return (
