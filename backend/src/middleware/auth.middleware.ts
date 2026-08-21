@@ -16,8 +16,12 @@ export const verifyFirebaseToken = async (
   next: NextFunction
 ): Promise<void> => {
   const authHeader = req.headers.authorization;
+  const hasAuth = !!authHeader;
+
+  console.log(`[AUTH DIAGNOSTIC] Request: ${req.method} ${req.originalUrl || req.url} | Has Authorization Header: ${hasAuth}`);
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.warn(`[AUTH DIAGNOSTIC] Rejected: No Bearer token provided for ${req.method} ${req.originalUrl || req.url}`);
     res.status(401).json({ error: 'Unauthorized: No Bearer token provided' });
     return;
   }
@@ -37,6 +41,7 @@ export const verifyFirebaseToken = async (
         role,
         name: decodedToken.name || '',
       };
+      console.log(`[AUTH DIAGNOSTIC] Verification Succeeded. Authenticated UID: ${req.user.uid}`);
       next();
     } else {
       // Firebase Admin cert not configured (local dev) — decode JWT manually to extract email
@@ -60,6 +65,7 @@ export const verifyFirebaseToken = async (
       } catch {
         req.user = { uid: 'dev-user-id', email: 'dev@shaivika.ai', role: 'student' };
       }
+      console.log(`[AUTH DIAGNOSTIC] Local Fallback Succeeded. Authenticated UID: ${req.user.uid}`);
       next();
     }
   } catch (err: any) {

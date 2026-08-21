@@ -44,13 +44,74 @@ export class CertificateController {
     return null;
   }
 
+  private async resolveStudentData(studentId: string, fallbackEmail?: string): Promise<any> {
+    if (!studentId || !db) return null;
+    
+    // 1. Direct doc lookup in users
+    logger.info(`[CERTIFICATE PROFILE RESOLUTION] Querying collection 'users' by document ID: ${studentId}`);
+    let doc = await db.collection('users').doc(studentId).get().catch(() => null);
+    if (doc && doc.exists) {
+      logger.info(`[CERTIFICATE PROFILE RESOLUTION] Found profile in 'users' collection by Document ID: ${studentId}`);
+      return doc.data();
+    }
+
+    // 2. Direct doc lookup in students
+    logger.info(`[CERTIFICATE PROFILE RESOLUTION] Querying collection 'students' by document ID: ${studentId}`);
+    doc = await db.collection('students').doc(studentId).get().catch(() => null);
+    if (doc && doc.exists) {
+      logger.info(`[CERTIFICATE PROFILE RESOLUTION] Found profile in 'students' collection by Document ID: ${studentId}`);
+      return doc.data();
+    }
+
+    // 3. Fallback lookup by uid in users
+    logger.info(`[CERTIFICATE PROFILE RESOLUTION] Querying collection 'users' where 'uid' == ${studentId}`);
+    let querySnap = await db.collection('users').where('uid', '==', studentId).get().catch(() => null);
+    if (querySnap && !querySnap.empty) {
+      logger.info(`[CERTIFICATE PROFILE RESOLUTION] Found profile in 'users' collection by 'uid' field: ${studentId}`);
+      return querySnap.docs[0].data();
+    }
+
+    // 4. Fallback lookup by uid in students
+    logger.info(`[CERTIFICATE PROFILE RESOLUTION] Querying collection 'students' where 'uid' == ${studentId}`);
+    querySnap = await db.collection('students').where('uid', '==', studentId).get().catch(() => null);
+    if (querySnap && !querySnap.empty) {
+      logger.info(`[CERTIFICATE PROFILE RESOLUTION] Found profile in 'students' collection by 'uid' field: ${studentId}`);
+      return querySnap.docs[0].data();
+    }
+
+    // 5. Fallback lookup by email in users
+    if (fallbackEmail) {
+      logger.info(`[CERTIFICATE PROFILE RESOLUTION] Querying collection 'users' where 'email' == ${fallbackEmail}`);
+      querySnap = await db.collection('users').where('email', '==', fallbackEmail).get().catch(() => null);
+      if (querySnap && !querySnap.empty) {
+        logger.info(`[CERTIFICATE PROFILE RESOLUTION] Found profile in 'users' collection by 'email' field: ${fallbackEmail}`);
+        return querySnap.docs[0].data();
+      }
+
+      // 6. Fallback lookup by email in students
+      logger.info(`[CERTIFICATE PROFILE RESOLUTION] Querying collection 'students' where 'email' == ${fallbackEmail}`);
+      querySnap = await db.collection('students').where('email', '==', fallbackEmail).get().catch(() => null);
+      if (querySnap && !querySnap.empty) {
+        logger.info(`[CERTIFICATE PROFILE RESOLUTION] Found profile in 'students' collection by 'email' field: ${fallbackEmail}`);
+        return querySnap.docs[0].data();
+      }
+    }
+
+    logger.warn(`[CERTIFICATE PROFILE RESOLUTION] ⚠️ Could not resolve profile in 'users' or 'students' collections for ID: ${studentId}, Email: ${fallbackEmail}`);
+    return null;
+  }
+
   /**
    * POST /api/certificates/complete-and-deliver
    * Triggered when student reaches 100% course completion
    */
   public async handleCompletionAndDeliver(req: AuthenticatedRequest, res: Response): Promise<Response> {
     try {
-      const studentId = req.user?.uid;
+      let studentId = req.user?.uid;
+      // Fallback to req.body.studentId if authenticated UID is missing or is generic default
+      if ((!studentId || studentId === 'dev-user-id') && req.body.studentId) {
+        studentId = req.body.studentId;
+      }
       const {
         courseId,
         courseTitle,
@@ -70,6 +131,8 @@ export class CertificateController {
         });
       }
 
+      const fallbackEmail = req.user?.email || req.body.studentEmail;
+
       // Resolve student profile from Firestore users collection
       let studentName = bodyStudentName || '';
       let studentEmail = bodyStudentEmail || '';
@@ -77,24 +140,12 @@ export class CertificateController {
 
       if (db) {
         try {
-          // 1. Direct document ID lookup
-          let userDoc = await db.collection('users').doc(studentId).get();
-          let userData = userDoc.exists ? userDoc.data() : null;
+          let userData = await this.resolveStudentData(studentId, fallbackEmail);
 
-          // 2. Query fallback lookup by uid field
-          if (!userData) {
-            const querySnap = await db.collection('users').where('uid', '==', studentId).get();
-            if (!querySnap.empty) {
-              userDoc = querySnap.docs[0];
-              userData = userDoc.data();
-              resolvedStudentId = userDoc.id;
-            }
-          }
-
-          // 3. Auto-sync/create profile from verified token details
-          if (!userData && req.user?.email) {
-            const email = req.user.email;
-            const displayName = req.user.name;
+          // Auto-sync/create profile from verified token/body details
+          if (!userData && fallbackEmail) {
+            const email = fallbackEmail;
+            const displayName = req.user?.name || req.body.studentName;
             
             if (displayName) {
               const newProfile = {
@@ -108,21 +159,38 @@ export class CertificateController {
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
               };
-              await db.collection('users').doc(studentId).set(newProfile);
-              logger.info(`[CERTIFICATE CONTROLLER] Automatically created student profile in database for ${studentId} (${email}) using verified token claims.`);
+              await db.collection('users').doc(studentId).set(newProfile).catch(() => null);
+              await db.collection('students').doc(studentId).set(newProfile).catch(() => null);
+              logger.info(`[CERTIFICATE CONTROLLER] Automatically created student profile in database for ${studentId} (${email}) using verified claims.`);
               
-              userDoc = await db.collection('users').doc(studentId).get();
-              userData = userDoc.exists ? userDoc.data() : null;
+              userData = await this.resolveStudentData(studentId, fallbackEmail);
+            } else {
+              logger.error(`[CERTIFICATE CONTROLLER] ❌ Cannot auto-create profile: name claim/body name is missing for UID ${studentId}.`);
             }
           }
 
           if (userData) {
             studentName = userData.fullName || userData.name || studentName || '';
             studentEmail = userData.email || studentEmail || '';
+            resolvedStudentId = userData.uid || userData.id || studentId;
           }
         } catch (dbErr: any) {
           logger.error(`[CERTIFICATE CONTROLLER] Error resolving profile: ${dbErr?.message}`);
         }
+      }
+
+      // Fallback to body/token details if database lookup/resolution fails (e.g. due to Firestore quota exhaustion)
+      if (!studentName && req.body.studentName) {
+        studentName = req.body.studentName;
+        logger.info(`[CERTIFICATE CONTROLLER] Profile name resolved from request body fallback: ${studentName}`);
+      }
+      if (!studentEmail && req.body.studentEmail) {
+        studentEmail = req.body.studentEmail;
+        logger.info(`[CERTIFICATE CONTROLLER] Profile email resolved from request body fallback: ${studentEmail}`);
+      }
+      if (!studentEmail && req.user?.email) {
+        studentEmail = req.user.email;
+        logger.info(`[CERTIFICATE CONTROLLER] Profile email resolved from token fallback: ${studentEmail}`);
       }
 
       // Make sure we have a fallback studentName & studentEmail if not resolved above
@@ -133,6 +201,7 @@ export class CertificateController {
         studentEmail = req.user?.email || 'student@shaivika.com';
       }
 
+      const requestId = `certificate-request-${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
       const payload = {
         studentId: resolvedStudentId,
         studentName,
@@ -144,6 +213,7 @@ export class CertificateController {
         courseDuration,
         modulesCount: Number(modulesCount || 8),
         forceRegenerate: forceRegenerate === true || forceRegenerate === 'true',
+        requestId,
       };
 
       const result = await certificateDeliveryService.handleCourseCompletionAndDeliver(payload);
@@ -151,10 +221,19 @@ export class CertificateController {
       if (result.success) {
         return res.status(200).json(result);
       } else {
+        if (result.error && result.error.toLowerCase().includes('quota')) {
+          return res.status(429).json(result);
+        }
         return res.status(500).json(result);
       }
     } catch (err: any) {
       logger.error(`[CERTIFICATE CONTROLLER] ❌ Exception: ${err?.message || err}`);
+      if (err?.message?.toLowerCase().includes('quota')) {
+        return res.status(429).json({
+          success: false,
+          error: err.message,
+        });
+      }
       return res.status(500).json({
         success: false,
         error: err?.message || String(err),
@@ -168,20 +247,26 @@ export class CertificateController {
    */
   public async testDelivery(req: Request, res: Response): Promise<Response> {
     try {
-      const targetEmail = (req.query.email as string) || 'shaivikagroups@gmail.com';
-      const studentName = (req.query.name as string) || 'Banu Prakash';
-      const courseTitle = (req.query.course as string) || 'Mastering Database Management Systems (DBMS) & SQL Architecture';
+      const targetEmail = (req.query.email as string) || 'devisribalam5@gmail.com';
+      const studentName = (req.query.name as string) || 'BALAM DEVISRI';
+      const courseTitle = (req.query.course as string) || 'C Programming';
+      const studentId = (req.query.studentId as string) || 'aTtKfoyKgEcYgdNs5pd4OkClGD12';
+      const courseId = (req.query.courseId as string) || 'c-programming';
+      const forceRegenerate = req.query.forceRegenerate === 'true';
 
+      const requestId = `certificate-request-${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
       const payload = {
-        studentId: 'STU-992104',
+        studentId,
         studentName,
         studentEmail: targetEmail,
-        courseId: 'dbms-101',
+        courseId,
         courseTitle,
         completionPercentage: 100,
         instructorName: 'Shaivika Groups Board',
         courseDuration: '24 Hours',
         modulesCount: 8,
+        forceRegenerate,
+        requestId,
       };
 
       const result = await certificateDeliveryService.handleCourseCompletionAndDeliver(payload);
@@ -223,12 +308,9 @@ export class CertificateController {
 
       if (db) {
         try {
-          const studentDoc = await db.collection('users').doc(String(studentId)).get();
-          if (studentDoc.exists) {
-            const studentData = studentDoc.data();
-            if (studentData) {
-              dynamicStudentName = studentData.fullName || studentData.name || studentData.displayName || String(studentName);
-            }
+          const studentData = await this.resolveStudentData(String(studentId));
+          if (studentData) {
+            dynamicStudentName = studentData.fullName || studentData.name || studentData.displayName || String(studentName);
           }
 
           if (courseId) {
@@ -316,6 +398,7 @@ export class CertificateController {
           modulesCount: actualModulesCount,
           achievement: dynamicAchievement,
           qrCodeBuffer,
+          courseId: courseId ? String(courseId) : undefined,
         });
       } catch (slideErr: any) {
         logger.warn(`[DOWNLOAD CERTIFICATE] Google Slides template generation failed: ${slideErr?.message || slideErr}. Falling back to local PDFCertificateGenerator.`);
@@ -338,7 +421,11 @@ export class CertificateController {
       res.send(pdfBuffer);
     } catch (err: any) {
       logger.error(`[DOWNLOAD CERTIFICATE] ❌ Exception: ${err?.message || err}`);
-      res.status(500).send('Failed to generate download certificate.');
+      if (err?.message?.toLowerCase().includes('quota')) {
+        res.status(429).send('Google Slides API quota temporarily exceeded. Please try again later.');
+      } else {
+        res.status(500).send('Failed to generate download certificate.');
+      }
     }
   }
 
@@ -371,12 +458,9 @@ export class CertificateController {
 
       if (db) {
         try {
-          const studentDoc = await db.collection('users').doc(String(studentId)).get();
-          if (studentDoc.exists) {
-            const studentData = studentDoc.data();
-            if (studentData) {
-              dynamicStudentName = studentData.fullName || studentData.name || studentData.displayName || String(studentName);
-            }
+          const studentData = await this.resolveStudentData(String(studentId));
+          if (studentData) {
+            dynamicStudentName = studentData.fullName || studentData.name || studentData.displayName || String(studentName);
           }
 
           if (courseId) {
@@ -464,6 +548,7 @@ export class CertificateController {
           modulesCount: actualModulesCount,
           achievement: dynamicAchievement,
           qrCodeBuffer,
+          courseId: courseId ? String(courseId) : undefined,
         });
       } catch (slideErr: any) {
         logger.warn(`[PREVIEW CERTIFICATE] Google Slides template generation failed: ${slideErr?.message || slideErr}. Falling back to local PDFCertificateGenerator.`);
@@ -486,7 +571,11 @@ export class CertificateController {
       res.send(pdfBuffer);
     } catch (err: any) {
       logger.error(`[PREVIEW CERTIFICATE] ❌ Exception: ${err?.message || err}`);
-      res.status(500).send('Failed to generate preview certificate.');
+      if (err?.message?.toLowerCase().includes('quota')) {
+        res.status(429).send('Google Slides API quota temporarily exceeded. Please try again later.');
+      } else {
+        res.status(500).send('Failed to generate preview certificate.');
+      }
     }
   }
 

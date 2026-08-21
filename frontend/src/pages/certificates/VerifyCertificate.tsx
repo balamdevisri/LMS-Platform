@@ -49,6 +49,9 @@ export const VerifyCertificate: React.FC = () => {
             console.warn('Failed to fetch initial ID token:', tErr);
           }
         }
+        if (!token) {
+          token = localStorage.getItem('token') || localStorage.getItem('shaivika_auth_token');
+        }
 
         const getHeaders = (t: string | null) => {
           const headers: Record<string, string> = { 'Content-Type': 'application/json' };
