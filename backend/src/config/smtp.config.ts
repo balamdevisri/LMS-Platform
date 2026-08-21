@@ -22,7 +22,7 @@ export const getSmtpCredentials = () => {
   const port = parseInt(rawPort, 10);
   const isSecure = (process.env.SMTP_SECURE || env.SMTP_SECURE) === 'true' || port === 465;
   const user = (process.env.SMTP_USER || env.SMTP_USER || process.env.SMTP_EMAIL || env.SMTP_EMAIL || 'kaizenqlms@gmail.com').trim();
-  const rawPass = process.env.SMTP_PASSWORD || env.SMTP_PASSWORD || process.env.SMTP_PASS || env.SMTP_PASS || 'idmo ibzr evgx dtwe';
+  const rawPass = process.env.SMTP_PASSWORD || env.SMTP_PASSWORD || process.env.SMTP_PASS || env.SMTP_PASS || '';
   const pass = rawPass.trim().replace(/\s+/g, '');
   const fromEmail = process.env.SMTP_FROM_EMAIL || env.SMTP_FROM_EMAIL || 'no-reply@kaizenq.in';
   const fromName = process.env.SMTP_FROM_NAME || env.SMTP_FROM_NAME || 'KaizenQ';
