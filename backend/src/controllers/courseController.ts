@@ -180,21 +180,21 @@ export class CourseController {
         }).catch((attachErr: any) => {
           logger.warn(`[CERTIFICATE ENGINE] Standard attach send failed, fallback default email sent: ${attachErr?.message}`);
         });
-
-        // 7. Store Certificate in Firestore
-        const certRecord = {
-          studentId,
-          courseId,
-          studentName,
-          courseTitle,
-          certificateNumber: certNumber,
-          issueDate,
-          verificationId,
-          createdAt: new Date().toISOString(),
-          status: 'issued',
-        };
-        await db.collection('certificates').doc(verificationId).set(certRecord);
       }
+
+      // 7. Store Certificate in Firestore (ALWAYS SAVE EVEN IF EMAIL FAILS)
+      const certRecord = {
+        studentId,
+        courseId,
+        studentName,
+        courseTitle,
+        certificateNumber: certNumber,
+        issueDate,
+        verificationId,
+        createdAt: new Date().toISOString(),
+        status: 'issued',
+      };
+      await db.collection('certificates').doc(verificationId).set(certRecord);
 
       // 8. Delete temporary file
       if (fs.existsSync(tempPath)) {
