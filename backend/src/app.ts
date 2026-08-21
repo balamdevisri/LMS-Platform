@@ -206,8 +206,9 @@ app.get('/api/test-email', async (req, res) => {
   }
 });
 
-// API Routes
+// API Routes (mounted on both /api and root for flexible serverless & reverse-proxy routing)
 app.use('/api', routes);
+app.use('/', routes);
 
 // 404 & Centralized Error Middleware
 app.use(notFoundHandler);

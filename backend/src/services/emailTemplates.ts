@@ -18,7 +18,7 @@ export function getEmailTemplate(data: EmailData): { subject: string; html: stri
   const brandFooter = `
     <div style="background-color: #f8fafc; padding: 24px; text-align: center; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b;">
       <p style="margin: 0 0 8px 0; font-weight: 600;">KaizenQ AI LMS • Enterprise Academic Platform</p>
-      <p style="margin: 0;">This is an automated system notification. Need assistance? Contact <a href="mailto:support@kaizenq.ai" style="color: #6366f1; text-decoration: none;">support@kaizenq.ai</a></p>
+      <p style="margin: 0;">This is an automated system notification. Need assistance? Contact <a href="mailto:kaizenqlms@gmail.com" style="color: #6366f1; text-decoration: none;">kaizenqlms@gmail.com</a></p>
     </div>
   `;
 
@@ -57,7 +57,7 @@ export function getEmailTemplate(data: EmailData): { subject: string; html: stri
           <p style="margin: 8px 0 0 0; color: #15803d; font-size: 13px;">You now have full access to interactive courses, AI tutoring lab, and terminal sandboxes.</p>
         </div>
         <div style="text-align: center; margin: 28px 0;">
-          <a href="https://kaizenq.ai/login" style="background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%); color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 14px; display: inline-block;">Log In to Dashboard</a>
+          <a href="https://www.kaizenq.in/auth/login" style="background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%); color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 14px; display: inline-block;">Log In to Dashboard</a>
         </div>
       `;
       break;
@@ -88,7 +88,7 @@ export function getEmailTemplate(data: EmailData): { subject: string; html: stri
             <p style="margin: 4px 0 0 0; color: #c2410c; font-size: 13px;">${data.reason}</p>
           </div>
         ` : ''}
-        <p style="color: #475569; font-size: 13px;">Please contact support@kaizenq.ai for account resolution.</p>
+        <p style="color: #475569; font-size: 13px;">Please contact kaizenqlms@gmail.com for account resolution.</p>
       `;
       break;
   }
