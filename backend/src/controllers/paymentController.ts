@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import Stripe from 'stripe';
 import { env } from '../config/env';
 import { Payment, Enrollment } from '../models/mongo/payment.model';
+import { emailService } from '../services/email/EmailService';
 import mongoose from 'mongoose';
 
 const stripeKey = process.env.STRIPE_SECRET_KEY || env.STRIPE_SECRET_KEY || '';
@@ -223,6 +224,23 @@ export class PaymentController {
           },
           { upsert: true, new: true }
         );
+
+        // Asynchronous non-blocking confirmation email with idempotency
+        if (studentEmail) {
+          emailService
+            .sendCourseEnrollmentEmail({
+              studentName: studentName || 'Student',
+              studentEmail,
+              courseTitle: courseId.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+              courseId,
+              courseUrl: `https://www.kaizenq.in/courses/${courseId}`,
+              certificateAvailable: true,
+              enrollmentId: `${orderId}_${courseId}`,
+            })
+            .catch((emailErr) => {
+              console.warn('[PaymentController] Free enrollment email notice:', emailErr?.message || emailErr);
+            });
+        }
       }
 
       res.status(200).json({ success: true, message: 'Successfully enrolled for free.' });

@@ -2,12 +2,11 @@ import { Enrollment, IEnrollment, EnrollmentStatus, AccessType } from '../../mod
 import { db, isFirebaseAdminInitialized } from '../../firebase';
 import { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import { CourseService } from '../../services/course/CourseService';
-import { EmailService } from '../../services/email/EmailService';
+import { emailService } from '../../services/email/EmailService';
 import { EmailEventType } from '../../types/emailTypes';
 import logger from '../../config/logger';
 
 const courseService = new CourseService();
-const emailService = new EmailService();
 
 export class EnrollmentService {
   /**
@@ -204,21 +203,21 @@ export class EnrollmentService {
       }
     }
 
-    // 5. Send Email Confirmation
+    // 5. Send Course Enrollment Confirmation Email (Asynchronous & Non-Blocking)
     if (studentEmail) {
+      const enrollmentIdentifier = String(createdDoc.id || createdDoc._id || `${studentId}_${courseId}`);
       emailService
-        .sendEventEmail(
-          EmailEventType.COURSE_ENROLLMENT,
+        .sendCourseEnrollmentEmail({
+          studentName: studentName || 'Student',
           studentEmail,
-          {
-            studentName: studentName || 'Student',
-            courseTitle: courseTitle || 'Full Stack Track',
-            courseUrl: `/courses/${courseId}`,
-            enrolledAt: new Date().toLocaleDateString(),
-          } as any
-        )
+          courseTitle: courseTitle || 'Full Stack Track',
+          courseId,
+          courseUrl: `https://www.kaizenq.in/courses/${courseId}`,
+          certificateAvailable: true,
+          enrollmentId: enrollmentIdentifier,
+        })
         .catch((emailErr: any) => {
-          logger.warn('[EnrollmentService] Email delivery warning:', emailErr);
+          logger.warn('[EnrollmentService] Email delivery notice (non-blocking):', emailErr?.message || emailErr);
         });
     }
 

@@ -1,6 +1,6 @@
 /**
  * KAIZENQ LMS AI Platform - Centralized Direct SMTP Email Service
- * Powered by Nodemailer Direct SMTP
+ * Powered by Nodemailer Direct SMTP & Shared Singleton Transporter
  */
 
 import { env } from '../../config/env';
@@ -13,6 +13,12 @@ import { MockProvider } from './providers/MockProvider';
 import { EmailAuditLogger } from './audit/EmailAuditLogger';
 import { EmailRetryManager } from './queue/EmailRetryManager';
 import { EmailTemplateEngine } from './templates/EmailTemplateEngine';
+import {
+  getSmtpStatus,
+  verifySmtpWithBackoff,
+  getSmtpCredentials,
+  SmtpHealthState,
+} from '../../config/smtp.config';
 
 export interface SendEmailOptions {
   to: string;
@@ -26,20 +32,31 @@ export interface SendEmailOptions {
   }>;
 }
 
+export interface CourseEnrollmentEmailOptions {
+  studentName: string;
+  studentEmail: string;
+  courseTitle: string;
+  courseId?: string;
+  courseDuration?: string;
+  courseUrl?: string;
+  certificateAvailable?: boolean;
+  enrollmentId?: string;
+  instructorName?: string;
+}
+
 export class EmailService {
   private emailProvider: IEmailProvider;
   private auditLogger: EmailAuditLogger;
   private templateEngine: EmailTemplateEngine;
   private retryManager: EmailRetryManager;
 
+  // In-memory idempotency cache for deduplication
+  private sentIdempotencyKeys: Set<string> = new Set();
+
   public provider: 'nodemailer' | 'resend' | 'mock';
-  public fromAddress: string;
-  public isTransporterVerified: boolean = false;
-  public lastVerificationError: string | null = null;
 
   constructor() {
     this.provider = (env.EMAIL_PROVIDER as 'nodemailer' | 'resend' | 'mock') || 'nodemailer';
-    this.fromAddress = process.env.SMTP_FROM || env.SMTP_FROM || 'KaizenQ <no-reply@kaizenq.in>';
 
     // Instantiate appropriate provider (Direct Nodemailer SMTP is default)
     if (this.provider === 'resend' && env.RESEND_API_KEY) {
@@ -53,38 +70,25 @@ export class EmailService {
     this.auditLogger = new EmailAuditLogger();
     this.templateEngine = new EmailTemplateEngine();
     this.retryManager = new EmailRetryManager(this.emailProvider, this.templateEngine);
+  }
 
-    // Asynchronously verify transporter on initialization
-    this.verifyTransporterAsync().catch((err) => {
-      this.lastVerificationError = err?.message || String(err);
-      this.isTransporterVerified = false;
-    });
+  public get fromAddress(): string {
+    return getSmtpCredentials().from;
   }
 
   /**
-   * Verifies SMTP connection directly with the mail server
+   * Controlled SMTP verification with exponential backoff
+   * Does NOT get called on every email send or request.
    */
-  public async verifyTransporterAsync(): Promise<boolean> {
-    try {
-      const success = await this.emailProvider.verify();
-      if (success) {
-        this.isTransporterVerified = true;
-        this.lastVerificationError = null;
-        logger.info('[EMAIL] SMTP connection successful');
-        return true;
-      } else {
-        throw new Error(`Verification failed for provider ${this.provider}`);
-      }
-    } catch (err: any) {
-      this.lastVerificationError = err?.message || String(err);
-      this.isTransporterVerified = false;
-      logger.error(`[EMAIL] SMTP connection failed: ${this.lastVerificationError}`);
-      return false;
+  public async verifyTransporterAsync(isManual: boolean = false): Promise<boolean> {
+    if (this.provider === 'nodemailer') {
+      return verifySmtpWithBackoff(isManual);
     }
+    return this.emailProvider.verify();
   }
 
   /**
-   * Generic direct email sender (for raw HTML, attachments, or custom messages)
+   * Primary standard email dispatch API: sendEmail({ to, subject, html, text?, attachments? })
    */
   public async sendEmail(options: SendEmailOptions): Promise<{
     success: boolean;
@@ -182,7 +186,59 @@ export class EmailService {
   }
 
   /**
-   * Flow 1: Student Signup Welcome Email
+   * Flow 1: Course Enrollment Confirmation Email (with Idempotency Protection)
+   */
+  public async sendCourseEnrollmentEmail(
+    options: CourseEnrollmentEmailOptions
+  ): Promise<{ success: boolean; messageId?: string; duplicated?: boolean; error?: string }> {
+    const {
+      studentName,
+      studentEmail,
+      courseTitle,
+      courseId,
+      courseDuration,
+      courseUrl,
+      certificateAvailable = true,
+      enrollmentId,
+      instructorName,
+    } = options;
+
+    if (!studentEmail || !courseTitle) {
+      return { success: false, error: 'studentEmail and courseTitle are required' };
+    }
+
+    const normalizedEmail = studentEmail.toLowerCase().trim();
+    const idempotencyKey = `course_enrollment_confirmation:${enrollmentId || `${normalizedEmail}_${courseId || courseTitle}`}`;
+
+    // Prevent duplicate enrollment emails (e.g. from frontend retries, re-renders, restarts)
+    if (this.sentIdempotencyKeys.has(idempotencyKey)) {
+      logger.info(`[EMAIL] ⚠️ Duplicate enrollment email skipped for key: ${idempotencyKey}`);
+      return { success: true, duplicated: true };
+    }
+
+    const payload = {
+      studentName: studentName || normalizedEmail.split('@')[0],
+      email: normalizedEmail,
+      courseTitle,
+      courseId,
+      courseDuration: courseDuration || 'Self-Paced (20-40 Hours)',
+      courseUrl: courseUrl || (courseId ? `https://www.kaizenq.in/courses/${courseId}` : 'https://www.kaizenq.in/dashboard'),
+      certificateAvailable,
+      enrollmentId,
+      instructorName,
+    };
+
+    const result = await this.sendEventEmail(EmailEventType.COURSE_ENROLLMENT, normalizedEmail, payload);
+
+    if (result.success) {
+      this.sentIdempotencyKeys.add(idempotencyKey);
+    }
+
+    return result;
+  }
+
+  /**
+   * Flow 2: Student Signup Welcome Email
    */
   public async sendWelcomeEmail(
     email: string,
@@ -197,7 +253,7 @@ export class EmailService {
   }
 
   /**
-   * Flow 2: Instructor Registration / Review Notification
+   * Flow 3: Instructor Registration Pending Email
    */
   public async sendInstructorRegistrationPendingEmail(
     email: string,
@@ -216,7 +272,7 @@ export class EmailService {
   }
 
   /**
-   * Flow 3: Instructor / Lecturer Approval Email
+   * Flow 4: Instructor Approval Email
    */
   public async sendInstructorApprovalEmail(
     email: string,
@@ -232,7 +288,7 @@ export class EmailService {
   }
 
   /**
-   * Flow 4: Password Reset Action Link Email (Using link generated by Firebase Admin SDK)
+   * Flow 5: Password Reset Action Link Email (Using Firebase Admin generated link)
    */
   public async sendPasswordResetEmail(
     email: string,
@@ -249,7 +305,7 @@ export class EmailService {
   }
 
   /**
-   * Flow 5: Live Class Notification Email
+   * Flow 6: Live Class Notification Email
    */
   public async sendLiveClassNotification(
     email: string,
@@ -267,7 +323,7 @@ export class EmailService {
   }
 
   /**
-   * Flow 6: Course Enrollment / Publication Notification
+   * Flow 7: Course Publication Notification
    */
   public async sendCourseNotification(
     email: string,
@@ -283,7 +339,7 @@ export class EmailService {
   }
 
   /**
-   * Flow 7: System & Academic Notification
+   * Flow 8: System & Academic Notification
    */
   public async sendSystemNotification(
     email: string,
@@ -300,7 +356,7 @@ export class EmailService {
   }
 
   /**
-   * Direct Custom HTML Email Dispatcher (e.g. Diagnostic / Test endpoints)
+   * Direct Custom HTML Email Dispatcher
    */
   public async sendDirectHtmlEmail(
     recipientEmail: string,
@@ -344,16 +400,7 @@ export class EmailService {
    * Returns current SMTP Transporter status without leaking credentials
    */
   public getTransporterStatus() {
-    return {
-      provider: this.provider,
-      host: env.SMTP_HOST || 'smtp.gmail.com',
-      port: Number(env.SMTP_PORT || 465),
-      from: this.fromAddress,
-      fromEmail: env.SMTP_FROM_EMAIL || 'no-reply@kaizenq.in',
-      fromName: env.SMTP_FROM_NAME || 'KaizenQ',
-      verified: this.isTransporterVerified,
-      lastError: this.lastVerificationError || null,
-    };
+    return getSmtpStatus();
   }
 
   /**

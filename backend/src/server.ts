@@ -61,6 +61,13 @@ server.listen(PORT, async () => {
   await connectMongo();
   await connectRedis();
 
+  // Controlled Startup SMTP Verification (Non-blocking with backoff & rate-limit safety)
+  import('./services/email/EmailService')
+    .then(({ emailService }) => {
+      emailService.verifyTransporterAsync().catch(() => {});
+    })
+    .catch((e) => logger.warn('[SMTP] EmailService startup import notice:', e));
+
   try {
     const courseService = new CourseService();
     await courseService.seedSampleCourses();

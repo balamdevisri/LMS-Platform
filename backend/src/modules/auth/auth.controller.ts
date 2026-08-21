@@ -1,10 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { adminAuth, db } from '../../firebase';
-import { EmailService } from '../../services/email/EmailService';
+import { emailService } from '../../services/email/EmailService';
 import { EmailEventType } from '../../types/emailTypes';
 import logger from '../../config/logger';
-
-const emailService = new EmailService();
 
 export class AuthController {
   /**
