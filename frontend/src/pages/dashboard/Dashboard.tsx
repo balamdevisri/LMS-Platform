@@ -29,7 +29,7 @@ import { API_BASE_URL } from '@/config/api';
 import { CoursePlayerModal } from '../../components/courses/CoursePlayerModal';
 import { AssignmentPortal } from '@/components/courses/AssignmentPortal';
 import { AIAssistantPanel } from '@/components/ai/AIAssistantPanel';
-import { CertificateService, BadgeService, AchievementService, STATIC_BADGES, XPService } from '@/services/achievementService';
+import { CertificateService, BadgeService, AchievementService, STATIC_BADGES } from '@/services/achievementService';
 import type { Certificate } from '@/services/achievementService';
 import { CertificatePreviewModal } from '../../components/courses/CertificatePreviewModal';
 import { AchievementsDashboard } from '../../components/courses/AchievementsDashboard';
@@ -292,12 +292,8 @@ export const Dashboard: React.FC = () => {
     // Play reward sound
     soundService.play('xp');
     
-    // Add XP points
-    const xpService = new XPService();
-    xpService.addXP(30, '🎯 Daily Mission Completion', activeUserId);
-    
-    // Log the XP claim
-    courseService.addXPClaim(
+    // Log the XP claim exactly once
+    const updatedClaims = courseService.addXPClaim(
       {
         id: `claim_daily_${todayStr}`,
         title: `🎯 Daily Mission Completion Bonus`,
@@ -309,6 +305,14 @@ export const Dashboard: React.FC = () => {
       },
       activeUserId
     );
+    
+    // Synchronize legacy keys and trigger local event
+    const updatedXp = updatedClaims.reduce((sum: number, c: any) => sum + (c.xp || 0), 0);
+    localStorage.setItem(`shaivika_user_xp_${activeUserId}`, String(updatedXp));
+    localStorage.setItem(`shaivika_points_${activeUserId}`, String(updatedXp));
+    localStorage.setItem(`shaivika_points_default_student`, String(updatedXp));
+    
+    window.dispatchEvent(new CustomEvent('shaivika_xp_updated', { detail: { userId: activeUserId, xp: updatedXp } }));
     
     // Mark as claimed
     dailyData.rewardClaimed = true;
