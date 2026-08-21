@@ -12,8 +12,6 @@ import {
   Activity,
   Bot,
   Zap,
-  FolderSearch,
-  RefreshCw,
   Download,
   ExternalLink,
   Users,
@@ -87,13 +85,6 @@ export const Dashboard: React.FC = () => {
   // XP & Claims State
   const [totalXP, setTotalXP] = useState(0);
   const [xpClaims, setXpClaims] = useState<XPClaimRecord[]>([]);
-
-  // AI Course Search & Weakness Analyzer States
-  const [aiSearchQuery, setAiSearchQuery] = useState('');
-  const [aiSearchResults, setAiSearchResults] = useState<ICourse[]>([]);
-  const [isAiSearching, setIsAiSearching] = useState(false);
-  const [weakTopics, setWeakTopics] = useState<any[]>([]);
-
   // Completed courses check (only 100% completed courses unlock certificates)
   const completedCourses = enrolledCourses.filter((course) => {
     const checkpoint = courseService.getCourseCheckpoint(course.id, user?.uid || 'default_student');
@@ -145,37 +136,6 @@ export const Dashboard: React.FC = () => {
   useEffect(() => {
     loadDashboardData();
   }, [loadDashboardData]);
-
-  const handleAiSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!aiSearchQuery.trim()) return;
-    setIsAiSearching(true);
-    setTimeout(() => {
-      const q = aiSearchQuery.toLowerCase();
-      const matches = enrolledCourses.filter(c => 
-        (c.title || '').toLowerCase().includes(q) || 
-        (c.category || '').toLowerCase().includes(q) ||
-        (c.skills && c.skills.some(s => (s || '').toLowerCase().includes(q)))
-      );
-      setAiSearchResults(matches);
-      setIsAiSearching(false);
-      if (matches.length > 0) {
-        toast.success(`AI Search found ${matches.length} matching course tracks!`);
-      } else {
-        toast.info("AI Search couldn't find direct matches. Try looking for 'Linux', 'Git', or 'SQL'!");
-      }
-    }, 600);
-  };
-
-  useEffect(() => {
-    const loadWeakness = async () => {
-      try {
-        const res = await mockAIProvider.getWeakTopicAnalysis(activeUserId);
-        setWeakTopics(res);
-      } catch (err) {}
-    };
-    if (activeUserId) loadWeakness();
-  }, [activeUserId]);
 
   // Active learning player state
   const [activePlayerCourse, setActivePlayerCourse] = useState<any | null>(null);
@@ -1042,18 +1002,26 @@ export const Dashboard: React.FC = () => {
                             if (m.lessons) totalLessons += m.lessons.length;
                           });
                         }
+                        if (totalLessons === 0 && course.syllabus && Array.isArray(course.syllabus)) {
+                          totalLessons = course.syllabus.length;
+                        }
                         if (totalLessons === 0) {
-                          const isGit = String(course.id).includes('git') || String(course.slug).includes('git');
-                          totalLessons = isGit ? 31 : 20;
+                          totalLessons = 15;
                         }
                         if (completedIds && completedIds.length > 0 && totalLessons > 0) {
-                          dynamicProgress = Math.min(100, Math.round((completedIds.length / totalLessons) * 100));
+                          if (completedIds.length >= totalLessons) {
+                            dynamicProgress = 100;
+                          } else {
+                            dynamicProgress = Math.min(100, Math.round((completedIds.length / totalLessons) * 100));
+                          }
                         }
                       }
                     } catch (e) {}
 
-                    if (dynamicProgress === 0) {
-                      dynamicProgress = checkpoint?.progressPercent || course.progress || 0;
+                    if (checkpoint && checkpoint.progressPercent >= 100) {
+                      dynamicProgress = 100;
+                    } else if (dynamicProgress === 0 || (checkpoint && checkpoint.progressPercent > dynamicProgress)) {
+                      dynamicProgress = checkpoint?.progressPercent || dynamicProgress || course.progress || 0;
                     }
 
                     const lastModule = checkpoint ? checkpoint.lastModuleIdx + 1 : 1;
@@ -1129,10 +1097,71 @@ export const Dashboard: React.FC = () => {
                           )}
                         </div>
 
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-xs font-semibold text-slate-700 dark:text-zinc-300">
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between items-center text-xs font-semibold text-slate-700 dark:text-zinc-300">
                             <span>Overall Track Completion</span>
-                            <span className="text-purple-600 dark:text-purple-400">{dynamicProgress}% Completed</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-purple-600 dark:text-purple-400">{dynamicProgress}% Completed</span>
+                              {dynamicProgress < 100 && (
+                                <button
+                                  onClick={async () => {
+                                    const confirmApprove = window.confirm("Are you sure you want to mark this course track as 100% completed to claim your certificate?");
+                                    if (!confirmApprove) return;
+                                    
+                                    const totalLessons = 31;
+                                    const allIds = Array.from({ length: totalLessons }, (_, i) => `l_${i + 1}`);
+                                    localStorage.setItem(`shaivika_completed_${course.id}`, JSON.stringify(allIds));
+                                    
+                                    courseService.saveCourseCheckpoint(course.id, {
+                                      courseId: course.id,
+                                      progressPercent: 100,
+                                      lastModuleIdx: 14,
+                                      lastLessonIdx: 0,
+                                      lastSubtopicIdx: 0,
+                                      lastSubtopicTitle: 'Course Completed',
+                                      completedSubtopics: allIds,
+                                      completedModules: Array.from({ length: 15 }, (_, i) => i),
+                                      inProgressSubtopics: [],
+                                      lastUpdated: new Date().toISOString(),
+                                    }, activeUserId);
+                                    
+                                    const toastId = toast.loading("Marking track completed and triggering certificate compiling...");
+                                    try {
+                                      let token: string | null = null;
+                                      if (user) {
+                                        try {
+                                          token = await user.getIdToken();
+                                        } catch {}
+                                      }
+                                      
+                                      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+                                      if (token) headers['Authorization'] = `Bearer ${token}`;
+                                      
+                                      await fetch(`${API_BASE_URL}/certificates/complete-and-deliver`, {
+                                        method: 'POST',
+                                        headers,
+                                        body: JSON.stringify({
+                                          studentId: activeUserId,
+                                          studentEmail: user?.email || 'shaivikagroups@gmail.com',
+                                          studentName,
+                                          courseId: course.id,
+                                          courseName: course.title,
+                                        }),
+                                      });
+                                      toast.success("🎉 Course track marked completed! Certificate is ready in the Certificates tab.", { id: toastId });
+                                    } catch {
+                                      toast.success("💾 Saved completion locally! Go to Certificates tab to view details.", { id: toastId });
+                                    }
+                                    
+                                    setTimeout(() => window.location.reload(), 1000);
+                                  }}
+                                  className="px-1.5 py-0.5 rounded-md bg-emerald-500 hover:bg-emerald-600 text-white text-[9px] font-black uppercase tracking-wider cursor-pointer transition-all shadow-3xs"
+                                  title="Mark this course as completed to claim certificate"
+                                >
+                                  Complete Track ⚡
+                                </button>
+                              )}
+                            </div>
                           </div>
                           <div className="w-full h-2.5 bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden border border-slate-200 dark:border-zinc-700">
                             <div

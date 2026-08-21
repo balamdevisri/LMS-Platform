@@ -368,10 +368,24 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
   useEffect(() => {
     try {
       localStorage.setItem(`shaivika_completed_${courseId}`, JSON.stringify(completedLessonIds));
+      const totalCount = allLessons.length || 15;
+      const pct = Math.min(100, Math.round((completedLessonIds.length / totalCount) * 100));
+      courseService.saveCourseCheckpoint(String(courseId), {
+        courseId: String(courseId),
+        progressPercent: pct,
+        lastModuleIdx: 0,
+        lastLessonIdx: 0,
+        lastSubtopicIdx: 0,
+        lastSubtopicTitle: 'Course Learning View',
+        completedSubtopics: completedLessonIds.map(String),
+        completedModules: [],
+        inProgressSubtopics: [],
+        lastUpdated: new Date().toISOString(),
+      }, studentUid);
     } catch (err) {
       console.error('Failed to save completion state', err);
     }
-  }, [completedLessonIds, courseId]);
+  }, [completedLessonIds, courseId, allLessons, studentUid]);
 
   // Memoize quiz and assignment units
   const { quizUnits, assignmentUnits } = useMemo(() => {

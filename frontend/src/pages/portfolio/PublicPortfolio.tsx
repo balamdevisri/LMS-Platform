@@ -35,7 +35,26 @@ export const PublicPortfolio: React.FC = () => {
         const res = await fetch(`${API_BASE_URL}/portfolio/public/${encodeURIComponent(handleOrId)}`);
         const json = await res.json();
         if (res.ok && json.success && json.data) {
-          setPortfolio(json.data);
+          const localFullName = localStorage.getItem('shaivika_portfolio_fullname');
+          const localHeadline = localStorage.getItem('shaivika_portfolio_headline');
+          const localBio = localStorage.getItem('shaivika_portfolio_bio');
+          const localGithub = localStorage.getItem('shaivika_portfolio_github');
+          const localLinkedin = localStorage.getItem('shaivika_portfolio_linkedin');
+          const localWebsite = localStorage.getItem('shaivika_portfolio_website');
+          const localLocation = localStorage.getItem('shaivika_portfolio_location');
+
+          const data = json.data;
+          const mergedData = {
+            ...data,
+            fullName: (data.fullName === 'Scholar Student' || data.fullName === 'Student Developer' || !data.fullName) ? (localFullName || data.fullName || 'hemadri') : data.fullName,
+            headline: (localHeadline && (!data.headline || data.headline.includes('Passionate technologist'))) ? localHeadline : (data.headline || localHeadline),
+            bio: (localBio && (!data.bio || data.bio.includes('Passionate technologist'))) ? localBio : (data.bio || localBio),
+            githubUrl: localGithub || data.githubUrl || data.githubLink,
+            linkedinUrl: localLinkedin || data.linkedinUrl || data.linkedinLink,
+            websiteUrl: localWebsite || data.websiteUrl || data.websiteLink,
+            location: localLocation || data.location,
+          };
+          setPortfolio(mergedData);
           setLoading(false);
           return;
         }
@@ -51,6 +70,10 @@ export const PublicPortfolio: React.FC = () => {
         const skillsRaw = localStorage.getItem('shaivika_portfolio_skills');
         const projectsRaw = localStorage.getItem('shaivika_portfolio_projects');
 
+        const localFullName = localStorage.getItem('shaivika_portfolio_fullname') || localUser?.fullName || localUser?.name;
+        const localHeadline = localStorage.getItem('shaivika_portfolio_headline') || 'Full-Stack Developer & AI Systems Specialist | Building Scalable Cloud Apps';
+        const localLocation = localStorage.getItem('shaivika_portfolio_location') || 'Hyderabad, India';
+
         if (
           !localHandle ||
           localHandle === handleOrId ||
@@ -58,12 +81,13 @@ export const PublicPortfolio: React.FC = () => {
           (localUser && (localUser.uid === handleOrId || localUser.email?.split('@')[0] === handleOrId))
         ) {
           const fallbackData = {
-            fullName: localUser?.fullName || localUser?.name || 'Manoj Achari',
-            headline: 'Full-Stack Developer & AI Systems Specialist | Building Scalable Cloud Apps',
+            fullName: localFullName || 'hemadri',
+            headline: localHeadline,
             bio: localStorage.getItem('shaivika_portfolio_bio') || 'Passionate technologist mastering Linux kernel systems, distributed cloud platforms, and generative AI foundations.',
             githubUrl: localStorage.getItem('shaivika_portfolio_github') || 'https://github.com',
             linkedinUrl: localStorage.getItem('shaivika_portfolio_linkedin') || 'https://linkedin.com',
             websiteUrl: localStorage.getItem('shaivika_portfolio_website') || 'https://www.kaizenq.in',
+            location: localLocation,
             skills: skillsRaw ? JSON.parse(skillsRaw) : ['Linux Systems', 'TypeScript', 'React.js', 'Docker', 'AI Foundation'],
             projects: projectsRaw ? JSON.parse(projectsRaw) : [
               {
@@ -137,18 +161,17 @@ export const PublicPortfolio: React.FC = () => {
     );
   }
 
-  const {
-    name = 'Student Scholar',
-    bio = '',
-    githubLink = '',
-    linkedinLink = '',
-    websiteLink = '',
-    customHandle = handleOrId,
-    skills = [],
-    projects = [],
-    experience = [],
-    education = [],
-  } = portfolio;
+  const name = portfolio.fullName || portfolio.name || 'Student Scholar';
+  const bio = portfolio.bio || '';
+  const githubLink = portfolio.githubUrl || portfolio.githubLink || '';
+  const linkedinLink = portfolio.linkedinUrl || portfolio.linkedinLink || '';
+  const websiteLink = portfolio.websiteUrl || portfolio.websiteLink || '';
+  const customHandle = portfolio.customHandle || handleOrId;
+  const skills = portfolio.skills || [];
+  const projects = portfolio.projects || [];
+  const experience = portfolio.experiences || portfolio.experience || [];
+  const education = portfolio.educations || portfolio.education || [];
+  const avatarUrl = portfolio.avatarUrl || portfolio.photoURL || portfolio.avatar || localStorage.getItem('shaivika_portfolio_avatar') || '';
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-indigo-600 selection:text-white pb-20">
@@ -190,10 +213,14 @@ export const PublicPortfolio: React.FC = () => {
         
         <div className="relative bg-gradient-to-b from-slate-900/90 to-slate-900/40 border border-slate-800/80 rounded-3xl p-6 sm:p-10 shadow-2xl backdrop-blur-md flex flex-col md:flex-row items-center md:items-start gap-8">
           {/* Avatar */}
-          <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl bg-gradient-to-tr from-indigo-500 via-blue-600 to-cyan-400 p-1 shadow-2xl shrink-0">
-            <div className="w-full h-full rounded-[22px] bg-slate-900 flex items-center justify-center text-4xl sm:text-5xl font-black text-white">
-              {name.charAt(0).toUpperCase()}
-            </div>
+          <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl bg-gradient-to-tr from-indigo-500 via-blue-600 to-cyan-400 p-1 shadow-2xl shrink-0 overflow-hidden">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={name} className="w-full h-full object-cover rounded-[22px]" />
+            ) : (
+              <div className="w-full h-full rounded-[22px] bg-slate-900 flex items-center justify-center text-4xl sm:text-5xl font-black text-white">
+                {name.charAt(0).toUpperCase()}
+              </div>
+            )}
           </div>
 
           {/* Details */}
@@ -304,12 +331,12 @@ export const PublicPortfolio: React.FC = () => {
                   className="bg-slate-900/70 border border-slate-800 hover:border-slate-700 rounded-3xl p-6 space-y-3 transition-all flex flex-col justify-between"
                 >
                   <div className="space-y-2">
-                    <h3 className="font-heading font-bold text-sm text-white">{proj.name}</h3>
-                    <p className="text-xs text-slate-400 leading-relaxed">{proj.desc}</p>
+                    <h3 className="font-heading font-bold text-sm text-white">{proj.title || proj.name}</h3>
+                    <p className="text-xs text-slate-400 leading-relaxed">{proj.description || proj.desc}</p>
                   </div>
-                  {proj.repo && (
+                  {(proj.githubUrl || proj.repo || proj.liveUrl) && (
                     <a
-                      href={proj.repo}
+                      href={proj.githubUrl || proj.repo || proj.liveUrl}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex items-center gap-1.5 text-xs font-bold text-cyan-400 hover:text-cyan-300 transition-colors pt-2"
@@ -337,7 +364,7 @@ export const PublicPortfolio: React.FC = () => {
                   <div key={idx} className="border-l-2 border-indigo-500/40 pl-4 space-y-1">
                     <h3 className="text-xs font-bold text-white">{exp.role}</h3>
                     <p className="text-[11px] font-semibold text-indigo-300">{exp.company} • {exp.duration}</p>
-                    <p className="text-[11px] text-slate-400">{exp.desc}</p>
+                    <p className="text-[11px] text-slate-400">{exp.description || exp.desc}</p>
                   </div>
                 ))}
               </div>
@@ -354,8 +381,8 @@ export const PublicPortfolio: React.FC = () => {
                 {education.map((ed: any, idx: number) => (
                   <div key={idx} className="border-l-2 border-cyan-500/40 pl-4 space-y-1">
                     <h3 className="text-xs font-bold text-white">{ed.degree}</h3>
-                    <p className="text-[11px] font-semibold text-cyan-300">{ed.school}</p>
-                    <p className="text-[11px] text-slate-400">{ed.duration}</p>
+                    <p className="text-[11px] font-semibold text-cyan-300">{ed.institution || ed.school}</p>
+                    <p className="text-[11px] text-slate-400">{ed.year || ed.duration}</p>
                   </div>
                 ))}
               </div>

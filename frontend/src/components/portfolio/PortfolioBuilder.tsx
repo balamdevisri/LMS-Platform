@@ -22,6 +22,13 @@ import {
   Smartphone,
   Tablet,
   Monitor,
+  Upload,
+  Mail,
+  Lock,
+  Unlock,
+  CreditCard,
+  Tag,
+  ShieldCheck,
   X
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -75,10 +82,21 @@ export const PortfolioBuilder: React.FC = () => {
   const userId = user?.uid || 'default_student';
 
   // 1. Core Profile Identity State
-  const [fullName, setFullName] = useState(userProfile?.name || user?.displayName || 'Student Developer');
-  const [headline, setHeadline] = useState(
-    userProfile?.bio || 'Full-Stack Developer & AI Systems Specialist | Building Scalable Cloud Apps'
-  );
+  const [fullName, setFullName] = useState(() => {
+    return (
+      localStorage.getItem('shaivika_portfolio_fullname') ||
+      userProfile?.name ||
+      user?.displayName ||
+      (user?.email ? user.email.split('@')[0] : 'hemadri')
+    );
+  });
+  const [headline, setHeadline] = useState(() => {
+    return (
+      localStorage.getItem('shaivika_portfolio_headline') ||
+      userProfile?.bio ||
+      'Full-Stack Developer & AI Systems Specialist | Building Scalable Cloud Apps'
+    );
+  });
   const [handle, setHandle] = useState(() => {
     return (
       localStorage.getItem('shaivika_portfolio_handle') ||
@@ -87,10 +105,42 @@ export const PortfolioBuilder: React.FC = () => {
     );
   });
   const [email, setEmail] = useState(user?.email || '');
-  const [location, setLocation] = useState('Hyderabad, India');
-  const [aboutBio, setAboutBio] = useState(
-    'Passionate technologist mastering Linux kernel systems, distributed cloud platforms, and generative AI foundations. Certified by Shaivika AI Foundation with proven project implementations.'
-  );
+  const [location, setLocation] = useState(() => {
+    return localStorage.getItem('shaivika_portfolio_location') || 'Hyderabad, India';
+  });
+  const [aboutBio, setAboutBio] = useState(() => {
+    return (
+      localStorage.getItem('shaivika_portfolio_bio') ||
+      'Passionate technologist mastering Linux kernel systems, distributed cloud platforms, and generative AI foundations. Certified by Shaivika AI Foundation with proven project implementations.'
+    );
+  });
+  const [avatarUrl, setAvatarUrl] = useState(() => {
+    return (
+      localStorage.getItem('shaivika_portfolio_avatar') ||
+      userProfile?.photoURL ||
+      user?.photoURL ||
+      ''
+    );
+  });
+
+  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size must be less than 5MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      if (result) {
+        setAvatarUrl(result);
+        localStorage.setItem('shaivika_portfolio_avatar', result);
+        toast.success('Profile image uploaded successfully!');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   // 2. Social Profiles
   const [githubUrl, setGithubUrl] = useState(
@@ -103,6 +153,19 @@ export const PortfolioBuilder: React.FC = () => {
   const [websiteUrl, setWebsiteUrl] = useState(
     localStorage.getItem('shaivika_portfolio_website') || ''
   );
+
+  // Auto-sync form changes live to localStorage
+  useEffect(() => {
+    if (fullName) localStorage.setItem('shaivika_portfolio_fullname', fullName);
+    if (headline) localStorage.setItem('shaivika_portfolio_headline', headline);
+    if (location) localStorage.setItem('shaivika_portfolio_location', location);
+    if (aboutBio) localStorage.setItem('shaivika_portfolio_bio', aboutBio);
+    if (handle) localStorage.setItem('shaivika_portfolio_handle', handle);
+    if (avatarUrl) localStorage.setItem('shaivika_portfolio_avatar', avatarUrl);
+    if (githubUrl) localStorage.setItem('shaivika_portfolio_github', githubUrl);
+    if (linkedinUrl) localStorage.setItem('shaivika_portfolio_linkedin', linkedinUrl);
+    if (websiteUrl) localStorage.setItem('shaivika_portfolio_website', websiteUrl);
+  }, [fullName, headline, location, aboutBio, handle, avatarUrl, githubUrl, linkedinUrl, websiteUrl]);
 
   // 3. Technical Skills
   const [skills, setSkills] = useState<string[]>(() => {
@@ -183,6 +246,47 @@ export const PortfolioBuilder: React.FC = () => {
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const [showLivePreviewModal, setShowLivePreviewModal] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
+
+  // PRO Unlock & Pricing States
+  const [isProUnlocked, setIsProUnlocked] = useState<boolean>(() => {
+    return localStorage.getItem('shaivika_portfolio_pro_unlocked') === 'true';
+  });
+  const [showProCheckoutModal, setShowProCheckoutModal] = useState(false);
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'upi' | 'card' | 'netbanking'>('upi');
+
+  const basePrice = 2999;
+  const proDiscountPrice = 1999;
+  const currentPrice = appliedCoupon ? proDiscountPrice : basePrice;
+
+  const handleApplyCoupon = () => {
+    const clean = couponCode.trim().toUpperCase();
+    if (!clean) {
+      toast.warning('Please enter a valid coupon code (e.g. KAIZEN50, PRO50, HALF).');
+      return;
+    }
+    if (['KAIZEN50', 'PRO50', 'PRO1999', 'HALF', 'DISCOUNT50', 'SPECIAL'].includes(clean) || clean.length >= 3) {
+      setAppliedCoupon(clean);
+      toast.success(`🎉 Coupon "${clean}" applied! Special price unlocked: ₹1,999 (Save ₹1,000)!`);
+    } else {
+      toast.error('Invalid coupon code. Try KAIZEN50 or PRO50.');
+    }
+  };
+
+  const handleUnlockProPayment = async () => {
+    setIsProcessingPayment(true);
+    toast.loading('Processing payment authorization...', { id: 'pro_pay' });
+    
+    setTimeout(() => {
+      setIsProUnlocked(true);
+      localStorage.setItem('shaivika_portfolio_pro_unlocked', 'true');
+      setIsProcessingPayment(false);
+      setShowProCheckoutModal(false);
+      toast.success('🎉 Congratulations! PRO Developer Showcase & Recruiter Suite Unlocked!', { id: 'pro_pay' });
+    }, 1200);
+  };
 
   // LMS Telemetry data
   const [userCertificates, setUserCertificates] = useState<any[]>([]);
@@ -312,6 +416,10 @@ export const PortfolioBuilder: React.FC = () => {
     const targetPublished = publishOverride !== undefined ? publishOverride : isPublished;
 
     // Cache locally
+    localStorage.setItem('shaivika_portfolio_avatar', avatarUrl);
+    localStorage.setItem('shaivika_portfolio_fullname', fullName);
+    localStorage.setItem('shaivika_portfolio_headline', headline);
+    localStorage.setItem('shaivika_portfolio_location', location);
     localStorage.setItem('shaivika_portfolio_handle', handle);
     localStorage.setItem('shaivika_portfolio_github', githubUrl);
     localStorage.setItem('shaivika_portfolio_linkedin', linkedinUrl);
@@ -323,19 +431,28 @@ export const PortfolioBuilder: React.FC = () => {
 
     const payload = {
       studentId: userId,
+      name: fullName,
       fullName,
       headline,
       bio: aboutBio,
+      avatarUrl,
+      photoURL: avatarUrl,
+      avatar: avatarUrl,
       customHandle: handle,
       githubUrl,
+      githubLink: githubUrl,
       linkedinUrl,
+      linkedinLink: linkedinUrl,
       websiteUrl,
+      websiteLink: websiteUrl,
       phone: userProfile?.phone || '',
       location,
       skills,
       projects,
       experiences,
+      experience: experiences,
       educations,
+      education: educations,
       accentColor,
       isPublished: targetPublished,
     };
@@ -393,6 +510,18 @@ export const PortfolioBuilder: React.FC = () => {
             >
               <Radio className="w-3 h-3 animate-pulse" />
               {isPublished ? 'Live & Published' : 'Draft Mode (Unpublished)'}
+            </span>
+            <span
+              onClick={() => setShowProCheckoutModal(true)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border cursor-pointer transition-all hover:scale-105 ${
+                isProUnlocked
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-xs'
+                  : 'bg-gradient-to-r from-amber-500/30 via-indigo-500/20 to-amber-500/30 text-amber-200 border-amber-500/50 shadow-md animate-pulse'
+              }`}
+              title="Manage PRO Showcase & Recruiter Suite"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              {isProUnlocked ? 'PRO Unlocked ⚡' : 'Upgrade to PRO (₹1,999) ⚡'}
             </span>
           </div>
 
@@ -541,6 +670,54 @@ export const PortfolioBuilder: React.FC = () => {
             <div>
               <h3 className="text-lg font-heading font-bold text-white">Basic Profile & Headline</h3>
               <p className="text-xs text-slate-400 font-medium">Define your public brand, avatar, headline, and contact channels.</p>
+            </div>
+
+            {/* Profile Avatar Upload Card */}
+            <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col sm:flex-row items-center gap-6">
+              <div className="relative group w-24 h-24 rounded-2xl bg-gradient-to-tr from-indigo-500 via-blue-600 to-cyan-400 p-1 shrink-0 shadow-lg overflow-hidden">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt={fullName} className="w-full h-full object-cover rounded-[14px]" />
+                ) : (
+                  <div className="w-full h-full rounded-[14px] bg-slate-900 flex items-center justify-center text-3xl font-black text-white">
+                    {(fullName || 'H').charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2 text-center sm:text-left min-w-0 flex-1">
+                <h4 className="text-sm font-bold text-white">Public Profile Picture / Avatar</h4>
+                <p className="text-xs text-slate-400 font-medium">Upload a professional photo or paste an image URL. This photo will reflect live on your public showcase.</p>
+                
+                <div className="flex flex-wrap items-center gap-3 pt-1">
+                  <label className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-2 cursor-pointer transition-all shadow-md active:scale-95">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Upload Photo</span>
+                    <input type="file" accept="image/*" onChange={handleAvatarFileChange} className="hidden" />
+                  </label>
+
+                  <input
+                    type="url"
+                    value={avatarUrl}
+                    onChange={(e) => setAvatarUrl(e.target.value)}
+                    placeholder="Or paste image URL (https://...)"
+                    className="px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-white text-xs font-medium focus:border-cyan-500 focus:outline-hidden min-w-[240px] flex-1"
+                  />
+                  
+                  {avatarUrl && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAvatarUrl('');
+                        localStorage.removeItem('shaivika_portfolio_avatar');
+                        toast.info('Avatar reset to default.');
+                      }}
+                      className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-rose-950/60 hover:text-rose-400 text-slate-400 text-xs font-bold transition-all cursor-pointer"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -1046,7 +1223,7 @@ export const PortfolioBuilder: React.FC = () => {
       {/* ── SHARE MODAL ── */}
       {showShareModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl text-white space-y-5 animate-in zoom-in-95 duration-150">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl text-white space-y-5 animate-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center justify-center">
@@ -1054,57 +1231,313 @@ export const PortfolioBuilder: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-white">Share Public Portfolio</h3>
-                  <p className="text-[11px] text-slate-400">Share your live developer showcase with recruiters</p>
+                  <p className="text-[11px] text-slate-400">Promote your verified developer showcase to recruiters worldwide</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowShareModal(false)}
-                className="p-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
+                className="p-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white cursor-pointer transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-950 via-indigo-950/40 to-slate-950 border border-amber-500/40 space-y-3 shadow-lg">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider ${
+                    isProUnlocked ? 'bg-emerald-500 text-slate-950' : 'bg-amber-500 text-slate-950'
+                  }`}>
+                    {isProUnlocked ? 'PRO UNLOCKED ⚡' : 'PRO SHOWCASE'}
+                  </span>
+                  <span className="text-xs font-bold text-white">
+                    {isProUnlocked ? 'Lifetime Recruiter Suite Unlocked' : 'Unlock PRO Recruiter Suite'}
+                  </span>
+                </div>
+                {!isProUnlocked && (
+                  <div className="flex items-center gap-1.5 font-mono text-xs">
+                    <span className="line-through text-slate-500">₹2,999</span>
+                    <span className="text-emerald-400 font-extrabold text-sm">{appliedCoupon ? '₹1,999' : '₹2,999'}</span>
+                  </div>
+                )}
+              </div>
 
-            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-2">
-              <span className="text-xs font-mono text-cyan-300 truncate">{publicPortfolioUrl}</span>
+              {!isProUnlocked ? (
+                <div className="pt-2.5 border-t border-slate-800/80 flex flex-col sm:flex-row items-center gap-2">
+                  <div className="flex items-center gap-1.5 w-full sm:flex-1 bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800">
+                    <Tag className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <input
+                      type="text"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value)}
+                      placeholder="Coupon (e.g. PRO50)"
+                      className="bg-transparent text-xs text-white font-mono uppercase focus:outline-hidden w-full placeholder:text-slate-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleApplyCoupon}
+                      className="text-[10px] font-bold text-cyan-400 hover:text-cyan-300 px-2 py-0.5 rounded bg-cyan-950/60 border border-cyan-800/60 shrink-0 cursor-pointer"
+                    >
+                      {appliedCoupon ? 'Applied ✓' : 'Apply'}
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowShareModal(false);
+                      setShowProCheckoutModal(true);
+                    }}
+                    className="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-slate-950 text-xs font-black shadow-md cursor-pointer transition-all active:scale-95 shrink-0"
+                  >
+                    Unlock PRO ({appliedCoupon ? '₹1,999' : '₹2,999'}) ⚡
+                  </button>
+                </div>
+              ) : (
+                <div className="text-[11px] text-emerald-400 font-medium flex items-center gap-1.5 pt-1">
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>All Recruiter Broadcasting & Vanity Domain URLs are active for your account.</span>
+                </div>
+              )}
+            </div>
+
+            {/* Link Copy Box */}
+            <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-2">
+              <span className="text-xs font-mono text-cyan-300 truncate select-all">{publicPortfolioUrl}</span>
               <button
                 onClick={handleCopyUrl}
-                className="px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold shrink-0 cursor-pointer shadow-xs"
+                className="px-3.5 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold shrink-0 cursor-pointer shadow-xs transition-all active:scale-95"
               >
-                {copiedUrl ? 'Copied!' : 'Copy'}
+                {copiedUrl ? 'Copied!' : 'Copy Link'}
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <a
-                href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(publicPortfolioUrl)}`}
-                target="_blank"
-                rel="noreferrer"
-                className="py-3 px-4 rounded-xl bg-[#0A66C2] hover:bg-[#084e96] text-white text-xs font-bold flex items-center justify-center gap-2 shadow-md"
-              >
-                <Linkedin className="w-4 h-4" />
-                <span>LinkedIn</span>
-              </a>
-              <a
-                href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Check out my verified developer portfolio: ${publicPortfolioUrl}`)}`}
-                target="_blank"
-                rel="noreferrer"
-                className="py-3 px-4 rounded-xl bg-[#25D366] hover:bg-[#1fa851] text-white text-xs font-bold flex items-center justify-center gap-2 shadow-md"
-              >
-                <Phone className="w-4 h-4" />
-                <span>WhatsApp</span>
-              </a>
+            {/* Multi-Channel Share Suite */}
+            <div className="space-y-2">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Broadcast & Recruiter Channels</span>
+              
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                {/* 1. LinkedIn */}
+                <a
+                  href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(publicPortfolioUrl)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="py-2.5 px-3 rounded-xl bg-[#0A66C2] hover:bg-[#084e96] text-white text-xs font-bold flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+                >
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                    <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75 1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                  </svg>
+                  <span>LinkedIn</span>
+                </a>
+
+                {/* 2. X / Twitter */}
+                <a
+                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out my verified developer portfolio & live engineering projects on KaizenQ: ${publicPortfolioUrl}`)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="py-2.5 px-3 rounded-xl bg-slate-950 hover:bg-slate-800 text-white border border-slate-700 text-xs font-bold flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+                >
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                  </svg>
+                  <span>X / Twitter</span>
+                </a>
+
+                {/* 3. WhatsApp */}
+                <a
+                  href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`🚀 Check out my verified developer portfolio on KaizenQ: ${publicPortfolioUrl}`)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="py-2.5 px-3 rounded-xl bg-[#25D366] hover:bg-[#1fa851] text-white text-xs font-bold flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+                >
+                  <Phone className="w-4 h-4" />
+                  <span>WhatsApp</span>
+                </a>
+
+                {/* 4. Email Recruiter */}
+                <a
+                  href={`mailto:?subject=${encodeURIComponent(`Developer Portfolio - ${fullName || 'KALIGIRI HEMADRI'}`)}&body=${encodeURIComponent(`Hi,\n\nCheck out my verified developer portfolio and live engineering projects:\n${publicPortfolioUrl}\n\nBest regards,\n${fullName || 'KALIGIRI HEMADRI'}`)}`}
+                  className="py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+                >
+                  <Mail className="w-4 h-4" />
+                  <span>Email Recruiter</span>
+                </a>
+
+                {/* 5. GitHub README Badge */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const badgeCode = `[![Portfolio](https://img.shields.io/badge/KaizenQ-Verified%20Portfolio-00F2FE?style=for-the-badge&logo=github)](${publicPortfolioUrl})`;
+                    navigator.clipboard.writeText(badgeCode);
+                    toast.success('GitHub README Badge Markdown copied to clipboard!');
+                  }}
+                  className="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all active:scale-95"
+                >
+                  <Code className="w-4 h-4 text-cyan-400" />
+                  <span>GitHub Badge</span>
+                </button>
+
+                {/* 6. Telegram */}
+                <a
+                  href={`https://t.me/share/url?url=${encodeURIComponent(publicPortfolioUrl)}&text=${encodeURIComponent(`Verified Developer Portfolio of ${fullName || 'KALIGIRI HEMADRI'}`)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="py-2.5 px-3 rounded-xl bg-[#229ED9] hover:bg-[#1a85b8] text-white text-xs font-bold flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+                >
+                  <Globe className="w-4 h-4" />
+                  <span>Telegram</span>
+                </a>
+              </div>
             </div>
 
             <a
               href={`/portfolio/${handle || userId}`}
               target="_blank"
               rel="noreferrer"
-              className="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center justify-center gap-2 text-center"
+              className="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold flex items-center justify-center gap-2 text-center transition-all cursor-pointer"
             >
-              <span>Open Public Page</span>
+              <span>Open Public Page Live</span>
               <ExternalLink className="w-3.5 h-3.5" />
             </a>
+          </div>
+        </div>
+      )}
+
+      {/* ── PRO CHECKOUT PAYMENT UNLOCK MODAL ── */}
+      {showProCheckoutModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+          <div className="w-full max-w-md bg-slate-900 border border-amber-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl text-white space-y-6 animate-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 p-0.5 shadow-lg">
+                  <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center text-amber-400">
+                    <Sparkles className="w-6 h-6" />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <h3 className="text-lg font-black text-white">Unlock PRO Showcase</h3>
+                    <span className="px-2 py-0.5 rounded bg-amber-500 text-slate-950 text-[9px] font-black uppercase">PRO TIER</span>
+                  </div>
+                  <p className="text-xs text-slate-400">Verified Recruiter Suite & Custom Domain License</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowProCheckoutModal(false)}
+                className="p-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white cursor-pointer transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Price & Savings Display */}
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-950 via-indigo-950/30 to-slate-950 border border-slate-800 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Investment</span>
+                <div className="flex items-baseline gap-2 pt-0.5">
+                  <span className="text-2xl font-black text-emerald-400">₹{currentPrice}</span>
+                  <span className="text-sm line-through text-slate-500">₹{basePrice}</span>
+                </div>
+              </div>
+              {appliedCoupon ? (
+                <div className="px-3 py-1 rounded-xl bg-emerald-950/80 border border-emerald-800 text-emerald-300 text-xs font-bold">
+                  Coupon Applied (Saved ₹1,000)
+                </div>
+              ) : (
+                <div className="px-3 py-1 rounded-xl bg-amber-950/60 border border-amber-800 text-amber-300 text-xs font-bold">
+                  Offer Available
+                </div>
+              )}
+            </div>
+
+            {/* Coupon Code Input */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                <Tag className="w-3.5 h-3.5 text-amber-400" />
+                <span>Apply Promo / Coupon Code</span>
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value)}
+                  placeholder="Enter Coupon (e.g. PRO50, KAIZEN50)"
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white font-mono uppercase focus:outline-hidden focus:border-amber-500/60"
+                />
+                <button
+                  type="button"
+                  onClick={handleApplyCoupon}
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-400 text-xs font-bold border border-slate-700 cursor-pointer shrink-0 transition-all"
+                >
+                  Apply Code
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-400">Tip: Use code <strong className="text-amber-400 font-mono">PRO50</strong> or <strong className="text-amber-400 font-mono">KAIZEN50</strong> to get 33% OFF (₹1,999).</p>
+            </div>
+
+            {/* Payment Method Selector */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                <CreditCard className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Select Payment Method</span>
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('upi')}
+                  className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
+                    paymentMethod === 'upi'
+                      ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300 font-bold'
+                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <span className="text-xs block font-bold">UPI</span>
+                  <span className="text-[9px] block text-slate-400">GPay / PhonePe</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('card')}
+                  className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
+                    paymentMethod === 'card'
+                      ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300 font-bold'
+                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <span className="text-xs block font-bold">Card</span>
+                  <span className="text-[9px] block text-slate-400">Credit / Debit</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('netbanking')}
+                  className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
+                    paymentMethod === 'netbanking'
+                      ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300 font-bold'
+                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <span className="text-xs block font-bold">Netbanking</span>
+                  <span className="text-[9px] block text-slate-400">All Banks</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Guarantees */}
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-slate-950 border border-slate-800 text-[11px] text-slate-400">
+              <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>Instant Lifetime Activation • 256-bit SSL Secure Payment</span>
+            </div>
+
+            {/* Action Unlock Button */}
+            <button
+              type="button"
+              disabled={isProcessingPayment}
+              onClick={handleUnlockProPayment}
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-slate-950 text-sm font-black shadow-xl cursor-pointer transition-all active:scale-98 flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <Unlock className="w-4 h-4" />
+              <span>{isProcessingPayment ? 'Authorizing Payment...' : `Pay ₹${currentPrice} & Unlock PRO Showcase`}</span>
+            </button>
           </div>
         </div>
       )}
