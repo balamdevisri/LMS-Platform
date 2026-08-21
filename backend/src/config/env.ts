@@ -19,17 +19,19 @@ const envSchema = z.object({
   FIREBASE_PRIVATE_KEY: z.string().optional(),
   GEMINI_API_KEY: z.string().optional(),
 
-  // Email Notification System Configurations (Nodemailer + Gmail SMTP)
+  // Email Notification System Configurations (Nodemailer Direct SMTP)
   EMAIL_PROVIDER: z.enum(['nodemailer', 'resend', 'mock']).default('nodemailer'),
   RESEND_API_KEY: z.string().optional(),
   SMTP_HOST: z.string().default('smtp.gmail.com'),
-  SMTP_PORT: z.string().default('587'),
-  SMTP_SECURE: z.string().default('false'),
+  SMTP_PORT: z.string().default('465'),
+  SMTP_SECURE: z.string().default('true'),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   SMTP_EMAIL: z.string().default('kaizenqlms@gmail.com'),
   SMTP_PASSWORD: z.string().default('gmjv leoa tadp vdyg'),
-  SMTP_FROM: z.string().default('Kaizen Q AI LMS <kaizenqlms@gmail.com>'),
+  SMTP_FROM_EMAIL: z.string().default('no-reply@kaizenq.in'),
+  SMTP_FROM_NAME: z.string().default('KaizenQ'),
+  SMTP_FROM: z.string().default('KaizenQ <no-reply@kaizenq.in>'),
   // Google Drive Credentials
   GOOGLE_DRIVE_CLIENT_EMAIL: z.string().optional(),
   GOOGLE_DRIVE_PRIVATE_KEY: z.string().optional(),
