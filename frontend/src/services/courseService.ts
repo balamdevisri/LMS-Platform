@@ -617,7 +617,7 @@ export interface XPClaimRecord {
   id: string;
   title: string;
   xp: number;
-  category: 'Subtopic Completion' | 'Module Certificate' | 'AI Terminal Lab' | 'Quiz Evaluation' | 'Daily Login' | 'Module Completion Bonus';
+  category: 'Subtopic Completion' | 'Module Certificate' | 'AI Terminal Lab' | 'Quiz Evaluation' | 'Daily Login' | 'Module Completion Bonus' | 'Practice Challenge Completion';
   timestamp: string;
   courseId?: string;
   courseTitle?: string;

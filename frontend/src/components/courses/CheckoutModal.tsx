@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Tag, CheckCircle2, ShieldCheck, CreditCard } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { API_BASE_URL } from '@/config/api';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -46,7 +47,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, c
     try {
       if (isFree) {
         // Handle free enrollment
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/payments/enroll-free`, {
+        const response = await fetch(`${API_BASE_URL}/payments/enroll-free`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -65,7 +66,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, c
         }
       } else {
         // Handle Stripe Checkout
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/payments/create-checkout-session`, {
+        const response = await fetch(`${API_BASE_URL}/payments/create-checkout-session`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

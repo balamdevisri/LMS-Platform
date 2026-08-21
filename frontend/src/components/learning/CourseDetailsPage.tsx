@@ -172,7 +172,7 @@ export const CourseDetailsPage: React.FC<CourseDetailsProps> = ({
                   className="px-8 py-4 rounded-2xl bg-gradient-to-r from-sky-500 via-sky-400 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-black text-base flex items-center gap-3 transition-all duration-200 shadow-xl shadow-sky-500/25 hover:scale-105 active:scale-95 cursor-pointer border border-sky-300/40"
                 >
                   <PlayCircle className="w-5 h-5" />
-                  <span>Continue Course Track</span>
+                  <span>Track Course</span>
                   <ArrowRight className="w-5 h-5" />
                 </button>
               ) : (
@@ -296,7 +296,7 @@ export const CourseDetailsPage: React.FC<CourseDetailsProps> = ({
                 onClick={onStartLearning}
                 className="px-5 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs flex items-center gap-2 cursor-pointer transition-all self-start sm:self-auto shadow-md shadow-sky-500/20"
               >
-                <span>Explore Curriculum & Start</span>
+                <span>Track Course</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             ) : (

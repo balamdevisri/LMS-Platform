@@ -44,35 +44,69 @@ router.put('/me', extractOptionalUser as any, async (req: AuthenticatedRequest, 
 
     const {
       name,
+      fullName,
       email,
       bio,
+      headline,
+      avatarUrl,
+      photoURL,
+      avatar,
+      location,
+      phone,
       githubLink,
+      githubUrl,
       linkedinLink,
+      linkedinUrl,
       websiteLink,
+      websiteUrl,
       customHandle,
       skills,
       projects,
       experience,
+      experiences,
       education,
+      educations,
       isPublished,
       theme,
+      accentColor,
     } = req.body;
+
+    const resolvedName = fullName || name || req.user?.name || 'Student Scholar';
+    const resolvedAvatar = avatarUrl || photoURL || avatar || '';
+    const resolvedGithub = githubUrl || githubLink || '';
+    const resolvedLinkedin = linkedinUrl || linkedinLink || '';
+    const resolvedWebsite = websiteUrl || websiteLink || '';
+    const resolvedExperience = experiences || experience || [];
+    const resolvedEducation = educations || education || [];
 
     const payload: any = {
       studentId,
-      name: name || req.user?.name || 'Student Scholar',
+      name: resolvedName,
+      fullName: resolvedName,
       email: email || req.user?.email || '',
       bio: bio || '',
-      githubLink: githubLink || '',
-      linkedinLink: linkedinLink || '',
-      websiteLink: websiteLink || '',
+      headline: headline || '',
+      avatarUrl: resolvedAvatar,
+      photoURL: resolvedAvatar,
+      avatar: resolvedAvatar,
+      location: location || '',
+      phone: phone || '',
+      githubLink: resolvedGithub,
+      githubUrl: resolvedGithub,
+      linkedinLink: resolvedLinkedin,
+      linkedinUrl: resolvedLinkedin,
+      websiteLink: resolvedWebsite,
+      websiteUrl: resolvedWebsite,
       customHandle: customHandle || studentId,
       skills: Array.isArray(skills) ? skills : [],
       projects: Array.isArray(projects) ? projects : [],
-      experience: Array.isArray(experience) ? experience : [],
-      education: Array.isArray(education) ? education : [],
+      experience: Array.isArray(resolvedExperience) ? resolvedExperience : [],
+      experiences: Array.isArray(resolvedExperience) ? resolvedExperience : [],
+      education: Array.isArray(resolvedEducation) ? resolvedEducation : [],
+      educations: Array.isArray(resolvedEducation) ? resolvedEducation : [],
       isPublished: Boolean(isPublished),
       theme: theme || 'modern',
+      accentColor: accentColor || 'cyan',
       updatedAt: new Date().toISOString(),
     };
 
