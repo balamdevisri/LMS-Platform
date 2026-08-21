@@ -1207,7 +1207,7 @@ export const LandingPage: React.FC = () => {
                 </div>
 
                 <button
-                  onClick={(e) => {
+                  onClick={() => {
                     setCheckoutCourses([{ id: `bundle-${plan.coursesCount}`, title: plan.name }]);
                     setCheckoutPrice(Number(plan.price));
                     setIsCheckoutOpen(true);
