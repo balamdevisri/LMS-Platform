@@ -203,56 +203,6 @@ export class XPService {
     }
     const val = localStorage.getItem(`${this.xpKeyPrefix}${userId}`);
     return val ? parseInt(val, 10) : 150;
-
-    let maxFound = 0;
-
-    // 1. User specific XP key
-    const userXp = localStorage.getItem(`${this.xpKeyPrefix}${userId}`);
-    if (userXp) maxFound = Math.max(maxFound, parseInt(userXp, 10) || 0);
-
-    // 2. User specific points key
-    const userPts = localStorage.getItem(`shaivika_points_${userId}`);
-    if (userPts) maxFound = Math.max(maxFound, parseInt(userPts, 10) || 0);
-
-    // 3. Fallback generic points key
-    const currentPts = localStorage.getItem(this.pointsKey);
-    if (currentPts) maxFound = Math.max(maxFound, parseInt(currentPts, 10) || 0);
-
-    // 4. Check shaivika_user cache from AuthContext
-    try {
-      const authUserRaw = localStorage.getItem('shaivika_user');
-      if (authUserRaw) {
-        const u = JSON.parse(authUserRaw);
-        if (u.xp) maxFound = Math.max(maxFound, Number(u.xp) || 0);
-        if (u.learningScore) maxFound = Math.max(maxFound, Number(u.learningScore) * 20 || 0);
-        if (u.points) maxFound = Math.max(maxFound, Number(u.points) || 0);
-      }
-    } catch (e) {}
-
-    // 5. Calculate from completed lessons & courses in local progress
-    try {
-      const progressRaw = localStorage.getItem('shaivika_learning_progress');
-      if (progressRaw) {
-        const progress = JSON.parse(progressRaw);
-        if (Array.isArray(progress)) {
-          let progressXp = 0;
-          progress.forEach((p: any) => {
-            if (p.completedLessons && Array.isArray(p.completedLessons)) {
-              progressXp += p.completedLessons.length * XP_CONFIG.LESSON_COMPLETED;
-            }
-            if (p.completedQuizzes && Array.isArray(p.completedQuizzes)) {
-              progressXp += p.completedQuizzes.length * XP_CONFIG.QUIZ_PASSED;
-            }
-            if (p.percentage === 100) {
-              progressXp += 200; // Track completion bonus
-            }
-          });
-          maxFound = Math.max(maxFound, progressXp);
-        }
-      }
-    } catch (e) {}
-
-    return Math.max(maxFound, 150);
   }
 
   addXP(points: number, activityName: string, userId = 'default_student'): number {

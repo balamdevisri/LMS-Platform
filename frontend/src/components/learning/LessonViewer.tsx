@@ -1394,11 +1394,8 @@ export const LessonViewer: React.FC<LessonViewerProps> = React.memo(({
           </div>
 
           <h1
-            className={`text-2xl sm:text-3xl lg:text-4xl font-heading font-black tracking-tight leading-tight ${
-              isNightMode
-                ? 'text-transparent bg-clip-text bg-linear-to-r from-white via-slate-100 to-slate-300'
-                : 'text-slate-900'
-            }`}
+            className="text-2xl sm:text-3xl lg:text-4xl font-heading font-black tracking-tight leading-tight text-primary"
+            style={{ textShadow: '0 0 10px var(--kq-glow)' }}
           >
             {formattedTitle}
           </h1>
@@ -1660,7 +1657,10 @@ export const LessonViewer: React.FC<LessonViewerProps> = React.memo(({
             {activeTab === 'sandbox' && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className={`text-lg font-bold flex items-center gap-2 font-heading ${isNightMode ? 'text-white' : 'text-slate-900'}`}>
+                  <h3 
+                    className="text-lg font-bold flex items-center gap-2 font-heading text-primary"
+                    style={{ textShadow: '0 0 6px var(--kq-glow)' }}
+                  >
                     <TerminalIcon className="w-5 h-5 text-emerald-500 animate-pulse" />
                     Hands-on Practice Terminal Sandbox
                   </h3>
@@ -1729,7 +1729,10 @@ export const LessonViewer: React.FC<LessonViewerProps> = React.memo(({
 
                 {/* Download Vault Resource Grid (8-15 Items) */}
                 <div className="space-y-4 pt-4">
-                  <h3 className={`text-md font-heading font-black tracking-tight ${isNightMode ? 'text-white' : 'text-slate-900'}`}>
+                  <h3 
+                    className="text-md font-heading font-black tracking-tight text-primary"
+                    style={{ textShadow: '0 0 6px var(--kq-glow)' }}
+                  >
                     📥 Resource Download Vault (Classroom Syllabus Attachments)
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1787,7 +1790,7 @@ export const LessonViewer: React.FC<LessonViewerProps> = React.memo(({
             <Zap className="w-6 h-6 animate-bounce" />
           </div>
           <div>
-            <h4 className={`text-sm font-bold flex items-center gap-1.5 ${isNightMode ? 'text-white' : 'text-slate-900'}`}>
+            <h4 className="text-sm font-bold flex items-center gap-1.5 text-primary">
               <span>Finished reading & practice?</span>
               <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 text-[10px] font-mono font-bold">
                 +50 XP

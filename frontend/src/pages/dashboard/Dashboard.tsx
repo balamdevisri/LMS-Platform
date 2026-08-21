@@ -95,26 +95,9 @@ export const Dashboard: React.FC = () => {
   const [isAiSearching, setIsAiSearching] = useState(false);
   const [weakTopics, setWeakTopics] = useState<any[]>([]);
 
-  const handleAiSearch = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
-    if (!aiSearchQuery.trim()) return;
-    setIsAiSearching(true);
-    setTimeout(() => {
-      const query = aiSearchQuery.toLowerCase();
-      const matches = enrolledCourses.filter(c => 
-        c.title.toLowerCase().includes(query) || 
-        c.description?.toLowerCase().includes(query)
-      );
-      setAiSearchResults(matches);
-      setIsAiSearching(false);
-    }, 500);
-  }, [aiSearchQuery, enrolledCourses]);
-
   useEffect(() => {
     setWeakTopics([]);
   }, []);
-
-  const weakTopics = useMemo<any[]>(() => [], []);
   const badgeService = useMemo(() => new BadgeService(), []);
   const streakService = useMemo(() => new AchievementService(), []);
 
@@ -625,6 +608,7 @@ export const Dashboard: React.FC = () => {
     const uid = userProfile?.uid || user?.uid || 'default_student';
     const studentEmail = user?.email || userProfile?.email || 'shaivikagroups@gmail.com';
     const studentId = uid;
+    const apiBase = import.meta.env.VITE_API_URL || '/api';
 
     const fetchAndSyncFromBackend = async () => {
       try {
@@ -635,8 +619,6 @@ export const Dashboard: React.FC = () => {
         }
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
-        const response = await fetch(`${API_BASE_URL}/certificates/student/${studentEmail}`);
-        if (response.ok) {
           const resData = await response.json();
           if (resData.success && Array.isArray(resData.data)) {
             resData.data.forEach((backendCert: any) => {
@@ -855,8 +837,6 @@ export const Dashboard: React.FC = () => {
       };
 
       const verifyRes = await fetch(`${apiBase}/certificates/student/${studentEmail}`);
-      // 1. Query the student's certificates on backend to see if it's already there
-      const verifyRes = await fetch(`${API_BASE_URL}/certificates/student/${studentEmail}`);
       if (verifyRes.ok) {
         const contentType = verifyRes.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {

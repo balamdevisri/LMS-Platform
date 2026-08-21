@@ -8,7 +8,7 @@ import type { ModuleData } from './ModuleAccordion';
 import { useAuth } from '@/contexts/AuthContext';
 import { courseService } from '@/services/courseService';
 import { useCourseTimeTracker } from '@/hooks/useCourseTimeTracker';
-import { Sparkles, RefreshCw } from 'lucide-react';
+import { Sparkles, RefreshCw, Play } from 'lucide-react';
 import { toast } from 'sonner';
 import { dbmsLessonsData } from '@/data/dbmsLessonsData';
 import { ChallengeArena } from './ChallengeArena';
@@ -1169,171 +1169,287 @@ soundEnabled
         <div className="flex-1 max-w-[1200px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-8 relative z-10 font-mono text-slate-200">
           {/* Mission Map Header */}
           <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl relative overflow-hidden backdrop-blur-md animate-in fade-in slide-in-from-top-4 duration-300">
-            <div className="absolute inset-0 bg-radial-gradient(circle at top right, rgba(6,182,212,0.1), transparent) pointer-events-none" />
+            <div className="absolute inset-0 bg-radial-gradient(circle at top right, rgba(249,115,22,0.06), transparent) pointer-events-none" />
             
             <div className="space-y-2">
-              <span className="text-[10px] uppercase font-black tracking-widest text-cyan-400 font-mono bg-cyan-950/40 border border-cyan-900/50 px-2.5 py-1 rounded-md">
-                MISSION OVERVIEW CONTROL
+              <span className="text-[10px] uppercase font-black tracking-widest text-primary font-mono bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-md">
+                🎯 MISSION PATH
               </span>
               <h2 className="text-2xl font-black text-white tracking-tight mt-1 uppercase font-sans">
                 {courseTitle}
               </h2>
-              <p className="text-xs text-slate-400 font-sans font-medium">
-                Complete each challenge node sequentially to master the path and unlock your credentials.
+              <p className="text-xs text-slate-400 font-sans font-medium uppercase tracking-wider">
+                Master your learning path
               </p>
             </div>
 
-            <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-4 min-w-[220px] space-y-2 text-xs font-bold text-slate-400 font-mono shadow-inner">
-              <div className="flex justify-between">
-                <span>PATH PROGRESS</span>
-                <span className="text-cyan-400">{validCompletedCount} / {allLessons.length} CHALLENGES</span>
-              </div>
-              <div className="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
-                <div
-                  className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-500 shadow-[0_0_8px_rgba(6,182,212,0.5)]"
-                  style={{ width: `${(validCompletedCount / Math.max(1, allLessons.length)) * 100}%` }}
-                />
-              </div>
-              <div className="flex justify-between border-t border-slate-900 pt-2 text-[10px]">
-                <span>TOTAL SCORE</span>
-                <span className="text-amber-400 flex items-center gap-1">⚡ {courseService.getUserXPPoints(studentUid)} XP</span>
-              </div>
-              <div className="flex justify-between text-[10px]">
-                <span>LEARNING STREAK</span>
-                <span className="text-rose-400 flex items-center gap-1">🔥 {new AchievementService().getStreaks(studentUid).dailyStreak} DAYS</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Connected Path Map */}
-          <div className="space-y-12 relative before:absolute before:left-[19px] md:before:left-[35px] before:top-8 before:bottom-8 before:w-[2px] before:bg-slate-800 before:-z-10 animate-in fade-in duration-500 delay-150">
-            {modules.map((mod, modIdx) => {
-              const missionNum = String(modIdx + 1).padStart(2, '0');
-              const isModLocked = modIdx > 0 && !modules[modIdx - 1].lessons.every(l => completedLessonIds.some(cId => String(cId) === String(l.id)));
+            {(() => {
+              const completedLevelsCount = modules.filter(mod => 
+                mod.lessons.every(l => completedLessonIds.some(cId => String(cId) === String(l.id)))
+              ).length;
 
               return (
-                <div key={mod.id} className="relative space-y-4">
-                  {/* Mission Label */}
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 md:w-18 md:h-18 rounded-2xl flex items-center justify-center border font-black text-xs md:text-sm font-mono shadow-md transition-all shrink-0 ${
-                      isModLocked
-                        ? 'bg-slate-950 border-slate-900 text-slate-650'
-                        : 'bg-slate-900/90 border-cyan-500/50 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.15)]'
-                    }`}>
-                      M{missionNum}
-                    </div>
-                    <div>
-                      <span className={`text-[10px] font-black uppercase font-mono tracking-widest block ${isModLocked ? 'text-slate-650' : 'text-cyan-400'}`}>
-                        MISSION {missionNum}
-                      </span>
-                      <h3 className="text-sm md:text-base font-extrabold text-white font-sans tracking-tight">
-                        {mod.title.replace(/^Module\s+\d+\s*:?\s*/i, '').replace(/^🟢|^🟡|^🔵|^🔴/, '').trim()}
-                      </h3>
-                    </div>
+                <div className="bg-slate-950/60 border border-slate-850 rounded-2xl p-4 min-w-[250px] space-y-2.5 text-xs font-bold text-slate-400 font-mono shadow-inner">
+                  <div className="flex justify-between items-center">
+                    <span>LEVELS COMPLETED</span>
+                    <span className="text-primary font-black uppercase">{completedLevelsCount} / {modules.length} LEVELS</span>
                   </div>
-
-                  {/* Challenge Nodes List */}
-                  <div className="pl-6 md:pl-22 space-y-3">
-                    {mod.lessons.map((lesson, lessonIdx) => {
-                      const challengeNum = String(lessonIdx + 1).padStart(2, '0');
-                      const isCurrent = String(lesson.id) === String(selectedLessonId);
-                      const isDone = completedLessonIds.some(cId => String(cId) === String(lesson.id));
-                      const isLocked = !isLessonUnlocked(lesson.id);
-
-                      return (
-                        <div
-                          key={lesson.id}
-                          onClick={() => {
-                            if (isLocked) {
-                              soundService.play('error');
-                              toast.warning(`🔒 Complete previous challenges to unlock this mission!`);
-                              return;
-                            }
-                            setSelectedLessonId(lesson.id);
-                            setActiveView('workspace');
-                            soundService.play('select');
-                          }}
-                          className={`group relative flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-2xl border transition-all duration-300 select-none cursor-pointer ${
-                            isCurrent
-                              ? 'bg-cyan-950/20 border-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.2)] text-white'
-                              : isDone
-                              ? 'bg-emerald-950/10 border-emerald-600/60 hover:bg-emerald-950/15 text-emerald-300'
-                              : isLocked
-                              ? 'bg-slate-950/30 border-slate-900 text-slate-650 cursor-not-allowed opacity-50'
-                              : 'bg-slate-900/50 border-slate-800 hover:bg-slate-850/60 text-slate-350 hover:border-slate-700 challenge-node-hover'
-                          }`}
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
-                              isCurrent
-                                ? 'bg-cyan-500 text-slate-950'
-                               : isDone
-                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                                : isLocked
-                                ? 'bg-slate-950 text-slate-700 border border-slate-900'
-                                : 'bg-slate-900 text-slate-400 border border-slate-800'
-                            }`}>
-                              {challengeNum}
-                            </div>
-                            
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2 mb-0.5">
-                                <span className={`text-[9px] font-black tracking-wider uppercase font-mono ${
-                                  isCurrent ? 'text-cyan-400' : isDone ? 'text-emerald-400' : 'text-slate-500'
-                                }`}>
-                                  CHALLENGE {challengeNum}
-                                </span>
-                                {isCurrent && (
-                                  <span className="px-1.5 py-0.25 text-[8px] font-black bg-cyan-500 text-slate-950 uppercase rounded tracking-wider animate-pulse">
-                                    CURRENT
-                                  </span>
-                                )}
-                              </div>
-                              <h4 className={`text-xs md:text-sm font-bold truncate font-sans ${isCurrent ? 'text-white' : isDone ? 'text-emerald-150' : 'text-slate-300'}`}>
-                                {lesson.title.replace(/^git-unit-\d+-\d+\s*:?\s*/i, '').replace(/^unit-[\d-]+\s*:?\s*/i, '')}
-                              </h4>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-3 shrink-0 self-end md:self-auto font-mono text-[10px] font-bold">
-                            <span className="text-slate-500">
-                              ⏳ {lesson.duration || '15 mins'}
-                            </span>
-
-                            <span className="text-amber-500 font-extrabold font-mono shrink-0">
-                              +{getXPRewardForDifficulty((lesson as any).difficulty)} XP
-                            </span>
-
-                            <span className={`px-2 py-0.5 rounded border uppercase ${
-                              lesson.type?.toLowerCase() === 'quiz'
-                                ? 'bg-amber-950/40 border-amber-800/60 text-amber-400'
-                                : lesson.type?.toLowerCase() === 'assignment'
-                                ? 'bg-indigo-950/40 border-indigo-800/60 text-indigo-400'
-                                : 'bg-slate-950 border-slate-800 text-slate-400'
-                            }`}>
-                              {lesson.type || 'Reading'}
-                            </span>
-
-                            <div className="w-6 flex justify-center">
-                              {isDone ? (
-                                <span className="text-emerald-400 text-sm font-black animate-checkmark-pop">✓</span>
-                              ) : isLocked ? (
-                                <span className="text-slate-700 text-xs">🔒</span>
-                              ) : (
-                                <span className="relative flex h-2.5 w-2.5 animate-unlock-glow">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500"></span>
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                  <div className="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+                    <div
+                      className="h-full bg-linear-to-r from-primary to-secondary transition-all duration-500 shadow-[0_0_10px_var(--color-primary)]"
+                      style={{ width: `${(completedLevelsCount / Math.max(1, modules.length)) * 100}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between items-center border-t border-slate-900 pt-2 text-[10px]">
+                    <span className="text-slate-500">TOTAL SCORE</span>
+                    <span className="text-primary font-extrabold flex items-center gap-1">⚡ {courseService.getUserXPPoints(studentUid)} XP</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[10px]">
+                    <span className="text-slate-500">LEARNING STREAK</span>
+                    <span className="text-secondary font-extrabold flex items-center gap-1">🔥 {new AchievementService().getStreaks(studentUid).dailyStreak} DAY STREAK</span>
                   </div>
                 </div>
               );
-            })}
+            })()}
+          </div>
+
+          {/* Connected Path Map */}
+          <div className="space-y-12 relative animate-in fade-in duration-500 delay-150">
+            {(() => {
+              // Find index of current active level (first module that is not completed and not locked)
+              const currentActiveModIdx = modules.findIndex((mod, idx) => {
+                const isCompleted = mod.lessons.every(l => completedLessonIds.some(cId => String(cId) === String(l.id)));
+                const isLocked = idx > 0 && !isLessonUnlocked(modules[idx - 1].lessons[0].id);
+                return !isCompleted && !isLocked;
+              });
+
+              return modules.map((mod, modIdx) => {
+                const isCompleted = mod.lessons.every(l => completedLessonIds.some(cId => String(cId) === String(l.id)));
+                const isLocked = modIdx > 0 && !isLessonUnlocked(modules[modIdx - 1].lessons[0].id);
+                
+                // If not completed and not locked, and matches current active index (or fallback if none found)
+                const isCurrent = !isCompleted && !isLocked && (modIdx === currentActiveModIdx || (currentActiveModIdx === -1 && modIdx === modules.findIndex(m => !m.lessons.every(l => completedLessonIds.some(cId => String(cId) === String(l.id))))));
+                
+                const isAvailable = !isCompleted && !isLocked && !isCurrent;
+                const missionNum = String(modIdx + 1).padStart(2, '0');
+
+                // Get first uncompleted lesson to open when module header/card is clicked
+                const getFirstUncompletedOrFirstLesson = () => {
+                  const uncompleted = mod.lessons.find(l => !completedLessonIds.some(cId => String(cId) === String(l.id)));
+                  return uncompleted || mod.lessons[0];
+                };
+
+                const handleStartLevel = () => {
+                  if (isLocked) {
+                    soundService.play('error');
+                    toast.warning(`🔒 LEVEL LOCKED. Complete previous missions to unlock!`);
+                    return;
+                  }
+                  const targetLesson = getFirstUncompletedOrFirstLesson();
+                  if (targetLesson) {
+                    setSelectedLessonId(targetLesson.id);
+                    setActiveView('workspace');
+                    soundService.play('select');
+                  }
+                };
+
+                return (
+                  <div key={mod.id} className="relative">
+                    
+                    {/* Path line connecting to the next node */}
+                    {modIdx < modules.length - 1 && (
+                      <div className="absolute left-[19px] md:left-[35px] top-[74px] bottom-[-24px] w-0.5 z-0">
+                        <div className={`h-full w-full transition-all duration-300 ${
+                          isCompleted
+                            ? 'bg-primary shadow-[0_0_8px_var(--color-primary)]'
+                            : 'bg-slate-800'
+                        }`} />
+                      </div>
+                    )}
+
+                    {/* Level Card */}
+                    <div className={`relative z-10 p-5 rounded-3xl border transition-all duration-300 ${
+                      isCurrent
+                        ? 'bg-primary/5 border-primary shadow-[0_0_20px_var(--kq-glow)] scale-[1.01]'
+                        : isCompleted
+                        ? 'bg-emerald-950/5 border-emerald-600/40 hover:bg-emerald-950/10 text-emerald-300'
+                        : isLocked
+                        ? 'bg-slate-950/30 border-slate-900 opacity-60 text-slate-500 font-bold'
+                        : 'bg-slate-900/40 border-slate-800 hover:bg-slate-850/60 hover:border-slate-700'
+                    }`}>
+                      
+                      {/* Card Header Info */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 select-none">
+                        <div className="flex items-center gap-4 cursor-pointer" onClick={handleStartLevel}>
+                          
+                          {/* Level Node Circle */}
+                          <div className={`w-10 h-10 md:w-16 md:h-16 rounded-2xl flex flex-col items-center justify-center border font-black text-xs md:text-sm font-mono shadow-md transition-all shrink-0 ${
+                            isCurrent
+                              ? 'bg-primary border-primary text-slate-950 shadow-[0_0_12px_var(--color-primary)] animate-pulse'
+                              : isCompleted
+                              ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
+                              : isLocked
+                              ? 'bg-slate-950 border-slate-900 text-slate-700'
+                              : 'bg-slate-900 text-slate-400 border-slate-800'
+                          }`}>
+                            <span className="text-[9px] md:text-[10px] font-bold text-slate-500 dark:text-slate-400 leading-none">LVL</span>
+                            <span className="text-base md:text-lg leading-none mt-0.5">{missionNum}</span>
+                          </div>
+
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              {isCurrent ? (
+                                <span className="px-2 py-0.5 text-[9px] font-black bg-primary text-slate-950 uppercase rounded tracking-wider animate-pulse flex items-center gap-1">
+                                  ⚡ CURRENT LEVEL
+                                </span>
+                              ) : isCompleted ? (
+                                <span className="px-2 py-0.5 text-[9px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase rounded tracking-wider flex items-center gap-1">
+                                  ✓ COMPLETED
+                                </span>
+                              ) : isAvailable ? (
+                                <span className="px-2 py-0.5 text-[9px] font-black bg-slate-900 text-slate-400 border border-slate-800 uppercase rounded tracking-wider flex items-center gap-1">
+                                  ◉ AVAILABLE
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 text-[9px] font-black bg-slate-950 text-slate-500 border border-slate-900 uppercase rounded tracking-wider flex items-center gap-1">
+                                  🔒 LOCKED
+                                </span>
+                              )}
+
+                              <span className="text-[10px] font-bold font-mono text-slate-500">
+                                {mod.lessons.filter(l => completedLessonIds.some(cId => String(cId) === String(l.id))).length} / {mod.lessons.length} nodes
+                              </span>
+                            </div>
+
+                            <h3 className={`text-base font-black tracking-tight leading-tight ${
+                              isCurrent ? 'text-white' : isCompleted ? 'text-emerald-100' : isLocked ? 'text-slate-500' : 'text-slate-200'
+                            }`}>
+                              {mod.title.replace(/^Module\s+\d+\s*:?\s*/i, '').replace(/^🟢|^🟡|^🔵|^🔴/, '').trim()}
+                            </h3>
+                          </div>
+                        </div>
+
+                        {/* Interactive CTA buttons */}
+                        <div className="shrink-0">
+                          {isCurrent ? (
+                            <button
+                              onClick={handleStartLevel}
+                              className="px-5 py-2.5 rounded-xl bg-primary hover:brightness-110 text-slate-950 font-black text-xs transition-all duration-200 shadow-md shadow-primary/20 hover:scale-105 active:scale-95 cursor-pointer flex items-center gap-1.5"
+                            >
+                              <span>START MISSION</span>
+                              <Play className="w-3 h-3 fill-slate-950" />
+                            </button>
+                          ) : isCompleted ? (
+                            <button
+                              onClick={handleStartLevel}
+                              className="px-5 py-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 font-black text-xs transition-all cursor-pointer"
+                            >
+                              REVIEW MODULE
+                            </button>
+                          ) : isLocked ? (
+                            <span className="text-xs font-bold text-slate-500 flex items-center gap-1 bg-slate-950/65 px-3 py-2 rounded-xl border border-slate-900">
+                              🔒 Unlocks after previous level
+                            </span>
+                          ) : (
+                            <button
+                              onClick={handleStartLevel}
+                              className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 font-black text-xs transition-all cursor-pointer"
+                            >
+                              ENTER LEVEL
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Display lessons grid list inside cards if not locked */}
+                      {!isLocked && (
+                        <div className="mt-5 pt-4 border-t border-slate-800/50 space-y-2">
+                          <span className="text-[9px] font-black uppercase font-mono tracking-widest text-slate-500 block mb-3">
+                            Challenge Nodes Map
+                          </span>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {mod.lessons.map((lesson, lessonIdx) => {
+                              const challengeNum = String(lessonIdx + 1).padStart(2, '0');
+                              const isCurrentLesson = String(lesson.id) === String(selectedLessonId);
+                              const isLessonDone = completedLessonIds.some(cId => String(cId) === String(lesson.id));
+                              const isLessonLocked = !isLessonUnlocked(lesson.id);
+
+                              return (
+                                <div
+                                  key={lesson.id}
+                                  onClick={() => {
+                                    if (isLessonLocked) {
+                                      soundService.play('error');
+                                      toast.warning(`🔒 Complete previous challenges to unlock this mission!`);
+                                      return;
+                                    }
+                                    setSelectedLessonId(lesson.id);
+                                    setActiveView('workspace');
+                                    soundService.play('select');
+                                  }}
+                                  className={`flex items-center justify-between p-3 rounded-2xl border transition-all duration-300 cursor-pointer ${
+                                    isCurrentLesson
+                                      ? 'bg-primary/10 border-primary shadow-[0_0_12px_rgba(249,115,22,0.15)] text-white'
+                                      : isLessonDone
+                                      ? 'bg-emerald-950/10 border-emerald-600/40 text-emerald-300 hover:bg-emerald-950/20'
+                                      : isLessonLocked
+                                      ? 'bg-slate-950/40 border-slate-900 text-slate-650 opacity-45 cursor-not-allowed'
+                                      : 'bg-slate-955/20 border-slate-850 hover:bg-slate-900/60 text-slate-300 hover:border-slate-700'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center font-mono text-[10px] font-bold shrink-0 ${
+                                      isCurrentLesson
+                                        ? 'bg-primary text-slate-950'
+                                        : isLessonDone
+                                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                        : isLessonLocked
+                                        ? 'bg-slate-955 text-slate-700 border border-slate-900'
+                                        : 'bg-slate-900 text-slate-400 border border-slate-800'
+                                    }`}>
+                                      {challengeNum}
+                                    </div>
+                                    <div className="min-w-0">
+                                      <h5 className={`text-xs font-bold truncate ${
+                                        isCurrentLesson ? 'text-white' : isLessonDone ? 'text-emerald-150' : 'text-slate-350'
+                                      }`}>
+                                        {lesson.title.replace(/^git-unit-\d+-\d+\s*:?\s*/i, '').replace(/^unit-[\d-]+\s*:?\s*/i, '')}
+                                      </h5>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-2 shrink-0 font-mono text-[9px] font-bold">
+                                    <span className="text-slate-500 hidden sm:inline">
+                                      ⏳ {lesson.duration || '15 mins'}
+                                    </span>
+                                    <span className="text-amber-500">
+                                      +{getXPRewardForDifficulty((lesson as any).difficulty)} XP
+                                    </span>
+                                    <div className="w-4 flex justify-center">
+                                      {isLessonDone ? (
+                                        <span className="text-emerald-400 font-black animate-checkmark-pop">✓</span>
+                                      ) : isLessonLocked ? (
+                                        <span>🔒</span>
+                                      ) : (
+                                        <span className="relative flex h-2 w-2">
+                                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                                          <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              });
+            })()}
           </div>
 
           {/* Achievements Badge Section */}

@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { CourseDetailsPage } from '@/components/learning/CourseDetailsPage';
 import { InCourseLearningView } from '@/components/learning/InCourseLearningView';
 import { PaymentCheckoutModal } from '@/components/payment/PaymentCheckoutModal';
+import { GamifiedCourseEntry } from '@/components/courses/GamifiedCourseEntry';
 import { SEOHead } from '@/components/seo/SEOHead';
 import { CourseSchema as StructuredCourseSchema } from '@/components/seo/StructuredData';
 
@@ -92,6 +93,7 @@ export const CourseView: React.FC = () => {
   });
 
   const [isLearningMode, setIsLearningMode] = useState(() => searchParams.get('mode') === 'learn');
+  const [showEntrySequence, setShowEntrySequence] = useState<boolean>(false);
   const [checkoutModalOpen, setCheckoutModalOpen] = useState<boolean>(false);
   const [confirmModalOpen, setConfirmModalOpen] = useState<boolean>(false);
   const [confirmActionType, setConfirmActionType] = useState<CourseActionType>('enroll');
@@ -119,6 +121,7 @@ export const CourseView: React.FC = () => {
 
   const handleEnrollSuccess = (_enrollmentRecord?: any) => {
     setIsEnrolled(true);
+    setShowEntrySequence(true);
     // Sync local store
     if (dynamicCourse) {
       courseService.enrollCourse(targetCourseId, userId, {
@@ -283,6 +286,21 @@ export const CourseView: React.FC = () => {
     outcomes: meta.outcomes,
     modules: mapCourseModulesToPlayerModules(dynamicCourse.modules)
   };
+
+  if (showEntrySequence) {
+    return (
+      <GamifiedCourseEntry
+        courseTitle={activeCourseData.title}
+        modules={activeCourseData.modules}
+        onStartMission={() => {
+          setShowEntrySequence(false);
+          setIsLearningMode(true);
+          setSearchParams({ mode: 'learn' });
+          window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        }}
+      />
+    );
+  }
 
   if (isLearningMode) {
     return (
