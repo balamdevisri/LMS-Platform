@@ -4,10 +4,24 @@ import { env } from '../config/env';
 import { db, isFirebaseAdminInitialized } from '../firebase';
 import { emailService } from '../services/email/EmailService';
 
-const stripeKey = process.env.STRIPE_SECRET_KEY || env.STRIPE_SECRET_KEY || '';
-const stripe = new Stripe(stripeKey, {
-  apiVersion: '2025-02-24.acacia',
-});
+let stripeInstance: Stripe | null = null;
+
+const getStripe = (): Stripe | null => {
+  if (stripeInstance) return stripeInstance;
+  const stripeKey = (process.env.STRIPE_SECRET_KEY || env.STRIPE_SECRET_KEY || '').trim();
+  if (!stripeKey) {
+    return null;
+  }
+  try {
+    stripeInstance = new Stripe(stripeKey, {
+      apiVersion: '2025-02-24.acacia',
+    });
+    return stripeInstance;
+  } catch (err) {
+    console.error('[PaymentController] Failed to initialize Stripe client:', err);
+    return null;
+  }
+};
 
 // Mock Prices fallback if not fetched from DB
 const COURSE_PRICES: Record<string, number> = {
@@ -36,6 +50,12 @@ export class PaymentController {
 
       if (!studentId || !courseIds || !Array.isArray(courseIds) || courseIds.length === 0) {
         res.status(400).json({ success: false, message: 'studentId and an array of courseIds are required.' });
+        return;
+      }
+
+      const stripe = getStripe();
+      if (!stripe) {
+        res.status(500).json({ success: false, message: 'Stripe payment gateway is not configured on this server.' });
         return;
       }
 
@@ -119,6 +139,12 @@ export class PaymentController {
   }
 
   public async stripeWebhook(req: Request, res: Response): Promise<void> {
+    const stripe = getStripe();
+    if (!stripe) {
+      res.status(500).send('Stripe is not configured');
+      return;
+    }
+
     const sig = req.headers['stripe-signature'] as string;
     let event: Stripe.Event;
 
