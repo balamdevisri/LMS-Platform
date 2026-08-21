@@ -18,6 +18,7 @@ const AITutorDrawer = lazy(() => import('./AITutorDrawer').then(m => ({ default:
 import { CertificatePreviewModal } from '../courses/CertificatePreviewModal';
 import { CertificateService, BadgeService, AchievementService, XPService, STATIC_BADGES } from '@/services/achievementService';
 import { CourseActionConfirmModal } from '../courses/CourseActionConfirmModal';
+
 import { assignmentService } from '@/services/assignmentService';
 
 export function calculateEstimatedDuration(content: string, commandCount: number = 0): string {
@@ -883,6 +884,28 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       // 2. Learning Streak calculation
       statsService.checkAndUpdateStreak(activeUserId);
 
+      // Track Daily Mission Progress
+      try {
+        const todayStr = new Date().toLocaleDateString('en-CA');
+        const dailyKey = `shaivika_daily_mission_${activeUserId}_${todayStr}`;
+        const rawDaily = localStorage.getItem(dailyKey);
+        let dailyData = { completedLessonIds: [] as string[], rewardClaimed: false };
+        if (rawDaily) {
+          try { dailyData = JSON.parse(rawDaily); } catch (e) {}
+        }
+        if (!dailyData.completedLessonIds.includes(String(selectedLessonId))) {
+          dailyData.completedLessonIds.push(String(selectedLessonId));
+          localStorage.setItem(dailyKey, JSON.stringify(dailyData));
+        }
+      } catch (err) {
+        console.error('Failed to update daily mission progress:', err);
+      }
+
+      // 4. Check if all lessons in the course are completed (100% Course Completion)
+      const allCourseLessonsDone = allLessons.every((l) =>
+        updated.some((cId) => String(cId) === String(l.id))
+      );
+
       // 3. Check if completing this lesson completes a full module (Mission)
       const currentModule = modules.find((m) =>
         m.lessons.some((l) => String(l.id) === String(selectedLessonId))
@@ -911,17 +934,17 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
           );
           statsService.incrementStat('modulesCompleted' as any, 1, activeUserId);
           toast.success(`🎯 MISSION COMPLETE! +50 XP BONUS`);
+          if (!allCourseLessonsDone) {
+            soundService.play('mission');
+          }
         }
       }
-
-      // 4. Check if all lessons in the course are completed (100% Course Completion)
-      const allCourseLessonsDone = allLessons.every((l) =>
-        updated.some((cId) => String(cId) === String(l.id))
-      );
 
       if (allCourseLessonsDone) {
         statsService.incrementStat('coursesCompleted', 1, activeUserId);
         triggerCertificateGeneration();
+        soundService.play('course');
+        toast.success("🏆 COURSE COMPLETE! 100% COMPLETE");
       }
 
       // Check for badge unlocks
@@ -929,8 +952,10 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       const newBadges = afterBadges.filter(b => !beforeBadges.some(old => old.id === b.id));
       if (newBadges.length > 0) {
         setUnlockedBadge(newBadges[0]);
+        soundService.play('badge');
       }
 
+      soundService.play('xp');
       toast.success(`🎉 Challenge complete! +${earnedXP} XP awarded.`);
     }
   }, [completedLessonIds, selectedLessonId, user, userProfile, userName, activeLessonFull, courseId, courseTitle, modules, allLessons, getXPRewardForDifficulty]);
@@ -963,6 +988,49 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
           : 'bg-slate-50 text-slate-900 selection:bg-sky-500 selection:text-white'
       }`}
     >
+      <style>{`
+        @keyframes checkmarkPop {
+          0% { transform: scale(0.5); opacity: 0; }
+          70% { transform: scale(1.3); }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-checkmark-pop {
+          display: inline-block;
+          animation: checkmarkPop 0.4s ease-out forwards;
+        }
+
+        @keyframes unlockGlow {
+          0% { filter: drop-shadow(0 0 0 rgba(6,182,212,0)); }
+          50% { filter: drop-shadow(0 0 8px rgba(6,182,212,0.8)); }
+          100% { filter: drop-shadow(0 0 0 rgba(6,182,212,0)); }
+        }
+        .animate-unlock-glow {
+          animation: unlockGlow 2s infinite ease-in-out;
+        }
+
+        .challenge-node-hover {
+          transition: all 0.3s ease;
+        }
+        .challenge-node-hover:hover {
+          border-color: rgba(6, 182, 212, 0.45);
+          box-shadow: 0 0 14px rgba(6, 182, 212, 0.15);
+          transform: translateY(-1px);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .animate-checkmark-pop {
+            animation: none;
+            opacity: 1;
+            transform: none;
+          }
+          .animate-unlock-glow {
+            animation: none;
+          }
+          .challenge-node-hover:hover {
+            transform: none;
+          }
+        }
+      `}</style>
       <LearningHeader
         courseTitle={courseTitle}
         currentCert={currentCert}
@@ -1192,14 +1260,14 @@ soundEnabled
                               ? 'bg-emerald-950/10 border-emerald-600/60 hover:bg-emerald-950/15 text-emerald-300'
                               : isLocked
                               ? 'bg-slate-950/30 border-slate-900 text-slate-650 cursor-not-allowed opacity-50'
-                              : 'bg-slate-900/50 border-slate-800 hover:bg-slate-850/60 text-slate-350 hover:border-slate-700'
+                              : 'bg-slate-900/50 border-slate-800 hover:bg-slate-850/60 text-slate-350 hover:border-slate-700 challenge-node-hover'
                           }`}
                         >
                           <div className="flex items-center gap-3 min-w-0">
                             <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
                               isCurrent
                                 ? 'bg-cyan-500 text-slate-950'
-                                : isDone
+                               : isDone
                                 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                                 : isLocked
                                 ? 'bg-slate-950 text-slate-700 border border-slate-900'
@@ -1248,11 +1316,11 @@ soundEnabled
 
                             <div className="w-6 flex justify-center">
                               {isDone ? (
-                                <span className="text-emerald-400 text-sm font-black">✓</span>
+                                <span className="text-emerald-400 text-sm font-black animate-checkmark-pop">✓</span>
                               ) : isLocked ? (
                                 <span className="text-slate-700 text-xs">🔒</span>
                               ) : (
-                                <span className="relative flex h-2.5 w-2.5">
+                                <span className="relative flex h-2.5 w-2.5 animate-unlock-glow">
                                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
                                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500"></span>
                                 </span>

@@ -133,6 +133,7 @@ export class CertificateController {
 
       const fallbackEmail = req.user?.email || req.body.studentEmail;
 
+      // Resolve student profile from Firestore users/students collection
       // Resolve student profile from Firestore users collection
       let studentName = bodyStudentName || '';
       let studentEmail = bodyStudentEmail || '';
@@ -147,6 +148,9 @@ export class CertificateController {
             const email = fallbackEmail;
             const displayName = req.user?.name || req.body.studentName;
             
+            if (!displayName) {
+              logger.error(`[CERTIFICATE CONTROLLER] ❌ Cannot auto-create profile: name claim/body name is missing for UID ${studentId}.`);
+            } else {
             if (displayName) {
               const newProfile = {
                 uid: studentId,
@@ -193,6 +197,13 @@ export class CertificateController {
         logger.info(`[CERTIFICATE CONTROLLER] Profile email resolved from token fallback: ${studentEmail}`);
       }
 
+      // If no valid student profile is resolved, STOP issuance and return "Student profile not found."
+      if (!studentName || !studentEmail) {
+        return res.status(404).json({
+          success: false,
+          error: 'Student profile not found.',
+        });
+      }
       // Make sure we have a fallback studentName & studentEmail if not resolved above
       if (!studentName) {
         studentName = req.user?.name || req.user?.email?.split('@')[0] || 'Student';

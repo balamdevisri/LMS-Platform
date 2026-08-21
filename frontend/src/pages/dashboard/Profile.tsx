@@ -241,6 +241,7 @@ export const Profile: React.FC = () => {
         }
       };
 
+      const verifyRes = await fetch(`${apiBase}/certificates/student/${studentEmail}`);
       // 1. Query the student's certificates on backend to see if it's already there
       const verifyRes = await fetch(`${API_BASE_URL}/certificates/student/${studentEmail}`);
       if (verifyRes.ok) {

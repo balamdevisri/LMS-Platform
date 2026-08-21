@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import {
   BookOpen,
   ArrowLeft,
@@ -29,7 +29,7 @@ import { API_BASE_URL } from '@/config/api';
 import { CoursePlayerModal } from '../../components/courses/CoursePlayerModal';
 import { AssignmentPortal } from '@/components/courses/AssignmentPortal';
 import { AIAssistantPanel } from '@/components/ai/AIAssistantPanel';
-import { CertificateService, BadgeService, AchievementService, STATIC_BADGES } from '@/services/achievementService';
+import { CertificateService, BadgeService, AchievementService, STATIC_BADGES, LeaderboardService } from '@/services/achievementService';
 import type { Certificate } from '@/services/achievementService';
 import { CertificatePreviewModal } from '../../components/courses/CertificatePreviewModal';
 import { AchievementsDashboard } from '../../components/courses/AchievementsDashboard';
@@ -39,6 +39,7 @@ import type { ICourse } from '../../../../shared/types/course';
 import { courseTimeService } from '@/services/courseTimeService';
 import { useCourseTimeTracker } from '@/hooks/useCourseTimeTracker';
 import { studentService, type StudentUser } from '@/services/studentService';
+import { soundService } from '@/services/soundService';
 
 import { AnalyticsDashboard } from '../../components/courses/AnalyticsDashboard';
 import { LeaderboardView } from '../../components/courses/LeaderboardView';
@@ -55,6 +56,7 @@ export const Dashboard: React.FC = () => {
   const { user, userProfile } = useAuth();
   const { courses } = useCourses();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const currentTab = searchParams.get('tab') || 'overview';
 
   // Dynamic Courses State
@@ -91,6 +93,27 @@ export const Dashboard: React.FC = () => {
   const [aiSearchQuery, setAiSearchQuery] = useState('');
   const [aiSearchResults, setAiSearchResults] = useState<any[]>([]);
   const [isAiSearching, setIsAiSearching] = useState(false);
+  const [weakTopics, setWeakTopics] = useState<any[]>([]);
+
+  const handleAiSearch = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+    if (!aiSearchQuery.trim()) return;
+    setIsAiSearching(true);
+    setTimeout(() => {
+      const query = aiSearchQuery.toLowerCase();
+      const matches = enrolledCourses.filter(c => 
+        c.title.toLowerCase().includes(query) || 
+        c.description?.toLowerCase().includes(query)
+      );
+      setAiSearchResults(matches);
+      setIsAiSearching(false);
+    }, 500);
+  }, [aiSearchQuery, enrolledCourses]);
+
+  useEffect(() => {
+    setWeakTopics([]);
+  }, []);
+
   const weakTopics = useMemo<any[]>(() => [], []);
   const badgeService = useMemo(() => new BadgeService(), []);
   const streakService = useMemo(() => new AchievementService(), []);
@@ -177,6 +200,185 @@ export const Dashboard: React.FC = () => {
   useEffect(() => {
     loadDashboardData();
   }, [loadDashboardData]);
+
+  // Phase 5: Daily Mission & Streak Engagement State
+  const [dailyCompletedCount, setDailyCompletedCount] = useState(0);
+  const [isDailyClaimed, setIsDailyClaimed] = useState(false);
+  const [todayXP, setTodayXP] = useState(0);
+
+  // Phase 6: Cohort Leaderboard State & Subscriptions
+  const [leaderboardEntries, setLeaderboardEntries] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!activeUserId) return;
+    const leaderboardService = new LeaderboardService();
+    const unsubscribe = leaderboardService.subscribeToLeaderboard('weekly', activeUserId, (data) => {
+      setLeaderboardEntries(data);
+    });
+    return () => unsubscribe();
+  }, [activeUserId]);
+
+  const top5Entries = useMemo(() => leaderboardEntries.slice(0, 5), [leaderboardEntries]);
+
+  const currentUserRankInfo = useMemo(() => {
+    const userEntry = leaderboardEntries.find(e => e.isCurrentUser || e.id === activeUserId);
+    if (!userEntry) return null;
+
+    const rank = userEntry.rank;
+    const nextEntry = leaderboardEntries.find(e => e.rank === rank - 1);
+    
+    return {
+      entry: userEntry,
+      rank,
+      xp: userEntry.xp,
+      nextRankXpDiff: nextEntry ? nextEntry.xp - userEntry.xp : 0,
+      nextRankName: nextEntry ? nextEntry.name : null,
+      isFirst: rank === 1
+    };
+  }, [leaderboardEntries, activeUserId]);
+
+  const showCurrentUserAtBottom = useMemo(() => {
+    if (!currentUserRankInfo) return false;
+    return currentUserRankInfo.rank > 5;
+  }, [currentUserRankInfo]);
+
+  useEffect(() => {
+    if (!activeUserId) return;
+    const todayStr = new Date().toLocaleDateString('en-CA');
+    const dailyKey = `shaivika_daily_mission_${activeUserId}_${todayStr}`;
+    
+    // Load or initialize daily mission tracker
+    const rawDaily = localStorage.getItem(dailyKey);
+    let dailyData = { completedLessonIds: [] as string[], rewardClaimed: false };
+    if (rawDaily) {
+      try {
+        dailyData = JSON.parse(rawDaily);
+      } catch (e) {}
+    } else {
+      // Clean up older daily mission keys to save local storage space
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith(`shaivika_daily_mission_${activeUserId}_`) && key !== dailyKey) {
+            localStorage.removeItem(key);
+          }
+        }
+      } catch (e) {}
+      localStorage.setItem(dailyKey, JSON.stringify(dailyData));
+    }
+    
+    setDailyCompletedCount(dailyData.completedLessonIds.length);
+    setIsDailyClaimed(dailyData.rewardClaimed);
+
+    // Calculate today's XP from claim logs
+    const claims = courseService.getXPClaimLogs(activeUserId);
+    const earnedToday = claims
+      .filter((c: any) => c.timestamp && c.timestamp.startsWith(todayStr))
+      .reduce((sum: number, c: any) => sum + (c.xp || 0), 0);
+    setTodayXP(earnedToday);
+  }, [activeUserId, totalXP]);
+
+  const nextLessonData = useMemo(() => {
+    if (courses.length === 0) return null;
+    
+    // Find active course (where progress is > 0 and < 100)
+    let activeCourse = courses.find(course => {
+      const checkpoint = courseService.getCourseCheckpoint(String(course.id), activeUserId);
+      return checkpoint && checkpoint.progressPercent > 0 && checkpoint.progressPercent < 100;
+    });
+
+    // Fallback to first course in list
+    if (!activeCourse) {
+      activeCourse = courses[0];
+    }
+
+    const modules = (activeCourse.modules || []) as any[];
+    const allLessons = modules.flatMap(m => (m.lessons || []) as any[]);
+    if (allLessons.length === 0) return null;
+
+    // Get completed lessons for this course
+    let completedIds: any[] = [];
+    try {
+      const saved = localStorage.getItem(`shaivika_completed_${activeCourse.id}`);
+      completedIds = saved ? JSON.parse(saved) : [];
+    } catch (e) {}
+
+    // Find the first lesson that is NOT completed
+    const incompleteLesson = allLessons.find(l => !completedIds.some(cId => String(cId) === String(l.id)));
+    if (!incompleteLesson) {
+      // Course is fully completed
+      return { completed: true, course: activeCourse };
+    }
+
+    // Find the module containing this lesson
+    const module = modules.find(m => (m.lessons || []).some((l: any) => String(l.id) === String(incompleteLesson.id)));
+
+    return {
+      completed: false,
+      lesson: incompleteLesson,
+      module: module,
+      course: activeCourse
+    };
+  }, [courses, enrolledCourses, activeUserId]);
+
+  const handleContinueMission = () => {
+    if (!nextLessonData || nextLessonData.completed) return;
+    const { course, lesson } = nextLessonData;
+    
+    // Set last active lesson in local storage so workspace loads it
+    localStorage.setItem(`shaivika_last_active_${course.id}`, String(lesson.id));
+    
+    // Navigate directly to course workspace mode
+    navigate(`/dashboard/course/${(course as any).slug || course.id}?mode=learn`);
+  };
+
+  const handleClaimDailyReward = () => {
+    const todayStr = new Date().toLocaleDateString('en-CA');
+    const dailyKey = `shaivika_daily_mission_${activeUserId}_${todayStr}`;
+    
+    const rawDaily = localStorage.getItem(dailyKey);
+    let dailyData = { completedLessonIds: [] as string[], rewardClaimed: false };
+    if (rawDaily) {
+      try { dailyData = JSON.parse(rawDaily); } catch (e) {}
+    }
+    
+    if (dailyData.rewardClaimed) return;
+    
+    // Play reward sound
+    soundService.play('xp');
+    
+    // Log the XP claim exactly once
+    const updatedClaims = courseService.addXPClaim(
+      {
+        id: `claim_daily_${todayStr}`,
+        title: `🎯 Daily Mission Completion Bonus`,
+        xp: 30,
+        category: 'Practice Challenge Completion',
+        timestamp: new Date().toISOString(),
+        courseId: 'daily_mission',
+        courseTitle: 'KaizenQ Daily Mission',
+      },
+      activeUserId
+    );
+    
+    // Synchronize legacy keys and trigger local event
+    const updatedXp = updatedClaims.reduce((sum: number, c: any) => sum + (c.xp || 0), 0);
+    localStorage.setItem(`shaivika_user_xp_${activeUserId}`, String(updatedXp));
+    localStorage.setItem(`shaivika_points_${activeUserId}`, String(updatedXp));
+    localStorage.setItem(`shaivika_points_default_student`, String(updatedXp));
+    
+    window.dispatchEvent(new CustomEvent('shaivika_xp_updated', { detail: { userId: activeUserId, xp: updatedXp } }));
+    
+    // Mark as claimed
+    dailyData.rewardClaimed = true;
+    localStorage.setItem(dailyKey, JSON.stringify(dailyData));
+    
+    setIsDailyClaimed(true);
+    toast.success("🎁 Daily Reward Claimed! +30 XP awarded.");
+    
+    // Reload dashboard stats
+    loadDashboardData();
+  };
 
   // Active learning player state
   const [activePlayerCourse, setActivePlayerCourse] = useState<any | null>(null);
@@ -426,6 +628,13 @@ export const Dashboard: React.FC = () => {
 
     const fetchAndSyncFromBackend = async () => {
       try {
+        const response = await fetch(`${apiBase}/certificates/student/${studentEmail}`);
+        if (!response.ok) {
+          console.error(`[Dashboard Sync] API Error: ${response.status} ${response.statusText}`);
+          return;
+        }
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
         const response = await fetch(`${API_BASE_URL}/certificates/student/${studentEmail}`);
         if (response.ok) {
           const resData = await response.json();
@@ -645,6 +854,7 @@ export const Dashboard: React.FC = () => {
         }
       };
 
+      const verifyRes = await fetch(`${apiBase}/certificates/student/${studentEmail}`);
       // 1. Query the student's certificates on backend to see if it's already there
       const verifyRes = await fetch(`${API_BASE_URL}/certificates/student/${studentEmail}`);
       if (verifyRes.ok) {
@@ -974,6 +1184,383 @@ export const Dashboard: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Phase 5: Daily Mission & Engagement Center */}
+          {userProfile?.role !== 'instructor' && (
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-8 font-['Sora'] animate-in fade-in duration-300">
+              {/* Left Column: Daily Mission & Reward */}
+              <div className="md:col-span-6 bg-white dark:bg-zinc-900 border border-sky-100 dark:border-zinc-800 rounded-3xl p-6 shadow-xs flex flex-col justify-between space-y-6">
+                <div>
+                  <h3 className="font-heading font-black text-sm text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                    <span>🎯 TODAY'S DAILY MISSION</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-zinc-450 mt-1 font-semibold">
+                    Complete 3 challenges to protect your streak and earn bonus rewards.
+                  </p>
+                </div>
+
+                {/* Progress bar */}
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs font-extrabold font-mono text-slate-500 dark:text-zinc-400">
+                    <span>PROGRESS</span>
+                    <span className="text-blue-600 dark:text-blue-400">
+                      {Math.min(3, dailyCompletedCount)} / 3 CHALLENGES
+                    </span>
+                  </div>
+                  <div className="w-full h-3 bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden border border-slate-200/50 dark:border-zinc-700/50">
+                    <div
+                      className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-500"
+                      style={{ width: `${Math.min(100, (dailyCompletedCount / 3) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Reward and Action Button */}
+                <div className="flex items-center justify-between gap-4 pt-3 border-t border-slate-100 dark:border-zinc-850">
+                  <div className="text-xs">
+                    <span className="block text-[10px] text-slate-400 font-extrabold uppercase font-mono tracking-wider">REWARD</span>
+                    <span className="font-black text-amber-500 flex items-center gap-1 mt-0.5">
+                      ⚡ +30 XP BONUS
+                    </span>
+                  </div>
+
+                  {dailyCompletedCount >= 3 ? (
+                    isDailyClaimed ? (
+                      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-2 rounded-xl border border-emerald-200 dark:border-emerald-800">
+                        ✓ Reward Claimed (+30 XP)
+                      </span>
+                    ) : (
+                      <button
+                        onClick={handleClaimDailyReward}
+                        className="px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs rounded-xl hover:shadow-lg transition-all active:scale-95 cursor-pointer uppercase font-mono"
+                      >
+                        🎁 CLAIM REWARD
+                      </button>
+                    )
+                  ) : (
+                    nextLessonData && !nextLessonData.completed && (
+                      <button
+                        onClick={handleContinueMission}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs rounded-xl transition-all active:scale-95 cursor-pointer flex items-center gap-1 uppercase font-mono"
+                      >
+                        <span>Continue Mission →</span>
+                      </button>
+                    )
+                  )}
+                </div>
+              </div>
+
+              {/* Right Column: Continue Learning & Streak Motivation */}
+              <div className="md:col-span-6 bg-white dark:bg-zinc-900 border border-sky-100 dark:border-zinc-800 rounded-3xl p-6 shadow-xs flex flex-col justify-between space-y-6">
+                {/* Streak Motivation details */}
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-455 flex items-center justify-center border border-rose-100 dark:border-rose-800 shrink-0 font-extrabold text-xl">
+                    🔥
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-black tracking-wider uppercase text-rose-600 dark:text-rose-400 font-mono">
+                      {currentStreak} DAY STREAK
+                    </h4>
+                    <p className="text-[11px] text-slate-500 dark:text-zinc-400 font-bold leading-normal">
+                      {dailyCompletedCount > 0 ? (
+                        <span className="text-emerald-600 dark:text-emerald-400">✓ Streak protected for today! Come back tomorrow to keep it going.</span>
+                      ) : (
+                        <span className="text-amber-600 dark:text-amber-400">🔥 KEEP YOUR STREAK! Complete at least 1 challenge today.</span>
+                      )}
+                    </p>
+                    {/* Milestone check */}
+                    {currentStreak > 0 && (
+                      <span className="inline-block text-[9px] font-black uppercase font-mono tracking-widest text-slate-400 mt-1">
+                        🏆 MILESTONE REACHED: {currentStreak >= 30 ? '30' : currentStreak >= 14 ? '14' : currentStreak >= 7 ? '7' : '3'} DAYS
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Continue Learning CTA */}
+                <div className="pt-3 border-t border-slate-100 dark:border-zinc-850 flex items-center justify-between gap-4">
+                  {nextLessonData ? (
+                    nextLessonData.completed ? (
+                      <div className="space-y-1">
+                        <span className="text-[9px] text-slate-400 font-extrabold uppercase font-mono tracking-wider block">🏆 KAIZEN MASTER</span>
+                        <span className="text-xs font-bold text-slate-700 dark:text-zinc-350">
+                          All enrolled courses completed! Choose another course to continue.
+                        </span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="min-w-0 flex-1 space-y-0.5">
+                          <span className="text-[9px] text-slate-400 font-extrabold uppercase font-mono tracking-wider block">🚀 CONTINUE LEARNING</span>
+                          <span className="text-xs font-extrabold text-slate-850 dark:text-zinc-200 block truncate">
+                            {nextLessonData.course?.title}
+                          </span>
+                          <span className="text-[10px] text-slate-500 dark:text-zinc-400 block truncate">
+                            {nextLessonData.module?.title.replace(/^\d+\s*:?\s*/, '')} • {nextLessonData.lesson?.title}
+                          </span>
+                        </div>
+                        <button
+                          onClick={handleContinueMission}
+                          className="px-4 py-2 bg-slate-900 dark:bg-zinc-800 hover:bg-slate-850 dark:hover:bg-zinc-700 border border-slate-350 dark:border-zinc-700 text-slate-750 dark:text-zinc-200 font-black text-xs rounded-xl transition-all active:scale-95 cursor-pointer uppercase font-mono shrink-0"
+                        >
+                          Continue →
+                        </button>
+                      </>
+                    )
+                  ) : (
+                    <div className="text-xs font-bold text-slate-400 italic">
+                      No active courses. Browse catalog to enroll!
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Daily Progress Cards Section */}
+          {userProfile?.role !== 'instructor' && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-['Sora']">
+              <div className="p-5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl flex items-center gap-4">
+                <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-100 dark:border-blue-800 text-base font-extrabold">
+                  🎯
+                </div>
+                <div>
+                  <span className="text-[9px] text-slate-450 dark:text-zinc-550 font-extrabold uppercase font-mono tracking-wider block">TODAY'S CHALLENGES</span>
+                  <span className="text-sm font-extrabold text-slate-850 dark:text-zinc-200">
+                    {dailyCompletedCount} Completed
+                  </span>
+                </div>
+              </div>
+              
+              <div className="p-5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl flex items-center gap-4">
+                <div className="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-100 dark:border-amber-800 text-base font-extrabold">
+                  ⚡
+                </div>
+                <div>
+                  <span className="text-[9px] text-slate-450 dark:text-zinc-550 font-extrabold uppercase font-mono tracking-wider block">TODAY'S XP EARNED</span>
+                  <span className="text-sm font-extrabold text-slate-850 dark:text-zinc-200">
+                    +{todayXP} XP
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl flex items-center gap-4">
+                <div className="w-10 h-10 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center border border-rose-100 dark:border-rose-800 text-base font-extrabold">
+                  🔥
+                </div>
+                <div>
+                  <span className="text-[9px] text-slate-450 dark:text-zinc-550 font-extrabold uppercase font-mono tracking-wider block">STREAK VALUE</span>
+                  <span className="text-sm font-extrabold text-slate-850 dark:text-zinc-200">
+                    {currentStreak} Days
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Phase 6: Cohort Leaderboard & Student Rank Card */}
+          {userProfile?.role !== 'instructor' && leaderboardEntries.length > 0 && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 font-['Sora'] animate-in fade-in duration-300">
+              {/* Left Column (lg:col-span-8): Leaderboard Top 5 List */}
+              <div className="lg:col-span-8 bg-white dark:bg-zinc-900 border border-sky-100 dark:border-zinc-800 rounded-3xl p-6 shadow-xs space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 pb-3">
+                  <h3 className="font-heading font-black text-sm text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                    <span>🏆 COHORT LEADERBOARD (THIS WEEK)</span>
+                  </h3>
+                  <span className="text-[10px] font-black uppercase font-mono tracking-widest text-slate-405 dark:text-zinc-500">
+                    REAL-TIME UPDATES
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  {/* Leaderboard Table Header (Desktop) */}
+                  <div className="hidden sm:grid sm:grid-cols-12 gap-4 px-4 py-2 text-[10px] font-black uppercase font-mono text-slate-450 dark:text-zinc-500 tracking-wider">
+                    <span className="col-span-1 text-center">RANK</span>
+                    <span className="col-span-6">STUDENT</span>
+                    <span className="col-span-3 text-right">WEEKLY XP</span>
+                    <span className="col-span-2 text-center">STREAK / BADGES</span>
+                  </div>
+
+                  {/* Top 5 Entries */}
+                  <div className="space-y-1.5">
+                    {top5Entries.map((entry) => (
+                      <div
+                        key={entry.id}
+                        className={`grid grid-cols-12 gap-3 sm:gap-4 items-center px-4 py-3 rounded-2xl transition-all border ${
+                          entry.isCurrentUser
+                            ? 'bg-blue-50/40 dark:bg-blue-950/20 border-blue-500/30 text-slate-900 dark:text-white shadow-xs'
+                            : 'bg-slate-50/50 dark:bg-zinc-950/40 border-slate-200/50 dark:border-zinc-800/60 text-slate-800 dark:text-zinc-300'
+                        }`}
+                      >
+                        {/* Rank indicator */}
+                        <div className="col-span-2 sm:col-span-1 flex justify-center items-center">
+                          {entry.rank === 1 ? (
+                            <span className="text-xl" title="First Place">🥇</span>
+                          ) : entry.rank === 2 ? (
+                            <span className="text-xl" title="Second Place">🥈</span>
+                          ) : entry.rank === 3 ? (
+                            <span className="text-xl" title="Third Place">🥉</span>
+                          ) : (
+                            <span className="font-mono font-black text-xs text-slate-400 dark:text-zinc-550">
+                              #{entry.rank}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Student Info */}
+                        <div className="col-span-7 sm:col-span-6 flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-xl bg-slate-200 dark:bg-zinc-800 flex items-center justify-center font-bold text-xs overflow-hidden shrink-0 border border-slate-300/40 dark:border-zinc-700/40">
+                            {entry.avatarUrl ? (
+                              <img src={entry.avatarUrl} alt={entry.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <span>{entry.name.slice(0, 2).toUpperCase()}</span>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <span className="font-extrabold text-xs block truncate">
+                              {entry.isCurrentUser ? 'YOU (Scholar)' : entry.name}
+                            </span>
+                            <span className="text-[9px] text-slate-400 dark:text-zinc-550 block font-semibold truncate">
+                              {entry.track}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Weekly XP */}
+                        <div className="col-span-3 text-right font-mono font-black text-xs text-slate-900 dark:text-zinc-100">
+                          ⚡ {entry.xp.toLocaleString()} XP
+                        </div>
+
+                        {/* Streak & Badges (Desktop-only detail) */}
+                        <div className="hidden sm:col-span-2 sm:flex items-center justify-center gap-3 text-xs">
+                          {entry.streak > 0 && (
+                            <span className="flex items-center gap-0.5 text-rose-500 font-bold" title={`${entry.streak} Days Active`}>
+                              🔥 <span className="font-mono text-[10px]">{entry.streak}</span>
+                            </span>
+                          )}
+                          {entry.badgesCount > 0 && (
+                            <span className="flex items-center gap-0.5 text-amber-500 font-bold" title={`${entry.badgesCount} Badges Unlocked`}>
+                              🏆 <span className="font-mono text-[10px]">{entry.badgesCount}</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Current User Divider & Row (If outside Top 5) */}
+                  {showCurrentUserAtBottom && currentUserRankInfo && (
+                    <>
+                      <div className="relative py-2 flex items-center justify-center">
+                        <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                          <div className="w-full border-t border-dashed border-slate-200 dark:border-zinc-800" />
+                        </div>
+                        <span className="relative px-3 bg-white dark:bg-zinc-900 text-[10px] font-black uppercase font-mono tracking-widest text-slate-400">
+                          YOUR POSITION
+                        </span>
+                      </div>
+
+                      <div
+                        className="grid grid-cols-12 gap-3 sm:gap-4 items-center px-4 py-3 rounded-2xl border bg-blue-50/40 dark:bg-blue-950/20 border-blue-500/30 text-slate-900 dark:text-white shadow-xs"
+                      >
+                        {/* Rank indicator */}
+                        <div className="col-span-2 sm:col-span-1 flex justify-center items-center font-mono font-black text-xs text-blue-600 dark:text-cyan-400">
+                          #{currentUserRankInfo.rank}
+                        </div>
+
+                        {/* Student Info */}
+                        <div className="col-span-7 sm:col-span-6 flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-xl bg-blue-100 dark:bg-blue-950 flex items-center justify-center font-bold text-xs overflow-hidden shrink-0 border border-blue-200 dark:border-blue-800">
+                            {currentUserRankInfo.entry.avatarUrl ? (
+                              <img src={currentUserRankInfo.entry.avatarUrl} alt={currentUserRankInfo.entry.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <span>{currentUserRankInfo.entry.name.slice(0, 2).toUpperCase()}</span>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <span className="font-extrabold text-xs block truncate">
+                              YOU (Scholar)
+                            </span>
+                            <span className="text-[9px] text-blue-500 dark:text-cyan-400 block font-semibold truncate">
+                              {currentUserRankInfo.entry.track}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Weekly XP */}
+                        <div className="col-span-3 text-right font-mono font-black text-xs text-blue-650 dark:text-cyan-300">
+                          ⚡ {currentUserRankInfo.xp.toLocaleString()} XP
+                        </div>
+
+                        {/* Streak & Badges */}
+                        <div className="hidden sm:col-span-2 sm:flex items-center justify-center gap-3 text-xs">
+                          {currentUserRankInfo.entry.streak > 0 && (
+                            <span className="flex items-center gap-0.5 text-rose-500 font-bold">
+                              🔥 <span className="font-mono text-[10px]">{currentUserRankInfo.entry.streak}</span>
+                            </span>
+                          )}
+                          {currentUserRankInfo.entry.badgesCount > 0 && (
+                            <span className="flex items-center gap-0.5 text-amber-500 font-bold">
+                              🏆 <span className="font-mono text-[10px]">{currentUserRankInfo.entry.badgesCount}</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Right Column (lg:col-span-4): Personal Rank & Motivation Card */}
+              <div className="lg:col-span-4 bg-white dark:bg-zinc-900 border border-sky-100 dark:border-zinc-800 rounded-3xl p-6 shadow-xs flex flex-col justify-between space-y-6">
+                <div>
+                  <h3 className="font-heading font-black text-sm text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                    <span>⚡ YOUR RANK STATUS</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-zinc-450 mt-1 font-semibold">
+                    Real-time position in your learning cohort.
+                  </p>
+                </div>
+
+                {/* Big Rank display */}
+                {currentUserRankInfo && (
+                  <div className="py-4 text-center space-y-2 bg-slate-50/50 dark:bg-zinc-950/40 rounded-2xl border border-slate-200/50 dark:border-zinc-800/60">
+                    <span className="text-[10px] text-slate-400 font-black uppercase font-mono tracking-widest block">
+                      CURRENT RANK
+                    </span>
+                    <span className="text-4xl font-heading font-black bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent block">
+                      #{currentUserRankInfo.rank}
+                    </span>
+                    <span className="font-mono font-black text-xs text-slate-600 dark:text-zinc-300 block">
+                      ⚡ {currentUserRankInfo.xp.toLocaleString()} XP THIS WEEK
+                    </span>
+                  </div>
+                )}
+
+                {/* Motivation card */}
+                {currentUserRankInfo && (
+                  <div className="pt-4 border-t border-slate-100 dark:border-zinc-850">
+                    <span className="text-[9px] text-slate-450 dark:text-zinc-550 font-black uppercase font-mono tracking-wider block">
+                      {currentUserRankInfo.isFirst ? '👑 TOP RANK' : '🎯 NEXT RANK GOAL'}
+                    </span>
+                    <p className="text-xs font-extrabold text-slate-800 dark:text-zinc-200 mt-1.5 font-sans leading-normal">
+                      {currentUserRankInfo.isFirst ? (
+                        <span className="text-amber-600 dark:text-amber-400">You are #1 on the leaderboard! Keep learning to protect your crown.</span>
+                      ) : (
+                        <span>
+                          Only <strong className="text-blue-600 dark:text-cyan-400 font-black">+{currentUserRankInfo.nextRankXpDiff} XP</strong> to reach <strong className="font-black text-slate-900 dark:text-white">#{currentUserRankInfo.rank - 1}</strong> ({currentUserRankInfo.nextRankName})
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-[10px] text-slate-500 dark:text-zinc-450 mt-1.5 font-semibold leading-relaxed">
+                      {currentUserRankInfo.isFirst
+                        ? "You've earned the top honors today. Great work! 🚀"
+                        : "One more challenge completion or daily mission claim can move you up the list!"}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Gamification Achievements & Streak Summary Widget */}
           {userProfile?.role !== 'instructor' && (
