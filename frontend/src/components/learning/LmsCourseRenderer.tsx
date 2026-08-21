@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { CodeBlock } from './CodeBlock';
 import { Sparkles, CheckCircle2, AlertTriangle, Lightbulb } from 'lucide-react';
+import { soundService } from '@/services/soundService';
 
 interface LmsCourseRendererProps {
   content: string;
@@ -485,20 +486,104 @@ const FlowchartRenderer: React.FC<{ lines: string[]; isNightMode: boolean }> = (
 
   if (finalBlocks.length === 0) return null;
 
+  const isReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const [activeStep, setActiveStep] = useState(isReduced ? finalBlocks.length - 1 : 0);
+  const [completed, setCompleted] = useState(isReduced);
+
+  const handleNextStep = () => {
+    if (activeStep < finalBlocks.length - 1) {
+      const nextStep = activeStep + 1;
+      setActiveStep(nextStep);
+      soundService.play('select');
+      if (nextStep === finalBlocks.length - 1) {
+        setCompleted(true);
+        soundService.play('success');
+      }
+    }
+  };
+
+  const handleReset = () => {
+    setActiveStep(0);
+    setCompleted(false);
+    soundService.play('select');
+  };
+
   return (
-    <div className="flex flex-col items-center gap-2 my-6">
-      {finalBlocks.map((block, idx) => (
-        <React.Fragment key={idx}>
-          <div className={`px-5 py-3 rounded-2xl border text-sm font-semibold font-mono tracking-wide ${
-            isNightMode ? 'bg-slate-900 border-slate-800 text-primary' : 'bg-sky-50 border-sky-100 text-primary'
-          } shadow-sm max-w-md text-center`}>
-            {block}
-          </div>
-          {idx < finalBlocks.length - 1 && (
-            <div className="text-xl text-primary font-bold">↓</div>
+    <div className="flex flex-col items-center gap-3 my-6 p-4 rounded-3xl border border-slate-800 bg-slate-950/20 max-w-md mx-auto shadow-md">
+      <div className="flex items-center justify-between w-full border-b border-slate-800 pb-2 mb-2 text-[10px] font-mono">
+        <span className="text-slate-450 uppercase tracking-widest font-black">
+          ⚡ Flowchart Path ({activeStep + 1} / {finalBlocks.length})
+        </span>
+        {completed ? (
+          <span className="text-emerald-450 font-black animate-pulse flex items-center gap-1">
+            ✓ FLOW COMPLETE
+          </span>
+        ) : (
+          <span className="text-primary font-black animate-pulse">
+            ● IN PROGRESS
+          </span>
+        )}
+      </div>
+
+      <div className="flex flex-col items-center gap-2 w-full">
+        {finalBlocks.map((block, idx) => {
+          const isCurrent = idx === activeStep;
+          const isPassed = idx < activeStep;
+
+          let blockClass = '';
+          if (isCurrent) {
+            blockClass = 'border-primary bg-primary/10 text-primary scale-102 font-black shadow-[0_0_12px_var(--color-primary)]';
+          } else if (isPassed) {
+            blockClass = 'border-primary/40 bg-primary/5 text-primary/80 opacity-90';
+          } else {
+            blockClass = 'border-slate-800 bg-slate-900/50 text-slate-550 opacity-40';
+          }
+
+          return (
+            <React.Fragment key={idx}>
+              <div 
+                className={`px-5 py-3 rounded-2xl border text-sm font-semibold font-mono tracking-wide w-full text-center transition-all duration-305 ${blockClass}`}
+              >
+                {block}
+              </div>
+              {idx < finalBlocks.length - 1 && (
+                <div 
+                  className={`text-xl font-bold transition-all duration-305 ${
+                    idx < activeStep ? 'text-primary/70' : (idx === activeStep ? 'text-primary animate-bounce' : 'text-slate-800')
+                  }`}
+                >
+                  ↓
+                </div>
+              )}
+            </React.Fragment>
+          );
+        })}
+      </div>
+
+      {!isReduced && (
+        <div className="flex items-center gap-3 mt-2 w-full">
+          {activeStep < finalBlocks.length - 1 ? (
+            <button
+              onClick={handleNextStep}
+              className="flex-1 bg-linear-to-r from-primary to-secondary text-slate-955 font-mono text-[10px] font-black py-2.5 px-4 rounded-xl cursor-pointer active:scale-95 transition-all shadow-[0_0_8px_var(--color-primary)] text-center"
+            >
+              [ NEXT STEP → ]
+            </button>
+          ) : (
+            <div className="flex-1 flex flex-col items-center gap-2">
+              <div className="text-[10px] font-mono font-black text-emerald-450 uppercase tracking-widest text-center mt-1">
+                🎯 CONCEPT MASTERED
+              </div>
+              <button
+                onClick={handleReset}
+                className="w-full bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-350 hover:text-white font-mono text-[9px] font-bold py-2 px-4 rounded-xl cursor-pointer active:scale-95 transition-all text-center"
+              >
+                [ ↻ REPLAY FLOW ]
+              </button>
+            </div>
           )}
-        </React.Fragment>
-      ))}
+        </div>
+      )}
     </div>
   );
 };
@@ -824,6 +909,110 @@ function formatInlineStyles(text: string, isNightMode: boolean): React.ReactNode
     return part;
   });
 }
+
+const InteractiveConceptCard: React.FC<{ text: string; isWarning: boolean; isNightMode: boolean }> = ({ text, isWarning, isNightMode }) => {
+  const cleanText = text.replace(/^(note|warning|mistake|tip|important):\s*/i, '');
+  const isReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const [isExpanded, setIsExpanded] = useState(isReduced);
+
+  const handleToggle = () => {
+    setIsExpanded(!isExpanded);
+    soundService.play('select');
+  };
+
+  const shouldTruncate = cleanText.length > 120;
+  const displayText = (!isExpanded && shouldTruncate) 
+    ? cleanText.substring(0, 120) + '...' 
+    : cleanText;
+
+  return (
+    <div
+      onClick={!isReduced ? handleToggle : undefined}
+      className={`p-4 rounded-2xl border flex items-start gap-3 my-4 leading-relaxed transition-all duration-300 cursor-pointer ${
+        isReduced ? '' : 'hover:-translate-y-0.5 hover:shadow-[0_0_15px_rgba(249,115,22,0.15)] active:scale-[0.99]'
+      } ${
+        isWarning
+          ? 'bg-rose-955/15 border-rose-900/50 text-rose-200'
+          : 'bg-amber-955/15 border-amber-900/50 text-amber-200'
+      }`}
+    >
+      {isWarning ? (
+        <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-rose-500" />
+      ) : (
+        <Lightbulb className="w-5 h-5 shrink-0 mt-0.5 text-amber-500" />
+      )}
+      <div className="space-y-1 flex-1">
+        <div className="flex items-center justify-between w-full">
+          <span className="text-[10px] font-black uppercase tracking-widest font-mono">
+            {isWarning ? '⚠️ WARNING / IMPORTANT' : '💡 TIP / BEST PRACTICE'}
+          </span>
+          {!isReduced && shouldTruncate && (
+            <span className="text-[9px] font-mono font-black uppercase text-primary tracking-wider hover:underline">
+              {isExpanded ? '[ 📘 COLLAPSE ]' : '[ 📖 DETAILS ]'}
+            </span>
+          )}
+        </div>
+        <span className="text-sm font-medium block transition-all duration-200">
+          {formatInlineStyles(displayText, isNightMode)}
+        </span>
+      </div>
+    </div>
+  );
+};
+
+const InteractiveExampleCard: React.FC<{ title: string; isNightMode: boolean; children: React.ReactNode }> = ({ title, isNightMode, children }) => {
+  const isReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const [isRevealed, setIsRevealed] = useState(isReduced);
+
+  const handleReveal = () => {
+    setIsRevealed(true);
+    soundService.play('unlock');
+  };
+
+  return (
+    <div
+      className={`p-5 rounded-2xl border my-4 leading-relaxed transition-all duration-300 ${
+        isNightMode 
+          ? 'bg-primary/5 border-primary/20 text-slate-100' 
+          : 'bg-primary/5 border-primary/10 text-slate-800'
+      } ${isRevealed ? 'shadow-[0_0_15px_var(--color-primary-glow)]' : ''}`}
+    >
+      <div className="flex items-center justify-between mb-3 text-[10px] font-black uppercase tracking-widest text-primary font-mono border-b border-primary/10 pb-2">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-3.5 h-3.5 text-primary" />
+          <span>💡 EXAMPLE MISSION</span>
+        </div>
+        {isRevealed ? (
+          <span className="text-emerald-450 font-black animate-pulse">
+            ✓ EXAMPLE UNDERSTOOD
+          </span>
+        ) : (
+          <span className="text-primary font-black animate-pulse">
+            ⚡ LOCKED
+          </span>
+        )}
+      </div>
+
+      {isRevealed ? (
+        <div className="space-y-4 text-sm font-medium leading-relaxed animate-in fade-in slide-in-from-bottom-2 duration-305">
+          <div className="text-sm font-black mb-2 text-primary">
+            {formatInlineStyles(title, isNightMode)}
+          </div>
+          {children}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-6 border border-dashed border-primary/20 rounded-xl bg-primary/2">
+          <button
+            onClick={handleReveal}
+            className="bg-linear-to-r from-primary to-secondary text-slate-955 font-mono text-[9px] font-black py-2 px-4 rounded-xl cursor-pointer active:scale-95 transition-all shadow-[0_0_8px_var(--color-primary)]"
+          >
+            [ REVEAL EXPLANATION ]
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
 
 // ---------------------------------------------------------------------
 // 🚀 MAIN LMS COURSE RENDERER COMPONENT
@@ -1267,7 +1456,31 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
     }
     flushAllAccumulators();
 
-    return parsedBlocks;
+    const groupedBlocks: any[] = [];
+    let currentExampleBlock: any = null;
+
+    for (const block of parsedBlocks) {
+      if (block.type === 'example') {
+        currentExampleBlock = {
+          ...block,
+          children: []
+        };
+        groupedBlocks.push(currentExampleBlock);
+      } else if (currentExampleBlock) {
+        // Stop grouping if we hit structural boundary elements
+        const isBoundary = block.type === 'heading' || block.type === 'subheading' || block.type === 'question';
+        if (isBoundary) {
+          currentExampleBlock = null;
+          groupedBlocks.push(block);
+        } else {
+          currentExampleBlock.children.push(block);
+        }
+      } else {
+        groupedBlocks.push(block);
+      }
+    }
+
+    return groupedBlocks;
   }, [content, isK8s, isGit, isReact]);
 
   const topicVisualKey = useMemo(() => {
@@ -1290,176 +1503,163 @@ export const LmsCourseRenderer: React.FC<LmsCourseRendererProps> = ({ content, i
 
       {/* Render Parsed Blocks */}
       <div className="space-y-4">
-        {blocks.map((block, idx) => {
-          const style = { animationDelay: `${Math.min(300, idx * 25)}ms` };
-          
-          let blockContent = null;
-          switch (block.type) {
-            case 'heading':
-              const isSubSub = block.level >= 3;
-              if (isSubSub) {
+        {(() => {
+          const renderBlock = (block: any, idx: number): React.ReactNode => {
+            let blockContent = null;
+            switch (block.type) {
+              case 'heading':
+                const isSubSub = block.level >= 3;
+                if (isSubSub) {
+                  blockContent = (
+                    <h4
+                      className="text-base sm:text-lg font-heading font-bold mt-5 mb-2 flex items-center gap-1.5 text-primary/90"
+                    >
+                      <span>{block.text}</span>
+                    </h4>
+                  );
+                } else {
+                  const headingNum = String(idx + 1).padStart(2, '0');
+                  blockContent = (
+                    <div className="mt-8 mb-4 space-y-2">
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-black font-mono text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
+                          {headingNum}
+                        </span>
+                        <div className="h-px bg-slate-800/80 flex-1 relative">
+                          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_var(--color-primary)]" />
+                        </div>
+                      </div>
+                      <h2 
+                        className="text-xl sm:text-2xl font-black text-primary tracking-tight uppercase font-sans"
+                        style={{ textShadow: '0 0 8px var(--kq-glow)' }}
+                      >
+                        {block.text}
+                      </h2>
+                    </div>
+                  );
+                }
+                break;
+
+              case 'subheading':
                 blockContent = (
-                  <h4
-                    className="text-base sm:text-lg font-heading font-bold mt-5 mb-2 flex items-center gap-1.5 text-primary/90"
+                  <h3
+                    className="text-md sm:text-lg font-heading font-black mt-6 mb-3 flex items-center gap-2 border-l-2 border-primary pl-2.5 text-primary"
+                    style={{ textShadow: '0 0 6px var(--kq-glow)' }}
                   >
                     <span>{block.text}</span>
-                  </h4>
+                  </h3>
                 );
-              } else {
-                const headingNum = String(idx + 1).padStart(2, '0');
+                break;
+
+              case 'code':
                 blockContent = (
-                  <div className="mt-8 mb-4 space-y-2">
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs font-black font-mono text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
-                        {headingNum}
-                      </span>
-                      <div className="h-px bg-slate-800/80 flex-1 relative">
-                        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_var(--color-primary)]" />
-                      </div>
-                    </div>
-                    <h2 
-                      className="text-xl sm:text-2xl font-black text-primary tracking-tight uppercase font-sans"
-                      style={{ textShadow: '0 0 8px var(--kq-glow)' }}
-                    >
-                      {block.text}
-                    </h2>
+                  <CodeBlock
+                    code={block.code}
+                    language={block.lang || (isGit ? 'bash' : (isK8s ? 'yaml' : (isReact ? 'jsx' : 'python')))}
+                  />
+                );
+                break;
+
+              case 'flowchart':
+                blockContent = (
+                  <FlowchartRenderer
+                    lines={block.lines}
+                    isNightMode={isNightMode}
+                  />
+                );
+                break;
+
+              case 'table':
+                blockContent = (
+                  <TableRenderer
+                    lines={block.lines}
+                    isNightMode={isNightMode}
+                  />
+                );
+                break;
+
+              case 'question':
+                blockContent = (
+                  <QuestionCard
+                    question={block.question}
+                    answer={block.answer}
+                    isNightMode={isNightMode}
+                    isK8s={isK8s}
+                    isGit={isGit}
+                    isReact={isReact}
+                  />
+                );
+                break;
+
+              case 'bullet':
+                const isCross = block.isCross;
+                blockContent = (
+                  <div className="flex items-start gap-2.5 ml-3 my-2 text-sm sm:text-base leading-relaxed">
+                    {isCross ? (
+                      <span className="shrink-0 mt-0.5 text-base">❌</span>
+                    ) : (
+                      <CheckCircle2 className="w-4 h-4 shrink-0 mt-1 text-primary" />
+                    )}
+                    <span className={isNightMode ? 'text-slate-200' : 'text-slate-700'}>
+                      {formatInlineStyles(block.text, isNightMode)}
+                    </span>
                   </div>
                 );
-              }
-              break;
+                break;
 
-            case 'subheading':
-              blockContent = (
-                <h3
-                  className="text-md sm:text-lg font-heading font-black mt-6 mb-3 flex items-center gap-2 border-l-2 border-primary pl-2.5 text-primary"
-                  style={{ textShadow: '0 0 6px var(--kq-glow)' }}
-                >
-                  <span>{block.text}</span>
-                </h3>
-              );
-              break;
+              case 'example':
+                blockContent = (
+                  <InteractiveExampleCard
+                    title={block.text}
+                    isNightMode={isNightMode}
+                  >
+                    <div className="space-y-4">
+                      {(block.children || []).map((child: any, cidx: number) => (
+                        <React.Fragment key={cidx}>
+                          {renderBlock(child, cidx)}
+                        </React.Fragment>
+                      ))}
+                    </div>
+                  </InteractiveExampleCard>
+                );
+                break;
 
-            case 'code':
-              blockContent = (
-                <CodeBlock
-                  code={block.code}
-                  language={block.lang || (isGit ? 'bash' : (isK8s ? 'yaml' : (isReact ? 'jsx' : 'python')))}
-                />
-              );
-              break;
+              case 'note':
+                const isWarning = block.text.toLowerCase().startsWith('warning:') || block.text.toLowerCase().startsWith('mistake:') || block.text.toLowerCase().startsWith('important:');
+                blockContent = (
+                  <InteractiveConceptCard
+                    text={block.text}
+                    isWarning={isWarning}
+                    isNightMode={isNightMode}
+                  />
+                );
+                break;
 
-            case 'flowchart':
-              blockContent = (
-                <FlowchartRenderer
-                  lines={block.lines}
-                  isNightMode={isNightMode}
-                />
-              );
-              break;
-
-            case 'table':
-              blockContent = (
-                <TableRenderer
-                  lines={block.lines}
-                  isNightMode={isNightMode}
-                />
-              );
-              break;
-
-            case 'question':
-              blockContent = (
-                <QuestionCard
-                  question={block.question}
-                  answer={block.answer}
-                  isNightMode={isNightMode}
-                  isK8s={isK8s}
-                  isGit={isGit}
-                  isReact={isReact}
-                />
-              );
-              break;
-
-            case 'bullet':
-              const isCross = block.isCross;
-              blockContent = (
-                <div className="flex items-start gap-2.5 ml-3 my-2 text-sm sm:text-base leading-relaxed">
-                  {isCross ? (
-                    <span className="shrink-0 mt-0.5 text-base">❌</span>
-                  ) : (
-                    <CheckCircle2 className="w-4 h-4 shrink-0 mt-1 text-primary" />
-                  )}
-                  <span className={isNightMode ? 'text-slate-200' : 'text-slate-700'}>
+              case 'text':
+              default:
+                blockContent = (
+                  <p
+                    className={`text-sm sm:text-base leading-relaxed my-3 font-normal ${
+                      isNightMode ? 'text-slate-200' : 'text-slate-700'
+                    }`}
+                  >
                     {formatInlineStyles(block.text, isNightMode)}
-                  </span>
-                </div>
-              );
-              break;
+                  </p>
+                );
+                break;
+            }
+            return blockContent;
+          };
 
-            case 'example':
-              blockContent = (
-                <div
-                  className={`p-5 rounded-2xl border my-4 leading-relaxed transition-all ${
-                    isNightMode ? 'bg-primary/5 border-primary/20 text-slate-100' : 'bg-primary/5 border-primary/10 text-slate-800'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-3 text-[10px] font-black uppercase tracking-widest text-primary font-mono">
-                    <Sparkles className="w-3.5 h-3.5 text-primary" />
-                    <span>💡 EXAMPLE MISSION</span>
-                  </div>
-                  <div className="text-sm font-medium leading-relaxed">
-                    {formatInlineStyles(block.text, isNightMode)}
-                  </div>
-                </div>
-              );
-              break;
-
-            case 'note':
-              const isWarning = block.text.toLowerCase().startsWith('warning:') || block.text.toLowerCase().startsWith('mistake:') || block.text.toLowerCase().startsWith('important:');
-              blockContent = (
-                <div
-                  className={`p-4 rounded-2xl border flex items-start gap-3 my-4 leading-relaxed transition-all ${
-                    isWarning
-                      ? 'bg-rose-950/15 border-rose-900/50 text-rose-200'
-                      : 'bg-amber-950/15 border-amber-900/50 text-amber-200'
-                  }`}
-                >
-                  {isWarning ? (
-                    <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-rose-500" />
-                  ) : (
-                    <Lightbulb className="w-5 h-5 shrink-0 mt-0.5 text-amber-500" />
-                  )}
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-black uppercase tracking-widest font-mono block">
-                      {isWarning ? '⚠️ WARNING / IMPORTANT' : '💡 TIP / BEST PRACTICE'}
-                    </span>
-                    <span className="text-sm font-medium">
-                      {formatInlineStyles(block.text.replace(/^(note|warning|mistake|tip|important):\s*/i, ''), isNightMode)}
-                    </span>
-                  </div>
-                </div>
-              );
-              break;
-
-            case 'text':
-            default:
-              blockContent = (
-                <p
-                  className={`text-sm sm:text-base leading-relaxed my-3 font-normal ${
-                    isNightMode ? 'text-slate-200' : 'text-slate-700'
-                  }`}
-                >
-                  {formatInlineStyles(block.text, isNightMode)}
-                </p>
-              );
-              break;
-          }
-
-          return (
-            <div key={idx} className="animate-slide-up opacity-0" style={style}>
-              {blockContent}
-            </div>
-          );
-        })}
+          return blocks.map((block, idx) => {
+            const style = { animationDelay: `${Math.min(300, idx * 25)}ms` };
+            return (
+              <div key={idx} className="animate-slide-up opacity-0" style={style}>
+                {renderBlock(block, idx)}
+              </div>
+            );
+          });
+        })()}
       </div>
     </div>
   );
