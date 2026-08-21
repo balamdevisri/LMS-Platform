@@ -716,6 +716,12 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
     return completedLessonIds.some((id) => String(id) === String(prevLesson.id));
   }, [allLessons, completedLessonIds]);
 
+  const [revealedModuleCount, setRevealedModuleCount] = useState(() => 
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches ? (modules?.length || 1) : 1
+  );
+
+
+
   const handlePrevLesson = useCallback(() => {
     if (hasPrevLesson) {
       setSelectedLessonId(allLessons[activeIndex - 1].id);
@@ -726,6 +732,23 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
   }, [hasPrevLesson, allLessons, activeIndex]);
 
   const handleNextLesson = useCallback(() => {
+    if (revealedModuleCount < modules.length) {
+      setRevealedModuleCount((prev) => prev + 1);
+      soundService.play('unlock');
+
+      // Scroll smoothly to the newly revealed module
+      setTimeout(() => {
+        const nextMod = modules[revealedModuleCount];
+        if (nextMod) {
+          const el = document.getElementById(`module-card-${nextMod.id}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }
+      }, 100);
+      return;
+    }
+
     if (hasNextLesson) {
       const isCurrentCompleted = completedLessonIds.some((id) => String(id) === String(selectedLessonId));
       if (!isCurrentCompleted) {
@@ -753,7 +776,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         containerRef.current.scrollTo({ top: 0, behavior: 'instant' });
       }
     }
-  }, [hasNextLesson, completedLessonIds, selectedLessonId, allLessons, activeIndex, modules, isLessonUnlocked]);
+  }, [hasNextLesson, completedLessonIds, selectedLessonId, allLessons, activeIndex, modules, isLessonUnlocked, revealedModuleCount]);
 
   const handleNextChallenge = useCallback(() => {
     soundService.play('unlock');
@@ -999,6 +1022,22 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
           animation: checkmarkPop 0.4s ease-out forwards;
         }
 
+        @keyframes progressiveReveal {
+          0% {
+            opacity: 0;
+            transform: translateY(20px) scale(0.98);
+            box-shadow: 0 0 0 rgba(249,115,22,0);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            box-shadow: 0 0 20px var(--kq-glow, rgba(249,115,22,0.15));
+          }
+        }
+        .animate-progressive-reveal {
+          animation: progressiveReveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
         @keyframes unlockGlow {
           0% { filter: drop-shadow(0 0 0 rgba(6,182,212,0)); }
           50% { filter: drop-shadow(0 0 8px rgba(6,182,212,0.8)); }
@@ -1040,7 +1079,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         onPrevLesson={handlePrevLesson}
         onNextLesson={handleNextLesson}
         hasPrevLesson={hasPrevLesson}
-        hasNextLesson={hasNextLesson && isCompleted}
+        hasNextLesson={(revealedModuleCount < modules.length) || (hasNextLesson && isCompleted)}
         onBackToCourseDetails={() => setIsExitConfirmOpen(true)}
         userAvatar={userAvatar}
         userName={userName}
@@ -1184,20 +1223,16 @@ soundEnabled
             </div>
 
             {(() => {
-              const completedLevelsCount = modules.filter(mod => 
-                mod.lessons.every(l => completedLessonIds.some(cId => String(cId) === String(l.id)))
-              ).length;
-
               return (
                 <div className="bg-slate-950/60 border border-slate-850 rounded-2xl p-4 min-w-[250px] space-y-2.5 text-xs font-bold text-slate-400 font-mono shadow-inner">
                   <div className="flex justify-between items-center">
-                    <span>LEVELS COMPLETED</span>
-                    <span className="text-primary font-black uppercase">{completedLevelsCount} / {modules.length} LEVELS</span>
+                    <span>MODULES REVEALED</span>
+                    <span className="text-primary font-black uppercase">{revealedModuleCount} / {modules.length} MODULES REVEALED</span>
                   </div>
                   <div className="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
                     <div
                       className="h-full bg-linear-to-r from-primary to-secondary transition-all duration-500 shadow-[0_0_10px_var(--color-primary)]"
-                      style={{ width: `${(completedLevelsCount / Math.max(1, modules.length)) * 100}%` }}
+                      style={{ width: `${(revealedModuleCount / Math.max(1, modules.length)) * 100}%` }}
                     />
                   </div>
                   <div className="flex justify-between items-center border-t border-slate-900 pt-2 text-[10px]">
@@ -1233,6 +1268,17 @@ soundEnabled
                 const isAvailable = !isCompleted && !isLocked && !isCurrent;
                 const missionNum = String(modIdx + 1).padStart(2, '0');
 
+                const isJustRevealed = !window.matchMedia('(prefers-reduced-motion: reduce)').matches && modIdx === revealedModuleCount - 1;
+                const revealAnimationClass = isJustRevealed 
+                  ? 'animate-progressive-reveal' 
+                  : '';
+
+                // Style based visibility control to keep all modules in the DOM
+                const isRevealed = modIdx < revealedModuleCount;
+                const visibilityClass = isRevealed 
+                  ? 'opacity-100 scale-100 my-0 py-0' 
+                  : 'opacity-0 h-0 scale-95 overflow-hidden pointer-events-none my-0 py-0 border-0';
+
                 // Get first uncompleted lesson to open when module header/card is clicked
                 const getFirstUncompletedOrFirstLesson = () => {
                   const uncompleted = mod.lessons.find(l => !completedLessonIds.some(cId => String(cId) === String(l.id)));
@@ -1254,21 +1300,27 @@ soundEnabled
                 };
 
                 return (
-                  <div key={mod.id} className="relative">
+                  <div key={mod.id} id={`module-card-${mod.id}`} className={`relative transition-all duration-300 ${visibilityClass}`}>
                     
                     {/* Path line connecting to the next node */}
                     {modIdx < modules.length - 1 && (
-                      <div className="absolute left-[19px] md:left-[35px] top-[74px] bottom-[-24px] w-0.5 z-0">
-                        <div className={`h-full w-full transition-all duration-300 ${
+                      <div className={`absolute left-[19px] md:left-[35px] top-[74px] bottom-[-24px] w-0.5 z-0 flex flex-col items-center transition-all duration-300 ${
+                        modIdx >= revealedModuleCount - 1 ? 'opacity-0 h-0' : 'opacity-100'
+                      }`}>
+                        <div className={`h-full w-full transition-all duration-300 relative overflow-hidden ${
                           isCompleted
                             ? 'bg-primary shadow-[0_0_8px_var(--color-primary)]'
                             : 'bg-slate-800'
-                        }`} />
+                        }`}>
+                          {isCompleted && (
+                            <div className="absolute top-0 left-0 right-0 w-full h-1/2 bg-linear-to-b from-primary to-transparent animate-bounce opacity-70" />
+                          )}
+                        </div>
                       </div>
                     )}
 
                     {/* Level Card */}
-                    <div className={`relative z-10 p-5 rounded-3xl border transition-all duration-300 ${
+                    <div className={`relative z-10 p-5 rounded-3xl border transition-all duration-300 ${revealAnimationClass} ${
                       isCurrent
                         ? 'bg-primary/5 border-primary shadow-[0_0_20px_var(--kq-glow)] scale-[1.01]'
                         : isCompleted
@@ -1287,7 +1339,7 @@ soundEnabled
                             isCurrent
                               ? 'bg-primary border-primary text-slate-950 shadow-[0_0_12px_var(--color-primary)] animate-pulse'
                               : isCompleted
-                              ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
+                              ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-440'
                               : isLocked
                               ? 'bg-slate-950 border-slate-900 text-slate-700'
                               : 'bg-slate-900 text-slate-400 border-slate-800'
@@ -1297,9 +1349,15 @@ soundEnabled
                           </div>
 
                           <div>
-                            <div className="flex items-center gap-2 mb-1">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              {isJustRevealed && !isLocked && (
+                                <span className="px-2 py-0.5 text-[9px] font-black bg-primary text-slate-955 uppercase rounded tracking-widest animate-pulse flex items-center gap-1">
+                                  🔓 MODULE UNLOCKED!
+                                </span>
+                              )}
+
                               {isCurrent ? (
-                                <span className="px-2 py-0.5 text-[9px] font-black bg-primary text-slate-950 uppercase rounded tracking-wider animate-pulse flex items-center gap-1">
+                                <span className="px-2 py-0.5 text-[9px] font-black bg-primary text-slate-955 uppercase rounded tracking-wider animate-pulse flex items-center gap-1">
                                   ⚡ CURRENT LEVEL
                                 </span>
                               ) : isCompleted ? (
@@ -1308,11 +1366,11 @@ soundEnabled
                                 </span>
                               ) : isAvailable ? (
                                 <span className="px-2 py-0.5 text-[9px] font-black bg-slate-900 text-slate-400 border border-slate-800 uppercase rounded tracking-wider flex items-center gap-1">
-                                  ◉ AVAILABLE
+                                  🔓 UNLOCKED
                                 </span>
                               ) : (
                                 <span className="px-2 py-0.5 text-[9px] font-black bg-slate-950 text-slate-500 border border-slate-900 uppercase rounded tracking-wider flex items-center gap-1">
-                                  🔒 LOCKED
+                                  🔒 UPCOMING
                                 </span>
                               )}
 

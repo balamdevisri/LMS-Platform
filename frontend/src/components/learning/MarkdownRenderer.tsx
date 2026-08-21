@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { CodeBlock } from './CodeBlock';
 import { Sparkles, CheckCircle2, Terminal, AlertTriangle, Lightbulb } from 'lucide-react';
+import { soundService } from '@/services/soundService';
 
 import { LmsCourseRenderer } from './LmsCourseRenderer';
 
@@ -181,6 +182,109 @@ function splitInlineCProgram(line: string): string[] {
 
   return result;
 }
+
+const InteractiveMarkdownFlowchart: React.FC<{ steps: string[] }> = ({ steps }) => {
+  const isReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const [activeStep, setActiveStep] = useState(isReduced ? steps.length - 1 : 0);
+  const [completed, setCompleted] = useState(isReduced);
+
+  const handleNextStep = () => {
+    if (activeStep < steps.length - 1) {
+      const nextStep = activeStep + 1;
+      setActiveStep(nextStep);
+      soundService.play('select');
+      if (nextStep === steps.length - 1) {
+        setCompleted(true);
+        soundService.play('success');
+      }
+    }
+  };
+
+  const handleReset = () => {
+    setActiveStep(0);
+    setCompleted(false);
+    soundService.play('select');
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-3 my-6 p-4 rounded-3xl border border-slate-800 bg-slate-950/20 w-full max-w-md mx-auto shadow-md">
+      <div className="flex items-center justify-between w-full border-b border-slate-800 pb-2 mb-2 text-[10px] font-mono">
+        <span className="text-slate-450 uppercase tracking-widest font-black">
+          ⚡ Flowchart Path ({activeStep + 1} / {steps.length})
+        </span>
+        {completed ? (
+          <span className="text-emerald-450 font-black animate-pulse flex items-center gap-1">
+            ✓ FLOW COMPLETE
+          </span>
+        ) : (
+          <span className="text-primary font-black animate-pulse">
+            ● IN PROGRESS
+          </span>
+        )}
+      </div>
+
+      <div className="flex flex-col items-center gap-2 w-full">
+        {steps.map((step, idx) => {
+          const isCurrent = idx === activeStep;
+          const isPassed = idx < activeStep;
+
+          let blockClass = '';
+          if (isCurrent) {
+            blockClass = 'border-primary bg-primary/10 text-primary scale-102 font-black shadow-[0_0_12px_var(--color-primary)]';
+          } else if (isPassed) {
+            blockClass = 'border-primary/40 bg-primary/5 text-primary/80 opacity-90';
+          } else {
+            blockClass = 'border-slate-800 bg-slate-900/50 text-slate-550 opacity-40';
+          }
+
+          return (
+            <React.Fragment key={idx}>
+              <div 
+                className={`px-5 py-3 rounded-2xl border text-sm font-semibold font-mono tracking-wide w-full text-center transition-all duration-305 ${blockClass}`}
+              >
+                {step}
+              </div>
+              {idx < steps.length - 1 && (
+                <div 
+                  className={`text-xl font-bold transition-all duration-305 ${
+                    idx < activeStep ? 'text-primary/70' : (idx === activeStep ? 'text-primary animate-bounce' : 'text-slate-800')
+                  }`}
+                >
+                  ↓
+                </div>
+              )}
+            </React.Fragment>
+          );
+        })}
+      </div>
+
+      {!isReduced && (
+        <div className="flex items-center gap-3 mt-2 w-full">
+          {activeStep < steps.length - 1 ? (
+            <button
+              onClick={handleNextStep}
+              className="flex-1 bg-linear-to-r from-primary to-secondary text-slate-955 font-mono text-[10px] font-black py-2.5 px-4 rounded-xl cursor-pointer active:scale-95 transition-all shadow-[0_0_8px_var(--color-primary)] text-center"
+            >
+              [ NEXT STEP → ]
+            </button>
+          ) : (
+            <div className="flex-1 flex flex-col items-center gap-2">
+              <div className="text-[10px] font-mono font-black text-emerald-450 uppercase tracking-widest text-center mt-1">
+                🎯 CONCEPT MASTERED
+              </div>
+              <button
+                onClick={handleReset}
+                className="w-full bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-350 hover:text-white font-mono text-[9px] font-bold py-2 px-4 rounded-xl cursor-pointer active:scale-95 transition-all text-center"
+              >
+                [ ↻ REPLAY FLOW ]
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isNightMode = false, courseId }) => {
   if (!content) return null;
@@ -750,19 +854,10 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, isN
       if (line.includes('↓')) {
         const steps = line.split('↓').map(s => s.trim()).filter(Boolean);
         elements.push(
-          <div key={`flowchart-${index}`} className="flex flex-col items-center gap-2 my-6">
-            {steps.map((step, sidx) => (
-              <React.Fragment key={sidx}>
-                <div className={`px-5 py-3 rounded-2xl border text-sm font-semibold font-mono tracking-wide ${isNightMode ? 'bg-slate-900 border-slate-800 text-primary' : 'bg-sky-50 border-sky-100 text-primary'
-                  } shadow-sm max-w-md text-center`}>
-                  {step}
-                </div>
-                {sidx < steps.length - 1 && (
-                  <div className="text-xl text-primary font-bold">↓</div>
-                )}
-              </React.Fragment>
-            ))}
-          </div>
+          <InteractiveMarkdownFlowchart
+            key={`flowchart-${index}`}
+            steps={steps}
+          />
         );
         return;
       }
