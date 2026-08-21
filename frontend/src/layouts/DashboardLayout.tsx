@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { BrandLogo } from '@/components/common/BrandLogo';
+import { SEOHead } from '@/components/seo/SEOHead';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { LogoutConfirmModal } from '@/components/common/LogoutConfirmModal';
 import { useAuth } from '@/contexts/AuthContext';
@@ -248,6 +249,11 @@ export const DashboardLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 flex flex-col font-sans selection:bg-indigo-600 selection:text-white transition-colors duration-300">
+      <SEOHead 
+        title="Dashboard"
+        description="Kaizen Q User Dashboard"
+        noindex={true}
+      />
       {sidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}

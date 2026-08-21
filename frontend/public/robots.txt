@@ -1,2 +1,10 @@
 User-agent: *
 Allow: /
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /auth/
+Disallow: /verify-certificate/
+Disallow: /live-classroom/
+Disallow: /student/
+
+Sitemap: https://www.kaizenq.in/sitemap.xml
