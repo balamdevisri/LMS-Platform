@@ -22,6 +22,7 @@ import {
   ExternalLink,
   Edit,
   Hand,
+  BarChart2,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { liveClassService, type LiveClass } from '@/services/liveClassService';
@@ -36,7 +37,7 @@ export const AdminLiveControlCenter: React.FC = () => {
 
   const [liveClass, setLiveClass] = useState<LiveClass | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'announcements' | 'students' | 'chat' | 'qna' | 'quiz' | 'hands'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'announcements' | 'students' | 'chat' | 'qna' | 'quiz' | 'polls' | 'hands'>('overview');
 
   const classId = id || 'class_react_101_live';
   const role = userProfile?.role || 'student';
@@ -51,12 +52,18 @@ export const AdminLiveControlCenter: React.FC = () => {
     questions: socketQuestions,
     raisedHands,
     announcements: socketAnnouncements,
+    activePoll,
+    activeQuiz,
+    quizResult,
     sendChat,
     deleteChat,
     answerQuestion,
     acknowledgeHand,
     sendAnnouncement,
+    createPoll,
+    endPoll,
     startQuiz,
+    endQuiz,
     updateClassStatus,
   } = useLiveClassSocket(classId, liveClass?.status);
 
@@ -78,6 +85,12 @@ export const AdminLiveControlCenter: React.FC = () => {
   // Q&A State
   const [replyInput, setReplyInput] = useState<{ [qId: string]: string }>({});
 
+  // Live Polls State
+  const [pollQuestion, setPollQuestion] = useState<string>('');
+  const [pollOptions, setPollOptions] = useState<string[]>(['', '', '', '']);
+  const [pollDuration, setPollDuration] = useState<number>(60);
+  const [launchingPoll, setLaunchingPoll] = useState<boolean>(false);
+
   // Quiz Studio State
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [quizQuestion, setQuizQuestion] = useState<string>('');
@@ -85,16 +98,6 @@ export const AdminLiveControlCenter: React.FC = () => {
   const [quizCorrectAnswer, setQuizCorrectAnswer] = useState<string>('');
   const [quizTimer, setQuizTimer] = useState<number>(30);
   const [quizPoints, setQuizPoints] = useState<number>(10);
-
-  // Attendance/Students Roster
-  const [studentsRoster] = useState<any[]>([
-    { id: 'usr_std_1', name: 'Aarav Sharma', email: 'aarav@shaivika.edu', status: 'ACTIVE', joinedAt: '10:02 AM', duration: '42 mins' },
-    { id: 'usr_std_2', name: 'Priya Patel', email: 'priya@shaivika.edu', status: 'ACTIVE', joinedAt: '10:04 AM', duration: '40 mins' },
-    { id: 'usr_std_3', name: 'Rohan Gupta', email: 'rohan@shaivika.edu', status: 'ACTIVE', joinedAt: '10:05 AM', duration: '39 mins' },
-    { id: 'usr_std_4', name: 'Ananya Reddy', email: 'ananya@shaivika.edu', status: 'ACTIVE', joinedAt: '10:08 AM', duration: '36 mins' },
-    { id: 'usr_std_5', name: 'Vikram Singh', email: 'vikram@shaivika.edu', status: 'ACTIVE', joinedAt: '10:11 AM', duration: '33 mins' },
-    { id: 'usr_std_6', name: 'Sneha Rao', email: 'sneha@shaivika.edu', status: 'LEFT', joinedAt: '10:00 AM', duration: '25 mins' },
-  ]);
 
   const loadData = async () => {
     setLoading(true);
@@ -227,6 +230,38 @@ export const AdminLiveControlCenter: React.FC = () => {
     }
   };
 
+  // Live Poll Handlers
+  const handleLaunchPoll = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const validOptions = pollOptions.map((o) => o.trim()).filter(Boolean);
+    if (!pollQuestion.trim() || validOptions.length < 2) {
+      toast.error('Please enter a poll question and at least 2 options.');
+      return;
+    }
+
+    setLaunchingPoll(true);
+    try {
+      await createPoll(pollQuestion.trim(), validOptions, pollDuration);
+      setPollQuestion('');
+      setPollOptions(['', '', '', '']);
+      toast.success('📊 Live Poll broadcasted to all students in real time!');
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to broadcast poll.');
+    } finally {
+      setLaunchingPoll(false);
+    }
+  };
+
+  const handleEndActivePoll = async () => {
+    if (!activePoll) return;
+    try {
+      await endPoll(activePoll.id);
+      toast.info('Poll concluded and final results broadcasted.');
+    } catch (e) {
+      toast.error('Failed to end poll.');
+    }
+  };
+
   // Live Quiz Creation
   const handleCreateQuiz = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -335,11 +370,11 @@ export const AdminLiveControlCenter: React.FC = () => {
               </div>
               <div className="flex items-center gap-1.5">
                 <Users className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Students Joined: <strong className="text-white">48</strong></span>
+                <span>Students Joined: <strong className="text-white">{participants.length || (onlineCount > 0 ? onlineCount : 0)}</strong></span>
               </div>
               <div className="flex items-center gap-1.5">
                 <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-                <span>Active Students: <strong className="text-emerald-400">44</strong></span>
+                <span>Active Online: <strong className="text-emerald-400">{onlineCount}</strong></span>
               </div>
             </div>
           </div>
@@ -442,6 +477,7 @@ export const AdminLiveControlCenter: React.FC = () => {
               { key: 'hands', label: `Hands (${raisedHands.length})`, icon: Hand },
               { key: 'chat', label: 'Chat', icon: MessageSquare },
               { key: 'qna', label: `Q&A (${socketQuestions.length})`, icon: HelpCircle },
+              { key: 'polls', label: activePoll ? 'Poll (Live)' : 'Polls', icon: BarChart2 },
               { key: 'quiz', label: 'Quiz Studio', icon: Award },
             ].map((tab) => {
               const Icon = tab.icon;
@@ -575,29 +611,26 @@ export const AdminLiveControlCenter: React.FC = () => {
 
               <div className="divide-y divide-slate-100 dark:divide-zinc-800 max-h-96 overflow-y-auto">
                 {participants.length === 0 ? (
-                  studentsRoster.map((std) => (
-                    <div key={std.id} className="py-2.5 flex items-center justify-between gap-3 text-xs">
-                      <div>
-                        <span className="font-bold text-slate-900 dark:text-zinc-100 block">{std.name}</span>
-                        <span className="text-[11px] text-slate-400">{std.email}</span>
-                      </div>
-                      <div className="text-right">
-                        <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                          {std.status}
-                        </span>
-                        <span className="text-[10px] text-slate-400 block mt-0.5">{std.duration}</span>
-                      </div>
-                    </div>
-                  ))
+                  <div className="py-8 text-center text-slate-400 space-y-1">
+                    <Users className="w-6 h-6 mx-auto text-slate-500 mb-1" />
+                    <p className="text-xs font-semibold">No students currently in room</p>
+                    <p className="text-[11px] text-slate-500">When students join from mobile or laptop, their live name & role will appear here automatically.</p>
+                  </div>
                 ) : (
                   participants.map((std, idx) => (
                     <div key={idx} className="py-2.5 flex items-center justify-between gap-3 text-xs">
-                      <div>
-                        <span className="font-bold text-slate-900 dark:text-zinc-100 block">{std.name}</span>
-                        <span className="text-[11px] text-slate-400">{std.userId}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-blue-600/20 border border-blue-500/30 text-blue-400 font-bold flex items-center justify-center text-xs">
+                          {(std.name || 'S').charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <span className="font-bold text-slate-900 dark:text-zinc-100 block">{std.name || 'Student'}</span>
+                          <span className="text-[10px] text-slate-400">{std.userId}</span>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                      <div className="text-right flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                           {std.role?.toUpperCase() || 'STUDENT'}
                         </span>
                       </div>
@@ -637,7 +670,7 @@ export const AdminLiveControlCenter: React.FC = () => {
                       </div>
                       <button
                         onClick={() => handleDeleteChatMessage(msg.id)}
-                        className="p-1 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
+                        className="p-1 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
                         title="Delete Message"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -652,12 +685,12 @@ export const AdminLiveControlCenter: React.FC = () => {
                   type="text"
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
-                  placeholder="Post as Instructor / Moderator..."
+                  placeholder="Type an instructor message..."
                   className="flex-1 px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-900 dark:text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-blue-500"
                 />
                 <button
                   type="submit"
-                  className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-md shrink-0 cursor-pointer"
                 >
                   Send
                 </button>
@@ -670,16 +703,16 @@ export const AdminLiveControlCenter: React.FC = () => {
             <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-5 shadow-sm space-y-4">
               <div>
                 <h3 className="font-heading font-extrabold text-sm text-slate-900 dark:text-zinc-100">
-                  Student Q&A Manager (Real-Time)
+                  Live Q&A Inquiries ({socketQuestions.length})
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-zinc-400">
-                  Answer student doubts and broadcast verified answers to the room.
+                  Student submitted questions requiring instructor verification.
                 </p>
               </div>
 
               <div className="space-y-3 max-h-80 overflow-y-auto">
                 {socketQuestions.length === 0 ? (
-                  <p className="text-xs text-slate-400 text-center py-6">No questions submitted by students yet.</p>
+                  <p className="text-xs text-slate-400 text-center py-8">No questions asked yet.</p>
                 ) : (
                   socketQuestions.map((q) => (
                     <div key={q.id} className="p-3.5 rounded-2xl bg-slate-50 dark:bg-zinc-800/80 border border-slate-200 dark:border-zinc-700 space-y-2 text-xs">
@@ -719,17 +752,188 @@ export const AdminLiveControlCenter: React.FC = () => {
             </div>
           )}
 
+          {/* Module: Live Polls */}
+          {activeTab === 'polls' && (
+            <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-5 shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-heading font-extrabold text-sm text-slate-900 dark:text-zinc-100">
+                    Live Polls & Audience Pulse
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-zinc-400">
+                    Run quick voting rounds to gauge comprehension and student consensus.
+                  </p>
+                </div>
+                {activePoll && activePoll.status === 'ACTIVE' && (
+                  <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-xs font-bold flex items-center gap-1 animate-pulse">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    LIVE POLL
+                  </span>
+                )}
+              </div>
+
+              {activePoll ? (
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-zinc-800/80 border border-slate-200 dark:border-zinc-700 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-extrabold text-xs text-slate-900 dark:text-zinc-100">
+                      {activePoll.question}
+                    </span>
+                    <span className="text-[11px] font-mono text-slate-400">
+                      {activePoll.totalVotes || 0} Votes
+                    </span>
+                  </div>
+
+                  <div className="space-y-2">
+                    {activePoll.options.map((opt) => {
+                      const total = activePoll.totalVotes || 0;
+                      const pct = total > 0 ? Math.round((opt.votes / total) * 100) : 0;
+                      return (
+                        <div key={opt.id} className="space-y-1">
+                          <div className="flex justify-between text-xs font-medium text-slate-700 dark:text-zinc-300">
+                            <span>{opt.text}</span>
+                            <span className="font-mono text-[11px] font-bold">{pct}% ({opt.votes})</span>
+                          </div>
+                          <div className="w-full h-2 bg-slate-200 dark:bg-zinc-700 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-300"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {activePoll.status === 'ACTIVE' && (
+                    <button
+                      type="button"
+                      onClick={handleEndActivePoll}
+                      className="w-full py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition-all shadow-sm cursor-pointer"
+                    >
+                      End Poll & Close Voting
+                    </button>
+                  )}
+                </div>
+              ) : null}
+
+              {/* Poll Creator Form */}
+              <form onSubmit={handleLaunchPoll} className="space-y-3 pt-2">
+                <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider block">
+                  Create New Live Poll
+                </span>
+
+                <input
+                  type="text"
+                  value={pollQuestion}
+                  onChange={(e) => setPollQuestion(e.target.value)}
+                  placeholder="e.g. Is the virtual memory concept clear so far?"
+                  className="w-full p-2.5 text-xs rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-900 dark:text-zinc-100"
+                />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {pollOptions.map((opt, idx) => (
+                    <input
+                      key={idx}
+                      type="text"
+                      value={opt}
+                      onChange={(e) => {
+                        const updated = [...pollOptions];
+                        updated[idx] = e.target.value;
+                        setPollOptions(updated);
+                      }}
+                      placeholder={`Option ${idx + 1}`}
+                      className="p-2 text-xs rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-900 dark:text-zinc-100"
+                    />
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <select
+                    value={pollDuration}
+                    onChange={(e) => setPollDuration(Number(e.target.value))}
+                    className="p-2 text-xs rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-900 dark:text-zinc-100"
+                  >
+                    <option value={30}>30 Seconds</option>
+                    <option value={60}>60 Seconds</option>
+                    <option value={120}>2 Minutes</option>
+                  </select>
+
+                  <button
+                    type="submit"
+                    disabled={launchingPoll}
+                    className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <BarChart2 className="w-3.5 h-3.5" />
+                    <span>{launchingPoll ? 'Launching...' : 'Broadcast Live Poll'}</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
           {/* Module: Interactive Quizzes */}
           {activeTab === 'quiz' && (
             <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-5 shadow-sm space-y-4">
-              <div>
-                <h3 className="font-heading font-extrabold text-sm text-slate-900 dark:text-zinc-100">
-                  Launch Interactive Live Quiz
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-zinc-400">
-                  Broadcast real-time checkpoint questions to measure student retention.
-                </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-heading font-extrabold text-sm text-slate-900 dark:text-zinc-100">
+                    Live Quiz Studio
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-zinc-400">
+                    Broadcast checkpoint questions and review real-time response accuracy.
+                  </p>
+                </div>
+                {activeQuiz && activeQuiz.status === 'ACTIVE' && (
+                  <span className="px-2.5 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-500 text-xs font-bold flex items-center gap-1 animate-pulse">
+                    <span className="w-2 h-2 rounded-full bg-purple-500" />
+                    QUIZ RUNNING
+                  </span>
+                )}
               </div>
+
+              {/* Active Running Quiz Card */}
+              {activeQuiz && (
+                <div className="p-4 rounded-2xl bg-purple-50/60 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 space-y-3">
+                  <div className="flex items-center justify-between text-xs font-bold">
+                    <span className="text-purple-800 dark:text-purple-300">
+                      {activeQuiz.question}
+                    </span>
+                    <span className="text-purple-600 dark:text-purple-400 font-mono">
+                      {activeQuiz.marks} XP &bull; {activeQuiz.timerSeconds}s
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    {activeQuiz.options.map((opt, idx) => (
+                      <div key={idx} className="p-2 rounded-xl bg-white dark:bg-zinc-800 border border-purple-200/50 dark:border-purple-900/50 text-slate-800 dark:text-zinc-200">
+                        {opt}
+                      </div>
+                    ))}
+                  </div>
+
+                  {activeQuiz.status === 'ACTIVE' ? (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await endQuiz(activeQuiz.id);
+                          toast.info('Quiz completed and final correct answers revealed.');
+                        } catch (e) {
+                          toast.error('Failed to conclude quiz.');
+                        }
+                      }}
+                      className="w-full py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs transition-all shadow-sm cursor-pointer"
+                    >
+                      End Quiz & Reveal Correct Answer
+                    </button>
+                  ) : quizResult ? (
+                    <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 text-xs text-emerald-800 dark:text-emerald-300 space-y-1">
+                      <span className="font-bold block">✓ Correct Answer: {quizResult.correctAnswer}</span>
+                      <span>Total Submissions: {quizResult.totalSubmissions} ({quizResult.accuracyPercentage}% Accuracy)</span>
+                    </div>
+                  ) : null}
+                </div>
+              )}
 
               <form onSubmit={handleCreateQuiz} className="space-y-3">
                 <input

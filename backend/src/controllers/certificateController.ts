@@ -120,6 +120,8 @@ export class CertificateController {
         courseDuration,
         modulesCount,
         forceRegenerate,
+        studentName: bodyStudentName,
+        studentEmail: bodyStudentEmail,
       } = req.body;
 
       if (!studentId || !courseId || !courseTitle) {
@@ -134,6 +136,9 @@ export class CertificateController {
       // Resolve student profile from Firestore users/students collection
       let studentName = '';
       let studentEmail = '';
+      // Resolve student profile from Firestore users collection
+      let studentName = bodyStudentName || '';
+      let studentEmail = bodyStudentEmail || '';
       let resolvedStudentId = studentId;
 
       if (db) {
@@ -148,6 +153,7 @@ export class CertificateController {
             if (!displayName) {
               logger.error(`[CERTIFICATE CONTROLLER] ❌ Cannot auto-create profile: name claim/body name is missing for UID ${studentId}.`);
             } else {
+            if (displayName) {
               const newProfile = {
                 uid: studentId,
                 fullName: displayName,
@@ -171,6 +177,8 @@ export class CertificateController {
             studentName = userData.fullName || userData.name || '';
             studentEmail = userData.email || '';
             resolvedStudentId = userData.uid || userData.id || studentId;
+            studentName = userData.fullName || userData.name || studentName || '';
+            studentEmail = userData.email || studentEmail || '';
           }
         } catch (dbErr: any) {
           logger.error(`[CERTIFICATE CONTROLLER] Error resolving profile: ${dbErr?.message}`);
@@ -197,6 +205,12 @@ export class CertificateController {
           success: false,
           error: 'Student profile not found.',
         });
+      // Make sure we have a fallback studentName & studentEmail if not resolved above
+      if (!studentName) {
+        studentName = req.user?.name || req.user?.email?.split('@')[0] || 'Student';
+      }
+      if (!studentEmail) {
+        studentEmail = req.user?.email || 'student@shaivika.com';
       }
 
       const requestId = `certificate-request-${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
@@ -396,6 +410,35 @@ export class CertificateController {
         qrCodeBuffer,
         courseId: courseId ? String(courseId) : undefined,
       });
+      let pdfBuffer: Buffer;
+      try {
+        pdfBuffer = await googleSlidesService.generateCertificateFromTemplate({
+          certificateId: String(certificateId),
+          studentId: String(studentId),
+          studentName: dynamicStudentName,
+          courseTitle: cleanCourseTitleForCertificate(dynamicCourseTitle),
+          instructorName: 'Shaivika Groups Board',
+          completionDate: String(completionDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })),
+          courseDuration: dynamicCourseDuration,
+          modulesCount: actualModulesCount,
+          achievement: dynamicAchievement,
+          qrCodeBuffer,
+        });
+      } catch (slideErr: any) {
+        logger.warn(`[DOWNLOAD CERTIFICATE] Google Slides template generation failed: ${slideErr?.message || slideErr}. Falling back to local PDFCertificateGenerator.`);
+        const { pdfCertificateGenerator } = await import('../services/certificate/PDFCertificateGenerator');
+        pdfBuffer = await pdfCertificateGenerator.generateCertificateBuffer({
+          certificateId: String(certificateId),
+          studentId: String(studentId),
+          studentName: dynamicStudentName,
+          courseTitle: cleanCourseTitleForCertificate(dynamicCourseTitle),
+          instructorName: 'Shaivika Groups Board',
+          completionDate: String(completionDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })),
+          courseDuration: dynamicCourseDuration,
+          modulesCount: actualModulesCount,
+          qrCodeBuffer,
+        });
+      }
 
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="${certificateId}.pdf"`);
@@ -529,6 +572,35 @@ export class CertificateController {
         qrCodeBuffer,
         courseId: courseId ? String(courseId) : undefined,
       });
+      let pdfBuffer: Buffer;
+      try {
+        pdfBuffer = await googleSlidesService.generateCertificateFromTemplate({
+          certificateId: String(certificateId),
+          studentId: String(studentId),
+          studentName: dynamicStudentName,
+          courseTitle: cleanCourseTitleForCertificate(dynamicCourseTitle),
+          instructorName: 'Shaivika Groups Board',
+          completionDate: String(completionDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })),
+          courseDuration: dynamicCourseDuration,
+          modulesCount: actualModulesCount,
+          achievement: dynamicAchievement,
+          qrCodeBuffer,
+        });
+      } catch (slideErr: any) {
+        logger.warn(`[PREVIEW CERTIFICATE] Google Slides template generation failed: ${slideErr?.message || slideErr}. Falling back to local PDFCertificateGenerator.`);
+        const { pdfCertificateGenerator } = await import('../services/certificate/PDFCertificateGenerator');
+        pdfBuffer = await pdfCertificateGenerator.generateCertificateBuffer({
+          certificateId: String(certificateId),
+          studentId: String(studentId),
+          studentName: dynamicStudentName,
+          courseTitle: cleanCourseTitleForCertificate(dynamicCourseTitle),
+          instructorName: 'Shaivika Groups Board',
+          completionDate: String(completionDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })),
+          courseDuration: dynamicCourseDuration,
+          modulesCount: actualModulesCount,
+          qrCodeBuffer,
+        });
+      }
 
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', 'inline; filename="certificate-preview.pdf"');

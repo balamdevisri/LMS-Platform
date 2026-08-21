@@ -58,11 +58,19 @@ const corsOptions: cors.CorsOptions = {
       return callback(null, true);
     }
 
+    const isKaizenQDomain = /^https?:\/\/(www\.)?kaizenq\.in(:\d+)?$/.test(origin);
+    if (isKaizenQDomain) {
+      return callback(null, true);
+    }
+
     const allowedOrigins = [
+      'https://www.kaizenq.in',
+      'https://kaizenq.in',
       ...env.CORS_ORIGIN.split(',').map((o) => o.trim()),
       ...env.FRONTEND_URL.split(',').map((o) => o.trim()),
       'http://localhost:5173',
       'http://localhost:3000',
+      'http://localhost:4173',
       'http://127.0.0.1:5173',
     ].filter(Boolean);
 
@@ -198,8 +206,9 @@ app.get('/api/test-email', async (req, res) => {
   }
 });
 
-// API Routes
+// API Routes (mounted on both /api and root for flexible serverless & reverse-proxy routing)
 app.use('/api', routes);
+app.use('/', routes);
 
 // 404 & Centralized Error Middleware
 app.use(notFoundHandler);

@@ -9,8 +9,7 @@ import { reactCourseModules } from '@/data/reactCourseFullData';
 import { cCourseModules } from '@/data/cCourseFullData';
 import { pythonCourseModules } from '@/data/pythonCourseFullData';
 import { javaCourseModules } from '@/data/javaCourseFullData';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import { API_BASE_URL } from '@/config/api';
 
 const DEFAULT_COURSES: ICourse[] = [
   {
@@ -618,7 +617,7 @@ export interface XPClaimRecord {
   id: string;
   title: string;
   xp: number;
-  category: 'Subtopic Completion' | 'Module Certificate' | 'AI Terminal Lab' | 'Quiz Evaluation' | 'Daily Login' | 'Module Completion Bonus';
+  category: 'Subtopic Completion' | 'Module Certificate' | 'AI Terminal Lab' | 'Quiz Evaluation' | 'Daily Login' | 'Module Completion Bonus' | 'Practice Challenge Completion';
   timestamp: string;
   courseId?: string;
   courseTitle?: string;
@@ -1604,6 +1603,24 @@ class CourseService {
     }
 
     return null;
+  }
+
+  getCourseProgressPercent(courseId: string, userId = 'default_student'): number {
+    try {
+      const saved = localStorage.getItem(`shaivika_course_progress_${userId}_${courseId}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (typeof parsed.percent === 'number') return parsed.percent;
+        if (typeof parsed.percentage === 'number') return parsed.percentage;
+        if (typeof parsed.progress === 'number') return parsed.progress;
+      }
+      const generic = localStorage.getItem(`course_progress_${courseId}`);
+      if (generic) {
+        const val = Number(generic);
+        if (!isNaN(val)) return val;
+      }
+    } catch (e) {}
+    return 0;
   }
 }
 

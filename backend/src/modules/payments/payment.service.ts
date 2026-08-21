@@ -349,6 +349,76 @@ export class PaymentService {
     const payment = await Payment.findOne(query);
     return payment;
   }
+
+  /**
+   * 5. Get Student Payment History
+   */
+  public async getStudentPaymentHistory(studentId: string): Promise<any[]> {
+    const historyMap = new Map<string, any>();
+
+    // 1. Fetch from MongoDB
+    try {
+      const mongoPayments = await Payment.find({
+        $or: [{ studentId }, { studentEmail: studentId }],
+      }).sort({ createdAt: -1 });
+
+      mongoPayments.forEach((p: any) => {
+        const id = p.orderId || p._id?.toString() || p.id;
+        historyMap.set(id, {
+          id,
+          orderId: p.orderId,
+          transactionId: p.transactionId || id,
+          courseId: p.courseId,
+          courseTitle: p.courseTitle || 'Scholar Course Track',
+          amount: p.amount || 0,
+          currency: p.currency || 'INR',
+          status: p.status || 'SUCCESS',
+          paymentMethod: p.paymentMethod || 'UPI / Online Card',
+          paidAt: p.paidAt || p.createdAt || new Date().toISOString(),
+          createdAt: p.createdAt || new Date().toISOString(),
+        });
+      });
+    } catch (mErr) {
+      logger.warn('[PaymentService] MongoDB payments lookup notice:', mErr);
+    }
+
+    // 2. Fetch from Firestore
+    if (isFirebaseAdminInitialized() && db) {
+      try {
+        const snap = await db.collection('payments')
+          .where('studentId', '==', studentId)
+          .get();
+
+        snap.forEach((doc) => {
+          const d = doc.data();
+          const id = doc.id;
+          if (!historyMap.has(id)) {
+            historyMap.set(id, {
+              id,
+              orderId: d.orderId || id,
+              transactionId: d.transactionId || id,
+              courseId: d.courseId,
+              courseTitle: d.courseTitle || 'Scholar Course Track',
+              amount: d.amount || 0,
+              currency: d.currency || 'INR',
+              status: d.status || 'SUCCESS',
+              paymentMethod: d.paymentMethod || 'UPI Instant',
+              paidAt: d.paidAt || d.createdAt || new Date().toISOString(),
+              createdAt: d.createdAt || new Date().toISOString(),
+            });
+          }
+        });
+      } catch (fErr) {
+        logger.warn('[PaymentService] Firestore payments lookup notice:', fErr);
+      }
+    }
+
+    return Array.from(historyMap.values()).sort((a, b) => {
+      const timeA = new Date(a.paidAt || a.createdAt).getTime();
+      const timeB = new Date(b.paidAt || b.createdAt).getTime();
+      return timeB - timeA;
+    });
+  }
 }
 
 export const paymentService = new PaymentService();

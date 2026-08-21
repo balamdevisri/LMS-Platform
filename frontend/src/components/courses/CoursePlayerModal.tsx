@@ -1191,6 +1191,40 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
   }, [course.id, activeModuleIdx, currentLessonIdx, currentSubtopicIdx, completedSubtopics, completedModules, inProgressSubtopics, progressPercent, currentLesson, currentSubtopic]);
 
 
+  const handleForceCompleteCourse = async () => {
+    const confirmApprove = window.confirm("Are you sure you want to mark this course track as 100% completed?");
+    if (!confirmApprove) return;
+
+    const allIds = allLessons.map((l) => l.subtopicId);
+    setCompletedSubtopics(allIds);
+
+    const allModuleIdxs = syllabus.map((_, idx) => idx);
+    setCompletedModules(allModuleIdxs);
+
+    courseService.saveCourseCheckpoint(course.id, {
+      courseId: course.id,
+      progressPercent: 100,
+      lastModuleIdx: syllabus.length - 1,
+      lastLessonIdx: 0,
+      lastSubtopicIdx: 0,
+      lastSubtopicTitle: 'Course Completed',
+      completedSubtopics: allIds,
+      completedModules: allModuleIdxs,
+      inProgressSubtopics: [],
+      lastUpdated: new Date().toISOString(),
+    }, user?.uid || 'default_student');
+
+    localStorage.setItem(`shaivika_completed_${course.id}`, JSON.stringify(allIds));
+
+    const newXP = courseService.addXPPoints(100);
+    setUserXP(newXP);
+
+    toast.success('🎉 Course marked as 100% completed! Official Certificate unlocked.');
+    if (onProgressUpdate) {
+      onProgressUpdate(100);
+    }
+  };
+
   // Mandatory 15 Seconds Spended Time per Subtopic before Claiming XP
 
   useEffect(() => {
@@ -1203,6 +1237,14 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
     }, 1000);
     return () => clearInterval(interval);
   }, [activeModuleIdx, currentLessonIdx, currentSubtopicIdx]);
+
+  // Lock body scroll when course player is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
 
   const remainingSeconds = Math.max(0, requiredSubtopicSeconds - timerSeconds);
   const formatTime = (secs: number) => {
@@ -1315,6 +1357,15 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
       const updatedXP = courseService.addXPPoints(50);
       setUserXP(updatedXP);
       setClaimedPointsModules([...claimedPointsModules, activeModuleIdx]);
+      courseService.addXPClaim({
+        id: `mod_claim_${Date.now()}`,
+        title: `🎁 Module Mastery: Module 0${activeModuleIdx + 1}`,
+        xp: 50,
+        category: 'Module Completion Bonus',
+        timestamp: new Date().toISOString(),
+        courseId: course.id,
+        courseTitle: course.title,
+      });
       toast.success(`🎁 +50 Module Mastery XP Claimed! Total: ${updatedXP} XP`);
     }
 
@@ -1386,6 +1437,15 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
           <span className="text-[11px] font-extrabold text-sky-900 font-mono">
             {progressPercent}% <span className="text-slate-400 font-normal font-sans">({completedLessonsCount}/{allLessons.length})</span>
           </span>
+          {progressPercent < 100 && (
+            <button
+              onClick={handleForceCompleteCourse}
+              className="ml-2 px-2 py-0.5 rounded-md bg-emerald-500 hover:bg-emerald-600 text-white text-[9px] font-black uppercase tracking-wider cursor-pointer shadow-3xs transition-all shrink-0"
+              title="Click to instantly claim 100% completion & unlock certificate"
+            >
+              Complete Course ⚡
+            </button>
+          )}
         </div>
 
         {/* Right Tools & Actions */}
@@ -1724,7 +1784,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
         </aside>
 
         {/* RIGHT MAIN CLASSROOM CONTENT VIEWER */}
-        <main className={`flex-1 p-4 sm:p-10 flex flex-col justify-between overflow-y-auto space-y-8 transition-colors ${
+        <main className={`flex-1 p-4 sm:p-10 flex flex-col justify-between overflow-y-auto overflow-x-hidden [overscroll-behavior-y:contain] [-webkit-overflow-scrolling:touch] space-y-8 transition-colors ${
           isReadingMode ? 'bg-[#faf6ee]' : 'bg-slate-50'
         }`}>
           <div className="space-y-8 max-w-5xl mx-auto w-full">

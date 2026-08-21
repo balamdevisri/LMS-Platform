@@ -57,13 +57,22 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({ socket }) 
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black border ${
+                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black border shrink-0 ${
                     item.rank === 1
                       ? 'bg-amber-500 text-slate-950 border-amber-400'
                       : 'bg-slate-800 border-slate-700 text-slate-400'
                   }`}>
                     {rankEmoji || item.rank}
                   </span>
+
+                  <img
+                    src={`https://github.com/${item.studentName.toLowerCase().replace(/[^a-z0-9_-]/g, '')}.png?size=100`}
+                    alt={item.studentName}
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(item.studentName)}&background=0284c7&color=fff&bold=true`;
+                    }}
+                    className="w-7 h-7 rounded-lg object-cover border border-slate-700 shrink-0 bg-slate-800"
+                  />
 
                   <div>
                     <h4 className="text-xs font-black text-white">{item.studentName}</h4>

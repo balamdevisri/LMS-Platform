@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { API_BASE_URL } from '@/config/api';
 import { toast } from 'sonner';
 import {
   Clock,
@@ -16,7 +17,12 @@ import {
   Sparkles,
   Lock,
   Globe,
-  Plus
+  Plus,
+  Share2,
+  Copy,
+  Check,
+  Eye,
+  X
 } from 'lucide-react';
 import {
   XPService,
@@ -80,11 +86,34 @@ export const Profile: React.FC = () => {
   const [selectedCert, setSelectedCert] = useState<Certificate | null>(null);
   const [loadingCertId, setLoadingCertId] = useState<string | null>(null);
 
+  // Portfolio Publishing & Database State
+  const [isPublished, setIsPublished] = useState<boolean>(() => {
+    return localStorage.getItem('shaivika_portfolio_published') === 'true';
+  });
+  const [customHandle, setCustomHandle] = useState<string>(() => {
+    return (
+      localStorage.getItem('shaivika_portfolio_handle') ||
+      userProfile?.email?.split('@')[0] ||
+      user?.email?.split('@')[0] ||
+      userId
+    );
+  });
+  const [isSavingPortfolio, setIsSavingPortfolio] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+
   // Social coordinates local caching
   const [githubLink, setGithubLink] = useState(localStorage.getItem('shaivika_portfolio_github') || '');
   const [linkedinLink, setLinkedinLink] = useState(localStorage.getItem('shaivika_portfolio_linkedin') || '');
   const [websiteLink, setWebsiteLink] = useState(localStorage.getItem('shaivika_portfolio_website') || '');
   const [bio, setBio] = useState(localStorage.getItem('shaivika_portfolio_bio') || 'Aspiring technology specialist mastering system architecture, relational databases, and collaborative workflow tools.');
+
+  // Skills
+  const [skills, setSkills] = useState<string[]>(() => {
+    const cached = localStorage.getItem('shaivika_portfolio_skills');
+    if (cached) return JSON.parse(cached);
+    return ['React & TypeScript', 'Node.js Express', 'Python AI Engineering', 'Git & GitHub Workflow', 'Linux Administration', 'REST APIs'];
+  });
 
   // Projects list
   const [projects, setProjects] = useState<{ name: string; desc: string; repo: string }[]>(() => {
@@ -105,6 +134,27 @@ export const Profile: React.FC = () => {
   });
 
   const [newProj, setNewProj] = useState({ name: '', desc: '', repo: '' });
+
+  // Load from backend portfolio on mount
+  useEffect(() => {
+    if (!userId) return;
+    fetch(`${API_BASE_URL}/portfolio/me?studentId=${userId}`)
+      .then(res => res.json())
+      .then(json => {
+        if (json.success && json.data) {
+          const d = json.data;
+          if (d.bio) setBio(d.bio);
+          if (d.githubLink) setGithubLink(d.githubLink);
+          if (d.linkedinLink) setLinkedinLink(d.linkedinLink);
+          if (d.websiteLink) setWebsiteLink(d.websiteLink);
+          if (d.customHandle) setCustomHandle(d.customHandle);
+          if (typeof d.isPublished === 'boolean') setIsPublished(d.isPublished);
+          if (Array.isArray(d.skills) && d.skills.length > 0) setSkills(d.skills);
+          if (Array.isArray(d.projects) && d.projects.length > 0) setProjects(d.projects);
+        }
+      })
+      .catch(() => {});
+  }, [userId]);
 
   const getGitHubUsername = () => {
     if (githubLink) {
@@ -193,6 +243,7 @@ export const Profile: React.FC = () => {
 
       // 1. Query the student's certificates on backend to see if it's already there
       const verifyRes = await fetch(`${apiBase}/certificates/student/${studentEmail}`);
+      const verifyRes = await fetch(`${API_BASE_URL}/certificates/student/${studentEmail}`);
       if (verifyRes.ok) {
         const contentType = verifyRes.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
@@ -237,6 +288,7 @@ export const Profile: React.FC = () => {
       };
 
       const deliverRes = await safeFetchJson(`${apiBase}/certificates/complete-and-deliver`, {
+      const response = await fetch(`${API_BASE_URL}/certificates/complete-and-deliver`, {
         method: 'POST',
         headers: getHeaders(token),
         body: JSON.stringify({
@@ -279,6 +331,35 @@ export const Profile: React.FC = () => {
     }
   };
 
+  const handleSaveSocials = async () => {
+    try {
+      localStorage.setItem('shaivika_portfolio_github', githubLink);
+      localStorage.setItem('shaivika_portfolio_linkedin', linkedinLink);
+      localStorage.setItem('shaivika_portfolio_website', websiteLink);
+      localStorage.setItem('shaivika_portfolio_bio', bio);
+      if (userId) {
+        await fetch(`${API_BASE_URL}/portfolio/me`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            studentId: userId,
+            githubLink,
+            linkedinLink,
+            websiteLink,
+            bio,
+            skills,
+            projects,
+            customHandle,
+            isPublished
+          })
+        });
+      }
+      toast.success('Coordinates & bio updated successfully!');
+    } catch (e) {
+      toast.info('Coordinates saved locally.');
+    }
+  };
+
   const level = getLevelForXP(xp);
   const levelTitle = getLevelTitle(level);
   const nextLevelXp = getXPRequiredForNextLevel(level);
@@ -298,12 +379,66 @@ export const Profile: React.FC = () => {
 
   const avatarUrl = userProfile?.photoURL || user?.photoURL;
 
-  const handleSaveSocials = () => {
+  const handleSavePortfolio = async (publishOverride?: boolean) => {
+    setIsSavingPortfolio(true);
+    const pubStatus = typeof publishOverride === 'boolean' ? publishOverride : isPublished;
+    
+    // Save to local storage
     localStorage.setItem('shaivika_portfolio_github', githubLink);
     localStorage.setItem('shaivika_portfolio_linkedin', linkedinLink);
     localStorage.setItem('shaivika_portfolio_website', websiteLink);
     localStorage.setItem('shaivika_portfolio_bio', bio);
-    toast.success('💾 Portfolio profile updated successfully!');
+    localStorage.setItem('shaivika_portfolio_handle', customHandle);
+    localStorage.setItem('shaivika_portfolio_published', String(pubStatus));
+    localStorage.setItem('shaivika_portfolio_skills', JSON.stringify(skills));
+    localStorage.setItem('shaivika_portfolio_projects', JSON.stringify(projects));
+
+    // Save to backend database / Firestore
+    try {
+      let token: string | null = null;
+      if (user) {
+        try {
+          token = await user.getIdToken();
+        } catch {}
+      }
+
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch(`${API_BASE_URL}/portfolio/me`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({
+          studentId: userId,
+          name: userProfile?.name || user?.displayName || 'Student Scholar',
+          email: userProfile?.email || user?.email || '',
+          bio,
+          githubLink,
+          linkedinLink,
+          websiteLink,
+          customHandle,
+          skills,
+          projects,
+          isPublished: pubStatus,
+        }),
+      });
+
+      if (res.ok) {
+        toast.success(pubStatus ? '🚀 Portfolio saved & live on database!' : '💾 Portfolio draft saved to database!');
+      } else {
+        toast.success('💾 Portfolio updated in local workspace.');
+      }
+    } catch {
+      toast.success('💾 Portfolio saved locally.');
+    } finally {
+      setIsSavingPortfolio(false);
+    }
+  };
+
+  const handleTogglePublish = async () => {
+    const nextState = !isPublished;
+    setIsPublished(nextState);
+    await handleSavePortfolio(nextState);
   };
 
   const handleAddProject = () => {
@@ -313,6 +448,7 @@ export const Profile: React.FC = () => {
       localStorage.setItem('shaivika_portfolio_projects', JSON.stringify(updated));
       setNewProj({ name: '', desc: '', repo: '' });
       toast.success('📁 New project added to showcase.');
+      handleSavePortfolio();
     }
   };
 
@@ -320,20 +456,179 @@ export const Profile: React.FC = () => {
     const updated = projects.filter((_, i) => i !== idx);
     setProjects(updated);
     localStorage.setItem('shaivika_portfolio_projects', JSON.stringify(updated));
+    handleSavePortfolio();
+  };
+
+  const publicPortfolioUrl = `${window.location.origin}/portfolio/${customHandle || userId}`;
+
+  const handleCopyShareLink = async () => {
+    try {
+      await navigator.clipboard.writeText(publicPortfolioUrl);
+      setCopiedLink(true);
+      toast.success('Public Portfolio link copied to clipboard!');
+      setTimeout(() => setCopiedLink(false), 2000);
+    } catch {
+      toast.error('Failed to copy link.');
+    }
   };
 
   return (
     <div className="space-y-8 text-slate-900 dark:text-slate-100 font-sans max-w-6xl mx-auto pb-12 animate-in fade-in duration-300">
       
-      {/* Portfolio Title */}
-      <div className="border-b border-sky-100 dark:border-slate-800 pb-4 select-none">
-        <h1 className="font-heading font-black text-2xl sm:text-3xl text-slate-900 dark:text-white tracking-tight">
-          Developer Portfolio & Profile
-        </h1>
-        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-semibold">
-          Your public credentials showcase including skills, verified completions, certificates, and github projects.
-        </p>
+      {/* ── 1. Top Publish & Share Action Banner ──────────────────────────── */}
+      <div className="p-6 rounded-3xl bg-linear-to-r from-slate-900 via-indigo-950 to-slate-900 border border-indigo-500/30 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-5 relative overflow-hidden">
+        <div className="space-y-1.5 relative z-10">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="font-heading font-black text-xl sm:text-2xl text-white tracking-tight">
+              Developer Portfolio & Showcase
+            </h1>
+            {isPublished ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[10px] font-extrabold uppercase tracking-wide">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                Live & Published
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-[10px] font-extrabold uppercase tracking-wide">
+                Draft (Private)
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-indigo-200 font-medium">
+            {isPublished
+              ? `Your portfolio is publicly accessible at /portfolio/${customHandle || userId}`
+              : 'Publish your portfolio to share your verified credentials, achievements, and projects with recruiters.'}
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 relative z-10 w-full md:w-auto justify-start md:justify-end">
+          {/* Custom Handle Input */}
+          <div className="flex items-center bg-slate-950/80 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs">
+            <span className="text-slate-500 font-mono">@</span>
+            <input
+              type="text"
+              value={customHandle}
+              onChange={(e) => setCustomHandle(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ''))}
+              placeholder="custom-handle"
+              className="bg-transparent text-white font-mono font-bold text-xs pl-1 w-28 focus:outline-hidden"
+              title="Custom Portfolio URL Handle"
+            />
+          </div>
+
+          {/* Publish / Unpublish Toggle */}
+          <button
+            onClick={handleTogglePublish}
+            disabled={isSavingPortfolio}
+            className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer shadow-md ${
+              isPublished
+                ? 'bg-amber-500 hover:bg-amber-400 text-amber-950'
+                : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30'
+            }`}
+          >
+            <Globe className="w-4 h-4" />
+            <span>{isPublished ? 'Make Private' : 'Publish Portfolio'}</span>
+          </button>
+
+          {/* Share Button */}
+          <button
+            onClick={() => setShareModalOpen(true)}
+            className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black flex items-center gap-2 cursor-pointer shadow-md shadow-indigo-600/30 transition-all"
+          >
+            <Share2 className="w-4 h-4 text-cyan-300" />
+            <span>Share</span>
+          </button>
+
+          {/* Preview Public View Button */}
+          {isPublished && (
+            <a
+              href={`/portfolio/${customHandle || userId}`}
+              target="_blank"
+              rel="noreferrer"
+              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-all cursor-pointer"
+              title="Open Live Public Portfolio"
+            >
+              <Eye className="w-4 h-4 text-cyan-300" />
+            </a>
+          )}
+        </div>
       </div>
+
+      {/* ── Share Modal ─────────────────────────────────────────────────── */}
+      {shareModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 text-slate-100 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="font-heading font-black text-lg text-white flex items-center gap-2">
+                <Share2 className="w-5 h-5 text-indigo-400" />
+                Share Your Portfolio
+              </h3>
+              <button
+                onClick={() => setShareModalOpen(false)}
+                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-400 font-medium">
+              Share your verified Shaivika AI Foundation portfolio directly with recruiters, on LinkedIn, or WhatsApp.
+            </p>
+
+            {/* URL Copy Box */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-extrabold uppercase text-slate-500 tracking-wider">Public Portfolio Link</span>
+              <div className="flex items-center gap-2 bg-slate-950 border border-slate-800 p-2.5 rounded-xl">
+                <input
+                  type="text"
+                  readOnly
+                  value={publicPortfolioUrl}
+                  className="flex-1 bg-transparent text-xs font-mono text-cyan-300 focus:outline-hidden"
+                />
+                <button
+                  onClick={handleCopyShareLink}
+                  className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                >
+                  {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedLink ? 'Copied' : 'Copy'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Social Share Buttons */}
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <a
+                href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(publicPortfolioUrl)}`}
+                target="_blank"
+                rel="noreferrer"
+                className="py-2.5 px-3 rounded-xl bg-[#0A66C2] hover:bg-[#084e96] text-white text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md"
+              >
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
+                </svg>
+                <span>LinkedIn</span>
+              </a>
+
+              <a
+                href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Check out my verified Developer Portfolio: ${publicPortfolioUrl}`)}`}
+                target="_blank"
+                rel="noreferrer"
+                className="py-2.5 px-3 rounded-xl bg-[#25D366] hover:bg-[#20b858] text-white text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md"
+              >
+                <span>WhatsApp</span>
+              </a>
+            </div>
+
+            <a
+              href={publicPortfolioUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold flex items-center justify-center gap-2 transition-all"
+            >
+              <Eye className="w-4 h-4 text-cyan-400" />
+              <span>Open Public Page</span>
+            </a>
+          </div>
+        </div>
+      )}
 
       {/* Main Row layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

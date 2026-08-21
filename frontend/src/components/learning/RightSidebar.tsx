@@ -73,6 +73,10 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
 
     setTimeLeft(15);
     const timer = setInterval(() => {
+      // Prevent background counting when user is not focused/active on the page
+      if (document.hidden || !document.hasFocus()) {
+        return;
+      }
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(timer);

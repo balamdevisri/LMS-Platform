@@ -56,6 +56,7 @@ const VerifyEmail = lazyLoad(() => import('@/pages/auth/VerifyEmail'), 'VerifyEm
 const Unauthorized = lazyLoad(() => import('@/pages/auth/Unauthorized'), 'Unauthorized');
 const Dashboard = lazyLoad(() => import('@/pages/dashboard/Dashboard'), 'Dashboard');
 const PracticeLabPage = lazyLoad(() => import('@/pages/dashboard/PracticeLabPage'), 'PracticeLabPage');
+const LeaderboardPage = lazyLoad(() => import('@/pages/dashboard/LeaderboardPage'), 'LeaderboardPage');
 const Profile = lazyLoad(() => import('@/pages/dashboard/Profile'), 'Profile');
 const CoursesList = lazyLoad(() => import('@/pages/courses/CoursesList'), 'CoursesList');
 const CourseView = lazyLoad(() => import('@/pages/courses/CourseView'), 'CourseView');
@@ -74,6 +75,7 @@ const AdminLiveClassroom = lazyLoad(() => import('@/pages/liveClassroom/AdminLiv
 const LiveClassroomScreen = lazyLoad(() => import('@/pages/liveClassroom/LiveClassroomScreen'), 'LiveClassroomScreen');
 const MentorAnalytics = lazyLoad(() => import('@/pages/liveClassroom/MentorAnalytics'), 'MentorAnalytics');
 const VerifyCertificate = lazyLoad(() => import('@/pages/certificates/VerifyCertificate'), 'VerifyCertificate');
+const PublicPortfolio = lazyLoad(() => import('@/pages/portfolio/PublicPortfolio'), 'PublicPortfolio');
 const LiveClassPage = lazyLoad(() => import('@/pages/liveClass/LiveClassPage'), 'LiveClassPage');
 const AdminLiveClassList = lazyLoad(() => import('@/pages/liveClassroom/AdminLiveClassList'), 'AdminLiveClassList');
 const AdminCreateLiveClass = lazyLoad(() => import('@/pages/liveClassroom/AdminCreateLiveClass'), 'AdminCreateLiveClass');
@@ -104,6 +106,7 @@ const router = createBrowserRouter([
       { path: 'course/:slug', element: <CourseView /> },
       { path: 'verify-certificate', element: <VerifyCertificate /> },
       { path: 'verify-certificate/:verificationId', element: <VerifyCertificate /> },
+      { path: 'portfolio/:handleOrId', element: <PublicPortfolio /> },
       { path: 'unauthorized', element: <Unauthorized /> },
     ],
   },
@@ -141,6 +144,8 @@ const router = createBrowserRouter([
     ),
     children: [
       { path: 'dashboard', element: <Dashboard /> },
+      { path: 'dashboard/leaderboard', element: <LeaderboardPage /> },
+      { path: 'leaderboard', element: <LeaderboardPage /> },
       { path: 'dashboard/practice-lab', element: <PracticeLabPage /> },
       { path: 'dashboard/courses', element: <CoursesList /> },
       { path: 'dashboard/course/:slug', element: <CourseView /> },

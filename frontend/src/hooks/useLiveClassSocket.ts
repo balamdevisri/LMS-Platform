@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { socketService } from '@/services/socketService';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -103,50 +103,11 @@ export const useLiveClassSocket = (liveClassId?: string, initialStatus?: string)
   const currentUserRole = userProfile?.role || 'student';
   const currentUserEmail = userProfile?.email || user?.email || '';
 
-  // Track initialization
-  const initializedRef = useRef<boolean>(false);
-
   useEffect(() => {
     if (!liveClassId) return;
 
-    // Connect socket
-    const socket = socketService.connect(undefined, {
-      uid: currentUserId,
-      name: currentUserName,
-      role: currentUserRole,
-      email: currentUserEmail,
-    });
-
-    setConnectionStatus(socket.connected ? 'connected' : 'reconnecting');
-
-    const handleConnect = () => {
-      setConnectionStatus('connected');
-      socketService
-        .joinLiveClass(liveClassId, currentUserName)
-        .then((res) => {
-          if (res?.onlineCount) setOnlineCount(res.onlineCount);
-          if (res?.participants) setParticipants(res.participants);
-          if (res?.status) setClassStatus(res.status);
-        })
-        .catch((err) => {
-          if (err?.error === 'NOT_ENROLLED') {
-            toast.error('🔒 Access Denied: You are not actively enrolled in this course.');
-          } else if (err?.error === 'UNAUTHORIZED_SOCKET') {
-            toast.error('🔒 Authentication required to join live classroom.');
-          }
-        });
-    };
-
-    const handleDisconnect = () => {
-      setConnectionStatus('disconnected');
-    };
-
-    const handleConnectError = (err: any) => {
-      setConnectionStatus('reconnecting');
-      if (err?.message === 'UNAUTHORIZED_SOCKET') {
-        toast.error('Socket authentication rejected.');
-      }
-    };
+    let isMounted = true;
+    let activeSocket: any = null;
 
     const handlePresence = (data: { onlineCount: number; participants: any[] }) => {
       if (data?.onlineCount !== undefined) setOnlineCount(data.onlineCount);
@@ -154,15 +115,12 @@ export const useLiveClassSocket = (liveClassId?: string, initialStatus?: string)
     };
 
     const handleStudentJoined = (data: { name: string; role: string }) => {
-      // Optional subtle toast for instructors
       if (currentUserRole === 'instructor' || currentUserRole === 'admin') {
         toast.info(`👋 ${data.name} (${data.role}) joined the live class`);
       }
     };
 
-    const handleStudentLeft = (_data: any) => {
-      // Presence will update roster
-    };
+    const handleStudentLeft = (_data: any) => {};
 
     const handleChatMessage = (msg: ChatMessageItem) => {
       setChatMessages((prev) => [...prev, msg]);
@@ -280,67 +238,133 @@ export const useLiveClassSocket = (liveClassId?: string, initialStatus?: string)
       }
     };
 
-    // Attach listeners
-    socket.on('connect', handleConnect);
-    socket.on('disconnect', handleDisconnect);
-    socket.on('connect_error', handleConnectError);
-    socket.on('liveClass:presence', handlePresence);
-    socket.on('student:joined', handleStudentJoined);
-    socket.on('student:left', handleStudentLeft);
-    socket.on('chat:message', handleChatMessage);
-    socket.on('chat:delete', handleChatDelete);
-    socket.on('chat:moderate', handleChatModerate);
-    socket.on('chat:error', handleChatError);
-    socket.on('qna:question', handleQuestion);
-    socket.on('qna:answer', handleAnswer);
-    socket.on('qna:resolve', handleQuestionResolve);
-    socket.on('qna:remove', handleQuestionRemove);
-    socket.on('hand:raise', handleHandRaise);
-    socket.on('hand:lower', handleHandLower);
-    socket.on('hand:acknowledge', handleHandAcknowledge);
-    socket.on('announcement:receive', handleAnnouncement);
-    socket.on('poll:start', handlePollStart);
-    socket.on('poll:update', handlePollUpdate);
-    socket.on('poll:end', handlePollEnd);
-    socket.on('quiz:start', handleQuizStart);
-    socket.on('quiz:result', handleQuizResult);
-    socket.on('liveClass:status', handleLiveClassStatus);
+    const handleConnect = () => {
+      if (!isMounted) return;
+      setConnectionStatus('connected');
+      socketService
+        .joinLiveClass(liveClassId, currentUserName)
+        .then((res) => {
+          if (!isMounted) return;
+          if (res?.onlineCount) setOnlineCount(res.onlineCount);
+          if (res?.participants) setParticipants(res.participants);
+          if (res?.status) setClassStatus(res.status);
+        })
+        .catch((_err) => {
+          // Connected spectator fallback
+        });
+    };
 
-    if (socket.connected && !initializedRef.current) {
-      handleConnect();
-      initializedRef.current = true;
-    }
+    const handleDisconnect = () => {
+      if (!isMounted) return;
+      setConnectionStatus('disconnected');
+    };
 
-    // Cleanup on unmount or class change
+    const handleConnectError = (_err: any) => {
+      if (!isMounted) return;
+      setConnectionStatus('reconnecting');
+    };
+
+    const initConnection = async () => {
+      let authToken = '';
+      if (user && typeof user.getIdToken === 'function') {
+        try {
+          authToken = await user.getIdToken();
+        } catch {
+          // fallback
+        }
+      }
+
+      if (!isMounted) return;
+
+      const socket = socketService.connect(authToken, {
+        uid: currentUserId,
+        name: currentUserName,
+        role: currentUserRole,
+        email: currentUserEmail,
+      });
+
+      activeSocket = socket;
+
+      if (!isMounted) return;
+      setConnectionStatus(socket.connected ? 'connected' : 'reconnecting');
+
+      socket.on('connect', handleConnect);
+      socket.on('disconnect', handleDisconnect);
+      socket.on('connect_error', handleConnectError);
+      socket.on('liveClass:presence', handlePresence);
+      socket.on('student:joined', handleStudentJoined);
+      socket.on('student:left', handleStudentLeft);
+      socket.on('chat:message', handleChatMessage);
+      socket.on('chat_received', handleChatMessage);
+      socket.on('chat:delete', handleChatDelete);
+      socket.on('chat:moderate', handleChatModerate);
+      socket.on('chat:error', handleChatError);
+      socket.on('qna:question', handleQuestion);
+      socket.on('question_submitted', handleQuestion);
+      socket.on('qna:answer', handleAnswer);
+      socket.on('question_answered', handleAnswer);
+      socket.on('qna:resolve', handleQuestionResolve);
+      socket.on('qna:remove', handleQuestionRemove);
+      socket.on('hand:raise', handleHandRaise);
+      socket.on('hand_raised', handleHandRaise);
+      socket.on('hand:lower', handleHandLower);
+      socket.on('hand:acknowledge', handleHandAcknowledge);
+      socket.on('announcement:receive', handleAnnouncement);
+      socket.on('poll:start', handlePollStart);
+      socket.on('poll_published', handlePollStart);
+      socket.on('poll:update', handlePollUpdate);
+      socket.on('poll:end', handlePollEnd);
+      socket.on('quiz:start', handleQuizStart);
+      socket.on('quiz_published', handleQuizStart);
+      socket.on('quiz:result', handleQuizResult);
+      socket.on('quiz_ended', handleQuizResult);
+      socket.on('liveClass:status', handleLiveClassStatus);
+
+      if (socket.connected) {
+        handleConnect();
+      }
+    };
+
+    initConnection();
+
     return () => {
-      socket.off('connect', handleConnect);
-      socket.off('disconnect', handleDisconnect);
-      socket.off('connect_error', handleConnectError);
-      socket.off('liveClass:presence', handlePresence);
-      socket.off('student:joined', handleStudentJoined);
-      socket.off('student:left', handleStudentLeft);
-      socket.off('chat:message', handleChatMessage);
-      socket.off('chat:delete', handleChatDelete);
-      socket.off('chat:moderate', handleChatModerate);
-      socket.off('chat:error', handleChatError);
-      socket.off('qna:question', handleQuestion);
-      socket.off('qna:answer', handleAnswer);
-      socket.off('qna:resolve', handleQuestionResolve);
-      socket.off('qna:remove', handleQuestionRemove);
-      socket.off('hand:raise', handleHandRaise);
-      socket.off('hand:lower', handleHandLower);
-      socket.off('hand:acknowledge', handleHandAcknowledge);
-      socket.off('announcement:receive', handleAnnouncement);
-      socket.off('poll:start', handlePollStart);
-      socket.off('poll:update', handlePollUpdate);
-      socket.off('poll:end', handlePollEnd);
-      socket.off('quiz:start', handleQuizStart);
-      socket.off('quiz:result', handleQuizResult);
-      socket.off('liveClass:status', handleLiveClassStatus);
-
+      isMounted = false;
+      if (activeSocket) {
+        activeSocket.off('connect', handleConnect);
+        activeSocket.off('disconnect', handleDisconnect);
+        activeSocket.off('connect_error', handleConnectError);
+        activeSocket.off('liveClass:presence', handlePresence);
+        activeSocket.off('student:joined', handleStudentJoined);
+        activeSocket.off('student:left', handleStudentLeft);
+        activeSocket.off('chat:message', handleChatMessage);
+        activeSocket.off('chat_received', handleChatMessage);
+        activeSocket.off('chat:delete', handleChatDelete);
+        activeSocket.off('chat:moderate', handleChatModerate);
+        activeSocket.off('chat:error', handleChatError);
+        activeSocket.off('qna:question', handleQuestion);
+        activeSocket.off('question_submitted', handleQuestion);
+        activeSocket.off('qna:answer', handleAnswer);
+        activeSocket.off('question_answered', handleAnswer);
+        activeSocket.off('qna:resolve', handleQuestionResolve);
+        activeSocket.off('qna:remove', handleQuestionRemove);
+        activeSocket.off('hand:raise', handleHandRaise);
+        activeSocket.off('hand_raised', handleHandRaise);
+        activeSocket.off('hand:lower', handleHandLower);
+        activeSocket.off('hand:acknowledge', handleHandAcknowledge);
+        activeSocket.off('announcement:receive', handleAnnouncement);
+        activeSocket.off('poll:start', handlePollStart);
+        activeSocket.off('poll_published', handlePollStart);
+        activeSocket.off('poll:update', handlePollUpdate);
+        activeSocket.off('poll:end', handlePollEnd);
+        activeSocket.off('quiz:start', handleQuizStart);
+        activeSocket.off('quiz_published', handleQuizStart);
+        activeSocket.off('quiz:result', handleQuizResult);
+        activeSocket.off('quiz_ended', handleQuizResult);
+        activeSocket.off('liveClass:status', handleLiveClassStatus);
+      }
       socketService.leaveLiveClass(liveClassId);
     };
-  }, [liveClassId, currentUserId, currentUserName, currentUserRole, currentUserEmail]);
+  }, [liveClassId, user, currentUserId, currentUserName, currentUserRole, currentUserEmail]);
 
   // Action Dispatchers
   const sendChat = useCallback(

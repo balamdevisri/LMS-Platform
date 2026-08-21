@@ -78,6 +78,22 @@ export class PaymentController {
     }
   }
 
+  // GET /api/payments/history or /api/payments/my-payments
+  public async getPaymentHistory(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const studentId = req.user?.uid || (req.query.studentId as string);
+      if (!studentId) {
+        res.status(401).json({ success: false, error: 'Unauthorized: Student authentication required' });
+        return;
+      }
+
+      const history = await paymentService.getStudentPaymentHistory(studentId);
+      res.json({ success: true, count: history.length, data: history });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   // GET /api/payments/:id
   public async getPayment(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {

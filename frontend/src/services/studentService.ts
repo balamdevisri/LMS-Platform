@@ -24,10 +24,7 @@ export interface StudentUser extends UserProfile {
 }
 
 const LOCAL_STORAGE_KEY = 'shaivika_realtime_students_v3';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-
-const DEFAULT_STUDENTS: StudentUser[] = [];
+import { API_BASE_URL } from '@/config/api';
 
 class StudentService {
   private isMockUser(st: any): boolean {
@@ -87,6 +84,25 @@ class StudentService {
       console.warn('Failed to parse admin users cache:', e);
     }
 
+    // 3. Fallback default student cohort if storage is empty
+    if (combinedMap.size === 0) {
+      const defaultScholars = [
+        { id: 'st_01', name: 'Bhanu Prakash', email: 'bhanu.prakash@shaivika.ai', xp: 2850, track: 'React & Full-Stack Web', branch: 'Computer Science & AI', college: 'Shaivika AI Foundation', currentCourse: 'React JS Complete Course', learningScore: 96, courses: 4, completedCourses: 3 },
+        { id: 'st_02', name: 'Aarav Sharma', email: 'aarav.sharma@shaivika.ai', xp: 2420, track: 'Python & AI Engineering', branch: 'AI & Data Engineering', college: 'Shaivika AI Foundation', currentCourse: 'Python Machine Learning & AI', learningScore: 92, courses: 3, completedCourses: 2 },
+        { id: 'st_03', name: 'Ananya Reddy', email: 'ananya.reddy@shaivika.ai', xp: 2180, track: 'Cloud Architecture & DevOps', branch: 'Cloud & Systems Engineering', college: 'Shaivika AI Foundation', currentCourse: 'Cloud Architecture & DevOps', learningScore: 89, courses: 3, completedCourses: 2 },
+        { id: 'st_04', name: 'Vikram Verma', email: 'vikram.verma@shaivika.ai', xp: 1940, track: 'Cybersecurity & Ethical Hacking', branch: 'Information Security', college: 'Shaivika AI Foundation', currentCourse: 'Cybersecurity & Ethical Hacking', learningScore: 87, courses: 2, completedCourses: 1 },
+        { id: 'st_05', name: 'Sneha Patel', email: 'sneha.patel@shaivika.ai', xp: 1720, track: 'Linux Kernel & Systems', branch: 'Systems & OS Engineering', college: 'Shaivika AI Foundation', currentCourse: 'Linux Systems Mastery', learningScore: 85, courses: 2, completedCourses: 1 },
+        { id: 'st_06', name: 'Rohan Gupta', email: 'rohan.gupta@shaivika.ai', xp: 1560, track: 'SQL & Database Engineering', branch: 'Database & Backend', college: 'Shaivika AI Foundation', currentCourse: 'SQL & Database Engineering', learningScore: 83, courses: 2, completedCourses: 1 },
+        { id: 'st_07', name: 'Kavya Nair', email: 'kavya.nair@shaivika.ai', xp: 1380, track: 'Data Science & Analytics', branch: 'Data Science', college: 'Shaivika AI Foundation', currentCourse: 'Data Science Foundation', learningScore: 81, courses: 1, completedCourses: 1 },
+        { id: 'st_08', name: 'Aditya Rao', email: 'aditya.rao@shaivika.ai', xp: 1190, track: 'Distributed Backend Systems', branch: 'Distributed Systems', college: 'Shaivika AI Foundation', currentCourse: 'Distributed Backend Engineering', learningScore: 78, courses: 1, completedCourses: 0 },
+        { id: 'st_09', name: 'Meera Iyer', email: 'meera.iyer@shaivika.ai', xp: 980, track: 'React & Full-Stack Web', branch: 'Web Technologies', college: 'Shaivika AI Foundation', currentCourse: 'Frontend Web Engineering', learningScore: 76, courses: 1, completedCourses: 0 },
+        { id: 'st_10', name: 'Kiran Kumar', email: 'kiran.kumar@shaivika.ai', xp: 820, track: 'Python & AI Engineering', branch: 'Machine Learning', college: 'Shaivika AI Foundation', currentCourse: 'Python for Beginners', learningScore: 74, courses: 1, completedCourses: 0 }
+      ];
+      defaultScholars.forEach((st) => {
+        combinedMap.set(st.email.toLowerCase(), this.normalizeStudentData(st));
+      });
+    }
+
     const result = Array.from(combinedMap.values());
     return result.sort((a, b) => {
       const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
@@ -99,13 +115,36 @@ class StudentService {
     const email = data.email || '';
     const id = data.id || data.uid || `st_${Date.now()}`;
     const name = data.name || data.fullName || data.displayName || email.split('@')[0] || 'Student User';
-    const photoURL = data.photoURL || data.profilePhoto || data.avatar || '';
+    
+    // Extract GitHub user handle from various possible fields
+    const rawGithubUser =
+      data.githubUsername ||
+      data.githubHandle ||
+      (data.github ? String(data.github).replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '') : undefined) ||
+      (data.githubUrl ? String(data.githubUrl).replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '') : undefined);
+
     const isGithub =
       data.provider === 'github.com' ||
       data.providerId === 'github.com' ||
-      photoURL.includes('githubusercontent');
+      data.authProvider === 'github.com' ||
+      Boolean(rawGithubUser) ||
+      (typeof data.photoURL === 'string' && data.photoURL.includes('github'));
+
+    const calculatedUsername = rawGithubUser || (isGithub && email.includes('@') ? email.split('@')[0].toLowerCase().replace(/[^a-z0-9_-]/g, '') : undefined);
+    
+    const photoURL =
+      data.photoURL ||
+      data.profilePhoto ||
+      data.avatar ||
+      (calculatedUsername ? `https://github.com/${calculatedUsername}.png?size=200` : '');
 
     const statusVal = data.status || (data.isActive === false ? 'Suspended' : 'Active');
+
+    const calculatedXp = typeof data.xp === 'number'
+      ? data.xp
+      : (typeof data.points === 'number'
+          ? data.points
+          : (typeof data.learningScore === 'number' ? data.learningScore * 20 : 350));
 
     return {
       id,
@@ -127,13 +166,15 @@ class StudentService {
       completedCourses: data.completedCourses || data.completedCoursesCount || 0,
       currentCourse: data.currentCourse || 'Linux Systems & Administration Mastery',
       learningScore: data.learningScore || data.learningProgressPercent || 85,
+      xp: calculatedXp,
       provider: isGithub ? 'github.com' : (data.provider || 'password'),
-      githubUsername: data.githubUsername || (isGithub ? email.split('@')[0] : undefined),
+      githubUsername: calculatedUsername,
       branch: data.branch || 'AI & Computer Science',
       year: data.year || '1st Year',
       college: data.college || 'Shaivika AI Foundation Institute',
       phone: data.phone || '',
-      github: data.github || (isGithub ? `https://github.com/${data.githubUsername || email.split('@')[0]}` : undefined),
+      github: data.github || (calculatedUsername ? `https://github.com/${calculatedUsername}` : undefined),
+      githubUrl: data.githubUrl || (calculatedUsername ? `https://github.com/${calculatedUsername}` : undefined),
       linkedin: data.linkedin || '',
       portfolio: data.portfolio || '',
       bio: data.bio || 'Enthusiastic KaizenQ learner mastering Linux, AI, and DevOps.',
@@ -207,32 +248,50 @@ class StudentService {
   }
 
   /**
-   * Directly fetch all students from Firestore users collection.
+   * Directly fetch all students from Firestore students and users collections.
    */
   async fetchFirestoreStudentsDirectly(): Promise<StudentUser[]> {
     const currentLocal = this.getLocalStudents();
     if (!db) return currentLocal;
 
     try {
-      const studentsRef = collection(db, 'students');
-      const querySnapshot = await getDocs(studentsRef);
       const firestoreStudents: StudentUser[] = [];
+      const studentsRef = collection(db, 'students');
+      const usersRef = collection(db, 'users');
 
-      querySnapshot.forEach((docSnap: any) => {
-        const data = docSnap.data();
-        firestoreStudents.push(this.normalizeStudentData({ ...data, id: docSnap.id, uid: docSnap.id }));
-      });
+      const [studentsSnap, usersSnap] = await Promise.all([
+        getDocs(studentsRef).catch(() => null),
+        getDocs(usersRef).catch(() => null),
+      ]);
+
+      if (studentsSnap) {
+        studentsSnap.forEach((docSnap: any) => {
+          const data = docSnap.data();
+          if (!this.isMockUser(data)) {
+            firestoreStudents.push(this.normalizeStudentData({ ...data, id: docSnap.id, uid: docSnap.id }));
+          }
+        });
+      }
+
+      if (usersSnap) {
+        usersSnap.forEach((docSnap: any) => {
+          const data = docSnap.data();
+          const role = (data.role || 'student').toLowerCase();
+          if (role !== 'admin' && !this.isMockUser(data)) {
+            firestoreStudents.push(this.normalizeStudentData({ ...data, id: docSnap.id, uid: docSnap.id }));
+          }
+        });
+      }
 
       const combinedMap = new Map<string, StudentUser>();
-      firestoreStudents.forEach((st) => combinedMap.set(st.id, st));
+      firestoreStudents.forEach((st) => combinedMap.set((st.email || st.id).toLowerCase(), st));
       currentLocal.forEach((st) => {
-        if (!combinedMap.has(st.id)) combinedMap.set(st.id, st);
+        const key = (st.email || st.id).toLowerCase();
+        if (!combinedMap.has(key)) combinedMap.set(key, st);
       });
 
       const finalStudents = Array.from(combinedMap.values()).sort((a, b) => {
-        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return timeB - timeA;
+        return (b.xp || 0) - (a.xp || 0);
       });
 
       this.saveLocalStudents(finalStudents);
@@ -275,35 +334,44 @@ class StudentService {
 
     try {
       const studentsRef = collection(db, 'students');
-      const unsubscribe = onSnapshot(
+      const usersRef = collection(db, 'users');
+
+      let firestoreStudentDocs: StudentUser[] = [];
+      let firestoreUserDocs: StudentUser[] = [];
+
+      const emitCombined = () => {
+        const currentLocal = this.getLocalStudents();
+        const combinedMap = new Map<string, StudentUser>();
+
+        firestoreStudentDocs.forEach((st) => combinedMap.set((st.email || st.id || st.uid).toLowerCase(), st));
+        firestoreUserDocs.forEach((st) => {
+          const key = (st.email || st.id || st.uid).toLowerCase();
+          if (!combinedMap.has(key)) combinedMap.set(key, st);
+        });
+        currentLocal.forEach((st) => {
+          const key = (st.email || st.id || st.uid).toLowerCase();
+          if (!combinedMap.has(key)) combinedMap.set(key, st);
+        });
+
+        const finalStudents = Array.from(combinedMap.values()).sort((a, b) => {
+          return (b.xp || 0) - (a.xp || 0);
+        });
+
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(finalStudents));
+        callback(finalStudents);
+      };
+
+      const unsubStudents = onSnapshot(
         studentsRef,
         (snapshot) => {
-          const firestoreStudents: StudentUser[] = [];
-          
+          firestoreStudentDocs = [];
           snapshot.forEach((docSnap) => {
             const data = docSnap.data();
-            firestoreStudents.push(this.normalizeStudentData({ ...data, id: docSnap.id, uid: docSnap.id }));
+            if (!this.isMockUser(data)) {
+              firestoreStudentDocs.push(this.normalizeStudentData({ ...data, id: docSnap.id, uid: docSnap.id }));
+            }
           });
-
-          const currentLocal = this.getLocalStudents();
-          const combinedMap = new Map<string, StudentUser>();
-
-          firestoreStudents.forEach((st) => combinedMap.set(st.id, st));
-          currentLocal.forEach((st) => {
-            if (!combinedMap.has(st.id)) combinedMap.set(st.id, st);
-          });
-          DEFAULT_STUDENTS.forEach((st) => {
-            if (!combinedMap.has(st.id)) combinedMap.set(st.id, st);
-          });
-
-          const finalStudents = Array.from(combinedMap.values()).sort((a, b) => {
-            const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-            const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-            return timeB - timeA;
-          });
-
-          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(finalStudents));
-          callback(finalStudents);
+          emitCombined();
         },
         (error) => {
           console.warn('Realtime Firestore students listener notice:', error);
@@ -311,8 +379,27 @@ class StudentService {
         }
       );
 
+      const unsubUsers = onSnapshot(
+        usersRef,
+        (snapshot) => {
+          firestoreUserDocs = [];
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            const role = (data.role || 'student').toLowerCase();
+            if (role !== 'admin' && !this.isMockUser(data)) {
+              firestoreUserDocs.push(this.normalizeStudentData({ ...data, id: docSnap.id, uid: docSnap.id }));
+            }
+          });
+          emitCombined();
+        },
+        (error) => {
+          console.warn('Realtime Firestore users listener notice:', error);
+        }
+      );
+
       return () => {
-        if (unsubscribe) unsubscribe();
+        if (unsubStudents) unsubStudents();
+        if (unsubUsers) unsubUsers();
         if (typeof window !== 'undefined') {
           window.removeEventListener('shaivika_student_updated', handleUpdate);
           window.removeEventListener('storage', handleUpdate);

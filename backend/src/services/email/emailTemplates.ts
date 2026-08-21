@@ -226,9 +226,9 @@ export const renderMasterLayout = (options: MasterLayoutOptions): string => {
             <!-- Footer -->
             <div class="footer-section">
               <div class="footer-links">
-                <a href="https://shaivika.com" target="_blank">Platform Dashboard</a> &bull;
-                <a href="https://shaivika.com/privacy" target="_blank">Privacy Policy</a> &bull;
-                <a href="https://shaivika.com/support" target="_blank">24/7 AI Support</a>
+                <a href="https://www.kaizenq.in" target="_blank">Platform Dashboard</a> &bull;
+                <a href="https://www.kaizenq.in/privacy" target="_blank">Privacy Policy</a> &bull;
+                <a href="https://www.kaizenq.in/support" target="_blank">24/7 AI Support</a>
               </div>
               <p>&copy; ${currentYear} KaizenQ. SHAIVIKA GROUPS AI LMS Foundation. All rights reserved.</p>
               <p style="margin-top: 6px; color: #94A3B8;">This is an automated notification. Please do not reply directly to this email.</p>
@@ -250,7 +250,7 @@ export const buildStudentRegistrationTemplate = (
   payload: StudentRegistrationPayload
 ): { subject: string; html: string } => {
   const subject = `Welcome to KaizenQ LMS, ${payload.studentName}! 🚀`;
-  const ctaUrl = payload.verificationLink || payload.dashboardUrl || 'https://shaivika.com/dashboard';
+  const ctaUrl = payload.verificationLink || payload.dashboardUrl || 'https://www.kaizenq.in/dashboard';
 
   const contentHtml = `
     <h1 class="h1-title">Welcome to KaizenQ AI LMS!</h1>
@@ -351,7 +351,7 @@ export const buildCourseEnrollmentTemplate = (
   payload: CourseEnrollmentPayload
 ): { subject: string; html: string } => {
   const subject = `Enrollment Confirmed: ${payload.courseTitle} 🎓`;
-  const ctaUrl = payload.courseUrl || `https://shaivika.com/courses/${payload.courseId}`;
+  const ctaUrl = payload.courseUrl || `https://www.kaizenq.in/courses/${payload.courseId}`;
 
   const contentHtml = `
     <h1 class="h1-title">You're Enrolled! 🎉</h1>
@@ -384,7 +384,7 @@ export const buildCourseCompletionTemplate = (
   payload: CourseCompletionPayload
 ): { subject: string; html: string } => {
   const subject = `Congratulations! You Completed ${payload.courseTitle} 🌟`;
-  const ctaUrl = payload.certificateUrl || 'https://shaivika.com/dashboard';
+  const ctaUrl = payload.certificateUrl || 'https://www.kaizenq.in/dashboard';
 
   const contentHtml = `
     <h1 class="h1-title">Course Completed! 🏆</h1>
@@ -417,7 +417,7 @@ export const buildQuizResultTemplate = (
   payload: QuizResultPayload
 ): { subject: string; html: string } => {
   const subject = `Quiz Result: ${payload.quizTitle} - ${payload.passed ? 'PASSED ✅' : 'ATTEMPT COMPLETED 📝'}`;
-  const ctaUrl = payload.quizUrl || 'https://shaivika.com/dashboard';
+  const ctaUrl = payload.quizUrl || 'https://www.kaizenq.in/dashboard';
 
   const contentHtml = `
     <h1 class="h1-title">Quiz Results Released</h1>
@@ -472,7 +472,7 @@ export const buildAssignmentSubmissionTemplate = (
       preheader: `Submission receipt for ${payload.assignmentTitle}`,
       contentHtml,
       ctaText: 'View Workspace Submissions',
-      ctaUrl: 'https://shaivika.com/dashboard',
+      ctaUrl: 'https://www.kaizenq.in/dashboard',
     }),
   };
 };
@@ -516,7 +516,7 @@ export const buildInstructorApprovalTemplate = (
   const subject = isApproved 
     ? '🎉 Welcome to KaizenQ LMS Platform — You are Approved!' 
     : 'Instructor Application Status Update | KaizenQ LMS';
-  const ctaUrl = payload.portalUrl || 'https://shaivika-lms.vercel.app/auth/login';
+  const ctaUrl = payload.portalUrl || 'https://www.kaizenq.in/auth/login';
 
   const contentHtml = `
     <!-- Dark Theme Container -->
@@ -628,7 +628,7 @@ export const buildAdminNotificationTemplate = (
   payload: AdminNotificationPayload
 ): { subject: string; html: string } => {
   const subject = `[SYSTEM ALERT] ${payload.title}`;
-  const ctaUrl = payload.actionUrl || 'https://shaivika.com/admin/dashboard';
+  const ctaUrl = payload.actionUrl || 'https://www.kaizenq.in/admin/dashboard';
 
   const contentHtml = `
     <h1 class="h1-title">System Alert: ${payload.title}</h1>
@@ -827,7 +827,7 @@ export const buildInstructorRegistrationPendingTemplate = (payload: InstructorRe
  */
 export const buildRegistrationApprovedTemplate = (payload: RegistrationApprovedPayload) => {
   const subject = `Congratulations! Your SHAIVIKA LMS Account is Approved`;
-  const ctaUrl = payload.dashboardUrl || 'https://shaivika-lms.vercel.app/auth/login';
+  const ctaUrl = payload.dashboardUrl || 'https://www.kaizenq.in/auth/login';
 
   const contentHtml = `
     <!-- Dark Theme Container -->
@@ -956,7 +956,7 @@ export const buildLecturerPendingTemplate = (payload: LecturerPendingPayload) =>
 
 export const buildLecturerApprovedTemplate = (payload: LecturerApprovedPayload) => {
   const subject = 'Congratulations! You are Approved as Lecturer';
-  const ctaUrl = payload.dashboardUrl || 'https://shaivika-lms.vercel.app/instructor/dashboard';
+  const ctaUrl = payload.dashboardUrl || 'https://www.kaizenq.in/instructor/dashboard';
   const contentHtml = `
     <h1 class="h1-title" style="color: #10B981; font-size: 24px; margin-bottom: 12px;">Welcome Aboard!</h1>
     <p class="p-text">Hello <strong>${payload.lecturerName}</strong>,</p>
@@ -977,7 +977,7 @@ export const buildLecturerApprovedTemplate = (payload: LecturerApprovedPayload) 
 
 export const buildCoursePublishedTemplate = (payload: CoursePublishedPayload) => {
   const subject = 'New Course Track Published!';
-  const ctaUrl = payload.courseUrl || 'https://shaivika-lms.vercel.app/courses';
+  const ctaUrl = payload.courseUrl || 'https://www.kaizenq.in/courses';
   const contentHtml = `
     <h1 class="h1-title" style="color: #3B82F6; font-size: 22px; margin-bottom: 12px;">New Course Track Released</h1>
     <p class="p-text">Hello <strong>${payload.studentName}</strong>,</p>
@@ -998,7 +998,7 @@ export const buildCoursePublishedTemplate = (payload: CoursePublishedPayload) =>
 
 export const buildAssignmentReminderTemplate = (payload: AssignmentReminderPayload) => {
   const subject = `Reminder: Assignment Pending - ${payload.assignmentTitle}`;
-  const ctaUrl = payload.submissionUrl || 'https://shaivika-lms.vercel.app/dashboard';
+  const ctaUrl = payload.submissionUrl || 'https://www.kaizenq.in/dashboard';
   const contentHtml = `
     <h1 class="h1-title" style="color: #F59E0B; font-size: 22px; margin-bottom: 12px;">Assignment Submission Reminder</h1>
     <p class="p-text">Hello <strong>${payload.studentName}</strong>,</p>
@@ -1022,7 +1022,7 @@ export const buildAssignmentReminderTemplate = (payload: AssignmentReminderPaylo
 
 export const buildQuizReminderTemplate = (payload: QuizReminderPayload) => {
   const subject = `Reminder: Quiz Pending - ${payload.quizTitle}`;
-  const ctaUrl = payload.quizUrl || 'https://shaivika-lms.vercel.app/dashboard';
+  const ctaUrl = payload.quizUrl || 'https://www.kaizenq.in/dashboard';
   const contentHtml = `
     <h1 class="h1-title" style="color: #3B82F6; font-size: 22px; margin-bottom: 12px;">Quiz Attempt Reminder</h1>
     <p class="p-text">Hello <strong>${payload.studentName}</strong>,</p>

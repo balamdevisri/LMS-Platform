@@ -12,16 +12,18 @@ import {
   Activity,
   Bot,
   Zap,
-  FolderSearch,
-  RefreshCw,
   Download,
   ExternalLink,
   Users,
   Layers,
+  Video,
+  Calendar,
+  Link2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCourses } from '@/contexts/CourseContext';
+import { API_BASE_URL } from '@/config/api';
 import { CoursePlayerModal } from '../../components/courses/CoursePlayerModal';
 import { AssignmentPortal } from '@/components/courses/AssignmentPortal';
 import { AIAssistantPanel } from '@/components/ai/AIAssistantPanel';
@@ -34,17 +36,18 @@ import type { XPClaimRecord } from '@/services/courseService';
 import type { ICourse } from '../../../../shared/types/course';
 import { courseTimeService } from '@/services/courseTimeService';
 import { useCourseTimeTracker } from '@/hooks/useCourseTimeTracker';
-import { mockAIProvider } from '@/services/aiProvider';
 import { studentService, type StudentUser } from '@/services/studentService';
 
 import { AnalyticsDashboard } from '../../components/courses/AnalyticsDashboard';
 import { LeaderboardView } from '../../components/courses/LeaderboardView';
 import { ResumeBuilder } from '../../components/courses/ResumeBuilder';
+import { PortfolioBuilder } from '../../components/portfolio/PortfolioBuilder';
 import { CareerRoadmap } from '../../components/courses/CareerRoadmap';
 import { PracticeHub } from '../../components/courses/PracticeHub';
 import { InterviewPrep } from '../../components/courses/InterviewPrep';
 import { StudentLiveClassroomSection } from '../../components/liveClassroom/StudentLiveClassroomSection';
 import { SubscriptionSettings } from '../../components/settings/SubscriptionSettings';
+import { liveClassService, normalizeLiveClassStatus, type LiveClass } from '@/services/liveClassService';
 
 export const Dashboard: React.FC = () => {
   const { user, userProfile } = useAuth();
@@ -55,6 +58,16 @@ export const Dashboard: React.FC = () => {
   // Dynamic Courses State
   const [enrolledCourses, setEnrolledCourses] = useState<ICourse[]>([]);
   const [loadingCourses, setLoadingCourses] = useState(true);
+
+  // Real-time Live Classes State
+  const [liveClasses, setLiveClasses] = useState<LiveClass[]>([]);
+
+  useEffect(() => {
+    const unsubLive = liveClassService.subscribeLiveClasses((data) => {
+      setLiveClasses(data || []);
+    });
+    return () => unsubLive();
+  }, []);
 
   // Instructor Student Roster State
   const [allStudents, setAllStudents] = useState<StudentUser[]>([]);
@@ -116,7 +129,11 @@ export const Dashboard: React.FC = () => {
       setRealtimeSec(courseTimeService.getTotalActiveSeconds(activeUserId));
     };
     window.addEventListener('shaivika_time_updated', handleTimeUpdate);
-    return () => window.removeEventListener('shaivika_time_updated', handleTimeUpdate);
+    window.addEventListener('shaivika_ai_prompt_logged', handleTimeUpdate);
+    return () => {
+      window.removeEventListener('shaivika_time_updated', handleTimeUpdate);
+      window.removeEventListener('shaivika_ai_prompt_logged', handleTimeUpdate);
+    };
   }, [activeUserId]);
 
   const loadDashboardData = useCallback(async () => {
@@ -140,37 +157,6 @@ export const Dashboard: React.FC = () => {
   useEffect(() => {
     loadDashboardData();
   }, [loadDashboardData]);
-
-  const handleAiSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!aiSearchQuery.trim()) return;
-    setIsAiSearching(true);
-    setTimeout(() => {
-      const q = aiSearchQuery.toLowerCase();
-      const matches = enrolledCourses.filter(c => 
-        (c.title || '').toLowerCase().includes(q) || 
-        (c.category || '').toLowerCase().includes(q) ||
-        (c.skills && c.skills.some(s => (s || '').toLowerCase().includes(q)))
-      );
-      setAiSearchResults(matches);
-      setIsAiSearching(false);
-      if (matches.length > 0) {
-        toast.success(`AI Search found ${matches.length} matching course tracks!`);
-      } else {
-        toast.info("AI Search couldn't find direct matches. Try looking for 'Linux', 'Git', or 'SQL'!");
-      }
-    }, 600);
-  };
-
-  useEffect(() => {
-    const loadWeakness = async () => {
-      try {
-        const res = await mockAIProvider.getWeakTopicAnalysis(activeUserId);
-        setWeakTopics(res);
-      } catch (err) {}
-    };
-    if (activeUserId) loadWeakness();
-  }, [activeUserId]);
 
   // Active learning player state
   const [activePlayerCourse, setActivePlayerCourse] = useState<any | null>(null);
@@ -384,34 +370,20 @@ export const Dashboard: React.FC = () => {
 
   // Analytics Metrics
   const liveHoursCompleted = coursesProgress.reduce((acc, c) => acc + c.completedDurationHours, 0);
-  const totalActiveLearningHours = Number(Math.max(realtimeSec / 3600, liveHoursCompleted).toFixed(1));
 
-  // Dynamic study time calculation per day from real student course active tracking
+  // Dynamic study time & AI engagement calculation per day from real rolling calendar dates
   const weeklyChartData = React.useMemo(() => {
-    if (chartTimeframe === '7d') {
-      const breakdown = courseTimeService.getWeeklyHoursBreakdown(activeUserId);
-      const maxVal = Math.max(...breakdown.map((d) => d.hours), 0.1);
-      return breakdown.map((d) => ({
-        day: d.day,
-        hours: d.hours,
-        heightPercent: d.hours > 0 ? Math.max(15, Math.round((d.hours / maxVal) * 100)) : 5,
-      }));
-    }
+    const daysCount = chartTimeframe === '7d' ? 7 : 30;
+    const metrics = courseTimeService.getRollingDailyMetrics(activeUserId, daysCount);
+    const maxVal = Math.max(...metrics.map((d) => d.hours), 0.1);
 
-    // 30-Day view breakdown dynamically calculated from course units & active learning
-    const totalHours = totalActiveLearningHours;
-    const weeks = [
-      { day: 'Week 1', hours: Number((totalHours * 0.2).toFixed(1)) },
-      { day: 'Week 2', hours: Number((totalHours * 0.25).toFixed(1)) },
-      { day: 'Week 3', hours: Number((totalHours * 0.3).toFixed(1)) },
-      { day: 'Week 4', hours: Number((totalHours * 0.35).toFixed(1)) },
-    ];
-    const maxWeekVal = Math.max(...weeks.map((w) => w.hours), 0.1);
-    return weeks.map((w) => ({
-      ...w,
-      heightPercent: w.hours > 0 ? Math.max(20, Math.round((w.hours / maxWeekVal) * 100)) : 5,
+    return metrics.map((d) => ({
+      ...d,
+      day: d.isToday ? 'Today' : d.dayName,
+      displayDate: d.shortDate,
+      heightPercent: d.hours > 0 ? Math.max(15, Math.round((d.hours / maxVal) * 100)) : 6,
     }));
-  }, [chartTimeframe, realtimeSec, totalActiveLearningHours, activeUserId]);
+  }, [chartTimeframe, realtimeSec, activeUserId]);
   
 
 
@@ -442,6 +414,8 @@ export const Dashboard: React.FC = () => {
         }
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
+        const response = await fetch(`${API_BASE_URL}/certificates/student/${studentEmail}`);
+        if (response.ok) {
           const resData = await response.json();
           if (resData.success && Array.isArray(resData.data)) {
             resData.data.forEach((backendCert: any) => {
@@ -546,6 +520,7 @@ export const Dashboard: React.FC = () => {
           };
 
           let syncRes = await safeFetchJson(`${apiBase}/certificates/complete-and-deliver`, {
+          let response = await fetch(`${API_BASE_URL}/certificates/complete-and-deliver`, {
             method: 'POST',
             headers: getHeaders(token),
             body: JSON.stringify({
@@ -571,6 +546,7 @@ export const Dashboard: React.FC = () => {
             try {
               token = await user.getIdToken(true);
               syncRes = await safeFetchJson(`${apiBase}/certificates/complete-and-deliver`, {
+              response = await fetch(`${API_BASE_URL}/certificates/complete-and-deliver`, {
                 method: 'POST',
                 headers: getHeaders(token),
                 body: JSON.stringify({
@@ -661,6 +637,7 @@ export const Dashboard: React.FC = () => {
 
       // 1. Query the student's certificates on backend to see if it's already there
       const verifyRes = await fetch(`${apiBase}/certificates/student/${studentEmail}`);
+      const verifyRes = await fetch(`${API_BASE_URL}/certificates/student/${studentEmail}`);
       if (verifyRes.ok) {
         const contentType = verifyRes.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
@@ -706,6 +683,7 @@ export const Dashboard: React.FC = () => {
       };
 
       const deliverRes = await safeFetchJson(`${apiBase}/certificates/complete-and-deliver`, {
+      const response = await fetch(`${API_BASE_URL}/certificates/complete-and-deliver`, {
         method: 'POST',
         headers: getHeaders(token),
         body: JSON.stringify({
@@ -743,6 +721,43 @@ export const Dashboard: React.FC = () => {
     } finally {
       setLoadingCertId(null);
     }
+  };
+
+  const handleShareToLinkedIn = (cert: Certificate) => {
+    let issueYear = new Date().getFullYear();
+    let issueMonth = new Date().getMonth() + 1;
+    if (cert.completionDate) {
+      try {
+        const parsedDate = new Date(cert.completionDate);
+        if (!isNaN(parsedDate.getTime())) {
+          issueYear = parsedDate.getFullYear();
+          issueMonth = parsedDate.getMonth() + 1;
+        }
+      } catch {}
+    }
+    const certUrl = `${window.location.origin}/verify-certificate/${cert.verificationId}`;
+    const linkedinUrl = `https://www.linkedin.com/profile/add?startTask=CERTIFICATION&name=${encodeURIComponent(cert.courseTitle)}&organizationName=KaizenQ&issueYear=${issueYear}&issueMonth=${issueMonth}&certId=${cert.verificationId}&certUrl=${encodeURIComponent(certUrl)}`;
+    window.open(linkedinUrl, '_blank');
+  };
+
+  const handleShareToTwitter = (cert: Certificate) => {
+    const certUrl = `${window.location.origin}/verify-certificate/${cert.verificationId}`;
+    const text = `🏆 I am thrilled to share that I have successfully completed the "${cert.courseTitle}" course on KaizenQ LMS! Check out my verified digital certificate here:`;
+    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(certUrl)}`;
+    window.open(twitterUrl, '_blank');
+  };
+
+  const handleShareToGitHub = (cert: Certificate) => {
+    const certUrl = `${window.location.origin}/verify-certificate/${cert.verificationId}`;
+    const badgeMarkdown = `[![KaizenQ Certification](https://img.shields.io/badge/KaizenQ-Certified-${encodeURIComponent(cert.courseTitle.includes('Git') ? 'Git_Mastery' : 'Mastery')}-blue?logo=github)](${certUrl})`;
+    navigator.clipboard.writeText(badgeMarkdown);
+    toast.success("✨ GitHub README Markdown badge copied to clipboard! Paste it into your profile README.md.");
+  };
+
+  const handleCopyVerificationLink = (cert: Certificate) => {
+    const certUrl = `${window.location.origin}/verify-certificate/${cert.verificationId}`;
+    navigator.clipboard.writeText(certUrl);
+    toast.success("📋 Verification link copied to clipboard!");
   };
 
   // Active courses (progress > 0 and < 100)
@@ -821,6 +836,8 @@ export const Dashboard: React.FC = () => {
     analytics: 'Learning Analytics',
     leaderboard: 'Cohort Leaderboard',
     'resume-builder': 'Resume Builder',
+    'portfolio-builder': 'Developer Portfolio Builder',
+    portfolio: 'Developer Portfolio Builder',
     'career-roadmap': 'Career Roadmap',
     'practice-hub': 'Practice Hub',
     'interview-prep': 'Interview Prep',
@@ -1222,18 +1239,26 @@ export const Dashboard: React.FC = () => {
                             if (m.lessons) totalLessons += m.lessons.length;
                           });
                         }
+                        if (totalLessons === 0 && course.syllabus && Array.isArray(course.syllabus)) {
+                          totalLessons = course.syllabus.length;
+                        }
                         if (totalLessons === 0) {
-                          const isGit = String(course.id).includes('git') || String(course.slug).includes('git');
-                          totalLessons = isGit ? 31 : 20;
+                          totalLessons = 15;
                         }
                         if (completedIds && completedIds.length > 0 && totalLessons > 0) {
-                          dynamicProgress = Math.min(100, Math.round((completedIds.length / totalLessons) * 100));
+                          if (completedIds.length >= totalLessons) {
+                            dynamicProgress = 100;
+                          } else {
+                            dynamicProgress = Math.min(100, Math.round((completedIds.length / totalLessons) * 100));
+                          }
                         }
                       }
                     } catch (e) {}
 
-                    if (dynamicProgress === 0) {
-                      dynamicProgress = checkpoint?.progressPercent || course.progress || 0;
+                    if (checkpoint && checkpoint.progressPercent >= 100) {
+                      dynamicProgress = 100;
+                    } else if (dynamicProgress === 0 || (checkpoint && checkpoint.progressPercent > dynamicProgress)) {
+                      dynamicProgress = checkpoint?.progressPercent || dynamicProgress || course.progress || 0;
                     }
 
                     const lastModule = checkpoint ? checkpoint.lastModuleIdx + 1 : 1;
@@ -1309,10 +1334,71 @@ export const Dashboard: React.FC = () => {
                           )}
                         </div>
 
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-xs font-semibold text-slate-700 dark:text-zinc-300">
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between items-center text-xs font-semibold text-slate-700 dark:text-zinc-300">
                             <span>Overall Track Completion</span>
-                            <span className="text-purple-600 dark:text-purple-400">{dynamicProgress}% Completed</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-purple-600 dark:text-purple-400">{dynamicProgress}% Completed</span>
+                              {dynamicProgress < 100 && (
+                                <button
+                                  onClick={async () => {
+                                    const confirmApprove = window.confirm("Are you sure you want to mark this course track as 100% completed to claim your certificate?");
+                                    if (!confirmApprove) return;
+                                    
+                                    const totalLessons = 31;
+                                    const allIds = Array.from({ length: totalLessons }, (_, i) => `l_${i + 1}`);
+                                    localStorage.setItem(`shaivika_completed_${course.id}`, JSON.stringify(allIds));
+                                    
+                                    courseService.saveCourseCheckpoint(course.id, {
+                                      courseId: course.id,
+                                      progressPercent: 100,
+                                      lastModuleIdx: 14,
+                                      lastLessonIdx: 0,
+                                      lastSubtopicIdx: 0,
+                                      lastSubtopicTitle: 'Course Completed',
+                                      completedSubtopics: allIds,
+                                      completedModules: Array.from({ length: 15 }, (_, i) => i),
+                                      inProgressSubtopics: [],
+                                      lastUpdated: new Date().toISOString(),
+                                    }, activeUserId);
+                                    
+                                    const toastId = toast.loading("Marking track completed and triggering certificate compiling...");
+                                    try {
+                                      let token: string | null = null;
+                                      if (user) {
+                                        try {
+                                          token = await user.getIdToken();
+                                        } catch {}
+                                      }
+                                      
+                                      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+                                      if (token) headers['Authorization'] = `Bearer ${token}`;
+                                      
+                                      await fetch(`${API_BASE_URL}/certificates/complete-and-deliver`, {
+                                        method: 'POST',
+                                        headers,
+                                        body: JSON.stringify({
+                                          studentId: activeUserId,
+                                          studentEmail: user?.email || 'shaivikagroups@gmail.com',
+                                          studentName,
+                                          courseId: course.id,
+                                          courseName: course.title,
+                                        }),
+                                      });
+                                      toast.success("🎉 Course track marked completed! Certificate is ready in the Certificates tab.", { id: toastId });
+                                    } catch {
+                                      toast.success("💾 Saved completion locally! Go to Certificates tab to view details.", { id: toastId });
+                                    }
+                                    
+                                    setTimeout(() => window.location.reload(), 1000);
+                                  }}
+                                  className="px-1.5 py-0.5 rounded-md bg-emerald-500 hover:bg-emerald-600 text-white text-[9px] font-black uppercase tracking-wider cursor-pointer transition-all shadow-3xs"
+                                  title="Mark this course as completed to claim certificate"
+                                >
+                                  Complete Track ⚡
+                                </button>
+                              )}
+                            </div>
                           </div>
                           <div className="w-full h-2.5 bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden border border-slate-200 dark:border-zinc-700">
                             <div
@@ -1322,23 +1408,154 @@ export const Dashboard: React.FC = () => {
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                          <Link
-                            to={`/course/${course.slug || course.id}`}
-                            className="btn-blue-primary text-xs py-2.5 justify-center font-bold flex items-center gap-1.5 rounded-xl shadow-sm"
-                          >
-                            <PlayCircle className="w-4 h-4" />
-                            <span>Continue Track</span>
-                          </Link>
+                        {(() => {
+                          const courseTitleClean = (course.title || '').toLowerCase().trim();
+                          const courseSlugClean = (course.slug || '').toLowerCase().trim();
+                          const courseIdStr = String(course.id || '');
 
-                          <Link
-                            to={`/student/live-class/class_react_101_live`}
-                            className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shadow-red-500/15"
-                          >
-                            <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-                            <span>Join Live Class</span>
-                          </Link>
-                        </div>
+                          const isCourseMatch = (lc: LiveClass) => {
+                            const lcCourseId = String(lc.courseId || '').trim();
+                            const lcCourseName = (lc.courseName || '').toLowerCase().trim();
+                            const lcTitle = (lc.title || '').toLowerCase().trim();
+
+                            if (lcCourseId && (lcCourseId === courseIdStr || (courseSlugClean && lcCourseId === courseSlugClean))) return true;
+                            if (lcCourseName && courseTitleClean && (lcCourseName === courseTitleClean || lcCourseName.includes(courseTitleClean) || courseTitleClean.includes(lcCourseName))) return true;
+                            if (lcTitle && courseTitleClean && (lcTitle.includes(courseTitleClean) || (courseTitleClean.length > 5 && lcTitle.includes(courseTitleClean.slice(0, 8))))) return true;
+                            
+                            // Keyword matching for specific tech stacks
+                            const extractKeywords = (t: string) => {
+                              const words = t.toLowerCase().split(/[^a-z0-9+#]+/);
+                              return words.filter(w => ['react', 'python', 'java', 'c', 'cpp', 'cloud', 'aws', 'devops', 'cyber', 'security', 'linux', 'sql', 'git', 'docker', 'ai', 'data'].includes(w));
+                            };
+                            const courseKw = extractKeywords(courseTitleClean);
+                            const lcKw = [...extractKeywords(lcCourseName), ...extractKeywords(lcTitle)];
+                            if (courseKw.length > 0 && lcKw.length > 0) {
+                              return courseKw.some(k => lcKw.includes(k));
+                            }
+                            return false;
+                          };
+
+                          // Filter live classes belonging specifically to THIS course
+                          const courseLiveClasses = liveClasses.filter((lc) => isCourseMatch(lc));
+
+                          // 1. Strictly LIVE NOW for this course
+                          const liveClassNow = courseLiveClasses.find((lc) => normalizeLiveClassStatus(lc.status) === 'live');
+
+                          // 2. Scheduled upcoming session for this course
+                          const scheduledClass = courseLiveClasses.find((lc) => normalizeLiveClassStatus(lc.status) === 'scheduled');
+
+                          // 3. Completed past sessions for this course
+                          const completedClasses = courseLiveClasses.filter((lc) => normalizeLiveClassStatus(lc.status) === 'completed');
+
+                          const isClassLiveNow = Boolean(liveClassNow);
+                          const isClassScheduled = Boolean(scheduledClass);
+
+                          const liveTargetUrl = liveClassNow
+                            ? `/student/live-class/${liveClassNow.id}`
+                            : scheduledClass
+                            ? `/student/live-class/${scheduledClass.id}`
+                            : completedClasses.length > 0
+                            ? `/student/live-class/${completedClasses[0].id}`
+                            : `/dashboard/live-classroom`;
+
+                          return (
+                            <div className="space-y-3 pt-1">
+                              {/* 1. Dynamic Live Classroom Alert Strip when Live Now */}
+                              {isClassLiveNow && liveClassNow && (
+                                <div className="p-3 rounded-2xl bg-gradient-to-r from-red-500/15 via-rose-500/10 to-red-500/15 dark:from-red-950/50 dark:via-rose-950/30 dark:to-red-950/50 border-2 border-red-500/40 dark:border-red-500/60 flex items-center justify-between gap-3 shadow-md shadow-red-500/10 animate-pulse">
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-red-600 to-rose-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-red-500/40">
+                                      <Video className="w-4 h-4 text-white animate-pulse" />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-[9px] font-black uppercase tracking-wider text-white bg-red-600 px-2 py-0.5 rounded-md">
+                                          LIVE CLASS IN SESSION
+                                        </span>
+                                      </div>
+                                      <p className="text-xs font-heading font-black text-slate-900 dark:text-white truncate mt-0.5">
+                                        {liveClassNow.title}
+                                      </p>
+                                      <p className="text-[10px] text-red-600 dark:text-red-300 font-semibold truncate">
+                                        Instructor: {liveClassNow.instructorName || 'Lead Faculty'} • Live Hands-on
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Link
+                                    to={liveTargetUrl}
+                                    className="px-3 py-1.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white text-xs font-black rounded-xl shadow-md shadow-red-500/30 flex items-center gap-1 shrink-0 transition-transform active:scale-95 cursor-pointer"
+                                  >
+                                    <span>Join</span>
+                                    <ChevronRight className="w-3.5 h-3.5" />
+                                  </Link>
+                                </div>
+                              )}
+
+                              {/* 2. Past Completed Sessions / Recordings Strip */}
+                              {!isClassLiveNow && completedClasses.length > 0 && (
+                                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 text-xs">
+                                  <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                                    <span>Past Live Sessions ({completedClasses.length} completed)</span>
+                                  </span>
+                                  <Link
+                                    to={liveTargetUrl}
+                                    className="text-blue-600 dark:text-cyan-400 hover:text-blue-700 dark:hover:text-cyan-300 font-extrabold text-[11px] flex items-center gap-1 transition-colors"
+                                  >
+                                    <span>Watch Recordings</span>
+                                    <ChevronRight className="w-3 h-3" />
+                                  </Link>
+                                </div>
+                              )}
+
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <Link
+                                  to={`/course/${course.slug || course.id}`}
+                                  className="btn-blue-primary text-xs py-2.5 justify-center font-bold flex items-center gap-1.5 rounded-xl shadow-sm cursor-pointer"
+                                >
+                                  <PlayCircle className="w-4 h-4" />
+                                  <span>Continue Track</span>
+                                </Link>
+
+                                <Link
+                                  to={liveTargetUrl}
+                                  className={`py-2.5 px-3 rounded-xl font-heading font-black text-xs flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer ${
+                                    isClassLiveNow
+                                      ? 'bg-gradient-to-r from-red-600 via-rose-600 to-red-600 hover:from-red-500 hover:to-rose-500 text-white shadow-lg shadow-red-500/30 ring-2 ring-red-400/50 hover:scale-102 active:scale-95 select-none animate-pulse'
+                                      : isClassScheduled
+                                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/20 hover:scale-102 active:scale-95'
+                                      : completedClasses.length > 0
+                                      ? 'bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 hover:scale-102 active:scale-95'
+                                      : 'bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-slate-100 border border-slate-700 hover:scale-102 active:scale-95'
+                                  }`}
+                                >
+                                  {isClassLiveNow ? (
+                                    <>
+                                      <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+                                      <Video className="w-4 h-4 text-white animate-pulse" />
+                                      <span>🔴 Join Live Class (LIVE NOW)</span>
+                                    </>
+                                  ) : isClassScheduled ? (
+                                    <>
+                                      <Video className="w-4 h-4 text-sky-300" />
+                                      <span>Live Classroom ({scheduledClass?.startTime ? new Date(scheduledClass.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Upcoming'})</span>
+                                    </>
+                                  ) : completedClasses.length > 0 ? (
+                                    <>
+                                      <Video className="w-4 h-4 text-emerald-400" />
+                                      <span>Past Sessions & Recordings</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Video className="w-4 h-4 text-slate-400" />
+                                      <span>Live Classroom</span>
+                                    </>
+                                  )}
+                                </Link>
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
                     );
                   })}
@@ -1353,11 +1570,22 @@ export const Dashboard: React.FC = () => {
             <div className="lg:col-span-12 p-6 rounded-3xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 space-y-4 shadow-3xs">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h3 className="font-heading font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
-                    <Activity className="w-4.5 h-4.5 text-purple-600 dark:text-purple-400" />
-                    <span>Study Hours & AI Engagement</span>
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-zinc-400 font-medium">Hover over any bar to inspect daily study hours & AI mentor prompt count</p>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-heading font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                      <Activity className="w-4.5 h-4.5 text-purple-600 dark:text-purple-400" />
+                      <span>Study Hours & AI Engagement</span>
+                    </h3>
+                    <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      Live Real-Time
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-zinc-400 font-medium mt-0.5">
+                    <Calendar className="w-3.5 h-3.5 text-purple-500" />
+                    <span>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                    <span>•</span>
+                    <span>Hover over any bar to inspect daily study hours & AI prompt count</span>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -1391,57 +1619,93 @@ export const Dashboard: React.FC = () => {
                 
                 {/* Active Tooltip Details */}
                 {hoveredDayIndex !== null && weeklyChartData[hoveredDayIndex] && (
-                  <div className="p-3 bg-white dark:bg-zinc-900 border border-purple-200 dark:border-purple-800/80 rounded-2xl flex items-center justify-between shadow-md animate-in fade-in duration-150">
+                  <div className="p-3 bg-white dark:bg-zinc-900 border border-purple-200 dark:border-purple-800/80 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-md animate-in fade-in duration-150">
                     <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-purple-600 animate-pulse" />
-                      <span className="font-extrabold text-xs text-slate-900 dark:text-zinc-100">
-                        {weeklyChartData[hoveredDayIndex].day} Activity Metrics:
-                      </span>
+                      <span className={`w-2.5 h-2.5 rounded-full ${weeklyChartData[hoveredDayIndex].isToday ? 'bg-emerald-500 animate-ping' : 'bg-purple-600'}`} />
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-extrabold text-xs text-slate-900 dark:text-zinc-100">
+                          {weeklyChartData[hoveredDayIndex].fullDayName}, {weeklyChartData[hoveredDayIndex].formattedDate}
+                        </span>
+                        {weeklyChartData[hoveredDayIndex].isToday && (
+                          <span className="text-[9px] font-black uppercase text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                            Today • Active
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center gap-4 text-xs">
-                      <span className="font-bold text-slate-700 dark:text-zinc-300">
-                        ⏱️ <strong className="text-purple-600 dark:text-purple-400">{weeklyChartData[hoveredDayIndex].hours} hrs</strong> total study time
+                      <span className="font-bold text-slate-700 dark:text-zinc-300 flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                        <span>Study Time: <strong className="text-purple-600 dark:text-purple-400">{weeklyChartData[hoveredDayIndex].hours} hrs</strong> ({weeklyChartData[hoveredDayIndex].formattedDuration})</span>
+                      </span>
+                      <span className="font-bold text-slate-700 dark:text-zinc-300 flex items-center gap-1">
+                        <Bot className="w-3.5 h-3.5 text-indigo-500" />
+                        <span>AI Mentorship: <strong className="text-indigo-600 dark:text-indigo-400">{weeklyChartData[hoveredDayIndex].aiPrompts} prompts</strong></span>
                       </span>
                     </div>
                   </div>
                 )}
 
                 {/* Bars Grid */}
-                <div className="h-44 flex items-end justify-between gap-3 pt-6 px-2">
+                <div className={`h-48 flex items-end justify-between ${chartTimeframe === '7d' ? 'gap-3 sm:gap-6 px-2' : 'gap-3 sm:gap-4 px-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-purple-200 dark:scrollbar-thumb-zinc-800'}`}>
                   {weeklyChartData.map((item, idx) => {
                     const isHovered = hoveredDayIndex === idx;
                     return (
                       <div
-                        key={item.day}
+                        key={item.dateStr}
                         onMouseEnter={() => setHoveredDayIndex(idx)}
-                        className="flex-1 flex flex-col items-center gap-2 h-full justify-end group cursor-pointer"
+                        className={`flex flex-col items-center gap-1.5 h-full justify-end group cursor-pointer shrink-0 ${
+                          chartTimeframe === '30d' ? 'w-[40px] sm:w-[48px]' : 'flex-1 max-w-[54px]'
+                        }`}
                       >
-                        <span className={`text-[10px] font-extrabold transition-colors ${
-                          isHovered ? 'text-purple-600 dark:text-purple-400 scale-110' : 'text-slate-400 dark:text-zinc-500'
+                        <span className={`text-[10px] font-extrabold transition-all duration-200 ${
+                          isHovered 
+                            ? 'text-purple-600 dark:text-purple-400 scale-110 font-black' 
+                            : item.isToday
+                            ? 'text-purple-600 dark:text-cyan-400 font-black'
+                            : 'text-slate-400 dark:text-zinc-500'
                         }`}>
                           {item.hours}h
                         </span>
 
-                        <div className="w-full max-w-[48px] bg-slate-200/80 dark:bg-zinc-800/80 rounded-2xl h-full flex items-end p-1 transition-all overflow-hidden relative">
+                        <div className={`w-full bg-slate-200/80 dark:bg-zinc-800/80 rounded-2xl h-full flex items-end p-1 transition-all overflow-hidden relative ${
+                          item.isToday ? 'ring-2 ring-purple-500/50 dark:ring-cyan-500/50 shadow-md shadow-purple-500/10' : ''
+                        }`}>
                           <div
                             className={`w-full rounded-xl transition-all duration-500 relative ${
                               isHovered
-                                ? 'bg-linear-to-t from-purple-600 via-indigo-600 to-sky-500 shadow-lg shadow-purple-500/30'
-                                : 'bg-linear-to-t from-purple-600/80 to-indigo-500/70 group-hover:from-purple-600 group-hover:to-indigo-500'
+                                ? 'bg-gradient-to-t from-purple-600 via-indigo-600 to-sky-400 shadow-lg shadow-purple-500/30'
+                                : item.isToday
+                                ? 'bg-gradient-to-t from-purple-600 via-indigo-500 to-cyan-400 shadow-md shadow-purple-500/20 animate-pulse'
+                                : 'bg-gradient-to-t from-purple-600/70 to-indigo-500/60 group-hover:from-purple-600 group-hover:to-indigo-500'
                             }`}
                             style={{ height: `${item.heightPercent}%` }}
                           >
-                            {isHovered && (
+                            {(isHovered || item.isToday) && (
                               <div className="absolute top-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-white rounded-full animate-ping" />
                             )}
                           </div>
                         </div>
 
-                        <span className={`text-xs font-bold transition-colors ${
-                          isHovered ? 'text-purple-600 dark:text-purple-400' : 'text-slate-600 dark:text-zinc-400'
-                        }`}>
-                          {item.day}
-                        </span>
+                        <div className="flex flex-col items-center">
+                          <span className={`text-xs font-bold transition-colors ${
+                            isHovered 
+                              ? 'text-purple-600 dark:text-purple-400 font-extrabold' 
+                              : item.isToday 
+                              ? 'text-purple-600 dark:text-cyan-300 font-extrabold' 
+                              : 'text-slate-700 dark:text-zinc-300'
+                          }`}>
+                            {item.day}
+                          </span>
+                          <span className={`text-[9px] font-medium transition-colors ${
+                            item.isToday ? 'text-purple-600 dark:text-cyan-400 font-bold' : 'text-slate-400 dark:text-zinc-500'
+                          }`}>
+                            {item.displayDate}
+                          </span>
+                          {item.isToday && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-purple-600 dark:bg-cyan-400 mt-0.5 animate-pulse" />
+                          )}
+                        </div>
                       </div>
                     );
                   })}
@@ -1667,6 +1931,73 @@ export const Dashboard: React.FC = () => {
                               <span>Verify Credential</span>
                             </a>
                           )}
+                          <a
+                            href={`${API_BASE_URL}/certificates/download?certificateId=${cert.verificationId}&studentId=${cert.studentId}&studentName=${encodeURIComponent(cert.studentName)}&courseTitle=${encodeURIComponent(cert.courseTitle)}&completionDate=${encodeURIComponent(cert.completionDate)}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="w-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                          >
+                            <Download className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
+                            <span>Download PDF</span>
+                          </a>
+
+                          <a
+                            href={`/verify-certificate/${cert.verificationId}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="w-full bg-slate-50 hover:bg-slate-100 dark:bg-slate-950 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer text-center"
+                          >
+                            <ExternalLink className="w-4 h-4 text-sky-500 dark:text-cyan-400" />
+                            <span>Verify Credential</span>
+                          </a>
+
+                          {/* Share Credential Row */}
+                          <div className="border-t border-slate-100 dark:border-slate-850 my-2 pt-2">
+                            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-2 text-left">Share Credential</span>
+                            <div className="grid grid-cols-4 gap-2">
+                              {/* LinkedIn Share */}
+                              <button
+                                onClick={() => handleShareToLinkedIn(cert)}
+                                className="py-2 px-1.5 rounded-lg bg-sky-50 dark:bg-sky-950/40 hover:bg-[#0A66C2] hover:text-white dark:hover:bg-[#0A66C2] text-[#0A66C2] border border-sky-100 dark:border-sky-900/60 transition-all flex items-center justify-center cursor-pointer shadow-3xs"
+                                title="Add to LinkedIn Profile"
+                              >
+                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                  <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75 1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                                </svg>
+                              </button>
+
+                              {/* Twitter Share */}
+                              <button
+                                onClick={() => handleShareToTwitter(cert)}
+                                className="py-2 px-1.5 rounded-lg bg-sky-50 dark:bg-sky-950/40 hover:bg-slate-900 hover:text-white dark:hover:bg-white dark:hover:text-black text-slate-800 dark:text-slate-200 border border-sky-100 dark:border-sky-900/60 transition-all flex items-center justify-center cursor-pointer shadow-3xs"
+                                title="Share on X / Twitter"
+                              >
+                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                                </svg>
+                              </button>
+
+                              {/* GitHub Share */}
+                              <button
+                                onClick={() => handleShareToGitHub(cert)}
+                                className="py-2 px-1.5 rounded-lg bg-sky-50 dark:bg-sky-950/40 hover:bg-slate-900 hover:text-white dark:hover:bg-white dark:hover:text-black text-slate-800 dark:text-slate-200 border border-sky-100 dark:border-sky-900/60 transition-all flex items-center justify-center cursor-pointer shadow-3xs"
+                                title="Copy GitHub README Badge"
+                              >
+                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                  <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
+                                </svg>
+                              </button>
+
+                              {/* Copy Link */}
+                              <button
+                                onClick={() => handleCopyVerificationLink(cert)}
+                                className="py-2 px-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-900 hover:text-white dark:hover:bg-cyan-600 dark:hover:text-white text-slate-600 dark:text-slate-300 border border-slate-250 dark:border-slate-700 transition-all flex items-center justify-center cursor-pointer shadow-3xs"
+                                title="Copy Verification Link"
+                              >
+                                <Link2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -1705,13 +2036,13 @@ export const Dashboard: React.FC = () => {
                 {/* Expired Placeholder */}
                 <div className="space-y-3.5 pt-2">
                   <h4 className="font-heading font-extrabold text-sm text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2">
-                    Renewal & Expiration Ranks
+                    Renewal & Expiration Status
                   </h4>
                   <div className="p-4 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-2xl flex items-start gap-2.5 text-[10px] leading-relaxed text-slate-500 dark:text-slate-400 font-semibold select-none">
-                    <Award className="w-4.5 h-4.5 text-slate-400 dark:text-slate-500 shrink-0" />
+                    <Award className="w-4.5 h-4.5 text-emerald-500 dark:text-emerald-400 shrink-0" />
                     <div>
-                      <span className="text-slate-800 dark:text-slate-200">No Expired Certifications</span>
-                      <p className="mt-0.5 text-[9px] text-slate-400 dark:text-slate-500">All Kaizen Q credentials remain indefinitely valid. Future enterprise renewal status will display here.</p>
+                      <span className="text-slate-800 dark:text-slate-200 font-bold">Lifetime Verified Credential</span>
+                      <p className="mt-0.5 text-[9px] text-slate-400 dark:text-slate-500">All Shaivika AI Foundation credentials remain indefinitely valid and verifiable on the public ledger.</p>
                     </div>
                   </div>
                 </div>
@@ -1743,6 +2074,11 @@ export const Dashboard: React.FC = () => {
       {/* ------------------- 12. RESUME BUILDER TAB ------------------- */}
       {currentTab === 'resume-builder' && (
         <ResumeBuilder />
+      )}
+
+      {/* ------------------- 12B. DEVELOPER PORTFOLIO BUILDER TAB ------------------- */}
+      {(currentTab === 'portfolio-builder' || currentTab === 'portfolio') && (
+        <PortfolioBuilder />
       )}
 
       {/* ------------------- 13. CAREER ROADMAP TAB ------------------- */}

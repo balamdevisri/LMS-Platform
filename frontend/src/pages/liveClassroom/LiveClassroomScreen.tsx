@@ -43,6 +43,7 @@ import { LiveQuizWidget } from '@/components/liveClassroom/LiveQuizWidget';
 import { LeaderboardWidget } from '@/components/liveClassroom/LeaderboardWidget';
 import { AIInsightsWidget } from '@/components/liveClassroom/AIInsightsWidget';
 import { InteractiveWhiteboard } from '@/components/liveClassroom/InteractiveWhiteboard';
+import { LiveClassConfirmModal } from '@/components/liveClassroom/LiveClassConfirmModal';
 import { KaizenQClassroom } from '@/components/live-class/KaizenQClassroom';
 import { LiveQuestionsWidget } from '@/components/liveClassroom/LiveQuestionsWidget';
 import { LiveNotesEditor } from '@/components/liveClassroom/LiveNotesEditor';
@@ -368,13 +369,8 @@ export const LiveClassroomScreen: React.FC = () => {
   const [isEndConfirmModalOpen, setIsEndConfirmModalOpen] = useState(false);
 
   const handleEndSession = useCallback(() => {
-    if (isInstructor && liveClassData) {
-      setIsEndConfirmModalOpen(true);
-    } else {
-      toast.info('Left the classroom session.');
-      navigate('/dashboard');
-    }
-  }, [isInstructor, liveClassData, navigate]);
+    setIsEndConfirmModalOpen(true);
+  }, []);
 
   if (loading) {
     return (
@@ -1092,55 +1088,33 @@ export const LiveClassroomScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Instructor End Class Confirmation Modal */}
-      {isEndConfirmModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl text-white">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0">
-                <LogOut className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="text-lg font-heading font-extrabold text-white">End Live Class?</h3>
-                <p className="text-xs text-slate-400">Are you sure you want to end this live session?</p>
-              </div>
-            </div>
-
-            <p className="text-xs text-slate-300 bg-slate-950/60 p-3.5 rounded-2xl border border-slate-800 leading-relaxed">
-              This action will update the class status to <strong className="text-rose-400 font-mono font-bold uppercase">COMPLETED</strong>, end the video media stream for all participants, and notify all enrolled students.
-            </p>
-
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                onClick={() => setIsEndConfirmModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={async () => {
-                  setIsEndConfirmModalOpen(false);
-                  if (isInstructor && liveClassData && userProfile) {
-                    try {
-                      await liveClassService.endLiveClass(liveClassData.id, userProfile.uid, userProfile.role);
-                      toast.success('Classroom session completed successfully.');
-                      navigate('/admin/live-classroom');
-                    } catch (err: any) {
-                      toast.error(err.message || 'Failed to end live class.');
-                    }
-                  } else {
-                    toast.info('Left classroom session.');
-                    navigate('/dashboard');
-                  }
-                }}
-                className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs cursor-pointer shadow-lg shadow-rose-600/20"
-              >
-                Confirm End Class
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Live Classroom Exit Confirmation Modal */}
+      <LiveClassConfirmModal
+        isOpen={isEndConfirmModalOpen}
+        actionType="exit"
+        classTitle={liveClassData?.title || 'Live Technical Session'}
+        courseName={liveClassData?.courseName || 'AI Engineering Track'}
+        instructorName={liveClassData?.instructorName || 'Lead Mentor'}
+        onlineCount={onlineCount}
+        durationFormatted={formatTime(secondsElapsed)}
+        isInstructor={isInstructor}
+        onConfirm={async () => {
+          setIsEndConfirmModalOpen(false);
+          if (isInstructor && liveClassData && userProfile) {
+            try {
+              await liveClassService.endLiveClass(liveClassData.id, userProfile.uid, userProfile.role);
+              toast.success('Classroom session completed successfully.');
+              navigate(userProfile?.role === 'admin' ? '/admin/live-classes' : '/admin/live-classroom');
+            } catch (err: any) {
+              toast.error(err.message || 'Failed to end live class.');
+            }
+          } else {
+            toast.info('Left classroom session.');
+            navigate('/dashboard');
+          }
+        }}
+        onCancel={() => setIsEndConfirmModalOpen(false)}
+      />
 
     </div>
   );

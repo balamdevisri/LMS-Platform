@@ -295,5 +295,41 @@ service cloud.firestore {
         allow read, write: if isAdmin() || isInstructor();
       }
     }
+
+    // --- 26. EMAIL PROTECTION RULES (PREVENT CLIENT SPAM / ROGUE MAIL TRIGGERS) ---
+    match /mail/{mailId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /emails/{emailId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /mail_triggers/{triggerId} {
+      allow read, write: if isAdmin();
+    }
+
+    // --- 27. DEVELOPER PORTFOLIO SYSTEM ---
+    match /portfolios/{studentId} {
+      allow read: if true; // Public portfolio showcase
+      allow create, update: if isAuthenticated() && (isOwner(studentId) || isAdmin());
+      allow delete: if isAdmin() || isOwner(studentId);
+    }
+
+    match /portfolio_handles/{handle} {
+      allow read: if true; // Public handle resolution
+      allow write: if isAuthenticated();
+    }
+
+    // --- 28. RESUME BUILDER DRAFTS ---
+    match /resumes/{studentId} {
+      allow read, write: if isAuthenticated() && (isOwner(studentId) || isAdmin());
+    }
+
+    // --- 29. PAYMENTS & TRANSACTIONS (SECURED AGAINST TAMPERING) ---
+    match /payments/{paymentId} {
+      allow read: if isAuthenticated() && (isAdmin() || resource.data.studentId == request.auth.uid);
+      allow write: if isAdmin();
+    }
   }
 }

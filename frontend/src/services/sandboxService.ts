@@ -33,7 +33,7 @@ export interface GitRepositoryState {
   isGitRepo: boolean;
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import { API_BASE_URL as API_BASE } from '@/config/api';
 
 export class SandboxService {
   private static instance: SandboxService;

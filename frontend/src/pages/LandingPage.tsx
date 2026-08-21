@@ -28,7 +28,6 @@ import { BlueSmokeTheme } from '@/components/common/BlueSmokeTheme';
 import { AiCoreOrb } from '@/components/common/AiCoreOrb';
 import { courseService } from '@/services/courseService';
 import type { ICourse } from '../../../shared/types/course';
-import { UpcomingLiveSessionsWidget } from '@/components/liveClassroom/UpcomingLiveSessionsWidget';
 
 // Custom Animated Counter Component
 const AnimatedCounter: React.FC<{ value: number; suffix?: string; prefix?: string }> = ({ value, suffix = '', prefix = '' }) => {
@@ -314,10 +313,10 @@ export const LandingPage: React.FC = () => {
     const cat = (course.category || '').toLowerCase();
     if (t.includes('linux') || cat.includes('linux')) return '/assets/images/linux_course_thumbnail.webp';
     if (t.includes('git') || cat.includes('git') || t.includes('github')) return '/assets/images/github_course_banner.webp';
-    if (t.includes('ai') || cat.includes('ai') || t.includes('machine learning')) return 'https://images.unsplash.com/photo-1677442136019-21780efad99a?auto=format&fit=crop&w=800&q=80';
-    if (t.includes('devops') || cat.includes('devops') || t.includes('cloud')) return 'https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?auto=format&fit=crop&w=800&q=80';
-    if (t.includes('react') || t.includes('web') || t.includes('javascript')) return 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&w=800&q=80';
-    return 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=800&q=80';
+    if (t.includes('ai') || cat.includes('ai') || t.includes('machine learning')) return 'https://images.unsplash.com/photo-1677442136019-21780efad99a?auto=format&fit=crop&w=500&fm=webp&q=80';
+    if (t.includes('devops') || cat.includes('devops') || t.includes('cloud')) return 'https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?auto=format&fit=crop&w=500&fm=webp&q=80';
+    if (t.includes('react') || t.includes('web') || t.includes('javascript')) return 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&w=500&fm=webp&q=80';
+    return 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=500&fm=webp&q=80';
   };
 
   const toggleFaq = (idx: number) => {
@@ -399,28 +398,28 @@ export const LandingPage: React.FC = () => {
       role: 'DevOps Engineer',
       quote: 'The distraction-free learning environment and built-in interactive CLI lab made mastering Git and Linux effortless. Highly recommend!',
       rating: 5,
-      avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80',
+      avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&fm=webp&q=80',
     },
     {
       name: 'Alex Chen',
       role: 'Full-Stack Developer',
       quote: 'Cleanest LMS interface I have ever used! Compares with Microsoft Learn and Codecademy.',
       rating: 5,
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&fm=webp&q=80',
     },
     {
       name: 'Sarah Jenkins',
       role: 'Lead Software Engineer at CloudTech',
       quote: 'Kaizen Q transformed our onboarding time by 60%. The 24/7 AI tutor answers technical questions immediately without blocking senior engineers.',
       rating: 5,
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
+      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&fm=webp&q=80',
     },
     {
       name: 'Prof. David Chen',
       role: 'Head of Computer Science Dept',
       quote: 'The automated assignment evaluation and competency graphs give our university faculty unprecedented visibility into student learning curves.',
       rating: 5,
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
+      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&fm=webp&q=80',
     },
   ];
 
@@ -556,8 +555,8 @@ export const LandingPage: React.FC = () => {
           transform-origin: center;
         }
         @keyframes section-shine {
-          0% { left: -100%; }
-          100% { left: 200%; }
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(200%); }
         }
         .animate-shine {
           animation: section-shine 4.5s infinite linear;
@@ -726,9 +725,6 @@ export const LandingPage: React.FC = () => {
 
           </div>
         </section>
-
-        {/* Enterprise Live Broadcast Sessions */}
-        <UpcomingLiveSessionsWidget />
 
         {/* Core Features Divider */}
         <AnimatedDivider className="mt-12 mb-12" />
@@ -1032,21 +1028,24 @@ export const LandingPage: React.FC = () => {
                 </div>
                 
                 {/* Interactive Player / Dashboard View */}
-                <div className="p-1 relative overflow-hidden rounded-xl">
+                <div className="p-1 relative overflow-hidden rounded-xl aspect-[16/9] min-h-[220px] bg-slate-900/50">
                   <video
                     src="/KaizenQ.mp4"
                     autoPlay
                     muted
                     playsInline
                     loop
-                    className="w-full rounded-xl object-cover shadow-inner pointer-events-none"
+                    aria-label="KaizenQ LMS Interactive Product Demo"
+                    className="w-full h-full rounded-xl object-cover shadow-inner pointer-events-none"
                     ref={(el) => {
                       if (el) {
                         el.muted = true;
                         el.volume = 0;
                       }
                     }}
-                  />
+                  >
+                    <track kind="captions" src="/captions.vtt" srcLang="en" label="English" default />
+                  </video>
 
                   {/* Watermark Cover Badge — Moved down to top-10 right-3 to directly cover the Gemini watermark */}
                   <div className="absolute top-10 right-3 z-30 flex items-center gap-2.5 px-4 py-2 rounded-xl bg-slate-950/95 border border-slate-700/90 text-white shadow-2xl backdrop-blur-md font-['Sora'] pointer-events-none select-none">

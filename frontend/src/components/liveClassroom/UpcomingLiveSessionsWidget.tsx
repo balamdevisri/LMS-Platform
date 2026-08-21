@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Video, Radio, Play, ArrowRight, X } from 'lucide-react';
-import { toast } from 'sonner';
 import { liveClassService, normalizeLiveClassStatus, type LiveClass } from '@/services/liveClassService';
 
 export const UpcomingLiveSessionsWidget: React.FC = () => {
@@ -46,12 +45,7 @@ export const UpcomingLiveSessionsWidget: React.FC = () => {
   };
 
   const handleJoinLive = (c: LiveClass) => {
-    const normStatus = normalizeLiveClassStatus(c.status);
-    if (normStatus !== 'live') {
-      toast.error('This class has not started yet. Waiting for instructor to start.');
-      return;
-    }
-    navigate(`/live-classroom/room/${c.id}`);
+    navigate(`/student/live-class/${c.id}`);
   };
 
   if (classes.length === 0) return null;

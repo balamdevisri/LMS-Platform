@@ -17,6 +17,9 @@ import { getChallengeForLesson } from '@/services/challengeEngine';
 const AITutorDrawer = lazy(() => import('./AITutorDrawer').then(m => ({ default: m.AITutorDrawer })));
 import { CertificatePreviewModal } from '../courses/CertificatePreviewModal';
 import { CertificateService, BadgeService, AchievementService, XPService, STATIC_BADGES } from '@/services/achievementService';
+import { CourseActionConfirmModal } from '../courses/CourseActionConfirmModal';
+import { API_BASE_URL } from '@/config/api';
+import { CertificateService } from '@/services/achievementService';
 import { assignmentService } from '@/services/assignmentService';
 
 export function calculateEstimatedDuration(content: string, commandCount: number = 0): string {
@@ -327,6 +330,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeCourseTab, setActiveCourseTab] = useState('modules');
   const [isAITutorOpen, setIsAITutorOpen] = useState(false);
+  const [isExitConfirmOpen, setIsExitConfirmOpen] = useState(false);
   const [showCongrats, setShowCongrats] = useState(false);
   const [generatedCert, setGeneratedCert] = useState<any>(() => {
     try {
@@ -403,13 +407,36 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
     };
   }, [selectedLessonId]);
 
+  // Lock body scroll when learning view is open (prevents scrolling conflicts on mobile browsers)
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
+
+
   useEffect(() => {
     try {
       localStorage.setItem(`shaivika_completed_${courseId}`, JSON.stringify(completedLessonIds));
+      const totalCount = allLessons.length || 15;
+      const pct = Math.min(100, Math.round((completedLessonIds.length / totalCount) * 100));
+      courseService.saveCourseCheckpoint(String(courseId), {
+        courseId: String(courseId),
+        progressPercent: pct,
+        lastModuleIdx: 0,
+        lastLessonIdx: 0,
+        lastSubtopicIdx: 0,
+        lastSubtopicTitle: 'Course Learning View',
+        completedSubtopics: completedLessonIds.map(String),
+        completedModules: [],
+        inProgressSubtopics: [],
+        lastUpdated: new Date().toISOString(),
+      }, studentUid);
     } catch (err) {
       console.error('Failed to save completion state', err);
     }
-  }, [completedLessonIds, courseId]);
+  }, [completedLessonIds, courseId, allLessons, studentUid]);
 
   // Memoize quiz and assignment units
   const { quizUnits, assignmentUnits } = useMemo(() => {
@@ -504,6 +531,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
 
       // Sync state to backend before generation trigger
       let syncResult = await safeFetchJson(`${apiBase}/certificates/sync-state`, {
+      let syncRes = await fetch(`${API_BASE_URL}/certificates/sync-state`, {
         method: 'POST',
         headers: getHeaders(token),
         body: JSON.stringify({
@@ -523,6 +551,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         try {
           token = await user.getIdToken(true);
           syncResult = await safeFetchJson(`${apiBase}/certificates/sync-state`, {
+          syncRes = await fetch(`${API_BASE_URL}/certificates/sync-state`, {
             method: 'POST',
             headers: getHeaders(token),
             body: JSON.stringify({
@@ -541,6 +570,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
 
       // Complete and deliver
       let deliveryResult = await safeFetchJson(`${apiBase}/certificates/complete-and-deliver`, {
+      let res = await fetch(`${API_BASE_URL}/certificates/complete-and-deliver`, {
         method: 'POST',
         headers: getHeaders(token),
         body: JSON.stringify({
@@ -564,6 +594,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         try {
           token = await user.getIdToken(true);
           deliveryResult = await safeFetchJson(`${apiBase}/certificates/complete-and-deliver`, {
+          res = await fetch(`${API_BASE_URL}/certificates/complete-and-deliver`, {
             method: 'POST',
             headers: getHeaders(token),
             body: JSON.stringify({
@@ -932,7 +963,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`fixed inset-0 z-60 font-sans flex flex-col overflow-y-auto transition-colors duration-300 ${
+      className={`fixed inset-0 z-60 font-sans flex flex-col overflow-y-auto overflow-x-hidden [overscroll-behavior-y:contain] [-webkit-overflow-scrolling:touch] transition-colors duration-300 ${
         isNightMode
           ? 'bg-slate-950 text-slate-100 selection:bg-cyan-500 selection:text-slate-950'
           : 'bg-slate-50 text-slate-900 selection:bg-sky-500 selection:text-white'
@@ -949,6 +980,8 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         hasPrevLesson={hasPrevLesson}
         hasNextLesson={hasNextLesson && isCompleted}
         onBackToCourseDetails={onBackToCourseDetails}
+        hasNextLesson={hasNextLesson}
+        onBackToCourseDetails={() => setIsExitConfirmOpen(true)}
         userAvatar={userAvatar}
         userName={userName}
         isNightMode={isNightMode}
@@ -1027,7 +1060,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         onSelectCourseTab={(tabKey) => {
           setActiveCourseTab(tabKey);
           if (tabKey === 'overview') {
-            onBackToCourseDetails();
+            setIsExitConfirmOpen(true);
           }
         }}
         isNightMode={isNightMode}
@@ -1444,6 +1477,20 @@ soundEnabled
           </div>
         </div>
       )}
+      {/* Course Exit Confirmation Modal */}
+      <CourseActionConfirmModal
+        isOpen={isExitConfirmOpen}
+        actionType="exit"
+        courseTitle={courseTitle}
+        courseCategory="Engineering Track"
+        currentProgress={progressPercent}
+        currentLessonTitle={activeLessonFull.title}
+        onConfirm={() => {
+          setIsExitConfirmOpen(false);
+          onBackToCourseDetails();
+        }}
+        onCancel={() => setIsExitConfirmOpen(false)}
+      />
     </div>
   );
 };

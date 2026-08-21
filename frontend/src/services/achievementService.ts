@@ -52,14 +52,19 @@ export interface LeaderboardEntry {
   id?: string;
   name: string;
   avatarUrl?: string;
+  githubUsername?: string;
+  githubUrl?: string;
   college?: string;
   branch?: string;
+  track?: string;
   xp: number;
   badgesCount: number;
+  badges?: Badge[];
   coursesCompleted: number;
   streak?: number;
   level?: number;
   levelTitle?: string;
+  rankChange?: number;
   isCurrentUser?: boolean;
 }
 
@@ -196,6 +201,55 @@ export class XPService {
     }
     const val = localStorage.getItem(`${this.xpKeyPrefix}${userId}`);
     return val ? parseInt(val, 10) : 150; // Fallback to 150
+    let maxFound = 0;
+
+    // 1. User specific XP key
+    const userXp = localStorage.getItem(`${this.xpKeyPrefix}${userId}`);
+    if (userXp) maxFound = Math.max(maxFound, parseInt(userXp, 10) || 0);
+
+    // 2. User specific points key
+    const userPts = localStorage.getItem(`shaivika_points_${userId}`);
+    if (userPts) maxFound = Math.max(maxFound, parseInt(userPts, 10) || 0);
+
+    // 3. Fallback generic points key
+    const currentPts = localStorage.getItem(this.pointsKey);
+    if (currentPts) maxFound = Math.max(maxFound, parseInt(currentPts, 10) || 0);
+
+    // 4. Check shaivika_user cache from AuthContext
+    try {
+      const authUserRaw = localStorage.getItem('shaivika_user');
+      if (authUserRaw) {
+        const u = JSON.parse(authUserRaw);
+        if (u.xp) maxFound = Math.max(maxFound, Number(u.xp) || 0);
+        if (u.learningScore) maxFound = Math.max(maxFound, Number(u.learningScore) * 20 || 0);
+        if (u.points) maxFound = Math.max(maxFound, Number(u.points) || 0);
+      }
+    } catch (e) {}
+
+    // 5. Calculate from completed lessons & courses in local progress
+    try {
+      const progressRaw = localStorage.getItem('shaivika_learning_progress');
+      if (progressRaw) {
+        const progress = JSON.parse(progressRaw);
+        if (Array.isArray(progress)) {
+          let progressXp = 0;
+          progress.forEach((p: any) => {
+            if (p.completedLessons && Array.isArray(p.completedLessons)) {
+              progressXp += p.completedLessons.length * XP_CONFIG.LESSON_COMPLETED;
+            }
+            if (p.completedQuizzes && Array.isArray(p.completedQuizzes)) {
+              progressXp += p.completedQuizzes.length * XP_CONFIG.QUIZ_PASSED;
+            }
+            if (p.percentage === 100) {
+              progressXp += 200; // Track completion bonus
+            }
+          });
+          maxFound = Math.max(maxFound, progressXp);
+        }
+      }
+    } catch (e) {}
+
+    return Math.max(maxFound, 350); // Default dynamic baseline
   }
 
   addXP(points: number, activityName: string, userId = 'default_student'): number {
@@ -222,7 +276,8 @@ export class XPService {
     
     // Save to legacy keys to keep systems synced
     localStorage.setItem(`${this.xpKeyPrefix}${userId}`, String(updatedXp));
-    localStorage.setItem(`${this.pointsKey}`, String(updatedXp));
+    localStorage.setItem(`shaivika_points_${userId}`, String(updatedXp));
+    localStorage.setItem(this.pointsKey, String(updatedXp));
 
     const oldLevel = getLevelForXP(currentXp);
     const newLevel = getLevelForXP(updatedXp);
@@ -383,7 +438,7 @@ export class CertificateService {
     if (existing) return existing;
 
     const hashInput = `${courseId}_${studentName}_${Date.now()}`;
-    const verificationId = 'KQ-' + Array.from(hashInput)
+    const verificationId = 'SAI-' + Array.from(hashInput)
       .reduce((hash, char) => 0 | (hash * 33 + char.charCodeAt(0)), 5381)
       .toString(16)
       .toUpperCase()
@@ -395,7 +450,7 @@ export class CertificateService {
       courseTitle,
       studentName,
       studentId: studentId || 'STU-' + verificationId.substring(3),
-      instructorName,
+      instructorName: instructorName || 'Shaivika AI Foundation Faculty',
       completionDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
       verificationId,
       courseDuration,
@@ -412,6 +467,7 @@ export class CertificateService {
 
     return newCert;
   }
+
   saveExternalCertificate(userId: string, cert: Certificate): void {
     const certs = this.getCertificates(userId);
     const index = certs.findIndex(c => c.courseId === cert.courseId);
@@ -434,7 +490,7 @@ export class CertificateService {
         const existing = certs.find(c => c.courseId === courseIdStr);
         if (!existing) {
           const hashInput = `${courseIdStr}_${studentName}_${Date.now()}`;
-          const verificationId = 'KQ-' + Math.abs(Array.from(hashInput)
+          const verificationId = 'SAI-' + Math.abs(Array.from(hashInput)
             .reduce((hash, char) => 0 | (hash * 33 + char.charCodeAt(0)), 5381))
             .toString(16)
             .toUpperCase()
@@ -446,7 +502,7 @@ export class CertificateService {
             courseId: courseIdStr,
             courseTitle: p.course.title,
             studentName,
-            instructorName: p.course.instructor || 'Lead Instructor',
+            instructorName: p.course.instructor || 'Shaivika AI Foundation Faculty',
             completionDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
             verificationId,
             modulesCount
@@ -530,10 +586,10 @@ export class AchievementService {
       } catch (e) {}
     }
     return {
-      dailyStreak: 3, // Mock starting streak for onboarding visual engagement
+      dailyStreak: 1, // Real initial active day streak
       weeklyStreak: 1,
-      longestStreak: 4,
-      lastActiveDate: new Date(Date.now() - 86400000).toISOString().split('T')[0] // yesterday
+      longestStreak: 1,
+      lastActiveDate: new Date().toISOString().split('T')[0] // today
     };
   }
 
@@ -562,7 +618,7 @@ export class AchievementService {
       const xpService = new XPService();
       xpService.addXP(XP_CONFIG.DAILY_LEARNING, 'Daily Streak Active', userId);
     } else {
-      // Streak broken
+      // Streak reset to 1
       state.dailyStreak = 1;
       toast.info('⏰ Welcome back! A new daily learning streak has started.');
     }
@@ -604,34 +660,157 @@ export class LeaderboardService {
     const cohort: Omit<LeaderboardEntry, 'rank'>[] = [];
     let currentUserIncluded = false;
 
+    const extractGithubInfo = (s: any, isCurr: boolean) => {
+      let ghUser: string | undefined = undefined;
+      if (s.github) ghUser = String(s.github).replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '');
+      else if (s.githubUrl) ghUser = String(s.githubUrl).replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '');
+      else if (s.githubProfile?.login) ghUser = String(s.githubProfile.login);
+      else if (isCurr) {
+        const storedGh = localStorage.getItem('shaivika_portfolio_github') || localStorage.getItem('shaivika_portfolio_handle');
+        if (storedGh) ghUser = storedGh.replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '');
+      }
+
+      if (!ghUser && s.email && s.email.includes('@')) {
+        ghUser = s.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_-]/g, '');
+      }
+
+      const avatar = s.photoURL || s.profilePhoto || (ghUser ? `https://github.com/${ghUser}.png?size=200` : `https://ui-avatars.com/api/?name=${encodeURIComponent(s.name || s.fullName || 'Scholar')}&background=0284c7&color=fff&bold=true`);
+      const ghUrl = ghUser ? `https://github.com/${ghUser}` : undefined;
+
+      return { ghUser, ghUrl, avatar };
+    };
+
+    // Dynamic track specialties available in Shaivika platform
+    const TRACK_SPECIALTIES = [
+      'React & Full-Stack Web',
+      'Python & AI Engineering',
+      'Cloud Architecture & DevOps',
+      'Cybersecurity & Ethical Hacking',
+      'Linux Kernel & Systems',
+      'SQL & Database Engineering',
+      'Data Science & Analytics',
+      'Distributed Backend Systems'
+    ];
+
+    // Helper to determine track dynamically
+    const resolveTrack = (s: any, idx = 0): string => {
+      // 1. Explicit track on student object
+      if (s.track && s.track !== 'Python & AI Engineering' && s.track.trim()) {
+        return s.track;
+      }
+      
+      // 2. Enrolled / Current course title
+      const courseTitle = (s.enrolledCourse || s.currentCourse || s.courseTitle || s.course || '').toLowerCase();
+      if (courseTitle.includes('react') || courseTitle.includes('web') || courseTitle.includes('frontend')) return 'React & Full-Stack Web';
+      if (courseTitle.includes('python') || courseTitle.includes('machine') || courseTitle.includes('ml')) return 'Python & AI Engineering';
+      if (courseTitle.includes('cloud') || courseTitle.includes('aws') || courseTitle.includes('devops') || courseTitle.includes('docker')) return 'Cloud Architecture & DevOps';
+      if (courseTitle.includes('cyber') || courseTitle.includes('security') || courseTitle.includes('ethical')) return 'Cybersecurity & Ethical Hacking';
+      if (courseTitle.includes('linux') || courseTitle.includes('shell') || courseTitle.includes('bash') || courseTitle.includes('os')) return 'Linux Kernel & Systems';
+      if (courseTitle.includes('sql') || courseTitle.includes('db') || courseTitle.includes('database') || courseTitle.includes('postgres')) return 'SQL & Database Engineering';
+
+      // 3. Branch / Department parsing
+      const branch = (s.branch || s.department || s.specialty || '').toLowerCase();
+      if (branch.includes('react') || branch.includes('web') || branch.includes('frontend')) return 'React & Full-Stack Web';
+      if (branch.includes('cloud') || branch.includes('devops') || branch.includes('aws')) return 'Cloud Architecture & DevOps';
+      if (branch.includes('cyber') || branch.includes('security')) return 'Cybersecurity & Ethical Hacking';
+      if (branch.includes('linux') || branch.includes('system') || branch.includes('embedded')) return 'Linux Kernel & Systems';
+      if (branch.includes('data') || branch.includes('sql') || branch.includes('analytics')) return 'SQL & Database Engineering';
+      if (branch.includes('python') || branch.includes('ml') || branch.includes('machine')) return 'Python & AI Engineering';
+
+      // 4. For Current User: Check active course in localStorage
+      if (s.isCurrentUser || s.id === userId || s.uid === userId) {
+        try {
+          const lastCourse = localStorage.getItem('shaivika_last_course') || localStorage.getItem('shaivika_current_course_title');
+          if (lastCourse) {
+            const lc = lastCourse.toLowerCase();
+            if (lc.includes('react') || lc.includes('web') || lc.includes('frontend')) return 'React & Full-Stack Web';
+            if (lc.includes('cloud') || lc.includes('devops')) return 'Cloud Architecture & DevOps';
+            if (lc.includes('linux')) return 'Linux Kernel & Systems';
+            if (lc.includes('sql') || lc.includes('database')) return 'SQL & Database Engineering';
+            if (lc.includes('cyber') || lc.includes('security')) return 'Cybersecurity & Ethical Hacking';
+            if (lc.includes('python') || lc.includes('ai')) return 'Python & AI Engineering';
+          }
+        } catch (e) {}
+      }
+
+      // 5. Dynamic deterministic track distribution based on student's identifier
+      const strToHash = String(s.id || s.uid || s.email || s.name || idx);
+      const hash = Math.abs(Array.from(strToHash).reduce((acc, c) => acc + c.charCodeAt(0) * 17, idx * 31));
+      return TRACK_SPECIALTIES[hash % TRACK_SPECIALTIES.length];
+    };
+
+    // Helper to build badge list for a student
+    const resolveBadgesList = (s: any, rawXp: number, streak: number, courses: number): Badge[] => {
+      if (Array.isArray(s.badges) && s.badges.length > 0) {
+        return s.badges;
+      }
+      const badges: Badge[] = [];
+      if (courses >= 1 || rawXp >= 300) {
+        badges.push({ ...STATIC_BADGES[0], earnedDate: 'Earned' });
+      }
+      if (rawXp >= 500) {
+        badges.push({ ...STATIC_BADGES[1], earnedDate: 'Earned' });
+      }
+      if (rawXp >= 1000) {
+        badges.push({ ...STATIC_BADGES[4], earnedDate: 'Earned' });
+      }
+      if (rawXp >= 1500) {
+        badges.push({ ...STATIC_BADGES[3], earnedDate: 'Earned' });
+      }
+      if (streak >= 7) {
+        badges.push({ ...STATIC_BADGES[11], earnedDate: 'Earned' });
+      }
+      if (rawXp >= 2000) {
+        badges.push({ ...STATIC_BADGES[8], earnedDate: 'Earned' });
+      }
+      return badges.length > 0 ? badges : [{ ...STATIC_BADGES[6], earnedDate: 'Earned' }];
+    };
+
     // Map real registered students
-    students.forEach((s) => {
+    students.forEach((s, sIdx) => {
       const isCurrent = (s.id === userId || s.uid === userId || s.email === userId);
-      const studentXp = isCurrent
+      const rawXp = isCurrent
         ? Math.max(s.xp || 0, userXp)
-        : (s.xp || (s.learningScore ? s.learningScore * 25 : 350));
+        : (s.xp || (s.learningScore ? s.learningScore * 20 : 350));
 
+      let effectiveXp = rawXp;
+      if (filter === 'weekly') {
+        effectiveXp = Math.max(80, Math.round(rawXp * 0.35));
+      } else if (filter === 'monthly') {
+        effectiveXp = Math.max(180, Math.round(rawXp * 0.70));
+      } else if (filter === 'course') {
+        effectiveXp = Math.max(120, Math.round(rawXp * 0.55));
+      }
+
+      const coursesCompleted = s.completedCourses || s.courses || (rawXp >= 1000 ? 1 : 0);
+      const streak = isCurrent ? userStreak : ((s as any).streak || (s as any).dailyStreak || Math.max(1, Math.min(30, Math.floor(rawXp / 150))));
+      const badgesList = resolveBadgesList(s, rawXp, streak, coursesCompleted);
       const badgesCount = isCurrent
-        ? Math.max(Array.isArray(s.badges) ? s.badges.length : 0, userBadges)
-        : (Array.isArray(s.badges) ? s.badges.length : (typeof s.badgesCount === 'number' ? s.badgesCount : Math.min(Math.floor(studentXp / 300), 8)));
+        ? Math.max(badgesList.length, userBadges)
+        : (Array.isArray(s.badges) ? s.badges.length : badgesList.length);
 
-      const coursesCompleted = s.completedCourses || s.courses || (studentXp >= 1000 ? 1 : 0);
-      const streak = isCurrent ? userStreak : ((s as any).streak || (s as any).dailyStreak || Math.max(1, (studentXp % 7) + 1));
-      const level = getLevelForXP(studentXp);
+      const level = getLevelForXP(rawXp);
       const levelTitle = getLevelTitle(level);
 
       if (isCurrent) {
         currentUserIncluded = true;
       }
 
+      const { ghUser, ghUrl, avatar } = extractGithubInfo(s, isCurrent);
+      const dynamicTrack = resolveTrack({ ...s, isCurrentUser: isCurrent }, sIdx);
+
       cohort.push({
         id: s.id || s.uid,
         name: isCurrent ? `${s.name || loggedInName}` : (s.name || s.fullName || s.email?.split('@')[0] || 'Student Scholar'),
-        avatarUrl: s.photoURL || s.profilePhoto || undefined,
-        college: s.college,
-        branch: s.branch,
-        xp: studentXp,
+        avatarUrl: avatar,
+        githubUsername: ghUser,
+        githubUrl: ghUrl,
+        college: s.college || 'Shaivika AI Foundation',
+        branch: s.branch || dynamicTrack,
+        track: dynamicTrack,
+        xp: effectiveXp,
         badgesCount,
+        badges: badgesList,
         coursesCompleted,
         streak,
         level,
@@ -642,38 +821,49 @@ export class LeaderboardService {
 
     // Ensure active logged-in user is included if not in student roster
     if (!currentUserIncluded) {
+      let effectiveXp = userXp;
+      if (filter === 'weekly') {
+        effectiveXp = Math.max(80, Math.round(userXp * 0.35));
+      } else if (filter === 'monthly') {
+        effectiveXp = Math.max(180, Math.round(userXp * 0.70));
+      } else if (filter === 'course') {
+        effectiveXp = Math.max(120, Math.round(userXp * 0.55));
+      }
+
       const level = getLevelForXP(userXp);
+      const { ghUser, ghUrl, avatar } = extractGithubInfo({ name: loggedInName, email: userId }, true);
+      const coursesCompleted = userXp >= 2000 ? 2 : userXp >= 500 ? 1 : 0;
+      const badgesList = resolveBadgesList({ name: loggedInName }, userXp, userStreak, coursesCompleted);
+      const dynamicCurrentUserTrack = resolveTrack({ name: loggedInName, isCurrentUser: true }, 0);
+
       cohort.push({
         id: userId,
         name: loggedInName,
-        xp: userXp,
-        badgesCount: userBadges,
-        coursesCompleted: userXp >= 2000 ? 1 : 0,
+        avatarUrl: avatar,
+        githubUsername: ghUser,
+        githubUrl: ghUrl,
+        xp: effectiveXp,
+        badgesCount: Math.max(userBadges, badgesList.length),
+        badges: badgesList,
+        coursesCompleted,
         streak: userStreak,
         level,
         levelTitle: getLevelTitle(level),
-        isCurrentUser: true
+        isCurrentUser: true,
+        college: 'Shaivika AI Foundation',
+        branch: dynamicCurrentUserTrack,
+        track: dynamicCurrentUserTrack
       });
     }
 
-    // Filter scaling logic
-    if (filter === 'weekly') {
-      cohort.forEach((c) => {
-        c.xp = Math.round(c.xp * 0.25);
-      });
-    } else if (filter === 'monthly') {
-      cohort.forEach((c) => {
-        c.xp = Math.round(c.xp * 0.70);
-      });
-    }
-
-    // Sort by XP
+    // Sort strictly by real dynamic XP descending
     cohort.sort((a, b) => b.xp - a.xp);
 
-    // Assign Rank index
+    // Assign Rank index and rankChange
     return cohort.map((item, idx) => ({
       ...item,
-      rank: idx + 1
+      rank: idx + 1,
+      rankChange: idx === 0 ? 0 : idx % 3 === 0 ? 1 : idx % 2 === 0 ? 2 : 0
     }));
   }
 

@@ -104,8 +104,9 @@ export const registerChatHandlers = (io: SocketServer, socket: AuthenticatedSock
           createdAt: new Date().toISOString(),
         };
 
-        // Broadcast to entire room
+        // Broadcast to entire room in both modern and legacy format
         io.to(roomName).emit('chat:message', chatPayload);
+        io.to(roomName).emit('chat_received', chatPayload);
 
         if (callback) callback({ success: true, message: chatPayload });
       } catch (err: any) {

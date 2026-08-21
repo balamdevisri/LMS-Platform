@@ -59,6 +59,8 @@ const mapCourseModulesToPlayerModules = (modules?: any[]): any[] => {
   });
 };
 
+import { CourseActionConfirmModal, type CourseActionType } from '@/components/courses/CourseActionConfirmModal';
+
 export const CourseView: React.FC = () => {
   const { user, userProfile } = useAuth();
   const navigate = useNavigate();
@@ -89,6 +91,8 @@ export const CourseView: React.FC = () => {
 
   const [isLearningMode, setIsLearningMode] = useState(() => searchParams.get('mode') === 'learn');
   const [checkoutModalOpen, setCheckoutModalOpen] = useState<boolean>(false);
+  const [confirmModalOpen, setConfirmModalOpen] = useState<boolean>(false);
+  const [confirmActionType, setConfirmActionType] = useState<CourseActionType>('enroll');
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
@@ -107,9 +111,8 @@ export const CourseView: React.FC = () => {
       navigate('/auth/login', { state: { from: location } });
       return;
     }
-    // Direct free enrollment with payment integration temporarily disabled
-    handleEnrollSuccess();
-    toast.success(`🎉 Enrolled successfully in "${dynamicCourse?.title || 'this course'}"! Free access is active.`);
+    setConfirmActionType('enroll');
+    setConfirmModalOpen(true);
   };
 
   const handleEnrollSuccess = (_enrollmentRecord?: any) => {
@@ -130,12 +133,23 @@ export const CourseView: React.FC = () => {
       navigate('/auth/login', { state: { from: location } });
       return;
     }
-    if (!isEnrolled) {
+    setConfirmActionType('enter');
+    setConfirmModalOpen(true);
+  };
+
+  const handleConfirmModalAction = () => {
+    setConfirmModalOpen(false);
+    if (confirmActionType === 'enroll') {
       handleEnrollSuccess();
+      toast.success(`🎉 Enrolled successfully in "${dynamicCourse?.title || 'this course'}"! All modules unlocked.`);
+    } else if (confirmActionType === 'enter') {
+      if (!isEnrolled) {
+        handleEnrollSuccess();
+      }
+      setIsLearningMode(true);
+      setSearchParams({ mode: 'learn' });
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     }
-    setIsLearningMode(true);
-    setSearchParams({ mode: 'learn' });
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   };
 
   const handleBackToDetails = () => {
@@ -306,7 +320,22 @@ export const CourseView: React.FC = () => {
           name: studentName,
         }}
         onPaymentSuccess={handleEnrollSuccess}
-        onNavigateToLiveClass={() => navigate('/admin/live-classes')}
+        onNavigateToLiveClass={() =>
+          navigate(userProfile?.role === 'admin' || userProfile?.role === 'instructor' ? '/admin/live-classes' : '/dashboard/live-classroom')
+        }
+      />
+
+      <CourseActionConfirmModal
+        isOpen={confirmModalOpen}
+        actionType={confirmActionType}
+        courseTitle={activeCourseData.title}
+        courseCategory={activeCourseData.category || 'Engineering Track'}
+        modulesCount={Array.isArray(activeCourseData.modules) ? activeCourseData.modules.length : 6}
+        lessonsCount={Array.isArray(activeCourseData.modules) ? activeCourseData.modules.reduce((acc: number, m: any) => acc + (m.lessons?.length || 4), 0) : 24}
+        duration={activeCourseData.duration || '6-8 hours'}
+        currentProgress={courseService.getCourseProgressPercent(targetCourseId, userId)}
+        onConfirm={handleConfirmModalAction}
+        onCancel={() => setConfirmModalOpen(false)}
       />
     </>
   );

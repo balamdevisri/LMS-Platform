@@ -19,21 +19,63 @@ import {
 import { doc, getDoc, setDoc, collection } from 'firebase/firestore';
 import { auth, db } from '@/firebase';
 import type { UserProfile, UserRole } from '@/types/user';
+import { API_BASE_URL } from '@/config/api';
 
 const syncStudent = async (profile: UserProfile) => {
   if (!db) return;
   try {
     const studentRef = doc(db, 'students', profile.uid);
+    const photoURL = profile.photoURL || profile.profilePhoto || (profile.githubUsername ? `https://github.com/${profile.githubUsername}.png?size=200` : '');
+    const isGithub = profile.provider === 'github.com' || profile.providerId === 'github.com' || Boolean(profile.githubUsername) || (typeof photoURL === 'string' && photoURL.includes('github'));
+
     await setDoc(studentRef, {
       ...profile,
       id: profile.uid,
+      uid: profile.uid,
       name: profile.fullName || profile.name || 'Student',
       email: profile.email,
+      photoURL,
+      profilePhoto: photoURL,
+      provider: isGithub ? 'github.com' : (profile.provider || 'password'),
+      providerId: isGithub ? 'github.com' : (profile.providerId || 'password'),
+      githubUsername: profile.githubUsername,
+      github: profile.github || (profile.githubUsername ? `https://github.com/${profile.githubUsername}` : ''),
+      githubUrl: (profile as any).githubUrl || (profile.githubUsername ? `https://github.com/${profile.githubUsername}` : ''),
       joined: profile.createdAt || new Date().toISOString(),
       courses: profile.enrolledCoursesCount || 1,
       status: profile.status || 'Active',
       updatedAt: new Date().toISOString(),
     }, { merge: true });
+
+    // Update local cache
+    try {
+      const localRaw = localStorage.getItem('shaivika_realtime_students_v3');
+      let localList: any[] = [];
+      if (localRaw) localList = JSON.parse(localRaw);
+      if (Array.isArray(localList)) {
+        const idx = localList.findIndex((s) => s.id === profile.uid || s.uid === profile.uid || s.email === profile.email);
+        const item = {
+          ...profile,
+          id: profile.uid,
+          uid: profile.uid,
+          name: profile.fullName || profile.name || 'Student',
+          photoURL,
+          profilePhoto: photoURL,
+          provider: isGithub ? 'github.com' : 'password',
+          githubUsername: profile.githubUsername,
+          github: profile.github || (profile.githubUsername ? `https://github.com/${profile.githubUsername}` : ''),
+        };
+        if (idx >= 0) {
+          localList[idx] = { ...localList[idx], ...item };
+        } else {
+          localList.unshift(item);
+        }
+        localStorage.setItem('shaivika_realtime_students_v3', JSON.stringify(localList));
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('shaivika_student_updated'));
+        }
+      }
+    } catch (e) {}
   } catch (e) {
     console.warn('Sync student notice:', e);
   }
@@ -159,6 +201,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const isApproved = isAdmin ? true : (data.approved !== undefined ? data.approved : (data.status === 'active' || data.status === 'Active' || data.status === 'approved'));
         const currentStatus = data.status || (isAdmin ? 'active' : 'pending');
 
+        const resolvedGithubUsername = data.githubUsername || calculatedUsername;
+        const resolvedPhotoURL = data.photoURL || firebaseUser.photoURL || (resolvedGithubUsername ? `https://github.com/${resolvedGithubUsername}.png?size=200` : null);
+        const isGithubUser = isGithub || data.provider === 'github.com' || data.providerId === 'github.com' || Boolean(resolvedGithubUsername);
+
         const profileData: UserProfile = {
           ...data,
           ...baseProfileData,
@@ -166,14 +212,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           approved: isApproved,
           status: currentStatus,
           isActive: data.isActive !== undefined ? data.isActive : true,
+          provider: isGithubUser ? 'github.com' : (data.provider || 'password'),
+          providerId: isGithubUser ? 'github.com' : (data.providerId || 'password'),
           phone: data.phone || '',
-          github: data.github || (calculatedUsername ? `https://github.com/${calculatedUsername}` : ''),
+          githubUsername: resolvedGithubUsername,
+          github: data.github || (resolvedGithubUsername ? `https://github.com/${resolvedGithubUsername}` : ''),
           linkedin: data.linkedin || '',
           branch: data.branch || 'AI & Computer Science',
           semester: (data as any).semester || '1st Semester',
-          photoURL: data.photoURL || firebaseUser.photoURL || null,
+          photoURL: resolvedPhotoURL,
+          profilePhoto: resolvedPhotoURL,
           lastLogin: new Date().toISOString(),
         };
+
+        if (finalRole === 'student') {
+          await syncStudent(profileData);
+        }
 
         setUserProfile(profileData);
         return profileData;
@@ -238,7 +292,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           // Dispatch instructor pending-approval email via SMTP backend
           try {
-            const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+            const apiBaseUrl = API_BASE_URL;
             await fetch(`${apiBaseUrl}/email/send`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -381,7 +435,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     password: string,
     role: UserRole = 'student'
   ): Promise<void> => {
-    const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const apiBaseUrl = API_BASE_URL;
     const endpoint = role === 'instructor' ? `${apiBaseUrl}/auth/signup/lecturer` : `${apiBaseUrl}/auth/signup/student`;
 
     console.log(`[SIGNUP] Dispatching ${role} registration to backend endpoint: ${endpoint}...`);
@@ -575,25 +629,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     provider.addScope('user:email');
     provider.addScope('read:user');
 
-    console.log('🔍 [AUTH AUDIT] Starting GitHub OAuth flow...', {
-      currentUser: auth.currentUser ? { uid: auth.currentUser.uid, email: auth.currentUser.email } : null,
-      projectId: auth.app.options.projectId,
-    });
+    if (import.meta.env.DEV) {
+      console.log('🔍 [AUTH AUDIT] Starting GitHub OAuth flow...', {
+        currentUser: auth.currentUser ? { uid: auth.currentUser.uid, email: auth.currentUser.email } : null,
+        projectId: auth.app.options.projectId,
+        authDomain: auth.app.options.authDomain,
+      });
+    }
 
     try {
       // 1. If user is ALREADY signed in (e.g. Email/Password user connecting GitHub)
       if (auth.currentUser) {
         try {
-          console.log('🔗 [AUTH AUDIT] Attempting linkWithPopup for active user session:', auth.currentUser.email);
+          if (import.meta.env.DEV) {
+            console.log('🔗 [AUTH AUDIT] Attempting linkWithPopup for active user session:', auth.currentUser.email);
+          }
           const linkResult = await linkWithPopup(auth.currentUser, provider);
           const additionalInfo = getAdditionalUserInfo(linkResult);
           const githubUsername = additionalInfo?.username || (linkResult.user as any).reloadUserInfo?.screenName;
-          console.log('✅ [AUTH AUDIT] linkWithPopup succeeded! GitHub handle:', githubUsername);
+          if (import.meta.env.DEV) {
+            console.log('✅ [AUTH AUDIT] linkWithPopup succeeded! GitHub handle:', githubUsername);
+          }
 
           const profile = await fetchUserProfile(linkResult.user, githubUsername, targetRole);
           return profile;
         } catch (linkErr: any) {
-          console.warn('⚠️ [AUTH AUDIT] linkWithPopup notice:', linkErr?.code, linkErr?.message);
+          if (import.meta.env.DEV) {
+            console.warn('⚠️ [AUTH AUDIT] linkWithPopup notice:', linkErr?.code, linkErr?.message);
+          }
           if (linkErr.code === 'auth/credential-already-in-use') {
             throw new Error('This GitHub account is already linked to another user profile.');
           }
@@ -602,15 +665,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // 2. Standard OAuth Sign-in flow
       try {
+        if (import.meta.env.DEV) {
+          console.log('🚀 [AUTH AUDIT] Opening GitHub OAuth popup...');
+        }
         const result = await signInWithPopup(auth, provider);
         const additionalInfo = getAdditionalUserInfo(result);
         const githubUsername = additionalInfo?.username || (result.user as any).reloadUserInfo?.screenName;
 
-        console.log('✅ [AUTH AUDIT] GitHub OAuth sign-in succeeded:', {
-          uid: result.user.uid,
-          email: result.user.email,
-          githubUsername,
-        });
+        if (import.meta.env.DEV) {
+          console.log('✅ [AUTH AUDIT] GitHub OAuth sign-in succeeded:', {
+            uid: result.user.uid,
+            email: result.user.email,
+            githubUsername,
+          });
+        }
 
         const profile = await fetchUserProfile(result.user, githubUsername, targetRole);
         if (profile) {
@@ -639,11 +707,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         return profile;
       } catch (error: any) {
-        console.error('🚨 [AUTH AUDIT] signInWithPopup error caught:', {
-          code: error.code,
-          message: error.message,
-          email: error.customData?.email || error.email,
-        });
+        if (import.meta.env.DEV) {
+          console.error('🚨 [AUTH AUDIT] signInWithPopup error caught:', {
+            code: error.code,
+            message: error.message,
+            email: error.customData?.email || error.email,
+          });
+        }
 
         if (error.code === 'auth/account-exists-with-different-credential') {
           const pendingCred = GithubAuthProvider.credentialFromError(error);
@@ -653,9 +723,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (email && auth) {
             try {
               existingMethods = await fetchSignInMethodsForEmail(auth, email);
-              console.log('📋 [AUTH AUDIT] Existing sign-in methods for email:', email, existingMethods);
+              if (import.meta.env.DEV) {
+                console.log('📋 [AUTH AUDIT] Existing sign-in methods for email:', email, existingMethods);
+              }
             } catch (fetchErr) {
-              console.warn('⚠️ [AUTH AUDIT] fetchSignInMethodsForEmail notice:', fetchErr);
+              if (import.meta.env.DEV) {
+                console.warn('⚠️ [AUTH AUDIT] fetchSignInMethodsForEmail notice:', fetchErr);
+              }
             }
           }
 
@@ -679,6 +753,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           customErr.pendingCredential = pendingCred;
           throw customErr;
         }
+
+        if (error.code === 'auth/popup-closed-by-user') {
+          const customErr: any = new Error('GitHub sign-in was cancelled or the popup window was closed before completing authorization.');
+          customErr.code = 'auth/popup-closed-by-user';
+          throw customErr;
+        }
+
+        if (error.code === 'auth/popup-blocked') {
+          const customErr: any = new Error('The sign-in popup was blocked by your browser. Please allow popups for this website and try again.');
+          customErr.code = 'auth/popup-blocked';
+          throw customErr;
+        }
+
+        if (error.code === 'auth/unauthorized-domain') {
+          const customErr: any = new Error(`Domain "${window.location.hostname}" is not authorized in Firebase Authentication. Please add it to Firebase Console -> Authentication -> Settings -> Authorized domains.`);
+          customErr.code = 'auth/unauthorized-domain';
+          throw customErr;
+        }
+
+        if (error.code === 'auth/operation-not-allowed') {
+          const customErr: any = new Error('GitHub sign-in provider is not enabled in Firebase Console. Please enable it under Authentication -> Sign-in method.');
+          customErr.code = 'auth/operation-not-allowed';
+          throw customErr;
+        }
+
+        if (error.code === 'auth/timeout' || error.code === 'auth/popup-timeout') {
+          const customErr: any = new Error('GitHub authentication timed out. Please check your network connection and try again.');
+          customErr.code = 'auth/popup-timeout';
+          throw customErr;
+        }
+
         throw error;
       }
     } finally {
@@ -719,36 +824,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const resetPassword = async (email: string): Promise<void> => {
-    const backendUrls = [
-      'http://localhost:5000/api/auth/forgot-password',
-      '/api/auth/forgot-password',
-    ];
+    // Custom Nodemailer Gmail SMTP Dispatcher (Firebase Default Email Disabled)
+    const resetUrl = `${window.location.origin}/auth/login?reset=true&email=${encodeURIComponent(email.trim().toLowerCase())}`;
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+      });
 
-    for (const url of backendUrls) {
-      try {
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email.trim().toLowerCase() }),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          return data;
-        }
-      } catch (err) {
-        console.warn(`Forgot password Nodemailer backend notice for ${url}:`, err);
+      if (response.ok) {
+        return await response.json();
       }
+    } catch (err) {
+      console.warn('Backend forgot-password endpoint notice:', err);
     }
 
-    // Custom Gmail SMTP Dispatcher (Firebase Default Email Disabled)
-    const resetUrl = `${window.location.origin}/auth/login?reset=true&email=${encodeURIComponent(email)}`;
-    const apiBaseUrl = typeof window !== 'undefined' && window.location.hostname === 'localhost'
-      ? 'http://localhost:5000/api'
-      : '/api';
-
     try {
-      await fetch(`${apiBaseUrl}/email/send`, {
+      await fetch(`${API_BASE_URL}/email/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -763,7 +857,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }),
       });
     } catch (e) {
-      console.warn('Backend custom password reset notice:', e);
+      console.warn('Backend custom password reset fallback notice:', e);
     }
   };
 
@@ -773,13 +867,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const isInstructorRole = userProfile?.role === 'instructor';
       const name = userProfile?.fullName || userProfile?.name || email.split('@')[0];
       const verificationUrl = `${window.location.origin}/auth/login?verified=true&email=${encodeURIComponent(email)}`;
-      const apiBaseUrl = typeof window !== 'undefined' && window.location.hostname === 'localhost'
-        ? 'http://localhost:5000/api'
-        : '/api';
 
       try {
         if (isInstructorRole) {
-          await fetch(`${apiBaseUrl}/email/send`, {
+          await fetch(`${API_BASE_URL}/email/send`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -791,18 +882,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 department: 'Computer Science & System Architecture',
                 qualification: 'Pending Verification',
                 experience: 'Not yet specified',
+                verificationUrl,
               },
             }),
           });
         } else {
-          await fetch(`${apiBaseUrl}/email/send`, {
+          await fetch(`${API_BASE_URL}/email/send`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              eventType: 'EMAIL_VERIFICATION',
+              eventType: 'REGISTRATION_PENDING',
               recipientEmail: email.toLowerCase().trim(),
               payload: {
-                userName: name,
+                studentName: name,
                 email: email.toLowerCase().trim(),
                 verificationUrl,
                 expiresInMinutes: 30,
@@ -811,7 +903,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           });
         }
       } catch (e) {
-        console.warn('Backend custom email dispatch notice:', e);
+        console.warn('Backend verification email dispatch notice:', e);
       }
     }
   };

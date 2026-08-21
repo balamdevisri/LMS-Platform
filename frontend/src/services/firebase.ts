@@ -1,48 +1,74 @@
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
-import { getAnalytics, isSupported, type Analytics } from 'firebase/analytics';
 
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyCKPJ4klGTGxdgTxC3Q93YiaTZixlI0vE0',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'auth.kaizenq.in',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'shaivika-lms-ai',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'shaivika-lms-ai.firebasestorage.app',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '977716272905',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:977716272905:web:de0781e0988aecfc823dd8',
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || 'G-621GCQ0W26',
+const cleanEnv = (val?: string): string => {
+  if (!val) return '';
+  return val.trim().replace(/^["']|["']$/g, '');
 };
 
-let app: FirebaseApp | null = null;
-let auth: Auth | null = null;
-let db: Firestore | null = null;
-let analytics: Analytics | null = null;
+const rawAppId = cleanEnv(import.meta.env.VITE_FIREBASE_APP_ID) || '1:977716272905:web:de0781e0988aecfc823dd8';
+const safeAppId = rawAppId.startsWith('1:') ? rawAppId : `1:${rawAppId}`;
+
+const rawAuthDomain = cleanEnv(import.meta.env.VITE_FIREBASE_AUTH_DOMAIN);
+const safeAuthDomain = (!rawAuthDomain || rawAuthDomain.includes('auth.kaizenq.in'))
+  ? 'shaivika-lms-ai.firebaseapp.com'
+  : rawAuthDomain;
+
+const firebaseConfig = {
+  apiKey:
+    cleanEnv(import.meta.env.VITE_FIREBASE_API_KEY) ||
+    'AIzaSyCKPJ4klGTGxdgTxC3Q93YiaTZixlI0vE0',
+
+  authDomain: safeAuthDomain,
+
+  projectId:
+    cleanEnv(import.meta.env.VITE_FIREBASE_PROJECT_ID) ||
+    'shaivika-lms-ai',
+
+  storageBucket:
+    cleanEnv(import.meta.env.VITE_FIREBASE_STORAGE_BUCKET) ||
+    'shaivika-lms-ai.firebasestorage.app',
+
+  messagingSenderId:
+    cleanEnv(import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID) ||
+    '977716272905',
+
+  appId: safeAppId,
+  measurementId: cleanEnv(import.meta.env.VITE_FIREBASE_MEASUREMENT_ID) || 'G-621GCQ0W26',
+};
+
+let app: FirebaseApp;
+let auth: Auth;
+let db: Firestore;
 
 try {
-  if (firebaseConfig.apiKey && firebaseConfig.apiKey.startsWith('AIza')) {
-    app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-    auth = getAuth(app);
-    db = getFirestore(app);
+  app =
+    getApps().find((firebaseApp) => firebaseApp.name === '[DEFAULT]') ??
+    initializeApp(firebaseConfig);
 
-    if (typeof window !== 'undefined') {
-      isSupported()
-        .then((supported) => {
-          if (supported && app) {
-            try {
-              analytics = getAnalytics(app);
-            } catch (err) {
-              console.warn('Firebase Analytics initialization notice:', err);
-            }
-          }
-        })
-        .catch((err) => {
-          console.warn('Firebase Analytics isSupported check notice:', err);
-        });
-    }
+  auth = getAuth(app);
+  db = getFirestore(app);
+
+  if (typeof window !== 'undefined') {
+    console.log('[KAIZENQ BUILD AUDIT]', {
+      environment: import.meta.env.MODE,
+      buildVersion: 'firebase-cleanup-v3',
+      firebaseProject: firebaseConfig.projectId,
+      authDomain: firebaseConfig.authDomain,
+      appId: firebaseConfig.appId,
+    });
   }
-} catch (e) {
-  console.warn('Firebase initialization notice:', e);
+} catch (error) {
+  console.error('❌ Firebase initialization failed:', error);
+  throw error;
 }
 
-export { app, auth, db, analytics, firebaseConfig };
+export {
+  app,
+  auth,
+  db,
+  firebaseConfig,
+};
+
 export default app;

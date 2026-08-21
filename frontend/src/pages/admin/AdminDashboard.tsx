@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { API_BASE_URL } from '@/config/api';
 import {
   Users,
   BookOpen,
@@ -64,7 +65,7 @@ export const AdminDashboard: React.FC = () => {
     // 1. Sync Firebase Auth users with Firestore on dashboard mount
     const triggerSync = async () => {
       try {
-        const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const apiBaseUrl = API_BASE_URL;
         await fetch(`${apiBaseUrl}/admin/sync-auth-users`, { method: 'POST' });
       } catch (err) {
         console.warn('[Admin Dashboard] Auth users sync notice:', err);

@@ -17,6 +17,8 @@ import liveClassroomRoutes from '../modules/liveClassroom/liveClassroom.routes';
 import certificateRoutes from './certificateRoutes';
 import paymentRoutes from '../modules/payments/payment.routes';
 import enrollmentRoutes from '../modules/enrollments/enrollment.routes';
+import portfolioRoutes from './portfolioRoutes';
+import resumeRoutes from './resumeRoutes';
 import { verifyFirebaseToken, requireRole } from '../middleware/auth.middleware';
 
 const router = Router();
@@ -46,5 +48,7 @@ router.use('/payments', paymentRoutes);
 router.use('/enrollments', enrollmentRoutes);
 router.use('/live-classroom', liveClassroomRoutes);
 router.use('/live-classes', liveClassroomRoutes);
+router.use('/portfolio', portfolioRoutes);
+router.use('/resume', resumeRoutes);
 
 export default router;

@@ -13,6 +13,15 @@ router.post('/verify', extractOptionalUser as any, (req, res, next) =>
   paymentController.verifyPayment(req as any, res, next)
 );
 
+// Payment transaction history for authenticated student
+router.get('/history', extractOptionalUser as any, (req, res, next) =>
+  paymentController.getPaymentHistory(req as any, res, next)
+);
+
+router.get('/my-payments', extractOptionalUser as any, (req, res, next) =>
+  paymentController.getPaymentHistory(req as any, res, next)
+);
+
 router.get('/:id', extractOptionalUser as any, (req, res, next) =>
   paymentController.getPayment(req as any, res, next)
 );
