@@ -13,7 +13,6 @@ import { EmptyState } from '../../components/courses/EmptyState';
 import { LoadingSkeleton } from '../../components/courses/LoadingSkeleton';
 import { LayoutGrid, List as ListIcon, Star, Flame, PlayCircle, CheckCircle2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
-import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
 import { SEOHead } from '../../components/seo/SEOHead';
 
