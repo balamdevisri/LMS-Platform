@@ -36,7 +36,6 @@ import type { XPClaimRecord } from '@/services/courseService';
 import type { ICourse } from '../../../../shared/types/course';
 import { courseTimeService } from '@/services/courseTimeService';
 import { useCourseTimeTracker } from '@/hooks/useCourseTimeTracker';
-import { mockAIProvider } from '@/services/aiProvider';
 import { studentService, type StudentUser } from '@/services/studentService';
 
 import { AnalyticsDashboard } from '../../components/courses/AnalyticsDashboard';
