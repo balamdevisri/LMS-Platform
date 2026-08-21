@@ -4,7 +4,8 @@ import { env } from '../config/env';
 import { Payment, Enrollment } from '../models/mongo/payment.model';
 import mongoose from 'mongoose';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_mock', {
+const stripeKey = process.env.STRIPE_SECRET_KEY || env.STRIPE_SECRET_KEY || '';
+const stripe = new Stripe(stripeKey, {
   apiVersion: '2025-02-24.acacia',
 });
 

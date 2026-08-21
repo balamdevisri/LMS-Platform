@@ -19,6 +19,9 @@ const envSchema = z.object({
   FIREBASE_PRIVATE_KEY: z.string().optional(),
   GEMINI_API_KEY: z.string().optional(),
 
+  // Stripe Payments
+  STRIPE_SECRET_KEY: z.string().optional(),
+
   // Email Notification System Configurations (Nodemailer Direct SMTP)
   EMAIL_PROVIDER: z.enum(['nodemailer', 'resend', 'mock']).default('nodemailer'),
   RESEND_API_KEY: z.string().optional(),
