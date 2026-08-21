@@ -151,7 +151,6 @@ export class CertificateController {
             if (!displayName) {
               logger.error(`[CERTIFICATE CONTROLLER] ❌ Cannot auto-create profile: name claim/body name is missing for UID ${studentId}.`);
             } else {
-            if (displayName) {
               const newProfile = {
                 uid: studentId,
                 fullName: displayName,
@@ -168,8 +167,6 @@ export class CertificateController {
               logger.info(`[CERTIFICATE CONTROLLER] Automatically created student profile in database for ${studentId} (${email}) using verified claims.`);
               
               userData = await this.resolveStudentData(studentId, fallbackEmail);
-            } else {
-              logger.error(`[CERTIFICATE CONTROLLER] ❌ Cannot auto-create profile: name claim/body name is missing for UID ${studentId}.`);
             }
           }
 
