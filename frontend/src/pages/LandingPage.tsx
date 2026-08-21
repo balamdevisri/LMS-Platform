@@ -28,6 +28,7 @@ import { BlueSmokeTheme } from '@/components/common/BlueSmokeTheme';
 import { AiCoreOrb } from '@/components/common/AiCoreOrb';
 import { courseService } from '@/services/courseService';
 import type { ICourse } from '../../../shared/types/course';
+import { CheckoutModal } from '../components/courses/CheckoutModal';
 
 // Custom Animated Counter Component
 const AnimatedCounter: React.FC<{ value: number; suffix?: string; prefix?: string }> = ({ value, suffix = '', prefix = '' }) => {
@@ -183,6 +184,11 @@ const RippleButton: React.FC<RippleButtonProps> = ({ children, className = '', t
 };
 
 export const LandingPage: React.FC = () => {
+  // Checkout Modal State
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [checkoutCourses, setCheckoutCourses] = useState<{ id: string; title: string }[]>([]);
+  const [checkoutPrice, setCheckoutPrice] = useState(0);
+
   // Demo Form state
   const [demoForm, setDemoForm] = useState({ fullName: '', workEmail: '', institutionDetails: '' });
   const [isSubmittingDemo, setIsSubmittingDemo] = useState(false);
@@ -426,49 +432,45 @@ export const LandingPage: React.FC = () => {
   // Pricing Plans
   const pricingPlans = [
     {
-      name: 'Starter Pro',
-      price: '1499',
-      period: 'per month',
-      desc: 'Ideal for individual students and self-paced developers.',
-      features: [
-        '24/7 Unlimited AI Tutor Access',
-        'Interactive In-Browser IDE Sandbox',
-        'ISO-Verified Digital Certificates',
-        'Community Forum & Peer Review',
-      ],
-      cta: 'Start 14-Day Free Trial',
+      name: 'Starter 2 Courses',
+      price: '249',
+      period: 'one-time',
+      desc: 'Pick any 2 courses to kickstart your journey.',
+      features: ['Lifetime Access', 'Certificates included'],
+      cta: 'Enroll Now',
       popular: false,
+      coursesCount: 2
     },
     {
-      name: 'Pro Academy',
-      price: '3999',
-      period: 'per seat / month',
-      desc: 'Built for engineering teams, bootcamps, and academies.',
-      features: [
-        'Everything in Starter Pro',
-        'Automated Assignment Grading Engine',
-        'Real-time Competency Skill Trees',
-        'Priority AI Agent Processing',
-        'ISO 27001 & SOC2 Verifiable Badges',
-      ],
-      cta: 'Start Pro Free Trial',
+      name: 'Beginner 3 Courses',
+      price: '349',
+      period: 'one-time',
+      desc: 'Pick any 3 courses for a solid foundation.',
+      features: ['Lifetime Access', 'Certificates included'],
+      cta: 'Enroll Now',
+      popular: false,
+      coursesCount: 3
+    },
+    {
+      name: 'Career 5 Courses',
+      price: '449',
+      period: 'one-time',
+      desc: 'Best for career preparation.',
+      features: ['Lifetime Access', 'Certificates included'],
+      cta: 'Enroll Now',
       popular: true,
+      coursesCount: 5
     },
     {
-      name: 'Enterprise Organization',
-      price: '7999',
-      period: 'per seat / month',
-      desc: 'For universities and corporate learning organizations.',
-      features: [
-        'Dedicated SAML SSO Integration',
-        'Custom Course & Grading Builder',
-        'Faculty Engagement Analytics',
-        'White-label Branding & Custom Domain',
-        'Dedicated 24/7 Account Architect',
-      ],
-      cta: 'Contact Sales',
+      name: 'Ultra Value All 8 Courses',
+      price: '499',
+      period: 'one-time',
+      desc: 'Unlock all 8 expert courses.',
+      features: ['Lifetime Access', 'Certificates included'],
+      cta: 'Enroll Now',
       popular: false,
-    },
+      coursesCount: 8
+    }
   ];
 
   // FAQ Items
@@ -930,13 +932,17 @@ export const LandingPage: React.FC = () => {
                       </div>
                     </div>
 
-                    <RippleButton
-                      to="/dashboard"
-                      className="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs group-hover:shadow-md cursor-pointer"
+                    <button
+                      onClick={() => {
+                        setCheckoutCourses([{ id: course.id || course.slug, title: course.title }]);
+                        setCheckoutPrice(course.price || 299);
+                        setIsCheckoutOpen(true);
+                      }}
+                      className="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs group-hover:shadow-md cursor-pointer relative overflow-hidden"
                     >
-                      <span>Explore Course</span>
+                      <span>Enroll Now - ₹{course.price || 299}</span>
                       <ArrowRight className="w-4 h-4" />
-                    </RippleButton>
+                    </button>
                   </div>
                 </div>
               ))}
@@ -1200,16 +1206,20 @@ export const LandingPage: React.FC = () => {
                   </ul>
                 </div>
 
-                <RippleButton
-                  to="/dashboard"
+                <button
+                  onClick={(e) => {
+                    setCheckoutCourses([{ id: `bundle-${plan.coursesCount}`, title: plan.name }]);
+                    setCheckoutPrice(Number(plan.price));
+                    setIsCheckoutOpen(true);
+                  }}
                   className={`w-full text-center text-xs py-3.5 rounded-xl font-bold transition-all ${
                     plan.popular
-                      ? 'btn-premium-primary text-white shadow-md'
-                      : 'btn-premium-secondary text-slate-800 dark:text-zinc-100 hover:border-blue-400 border border-[#E6EEF9] dark:border-zinc-800'
+                      ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
+                      : 'bg-slate-100 text-slate-800 dark:bg-zinc-800 dark:text-zinc-100 hover:border-blue-400 border border-[#E6EEF9] dark:border-zinc-700 hover:bg-slate-200 dark:hover:bg-zinc-700'
                   }`}
                 >
                   {plan.cta}
-                </RippleButton>
+                </button>
               </div>
             ))}
           </div>
@@ -1352,6 +1362,13 @@ export const LandingPage: React.FC = () => {
           )}
         </AnimatePresence>
 
+        {/* Checkout Modal */}
+        <CheckoutModal 
+          isOpen={isCheckoutOpen} 
+          onClose={() => setIsCheckoutOpen(false)} 
+          courses={checkoutCourses} 
+          totalPrice={checkoutPrice} 
+        />
       </div>
     </BlueSmokeTheme>
   );
