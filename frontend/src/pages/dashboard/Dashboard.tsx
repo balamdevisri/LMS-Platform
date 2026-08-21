@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import {
   BookOpen,
@@ -27,7 +27,7 @@ import { API_BASE_URL } from '@/config/api';
 import { CoursePlayerModal } from '../../components/courses/CoursePlayerModal';
 import { AssignmentPortal } from '@/components/courses/AssignmentPortal';
 import { AIAssistantPanel } from '@/components/ai/AIAssistantPanel';
-import { CertificateService } from '@/services/achievementService';
+import { CertificateService, BadgeService, AchievementService, STATIC_BADGES } from '@/services/achievementService';
 import type { Certificate } from '@/services/achievementService';
 import { CertificatePreviewModal } from '../../components/courses/CertificatePreviewModal';
 import { AchievementsDashboard } from '../../components/courses/AchievementsDashboard';
@@ -84,6 +84,28 @@ export const Dashboard: React.FC = () => {
   // XP & Claims State
   const [totalXP, setTotalXP] = useState(0);
   const [xpClaims, setXpClaims] = useState<XPClaimRecord[]>([]);
+
+  // AI Course Search & Weakness Analyzer States
+  const [aiSearchQuery, setAiSearchQuery] = useState('');
+  const [aiSearchResults, setAiSearchResults] = useState<ICourse[]>([]);
+  const [isAiSearching, setIsAiSearching] = useState(false);
+  const [weakTopics, setWeakTopics] = useState<any[]>([]);
+  const badgeService = useMemo(() => new BadgeService(), []);
+  const streakService = useMemo(() => new AchievementService(), []);
+
+  const earnedBadgesCount = useMemo(() => {
+    return badgeService.getEarnedBadges(user?.uid || 'default_student').length;
+  }, [badgeService, user?.uid]);
+
+  const currentStreak = useMemo(() => {
+    return streakService.getStreaks(user?.uid || 'default_student').dailyStreak;
+  }, [streakService, user?.uid]);
+
+  const earnedBadgesIds = useMemo(() => {
+    const list = badgeService.getEarnedBadges(user?.uid || 'default_student');
+    return new Set(list.map((b: any) => b.id));
+  }, [badgeService, user?.uid]);
+
   // Completed courses check (only 100% completed courses unlock certificates)
   const completedCourses = enrolledCourses.filter((course) => {
     const checkpoint = courseService.getCourseCheckpoint(course.id, user?.uid || 'default_student');
@@ -383,7 +405,15 @@ export const Dashboard: React.FC = () => {
     const studentId = uid;
 
     const fetchAndSyncFromBackend = async () => {
+      const apiBase = import.meta.env.VITE_API_URL || '/api';
       try {
+        const response = await fetch(`${apiBase}/certificates/student/${studentEmail}`);
+        if (!response.ok) {
+          console.error(`[Dashboard Sync] API Error: ${response.status} ${response.statusText}`);
+          return;
+        }
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
         const response = await fetch(`${API_BASE_URL}/certificates/student/${studentEmail}`);
         if (response.ok) {
           const resData = await response.json();
@@ -404,6 +434,8 @@ export const Dashboard: React.FC = () => {
               localStorage.setItem(`shaivika_cert_synced_${mappedCert.verificationId}`, 'true');
             });
           }
+        } else {
+          console.warn(`[Dashboard Sync] Response ok but not JSON: ${response.statusText}`);
         }
       } catch (err) {
         console.warn('Failed to fetch certificates from backend registry:', err);
@@ -431,7 +463,7 @@ export const Dashboard: React.FC = () => {
       if (certsToSync.length === 0) return;
 
       const syncCertificate = async (cert: any) => {
-        const isMockId = String(cert.verificationId).startsWith('KQ-');
+        const isMockId = String(cert.verificationId).includes('MOCK') || cert.verificationId === 'KQ-CERT-MOCK-ID';
         const syncKey = `shaivika_cert_synced_${cert.verificationId}`;
         if (localStorage.getItem(syncKey) === 'true' && !isMockId) return;
 
@@ -450,6 +482,9 @@ export const Dashboard: React.FC = () => {
               console.warn('Failed to fetch initial ID token:', tErr);
             }
           }
+          if (!token) {
+            token = localStorage.getItem('token') || localStorage.getItem('shaivika_auth_token');
+          }
 
           const getHeaders = (t: string | null) => {
             const h: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -459,6 +494,32 @@ export const Dashboard: React.FC = () => {
             return h;
           };
 
+          const apiBase = import.meta.env.VITE_API_URL || '/api';
+          const safeFetchJson = async (url: string, options: RequestInit) => {
+            try {
+              const res = await fetch(url, options);
+              if (!res.ok) {
+                console.error(`[API ERROR] ${options.method || 'GET'} ${url} returned ${res.status} ${res.statusText}`);
+                const contentType = res.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                  const errData = await res.json();
+                  return { success: false, status: res.status, error: errData.error || errData.message || res.statusText };
+                }
+                return { success: false, status: res.status, error: `HTTP ${res.status}: ${res.statusText}` };
+              }
+              const contentType = res.headers.get('content-type');
+              if (contentType && contentType.includes('application/json')) {
+                const data = await res.json();
+                return { success: true, status: res.status, data };
+              }
+              return { success: true, status: res.status, data: {} };
+            } catch (fetchErr) {
+              console.error(`[API NETWORK ERROR] Failed to fetch ${url}:`, fetchErr);
+              throw fetchErr;
+            }
+          };
+
+          let syncRes = await safeFetchJson(`${apiBase}/certificates/complete-and-deliver`, {
           let response = await fetch(`${API_BASE_URL}/certificates/complete-and-deliver`, {
             method: 'POST',
             headers: getHeaders(token),
@@ -473,17 +534,18 @@ export const Dashboard: React.FC = () => {
               courseDuration: cert.courseDuration || '24 Hours',
               modulesCount: actualModulesCount,
               verificationId: cert.verificationId,
-              forceRegenerate: true
+              forceRegenerate: false
             }),
           });
 
-          let data = await response.json();
-          const isAuthError = response.status === 401 || (data.error && String(data.error).toLowerCase().includes('firebase id token'));
+          let syncData = syncRes.data || {};
+          const isAuthError = syncRes.status === 401 || (syncRes.error && String(syncRes.error).toLowerCase().includes('firebase id token'));
 
           if (isAuthError && user) {
             console.warn('Sync request unauthorized (token expired/invalid). Refreshing token...');
             try {
               token = await user.getIdToken(true);
+              syncRes = await safeFetchJson(`${apiBase}/certificates/complete-and-deliver`, {
               response = await fetch(`${API_BASE_URL}/certificates/complete-and-deliver`, {
                 method: 'POST',
                 headers: getHeaders(token),
@@ -498,25 +560,25 @@ export const Dashboard: React.FC = () => {
                   courseDuration: cert.courseDuration || '24 Hours',
                   modulesCount: actualModulesCount,
                   verificationId: cert.verificationId,
-                  forceRegenerate: true
+                  forceRegenerate: false
                 }),
               });
-              data = await response.json();
+              syncData = syncRes.data || {};
             } catch (refreshErr) {
               console.error('Failed to retry sync with refreshed ID token:', refreshErr);
             }
           }
 
-          if (response.ok && data && data.success) {
+          if (syncRes.success && syncData.success) {
             localStorage.setItem(syncKey, 'true');
-            localStorage.setItem(`shaivika_cert_synced_${data.certificateId}`, 'true');
+            localStorage.setItem(`shaivika_cert_synced_${syncData.certificateId}`, 'true');
 
             // Update local certificate with the real backend data
             const allCerts = certificateService.getCertificates(studentId);
             const found = allCerts.find(c => c.courseId === cert.courseId);
             if (found) {
-              found.verificationId = data.certificateId;
-              found.googleDriveLink = data.googleDriveLink;
+              found.verificationId = syncData.certificateId;
+              found.googleDriveLink = syncData.googleDriveLink;
               found.modulesCount = actualModulesCount;
               certificateService.saveExternalCertificate(studentId, found);
             }
@@ -547,23 +609,53 @@ export const Dashboard: React.FC = () => {
       const studentEmail = user?.email || userProfile?.email || 'shaivikagroups@gmail.com';
       const studentId = uid;
 
+      const apiBase = import.meta.env.VITE_API_URL || '/api';
+
+      const safeFetchJson = async (url: string, options: RequestInit) => {
+        try {
+          const res = await fetch(url, options);
+          if (!res.ok) {
+            console.error(`[API ERROR] ${options.method || 'GET'} ${url} returned ${res.status} ${res.statusText}`);
+            const contentType = res.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+              const errData = await res.json();
+              return { success: false, status: res.status, error: errData.error || errData.message || res.statusText };
+            }
+            return { success: false, status: res.status, error: `HTTP ${res.status}: ${res.statusText}` };
+          }
+          const contentType = res.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const data = await res.json();
+            return { success: true, status: res.status, data };
+          }
+          return { success: true, status: res.status, data: {} };
+        } catch (fetchErr) {
+          console.error(`[API NETWORK ERROR] Failed to fetch ${url}:`, fetchErr);
+          throw fetchErr;
+        }
+      };
+
       // 1. Query the student's certificates on backend to see if it's already there
+      const verifyRes = await fetch(`${apiBase}/certificates/student/${studentEmail}`);
       const verifyRes = await fetch(`${API_BASE_URL}/certificates/student/${studentEmail}`);
       if (verifyRes.ok) {
-        const verifyData = await verifyRes.json();
-        if (verifyData.success && Array.isArray(verifyData.data)) {
-          const matched = verifyData.data.find((c: any) => String(c.courseId) === String(cert.courseId));
-          if (matched && matched.certificateId) {
-            const updated: Certificate = {
-              ...cert,
-              verificationId: matched.certificateId,
-              googleDriveLink: matched.pdfUrl || matched.googleDriveLink,
-            };
-            certificateService.saveExternalCertificate(studentId, updated);
-            toast.success('Certificate loaded successfully!', { id: toastId });
-            setActivePreviewCert(updated);
-            setLoadingCertId(null);
-            return;
+        const contentType = verifyRes.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const verifyData = await verifyRes.json();
+          if (verifyData.success && Array.isArray(verifyData.data)) {
+            const matched = verifyData.data.find((c: any) => String(c.courseId) === String(cert.courseId));
+            if (matched && matched.certificateId) {
+              const updated: Certificate = {
+                ...cert,
+                verificationId: matched.certificateId,
+                googleDriveLink: matched.pdfUrl || matched.googleDriveLink,
+              };
+              certificateService.saveExternalCertificate(studentId, updated);
+              toast.success('Certificate loaded successfully!', { id: toastId });
+              setActivePreviewCert(updated);
+              setLoadingCertId(null);
+              return;
+            }
           }
         }
       }
@@ -580,6 +672,9 @@ export const Dashboard: React.FC = () => {
           token = await user.getIdToken();
         } catch {}
       }
+      if (!token) {
+        token = localStorage.getItem('token') || localStorage.getItem('shaivika_auth_token');
+      }
 
       const getHeaders = (t: string | null) => {
         const h: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -587,6 +682,7 @@ export const Dashboard: React.FC = () => {
         return h;
       };
 
+      const deliverRes = await safeFetchJson(`${apiBase}/certificates/complete-and-deliver`, {
       const response = await fetch(`${API_BASE_URL}/certificates/complete-and-deliver`, {
         method: 'POST',
         headers: getHeaders(token),
@@ -605,19 +701,19 @@ export const Dashboard: React.FC = () => {
         }),
       });
 
-      const data = await response.json();
-      if (response.ok && data.success) {
+      const deliverData = deliverRes.data || {};
+      if (deliverRes.success && deliverData.success) {
         const updated: Certificate = {
           ...cert,
-          verificationId: data.certificateId,
-          googleDriveLink: data.googleDriveLink,
+          verificationId: deliverData.certificateId,
+          googleDriveLink: deliverData.googleDriveLink,
           modulesCount: actualModulesCount,
         };
         certificateService.saveExternalCertificate(studentId, updated);
         toast.success('Official Certificate generated successfully!', { id: toastId });
         setActivePreviewCert(updated);
       } else {
-        toast.error(data.error || 'Failed to retrieve official certificate.', { id: toastId });
+        toast.error(deliverRes.error || deliverData.error || 'Failed to retrieve official certificate.', { id: toastId });
       }
     } catch (err) {
       console.error(err);
@@ -871,6 +967,148 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
 
+          {/* Gamification Achievements & Streak Summary Widget */}
+          {userProfile?.role !== 'instructor' && (
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 font-mono text-slate-200 shadow-xl space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 className="text-sm font-black uppercase text-cyan-400 tracking-wider flex items-center gap-2">
+                  <span>⚡ GAMIFICATION SUMMARY</span>
+                </h3>
+                <div className="flex gap-4 text-xs font-bold text-slate-400">
+                  <span className="flex items-center gap-1.5"><span className="text-amber-500">⚡</span> {totalXP} XP</span>
+                  <span className="flex items-center gap-1.5"><span className="text-rose-500">🔥</span> {currentStreak} Days Streak</span>
+                  <span className="flex items-center gap-1.5"><span className="text-amber-400">🏆</span> {earnedBadgesCount} / 6 Badges</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                {STATIC_BADGES.map(badge => {
+                  const isUnlocked = earnedBadgesIds.has(badge.id);
+                  return (
+                    <div
+                      key={badge.id}
+                      className={`p-3.5 rounded-2xl border text-center flex flex-col items-center justify-center gap-2 transition-all relative overflow-hidden ${
+                        isUnlocked
+                          ? 'bg-slate-950/40 border-cyan-500/40 text-white shadow-[0_0_10px_rgba(6,182,212,0.1)]'
+                          : 'bg-slate-950/10 border-slate-900/60 text-slate-600 opacity-60'
+                      }`}
+                    >
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs ${
+                        isUnlocked ? 'bg-cyan-500/20 text-cyan-400' : 'bg-slate-950 text-slate-700'
+                      }`}>
+                        {isUnlocked ? '🏆' : '🔒'}
+                      </div>
+                      <div className="text-[10px] font-black uppercase tracking-tight truncate w-full font-sans">
+                        {badge.name}
+                      </div>
+                      <div className="text-[8px] text-slate-500 font-sans leading-tight">
+                        {badge.description}
+                      </div>
+                      <div className="text-[9px] font-bold mt-1">
+                        {isUnlocked ? (
+                          <span className="text-emerald-400">✓ Unlocked</span>
+                        ) : (
+                          <span className="text-slate-700">🔒 Locked</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* AI-Powered Semantic Search & Insights Section (Students Only) */}
+          {userProfile?.role !== 'instructor' && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              {/* AI Insights & Weakness Widget */}
+              <div className="lg:col-span-8 bg-linear-to-br from-indigo-900 to-slate-900 border border-indigo-500/30 rounded-3xl p-6 shadow-xl shadow-indigo-900/20 space-y-5 relative overflow-hidden">
+                {/* Decorative background effects */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 blur-3xl rounded-full translate-x-1/3 -translate-y-1/4 pointer-events-none" />
+                
+                <h3 className="font-heading font-extrabold text-lg text-white flex items-center gap-2 relative z-10">
+                  <div className="p-2 bg-indigo-500/20 rounded-xl border border-indigo-400/30">
+                    <Bot className="w-5 h-5 text-indigo-300 animate-pulse" />
+                  </div>
+                  <span>AI Tutor Insights & Revisions</span>
+                </h3>
+                
+                {weakTopics.length > 0 ? (
+                  <div className="space-y-4 relative z-10">
+                    <div className="p-3.5 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-xs text-rose-200 font-medium leading-relaxed flex items-start gap-3 backdrop-blur-sm">
+                      <span className="text-base mt-0.5">⚠️</span>
+                      <p><strong>AI Diagnostics:</strong> We noticed you spent extra time on these topics. Revisit them with the AI Tutor to strengthen your foundation.</p>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {weakTopics.slice(0, 2).map((wt, i) => (
+                        <div key={i} className="p-4 bg-white/5 border border-white/10 rounded-2xl space-y-2 hover:bg-white/10 hover:border-indigo-400/50 transition-all backdrop-blur-xs group">
+                          <div className="flex justify-between items-start gap-2">
+                            <span className="font-bold text-sm text-indigo-100 group-hover:text-white transition-colors">{wt.topic}</span>
+                            <span className="text-[10px] font-bold text-rose-300 bg-rose-500/20 px-2 py-0.5 rounded border border-rose-500/30 font-mono shrink-0">
+                              Score: {wt.score}%
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-indigo-200/70 leading-relaxed font-medium">{wt.struggleReason}</p>
+                          <div className="text-[10px] font-bold text-emerald-300 pt-2 flex items-center gap-1.5 border-t border-white/5 mt-2">
+                            <Zap className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>Action: {wt.remedyAction}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-6 text-center space-y-2 relative z-10 bg-white/5 rounded-2xl border border-white/10 border-dashed">
+                    <Bot className="w-8 h-8 text-indigo-400/50 mb-1" />
+                    <p className="text-sm font-bold text-indigo-100">You're doing great!</p>
+                    <p className="text-xs text-indigo-300/70 italic font-medium max-w-sm">Keep reading and taking quizzes. The AI Tutor will compile custom weak topic alerts here if you struggle.</p>
+                  </div>
+                )}
+              </div>
+
+              {/* AI Semantic Search Box */}
+              <div className="lg:col-span-4 bg-white dark:bg-zinc-900 border border-sky-100 dark:border-zinc-800 rounded-3xl p-6 shadow-xs space-y-4">
+                <h3 className="font-heading font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                  <FolderSearch className="w-5 h-5 text-indigo-500" />
+                  <span>AI Semantic Course Search</span>
+                </h3>
+                <form onSubmit={handleAiSearch} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={aiSearchQuery}
+                    onChange={(e) => setAiSearchQuery(e.target.value)}
+                    placeholder="e.g. Learn how to manage users and access rights..."
+                    className="flex-1 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl p-2.5 text-xs text-slate-900 dark:text-zinc-100 focus:outline-hidden focus:border-purple-600"
+                  />
+                  <button type="submit" className="bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all cursor-pointer">
+                    Search
+                  </button>
+                </form>
+
+                {isAiSearching && (
+                  <div className="flex items-center gap-1.5 text-xs text-slate-400 animate-pulse font-medium">
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>AI reasoning matches...</span>
+                  </div>
+                )}
+
+                {aiSearchResults.length > 0 && (
+                  <div className="space-y-2">
+                    <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest block">AI Recommended Matches</span>
+                    {aiSearchResults.map(match => (
+                      <Link
+                        key={match.id}
+                        to={`/course/${match.slug || match.id}`}
+                        className="block p-2.5 bg-sky-50/50 dark:bg-zinc-800/80 border border-sky-100 dark:border-zinc-700 rounded-xl hover:border-sky-300 text-xs font-bold text-sky-800 dark:text-sky-400 transition-all truncate"
+                      >
+                        {match.title}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Instructor Mode: Student Roster & Profile Cards Widget */}
           {userProfile?.role === 'instructor' && (
@@ -1656,6 +1894,43 @@ export const Dashboard: React.FC = () => {
                             <span>View Certificate</span>
                           </button>
 
+                          {String(cert.verificationId).startsWith('KQ-') || cert.verificationId === 'KQ-CERT-MOCK-ID' ? (
+                            <button
+                              disabled
+                              className="w-full bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl cursor-not-allowed flex items-center justify-center gap-1.5 border border-slate-200 dark:border-slate-700"
+                            >
+                              <Download className="w-4 h-4 text-slate-400" />
+                              <span>Download PDF (Sync Pending)</span>
+                            </button>
+                          ) : (
+                            <a
+                              href={`${import.meta.env.VITE_API_URL || '/api'}/certificates/download?certificateId=${cert.verificationId}&studentId=${cert.studentId}&studentName=${encodeURIComponent(cert.studentName)}&courseTitle=${encodeURIComponent(cert.courseTitle)}&completionDate=${encodeURIComponent(cert.completionDate)}`}
+                              className="w-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                            >
+                              <Download className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
+                              <span>Download PDF</span>
+                            </a>
+                          )}
+
+                          {String(cert.verificationId).startsWith('KQ-') || cert.verificationId === 'KQ-CERT-MOCK-ID' ? (
+                            <button
+                              disabled
+                              className="w-full bg-slate-50 dark:bg-slate-950 text-slate-400 dark:text-slate-500 font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl cursor-not-allowed flex items-center justify-center gap-1.5 border border-slate-200 dark:border-slate-800"
+                            >
+                              <ExternalLink className="w-4 h-4 text-slate-400" />
+                              <span>Verify Credential (Sync Pending)</span>
+                            </button>
+                          ) : (
+                            <a
+                              href={`${import.meta.env.VITE_API_URL || '/api'}/certificates/verify/${cert.verificationId}?studentId=${cert.studentId}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="w-full bg-slate-50 hover:bg-slate-100 dark:bg-slate-950 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 font-heading font-extrabold text-[11px] py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer text-center"
+                            >
+                              <ExternalLink className="w-4 h-4 text-sky-500 dark:text-cyan-400" />
+                              <span>Verify Credential</span>
+                            </a>
+                          )}
                           <a
                             href={`${API_BASE_URL}/certificates/download?certificateId=${cert.verificationId}&studentId=${cert.studentId}&studentName=${encodeURIComponent(cert.studentName)}&courseTitle=${encodeURIComponent(cert.courseTitle)}&completionDate=${encodeURIComponent(cert.completionDate)}`}
                             target="_blank"

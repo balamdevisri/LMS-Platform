@@ -50,6 +50,15 @@ export const CertificatePreviewModal: React.FC<CertificatePreviewModalProps> = (
 
   const safeVerificationId = certificate.verificationId || '';
   const verificationUrl = safeVerificationId
+    ? `${import.meta.env.VITE_API_URL || '/api'}/certificates/verify/${safeVerificationId}?studentId=${dynamicStudentId}`
+    : '';
+
+  const downloadUrl = safeVerificationId
+    ? `${import.meta.env.VITE_API_URL || '/api'}/certificates/download?certificateId=${safeVerificationId}&studentId=${dynamicStudentId}&studentName=${encodeURIComponent(dynamicStudentName)}&courseTitle=${encodeURIComponent(dynamicCourseTitle)}&completionDate=${encodeURIComponent(dynamicDate)}&courseId=${certificate.courseId}`
+    : '';
+
+  const previewUrl = safeVerificationId
+    ? `${import.meta.env.VITE_API_URL || '/api'}/certificates/preview?certificateId=${safeVerificationId}&studentId=${dynamicStudentId}&studentName=${encodeURIComponent(dynamicStudentName)}&courseTitle=${encodeURIComponent(dynamicCourseTitle)}&completionDate=${encodeURIComponent(dynamicDate)}&courseId=${certificate.courseId}#toolbar=0&navpanes=0&scrollbar=0&view=Fit`
     ? `${API_BASE_URL}/certificates/verify/${safeVerificationId}?studentId=${dynamicStudentId}`
     : '';
 

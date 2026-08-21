@@ -170,6 +170,7 @@ export const LearningHeader: React.FC<LearningHeaderProps> = ({
                       </button>
 
                       <a
+                        href={`${import.meta.env.VITE_API_URL || '/api'}/certificates/download?certificateId=${currentCert.verificationId || currentCert.id}&studentId=${currentCert.studentId}&studentName=${encodeURIComponent(currentCert.studentName)}&courseTitle=${encodeURIComponent(currentCert.courseTitle)}&completionDate=${encodeURIComponent(currentCert.completionDate)}`}
                         href={`${API_BASE_URL}/certificates/download?certificateId=${currentCert.verificationId || currentCert.id}&studentId=${currentCert.studentId}&studentName=${encodeURIComponent(currentCert.studentName)}&courseTitle=${encodeURIComponent(currentCert.courseTitle)}&completionDate=${encodeURIComponent(currentCert.completionDate)}`}
                         className="w-full bg-slate-800 hover:bg-slate-750 border border-slate-700 text-white font-semibold text-xs py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs"
                       >
@@ -178,6 +179,7 @@ export const LearningHeader: React.FC<LearningHeaderProps> = ({
                       </a>
 
                       <a
+                        href={`${import.meta.env.VITE_API_URL || '/api'}/certificates/verify/${currentCert.verificationId || currentCert.id}?studentId=${currentCert.studentId}`}
                         href={`${API_BASE_URL}/certificates/verify/${currentCert.verificationId || currentCert.id}?studentId=${currentCert.studentId}`}
                         target="_blank"
                         rel="noreferrer"

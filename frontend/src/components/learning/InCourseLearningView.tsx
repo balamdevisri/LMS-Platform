@@ -1,43 +1,26 @@
 import React, { useState, useEffect, useMemo, lazy, Suspense, useCallback } from 'react';
+import { soundService } from '@/services/soundService';
 import { LearningHeader } from './LearningHeader';
 import { SidebarDrawer } from './SidebarDrawer';
-import { LessonViewer } from './LessonViewer';
+
 import type { LessonDetails } from './LessonViewer';
 import type { ModuleData } from './ModuleAccordion';
 import { useAuth } from '@/contexts/AuthContext';
 import { courseService } from '@/services/courseService';
 import { useCourseTimeTracker } from '@/hooks/useCourseTimeTracker';
-import { Sparkles, BookOpen, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { Sparkles, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { dbmsLessonsData } from '@/data/dbmsLessonsData';
-import { LazyViewport } from './LazyViewport';
-import { ModulesTab } from './ModulesTab';
-import { PracticeSandbox } from './PracticeSandbox';
+import { ChallengeArena } from './ChallengeArena';
+import { getChallengeForLesson } from '@/services/challengeEngine';
 
-const RightSidebar = lazy(() => import('./RightSidebar').then(m => ({ default: m.RightSidebar })));
-const AIQuizPortal = lazy(() => import('../courses/AIQuizPortal').then(m => ({ default: m.AIQuizPortal })));
 const AITutorDrawer = lazy(() => import('./AITutorDrawer').then(m => ({ default: m.AITutorDrawer })));
 import { CertificatePreviewModal } from '../courses/CertificatePreviewModal';
+import { CertificateService, BadgeService, AchievementService, XPService, STATIC_BADGES } from '@/services/achievementService';
 import { CourseActionConfirmModal } from '../courses/CourseActionConfirmModal';
 import { API_BASE_URL } from '@/config/api';
 import { CertificateService } from '@/services/achievementService';
 import { assignmentService } from '@/services/assignmentService';
-
-const SidebarSkeleton = () => (
-  <aside className="w-full lg:w-80 shrink-0 space-y-6 animate-pulse">
-    <div className="h-40 bg-slate-900/60 rounded-3xl border border-slate-800" />
-    <div className="h-60 bg-slate-900/60 rounded-3xl border border-slate-800" />
-  </aside>
-);
-
-const QuizPortalSkeleton = () => (
-  <div className="w-full min-h-75 bg-slate-950/60 rounded-3xl p-6 border border-slate-800 animate-pulse space-y-4">
-    <div className="h-6 w-48 bg-slate-900 rounded-lg" />
-    <div className="h-4 w-full bg-slate-900 rounded-md" />
-    <div className="h-20 bg-slate-900 rounded-xl" />
-    <div className="h-10 w-32 bg-purple-900/40 rounded-xl" />
-  </div>
-);
 
 export function calculateEstimatedDuration(content: string, commandCount: number = 0): string {
   if (!content) return '5 mins';
@@ -88,11 +71,25 @@ export function extractPracticeCommands(courseTitle: string, _lessonTitle: strin
     return [
       { command: 'System.out.println("Hello Java");', description: 'Standard stdout print' }
     ];
-  } else {
+  } else if (courseLower.includes('kubernetes') || courseLower.includes('k8s')) {
+    return [
+      { command: 'kubectl get pods', description: 'List active pods' },
+      { command: 'kubectl cluster-info', description: 'Display cluster connection parameters' }
+    ];
+  } else if (courseLower.includes('c-programming') || courseLower.includes('c programming') || courseLower.trim() === 'c') {
+    return [
+      { command: 'gcc program.c -o program', description: 'Compile source code with GCC compiler' },
+      { command: './program', description: 'Execute binary executable' }
+    ];
+  } else if (courseLower.includes('linux')) {
     return [
       { command: 'pwd', description: 'Print working directory' },
       { command: 'whoami', description: 'Print active username' },
       { command: 'ls -la', description: 'List all files in details' }
+    ];
+  } else {
+    return [
+      { command: 'help', description: 'Display system command guidelines' }
     ];
   }
 }
@@ -131,10 +128,25 @@ export function generateDynamicResources(courseTitle: string, _lessonTitle: stri
       { title: 'Official React Documentation', url: 'https://react.dev' },
       { title: 'React Cheatsheet', url: 'https://devhints.io/react' }
     ];
-  } else {
+  } else if (courseLower.includes('kubernetes') || courseLower.includes('k8s')) {
+    return [
+      { title: 'Official Kubernetes Documentation', url: 'https://kubernetes.io/docs/home/' },
+      { title: 'Kubectl Cheat Sheet', url: 'https://kubernetes.io/docs/reference/kubectl/cheatsheet/' }
+    ];
+  } else if (courseLower.includes('c-programming') || courseLower.includes('c programming') || courseLower.trim() === 'c') {
+    return [
+      { title: 'cppreference.com C Reference', url: 'https://en.cppreference.com/w/c' },
+      { title: 'C Reference Cheat Sheet (PDF)', url: 'https://www.cheat-sheets.org/saved-copy/c_reference_card.pdf' }
+    ];
+  } else if (courseLower.includes('linux')) {
     return [
       { title: 'Official Linux Kernel Documentation', url: 'https://www.kernel.org/doc/html/latest/' },
       { title: 'GNU Coreutils Reference Manual', url: 'https://www.gnu.org/software/coreutils/manual/' }
+    ];
+  } else {
+    return [
+      { title: 'KaizenQ System Reference Guide', url: '#' },
+      { title: 'KaizenQ Professional Training Cheatsheet', url: '#' }
     ];
   }
 }
@@ -165,9 +177,21 @@ export function generateDynamicDownloads(courseTitle: string, lessonTitle: strin
     return [
       { title: 'Download React cheatsheet', url: '#', filename: 'react_cheatsheet.pdf', size: '850 KB' }
     ];
-  } else {
+  } else if (courseLower.includes('kubernetes') || courseLower.includes('k8s')) {
+    return [
+      { title: 'Download Kubectl Command Cheat Sheet', url: '#', filename: 'kubectl_cheat_sheet.pdf', size: '1.5 MB' }
+    ];
+  } else if (courseLower.includes('c-programming') || courseLower.includes('c programming') || courseLower.trim() === 'c') {
+    return [
+      { title: 'Download C Syntax Reference Card', url: '#', filename: 'c_syntax_reference.pdf', size: '780 KB' }
+    ];
+  } else if (courseLower.includes('linux')) {
     return [
       { title: 'Download Linux Command Reference', url: '#', filename: 'linux_commands_reference.pdf', size: '1.8 MB' }
+    ];
+  } else {
+    return [
+      { title: 'Download Course Resource Guide', url: '#', filename: 'course_resource_guide.pdf', size: '1.2 MB' }
     ];
   }
 }
@@ -212,39 +236,30 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
     } catch (e) {}
   }, [isNightMode]);
 
-  const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = useState(false);
+  const [activeView, setActiveView] = useState<'map' | 'workspace'>('map');
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(() => !soundService.isMuted());
 
-  const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState<boolean>(() => {
-    try {
-      const saved = localStorage.getItem('shaivika_right_sidebar_collapsed');
-      return saved !== null ? JSON.parse(saved) : false;
-    } catch (e) {
-      return false;
+  const handleToggleSound = () => {
+    const nextMute = soundEnabled;
+    soundService.setMuted(nextMute);
+    setSoundEnabled(!nextMute);
+    if (!nextMute) {
+      soundService.play('select');
     }
-  });
+  };
+
+  const [unlockedBadge, setUnlockedBadge] = useState<any>(null);
 
   useEffect(() => {
-    try {
-      localStorage.setItem('shaivika_right_sidebar_collapsed', JSON.stringify(isRightSidebarCollapsed));
-    } catch (e) {}
-  }, [isRightSidebarCollapsed]);
+    if (unlockedBadge) {
+      const timer = setTimeout(() => {
+        setUnlockedBadge(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [unlockedBadge]);
 
   const isGitCourse = courseTitle.toLowerCase().includes('git');
-
-  const [activeTab, setActiveTab] = useState<'content' | 'sandbox'>('content');
-
-  const isSandboxEligible = useMemo(() => {
-    const cid = String(courseId);
-    return [
-      'python-through-oops-course-id',
-      'java-through-oops-course-id',
-      'git-github-mastery-course-id',
-      'git-github-mastery',
-      'c-programming-course-id',
-      'kubernetes-complete-course-beginner-to-advanced',
-      'react-js-complete-course'
-    ].includes(cid);
-  }, [courseId]);
 
   const allLessons = useMemo(() => {
     return modules.flatMap((mod) => mod.lessons);
@@ -272,8 +287,45 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       if (firstUncompleted) return firstUncompleted.id;
     } catch {}
 
-    return allLessons[0]?.id || 101;
+    return allLessons[0]?.id || '';
   });
+
+
+
+  // Sync completed & bookmarked lessons when courseId changes to isolate course state
+  useEffect(() => {
+    try {
+      const savedCompletions = localStorage.getItem(`shaivika_completed_${courseId}`);
+      setCompletedLessonIds(savedCompletions ? JSON.parse(savedCompletions) : []);
+    } catch {
+      setCompletedLessonIds([]);
+    }
+
+    try {
+      const savedBookmarks = localStorage.getItem(`shaivika_bookmarks_${courseId}`);
+      setBookmarkedLessonIds(savedBookmarks ? JSON.parse(savedBookmarks) : []);
+    } catch {
+      setBookmarkedLessonIds([]);
+    }
+  }, [courseId]);
+
+  // Reset selectedLessonId to a valid lesson of the current course when courseId changes to ensure strict isolation
+  useEffect(() => {
+    if (allLessons.length > 0) {
+      const lastActive = localStorage.getItem(`shaivika_last_active_${courseId}`);
+      if (lastActive && allLessons.some(l => String(l.id) === String(lastActive))) {
+        setSelectedLessonId(lastActive);
+      } else {
+        const saved = localStorage.getItem(`shaivika_completed_${courseId}`);
+        let completedIds = [];
+        try {
+          completedIds = saved ? JSON.parse(saved) : [];
+        } catch {}
+        const firstUncompleted = allLessons.find(l => !completedIds.includes(l.id));
+        setSelectedLessonId(firstUncompleted ? firstUncompleted.id : allLessons[0].id);
+      }
+    }
+  }, [courseId, allLessons]);
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeCourseTab, setActiveCourseTab] = useState('modules');
@@ -320,7 +372,6 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       } catch {}
     }
     setScrollProgress(0);
-    setActiveTab('content');
     if (containerRef.current) {
       containerRef.current.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     }
@@ -440,6 +491,9 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
           console.warn('Failed to fetch initial ID token:', tErr);
         }
       }
+      if (!token) {
+        token = localStorage.getItem('token') || localStorage.getItem('shaivika_auth_token');
+      }
 
       const getHeaders = (t: string | null) => {
         const h: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -449,7 +503,34 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         return h;
       };
 
+      const apiBase = import.meta.env.VITE_API_URL || '/api';
+
+      const safeFetchJson = async (url: string, options: RequestInit) => {
+        try {
+          const response = await fetch(url, options);
+          if (!response.ok) {
+            console.error(`[API ERROR] ${options.method || 'GET'} ${url} returned ${response.status} ${response.statusText}`);
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+              const errData = await response.json();
+              return { success: false, status: response.status, error: errData.error || errData.message || response.statusText };
+            }
+            return { success: false, status: response.status, error: `HTTP ${response.status}: ${response.statusText}` };
+          }
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const data = await response.json();
+            return { success: true, status: response.status, data };
+          }
+          return { success: true, status: response.status, data: {} };
+        } catch (fetchErr: any) {
+          console.error(`[API NETWORK ERROR] Failed to fetch ${url}:`, fetchErr);
+          throw fetchErr;
+        }
+      };
+
       // Sync state to backend before generation trigger
+      let syncResult = await safeFetchJson(`${apiBase}/certificates/sync-state`, {
       let syncRes = await fetch(`${API_BASE_URL}/certificates/sync-state`, {
         method: 'POST',
         headers: getHeaders(token),
@@ -463,13 +544,13 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         }),
       });
 
-      let syncData = await syncRes.json();
-      const isSyncAuthError = syncRes.status === 401 || (syncData.error && String(syncData.error).toLowerCase().includes('firebase id token'));
+      let isSyncAuthError = syncResult.status === 401 || (syncResult.error && String(syncResult.error).toLowerCase().includes('firebase id token'));
 
       if (isSyncAuthError && user) {
         console.warn('Sync request unauthorized (token expired/invalid). Refreshing token...');
         try {
           token = await user.getIdToken(true);
+          syncResult = await safeFetchJson(`${apiBase}/certificates/sync-state`, {
           syncRes = await fetch(`${API_BASE_URL}/certificates/sync-state`, {
             method: 'POST',
             headers: getHeaders(token),
@@ -482,13 +563,13 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
               assignmentSubmissions,
             }),
           });
-          syncData = await syncRes.json();
         } catch (refreshErr) {
           console.error('Failed to retry sync with refreshed ID token:', refreshErr);
         }
       }
 
       // Complete and deliver
+      let deliveryResult = await safeFetchJson(`${apiBase}/certificates/complete-and-deliver`, {
       let res = await fetch(`${API_BASE_URL}/certificates/complete-and-deliver`, {
         method: 'POST',
         headers: getHeaders(token),
@@ -506,13 +587,13 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         }),
       });
 
-      let data = await res.json();
-      const isDeliverAuthError = res.status === 401 || (data.error && String(data.error).toLowerCase().includes('firebase id token'));
+      let isDeliverAuthError = deliveryResult.status === 401 || (deliveryResult.error && String(deliveryResult.error).toLowerCase().includes('firebase id token'));
 
       if (isDeliverAuthError && user) {
         console.warn('Delivery request unauthorized (token expired/invalid). Refreshing token...');
         try {
           token = await user.getIdToken(true);
+          deliveryResult = await safeFetchJson(`${apiBase}/certificates/complete-and-deliver`, {
           res = await fetch(`${API_BASE_URL}/certificates/complete-and-deliver`, {
             method: 'POST',
             headers: getHeaders(token),
@@ -529,27 +610,27 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
               forceRegenerate: true
             }),
           });
-          data = await res.json();
         } catch (refreshErr) {
           console.error('Failed to retry delivery with refreshed ID token:', refreshErr);
         }
       }
 
       setIsGeneratingCert(false);
-      if (data.success) {
-        setGeneratedCert(data);
+      const deliveryData = deliveryResult.data || {};
+      if (deliveryResult.success && deliveryData.success) {
+        setGeneratedCert(deliveryData);
         try {
           const certService = new CertificateService();
           certService.saveExternalCertificate(studentUid, {
-            id: data.certificateId || `cert_${courseId}_${Date.now()}`,
+            id: deliveryData.certificateId || `cert_${courseId}_${Date.now()}`,
             courseId: String(courseId),
             courseTitle: courseTitle,
             studentName,
             instructorName: 'Shaivika Groups Board',
-            completionDate: data.completionDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
-            googleDriveLink: data.googleDriveLink || '',
-            verificationId: data.certificateId,
-            studentId: data.studentId || `STU-${studentUid.substring(0, 6).toUpperCase()}`,
+            completionDate: deliveryData.completionDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+            googleDriveLink: deliveryData.googleDriveLink || '',
+            verificationId: deliveryData.certificateId,
+            studentId: deliveryData.studentId || `STU-${studentUid.substring(0, 6).toUpperCase()}`,
           });
         } catch (saveErr) {
           console.warn('Error saving server certificate to local storage:', saveErr);
@@ -557,7 +638,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         toast.success(`🎓 Official Certificate Generated! (Check Inbox)`);
         setShowCongrats(true);
       } else {
-        toast.error(data.error || 'Failed to generate certificate.');
+        toast.error(deliveryResult.error || deliveryData.error || 'Failed to generate certificate.');
       }
     } catch (err: any) {
       setIsGeneratingCert(false);
@@ -633,16 +714,12 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
   const hasNextLesson = activeIndex < allLessons.length - 1;
 
   const isLessonUnlocked = useCallback((lessonId: string | number): boolean => {
-    const modIdx = modules.findIndex((m) =>
-      m.lessons.some((l) => String(l.id) === String(lessonId))
-    );
-    if (modIdx <= 0) return true;
+    const targetIdx = allLessons.findIndex((l) => String(l.id) === String(lessonId));
+    if (targetIdx <= 0) return true;
 
-    const prevMod = modules[modIdx - 1];
-    return prevMod ? prevMod.lessons.every((l) =>
-      completedLessonIds.some((id) => String(id) === String(l.id))
-    ) : true;
-  }, [modules, completedLessonIds]);
+    const prevLesson = allLessons[targetIdx - 1];
+    return completedLessonIds.some((id) => String(id) === String(prevLesson.id));
+  }, [allLessons, completedLessonIds]);
 
   const handlePrevLesson = useCallback(() => {
     if (hasPrevLesson) {
@@ -683,18 +760,24 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
     }
   }, [hasNextLesson, completedLessonIds, selectedLessonId, allLessons, activeIndex, modules, isLessonUnlocked]);
 
+  const handleNextChallenge = useCallback(() => {
+    soundService.play('unlock');
+    handleNextLesson();
+  }, [handleNextLesson]);
+
   const activeLessonFull = useMemo((): LessonDetails => {
     if (!currentLessonData) {
       return {
-        id: 101,
-        title: 'Introduction',
-        duration: '15 mins',
-        type: 'reading',
-        badge: 'Module 1 • Lesson 1',
-        content: 'Loading lesson details...',
-        commands: [],
-        resources: []
-      };
+        id: allLessons[0]?.id || 'intro',
+        title: allLessons[0]?.title || 'Course Introduction',
+        duration: allLessons[0]?.duration || '15 mins',
+        type: allLessons[0]?.type || 'reading',
+        badge: 'Mission 01 • Challenge 01',
+        content: (allLessons[0] as any)?.content || (allLessons[0] as any)?.readingContent || 'Welcome to the course. Select a challenge node to begin.',
+        commands: (allLessons[0] as any)?.commands || [],
+        resources: (allLessons[0] as any)?.resources || [],
+        difficulty: (allLessons[0] as any)?.difficulty || 'Easy'
+      } as any;
     }
 
     const currentAny = currentLessonData as any;
@@ -763,8 +846,13 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       commands: generatedCommands,
       resources: generatedResources,
       downloads: generatedDownloads,
+      difficulty: currentAny.difficulty || 'Easy'
     } as any;
   }, [currentLessonData, courseTitle, activeIndex, allLessons, isGitCourse]);
+
+  const getXPRewardForDifficulty = useCallback((_difficulty?: string): number => {
+    return 50;
+  }, []);
 
   const handleToggleComplete = useCallback(() => {
     if (!completedLessonIds.some((id) => String(id) === String(selectedLessonId))) {
@@ -772,10 +860,16 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
       setCompletedLessonIds(updated);
 
       const activeUserId = user?.uid || 'default_student';
+      const badgeService = new BadgeService();
+      const statsService = new AchievementService();
+      const xpService = new XPService();
 
-      // 1. Award +50 XP for completing lesson
-      const earnedXP = 50;
-      courseService.addXPPoints(earnedXP, activeUserId);
+      const beforeBadges = badgeService.getEarnedBadges(activeUserId);
+
+      // 1. Calculate and award dynamic XP based on difficulty
+      const diff = (activeLessonFull as any).difficulty || 'Easy';
+      const earnedXP = getXPRewardForDifficulty(diff);
+      xpService.addXP(earnedXP, `Completed ${activeLessonFull.title}`, activeUserId);
       courseService.addXPClaim(
         {
           id: `claim_${Date.now()}`,
@@ -789,22 +883,30 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         activeUserId
       );
 
-      // 2. Check if completing this lesson completes a full module
+      // Increment lesson completions stat
+      statsService.incrementStat('lessonsCompleted', 1, activeUserId);
+
+      // 2. Learning Streak calculation
+      statsService.checkAndUpdateStreak(activeUserId);
+
+      // 3. Check if completing this lesson completes a full module (Mission)
       const currentModule = modules.find((m) =>
         m.lessons.some((l) => String(l.id) === String(selectedLessonId))
       );
+      
+      let allModuleDone = false;
       if (currentModule) {
         const moduleLessonIds = currentModule.lessons.map((l) => String(l.id));
-        const allModuleDone = moduleLessonIds.every((id) =>
+        allModuleDone = moduleLessonIds.every((id) =>
           updated.some((cId) => String(cId) === id)
         );
         if (allModuleDone) {
-          const bonusXP = 100;
-          courseService.addXPPoints(bonusXP, activeUserId);
+          const bonusXP = 50;
+          xpService.addXP(bonusXP, `🎯 Mission Completed: ${currentModule.title}`, activeUserId);
           courseService.addXPClaim(
             {
               id: `claim_mod_${Date.now()}`,
-              title: `🎉 Module Mastered: ${currentModule.title}`,
+              title: `🎯 MISSION COMPLETE! +50 XP BONUS`,
               xp: bonusXP,
               category: 'Module Completion Bonus',
               timestamp: new Date().toISOString(),
@@ -813,37 +915,35 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
             },
             activeUserId
           );
-          toast.success(`🏆 Module Bonus! Earned +100 XP for completing ${currentModule.title}!`);
+          statsService.incrementStat('modulesCompleted' as any, 1, activeUserId);
+          toast.success(`🎯 MISSION COMPLETE! +50 XP BONUS`);
         }
       }
 
-      // 3. Check if all lessons in the course are completed (100% Course Completion)
+      // 4. Check if all lessons in the course are completed (100% Course Completion)
       const allCourseLessonsDone = allLessons.every((l) =>
         updated.some((cId) => String(cId) === String(l.id))
       );
 
       if (allCourseLessonsDone) {
+        statsService.incrementStat('coursesCompleted', 1, activeUserId);
         triggerCertificateGeneration();
       }
 
-      toast.success(`🎉 Lesson complete! +50 XP awarded.`);
-    }
-  }, [completedLessonIds, selectedLessonId, user, userProfile, userName, activeLessonFull.title, courseId, courseTitle, modules, allLessons]);
+      // Check for badge unlocks
+      const afterBadges = badgeService.checkAndAwardBadges(activeUserId);
+      const newBadges = afterBadges.filter(b => !beforeBadges.some(old => old.id === b.id));
+      if (newBadges.length > 0) {
+        setUnlockedBadge(newBadges[0]);
+      }
 
-  const handleToggleBookmark = useCallback(() => {
-    if (bookmarkedLessonIds.some((id) => String(id) === String(selectedLessonId))) {
-      setBookmarkedLessonIds((prev) => prev.filter((id) => String(id) !== String(selectedLessonId)));
-      toast.info('Bookmark removed.');
-    } else {
-      setBookmarkedLessonIds((prev) => [...prev, selectedLessonId]);
-      toast.success('Lesson bookmarked successfully!');
+      toast.success(`🎉 Challenge complete! +${earnedXP} XP awarded.`);
     }
-  }, [bookmarkedLessonIds, selectedLessonId]);
+  }, [completedLessonIds, selectedLessonId, user, userProfile, userName, activeLessonFull, courseId, courseTitle, modules, allLessons, getXPRewardForDifficulty]);
 
   const validCompletedCount = completedLessonIds.filter(id => allLessons.some(l => String(l.id) === String(id))).length;
   const progressPercent = allLessons.length > 0 ? Math.min(100, Math.round((validCompletedCount / allLessons.length) * 100)) : 0;
   const isCompleted = completedLessonIds.some((id) => String(id) === String(selectedLessonId));
-  const isBookmarked = bookmarkedLessonIds.some((id) => String(id) === String(selectedLessonId));
   const isCourseFullyCompleted = allLessons.length > 0 && allLessons.every((l) =>
     completedLessonIds.some((cId) => String(cId) === String(l.id))
   );
@@ -852,7 +952,13 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
   const currentCert = useMemo(() => {
     const certs = certService.getCertificates(studentUid);
     return certs.find((c) => String(c.courseId) === String(courseId)) || null;
-  }, [certService, studentUid, courseId, generatedCert]);
+  }, [certService, studentUid, courseId]);
+
+
+
+
+
+
 
   return (
     <div
@@ -872,6 +978,8 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         onPrevLesson={handlePrevLesson}
         onNextLesson={handleNextLesson}
         hasPrevLesson={hasPrevLesson}
+        hasNextLesson={hasNextLesson && isCompleted}
+        onBackToCourseDetails={onBackToCourseDetails}
         hasNextLesson={hasNextLesson}
         onBackToCourseDetails={() => setIsExitConfirmOpen(true)}
         userAvatar={userAvatar}
@@ -922,6 +1030,14 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         completedLessonIds={completedLessonIds}
         onSelectLesson={(id) => {
           if (!isLessonUnlocked(id)) {
+            const targetIdx = allLessons.findIndex((l) => String(l.id) === String(id));
+            const prevLesson = targetIdx > 0 ? allLessons[targetIdx - 1] : null;
+            if (prevLesson && !completedLessonIds.some((cId) => String(cId) === String(prevLesson.id))) {
+              toast.warning(
+                `🔒 XP Reward Pending! Please click "⚡ Claim +50 XP" to claim your XP before continuing to "${allLessons[targetIdx]?.title || 'Next Lesson'}"!`
+              );
+              return;
+            }
             const targetMod = modules.find((m) =>
               m.lessons.some((l) => String(l.id) === String(id))
             );
@@ -950,187 +1066,325 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         isNightMode={isNightMode}
       />
 
-      <div className="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col xl:flex-row gap-8 relative z-10">
-        {/* Docked Left Sidebar for Desktop: Modules & Lessons */}
-        {!isDesktopSidebarCollapsed && (
-          <aside className={`hidden xl:block w-80 shrink-0 rounded-3xl border p-4 sticky top-28 h-[calc(100vh-140px)] overflow-y-auto transition-all ${
-            isNightMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-sky-100 shadow-sm'
-          }`}>
-            <div className="flex items-center justify-between gap-2 mb-4 pb-3 border-b border-slate-800/40">
-              <div className="flex items-center gap-2">
-                <BookOpen className={`w-5 h-5 ${isNightMode ? 'text-cyan-400' : 'text-sky-600'}`} />
-                <h3 className={`font-heading font-extrabold text-sm ${isNightMode ? 'text-white' : 'text-slate-900'}`}>
-                  Course Navigation
-                </h3>
-              </div>
-              <button
-                onClick={() => setIsDesktopSidebarCollapsed(true)}
-                className={`p-1.5 rounded-xl border transition-all cursor-pointer shadow-xs active:scale-95 ${
-                  isNightMode
-                    ? 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900'
-                }`}
-                title="Hide Left Navigation Sidebar for Full-Screen Distraction-Free Reading"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-            </div>
-            <ModulesTab
-              courseTitle={courseTitle}
-              modules={modules}
-              selectedLessonId={selectedLessonId}
-              completedLessonIds={completedLessonIds}
-              onSelectLesson={(id) => {
-                if (!isLessonUnlocked(id)) {
-                  const targetMod = modules.find((m) =>
-                    m.lessons.some((l) => String(l.id) === String(id))
-                  );
-                  const modIdx = modules.findIndex((m) =>
-                    m.lessons.some((l) => String(l.id) === String(id))
-                  );
-                  const prevMod = modIdx > 0 ? modules[modIdx - 1] : null;
-                  toast.warning(
-                    `🔒 Module Locked! Complete all lessons in "${prevMod?.title || 'Previous Module'}" & claim XP rewards first to unlock "${targetMod?.title || 'Next Module'}"!`
-                  );
-                  return;
-                }
-                setSelectedLessonId(id);
-                if (containerRef.current) {
-                  containerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-                }
-              }}
-              progressPercent={progressPercent}
-              isNightMode={isNightMode}
-            />
-          </aside>
-        )}
+      <div className="w-full bg-slate-950 border-b border-slate-900 py-2.5 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4 select-none shrink-0 font-mono">
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+            SYSTEM CONTEXT:
+          </span>
+          <span className="text-xs font-black text-cyan-400 flex items-center gap-1.5">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+            </span>
+            CHALLENGE SANDBOX ACTIVE
+          </span>
+        </div>
 
-        {/* Floating Expand Sidebar Button when Desktop Sidebar is Collapsed */}
-        {isDesktopSidebarCollapsed && (
-          <div className="hidden xl:block shrink-0">
+        <div className="flex items-center gap-3">
+          {activeView === 'workspace' && (
             <button
-              onClick={() => setIsDesktopSidebarCollapsed(false)}
-              className={`flex items-center gap-2 px-3.5 py-2.5 rounded-2xl border shadow-lg sticky top-28 z-30 cursor-pointer active:scale-95 transition-all ${
-                isNightMode
-                  ? 'bg-slate-900/95 border-slate-700 text-cyan-400 hover:bg-slate-800'
-                  : 'bg-white/95 border-sky-200 text-sky-700 hover:bg-sky-50'
-              }`}
-              title="Show / Expand Course Navigation Sidebar"
+              onClick={() => {
+                setActiveView('map');
+                soundService.play('select');
+              }}
+              className="px-3 py-1 bg-slate-900 border border-slate-800 hover:border-cyan-500 hover:text-cyan-400 text-slate-450 text-[10px] font-black rounded-lg cursor-pointer transition-all active:scale-95 flex items-center gap-1"
             >
-              <ChevronRight className="w-5 h-5" />
-              <span className="text-xs font-extrabold tracking-wide">Show Navigation</span>
+              ◀ MISSION MAP
             </button>
-          </div>
-        )}
-
-        <main className="flex-1 min-w-0 space-y-8">
-          {isSandboxEligible && (
-            <div className="flex border-b border-slate-800/80">
-              <button
-                onClick={() => setActiveTab('content')}
-                className={`py-3 px-6 font-extrabold text-sm border-b-2 transition-all cursor-pointer ${
-                  activeTab === 'content'
-                    ? 'border-cyan-400 text-cyan-400 font-black'
-                    : 'border-transparent text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                Course Content
-              </button>
-              <button
-                onClick={() => setActiveTab('sandbox')}
-                className={`py-3 px-6 font-extrabold text-sm border-b-2 transition-all cursor-pointer ${
-                  activeTab === 'sandbox'
-                    ? 'border-cyan-400 text-cyan-400 font-black'
-                    : 'border-transparent text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                Practice Sandbox
-              </button>
-            </div>
           )}
+          <button
+            onClick={handleToggleSound}
+            className={`px-3 py-1 rounded-lg border text-[10px] font-black uppercase tracking-wide cursor-pointer transition-all active:scale-95 ${
+soundEnabled
+                ? 'bg-cyan-950/40 border-cyan-500 text-cyan-400'
+                : 'bg-slate-900 border-slate-800 text-slate-500'
+            }`}
+          >
+            {soundEnabled ? '🔊 Sound: ON' : '🔇 Sound: MUTED'}
+          </button>
+        </div>
+      </div>
 
-          {activeTab === 'sandbox' ? (
-            <PracticeSandbox courseId={String(courseId)} isNightMode={isNightMode} />
-          ) : (
-            <>
-              <LessonViewer
-                lesson={activeLessonFull}
-                isGitCourse={isGitCourse}
-                onMarkComplete={handleToggleComplete}
-                onNextLesson={handleNextLesson}
-                isCompleted={isCompleted}
-                isNightMode={isNightMode}
-                courseTitle={courseTitle}
-                courseId={String(courseId)}
-                isCourseFullyCompleted={isCourseFullyCompleted}
-              />
+      {activeView === 'map' ? (
+        <div className="flex-1 max-w-[1200px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-8 relative z-10 font-mono text-slate-200">
+          {/* Mission Map Header */}
+          <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl relative overflow-hidden backdrop-blur-md animate-in fade-in slide-in-from-top-4 duration-300">
+            <div className="absolute inset-0 bg-radial-gradient(circle at top right, rgba(6,182,212,0.1), transparent) pointer-events-none" />
+            
+            <div className="space-y-2">
+              <span className="text-[10px] uppercase font-black tracking-widest text-cyan-400 font-mono bg-cyan-950/40 border border-cyan-900/50 px-2.5 py-1 rounded-md">
+                MISSION OVERVIEW CONTROL
+              </span>
+              <h2 className="text-2xl font-black text-white tracking-tight mt-1 uppercase font-sans">
+                {courseTitle}
+              </h2>
+              <p className="text-xs text-slate-400 font-sans font-medium">
+                Complete each challenge node sequentially to master the path and unlock your credentials.
+              </p>
+            </div>
 
-              {/* AI Quiz Generator & Assessment Portal Section */}
-              <div className="pt-6 border-t border-slate-800/80 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="font-heading text-lg font-extrabold text-amber-400 flex items-center gap-2">
-                      <Sparkles className="w-5 h-5 text-amber-400 animate-pulse" />
-                      <span>AI Quiz Generator & Adaptive Assessment</span>
-                    </h2>
-                    <p className="text-xs text-slate-400">
-                      Generate instant AI quizzes for <strong>{activeLessonFull.title}</strong> to test your mastery & claim XP!
-                    </p>
+            <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-4 min-w-[220px] space-y-2 text-xs font-bold text-slate-400 font-mono shadow-inner">
+              <div className="flex justify-between">
+                <span>PATH PROGRESS</span>
+                <span className="text-cyan-400">{validCompletedCount} / {allLessons.length} CHALLENGES</span>
+              </div>
+              <div className="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+                <div
+                  className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-500 shadow-[0_0_8px_rgba(6,182,212,0.5)]"
+                  style={{ width: `${(validCompletedCount / Math.max(1, allLessons.length)) * 100}%` }}
+                />
+              </div>
+              <div className="flex justify-between border-t border-slate-900 pt-2 text-[10px]">
+                <span>TOTAL SCORE</span>
+                <span className="text-amber-400 flex items-center gap-1">⚡ {courseService.getUserXPPoints(studentUid)} XP</span>
+              </div>
+              <div className="flex justify-between text-[10px]">
+                <span>LEARNING STREAK</span>
+                <span className="text-rose-400 flex items-center gap-1">🔥 {new AchievementService().getStreaks(studentUid).dailyStreak} DAYS</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Connected Path Map */}
+          <div className="space-y-12 relative before:absolute before:left-[19px] md:before:left-[35px] before:top-8 before:bottom-8 before:w-[2px] before:bg-slate-800 before:-z-10 animate-in fade-in duration-500 delay-150">
+            {modules.map((mod, modIdx) => {
+              const missionNum = String(modIdx + 1).padStart(2, '0');
+              const isModLocked = modIdx > 0 && !modules[modIdx - 1].lessons.every(l => completedLessonIds.some(cId => String(cId) === String(l.id)));
+
+              return (
+                <div key={mod.id} className="relative space-y-4">
+                  {/* Mission Label */}
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 md:w-18 md:h-18 rounded-2xl flex items-center justify-center border font-black text-xs md:text-sm font-mono shadow-md transition-all shrink-0 ${
+                      isModLocked
+                        ? 'bg-slate-950 border-slate-900 text-slate-650'
+                        : 'bg-slate-900/90 border-cyan-500/50 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.15)]'
+                    }`}>
+                      M{missionNum}
+                    </div>
+                    <div>
+                      <span className={`text-[10px] font-black uppercase font-mono tracking-widest block ${isModLocked ? 'text-slate-650' : 'text-cyan-400'}`}>
+                        MISSION {missionNum}
+                      </span>
+                      <h3 className="text-sm md:text-base font-extrabold text-white font-sans tracking-tight">
+                        {mod.title.replace(/^Module\s+\d+\s*:?\s*/i, '').replace(/^🟢|^🟡|^🔵|^🔴/, '').trim()}
+                      </h3>
+                    </div>
+                  </div>
+
+                  {/* Challenge Nodes List */}
+                  <div className="pl-6 md:pl-22 space-y-3">
+                    {mod.lessons.map((lesson, lessonIdx) => {
+                      const challengeNum = String(lessonIdx + 1).padStart(2, '0');
+                      const isCurrent = String(lesson.id) === String(selectedLessonId);
+                      const isDone = completedLessonIds.some(cId => String(cId) === String(lesson.id));
+                      const isLocked = !isLessonUnlocked(lesson.id);
+
+                      return (
+                        <div
+                          key={lesson.id}
+                          onClick={() => {
+                            if (isLocked) {
+                              soundService.play('error');
+                              toast.warning(`🔒 Complete previous challenges to unlock this mission!`);
+                              return;
+                            }
+                            setSelectedLessonId(lesson.id);
+                            setActiveView('workspace');
+                            soundService.play('select');
+                          }}
+                          className={`group relative flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-2xl border transition-all duration-300 select-none cursor-pointer ${
+                            isCurrent
+                              ? 'bg-cyan-950/20 border-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.2)] text-white'
+                              : isDone
+                              ? 'bg-emerald-950/10 border-emerald-600/60 hover:bg-emerald-950/15 text-emerald-300'
+                              : isLocked
+                              ? 'bg-slate-950/30 border-slate-900 text-slate-650 cursor-not-allowed opacity-50'
+                              : 'bg-slate-900/50 border-slate-800 hover:bg-slate-850/60 text-slate-350 hover:border-slate-700'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
+                              isCurrent
+                                ? 'bg-cyan-500 text-slate-950'
+                                : isDone
+                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                : isLocked
+                                ? 'bg-slate-950 text-slate-700 border border-slate-900'
+                                : 'bg-slate-900 text-slate-400 border border-slate-800'
+                            }`}>
+                              {challengeNum}
+                            </div>
+                            
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <span className={`text-[9px] font-black tracking-wider uppercase font-mono ${
+                                  isCurrent ? 'text-cyan-400' : isDone ? 'text-emerald-400' : 'text-slate-500'
+                                }`}>
+                                  CHALLENGE {challengeNum}
+                                </span>
+                                {isCurrent && (
+                                  <span className="px-1.5 py-0.25 text-[8px] font-black bg-cyan-500 text-slate-950 uppercase rounded tracking-wider animate-pulse">
+                                    CURRENT
+                                  </span>
+                                )}
+                              </div>
+                              <h4 className={`text-xs md:text-sm font-bold truncate font-sans ${isCurrent ? 'text-white' : isDone ? 'text-emerald-150' : 'text-slate-300'}`}>
+                                {lesson.title.replace(/^git-unit-\d+-\d+\s*:?\s*/i, '').replace(/^unit-[\d-]+\s*:?\s*/i, '')}
+                              </h4>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3 shrink-0 self-end md:self-auto font-mono text-[10px] font-bold">
+                            <span className="text-slate-500">
+                              ⏳ {lesson.duration || '15 mins'}
+                            </span>
+
+                            <span className="text-amber-500 font-extrabold font-mono shrink-0">
+                              +{getXPRewardForDifficulty((lesson as any).difficulty)} XP
+                            </span>
+
+                            <span className={`px-2 py-0.5 rounded border uppercase ${
+                              lesson.type?.toLowerCase() === 'quiz'
+                                ? 'bg-amber-950/40 border-amber-800/60 text-amber-400'
+                                : lesson.type?.toLowerCase() === 'assignment'
+                                ? 'bg-indigo-950/40 border-indigo-800/60 text-indigo-400'
+                                : 'bg-slate-950 border-slate-800 text-slate-400'
+                            }`}>
+                              {lesson.type || 'Reading'}
+                            </span>
+
+                            <div className="w-6 flex justify-center">
+                              {isDone ? (
+                                <span className="text-emerald-400 text-sm font-black">✓</span>
+                              ) : isLocked ? (
+                                <span className="text-slate-700 text-xs">🔒</span>
+                              ) : (
+                                <span className="relative flex h-2.5 w-2.5">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500"></span>
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-
-                <LazyViewport placeholder={<QuizPortalSkeleton />}>
-                  <Suspense fallback={<QuizPortalSkeleton />}>
-                    <AIQuizPortal
-                      courseId={String(courseId)}
-                      courseTitle={courseTitle}
-                      lessonId={String(selectedLessonId)}
-                      lessonTitle={activeLessonFull.title}
-                      lessonContent={activeLessonFull.content}
-                    />
-                  </Suspense>
-                </LazyViewport>
-              </div>
-            </>
-          )}
-        </main>
-
-        {/* Docked Right Sidebar or Floating Expand Button */}
-        {isRightSidebarCollapsed ? (
-          <div className="hidden xl:block shrink-0">
-            <button
-              onClick={() => setIsRightSidebarCollapsed(false)}
-              className={`flex items-center gap-2 px-3.5 py-2.5 rounded-2xl border shadow-lg sticky top-28 z-30 cursor-pointer active:scale-95 transition-all ${
-                isNightMode
-                  ? 'bg-slate-900/95 border-slate-700 text-cyan-400 hover:bg-slate-800'
-                  : 'bg-white/95 border-sky-200 text-sky-700 hover:bg-sky-50'
-              }`}
-              title="Show / Expand Lesson Controls, Notes & Progress Side Panel"
-            >
-              <ChevronLeft className="w-5 h-5" />
-              <span className="text-xs font-extrabold tracking-wide">Lesson Panel</span>
-            </button>
+              );
+            })}
           </div>
-        ) : (
-          <Suspense fallback={<SidebarSkeleton />}>
-            <RightSidebar
-              lessonId={selectedLessonId}
-              lessonTitle={activeLessonFull.title}
-              isCompleted={isCompleted}
-              isBookmarked={isBookmarked}
-              resources={activeLessonFull.resources}
-              downloads={(activeLessonFull as any).downloads}
-              onToggleComplete={handleToggleComplete}
-              onNextLesson={handleNextLesson}
-              onToggleBookmark={handleToggleBookmark}
-              completedCount={validCompletedCount}
-              totalLessons={allLessons.length}
-              isNightMode={isNightMode}
-              onCollapse={() => setIsRightSidebarCollapsed(true)}
-            />
-          </Suspense>
-        )}
-      </div>
+
+          {/* Achievements Badge Section */}
+          <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 font-mono text-slate-200 mt-6 shadow-xl space-y-4">
+            <h3 className="text-sm font-black uppercase text-cyan-400 tracking-wider flex items-center gap-2 border-b border-slate-800 pb-2">
+              <span>🏆 UNLOCKED ACHIEVEMENTS</span>
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {STATIC_BADGES.map(badge => {
+                const isUnlocked = new BadgeService().getEarnedBadges(studentUid).some(b => b.id === badge.id);
+                return (
+                  <div
+                    key={badge.id}
+                    className={`p-3.5 rounded-2xl border text-center flex flex-col items-center justify-center gap-2 transition-all relative overflow-hidden ${
+                      isUnlocked
+                        ? 'bg-slate-950/40 border-cyan-500/40 text-white shadow-[0_0_10px_rgba(6,182,212,0.1)]'
+                        : 'bg-slate-950/10 border-slate-900/60 text-slate-600 opacity-60'
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs ${
+                      isUnlocked ? 'bg-cyan-500/20 text-cyan-400' : 'bg-slate-950 text-slate-700'
+                    }`}>
+                      {isUnlocked ? '🏆' : '🔒'}
+                    </div>
+                    <div className="text-[10px] font-black uppercase tracking-tight truncate w-full font-sans">
+                      {badge.name}
+                    </div>
+                    <div className="text-[8px] text-slate-500 font-sans leading-tight">
+                      {badge.description}
+                    </div>
+                    <div className="text-[9px] font-bold mt-1">
+                      {isUnlocked ? (
+                        <span className="text-emerald-400 font-sans">✓ Unlocked</span>
+                      ) : (
+                        <span className="text-slate-700 font-sans">🔒 Locked</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Course Completion Congratulations Card */}
+          {isCourseFullyCompleted && (
+            <div className="bg-slate-900 border-2 border-cyan-500/50 rounded-3xl p-8 font-mono text-slate-200 mt-6 shadow-[0_0_25px_rgba(6,182,212,0.15)] text-center space-y-6 relative overflow-hidden animate-in zoom-in duration-300">
+              <div className="absolute inset-0 bg-radial-gradient(circle at center, rgba(6,182,212,0.1), transparent) pointer-events-none" />
+              <div className="text-4xl">🏆</div>
+              <h2 className="text-2xl font-black text-cyan-400 tracking-wider">COURSE COMPLETE!</h2>
+              <div className="space-y-1">
+                <h3 className="text-lg font-bold text-white uppercase">{courseTitle}</h3>
+                <p className="text-xs text-emerald-400 font-extrabold uppercase tracking-widest">100% COMPLETE</p>
+              </div>
+              
+              <div className="max-w-xs mx-auto bg-slate-950/80 border border-slate-800 rounded-2xl p-4 space-y-1 shadow-inner">
+                <div className="text-[10px] text-slate-500 font-black uppercase">Total XP Earned</div>
+                <div className="text-2xl font-black text-amber-400">⚡ {courseService.getUserXPPoints(studentUid)} XP</div>
+              </div>
+
+              {currentCert ? (
+                <div className="flex flex-col items-center gap-3">
+                  <span className="text-xs text-emerald-400 font-bold">🎓 Certificate Unlocked & Generated!</span>
+                  <button
+                    onClick={() => {
+                      setShowCongrats(true);
+                      soundService.play('select');
+                    }}
+                    className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black rounded-xl hover:shadow-[0_0_15px_rgba(16,185,129,0.4)] cursor-pointer transition-all active:scale-95 text-xs uppercase"
+                  >
+                    View Certificate
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-3">
+                  <span className="text-xs text-slate-500 font-bold">Ready to claim your credential?</span>
+                  <button
+                    onClick={() => {
+                      triggerCertificateGeneration();
+                      soundService.play('unlock');
+                    }}
+                    className="px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-500 text-slate-950 font-black rounded-xl hover:shadow-[0_0_15px_rgba(6,182,212,0.4)] cursor-pointer transition-all active:scale-95 text-xs uppercase"
+                  >
+                    Claim Certificate
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      ) : (
+        <ChallengeArena
+          challenge={getChallengeForLesson(
+            courseTitle,
+            String(selectedLessonId),
+            activeLessonFull.title,
+            activeLessonFull.content,
+            allLessons
+          )}
+          isCompleted={isCompleted}
+          onToggleComplete={handleToggleComplete}
+          onNextLesson={handleNextChallenge}
+          hasNextLesson={hasNextLesson}
+          onBackToMap={() => {
+            setActiveView('map');
+            soundService.play('select');
+          }}
+          lessonContent={activeLessonFull.content}
+          courseId={String(courseId)}
+        />
+      )}
+
 
       {/* Floating AI Learning Assistant Trigger Button */}
       <button
@@ -1186,6 +1440,43 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         />
       )}
 
+      {/* Badge Unlock Celebration Overlay */}
+      {unlockedBadge && (
+        <div className="fixed inset-0 z-80 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-slate-900 border-2 border-amber-500/50 rounded-3xl p-6 max-w-sm w-full text-center space-y-4 shadow-[0_0_30px_rgba(245,158,11,0.2)] animate-in zoom-in-95 duration-350 relative font-mono text-slate-200">
+            <button
+              onClick={() => {
+                setUnlockedBadge(null);
+                soundService.play('select');
+              }}
+              className="absolute top-3 right-3 text-slate-500 hover:text-slate-305 font-black cursor-pointer text-xs"
+            >
+              ✕
+            </button>
+            <div className="text-3xl">🏆</div>
+            <h3 className="text-xs font-black tracking-widest text-amber-500 uppercase font-mono">
+              BADGE UNLOCKED!
+            </h3>
+            <div className="space-y-1">
+              <h4 className="text-lg font-black text-white uppercase font-sans">
+                {unlockedBadge.name}
+              </h4>
+              <p className="text-xs text-slate-400 font-sans leading-relaxed">
+                {unlockedBadge.description}
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setUnlockedBadge(null);
+                soundService.play('select');
+              }}
+              className="w-full py-2.5 bg-slate-950 hover:bg-slate-900 border border-slate-800 hover:border-amber-500/50 text-amber-400 font-bold rounded-xl text-xs uppercase cursor-pointer transition-all active:scale-95 font-mono"
+            >
+              AWESOME!
+            </button>
+          </div>
+        </div>
+      )}
       {/* Course Exit Confirmation Modal */}
       <CourseActionConfirmModal
         isOpen={isExitConfirmOpen}
