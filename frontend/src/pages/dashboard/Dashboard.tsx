@@ -20,6 +20,7 @@ import {
   Layers,
   Video,
   Calendar,
+  Link2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -667,6 +668,43 @@ export const Dashboard: React.FC = () => {
     }
   };
 
+  const handleShareToLinkedIn = (cert: Certificate) => {
+    let issueYear = new Date().getFullYear();
+    let issueMonth = new Date().getMonth() + 1;
+    if (cert.completionDate) {
+      try {
+        const parsedDate = new Date(cert.completionDate);
+        if (!isNaN(parsedDate.getTime())) {
+          issueYear = parsedDate.getFullYear();
+          issueMonth = parsedDate.getMonth() + 1;
+        }
+      } catch {}
+    }
+    const certUrl = `${window.location.origin}/verify-certificate/${cert.verificationId}`;
+    const linkedinUrl = `https://www.linkedin.com/profile/add?startTask=CERTIFICATION&name=${encodeURIComponent(cert.courseTitle)}&organizationName=KaizenQ&issueYear=${issueYear}&issueMonth=${issueMonth}&certId=${cert.verificationId}&certUrl=${encodeURIComponent(certUrl)}`;
+    window.open(linkedinUrl, '_blank');
+  };
+
+  const handleShareToTwitter = (cert: Certificate) => {
+    const certUrl = `${window.location.origin}/verify-certificate/${cert.verificationId}`;
+    const text = `🏆 I am thrilled to share that I have successfully completed the "${cert.courseTitle}" course on KaizenQ LMS! Check out my verified digital certificate here:`;
+    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(certUrl)}`;
+    window.open(twitterUrl, '_blank');
+  };
+
+  const handleShareToGitHub = (cert: Certificate) => {
+    const certUrl = `${window.location.origin}/verify-certificate/${cert.verificationId}`;
+    const badgeMarkdown = `[![KaizenQ Certification](https://img.shields.io/badge/KaizenQ-Certified-${encodeURIComponent(cert.courseTitle.includes('Git') ? 'Git_Mastery' : 'Mastery')}-blue?logo=github)](${certUrl})`;
+    navigator.clipboard.writeText(badgeMarkdown);
+    toast.success("✨ GitHub README Markdown badge copied to clipboard! Paste it into your profile README.md.");
+  };
+
+  const handleCopyVerificationLink = (cert: Certificate) => {
+    const certUrl = `${window.location.origin}/verify-certificate/${cert.verificationId}`;
+    navigator.clipboard.writeText(certUrl);
+    toast.success("📋 Verification link copied to clipboard!");
+  };
+
   // Active courses (progress > 0 and < 100)
   let activeLearningCourses = coursesProgress.filter((c) => c.percentage > 0 && c.percentage < 100);
   if (activeLearningCourses.length === 0 && coursesProgress.length > 0) {
@@ -874,97 +912,6 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* AI-Powered Semantic Search & Insights Section (Students Only) */}
-          {userProfile?.role !== 'instructor' && (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              {/* AI Insights & Weakness Widget */}
-              <div className="lg:col-span-8 bg-linear-to-br from-indigo-900 to-slate-900 border border-indigo-500/30 rounded-3xl p-6 shadow-xl shadow-indigo-900/20 space-y-5 relative overflow-hidden">
-                {/* Decorative background effects */}
-                <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 blur-3xl rounded-full translate-x-1/3 -translate-y-1/4 pointer-events-none" />
-                
-                <h3 className="font-heading font-extrabold text-lg text-white flex items-center gap-2 relative z-10">
-                  <div className="p-2 bg-indigo-500/20 rounded-xl border border-indigo-400/30">
-                    <Bot className="w-5 h-5 text-indigo-300 animate-pulse" />
-                  </div>
-                  <span>AI Tutor Insights & Revisions</span>
-                </h3>
-                
-                {weakTopics.length > 0 ? (
-                  <div className="space-y-4 relative z-10">
-                    <div className="p-3.5 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-xs text-rose-200 font-medium leading-relaxed flex items-start gap-3 backdrop-blur-sm">
-                      <span className="text-base mt-0.5">⚠️</span>
-                      <p><strong>AI Diagnostics:</strong> We noticed you spent extra time on these topics. Revisit them with the AI Tutor to strengthen your foundation.</p>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {weakTopics.slice(0, 2).map((wt, i) => (
-                        <div key={i} className="p-4 bg-white/5 border border-white/10 rounded-2xl space-y-2 hover:bg-white/10 hover:border-indigo-400/50 transition-all backdrop-blur-xs group">
-                          <div className="flex justify-between items-start gap-2">
-                            <span className="font-bold text-sm text-indigo-100 group-hover:text-white transition-colors">{wt.topic}</span>
-                            <span className="text-[10px] font-bold text-rose-300 bg-rose-500/20 px-2 py-0.5 rounded border border-rose-500/30 font-mono shrink-0">
-                              Score: {wt.score}%
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-indigo-200/70 leading-relaxed font-medium">{wt.struggleReason}</p>
-                          <div className="text-[10px] font-bold text-emerald-300 pt-2 flex items-center gap-1.5 border-t border-white/5 mt-2">
-                            <Zap className="w-3.5 h-3.5 text-emerald-400" />
-                            <span>Action: {wt.remedyAction}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-6 text-center space-y-2 relative z-10 bg-white/5 rounded-2xl border border-white/10 border-dashed">
-                    <Bot className="w-8 h-8 text-indigo-400/50 mb-1" />
-                    <p className="text-sm font-bold text-indigo-100">You're doing great!</p>
-                    <p className="text-xs text-indigo-300/70 italic font-medium max-w-sm">Keep reading and taking quizzes. The AI Tutor will compile custom weak topic alerts here if you struggle.</p>
-                  </div>
-                )}
-              </div>
-
-              {/* AI Semantic Search Box */}
-              <div className="lg:col-span-4 bg-white dark:bg-zinc-900 border border-sky-100 dark:border-zinc-800 rounded-3xl p-6 shadow-xs space-y-4">
-                <h3 className="font-heading font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
-                  <FolderSearch className="w-5 h-5 text-indigo-500" />
-                  <span>AI Semantic Course Search</span>
-                </h3>
-                <form onSubmit={handleAiSearch} className="flex gap-2">
-                  <input
-                    type="text"
-                    value={aiSearchQuery}
-                    onChange={(e) => setAiSearchQuery(e.target.value)}
-                    placeholder="e.g. Learn how to manage users and access rights..."
-                    className="flex-1 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl p-2.5 text-xs text-slate-900 dark:text-zinc-100 focus:outline-hidden focus:border-purple-600"
-                  />
-                  <button type="submit" className="bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all cursor-pointer">
-                    Search
-                  </button>
-                </form>
-
-                {isAiSearching && (
-                  <div className="flex items-center gap-1.5 text-xs text-slate-400 animate-pulse font-medium">
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>AI reasoning matches...</span>
-                  </div>
-                )}
-
-                {aiSearchResults.length > 0 && (
-                  <div className="space-y-2">
-                    <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest block">AI Recommended Matches</span>
-                    {aiSearchResults.map(match => (
-                      <Link
-                        key={match.id}
-                        to={`/course/${match.slug || match.id}`}
-                        className="block p-2.5 bg-sky-50/50 dark:bg-zinc-800/80 border border-sky-100 dark:border-zinc-700 rounded-xl hover:border-sky-300 text-xs font-bold text-sky-800 dark:text-sky-400 transition-all truncate"
-                      >
-                        {match.title}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
 
           {/* Instructor Mode: Student Roster & Profile Cards Widget */}
           {userProfile?.role === 'instructor' && (
@@ -1434,15 +1381,15 @@ export const Dashboard: React.FC = () => {
                 )}
 
                 {/* Bars Grid */}
-                <div className={`h-48 flex items-end justify-between ${chartTimeframe === '7d' ? 'gap-3 sm:gap-6 px-2' : 'gap-1 px-1 overflow-x-auto pb-1 scrollbar-none'}`}>
+                <div className={`h-48 flex items-end justify-between ${chartTimeframe === '7d' ? 'gap-3 sm:gap-6 px-2' : 'gap-3 sm:gap-4 px-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-purple-200 dark:scrollbar-thumb-zinc-800'}`}>
                   {weeklyChartData.map((item, idx) => {
                     const isHovered = hoveredDayIndex === idx;
                     return (
                       <div
                         key={item.dateStr}
                         onMouseEnter={() => setHoveredDayIndex(idx)}
-                        className={`flex-1 flex flex-col items-center gap-1.5 h-full justify-end group cursor-pointer ${
-                          chartTimeframe === '30d' ? 'min-w-[28px]' : ''
+                        className={`flex flex-col items-center gap-1.5 h-full justify-end group cursor-pointer shrink-0 ${
+                          chartTimeframe === '30d' ? 'w-[40px] sm:w-[48px]' : 'flex-1 max-w-[54px]'
                         }`}
                       >
                         <span className={`text-[10px] font-extrabold transition-all duration-200 ${
@@ -1455,7 +1402,7 @@ export const Dashboard: React.FC = () => {
                           {item.hours}h
                         </span>
 
-                        <div className={`w-full ${chartTimeframe === '7d' ? 'max-w-[54px]' : 'max-w-[32px]'} bg-slate-200/80 dark:bg-zinc-800/80 rounded-2xl h-full flex items-end p-1 transition-all overflow-hidden relative ${
+                        <div className={`w-full bg-slate-200/80 dark:bg-zinc-800/80 rounded-2xl h-full flex items-end p-1 transition-all overflow-hidden relative ${
                           item.isToday ? 'ring-2 ring-purple-500/50 dark:ring-cyan-500/50 shadow-md shadow-purple-500/10' : ''
                         }`}>
                           <div
@@ -1700,6 +1647,54 @@ export const Dashboard: React.FC = () => {
                             <ExternalLink className="w-4 h-4 text-sky-500 dark:text-cyan-400" />
                             <span>Verify Credential</span>
                           </a>
+
+                          {/* Share Credential Row */}
+                          <div className="border-t border-slate-100 dark:border-slate-850 my-2 pt-2">
+                            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-2 text-left">Share Credential</span>
+                            <div className="grid grid-cols-4 gap-2">
+                              {/* LinkedIn Share */}
+                              <button
+                                onClick={() => handleShareToLinkedIn(cert)}
+                                className="py-2 px-1.5 rounded-lg bg-sky-50 dark:bg-sky-950/40 hover:bg-[#0A66C2] hover:text-white dark:hover:bg-[#0A66C2] text-[#0A66C2] border border-sky-100 dark:border-sky-900/60 transition-all flex items-center justify-center cursor-pointer shadow-3xs"
+                                title="Add to LinkedIn Profile"
+                              >
+                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                  <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75 1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                                </svg>
+                              </button>
+
+                              {/* Twitter Share */}
+                              <button
+                                onClick={() => handleShareToTwitter(cert)}
+                                className="py-2 px-1.5 rounded-lg bg-sky-50 dark:bg-sky-950/40 hover:bg-slate-900 hover:text-white dark:hover:bg-white dark:hover:text-black text-slate-800 dark:text-slate-200 border border-sky-100 dark:border-sky-900/60 transition-all flex items-center justify-center cursor-pointer shadow-3xs"
+                                title="Share on X / Twitter"
+                              >
+                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                                </svg>
+                              </button>
+
+                              {/* GitHub Share */}
+                              <button
+                                onClick={() => handleShareToGitHub(cert)}
+                                className="py-2 px-1.5 rounded-lg bg-sky-50 dark:bg-sky-950/40 hover:bg-slate-900 hover:text-white dark:hover:bg-white dark:hover:text-black text-slate-800 dark:text-slate-200 border border-sky-100 dark:border-sky-900/60 transition-all flex items-center justify-center cursor-pointer shadow-3xs"
+                                title="Copy GitHub README Badge"
+                              >
+                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                  <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
+                                </svg>
+                              </button>
+
+                              {/* Copy Link */}
+                              <button
+                                onClick={() => handleCopyVerificationLink(cert)}
+                                className="py-2 px-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-900 hover:text-white dark:hover:bg-cyan-600 dark:hover:text-white text-slate-600 dark:text-slate-300 border border-slate-250 dark:border-slate-700 transition-all flex items-center justify-center cursor-pointer shadow-3xs"
+                                title="Copy Verification Link"
+                              >
+                                <Link2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))}

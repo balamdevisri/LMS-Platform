@@ -1204,6 +1204,14 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
     return () => clearInterval(interval);
   }, [activeModuleIdx, currentLessonIdx, currentSubtopicIdx]);
 
+  // Lock body scroll when course player is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
+
   const remainingSeconds = Math.max(0, requiredSubtopicSeconds - timerSeconds);
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60);
@@ -1315,6 +1323,15 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
       const updatedXP = courseService.addXPPoints(50);
       setUserXP(updatedXP);
       setClaimedPointsModules([...claimedPointsModules, activeModuleIdx]);
+      courseService.addXPClaim({
+        id: `mod_claim_${Date.now()}`,
+        title: `🎁 Module Mastery: Module 0${activeModuleIdx + 1}`,
+        xp: 50,
+        category: 'Module Completion Bonus',
+        timestamp: new Date().toISOString(),
+        courseId: course.id,
+        courseTitle: course.title,
+      });
       toast.success(`🎁 +50 Module Mastery XP Claimed! Total: ${updatedXP} XP`);
     }
 
@@ -1724,7 +1741,7 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
         </aside>
 
         {/* RIGHT MAIN CLASSROOM CONTENT VIEWER */}
-        <main className={`flex-1 p-4 sm:p-10 flex flex-col justify-between overflow-y-auto space-y-8 transition-colors ${
+        <main className={`flex-1 p-4 sm:p-10 flex flex-col justify-between overflow-y-auto overflow-x-hidden [overscroll-behavior-y:contain] [-webkit-overflow-scrolling:touch] space-y-8 transition-colors ${
           isReadingMode ? 'bg-[#faf6ee]' : 'bg-slate-50'
         }`}>
           <div className="space-y-8 max-w-5xl mx-auto w-full">

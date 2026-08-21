@@ -356,6 +356,15 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
     };
   }, [selectedLessonId]);
 
+  // Lock body scroll when learning view is open (prevents scrolling conflicts on mobile browsers)
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
+
+
   useEffect(() => {
     try {
       localStorage.setItem(`shaivika_completed_${courseId}`, JSON.stringify(completedLessonIds));
@@ -834,7 +843,7 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`fixed inset-0 z-60 font-sans flex flex-col overflow-y-auto transition-colors duration-300 ${
+      className={`fixed inset-0 z-60 font-sans flex flex-col overflow-y-auto overflow-x-hidden [overscroll-behavior-y:contain] [-webkit-overflow-scrolling:touch] transition-colors duration-300 ${
         isNightMode
           ? 'bg-slate-950 text-slate-100 selection:bg-cyan-500 selection:text-slate-950'
           : 'bg-slate-50 text-slate-900 selection:bg-sky-500 selection:text-white'

@@ -11,4 +11,6 @@
 - [x] Update `RightSidebar.tsx` to dynamically load resources and downloads
 - [x] Modify `AITutorDrawer.tsx` to dynamically handle questions based on active lesson content, avoiding hardcoded Linux/Git defaults
 - [x] Refactor `quizEngine.ts` to dynamically generate quiz questions based *only* on the active lesson's title and content
-- [/] Compile and verify the build
+- [x] Compile and verify the build
+- [x] Remove "AI Tutor Insights & Revisions" and "AI Semantic Course Search" widgets from the student dashboard
+- [x] Fix and optimize scrolling in course learning views on mobile devices

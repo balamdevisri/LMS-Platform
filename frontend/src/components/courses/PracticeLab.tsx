@@ -688,6 +688,15 @@ export const PracticeLab: React.FC<PracticeLabProps> = ({
         toast.success(`🎉 All ${summary.passedCount} test cases PASSED! +50 XP Awarded!`);
         // Award XP using course service
         courseService.addXPPoints(50);
+        courseService.addXPClaim({
+          id: `lab_claim_${Date.now()}`,
+          title: `Completed Lab: ${activeChallenge.title}`,
+          xp: 50,
+          category: 'Practice Challenge Completion',
+          timestamp: new Date().toISOString(),
+          courseId: courseId || 'practice_hub',
+          courseTitle: courseTitle || 'Practice Hub',
+        });
         // Log activity
         try {
           const cached = localStorage.getItem('shaivika_user_activities');
