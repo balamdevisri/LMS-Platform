@@ -241,9 +241,7 @@ export const Profile: React.FC = () => {
         }
       };
 
-      // 1. Query the student's certificates on backend to see if it's already there
       const verifyRes = await fetch(`${apiBase}/certificates/student/${studentEmail}`);
-      const verifyRes = await fetch(`${API_BASE_URL}/certificates/student/${studentEmail}`);
       if (verifyRes.ok) {
         const contentType = verifyRes.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
@@ -288,7 +286,6 @@ export const Profile: React.FC = () => {
       };
 
       const deliverRes = await safeFetchJson(`${apiBase}/certificates/complete-and-deliver`, {
-      const response = await fetch(`${API_BASE_URL}/certificates/complete-and-deliver`, {
         method: 'POST',
         headers: getHeaders(token),
         body: JSON.stringify({

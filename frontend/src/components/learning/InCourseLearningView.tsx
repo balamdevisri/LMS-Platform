@@ -18,8 +18,7 @@ const AITutorDrawer = lazy(() => import('./AITutorDrawer').then(m => ({ default:
 import { CertificatePreviewModal } from '../courses/CertificatePreviewModal';
 import { CertificateService, BadgeService, AchievementService, XPService, STATIC_BADGES } from '@/services/achievementService';
 import { CourseActionConfirmModal } from '../courses/CourseActionConfirmModal';
-import { API_BASE_URL } from '@/config/api';
-import { CertificateService } from '@/services/achievementService';
+
 import { assignmentService } from '@/services/assignmentService';
 
 export function calculateEstimatedDuration(content: string, commandCount: number = 0): string {
@@ -531,7 +530,6 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
 
       // Sync state to backend before generation trigger
       let syncResult = await safeFetchJson(`${apiBase}/certificates/sync-state`, {
-      let syncRes = await fetch(`${API_BASE_URL}/certificates/sync-state`, {
         method: 'POST',
         headers: getHeaders(token),
         body: JSON.stringify({
@@ -551,7 +549,6 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         try {
           token = await user.getIdToken(true);
           syncResult = await safeFetchJson(`${apiBase}/certificates/sync-state`, {
-          syncRes = await fetch(`${API_BASE_URL}/certificates/sync-state`, {
             method: 'POST',
             headers: getHeaders(token),
             body: JSON.stringify({
@@ -570,7 +567,6 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
 
       // Complete and deliver
       let deliveryResult = await safeFetchJson(`${apiBase}/certificates/complete-and-deliver`, {
-      let res = await fetch(`${API_BASE_URL}/certificates/complete-and-deliver`, {
         method: 'POST',
         headers: getHeaders(token),
         body: JSON.stringify({
@@ -594,7 +590,6 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         try {
           token = await user.getIdToken(true);
           deliveryResult = await safeFetchJson(`${apiBase}/certificates/complete-and-deliver`, {
-          res = await fetch(`${API_BASE_URL}/certificates/complete-and-deliver`, {
             method: 'POST',
             headers: getHeaders(token),
             body: JSON.stringify({
@@ -985,8 +980,6 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         onNextLesson={handleNextLesson}
         hasPrevLesson={hasPrevLesson}
         hasNextLesson={hasNextLesson && isCompleted}
-        onBackToCourseDetails={onBackToCourseDetails}
-        hasNextLesson={hasNextLesson}
         onBackToCourseDetails={() => setIsExitConfirmOpen(true)}
         userAvatar={userAvatar}
         userName={userName}

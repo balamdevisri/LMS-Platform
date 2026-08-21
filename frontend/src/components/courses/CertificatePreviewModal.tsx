@@ -3,7 +3,6 @@ import { Award, Copy, Printer, Share2, X, Check, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Certificate } from '../../services/achievementService';
 import { useAuth } from '@/contexts/AuthContext';
-import { API_BASE_URL } from '@/config/api';
 
 interface CertificatePreviewModalProps {
   certificate: Certificate;
@@ -50,24 +49,15 @@ export const CertificatePreviewModal: React.FC<CertificatePreviewModalProps> = (
 
   const safeVerificationId = certificate.verificationId || '';
   const verificationUrl = safeVerificationId
-    ? `${import.meta.env.VITE_API_URL || '/api'}/certificates/verify/${safeVerificationId}?studentId=${dynamicStudentId}`
+    ? `/api/certificates/verify/${safeVerificationId}?studentId=${dynamicStudentId}`
     : '';
 
   const downloadUrl = safeVerificationId
-    ? `${import.meta.env.VITE_API_URL || '/api'}/certificates/download?certificateId=${safeVerificationId}&studentId=${dynamicStudentId}&studentName=${encodeURIComponent(dynamicStudentName)}&courseTitle=${encodeURIComponent(dynamicCourseTitle)}&completionDate=${encodeURIComponent(dynamicDate)}&courseId=${certificate.courseId}`
+    ? `/api/certificates/download?certificateId=${safeVerificationId}&studentId=${dynamicStudentId}&studentName=${encodeURIComponent(dynamicStudentName)}&courseTitle=${encodeURIComponent(dynamicCourseTitle)}&completionDate=${encodeURIComponent(dynamicDate)}&courseId=${certificate.courseId}`
     : '';
 
   const previewUrl = safeVerificationId
-    ? `${import.meta.env.VITE_API_URL || '/api'}/certificates/preview?certificateId=${safeVerificationId}&studentId=${dynamicStudentId}&studentName=${encodeURIComponent(dynamicStudentName)}&courseTitle=${encodeURIComponent(dynamicCourseTitle)}&completionDate=${encodeURIComponent(dynamicDate)}&courseId=${certificate.courseId}#toolbar=0&navpanes=0&scrollbar=0&view=Fit`
-    ? `${API_BASE_URL}/certificates/verify/${safeVerificationId}?studentId=${dynamicStudentId}`
-    : '';
-
-  const downloadUrl = safeVerificationId
-    ? `${API_BASE_URL}/certificates/download?certificateId=${safeVerificationId}&studentId=${dynamicStudentId}&studentName=${encodeURIComponent(dynamicStudentName)}&courseTitle=${encodeURIComponent(dynamicCourseTitle)}&completionDate=${encodeURIComponent(dynamicDate)}&courseId=${certificate.courseId}`
-    : '';
-
-  const previewUrl = safeVerificationId
-    ? `${API_BASE_URL}/certificates/preview?certificateId=${safeVerificationId}&studentId=${dynamicStudentId}&studentName=${encodeURIComponent(dynamicStudentName)}&courseTitle=${encodeURIComponent(dynamicCourseTitle)}&completionDate=${encodeURIComponent(dynamicDate)}&courseId=${certificate.courseId}#toolbar=0&navpanes=0&scrollbar=0&view=Fit`
+    ? `/api/certificates/preview?certificateId=${safeVerificationId}&studentId=${dynamicStudentId}&studentName=${encodeURIComponent(dynamicStudentName)}&courseTitle=${encodeURIComponent(dynamicCourseTitle)}&completionDate=${encodeURIComponent(dynamicDate)}&courseId=${certificate.courseId}#toolbar=0&navpanes=0&scrollbar=0&view=Fit`
     : '';
 
   const handleCopyId = async () => {

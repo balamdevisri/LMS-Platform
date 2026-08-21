@@ -19,6 +19,8 @@ import {
   Video,
   Calendar,
   Link2,
+  FolderSearch,
+  RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -90,6 +92,26 @@ export const Dashboard: React.FC = () => {
   const [aiSearchResults, setAiSearchResults] = useState<ICourse[]>([]);
   const [isAiSearching, setIsAiSearching] = useState(false);
   const [weakTopics, setWeakTopics] = useState<any[]>([]);
+
+  const handleAiSearch = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+    if (!aiSearchQuery.trim()) return;
+    setIsAiSearching(true);
+    setTimeout(() => {
+      const query = aiSearchQuery.toLowerCase();
+      const matches = enrolledCourses.filter(c => 
+        c.title.toLowerCase().includes(query) || 
+        c.description?.toLowerCase().includes(query)
+      );
+      setAiSearchResults(matches);
+      setIsAiSearching(false);
+    }, 500);
+  }, [aiSearchQuery, enrolledCourses]);
+
+  useEffect(() => {
+    setWeakTopics([]);
+  }, []);
+
   const badgeService = useMemo(() => new BadgeService(), []);
   const streakService = useMemo(() => new AchievementService(), []);
 
@@ -414,8 +436,6 @@ export const Dashboard: React.FC = () => {
         }
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
-        const response = await fetch(`${API_BASE_URL}/certificates/student/${studentEmail}`);
-        if (response.ok) {
           const resData = await response.json();
           if (resData.success && Array.isArray(resData.data)) {
             resData.data.forEach((backendCert: any) => {
@@ -434,8 +454,6 @@ export const Dashboard: React.FC = () => {
               localStorage.setItem(`shaivika_cert_synced_${mappedCert.verificationId}`, 'true');
             });
           }
-        } else {
-          console.warn(`[Dashboard Sync] Response ok but not JSON: ${response.statusText}`);
         }
       } catch (err) {
         console.warn('Failed to fetch certificates from backend registry:', err);
@@ -520,7 +538,6 @@ export const Dashboard: React.FC = () => {
           };
 
           let syncRes = await safeFetchJson(`${apiBase}/certificates/complete-and-deliver`, {
-          let response = await fetch(`${API_BASE_URL}/certificates/complete-and-deliver`, {
             method: 'POST',
             headers: getHeaders(token),
             body: JSON.stringify({
@@ -546,7 +563,6 @@ export const Dashboard: React.FC = () => {
             try {
               token = await user.getIdToken(true);
               syncRes = await safeFetchJson(`${apiBase}/certificates/complete-and-deliver`, {
-              response = await fetch(`${API_BASE_URL}/certificates/complete-and-deliver`, {
                 method: 'POST',
                 headers: getHeaders(token),
                 body: JSON.stringify({
@@ -635,9 +651,7 @@ export const Dashboard: React.FC = () => {
         }
       };
 
-      // 1. Query the student's certificates on backend to see if it's already there
       const verifyRes = await fetch(`${apiBase}/certificates/student/${studentEmail}`);
-      const verifyRes = await fetch(`${API_BASE_URL}/certificates/student/${studentEmail}`);
       if (verifyRes.ok) {
         const contentType = verifyRes.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
@@ -683,7 +697,6 @@ export const Dashboard: React.FC = () => {
       };
 
       const deliverRes = await safeFetchJson(`${apiBase}/certificates/complete-and-deliver`, {
-      const response = await fetch(`${API_BASE_URL}/certificates/complete-and-deliver`, {
         method: 'POST',
         headers: getHeaders(token),
         body: JSON.stringify({

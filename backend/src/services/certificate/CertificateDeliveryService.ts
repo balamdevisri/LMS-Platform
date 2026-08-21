@@ -606,30 +606,15 @@ export class CertificateDeliveryService {
           };
         }
 
-        const downloadUrl = `${env.BACKEND_URL || 'http://localhost:5000'}/api/certificates/download?certificateId=dots`;
-        const verifyUrl = `${env.FRONTEND_URL || 'http://localhost:5173'}/verify-certificate/dots`;
-    // Direct download and verification URL preparation
-    const downloadUrl = `${env.BACKEND_URL || 'http://localhost:5000'}/api/certificates/download?certificateId=${certificateId}&studentId=${payload.studentId}&studentName=${encodeURIComponent(payload.studentName)}&courseTitle=${encodeURIComponent(payload.courseTitle)}&completionDate=${encodeURIComponent(completionDate)}`;
-    const primaryFrontend = (env.FRONTEND_URL || 'https://www.kaizenq.in').split(',')[0].trim();
-    const verifyUrl = `${primaryFrontend}/verify-certificate/${certificateId}?studentId=${payload.studentId}`;
+        // Direct download and verification URL preparation
+        const downloadUrl = `${env.BACKEND_URL || 'http://localhost:5000'}/api/certificates/download?certificateId=${certificateId}&studentId=${payload.studentId}&studentName=${encodeURIComponent(payload.studentName)}&courseTitle=${encodeURIComponent(payload.courseTitle)}&completionDate=${encodeURIComponent(completionDate)}`;
+        const primaryFrontend = (env.FRONTEND_URL || 'https://www.kaizenq.in').split(',')[0].trim();
+        const verifyUrl = `${primaryFrontend}/verify-certificate/${certificateId}?studentId=${payload.studentId}`;
 
-    // Step 4: Send Professional Email via Nodemailer SMTP with PDF Attachment & Direct Download Link
-    const emailSubject = `Congratulations! Your Course Certificate is Ready`;
-    const courseDescription = this.getCourseDescription(payload.courseId, payload.courseTitle);
-    const pdfFileName = `${certificateId}.pdf`;
-    const htmlEmailContent = this.buildCertificateEmailHtml({
-      studentName: payload.studentName,
-      courseTitle: payload.courseTitle,
-      certificateId,
-      completionDate,
-      googleDriveLink: downloadUrl,
-      verifyUrl,
-      courseDescription,
-    });
-
-        // Send Email
+        // Step 4: Send Professional Email via Nodemailer SMTP with PDF Attachment & Direct Download Link
         const emailSubject = `Congratulations! Your Course Certificate is Ready`;
         const courseDescription = this.getCourseDescription(payload.courseId, payload.courseTitle);
+        const pdfFileName = `${certificateId}.pdf`;
         const htmlEmailContent = this.buildCertificateEmailHtml({
           studentName: payload.studentName,
           courseTitle: payload.courseTitle,
