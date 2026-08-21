@@ -165,27 +165,56 @@ export const Profile: React.FC = () => {
       const studentId = userId;
       const studentName = userProfile?.name || user?.displayName || 'Scholar student';
 
+      const apiBase = import.meta.env.VITE_API_URL || '/api';
+
+      const safeFetchJson = async (url: string, options: RequestInit) => {
+        try {
+          const res = await fetch(url, options);
+          if (!res.ok) {
+            console.error(`[API ERROR] ${options.method || 'GET'} ${url} returned ${res.status} ${res.statusText}`);
+            const contentType = res.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+              const errData = await res.json();
+              return { success: false, status: res.status, error: errData.error || errData.message || res.statusText };
+            }
+            return { success: false, status: res.status, error: `HTTP ${res.status}: ${res.statusText}` };
+          }
+          const contentType = res.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const data = await res.json();
+            return { success: true, status: res.status, data };
+          }
+          return { success: true, status: res.status, data: {} };
+        } catch (fetchErr) {
+          console.error(`[API NETWORK ERROR] Failed to fetch ${url}:`, fetchErr);
+          throw fetchErr;
+        }
+      };
+
       // 1. Query the student's certificates on backend to see if it's already there
-      const verifyRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/student/${studentEmail}`);
+      const verifyRes = await fetch(`${apiBase}/certificates/student/${studentEmail}`);
       if (verifyRes.ok) {
-        const verifyData = await verifyRes.json();
-        if (verifyData.success && Array.isArray(verifyData.data)) {
-          const matched = verifyData.data.find((c: any) => String(c.courseId) === String(cert.courseId));
-          if (matched && matched.certificateId) {
-            const updated: Certificate = {
-              ...cert,
-              verificationId: matched.certificateId,
-              googleDriveLink: matched.pdfUrl || matched.googleDriveLink,
-            };
-            certificateService.saveExternalCertificate(studentId, updated);
-            
-            // Reload certs
-            setCerts(certificateService.getCertificates(studentId));
-            
-            toast.success('Certificate loaded successfully!', { id: toastId });
-            setSelectedCert(updated);
-            setLoadingCertId(null);
-            return;
+        const contentType = verifyRes.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const verifyData = await verifyRes.json();
+          if (verifyData.success && Array.isArray(verifyData.data)) {
+            const matched = verifyData.data.find((c: any) => String(c.courseId) === String(cert.courseId));
+            if (matched && matched.certificateId) {
+              const updated: Certificate = {
+                ...cert,
+                verificationId: matched.certificateId,
+                googleDriveLink: matched.pdfUrl || matched.googleDriveLink,
+              };
+              certificateService.saveExternalCertificate(studentId, updated);
+              
+              // Reload certs
+              setCerts(certificateService.getCertificates(studentId));
+              
+              toast.success('Certificate loaded successfully!', { id: toastId });
+              setSelectedCert(updated);
+              setLoadingCertId(null);
+              return;
+            }
           }
         }
       }
@@ -197,6 +226,9 @@ export const Profile: React.FC = () => {
           token = await user.getIdToken();
         } catch {}
       }
+      if (!token) {
+        token = localStorage.getItem('token') || localStorage.getItem('shaivika_auth_token');
+      }
 
       const getHeaders = (t: string | null) => {
         const h: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -204,7 +236,7 @@ export const Profile: React.FC = () => {
         return h;
       };
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/complete-and-deliver`, {
+      const deliverRes = await safeFetchJson(`${apiBase}/certificates/complete-and-deliver`, {
         method: 'POST',
         headers: getHeaders(token),
         body: JSON.stringify({
@@ -222,12 +254,12 @@ export const Profile: React.FC = () => {
         }),
       });
 
-      const data = await response.json();
-      if (response.ok && data.success) {
+      const deliverData = deliverRes.data || {};
+      if (deliverRes.success && deliverData.success) {
         const updated: Certificate = {
           ...cert,
-          verificationId: data.certificateId,
-          googleDriveLink: data.googleDriveLink,
+          verificationId: deliverData.certificateId,
+          googleDriveLink: deliverData.googleDriveLink,
         };
         certificateService.saveExternalCertificate(studentId, updated);
         
@@ -237,7 +269,7 @@ export const Profile: React.FC = () => {
         toast.success('Official Certificate generated successfully!', { id: toastId });
         setSelectedCert(updated);
       } else {
-        toast.error(data.error || 'Failed to retrieve official certificate.', { id: toastId });
+        toast.error(deliverRes.error || deliverData.error || 'Failed to retrieve official certificate.', { id: toastId });
       }
     } catch (err) {
       console.error(err);

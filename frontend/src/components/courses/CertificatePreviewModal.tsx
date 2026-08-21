@@ -44,15 +44,15 @@ export const CertificatePreviewModal: React.FC<CertificatePreviewModalProps> = (
 
   const safeVerificationId = certificate.verificationId || '';
   const verificationUrl = safeVerificationId
-    ? `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/verify/${safeVerificationId}?studentId=${dynamicStudentId}`
+    ? `${import.meta.env.VITE_API_URL || '/api'}/certificates/verify/${safeVerificationId}?studentId=${dynamicStudentId}`
     : '';
 
   const downloadUrl = safeVerificationId
-    ? `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/download?certificateId=${safeVerificationId}&studentId=${dynamicStudentId}&studentName=${encodeURIComponent(dynamicStudentName)}&courseTitle=${encodeURIComponent(dynamicCourseTitle)}&completionDate=${encodeURIComponent(dynamicDate)}&courseId=${certificate.courseId}`
+    ? `${import.meta.env.VITE_API_URL || '/api'}/certificates/download?certificateId=${safeVerificationId}&studentId=${dynamicStudentId}&studentName=${encodeURIComponent(dynamicStudentName)}&courseTitle=${encodeURIComponent(dynamicCourseTitle)}&completionDate=${encodeURIComponent(dynamicDate)}&courseId=${certificate.courseId}`
     : '';
 
   const previewUrl = safeVerificationId
-    ? `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/certificates/preview?certificateId=${safeVerificationId}&studentId=${dynamicStudentId}&studentName=${encodeURIComponent(dynamicStudentName)}&courseTitle=${encodeURIComponent(dynamicCourseTitle)}&completionDate=${encodeURIComponent(dynamicDate)}&courseId=${certificate.courseId}#toolbar=0&navpanes=0&scrollbar=0&view=Fit`
+    ? `${import.meta.env.VITE_API_URL || '/api'}/certificates/preview?certificateId=${safeVerificationId}&studentId=${dynamicStudentId}&studentName=${encodeURIComponent(dynamicStudentName)}&courseTitle=${encodeURIComponent(dynamicCourseTitle)}&completionDate=${encodeURIComponent(dynamicDate)}&courseId=${certificate.courseId}#toolbar=0&navpanes=0&scrollbar=0&view=Fit`
     : '';
 
   const handleCopyId = async () => {

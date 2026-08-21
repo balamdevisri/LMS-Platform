@@ -255,7 +255,14 @@ export class EmailService {
         };
       } catch (err: any) {
         lastError = err;
+        const errMsg = String(err?.message || err).toLowerCase();
         logger.error(`[SMTP ATTACHMENT EMAIL] ❌ Attempt ${attempt}/${maxRetries} Failed for ${recipientEmail}: ` + (err?.message || err));
+
+        const isAuthError = errMsg.includes('535') || errMsg.includes('username and password not accepted') || errMsg.includes('badcredentials');
+        if (isAuthError) {
+          logger.error(`[SMTP ATTACHMENT EMAIL] ❌ Authentication credentials rejected (SMTP 535). Failing fast without retries.`);
+          break;
+        }
 
         if (attempt < maxRetries) {
           const backoffMs = Math.pow(2, attempt) * 1000;

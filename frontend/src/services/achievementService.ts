@@ -66,94 +66,45 @@ export interface LeaderboardEntry {
 // Static Badges Catalogue
 export const STATIC_BADGES: Omit<Badge, 'earnedDate'>[] = [
   {
-    id: 'course-completed',
-    name: 'Course Completed',
-    description: 'Mastered a complete syllabus track.',
-    iconName: 'Award',
+    id: 'first-challenge',
+    name: 'First Challenge',
+    description: 'Complete your first challenge.',
+    iconName: 'Target',
     rarity: 'Common'
   },
   {
-    id: 'quiz-master',
-    name: 'Quiz Master',
-    description: 'Successfully cleared 5 or more quizzes.',
-    iconName: 'CheckCircle2',
-    rarity: 'Rare'
-  },
-  {
-    id: 'assignment-champion',
-    name: 'Assignment Champion',
-    description: 'Submitted 3 or more homework assignments.',
-    iconName: 'FileText',
-    rarity: 'Rare'
-  },
-  {
-    id: 'ai-learner',
-    name: 'AI Learner',
-    description: 'Engaged with the AI Learning Assistant 5 or more times.',
-    iconName: 'Bot',
-    rarity: 'Epic'
-  },
-  {
-    id: 'coding-expert',
-    name: 'Coding Expert',
-    description: 'Solved 3 or more Practice Lab sandbox tasks.',
-    iconName: 'Code',
-    rarity: 'Epic'
-  },
-  {
-    id: 'practice-lab-explorer',
-    name: 'Practice Lab Explorer',
-    description: 'Spent over 10 minutes debugging in the Practice Lab.',
-    iconName: 'Terminal',
-    rarity: 'Common'
-  },
-  {
-    id: 'fast-learner',
-    name: 'Fast Learner',
-    description: 'Completed a lesson unit under 30 seconds.',
+    id: 'xp-starter',
+    name: 'XP Starter',
+    description: 'Earn 100 XP.',
     iconName: 'Zap',
     rarity: 'Common'
   },
   {
-    id: 'perfect-score',
-    name: 'Perfect Score',
-    description: 'Aced an assessment with a perfect score.',
-    iconName: 'Star',
-    rarity: 'Rare'
-  },
-  {
-    id: 'top-performer',
-    name: 'Top Performer',
-    description: 'Accumulated over 2,000 learning experience points (XP).',
-    iconName: 'Sparkles',
-    rarity: 'Legendary'
-  },
-  {
-    id: 'discussion-contributor',
-    name: 'Discussion Contributor',
-    description: 'Published 2 or more topics in the Discussion Center.',
-    iconName: 'MessageSquare',
-    rarity: 'Common'
-  },
-  {
-    id: 'helpful-mentor',
-    name: 'Helpful Mentor',
-    description: 'Offered 3 or more feedback replies to peer discussions.',
-    iconName: 'Heart',
-    rarity: 'Rare'
-  },
-  {
     id: 'streak-7',
-    name: '7-Day Learning Streak',
-    description: 'Maintained a continuous daily learning streak of 7 days.',
-    iconName: 'Calendar',
-    rarity: 'Legendary'
+    name: '7 Day Streak',
+    description: 'Learn for 7 consecutive days.',
+    iconName: 'Flame',
+    rarity: 'Epic'
   },
   {
-    id: 'streak-30',
-    name: '30-Day Learning Streak',
-    description: 'Maintained a continuous daily learning streak of 30 days.',
-    iconName: 'CalendarRange',
+    id: 'mission-master',
+    name: 'Mission Master',
+    description: 'Complete one full mission.',
+    iconName: 'Rocket',
+    rarity: 'Rare'
+  },
+  {
+    id: 'coding-explorer',
+    name: 'Coding Explorer',
+    description: 'Complete 10 interactive challenges.',
+    iconName: 'Terminal',
+    rarity: 'Rare'
+  },
+  {
+    id: 'course-master',
+    name: 'Course Master',
+    description: 'Complete an entire course.',
+    iconName: 'Award',
     rarity: 'Legendary'
   }
 ];
@@ -226,7 +177,19 @@ export class XPService {
   private pointsKey = 'shaivika_points_default_student';
 
   getXPPoints(userId = 'default_student'): number {
-    // Check if points exist in the existing course points key
+    const claimsKey = `shaivika_user_xp_claims_${userId}`;
+    const data = localStorage.getItem(claimsKey);
+    if (data) {
+      try {
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed)) {
+          const filtered = parsed.filter(
+            (c: any) => c.id !== 'claim_1' && c.id !== 'claim_2' && c.id !== 'claim_3' && c.id !== 'claim_4'
+          );
+          return filtered.reduce((sum: number, c: any) => sum + (c.xp || 0), 0);
+        }
+      } catch (e) {}
+    }
     const currentPts = localStorage.getItem(`${this.pointsKey}`);
     if (currentPts) {
       return parseInt(currentPts, 10);
@@ -238,8 +201,26 @@ export class XPService {
   addXP(points: number, activityName: string, userId = 'default_student'): number {
     const currentXp = this.getXPPoints(userId);
     const updatedXp = currentXp + points;
+
+    // Save to claims to keep single source of truth updated
+    const claimsKey = `shaivika_user_xp_claims_${userId}`;
+    const claimsData = localStorage.getItem(claimsKey);
+    let claimsList = [];
+    if (claimsData) {
+      try {
+        claimsList = JSON.parse(claimsData);
+      } catch (e) {}
+    }
+    claimsList.unshift({
+      id: `claim_xp_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      title: activityName,
+      xp: points,
+      category: 'Module Completion Bonus',
+      timestamp: new Date().toISOString()
+    });
+    localStorage.setItem(claimsKey, JSON.stringify(claimsList));
     
-    // Save to both namespaces to keep systems synched
+    // Save to legacy keys to keep systems synced
     localStorage.setItem(`${this.xpKeyPrefix}${userId}`, String(updatedXp));
     localStorage.setItem(`${this.pointsKey}`, String(updatedXp));
 
@@ -272,7 +253,7 @@ export class XPService {
 export class BadgeService {
   private badgesKeyPrefix = 'shaivika_earned_badges_';
 
-  getEarnedBadges(userId = 'default_student'): Badge[] {
+  private getRawStoredBadges(userId = 'default_student'): Badge[] {
     const data = localStorage.getItem(`${this.badgesKeyPrefix}${userId}`);
     if (data) {
       try {
@@ -282,14 +263,39 @@ export class BadgeService {
     return [];
   }
 
+  getEarnedBadges(userId = 'default_student'): Badge[] {
+    // Dynamically check and evaluate badges on read to ensure sync
+    return this.checkAndAwardBadges(userId);
+  }
+
   checkAndAwardBadges(userId = 'default_student'): Badge[] {
-    const earned = this.getEarnedBadges(userId);
+    const earned = this.getRawStoredBadges(userId);
     const earnedIds = new Set(earned.map(b => b.id));
     const statsService = new AchievementService();
-    const stats = statsService.getStats(userId);
-    const xpService = new XPService();
-    const totalXp = xpService.getXPPoints(userId);
     const streaks = statsService.getStreaks(userId);
+    const totalXp = new XPService().getXPPoints(userId);
+
+    // Calculate actual completed challenges dynamically from localStorage
+    let completedChallenges = 0;
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('shaivika_completed_')) {
+        try {
+          const val = localStorage.getItem(key);
+          if (val) {
+            const list = JSON.parse(val);
+            if (Array.isArray(list)) {
+              completedChallenges += list.length;
+            }
+          }
+        } catch (e) {}
+      }
+    }
+
+    const stats = statsService.getStats(userId);
+    const completedMissions = (stats as any).modulesCompleted || 0;
+    const completedCourses = stats.coursesCompleted || 0;
+    const dailyStreak = streaks.dailyStreak || 0;
 
     const newlyAwarded: Badge[] = [];
     const nowStr = new Date().toLocaleDateString();
@@ -307,26 +313,21 @@ export class BadgeService {
         earnedIds.add(badgeId);
         
         // Award XP and log activity
+        const xpService = new XPService();
         setTimeout(() => {
           xpService.addXP(XP_CONFIG.BADGE_EARNED, `Unlocked Badge: ${meta.name}`, userId);
-          toast.success(`🎖️ New Badge Earned: "${meta.name}"! +100 XP`);
           this.logActivity(meta.name, userId);
         }, 300);
       }
     };
 
     // Evaluate Rules
-    if (stats.coursesCompleted >= 1) tryAward('course-completed');
-    if (stats.quizAttempts >= 5) tryAward('quiz-master');
-    if (stats.assignmentsSubmitted >= 3) tryAward('assignment-champion');
-    if (stats.aiAssistantSessions >= 5) tryAward('ai-learner');
-    if (stats.codingChallengesSolved >= 3) tryAward('coding-expert');
-    if (stats.practiceTimeSeconds >= 600) tryAward('practice-lab-explorer');
-    if (totalXp >= 2000) tryAward('top-performer');
-    if (stats.discussionsStarted >= 2) tryAward('discussion-contributor');
-    if (stats.repliesPosted >= 3) tryAward('helpful-mentor');
-    if (streaks.dailyStreak >= 7) tryAward('streak-7');
-    if (streaks.dailyStreak >= 30) tryAward('streak-30');
+    if (completedChallenges >= 1) tryAward('first-challenge');
+    if (totalXp >= 100) tryAward('xp-starter');
+    if (dailyStreak >= 7) tryAward('streak-7');
+    if (completedMissions >= 1) tryAward('mission-master');
+    if (completedChallenges >= 10) tryAward('coding-explorer');
+    if (completedCourses >= 1) tryAward('course-master');
 
     if (newlyAwarded.length > 0) {
       localStorage.setItem(`${this.badgesKeyPrefix}${userId}`, JSON.stringify(earned));
@@ -501,8 +502,7 @@ export class AchievementService {
 
     // Award minor XP for increments
     const xpService = new XPService();
-    if (statName === 'lessonsCompleted') xpService.addXP(XP_CONFIG.LESSON_COMPLETED, 'Lesson Completed', userId);
-    else if (statName === 'quizAttempts') xpService.addXP(XP_CONFIG.QUIZ_PASSED, 'Quiz Submitted', userId);
+    if (statName === 'quizAttempts') xpService.addXP(XP_CONFIG.QUIZ_PASSED, 'Quiz Submitted', userId);
     else if (statName === 'assignmentsSubmitted') xpService.addXP(XP_CONFIG.ASSIGNMENT_SUBMITTED, 'Assignment Submitted', userId);
     else if (statName === 'codingChallengesSolved') xpService.addXP(XP_CONFIG.PRACTICE_LAB_COMPLETED, 'Practice Challenge Solved', userId);
     else if (statName === 'repliesPosted') xpService.addXP(XP_CONFIG.DISCUSSION_ANSWERED, 'Replied to Discussion', userId);
