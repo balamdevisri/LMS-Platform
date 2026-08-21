@@ -12,8 +12,6 @@ import {
   Activity,
   Bot,
   Zap,
-  FolderSearch,
-  RefreshCw,
   Download,
   ExternalLink,
   Users,
@@ -38,7 +36,6 @@ import type { XPClaimRecord } from '@/services/courseService';
 import type { ICourse } from '../../../../shared/types/course';
 import { courseTimeService } from '@/services/courseTimeService';
 import { useCourseTimeTracker } from '@/hooks/useCourseTimeTracker';
-import { mockAIProvider } from '@/services/aiProvider';
 import { studentService, type StudentUser } from '@/services/studentService';
 
 import { AnalyticsDashboard } from '../../components/courses/AnalyticsDashboard';
@@ -87,12 +84,6 @@ export const Dashboard: React.FC = () => {
   // XP & Claims State
   const [totalXP, setTotalXP] = useState(0);
   const [xpClaims, setXpClaims] = useState<XPClaimRecord[]>([]);
-
-  // AI Course Search & Weakness Analyzer States
-  const [aiSearchQuery, setAiSearchQuery] = useState('');
-  const [aiSearchResults, setAiSearchResults] = useState<ICourse[]>([]);
-  const [isAiSearching, setIsAiSearching] = useState(false);
-  const [weakTopics, setWeakTopics] = useState<any[]>([]);
 
   // Completed courses check (only 100% completed courses unlock certificates)
   const completedCourses = enrolledCourses.filter((course) => {
@@ -145,37 +136,6 @@ export const Dashboard: React.FC = () => {
   useEffect(() => {
     loadDashboardData();
   }, [loadDashboardData]);
-
-  const handleAiSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!aiSearchQuery.trim()) return;
-    setIsAiSearching(true);
-    setTimeout(() => {
-      const q = aiSearchQuery.toLowerCase();
-      const matches = enrolledCourses.filter(c => 
-        (c.title || '').toLowerCase().includes(q) || 
-        (c.category || '').toLowerCase().includes(q) ||
-        (c.skills && c.skills.some(s => (s || '').toLowerCase().includes(q)))
-      );
-      setAiSearchResults(matches);
-      setIsAiSearching(false);
-      if (matches.length > 0) {
-        toast.success(`AI Search found ${matches.length} matching course tracks!`);
-      } else {
-        toast.info("AI Search couldn't find direct matches. Try looking for 'Linux', 'Git', or 'SQL'!");
-      }
-    }, 600);
-  };
-
-  useEffect(() => {
-    const loadWeakness = async () => {
-      try {
-        const res = await mockAIProvider.getWeakTopicAnalysis(activeUserId);
-        setWeakTopics(res);
-      } catch (err) {}
-    };
-    if (activeUserId) loadWeakness();
-  }, [activeUserId]);
 
   // Active learning player state
   const [activePlayerCourse, setActivePlayerCourse] = useState<any | null>(null);

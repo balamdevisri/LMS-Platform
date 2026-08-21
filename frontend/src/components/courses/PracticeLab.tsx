@@ -692,7 +692,7 @@ export const PracticeLab: React.FC<PracticeLabProps> = ({
           id: `lab_claim_${Date.now()}`,
           title: `Completed Lab: ${activeChallenge.title}`,
           xp: 50,
-          category: 'Practice Challenge Completion',
+          category: 'AI Terminal Lab',
           timestamp: new Date().toISOString(),
           courseId: courseId || 'practice_hub',
           courseTitle: courseTitle || 'Practice Hub',
