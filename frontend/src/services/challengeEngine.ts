@@ -520,6 +520,25 @@ export function getChallengeForLesson(
   const cTitle = courseTitle.toLowerCase();
   const lId = String(lessonId).toLowerCase();
   const lTitle = lessonTitle.toLowerCase();
+  const activeIdx = allLessons.findIndex(l => String(l.id) === String(lessonId));
+  
+  // 0. Use the existing course/module data first if it has a custom challenge
+  const currentLesson = activeIdx !== -1 ? allLessons[activeIdx] : null;
+  if (currentLesson) {
+    const existingRaw = currentLesson.practiceLabChallenge || currentLesson.challenge;
+    if (existingRaw) {
+      return fillChallengeDetails({
+        learnText: existingRaw.learnText || existingRaw.description || lessonContent.substring(0, 200),
+        exampleCode: existingRaw.exampleCode || existingRaw.code || '',
+        challengeTask: existingRaw.challengeTask || existingRaw.task || existingRaw.question || '',
+        type: existingRaw.type || 'multiple-choice',
+        options: existingRaw.options,
+        correctAnswer: existingRaw.correctAnswer || existingRaw.answer || 'True',
+        hint: existingRaw.hint || 'Review the explanation.',
+        placeholder: existingRaw.placeholder
+      }, lessonId, lessonTitle, allLessons);
+    }
+  }
   
   let targetList: MappedChallenge[] = [];
   if (cTitle.includes('python')) {
@@ -536,26 +555,29 @@ export function getChallengeForLesson(
     targetList = ReactChallenges;
   }
 
-  // 1. Try matching keywords
+  // 1. Try matching keywords uniquely (do not reuse same challenge if keyword matches multiple times)
   for (const item of targetList) {
     if (item.keywords.some(kw => lTitle.includes(kw) || lId.includes(kw))) {
-      return fillChallengeDetails(item.challenge, lessonId, lessonTitle, allLessons);
+      const firstMatch = allLessons.find(l => {
+        const titleL = l.title.toLowerCase();
+        const idL = String(l.id).toLowerCase();
+        return item.keywords.some(kw => titleL.includes(kw) || idL.includes(kw));
+      });
+      if (firstMatch && String(firstMatch.id) === String(lessonId)) {
+        return fillChallengeDetails(item.challenge, lessonId, lessonTitle, allLessons);
+      }
     }
   }
 
-  // 2. Try matching index in syllabus if no keyword matches
-  const activeIdx = allLessons.findIndex(l => String(l.id) === String(lessonId));
-  if (activeIdx !== -1 && targetList[activeIdx % targetList.length]) {
-    return fillChallengeDetails(targetList[activeIdx % targetList.length].challenge, lessonId, lessonTitle, allLessons);
-  }
-
-  // 3. Fallback database mapping
+  // 2. Fallback database mapping
   if (cTitle.includes('database') || cTitle.includes('dbms') || cTitle.includes('sql')) {
     const foundInDbms = dbmsLessonsData[String(lessonId)];
     if (foundInDbms) {
+      const challengeIdx = activeIdx !== -1 ? activeIdx + 1 : 1;
+      const missionIdx = Math.ceil(challengeIdx / 4);
       return {
-        missionNum: '01',
-        challengeNum: '01',
+        missionNum: String(missionIdx).padStart(2, '0'),
+        challengeNum: String(challengeIdx - (missionIdx - 1) * 4).padStart(2, '0'),
         title: lessonTitle,
         learnText: foundInDbms.content.substring(0, 180) + '...',
         exampleCode: foundInDbms.commands?.[0]?.command || 'SELECT * FROM users;',
@@ -567,22 +589,59 @@ export function getChallengeForLesson(
     }
   }
 
-  // 4. Default dynamic fallback
-  const activeIdxFallback = allLessons?.findIndex(l => String(l.id) === String(lessonId)) ?? -1;
-  const currentLessonFallback = (activeIdxFallback !== -1 && allLessons) ? allLessons[activeIdxFallback] : null;
-  const fallbackDifficulty = currentLessonFallback?.difficulty || 'Easy';
+  // 3. Default dynamic fallback: derive a unique task from the lesson's actual content
+  const fallbackDifficulty = currentLesson?.difficulty || 'Easy';
+  const cleanId = String(lessonId).trim();
+  let hashCode = 0;
+  for (let i = 0; i < cleanId.length; i++) {
+    hashCode = cleanId.charCodeAt(i) + ((hashCode << 5) - hashCode);
+  }
+  hashCode = Math.abs(hashCode);
+
+  // Split content into clean sentences to find a nice statement
+  const sentences = lessonContent
+    .split(/[.!?\n]+/)
+    .map(s => s.trim())
+    .filter(s => s.length > 25 && s.length < 150 && !s.startsWith('#') && !s.startsWith('-'));
+
+  let questionText = "";
+  let hintText = "";
+  let options = ['True', 'False'];
+
+  if (sentences.length > 0) {
+    const selectedSentence = sentences[hashCode % sentences.length];
+    questionText = `Based on the lesson "${lessonTitle}", is this statement true: "${selectedSentence.replace(/\s+/g, ' ')}"?`;
+    hintText = `Review the paragraph containing: "${selectedSentence.substring(0, 40)}..."`;
+  } else {
+    questionText = `Is understanding "${lessonTitle}" key to mastering the core concepts of this module?`;
+    hintText = `Yes, "${lessonTitle}" covers fundamental concepts required for modern software tracking.`;
+  }
+
+  let exampleCode = "No code example required. Focus on theoretical conceptual mastery.";
+  const codeBlockMatch = lessonContent.match(/```(?:[a-zA-Z0-9_-]+)?\n([\s\S]*?)\n```/);
+  if (codeBlockMatch && codeBlockMatch[1]) {
+    exampleCode = codeBlockMatch[1].trim();
+  } else {
+    const inlineMatch = lessonContent.match(/`([^`]+)`/);
+    if (inlineMatch && inlineMatch[1]) {
+      exampleCode = inlineMatch[1].trim();
+    }
+  }
+
+  const challengeIdx = activeIdx !== -1 ? activeIdx + 1 : 1;
+  const missionIdx = Math.ceil(challengeIdx / 4);
 
   return {
-    missionNum: '01',
-    challengeNum: '01',
+    missionNum: String(missionIdx).padStart(2, '0'),
+    challengeNum: String(challengeIdx - (missionIdx - 1) * 4).padStart(2, '0'),
     title: lessonTitle,
     learnText: lessonContent.length > 200 ? lessonContent.substring(0, 200) + '...' : lessonContent || 'Welcome to this challenge.',
-    exampleCode: "No code protocol required. Focus on theoretical mastery.",
-    challengeTask: `Is the concept presented in "${lessonTitle}" a fundamental building block in modern software architecture?`,
+    exampleCode: exampleCode,
+    challengeTask: questionText,
     type: 'multiple-choice',
-    options: ['True', 'False'],
+    options: options,
     correctAnswer: 'True',
-    hint: "This concept is indeed a key building block in programming and software systems tracks.",
+    hint: hintText,
     difficulty: fallbackDifficulty
   };
 }

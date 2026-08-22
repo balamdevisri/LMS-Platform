@@ -52,10 +52,18 @@ function parseContent(content: string) {
     }
   }
 
+  const finalObjectives = objectivesLines.join('\n').trim();
+  let finalConcept = conceptLines.join('\n').trim();
+  const finalFlowchart = flowchartLines.join('\n').trim();
+
+  if (!finalObjectives && !finalConcept && content.trim()) {
+    finalConcept = content.trim();
+  }
+
   return {
-    objectives: objectivesLines.join('\n').trim(),
-    concept: conceptLines.join('\n').trim(),
-    flowchart: flowchartLines.join('\n').trim()
+    objectives: finalObjectives,
+    concept: finalConcept,
+    flowchart: finalFlowchart
   };
 }
 
@@ -91,7 +99,7 @@ export const ChallengeArena: React.FC<ChallengeArenaProps> = ({
   const isInitialCompletedRef = React.useRef(isCompleted);
 
   // Gamified progression state
-  const [revealedStageCount, setRevealedStageCount] = useState(0);
+  const [revealedStageCount, setRevealedStageCount] = useState(1);
   const [showExampleExplanation, setShowExampleExplanation] = useState(false);
 
   // Parse lesson content
@@ -109,7 +117,7 @@ export const ChallengeArena: React.FC<ChallengeArenaProps> = ({
   }, [objectives, concept, challenge.exampleCode, flowchart]);
 
   const totalContentStages = stages.length;
-  const isPracticeUnlocked = revealedStageCount === totalContentStages;
+  const isPracticeUnlocked = true;
 
   // Initialize and reset states when the challenge changes
   useEffect(() => {
@@ -123,23 +131,13 @@ export const ChallengeArena: React.FC<ChallengeArenaProps> = ({
 
     // Reset progression states
     setShowExampleExplanation(false);
-    setRevealedStageCount(0);
-
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReducedMotion) {
-      setRevealedStageCount(totalContentStages);
-    } else {
-      const timer = setTimeout(() => {
-        setRevealedStageCount(1);
-      }, 350);
-      return () => clearTimeout(timer);
-    }
+    setRevealedStageCount(totalContentStages);
 
     if (challenge.type === 'ordering' && challenge.options) {
       // Shuffle options for the ordering challenge
       setShuffledOptions([...challenge.options].sort(() => Math.random() - 0.5));
     }
-  }, [challenge]);
+  }, [challenge, totalContentStages]);
 
   useEffect(() => {
     if (isCompleted && !isInitialCompletedRef.current) {
@@ -286,7 +284,7 @@ export const ChallengeArena: React.FC<ChallengeArenaProps> = ({
 
           {/* Render content stages sequentially */}
           {stages.map((stage, idx) => {
-            const isRevealed = idx < revealedStageCount;
+            const isRevealed = true;
             if (!isRevealed) return null;
 
             const isNew = idx === revealedStageCount - 1;
@@ -406,45 +404,23 @@ export const ChallengeArena: React.FC<ChallengeArenaProps> = ({
             return null;
           })}
 
-          {/* Next Button and Content Complete Banner */}
-          {revealedStageCount < totalContentStages ? (
-            <div className="flex justify-start">
-              <button
-                onClick={() => {
-                  if (revealedStageCount < totalContentStages) {
-                    const nextCount = revealedStageCount + 1;
-                    setRevealedStageCount(nextCount);
-                    if (nextCount === totalContentStages) {
-                      soundService.play('success');
-                    } else {
-                      soundService.play('unlock');
-                    }
-                  }
-                }}
-                className="px-5 py-2.5 bg-primary text-slate-955 font-black rounded-xl hover:shadow-[0_0_15px_var(--kq-glow)] cursor-pointer transition-all active:scale-95 text-xs uppercase flex items-center gap-1.5 font-mono"
-              >
-                <span>Next Stage</span>
-                <span>→</span>
-              </button>
-            </div>
-          ) : (
-            <div className="bg-emerald-950/20 border border-emerald-900/40 rounded-3xl p-4 flex items-center justify-between shadow-md animate-in fade-in zoom-in-98 duration-400">
-              <div className="flex items-center gap-2.5">
-                <span className="text-emerald-400 text-lg">✓</span>
-                <div>
-                  <h4 className="text-[10px] font-mono uppercase tracking-widest text-emerald-400 font-black">
-                    LEARNING CONTENT SEQUENCE COMPLETE
-                  </h4>
-                  <p className="text-[11px] font-sans font-bold text-slate-300">
-                    Solve the Practice Challenge on the right to complete this node!
-                  </p>
-                </div>
+          {/* Content Complete Banner */}
+          <div className="bg-emerald-950/20 border border-emerald-900/40 rounded-3xl p-4 flex items-center justify-between shadow-md animate-in fade-in zoom-in-98 duration-400 select-none">
+            <div className="flex items-center gap-2.5">
+              <span className="text-emerald-400 text-lg">✓</span>
+              <div>
+                <h4 className="text-[10px] font-mono uppercase tracking-widest text-emerald-400 font-black">
+                  LEARNING CONTENT SEQUENCE COMPLETE
+                </h4>
+                <p className="text-[11px] font-sans font-bold text-slate-300">
+                  Solve the Practice Challenge on the right to complete this node!
+                </p>
               </div>
-              <span className="px-2.5 py-1 text-[9px] font-mono font-black bg-emerald-950 border border-emerald-900 rounded-full text-emerald-400 uppercase tracking-wider animate-pulse">
-                COMPLETE
-              </span>
             </div>
-          )}
+            <span className="px-2.5 py-1 text-[9px] font-mono font-black bg-emerald-950 border border-emerald-900 rounded-full text-emerald-400 uppercase tracking-wider animate-pulse">
+              COMPLETE
+            </span>
+          </div>
         </div>
 
         {/* Right Column: Try, Check & Feedback */}
