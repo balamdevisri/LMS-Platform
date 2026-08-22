@@ -716,11 +716,58 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
     return completedLessonIds.some((id) => String(id) === String(prevLesson.id));
   }, [allLessons, completedLessonIds]);
 
-  const [revealedModuleCount, setRevealedModuleCount] = useState(() => 
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches ? (modules?.length || 1) : 1
-  );
+  const [isMissionStarted, setIsMissionStarted] = useState(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return true;
+    }
+    const saved = localStorage.getItem(`course_mission_started_${courseId}`);
+    return saved === 'true';
+  });
 
+  const [revealedModuleCount, setRevealedModuleCount] = useState(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return modules?.length || 1;
+    }
+    const savedMission = localStorage.getItem(`course_mission_started_${courseId}`) === 'true';
+    const hasRevealed = localStorage.getItem(`course_revealed_${courseId}`) === 'true' || savedMission;
+    return hasRevealed ? (modules?.length || 1) : 1;
+  });
 
+  // Staggered sequential reveal effect on course entry
+  useEffect(() => {
+    if (!modules || modules.length === 0) return;
+    const savedMission = localStorage.getItem(`course_mission_started_${courseId}`) === 'true';
+    const hasRevealed = localStorage.getItem(`course_revealed_${courseId}`) === 'true' || savedMission;
+    if (hasRevealed) {
+      if (revealedModuleCount !== modules.length) {
+        setRevealedModuleCount(modules.length);
+      }
+      return;
+    }
+
+    if (revealedModuleCount < modules.length) {
+      const timer = setTimeout(() => {
+        setRevealedModuleCount((prev) => {
+          const nextVal = prev + 1;
+          if (nextVal === modules.length) {
+            localStorage.setItem(`course_revealed_${courseId}`, 'true');
+          }
+          return nextVal;
+        });
+        soundService.play('unlock');
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [revealedModuleCount, modules, courseId]);
+
+  // Play unlock sound for the first module exactly once on start of reveal
+  useEffect(() => {
+    const savedMission = localStorage.getItem(`course_mission_started_${courseId}`) === 'true';
+    const hasRevealed = localStorage.getItem(`course_revealed_${courseId}`) === 'true' || savedMission;
+    if (!hasRevealed) {
+      soundService.play('unlock');
+    }
+  }, [courseId]);
 
   const handlePrevLesson = useCallback(() => {
     if (hasPrevLesson) {
@@ -732,23 +779,6 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
   }, [hasPrevLesson, allLessons, activeIndex]);
 
   const handleNextLesson = useCallback(() => {
-    if (revealedModuleCount < modules.length) {
-      setRevealedModuleCount((prev) => prev + 1);
-      soundService.play('unlock');
-
-      // Scroll smoothly to the newly revealed module
-      setTimeout(() => {
-        const nextMod = modules[revealedModuleCount];
-        if (nextMod) {
-          const el = document.getElementById(`module-card-${nextMod.id}`);
-          if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }
-        }
-      }, 100);
-      return;
-    }
-
     if (hasNextLesson) {
       const isCurrentCompleted = completedLessonIds.some((id) => String(id) === String(selectedLessonId));
       if (!isCurrentCompleted) {
@@ -771,12 +801,35 @@ export const InCourseLearningView: React.FC<InCourseLearningViewProps> = ({
         );
         return;
       }
+
+      // Check if crossing a module boundary!
+      const currentMod = modules.find((m) =>
+        m.lessons.some((l) => String(l.id) === String(selectedLessonId))
+      );
+      const nextMod = modules.find((m) =>
+        m.lessons.some((l) => String(l.id) === String(nextLesson.id))
+      );
+      if (currentMod && nextMod && currentMod.id !== nextMod.id) {
+        // Module boundary crossed: redirect back to Mission Map view so they see the unlocked module!
+        setActiveView('map');
+        soundService.play('unlock'); // Play unlock sound for the next module!
+        
+        // Scroll to the next module card smoothly
+        setTimeout(() => {
+          const el = document.getElementById(`module-card-${nextMod.id}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
+        return;
+      }
+
       setSelectedLessonId(nextLesson.id);
       if (containerRef.current) {
         containerRef.current.scrollTo({ top: 0, behavior: 'instant' });
       }
     }
-  }, [hasNextLesson, completedLessonIds, selectedLessonId, allLessons, activeIndex, modules, isLessonUnlocked, revealedModuleCount]);
+  }, [hasNextLesson, completedLessonIds, selectedLessonId, allLessons, activeIndex, modules, isLessonUnlocked]);
 
   const handleNextChallenge = useCallback(() => {
     soundService.play('unlock');
@@ -1211,9 +1264,20 @@ soundEnabled
             <div className="absolute inset-0 bg-radial-gradient(circle at top right, rgba(249,115,22,0.06), transparent) pointer-events-none" />
             
             <div className="space-y-2">
-              <span className="text-[10px] uppercase font-black tracking-widest text-primary font-mono bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-md">
-                🎯 MISSION PATH
-              </span>
+              {!isMissionStarted ? (
+                <div className="flex items-center gap-2 flex-wrap font-mono">
+                  <span className="px-2.5 py-1 text-[10px] font-black bg-cyan-500 text-slate-950 uppercase rounded-md tracking-wider animate-pulse">
+                    🎮 COURSE INITIALIZED
+                  </span>
+                  <span className="px-2.5 py-1 text-[10px] font-black bg-slate-955 text-cyan-400 border border-cyan-500/20 uppercase rounded-md tracking-widest animate-pulse">
+                    🎯 MISSION PATH LOADING...
+                  </span>
+                </div>
+              ) : (
+                <span className="text-[10px] uppercase font-black tracking-widest text-primary font-mono bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-md">
+                  🎯 MISSION PATH
+                </span>
+              )}
               <h2 className="text-2xl font-black text-white tracking-tight mt-1 uppercase font-sans">
                 {courseTitle}
               </h2>
@@ -1248,6 +1312,22 @@ soundEnabled
             })()}
           </div>
 
+          {revealedModuleCount === modules.length && !isMissionStarted && (
+            <div className="flex justify-center p-6 bg-slate-900/60 border border-slate-800 rounded-3xl animate-in fade-in zoom-in-98 duration-500 shadow-xl relative overflow-hidden backdrop-blur-md">
+              <div className="absolute inset-0 bg-radial-gradient(circle at center, rgba(6,182,212,0.04), transparent) pointer-events-none" />
+              <button
+                onClick={() => {
+                  setIsMissionStarted(true);
+                  localStorage.setItem(`course_mission_started_${courseId}`, 'true');
+                  soundService.play('select');
+                }}
+                className="px-10 py-4 bg-linear-to-r from-primary to-secondary text-slate-950 font-black text-xs uppercase rounded-2xl tracking-widest hover:shadow-[0_0_25px_var(--kq-glow)] cursor-pointer transition-all active:scale-95 animate-pulse font-mono flex items-center gap-2"
+              >
+                <span>🚀 START MISSION</span>
+              </button>
+            </div>
+          )}
+
           {/* Connected Path Map */}
           <div className="space-y-12 relative animate-in fade-in duration-500 delay-150">
             {(() => {
@@ -1260,7 +1340,7 @@ soundEnabled
 
               return modules.map((mod, modIdx) => {
                 const isCompleted = mod.lessons.every(l => completedLessonIds.some(cId => String(cId) === String(l.id)));
-                const isLocked = modIdx > 0 && !isLessonUnlocked(modules[modIdx - 1].lessons[0].id);
+                const isLocked = modIdx > 0 && !modules[modIdx - 1].lessons.every(l => completedLessonIds.some(cId => String(cId) === String(l.id)));
                 
                 // If not completed and not locked, and matches current active index (or fallback if none found)
                 const isCurrent = !isCompleted && !isLocked && (modIdx === currentActiveModIdx || (currentActiveModIdx === -1 && modIdx === modules.findIndex(m => !m.lessons.every(l => completedLessonIds.some(cId => String(cId) === String(l.id))))));
@@ -1286,9 +1366,12 @@ soundEnabled
                 };
 
                 const handleStartLevel = () => {
+                  if (!isMissionStarted) {
+                    return; // Clicks disabled until "🚀 START MISSION" is clicked
+                  }
                   if (isLocked) {
                     soundService.play('error');
-                    toast.warning(`🔒 LEVEL LOCKED. Complete previous missions to unlock!`);
+                    toast.warning(`🔒 Complete the previous mission first.`);
                     return;
                   }
                   const targetLesson = getFirstUncompletedOrFirstLesson();
@@ -1332,7 +1415,7 @@ soundEnabled
                       
                       {/* Card Header Info */}
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 select-none">
-                        <div className="flex items-center gap-4 cursor-pointer" onClick={handleStartLevel}>
+                        <div className={`flex items-center gap-4 ${isMissionStarted && !isLocked ? 'cursor-pointer' : 'cursor-default'}`} onClick={handleStartLevel}>
                           
                           {/* Level Node Circle */}
                           <div className={`w-10 h-10 md:w-16 md:h-16 rounded-2xl flex flex-col items-center justify-center border font-black text-xs md:text-sm font-mono shadow-md transition-all shrink-0 ${

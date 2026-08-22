@@ -5,6 +5,68 @@ import { soundService } from '@/services/soundService';
 import type { Challenge } from '@/services/challengeEngine';
 import { MarkdownRenderer } from './MarkdownRenderer';
 
+function parseContent(content: string) {
+  if (!content) return { objectives: '', concept: '', flowchart: '' };
+
+  const lines = content.split('\n');
+  const objectivesLines: string[] = [];
+  const flowchartLines: string[] = [];
+  const conceptLines: string[] = [];
+
+  let inObjectives = false;
+  // A box drawing or arrow character or lines containing explicit "diagram" keyword
+  const flowchartChars = /[│┌└─↓├┤┬┴┼┐┘╔╗╚╝═║╠╣╦╩╬▲▼◄►┌┐└┘├┤┬┴┼─]/;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    // Check if it's a flowchart line first
+    const hasFlowchartChar = flowchartChars.test(line);
+    const isExplicitDiagram = trimmed.toLowerCase().startsWith('diagram');
+
+    if (hasFlowchartChar || isExplicitDiagram) {
+      flowchartLines.push(line);
+      continue;
+    }
+
+    // Detect Objectives block start
+    const isObjectivesStart = /learning\s+objective/i.test(trimmed);
+    if (isObjectivesStart) {
+      inObjectives = true;
+      objectivesLines.push(line);
+      continue;
+    }
+
+    if (inObjectives) {
+      // Objectives end when we see a new section heading, e.g. "1.1 Introduction" or "#### 1.2"
+      const isNewHeading = trimmed.startsWith('#') || /^\d+\.\d+\s+/.test(trimmed) || /^\d+\.\d+\s*:/.test(trimmed);
+      if (isNewHeading) {
+        inObjectives = false;
+        conceptLines.push(line);
+      } else {
+        objectivesLines.push(line);
+      }
+    } else {
+      conceptLines.push(line);
+    }
+  }
+
+  const finalObjectives = objectivesLines.join('\n').trim();
+  let finalConcept = conceptLines.join('\n').trim();
+  const finalFlowchart = flowchartLines.join('\n').trim();
+
+  if (!finalObjectives && !finalConcept && content.trim()) {
+    finalConcept = content.trim();
+  }
+
+  return {
+    objectives: finalObjectives,
+    concept: finalConcept,
+    flowchart: finalFlowchart
+  };
+}
+
 interface ChallengeArenaProps {
   challenge: Challenge;
   isCompleted: boolean;
@@ -36,6 +98,27 @@ export const ChallengeArena: React.FC<ChallengeArenaProps> = ({
   const [showXPClaimedFeedback, setShowXPClaimedFeedback] = useState(false);
   const isInitialCompletedRef = React.useRef(isCompleted);
 
+  // Gamified progression state
+  const [revealedStageCount, setRevealedStageCount] = useState(1);
+  const [showExampleExplanation, setShowExampleExplanation] = useState(false);
+
+  // Parse lesson content
+  const { objectives, concept, flowchart } = React.useMemo(() => parseContent(lessonContent), [lessonContent]);
+
+  // Construct stages list dynamically
+  const stages = React.useMemo(() => {
+    return [
+      ...(objectives ? [{ id: 'objectives', name: '🎯 LEARNING OBJECTIVES' }] : []),
+      ...(concept ? [{ id: 'concept', name: '💡 CONCEPT / EXPLANATION' }] : []),
+      ...(challenge.exampleCode ? [{ id: 'example', name: '💻 EXAMPLE / CODE' }] : []),
+      ...(flowchart ? [{ id: 'flowchart', name: '🔀 FLOWCHART / DIAGRAM' }] : []),
+      { id: 'practice', name: '🧪 PRACTICE' }
+    ];
+  }, [objectives, concept, challenge.exampleCode, flowchart]);
+
+  const totalContentStages = stages.length;
+  const isPracticeUnlocked = true;
+
   // Initialize and reset states when the challenge changes
   useEffect(() => {
     setStudentInput(challenge.placeholder || '');
@@ -46,11 +129,15 @@ export const ChallengeArena: React.FC<ChallengeArenaProps> = ({
     isInitialCompletedRef.current = isCompleted;
     setShowXPClaimedFeedback(false);
 
+    // Reset progression states
+    setShowExampleExplanation(false);
+    setRevealedStageCount(totalContentStages);
+
     if (challenge.type === 'ordering' && challenge.options) {
       // Shuffle options for the ordering challenge
       setShuffledOptions([...challenge.options].sort(() => Math.random() - 0.5));
     }
-  }, [challenge]);
+  }, [challenge, totalContentStages]);
 
   useEffect(() => {
     if (isCompleted && !isInitialCompletedRef.current) {
@@ -155,14 +242,17 @@ export const ChallengeArena: React.FC<ChallengeArenaProps> = ({
             </h2>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
-            <span className="px-2.5 py-1 text-[10px] font-black bg-slate-950 border border-slate-850 rounded-lg text-amber-500 font-mono">
+          <div className="flex flex-wrap items-center gap-2.5 font-mono text-[10px]">
+            <span className="px-2.5 py-1 font-black bg-slate-955 border border-slate-850 rounded-lg text-amber-500">
               ⚡ +50 XP
             </span>
-            <span className="px-2.5 py-1 text-[10px] font-black bg-slate-950 border border-slate-850 rounded-lg text-slate-400 font-mono">
+            <span className="px-2.5 py-1 font-black bg-slate-955 border border-slate-850 rounded-lg text-slate-400">
               ⏱ {(challenge as any).duration || '15 mins'}
             </span>
-            <span className="px-2.5 py-1 text-[10px] font-black bg-primary text-slate-950 rounded-lg font-mono animate-pulse uppercase tracking-wider">
+            <span className="px-2.5 py-1 font-black bg-primary/20 border border-primary/40 rounded-lg text-primary uppercase tracking-wider">
+              🏆 CONTENT {revealedStageCount} / {totalContentStages}
+            </span>
+            <span className="px-2.5 py-1 font-black bg-primary text-slate-955 rounded-lg animate-pulse uppercase tracking-wider">
               ⚡ CURRENT
             </span>
           </div>
@@ -172,59 +262,182 @@ export const ChallengeArena: React.FC<ChallengeArenaProps> = ({
       {/* Arena Grid Details */}
       <div className="grid grid-cols-1 lg:grid-cols-[68%_minmax(0,1fr)] gap-8 items-start">
         
-        {/* Left Column: Learn & See Example */}
-        <div className="space-y-6 animate-in fade-in duration-500">
-          {/* Learn Section */}
-          <div className="bg-slate-955/20 border border-slate-850 rounded-3xl p-5 space-y-3">
-            <h3 className="text-xs font-black uppercase tracking-widest text-primary border-b border-slate-850/60 pb-2 flex items-center gap-1.5 font-mono">
-              <span>📖 LEARN</span>
-            </h3>
-            <div className="text-slate-350 text-xs leading-relaxed font-sans font-medium">
-              <MarkdownRenderer
-                content={lessonContent}
-                isNightMode={true}
-                courseId={courseId}
-              />
+        {/* Left Column: Learn & See Example (Gamified Content Progression) */}
+        <div className="space-y-6">
+          {/* Mission Start Banner */}
+          <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-4 flex items-center justify-between shadow-xl">
+            <div className="flex items-center gap-3">
+              <span className="text-xl">🎯</span>
+              <div>
+                <h4 className="text-[10px] font-mono uppercase tracking-widest text-primary font-black">
+                  MISSION SEQUENCE STARTED
+                </h4>
+                <p className="text-xs font-sans font-bold text-white uppercase tracking-wide">
+                  {challenge.title}
+                </p>
+              </div>
             </div>
-          </div>
-
-          {/* Example Section */}
-          <div className="bg-slate-955/20 border border-slate-850 rounded-3xl p-5 space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-850/60 pb-2">
-              <h3 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-1.5 font-mono">
-                <span>🎯 SEE EXAMPLE</span>
-              </h3>
-              <button
-                onClick={copyExampleCode}
-                className="text-[9px] text-slate-500 hover:text-white flex items-center gap-1 border border-slate-850 px-2 py-0.5 rounded cursor-pointer active:scale-95 transition-all font-mono"
-                title="Copy code to clipboard"
-              >
-                <Copy className="w-3 h-3" />
-                <span>Copy</span>
-              </button>
-            </div>
-            <pre className="bg-slate-950 border border-slate-850 rounded-xl p-3.5 text-xs text-primary/90 overflow-x-auto leading-relaxed shadow-inner font-mono">
-              <code>{challenge.exampleCode}</code>
-            </pre>
-          </div>
-
-          {/* Knowledge Check Progression Card */}
-          <div className="p-6 rounded-3xl border border-dashed border-slate-800 bg-slate-950/30 flex flex-col items-center text-center gap-3">
-            <span className="text-[10px] uppercase font-black tracking-widest text-primary font-mono bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-md">
-              🎯 KNOWLEDGE CHECK
+            <span className="px-3 py-1 bg-primary/10 border border-primary/20 rounded-full text-[9px] font-mono font-black text-primary animate-pulse uppercase tracking-wider">
+              ACTIVE MISSION
             </span>
-            <p className="text-xs text-slate-400 font-medium max-w-sm font-sans">
-              You have completed the reading portion. Time to apply your knowledge in the practice console!
-            </p>
-            <div className="flex items-center gap-2 font-mono">
-              <span className="text-slate-505 font-black text-[10px] uppercase tracking-wider">🧪 TRY IT OUT</span>
-              <span className="animate-bounce text-slate-400">↓</span>
+          </div>
+
+          {/* Render content stages sequentially */}
+          {stages.map((stage, idx) => {
+            const isRevealed = true;
+            if (!isRevealed) return null;
+
+            const isNew = idx === revealedStageCount - 1;
+            const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const animClass = isNew && !prefersReducedMotion
+              ? 'animate-in fade-in slide-in-from-bottom-3.5 duration-500 shadow-[0_0_15px_var(--kq-glow)] border-l-4 border-l-primary/60'
+              : 'border-l-4 border-l-slate-800';
+
+            if (stage.id === 'objectives') {
+              return (
+                <div 
+                  key="objectives" 
+                  className={`bg-slate-955/20 border border-slate-850 rounded-3xl p-5 space-y-3 transition-all ${animClass}`}
+                >
+                  <h3 className="text-xs font-black uppercase tracking-widest text-primary border-b border-slate-850/60 pb-2 flex items-center gap-1.5 font-mono">
+                    <span>🎯 LEARNING OBJECTIVES</span>
+                  </h3>
+                  <div className="text-slate-350 text-xs leading-relaxed font-sans font-medium">
+                    <MarkdownRenderer
+                      content={objectives}
+                      isNightMode={true}
+                      courseId={courseId}
+                    />
+                  </div>
+                </div>
+              );
+            }
+
+            if (stage.id === 'concept') {
+              return (
+                <div 
+                  key="concept" 
+                  className={`bg-slate-955/20 border border-slate-850 rounded-3xl p-5 space-y-3 transition-all ${animClass}`}
+                >
+                  <h3 className="text-xs font-black uppercase tracking-widest text-primary border-b border-slate-850/60 pb-2 flex items-center gap-1.5 font-mono">
+                    <span>💡 CONCEPT / EXPLANATION</span>
+                  </h3>
+                  <div className="text-slate-350 text-xs leading-relaxed font-sans font-medium">
+                    <MarkdownRenderer
+                      content={concept}
+                      isNightMode={true}
+                      courseId={courseId}
+                    />
+                  </div>
+                </div>
+              );
+            }
+
+            if (stage.id === 'example') {
+              return (
+                <div 
+                  key="example" 
+                  className={`bg-slate-955/20 border border-slate-850 rounded-3xl p-5 space-y-3 transition-all ${animClass}`}
+                >
+                  <div className="flex items-center justify-between border-b border-slate-850/60 pb-2">
+                    <h3 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-1.5 font-mono">
+                      <span>💻 EXAMPLE / CODE</span>
+                    </h3>
+                    <button
+                      onClick={copyExampleCode}
+                      className="text-[9px] text-slate-500 hover:text-white flex items-center gap-1 border border-slate-850 px-2 py-0.5 rounded cursor-pointer active:scale-95 transition-all font-mono"
+                      title="Copy code to clipboard"
+                    >
+                      <Copy className="w-3 h-3" />
+                      <span>Copy</span>
+                    </button>
+                  </div>
+                  <pre className="bg-slate-950 border border-slate-850 rounded-xl p-3.5 text-xs text-primary/90 overflow-x-auto leading-relaxed shadow-inner font-mono">
+                    <code>{challenge.exampleCode}</code>
+                  </pre>
+
+                  {/* Reveal Explanation Section */}
+                  <div className="mt-3 pt-3 border-t border-slate-850/60 space-y-2">
+                    {!showExampleExplanation ? (
+                      <button
+                        onClick={() => {
+                          setShowExampleExplanation(true);
+                          soundService.play('success');
+                        }}
+                        className="px-3.5 py-1.5 bg-slate-900 border border-slate-800 text-slate-300 hover:text-white font-mono text-[10px] font-black rounded-lg cursor-pointer transition-all active:scale-95 flex items-center gap-1.5"
+                      >
+                        <span>💡 REVEAL EXPLANATION</span>
+                      </button>
+                    ) : (
+                      <div className="bg-slate-950/40 border border-slate-900 rounded-xl p-3 text-xs text-slate-400 font-sans leading-relaxed transition-all">
+                        <span className="font-mono text-[10px] font-black text-amber-500 block mb-1 uppercase tracking-wider">
+                          EXPLANATION:
+                        </span>
+                        {challenge.hint || "Review the syntax structure, functions, and key methods used in the code block example to understand how to apply it in the practice console."}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+
+            if (stage.id === 'flowchart') {
+              return (
+                <div 
+                  key="flowchart" 
+                  className={`bg-slate-955/20 border border-slate-850 rounded-3xl p-5 space-y-3 transition-all ${animClass}`}
+                >
+                  <h3 className="text-xs font-black uppercase tracking-widest text-primary border-b border-slate-850/60 pb-2 flex items-center gap-1.5 font-mono">
+                    <span>🔀 FLOWCHART / DIAGRAM</span>
+                  </h3>
+                  <div className="text-slate-350 text-xs leading-relaxed font-sans font-medium">
+                    <MarkdownRenderer
+                      content={flowchart}
+                      isNightMode={true}
+                      courseId={courseId}
+                    />
+                  </div>
+                </div>
+              );
+            }
+
+            return null;
+          })}
+
+          {/* Content Complete Banner */}
+          <div className="bg-emerald-950/20 border border-emerald-900/40 rounded-3xl p-4 flex items-center justify-between shadow-md animate-in fade-in zoom-in-98 duration-400 select-none">
+            <div className="flex items-center gap-2.5">
+              <span className="text-emerald-400 text-lg">✓</span>
+              <div>
+                <h4 className="text-[10px] font-mono uppercase tracking-widest text-emerald-400 font-black">
+                  LEARNING CONTENT SEQUENCE COMPLETE
+                </h4>
+                <p className="text-[11px] font-sans font-bold text-slate-300">
+                  Solve the Practice Challenge on the right to complete this node!
+                </p>
+              </div>
             </div>
+            <span className="px-2.5 py-1 text-[9px] font-mono font-black bg-emerald-950 border border-emerald-900 rounded-full text-emerald-400 uppercase tracking-wider animate-pulse">
+              COMPLETE
+            </span>
           </div>
         </div>
 
         {/* Right Column: Try, Check & Feedback */}
-        <div className="space-y-6 lg:sticky lg:top-36">
+        <div 
+          className={`space-y-6 lg:sticky lg:top-36 transition-all duration-300 relative ${
+            !isPracticeUnlocked 
+              ? 'opacity-40 pointer-events-none filter blur-[1px] select-none' 
+              : 'opacity-100 pointer-events-auto filter-none select-auto'
+          }`}
+        >
+          {!isPracticeUnlocked && (
+            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-slate-950/20 rounded-3xl p-4 text-center">
+              <span className="px-3 py-1.5 bg-slate-900 border border-slate-800 text-[10px] text-amber-500 font-mono font-black uppercase tracking-widest rounded-xl shadow-lg animate-pulse">
+                🔒 Complete Learn Path to Unlock Practice
+              </span>
+            </div>
+          )}
           <div className="bg-slate-955/20 border border-slate-850 rounded-3xl p-5 space-y-4">
             <h3 className="text-xs font-black uppercase tracking-widest text-secondary border-b border-slate-850/60 pb-2 flex items-center gap-1.5 font-mono">
               <span>💻 TRY IT OUT</span>

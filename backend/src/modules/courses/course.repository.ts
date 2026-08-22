@@ -44,14 +44,14 @@ export class CourseRepository {
     if (!this.collection) return null;
     const docSnap = await this.collection.doc(id).get();
     if (!docSnap.exists) return null;
-    return docSnap.data() as ICourse;
+    return { ...docSnap.data(), id: docSnap.id } as ICourse;
   }
 
   async findBySlug(slug: string): Promise<ICourse | null> {
     if (!this.collection) return null;
     const snapshot = await this.collection.where('slug', '==', slug).limit(1).get();
     if (snapshot.empty) return null;
-    return snapshot.docs[0].data() as ICourse;
+    return { ...snapshot.docs[0].data(), id: snapshot.docs[0].id } as ICourse;
   }
 
   async update(id: string, updates: UpdateCourseDTO): Promise<ICourse | null> {
@@ -85,7 +85,10 @@ export class CourseRepository {
     }
 
     const snapshot = await this.collection.get();
-    let courses: ICourse[] = snapshot.docs.map((doc: QueryDocumentSnapshot) => doc.data() as ICourse);
+    let courses: ICourse[] = snapshot.docs.map((doc: QueryDocumentSnapshot) => ({
+      ...doc.data(),
+      id: doc.id
+    }) as ICourse);
 
     // 1. Filter by status (case-insensitive)
     if (options.status && options.status !== 'all') {
