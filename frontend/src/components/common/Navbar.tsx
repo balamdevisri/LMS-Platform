@@ -153,24 +153,24 @@ export const Navbar: React.FC = () => {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 w-full px-4 sm:px-6 lg:px-8 pt-4 pointer-events-none font-['Sora']">
       <div
-        className={`mx-auto max-w-7xl h-16 sm:h-18 flex items-center justify-between px-3.5 sm:px-6 rounded-[18px] backdrop-blur-xl transition-all duration-300 pointer-events-auto border ${
+        className={`mx-auto w-full max-w-none h-16 sm:h-18 flex items-center justify-between px-3.5 sm:px-6 lg:px-8 rounded-[18px] backdrop-blur-xl transition-all duration-300 pointer-events-auto border ${
           isScrolled
             ? 'bg-white/78 border-[#E6EEF9]/80 shadow-[0_8px_30px_rgba(59,130,246,0.06)] dark:bg-[#0E1325]/78 dark:border-slate-800/80 dark:shadow-[0_8px_30px_rgba(0,0,0,0.4)]'
             : 'bg-white/60 border-slate-100/60 shadow-xs dark:bg-[#0E1325]/60 dark:border-zinc-800/60'
         }`}
       >
         {/* Brand Logo */}
-        <BrandLogo size="md" showSubtitle={true} />
+        <BrandLogo size="md" showSubtitle={true} responsive={true} />
 
         {/* Center Navigation Links */}
-        <nav className="hidden xl:flex items-center space-x-1 bg-slate-100/50 dark:bg-zinc-900/40 p-1 rounded-full border border-slate-100 dark:border-zinc-800/80 backdrop-blur-md">
+        <nav className="hidden lg:flex items-center space-x-1 bg-slate-100/50 dark:bg-zinc-900/40 p-1 rounded-full border border-slate-100 dark:border-zinc-800/80 backdrop-blur-md">
           {navLinks.map((link) => {
             const active = isLinkActive(link.href);
             return (
               <a
                 key={link.name}
                 href={link.href}
-                className={`relative px-4 py-1.5 text-xs font-bold transition-all duration-200 flex items-center gap-1.5 rounded-full ${
+                className={`relative px-3 py-1.5 lg:px-2 lg:text-[11px] xl:px-4 xl:text-xs font-bold transition-all duration-200 flex items-center gap-1.5 rounded-full ${
                   active
                     ? 'text-blue-600 dark:text-blue-400 bg-white dark:bg-zinc-900 shadow-xs'
                     : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/40 dark:hover:bg-zinc-900/40'
@@ -191,38 +191,38 @@ export const Navbar: React.FC = () => {
         </nav>
 
         {/* Right Action / User Menu Area */}
-        <div className="hidden lg:flex items-center space-x-3">
-          <ThemeToggle />
+        <div className="hidden lg:flex items-center lg:gap-1.5 xl:gap-3">
+          <ThemeToggle responsive={true} />
           {user ? (
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex items-center gap-2.5 p-1.5 pr-3.5 bg-white/90 dark:bg-zinc-900/90 hover:bg-slate-50 dark:hover:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-full transition-all cursor-pointer shadow-xs hover:shadow-md"
+                className="flex items-center gap-1.5 lg:gap-1 xl:gap-2.5 p-1.5 pr-3.5 lg:p-1 lg:pr-2 xl:p-1.5 xl:pr-3.5 bg-white/90 dark:bg-zinc-900/90 hover:bg-slate-50 dark:hover:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-full transition-all cursor-pointer shadow-xs hover:shadow-md"
               >
                 <div className="relative">
                   {avatarUrl ? (
                     <img
                       src={avatarUrl}
                       alt={userProfile?.name || 'Student'}
-                      className="w-8 h-8 rounded-full object-cover border-2 border-blue-400 shadow-xs shrink-0"
+                      className="w-8 h-8 lg:w-7 lg:h-7 xl:w-8 xl:h-8 rounded-full object-cover border-2 border-blue-400 shadow-xs shrink-0"
                     />
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-linear-to-tr from-blue-600 via-indigo-500 to-purple-600 text-white flex items-center justify-center font-extrabold text-xs border border-blue-300 shadow-xs shrink-0">
+                    <div className="w-8 h-8 lg:w-7 lg:h-7 xl:w-8 xl:h-8 rounded-full bg-linear-to-tr from-blue-600 via-indigo-500 to-purple-600 text-white flex items-center justify-center font-extrabold text-xs lg:text-[10px] xl:text-xs border border-blue-300 shadow-xs shrink-0">
                       {userInitial}
                     </div>
                   )}
                   <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-white dark:ring-zinc-900 animate-pulse" />
                 </div>
 
-                <div className="text-left hidden xl:block">
-                  <span className="text-xs font-bold text-slate-900 dark:text-white block leading-tight">
+                <div className="text-left hidden lg:block">
+                  <span className="text-xs font-bold text-slate-900 dark:text-white block leading-tight max-w-[70px] lg:max-w-[80px] xl:max-w-[120px] truncate">
                     {userProfile?.name || user?.displayName || user?.email?.split('@')[0] || 'Student User'}
                   </span>
-                  <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider block">
+                  <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider block leading-none mt-0.5">
                     {userProfile?.role || 'Student'}
                   </span>
                 </div>
-                <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 shrink-0 ${userMenuOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {/* Dropdown Menu */}
@@ -292,23 +292,23 @@ export const Navbar: React.FC = () => {
             <>
               <Link
                 to="/auth/login"
-                className="px-4 py-2 text-xs font-bold text-slate-800 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 border border-slate-200 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-900 hover:bg-slate-50 dark:hover:bg-zinc-800 shadow-2xs transition-all"
+                className="px-4 py-2 lg:px-2.5 lg:py-1.5 xl:px-4 xl:py-2 text-[11px] xl:text-xs font-bold text-slate-800 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 border border-slate-200 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-900 hover:bg-slate-50 dark:hover:bg-zinc-800 shadow-2xs transition-all"
               >
                 Sign In
               </Link>
               <Link
                 to="/dashboard"
-                className="px-5 py-2.5 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all hover:scale-103 flex items-center gap-1.5"
+                className="px-5 py-2.5 lg:px-3 lg:py-2 xl:px-5 xl:py-2.5 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-[11px] xl:text-xs shadow-md shadow-blue-500/20 transition-all hover:scale-103 flex items-center gap-1 lg:gap-0.5 xl:gap-1.5"
               >
                 <span>Get Started Free</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <ArrowRight className="w-3.5 h-3.5 lg:w-3 lg:h-3 xl:w-3.5 xl:h-3.5" />
               </Link>
             </>
           )}
         </div>
 
         {/* Mobile Hamburger Button and quick ThemeToggle */}
-        <div className="flex xl:hidden items-center space-x-2 pointer-events-auto">
+        <div className="flex lg:hidden items-center space-x-2 pointer-events-auto">
           <ThemeToggle />
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -327,7 +327,7 @@ export const Navbar: React.FC = () => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="xl:hidden bg-white/95 dark:bg-[#0E1325]/95 backdrop-blur-2xl border border-slate-100 dark:border-zinc-800 rounded-2xl mx-auto mt-2 max-w-7xl p-4 space-y-3 shadow-2xl pointer-events-auto font-['Sora'] overflow-hidden"
+            className="lg:hidden bg-white/95 dark:bg-[#0E1325]/95 backdrop-blur-2xl border border-slate-100 dark:border-zinc-800 rounded-2xl mx-auto mt-2 max-w-7xl p-4 space-y-3 shadow-2xl pointer-events-auto font-['Sora'] overflow-hidden"
           >
             <div className="grid grid-cols-2 gap-2 pb-2">
               {navLinks.map((link) => (
