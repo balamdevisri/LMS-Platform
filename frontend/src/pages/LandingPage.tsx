@@ -588,13 +588,13 @@ export const LandingPage: React.FC = () => {
         }
       `}</style>
 
-      <div className="pt-24 sm:pt-28 font-['Sora'] select-none">
+      <div className="pt-20 sm:pt-22 lg:pt-24 font-['Sora'] select-none">
         
         {/* ----------------- 1. HERO SECTION ----------------- */}
-        <section className="relative max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 lg:pt-8 pb-0 overflow-visible min-h-[560px] lg:min-h-[620px] flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-8">
+        <section className="relative max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 pt-2 sm:pt-4 lg:pt-4 pb-0 overflow-visible min-h-[480px] lg:min-h-[520px] flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-8">
           
           {/* Left Column: Hero Content Container */}
-          <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-6 max-w-2xl lg:max-w-[48%] relative z-10 w-full">
+          <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-4 xl:space-y-6 max-w-2xl lg:max-w-[48%] relative z-10 w-full">
             {/* Badge */}
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50/80 dark:bg-zinc-900/80 border border-blue-100 dark:border-zinc-800 text-blue-600 dark:text-blue-400 text-xs sm:text-sm font-semibold tracking-wide backdrop-blur-xl shadow-2xs hover:scale-103 active:scale-95 transition-all">
               <Sparkles className="w-4 h-4 text-blue-500 animate-pulse" />
@@ -606,7 +606,7 @@ export const LandingPage: React.FC = () => {
               variants={textContainerVariants}
               initial="hidden"
               animate="show"
-              className="font-heading font-extrabold text-3xl sm:text-5xl lg:text-6xl text-slate-900 dark:text-white tracking-tight leading-[1.15] sm:leading-[1.1] flex flex-wrap justify-center lg:justify-start gap-x-2 sm:gap-x-3 gap-y-1"
+              className="font-heading font-extrabold text-3xl sm:text-5xl lg:text-[2.5rem] xl:text-[3.25rem] 2xl:text-[4rem] text-slate-900 dark:text-white tracking-tight leading-[1.15] sm:leading-[1.1] flex flex-wrap justify-center lg:justify-start gap-x-2 sm:gap-x-3 gap-y-1"
             >
               {headlineWords.map((word, i) => (
                 <motion.span 
@@ -620,15 +620,15 @@ export const LandingPage: React.FC = () => {
             </motion.h1>
 
             {/* Subtitle */}
-            <p className="text-xs sm:text-base lg:text-lg text-slate-650 dark:text-zinc-350 leading-relaxed font-normal">
+            <p className="text-xs sm:text-sm lg:text-[0.95rem] xl:text-base text-slate-650 dark:text-zinc-350 leading-relaxed font-normal">
               Master high-impact engineering & AI tracks with 24/7 intelligent tutoring, real-time sandbox code evaluation, adaptive skill trees, and ISO-verified digital credentials.
             </p>
 
             {/* CTA Buttons with click ripple */}
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 sm:gap-4 w-full sm:w-auto">
+            <div className="pt-1 lg:pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 sm:gap-4 w-full sm:w-auto">
               <RippleButton
                 to="/dashboard"
-                className="w-full sm:w-auto px-8 py-3.5 sm:py-4 btn-premium-primary text-white font-bold rounded-2xl flex items-center justify-center gap-2 text-xs sm:text-sm shadow-md"
+                className="w-full sm:w-auto px-8 py-3 sm:py-3.5 btn-premium-primary text-white font-bold rounded-2xl flex items-center justify-center gap-2 text-xs sm:text-sm shadow-md"
               >
                 <span>Get Started Free</span>
                 <ArrowRight className="w-4 h-4" />
@@ -636,7 +636,7 @@ export const LandingPage: React.FC = () => {
 
               <RippleButton
                 href="#ai-overview"
-                className="w-full sm:w-auto px-8 py-3.5 sm:py-4 btn-premium-secondary text-slate-800 dark:text-zinc-100 font-bold rounded-2xl flex items-center justify-center gap-2 text-xs sm:text-sm shadow-xs border border-[#E6EEF9] dark:border-zinc-700"
+                className="w-full sm:w-auto px-8 py-3 sm:py-3.5 btn-premium-secondary text-slate-800 dark:text-zinc-100 font-bold rounded-2xl flex items-center justify-center gap-2 text-xs sm:text-sm shadow-xs border border-[#E6EEF9] dark:border-zinc-700"
               >
                 <Play className="w-4 h-4 text-blue-500 fill-current" />
                 <span>Explore AI Engine</span>
@@ -650,14 +650,14 @@ export const LandingPage: React.FC = () => {
           </div>
 
           {/* Right Column: Interactive AI Core Orb */}
-          <div className="relative w-full lg:w-[48%] h-[340px] sm:h-[500px] lg:h-[600px] flex items-center justify-center z-10 overflow-visible">
+          <div className="relative w-full lg:w-[48%] h-[300px] sm:h-[420px] lg:h-[460px] xl:h-[520px] 2xl:h-[600px] flex items-center justify-center z-10 overflow-visible">
             <AiCoreOrb />
           </div>
         </section>
 
 
         {/* Statistics Divider (Hero -> Stats = 48px) */}
-        <AnimatedDivider className="mt-[24px] mb-[24px]" />
+        <AnimatedDivider className="mt-[20px] mb-[20px]" />
 
 
         {/* ----------------- 2. STATISTICS SECTION ----------------- */}

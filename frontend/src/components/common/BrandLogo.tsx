@@ -7,6 +7,7 @@ interface BrandLogoProps {
   theme?: 'light' | 'dark' | 'glass';
   showSubtitle?: boolean;
   className?: string;
+  responsive?: boolean;
 }
 
 export const BrandLogo: React.FC<BrandLogoProps> = ({
@@ -14,6 +15,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
   layout = 'horizontal',
   showSubtitle = true,
   className = '',
+  responsive = false,
 }) => {
   // Size mapping for symbol container and text font sizes
   const symbolSizeMap = {
@@ -37,12 +39,18 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
     xl: 'text-[13px] sm:text-[15px] tracking-[0.3em]',
   };
 
-  const symbolClass = symbolSizeMap[size] || 'w-10 h-10 sm:w-11 sm:h-11';
-  const titleClass = titleSizeMap[size] || 'text-xl sm:text-2xl';
-  const taglineClass = taglineSizeMap[size] || 'text-[9.5px] sm:text-[11px] tracking-[0.24em]';
+  const symbolClass = responsive
+    ? 'w-10 h-10 lg:w-9 lg:h-9 xl:w-11 xl:h-11'
+    : (symbolSizeMap[size] || 'w-10 h-10 sm:w-11 sm:h-11');
+  const titleClass = responsive
+    ? 'text-xl lg:text-lg xl:text-2xl'
+    : (titleSizeMap[size] || 'text-xl sm:text-2xl');
+  const taglineClass = responsive
+    ? 'text-[9.5px] lg:text-[8px] xl:text-[11px] tracking-[0.24em]'
+    : (taglineSizeMap[size] || 'text-[9.5px] sm:text-[11px] tracking-[0.24em]');
 
   return (
-    <Link to="/" className={`inline-flex items-center gap-3 group select-none ${className}`}>
+    <Link to="/" className={`inline-flex items-center gap-3 ${responsive ? 'lg:gap-1.5 xl:gap-3' : ''} group select-none ${className}`}>
       {/* 1. OFFICIAL TECH EMBLEM SYMBOL (LEFT) */}
       <div className={`relative flex items-center justify-center shrink-0 ${symbolClass}`}>
         {/* Glow backdrop */}
@@ -75,14 +83,14 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 
           {/* Tagline: LEARN • BUILD • EVOLVE */}
           {showSubtitle && (
-            <div className={`flex items-center gap-1.5 ${taglineClass} font-extrabold uppercase mt-1 text-slate-700 dark:text-zinc-200`}>
-              <span className="h-[2px] w-3 sm:w-4 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full shrink-0" />
+            <div className={`flex items-center gap-1.5 ${responsive ? 'lg:gap-1 xl:gap-1.5' : ''} ${taglineClass} font-extrabold uppercase mt-1 text-slate-700 dark:text-zinc-200`}>
+              <span className={`h-[2px] w-3 ${responsive ? 'lg:w-2 xl:w-4' : 'sm:w-4'} bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full shrink-0`} />
               <span>LEARN</span>
               <span className="text-cyan-500 font-black">•</span>
               <span>BUILD</span>
               <span className="text-blue-500 font-black">•</span>
               <span>EVOLVE</span>
-              <span className="h-[2px] w-3 sm:w-4 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full shrink-0" />
+              <span className={`h-[2px] w-3 ${responsive ? 'lg:w-2 xl:w-4' : 'sm:w-4'} bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full shrink-0`} />
             </div>
           )}
         </div>
