@@ -255,7 +255,7 @@ export class CertificateController {
    */
   public async testDelivery(req: Request, res: Response): Promise<Response> {
     try {
-      const targetEmail = (req.query.email as string) || 'devisribalam5@gmail.com';
+      const targetEmail = (req.query.email as string) || 'student@kaizenq.in';
       const studentName = (req.query.name as string) || 'BALAM DEVISRI';
       const courseTitle = (req.query.course as string) || 'C Programming';
       const studentId = (req.query.studentId as string) || 'aTtKfoyKgEcYgdNs5pd4OkClGD12';

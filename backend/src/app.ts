@@ -111,18 +111,18 @@ app.get('/health', (_req, res) => {
 });
 
 // 3. Direct GET /api/debug/send-email Endpoint (Immediate Nodemailer Send Without Firebase/Firestore)
-app.get('/api/debug/send-email', async (_req, res) => {
+app.get('/api/debug/send-email', async (req, res) => {
   const { emailService } = await import('./services/email/EmailService');
-  const targetEmail = 'shaivikagroups@gmail.com';
-  const subject = 'SMTP Test - KaizenQ AI LMS';
+  const targetEmail = (req.query.email as string) || env.SMTP_EMAIL || 'support@kaizenq.in';
+  const subject = 'Brevo SMTP Test - KaizenQ AI LMS';
   const html = `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"></head>
 <body style="font-family: Arial, sans-serif; background-color: #f0f6ff; padding: 30px; color: #0f172a;">
   <div style="max-width: 500px; margin: 0 auto; background: #ffffff; border-radius: 16px; padding: 30px; border: 1px solid #bae6fd;">
     <h1 style="color: #0284c7; margin-top: 0;">KaizenQ AI LMS</h1>
-    <p style="font-size: 15px; color: #334155;">SMTP connection successful.</p>
-    <p style="font-size: 13px; color: #64748b; margin-top: 30px;">KaizenQ Team</p>
+    <p style="font-size: 15px; color: #334155;">Brevo SMTP connection successful on kaizenq.in.</p>
+    <p style="font-size: 13px; color: #64748b; margin-top: 30px;">KaizenQ Team &bull; no-reply@kaizenq.in</p>
   </div>
 </body>
 </html>`;
@@ -142,8 +142,8 @@ app.get('/api/debug/send-email', async (_req, res) => {
 // 4. Direct GET /api/test-email Endpoint
 app.get('/api/test-email', async (req, res) => {
   const { emailService } = await import('./services/email/EmailService');
-  const targetEmail = (req.query.email as string) || env.SMTP_EMAIL || 'shaivikagroups@gmail.com';
-  const subject = 'SMTP Test Successful - KaizenQ AI LMS';
+  const targetEmail = (req.query.email as string) || env.SMTP_EMAIL || 'support@kaizenq.in';
+  const subject = 'Brevo SMTP Test Successful - KaizenQ AI LMS';
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -160,17 +160,17 @@ app.get('/api/test-email', async (req, res) => {
             KaizenQ AI LMS
           </div>
           <h2 style="font-size: 22px; font-weight: 800; color: #0f172a; margin-top: 0;">
-            SMTP connection successful.
+            Brevo SMTP Connection Successful
           </h2>
           <p style="font-size: 15px; color: #334155; line-height: 1.6;">
-            This is a test email from KaizenQ AI LMS confirming that Nodemailer + Gmail SMTP is configured properly.
+            This is a test email from KaizenQ AI LMS confirming that Nodemailer + Brevo SMTP is configured properly on kaizenq.in.
           </p>
           <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #0284c7; border-radius: 12px; padding: 16px; margin: 24px 0; font-size: 13px; color: #475569;">
             <strong>Recipient:</strong> ${targetEmail}<br>
-            <strong>Status:</strong> Verified & Operational
+            <strong>Status:</strong> Verified & Operational (Brevo SMTP)
           </div>
           <div style="border-top: 1px solid #e0f2fe; padding-top: 20px; margin-top: 28px; font-size: 13px; color: #64748b;">
-            <p style="margin: 0; font-weight: 800; color: #0f172a;">KaizenQ Team</p>
+            <p style="margin: 0; font-weight: 800; color: #0f172a;">KaizenQ Team &bull; no-reply@kaizenq.in</p>
           </div>
         </div>
       </td>
@@ -200,7 +200,7 @@ app.get('/api/test-email', async (req, res) => {
       accepted: result.accepted || [],
       rejected: result.rejected || [],
       response: result.response || null,
-      diagnostic: 'If Google rejected credentials (535 BadCredentials), ensure 2-Step Verification is ON for Google Account and an active 16-character App Password is set.',
+      diagnostic: 'Ensure Brevo SMTP credentials (SMTP_USER / Brevo Login, and SMTP_PASSWORD / Brevo SMTP Key) are configured in Render Environment Variables.',
       status: emailService.getTransporterStatus(),
     });
   }

@@ -85,6 +85,7 @@ export interface CourseEnrollmentPayload {
   courseDuration?: string;
   certificateAvailable?: boolean;
   enrollmentId?: string;
+  enrollmentDate?: string;
   courseUrl?: string;
 }
 
@@ -204,17 +205,22 @@ export type EventPayloadMap = {
 
 export interface EmailLogRecord {
   id?: string;
+  type?: string;
   eventType: EmailEventType;
+  recipient?: string;
   recipientEmail: string;
   subject: string;
+  relatedEntityId?: string;
   status: EmailStatus;
   attempts: number;
   maxRetries: number;
-  provider: 'nodemailer' | 'resend' | 'mock';
+  provider: 'brevo' | 'nodemailer' | 'resend' | 'mock';
   messageId?: string;
   error?: string;
+  errorMessage?: string;
   payload: any;
   createdAt: string;
+  sentAt?: string;
   updatedAt: string;
   lastAttemptAt?: string;
 }

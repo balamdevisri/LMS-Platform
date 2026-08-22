@@ -29,7 +29,7 @@ router.get('/status', (_req: Request, res: Response) => {
 
 router.get('/test-email', async (req: Request, res: Response) => {
   try {
-    const targetEmail = (req.query.email as string) || (req.body && req.body.email) || env.SMTP_EMAIL || 'kaizenqlms@gmail.com';
+    const targetEmail = (req.query.email as string) || (req.body && req.body.email) || env.SMTP_EMAIL || 'support@kaizenq.in';
     const result = await emailService.sendDirectHtmlEmail(
       targetEmail,
       'KaizenQ Direct SMTP Test',
@@ -126,7 +126,7 @@ router.post('/resend', verifyFirebaseToken as any, requireRole('admin') as any, 
  */
 router.post('/test', verifyFirebaseToken as any, requireRole('admin') as any, async (req: Request, res: Response) => {
   try {
-    const targetEmail = req.body.email || env.SMTP_EMAIL || 'kaizenqlms@gmail.com';
+    const targetEmail = req.body.email || env.SMTP_EMAIL || 'support@kaizenq.in';
     const result = await emailService.sendEventEmail(
       EmailEventType.STUDENT_REGISTRATION,
       targetEmail,

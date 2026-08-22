@@ -350,32 +350,37 @@ export const buildPasswordResetTemplate = (
 export const buildCourseEnrollmentTemplate = (
   payload: CourseEnrollmentPayload
 ): { subject: string; html: string } => {
-  const subject = `Enrollment Confirmed: ${payload.courseTitle} 🎓`;
+  const subject = `🎉 You're enrolled in ${payload.courseTitle}`;
   const ctaUrl = payload.courseUrl || (payload.courseId ? `https://www.kaizenq.in/courses/${payload.courseId}` : 'https://www.kaizenq.in/dashboard');
+  const enrollmentDateStr = payload.enrollmentDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
   const contentHtml = `
-    <h1 class="h1-title">Enrollment Confirmed! 🎉</h1>
+    <h1 class="h1-title" style="color: #0284C7; font-size: 24px;">Enrollment Confirmed! 🎉</h1>
     <p class="p-text">Hi <strong>${payload.studentName}</strong>,</p>
-    <p class="p-text">Your enrollment in <strong>${payload.courseTitle}</strong> has been successfully confirmed. You now have full access to interactive sandbox labs, lecture modules, quizzes, and 24/7 AI mentor assistance.</p>
+    <p class="p-text">You have successfully enrolled in <strong>${payload.courseTitle}</strong>. Your learning workspace is ready with complete access to interactive syllabus modules, assignments, quizzes, and the 24/7 AI learning mentor.</p>
 
     <div class="metric-box">
-      <div class="metric-label">Course Details</div>
-      <div class="metric-value" style="font-size: 16px; margin-bottom: 6px;">${payload.courseTitle}</div>
-      <div style="font-size: 13px; color: #475569; line-height: 1.6;">
-        <div>⏱️ <strong>Estimated Duration:</strong> ${payload.courseDuration || 'Self-Paced Track (20-40 Hours)'}</div>
-        <div>📜 <strong>Certificate Status:</strong> ${payload.certificateAvailable !== false ? '✅ Verified ISO Digital Certificate Included upon 100% completion' : 'Audit Track'}</div>
+      <div class="metric-label">Enrollment Details</div>
+      <div class="metric-value" style="font-size: 16px; margin-bottom: 8px;">${payload.courseTitle}</div>
+      <div style="font-size: 13px; color: #475569; line-height: 1.8;">
+        <div>📅 <strong>Enrollment Date:</strong> ${enrollmentDateStr}</div>
+        <div>⏱️ <strong>Course Duration:</strong> ${payload.courseDuration || 'Self-Paced Track (20-40 Hours)'}</div>
+        <div>🔓 <strong>Learning Access:</strong> Full Lifetime Access &amp; Interactive Practice Labs</div>
+        <div>📜 <strong>Certificate Status:</strong> ${payload.certificateAvailable !== false ? '✅ Verified Digital Certificate Included upon completion' : 'Audit Track'}</div>
         ${payload.instructorName ? `<div>👨‍🏫 <strong>Instructor:</strong> ${payload.instructorName}</div>` : ''}
       </div>
     </div>
+
+    <p class="p-text" style="font-size: 14px; color: #64748B;">Click the button below to jump into your first lesson and begin your learning journey.</p>
   `;
 
   return {
     subject,
     html: renderMasterLayout({
       title: subject,
-      preheader: `You are now enrolled in ${payload.courseTitle}`,
+      preheader: `You are now enrolled in ${payload.courseTitle}. Start learning today!`,
       contentHtml,
-      ctaText: 'Open Course',
+      ctaText: 'Open Course 🚀',
       ctaUrl,
     }),
   };
@@ -602,7 +607,7 @@ export const buildInstructorApprovalTemplate = (
 
       <!-- Footer & Support Section -->
       <div style="border-top: 1px solid #1E293B; margin-top: 28px; padding-top: 20px; font-size: 13px; color: #94A3B8;">
-        <p style="margin: 0 0 12px 0;">Questions? Reach us at <a href="mailto:kaizenq.lms@gmail.com" style="color: #38BDF8; text-decoration: underline;">kaizenq.lms@gmail.com</a></p>
+        <p style="margin: 0 0 12px 0;">Questions? Reach us at <a href="mailto:support@kaizenq.in" style="color: #38BDF8; text-decoration: underline;">support@kaizenq.in</a></p>
         <p style="margin: 0; font-size: 14px; color: #E2E8F0; font-weight: 700;">
           Warm regards,<br>
           <span style="color: #818CF8;">KaizenQ LMS Team</span><br>
@@ -721,7 +726,7 @@ export const buildRegistrationPendingTemplate = (payload: RegistrationPendingPay
 
       <!-- Footer & Support Section -->
       <div style="border-top: 1px solid #1E293B; margin-top: 28px; padding-top: 20px; font-size: 13px; color: #94A3B8;">
-        <p style="margin: 0 0 12px 0;">Need assistance? Contact support at <a href="mailto:kaizenq.lms@gmail.com" style="color: #38BDF8; text-decoration: underline;">kaizenq.lms@gmail.com</a></p>
+        <p style="margin: 0 0 12px 0;">Need assistance? Contact support at <a href="mailto:support@kaizenq.in" style="color: #38BDF8; text-decoration: underline;">support@kaizenq.in</a></p>
         <p style="margin: 0; font-size: 14px; color: #E2E8F0; font-weight: 700;">
           Regards,<br>
           <span style="color: #38BDF8;">SHAIVIKA LMS Team</span>
@@ -805,7 +810,7 @@ export const buildInstructorRegistrationPendingTemplate = (payload: InstructorRe
 
       <!-- Footer & Support Section -->
       <div style="border-top: 1px solid #1E293B; margin-top: 28px; padding-top: 20px; font-size: 13px; color: #94A3B8;">
-        <p style="margin: 0 0 12px 0;">Questions? Contact us at <a href="mailto:kaizenq.lms@gmail.com" style="color: #38BDF8; text-decoration: underline;">kaizenq.lms@gmail.com</a></p>
+        <p style="margin: 0 0 12px 0;">Questions? Contact us at <a href="mailto:support@kaizenq.in" style="color: #38BDF8; text-decoration: underline;">support@kaizenq.in</a></p>
         <p style="margin: 0; font-size: 14px; color: #E2E8F0; font-weight: 700;">
           Warm regards,<br>
           <span style="color: #818CF8;">KaizenQ LMS Team</span><br>
@@ -870,7 +875,7 @@ export const buildRegistrationApprovedTemplate = (payload: RegistrationApprovedP
 
       <!-- Footer & Support -->
       <div style="border-top: 1px solid #1E293B; margin-top: 28px; padding-top: 20px; font-size: 13px; color: #94A3B8;">
-        <p style="margin: 0 0 12px 0;">Need support? Contact us at <a href="mailto:kaizenq.lms@gmail.com" style="color: #38BDF8; text-decoration: underline;">kaizenq.lms@gmail.com</a></p>
+        <p style="margin: 0 0 12px 0;">Need support? Contact us at <a href="mailto:support@kaizenq.in" style="color: #38BDF8; text-decoration: underline;">support@kaizenq.in</a></p>
         <p style="margin: 0; font-size: 14px; color: #E2E8F0; font-weight: 700;">
           Regards,<br>
           <span style="color: #10B981;">SHAIVIKA LMS Team</span>
@@ -921,7 +926,7 @@ export const buildRegistrationRejectedTemplate = (payload: RegistrationRejectedP
     </div>
 
     <p style="font-size: 14px; color: #475569; line-height: 1.6;">
-      If you believe this was done in error or if you wish to update your GitHub profile or college details, please contact our support team at <a href="mailto:kaizenq.lms@gmail.com" style="color: #0284C7; font-weight: 700;">kaizenq.lms@gmail.com</a>.
+      If you believe this was done in error or if you wish to update your GitHub profile or college details, please contact our support team at <a href="mailto:support@kaizenq.in" style="color: #0284C7; font-weight: 700;">support@kaizenq.in</a>.
     </p>
 
     <p style="font-size: 14px; color: #64748B; margin-top: 24px;">

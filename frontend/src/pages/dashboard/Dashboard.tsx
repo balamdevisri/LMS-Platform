@@ -603,18 +603,24 @@ export const Dashboard: React.FC = () => {
     );
   }, [coursesProgress, studentName, userProfile, user]);
 
-  // Synchronize all saved certificates from local storage to Google Sheets backend registry
+  // Synchronize all saved certificates from local storage to backend registry
+  const earnedCertKeys = React.useMemo(() => {
+    return (earnedCerts || []).map(c => `${c.courseId}_${c.verificationId}`).join(',');
+  }, [earnedCerts]);
+
   React.useEffect(() => {
     const uid = userProfile?.uid || user?.uid || 'default_student';
     const studentEmail = user?.email || userProfile?.email || 'shaivikagroups@gmail.com';
     const studentId = uid;
-    const apiBase = import.meta.env.VITE_API_URL || '/api';
+    const apiBase = API_BASE_URL;
 
     const fetchAndSyncFromBackend = async () => {
       try {
-        const response = await fetch(`${apiBase}/certificates/student/${studentEmail}`);
+        const response = await fetch(`${apiBase}/certificates/student/${encodeURIComponent(studentEmail)}`);
         if (!response.ok) {
-          console.error(`[Dashboard Sync] API Error: ${response.status} ${response.statusText}`);
+          if (response.status !== 404) {
+            console.warn(`[Dashboard Sync] Notice: ${response.status} ${response.statusText}`);
+          }
           return;
         }
         const contentType = response.headers.get('content-type');
@@ -637,11 +643,9 @@ export const Dashboard: React.FC = () => {
               localStorage.setItem(`shaivika_cert_synced_${mappedCert.verificationId}`, 'true');
             });
           }
-        } else {
-          console.warn(`[Dashboard Sync] Response error: ${response.statusText}`);
         }
       } catch (err) {
-        console.warn('Failed to fetch certificates from backend registry:', err);
+        // Quietly catch background sync connection notices
       }
     };
 
@@ -697,7 +701,7 @@ export const Dashboard: React.FC = () => {
             return h;
           };
 
-          const apiBase = import.meta.env.VITE_API_URL || '/api';
+          const apiBase = API_BASE_URL;
           const safeFetchJson = async (url: string, options: RequestInit) => {
             try {
               const res = await fetch(url, options);
@@ -793,7 +797,7 @@ export const Dashboard: React.FC = () => {
         syncCertificate(cert);
       });
     });
-  }, [earnedCerts, user, userProfile, studentName, certificateService]);
+  }, [earnedCertKeys, user?.uid, user?.email, userProfile?.email, studentName, certificateService]);
 
   const handleViewCertificate = async (cert: Certificate) => {
     if (loadingCertId) return;
@@ -810,7 +814,7 @@ export const Dashboard: React.FC = () => {
       const studentEmail = user?.email || userProfile?.email || 'shaivikagroups@gmail.com';
       const studentId = uid;
 
-      const apiBase = import.meta.env.VITE_API_URL || '/api';
+      const apiBase = API_BASE_URL;
 
       const safeFetchJson = async (url: string, options: RequestInit) => {
         try {

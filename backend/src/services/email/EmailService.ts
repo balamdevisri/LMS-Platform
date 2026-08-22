@@ -130,25 +130,29 @@ export class EmailService {
   public async sendEventEmail<T = any>(
     eventType: EmailEventType,
     recipientEmail: string,
-    payload: T
+    payload: T,
+    relatedEntityId?: string
   ): Promise<{ success: boolean; messageId?: string; logId?: string; error?: string }> {
     const { subject, html } = this.templateEngine.build(eventType, payload);
     const normalizedRecipient = (recipientEmail || '').toLowerCase().trim();
 
-    logger.info(`[EMAIL] Dispatching event email: ${eventType} -> ${normalizedRecipient}`);
+    logger.info(`[EMAIL] Dispatching event email via Brevo SMTP: ${eventType} -> ${normalizedRecipient}`);
 
     const logRecord = {
+      type: eventType,
       eventType,
+      recipient: normalizedRecipient,
       recipientEmail: normalizedRecipient,
       subject,
-      provider: this.provider,
+      relatedEntityId: relatedEntityId || (payload as any)?.enrollmentId || (payload as any)?.courseId || null,
+      provider: 'brevo' as const,
       payload,
     };
 
     // 1. Audit Log: Pending in Firestore
     const logDocId = await this.auditLogger.logPending(logRecord);
 
-    // 2. Dispatch via Nodemailer Direct SMTP
+    // 2. Dispatch via Brevo Nodemailer Direct SMTP
     try {
       const result = await this.emailProvider.send({
         to: normalizedRecipient,
@@ -157,10 +161,10 @@ export class EmailService {
       });
 
       if (!result.success) {
-        throw new Error(result.error || 'Provider failed to dispatch email');
+        throw new Error(result.error || 'Brevo SMTP Provider failed to dispatch email');
       }
 
-      logger.info(`[EMAIL] ✅ Event ${eventType} delivered! MsgID: ${result.messageId}`);
+      logger.info(`[EMAIL] ✅ Event ${eventType} delivered via Brevo! MsgID: ${result.messageId}`);
 
       // 3. Update Audit Log status to 'sent'
       await this.auditLogger.updateStatus(logDocId, 'sent', result.messageId);
@@ -225,10 +229,16 @@ export class EmailService {
       courseUrl: courseUrl || (courseId ? `https://www.kaizenq.in/courses/${courseId}` : 'https://www.kaizenq.in/dashboard'),
       certificateAvailable,
       enrollmentId,
+      enrollmentDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
       instructorName,
     };
 
-    const result = await this.sendEventEmail(EmailEventType.COURSE_ENROLLMENT, normalizedEmail, payload);
+    const result = await this.sendEventEmail(
+      EmailEventType.COURSE_ENROLLMENT,
+      normalizedEmail,
+      payload,
+      enrollmentId || courseId
+    );
 
     if (result.success) {
       this.sentIdempotencyKeys.add(idempotencyKey);

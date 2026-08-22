@@ -6,14 +6,24 @@ import logger from '../../../config/logger';
 export class EmailAuditLogger {
   async logPending(record: Omit<EmailLogRecord, 'status' | 'attempts' | 'maxRetries' | 'createdAt' | 'updatedAt' | 'lastAttemptAt'>): Promise<string | undefined> {
     const nowIso = new Date().toISOString();
-    const fullRecord: EmailLogRecord = {
-      ...record,
+    const fullRecord: Record<string, any> = {
+      type: record.type || record.eventType,
+      eventType: record.eventType,
+      recipient: record.recipient || record.recipientEmail,
+      recipientEmail: record.recipientEmail,
+      subject: record.subject,
+      relatedEntityId: record.relatedEntityId || null,
       status: 'pending',
+      provider: 'brevo',
+      messageId: null,
       attempts: 1,
       maxRetries: 3,
       createdAt: nowIso,
+      sentAt: null,
+      errorMessage: null,
       updatedAt: nowIso,
       lastAttemptAt: nowIso,
+      payload: record.payload || {},
     };
 
     if (isFirestoreInitialized()) {
@@ -27,14 +37,16 @@ export class EmailAuditLogger {
     return undefined;
   }
 
-  async logSent(id: string): Promise<void> {
+  async logSent(id: string, messageId?: string): Promise<void> {
     if (!isFirestoreInitialized()) return;
     try {
-      await emailLogsCollection().doc(id).update({
+      const updateData: Record<string, any> = {
         status: 'sent',
         sentAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-      });
+      };
+      if (messageId) updateData.messageId = messageId;
+      await emailLogsCollection().doc(id).update(updateData);
     } catch (err: any) {
       logger.warn('⚠️ EmailAuditLogger: Failed updating sent status in Firestore: ' + (err?.message || err));
     }
@@ -48,11 +60,14 @@ export class EmailAuditLogger {
         const current = doc.data() as EmailLogRecord;
         const attempts = (current.attempts || 1) + 1;
         const status: EmailStatus = attempts >= (current.maxRetries || 3) ? 'failed' : 'pending';
+        const errorMsg = error?.message || String(error);
 
         await emailLogsCollection().doc(id).update({
           status,
           attempts,
-          lastError: error?.message || String(error),
+          error: errorMsg,
+          errorMessage: errorMsg,
+          lastError: errorMsg,
           lastAttemptAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         });
@@ -66,13 +81,21 @@ export class EmailAuditLogger {
     if (!logId || !isFirestoreInitialized()) return;
 
     try {
-      const updateData: Partial<EmailLogRecord> = {
+      const updateData: Record<string, any> = {
         updatedAt: new Date().toISOString(),
       };
 
-      if (status) updateData.status = status;
+      if (status) {
+        updateData.status = status;
+        if (status === 'sent') {
+          updateData.sentAt = new Date().toISOString();
+        }
+      }
       if (messageId) updateData.messageId = messageId;
-      if (errorMsg) updateData.error = errorMsg;
+      if (errorMsg) {
+        updateData.error = errorMsg;
+        updateData.errorMessage = errorMsg;
+      }
 
       await emailLogsCollection().doc(logId).update(updateData);
     } catch (err: any) {
