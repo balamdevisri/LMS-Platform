@@ -66,7 +66,23 @@ export const getSharedSmtpTransporter = (): nodemailer.Transporter => {
 };
 
 /**
- * Controlled verification with exponential backoff
+ * Safely redacts credentials from any string or value
+ */
+const sanitizeSmtpOutput = (val: any): string => {
+  if (val === undefined || val === null) return 'undefined';
+  let str = typeof val === 'object' ? JSON.stringify(val) : String(val);
+  const { pass } = getSmtpCredentials();
+  if (pass) {
+    str = str.split(pass).join('[REDACTED_PASSWORD]');
+  }
+  // Redact any patterns resembling Brevo or API keys
+  str = str.replace(/xsmtpsib-[a-zA-Z0-9_-]+/gi, '[REDACTED_KEY]');
+  str = str.replace(/(AUTH\s+PLAIN\s+)[a-zA-Z0-9+/=]+/gi, '$1[REDACTED_AUTH]');
+  return str;
+};
+
+/**
+ * Controlled SMTP verification (Single shot without repeated aggressive polling)
  */
 export const verifySmtpWithBackoff = async (_isManual = false): Promise<boolean> => {
   // Prevent concurrent verification handshakes
@@ -89,22 +105,22 @@ export const verifySmtpWithBackoff = async (_isManual = false): Promise<boolean>
       console.log('[SMTP] SMTP READY');
       return true;
     } catch (err: any) {
-      const errorMsg = err?.message || String(err);
-      lastVerificationError = errorMsg;
+      verificationAttempts++;
+      smtpState = 'SMTP_UNAVAILABLE';
 
-      if (verificationAttempts < MAX_VERIFICATION_ATTEMPTS) {
-        verificationAttempts++;
-        smtpState = 'SMTP_RETRYING';
-        const delayMs = RETRY_DELAYS_MS[verificationAttempts - 1] || 60000;
-        console.warn(`[SMTP] Brevo SMTP temporarily unavailable. Retry scheduled in ${delayMs / 1000} seconds.`);
+      const code = sanitizeSmtpOutput(err?.code);
+      const responseCode = sanitizeSmtpOutput(err?.responseCode);
+      const command = sanitizeSmtpOutput(err?.command);
+      const response = sanitizeSmtpOutput(err?.response);
+      const message = sanitizeSmtpOutput(err?.message || String(err));
 
-        setTimeout(() => {
-          verifySmtpWithBackoff(false).catch(() => {});
-        }, delayMs);
-      } else {
-        smtpState = 'SMTP_UNAVAILABLE';
-        console.error('[SMTP] Maximum verification attempts reached. Brevo SMTP marked as temporarily unavailable.');
-      }
+      console.error(
+        `[SMTP] Verification failed\ncode=${code}\nresponseCode=${responseCode}\ncommand=${command}\nresponse=${response}\nmessage=${message}`
+      );
+
+      lastVerificationError = `code=${code}, responseCode=${responseCode}, command=${command}, response=${response}, message=${message}`;
+
+      // Automatic retries are temporarily disabled after the first failed verification
       return false;
     } finally {
       isVerifying = false;
