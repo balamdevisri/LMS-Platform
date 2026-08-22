@@ -107,10 +107,14 @@ const router = createBrowserRouter([
       { path: 'course/:slug', element: <CourseView /> },
       { path: 'verify-certificate', element: <VerifyCertificate /> },
       { path: 'verify-certificate/:verificationId', element: <VerifyCertificate /> },
-      { path: 'portfolio/:handleOrId', element: <PublicPortfolio /> },
       { path: 'lms', element: <LmsHub /> },
       { path: 'unauthorized', element: <Unauthorized /> },
     ],
+  },
+  // Dedicated Standalone Public Student Portfolio (No Main LMS Site Navbar/Footer)
+  {
+    path: '/portfolio/:handleOrId',
+    element: <PublicPortfolio />,
   },
   {
     path: '/auth',
