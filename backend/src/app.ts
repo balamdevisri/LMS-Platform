@@ -110,18 +110,18 @@ app.get('/health', (_req, res) => {
   });
 });
 
-// 3. Direct GET /api/debug/send-email Endpoint (Immediate Nodemailer Send Without Firebase/Firestore)
+// 3. Direct GET /api/debug/send-email Endpoint (Brevo HTTP API Transactional Email)
 app.get('/api/debug/send-email', async (req, res) => {
   const { emailService } = await import('./services/email/EmailService');
   const targetEmail = (req.query.email as string) || env.SMTP_EMAIL || 'support@kaizenq.in';
-  const subject = 'Brevo SMTP Test - KaizenQ AI LMS';
+  const subject = 'Brevo HTTP API Test - KaizenQ AI LMS';
   const html = `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"></head>
 <body style="font-family: Arial, sans-serif; background-color: #f0f6ff; padding: 30px; color: #0f172a;">
   <div style="max-width: 500px; margin: 0 auto; background: #ffffff; border-radius: 16px; padding: 30px; border: 1px solid #bae6fd;">
     <h1 style="color: #0284c7; margin-top: 0;">KaizenQ AI LMS</h1>
-    <p style="font-size: 15px; color: #334155;">Brevo SMTP connection successful on kaizenq.in.</p>
+    <p style="font-size: 15px; color: #334155;">Brevo HTTP API connection successful on kaizenq.in.</p>
     <p style="font-size: 13px; color: #64748b; margin-top: 30px;">KaizenQ Team &bull; no-reply@kaizenq.in</p>
   </div>
 </body>
@@ -133,7 +133,7 @@ app.get('/api/debug/send-email', async (req, res) => {
     success: result.success,
     accepted: result.accepted || (result.success ? [targetEmail] : []),
     rejected: result.rejected || [],
-    response: result.response || (result.success ? '250 2.0.0 OK' : 'Failed'),
+    response: result.response || (result.success ? '200 OK' : 'Failed'),
     messageId: result.messageId || null,
     error: result.error || null,
   });
@@ -143,7 +143,7 @@ app.get('/api/debug/send-email', async (req, res) => {
 app.get('/api/test-email', async (req, res) => {
   const { emailService } = await import('./services/email/EmailService');
   const targetEmail = (req.query.email as string) || env.SMTP_EMAIL || 'support@kaizenq.in';
-  const subject = 'Brevo SMTP Test Successful - KaizenQ AI LMS';
+  const subject = 'Brevo Transactional Email Test Successful - KaizenQ AI LMS';
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -160,14 +160,14 @@ app.get('/api/test-email', async (req, res) => {
             KaizenQ AI LMS
           </div>
           <h2 style="font-size: 22px; font-weight: 800; color: #0f172a; margin-top: 0;">
-            Brevo SMTP Connection Successful
+            Brevo HTTP API Connection Successful
           </h2>
           <p style="font-size: 15px; color: #334155; line-height: 1.6;">
-            This is a test email from KaizenQ AI LMS confirming that Nodemailer + Brevo SMTP is configured properly on kaizenq.in.
+            This is a test email from KaizenQ AI LMS confirming that Brevo Transactional HTTPS API is configured properly on kaizenq.in.
           </p>
           <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #0284c7; border-radius: 12px; padding: 16px; margin: 24px 0; font-size: 13px; color: #475569;">
             <strong>Recipient:</strong> ${targetEmail}<br>
-            <strong>Status:</strong> Verified & Operational (Brevo SMTP)
+            <strong>Status:</strong> Verified & Operational (Brevo HTTP API)
           </div>
           <div style="border-top: 1px solid #e0f2fe; padding-top: 20px; margin-top: 28px; font-size: 13px; color: #64748b;">
             <p style="margin: 0; font-weight: 800; color: #0f172a;">KaizenQ Team &bull; no-reply@kaizenq.in</p>
@@ -184,23 +184,23 @@ app.get('/api/test-email', async (req, res) => {
   if (result.success) {
     return res.status(200).json({
       success: true,
-      message: 'SMTP Test Email delivered successfully!',
+      message: 'Brevo Test Email delivered successfully!',
       recipientEmail: targetEmail,
       messageId: result.messageId,
       accepted: result.accepted || [targetEmail],
       rejected: result.rejected || [],
-      response: result.response || '250 OK',
+      response: result.response || '200 OK',
       status: emailService.getTransporterStatus(),
     });
   } else {
     return res.status(500).json({
       success: false,
-      error: 'SMTP Email Delivery Failed',
+      error: 'Brevo Email Delivery Failed',
       message: result.error,
       accepted: result.accepted || [],
       rejected: result.rejected || [],
       response: result.response || null,
-      diagnostic: 'Ensure Brevo SMTP credentials (SMTP_USER / Brevo Login, and SMTP_PASSWORD / Brevo SMTP Key) are configured in Render Environment Variables.',
+      diagnostic: 'Ensure BREVO_API_KEY is configured in Render Environment Variables.',
       status: emailService.getTransporterStatus(),
     });
   }

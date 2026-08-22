@@ -1,24 +1,19 @@
 /**
- * KAIZENQ LMS AI Platform - Centralized Direct SMTP Email Service
- * Powered by Nodemailer Direct SMTP & Shared Singleton Transporter
+ * KAIZENQ LMS AI Platform - Centralized Transactional Email Service
+ * Powered by Brevo HTTP API (HTTPS v3 API) with fallback support
  */
 
 import { env } from '../../config/env';
 import logger from '../../config/logger';
 import { EmailEventType, EmailLogRecord } from '../../types/emailTypes';
 import { IEmailProvider } from './IEmailProvider';
+import { BrevoHttpProvider } from './providers/BrevoHttpProvider';
 import { NodemailerProvider } from './providers/NodemailerProvider';
 import { ResendProvider } from './providers/ResendProvider';
 import { MockProvider } from './providers/MockProvider';
 import { EmailAuditLogger } from './audit/EmailAuditLogger';
 import { EmailRetryManager } from './queue/EmailRetryManager';
 import { EmailTemplateEngine } from './templates/EmailTemplateEngine';
-import {
-  getSmtpStatus,
-  verifySmtpWithBackoff,
-  getSmtpCredentials,
-  SmtpHealthState,
-} from '../../config/smtp.config';
 
 export interface SendEmailOptions {
   to: string;
@@ -50,21 +45,26 @@ export class EmailService {
   private templateEngine: EmailTemplateEngine;
   private retryManager: EmailRetryManager;
 
-  // In-memory idempotency cache for deduplication
+  // In-memory idempotency cache for duplicate prevention
   private sentIdempotencyKeys: Set<string> = new Set();
 
-  public provider: 'nodemailer' | 'resend' | 'mock';
+  public provider: 'brevo' | 'nodemailer' | 'resend' | 'mock';
 
   constructor() {
-    this.provider = (env.EMAIL_PROVIDER as 'nodemailer' | 'resend' | 'mock') || 'nodemailer';
+    const rawProvider = (process.env.EMAIL_PROVIDER || env.EMAIL_PROVIDER || 'brevo').toLowerCase();
 
-    // Instantiate appropriate provider (Direct Nodemailer SMTP is default)
-    if (this.provider === 'resend' && env.RESEND_API_KEY) {
+    if (rawProvider === 'brevo' || rawProvider === 'smtp') {
+      this.provider = 'brevo';
+      this.emailProvider = new BrevoHttpProvider();
+    } else if (rawProvider === 'resend' && (process.env.RESEND_API_KEY || env.RESEND_API_KEY)) {
+      this.provider = 'resend';
       this.emailProvider = new ResendProvider();
-    } else if (this.provider === 'nodemailer') {
+    } else if (rawProvider === 'nodemailer') {
+      this.provider = 'nodemailer';
       this.emailProvider = new NodemailerProvider();
     } else {
-      this.emailProvider = new MockProvider();
+      this.provider = 'brevo';
+      this.emailProvider = new BrevoHttpProvider();
     }
 
     this.auditLogger = new EmailAuditLogger();
@@ -73,18 +73,21 @@ export class EmailService {
   }
 
   public get fromAddress(): string {
-    return getSmtpCredentials().from;
+    const fromName = process.env.BREVO_FROM_NAME || env.BREVO_FROM_NAME || 'KaizenQ';
+    const fromEmail = process.env.BREVO_FROM_EMAIL || env.BREVO_FROM_EMAIL || 'no-reply@kaizenq.in';
+    return `${fromName} <${fromEmail}>`;
   }
 
   /**
-   * Controlled SMTP verification with exponential backoff
-   * Does NOT get called on every email send or request.
+   * Initializes and verifies the email provider asynchronously without blocking
    */
-  public async verifyTransporterAsync(isManual: boolean = false): Promise<boolean> {
-    if (this.provider === 'nodemailer') {
-      return verifySmtpWithBackoff(isManual);
+  public async verifyTransporterAsync(_isManual: boolean = false): Promise<boolean> {
+    try {
+      return await this.emailProvider.verify();
+    } catch (err: any) {
+      logger.warn('[EMAIL] Provider verification notice:', err?.message || err);
+      return false;
     }
-    return this.emailProvider.verify();
   }
 
   /**
@@ -112,10 +115,10 @@ export class EmailService {
       });
 
       if (!result.success) {
-        throw new Error(result.error || 'SMTP Provider failed to deliver message');
+        throw new Error(result.error || 'Email Provider failed to deliver message');
       }
 
-      logger.info(`[EMAIL] ✅ Email delivered via SMTP. MessageID: ${result.messageId}`);
+      logger.info(`[EMAIL] ✅ Email delivered. MessageID: ${result.messageId}`);
       return { success: true, messageId: result.messageId };
     } catch (err: any) {
       const msg = err?.message || String(err);
@@ -136,7 +139,7 @@ export class EmailService {
     const { subject, html } = this.templateEngine.build(eventType, payload);
     const normalizedRecipient = (recipientEmail || '').toLowerCase().trim();
 
-    logger.info(`[EMAIL] Dispatching event email via Brevo SMTP: ${eventType} -> ${normalizedRecipient}`);
+    logger.info(`[EMAIL] Dispatching event email: ${eventType} -> ${normalizedRecipient}`);
 
     const logRecord = {
       type: eventType,
@@ -145,14 +148,14 @@ export class EmailService {
       recipientEmail: normalizedRecipient,
       subject,
       relatedEntityId: relatedEntityId || (payload as any)?.enrollmentId || (payload as any)?.courseId || null,
-      provider: 'brevo' as const,
+      provider: this.provider,
       payload,
     };
 
     // 1. Audit Log: Pending in Firestore
     const logDocId = await this.auditLogger.logPending(logRecord);
 
-    // 2. Dispatch via Brevo Nodemailer Direct SMTP
+    // 2. Dispatch via active Email Provider (Brevo HTTP API)
     try {
       const result = await this.emailProvider.send({
         to: normalizedRecipient,
@@ -161,10 +164,10 @@ export class EmailService {
       });
 
       if (!result.success) {
-        throw new Error(result.error || 'Brevo SMTP Provider failed to dispatch email');
+        throw new Error(result.error || 'Email Provider failed to dispatch event email');
       }
 
-      logger.info(`[EMAIL] ✅ Event ${eventType} delivered via Brevo! MsgID: ${result.messageId}`);
+      logger.info(`[EMAIL] ✅ Event ${eventType} delivered! MsgID: ${result.messageId}`);
 
       // 3. Update Audit Log status to 'sent'
       await this.auditLogger.updateStatus(logDocId, 'sent', result.messageId);
@@ -228,9 +231,9 @@ export class EmailService {
       courseDuration: courseDuration || 'Self-Paced (20-40 Hours)',
       courseUrl: courseUrl || (courseId ? `https://www.kaizenq.in/courses/${courseId}` : 'https://www.kaizenq.in/dashboard'),
       certificateAvailable,
-      enrollmentId,
+      enrollmentId: enrollmentId || null,
       enrollmentDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
-      instructorName,
+      instructorName: instructorName || 'KaizenQ Faculty',
     };
 
     const result = await this.sendEventEmail(
@@ -393,7 +396,7 @@ export class EmailService {
         messageId: result.messageId,
         accepted: [recipientEmail],
         rejected: [],
-        response: '250 OK',
+        response: '200 OK',
       };
     } catch (err: any) {
       logger.error(`[EMAIL] Direct email send failed to ${recipientEmail}: ${err?.message || err}`);
@@ -407,10 +410,14 @@ export class EmailService {
   }
 
   /**
-   * Returns current SMTP Transporter status without leaking credentials
+   * Returns current Email Service status without leaking credentials
    */
   public getTransporterStatus() {
-    return getSmtpStatus();
+    return {
+      provider: this.provider,
+      status: 'ready',
+      from: this.fromAddress,
+    };
   }
 
   /**
@@ -428,7 +435,7 @@ export class EmailService {
   }
 
   /**
-   * Dispatches Email with Attachments (e.g. Certificate PDF) with automatic retry
+   * Dispatches Email with Attachments (e.g. Certificate PDF)
    */
   public async sendEmailWithAttachments(
     recipientEmail: string,
@@ -479,18 +486,10 @@ export class EmailService {
         };
       } catch (err: any) {
         lastError = err;
-        const errMsg = String(err?.message || err).toLowerCase();
         logger.error(`[EMAIL ATTACHMENT] ❌ Attempt ${attempt}/${maxRetries} Failed for ${recipientEmail}: ${err?.message || err}`);
 
-        const isAuthError = errMsg.includes('535') || errMsg.includes('username and password not accepted') || errMsg.includes('badcredentials');
-        if (isAuthError) {
-          logger.error(`[SMTP ATTACHMENT EMAIL] ❌ Authentication credentials rejected (SMTP 535). Failing fast without retries.`);
-          break;
-        }
-
         if (attempt < maxRetries) {
-          const backoffMs = Math.pow(2, attempt) * 1000;
-          logger.info(`[EMAIL ATTACHMENT] Retrying in ${backoffMs}ms...`);
+          const backoffMs = attempt * 1000;
           await new Promise((res) => setTimeout(res, backoffMs));
         }
       }
@@ -498,7 +497,6 @@ export class EmailService {
 
     const errorMsg = lastError?.message || String(lastError);
     await this.auditLogger.updateStatus(logDocId, 'failed', undefined, errorMsg);
-    logger.error(`[EMAIL ATTACHMENT] ❌ ALL ${maxRetries} ATTEMPTS FAILED for ${recipientEmail}`);
 
     return {
       success: false,

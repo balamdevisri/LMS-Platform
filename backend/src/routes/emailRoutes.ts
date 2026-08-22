@@ -29,12 +29,12 @@ router.get('/status', (_req: Request, res: Response) => {
 
 router.get('/test-email', async (req: Request, res: Response) => {
   try {
-    const targetEmail = (req.query.email as string) || (req.body && req.body.email) || env.SMTP_EMAIL || 'support@kaizenq.in';
+    const targetEmail = (req.query.email as string) || (req.body && req.body.email) || env.BREVO_FROM_EMAIL || 'support@kaizenq.in';
     const result = await emailService.sendDirectHtmlEmail(
       targetEmail,
-      'KaizenQ Direct SMTP Test',
-      '<!DOCTYPE html><html><body style="font-family: Arial; padding: 20px;"><h1 style="color: #2563eb;">KaizenQ Direct SMTP</h1><p>SMTP email automation operational on <strong>kaizenq.in</strong> via no-reply@kaizenq.in.</p></body></html>',
-      'KaizenQ Direct SMTP operational on kaizenq.in'
+      'KaizenQ Brevo Email Test',
+      '<!DOCTYPE html><html><body style="font-family: Arial; padding: 20px;"><h1 style="color: #2563eb;">KaizenQ Email Delivery</h1><p>Email automation operational on <strong>kaizenq.in</strong> via Brevo HTTP API.</p></body></html>',
+      'KaizenQ Email automation operational on kaizenq.in'
     );
 
     const info = {

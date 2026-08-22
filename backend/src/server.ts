@@ -59,12 +59,12 @@ server.listen(PORT, async () => {
   // Initialize Redis Connection (if configured)
   await connectRedis();
 
-  // Controlled Startup SMTP Verification (Non-blocking with backoff & rate-limit safety)
+  // Initialize Brevo Transactional Email Provider (Non-blocking HTTPS API)
   import('./services/email/EmailService')
     .then(({ emailService }) => {
       emailService.verifyTransporterAsync().catch(() => {});
     })
-    .catch((e) => logger.warn('[SMTP] EmailService startup import notice:', e));
+    .catch((e) => logger.warn('[BREVO] EmailService startup import notice:', e));
 
   try {
     const courseService = new CourseService();

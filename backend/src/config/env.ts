@@ -22,8 +22,11 @@ const envSchema = z.object({
   // Stripe Payments
   STRIPE_SECRET_KEY: z.string().optional(),
 
-  // Email Notification System Configurations (Nodemailer Direct SMTP - Brevo)
-  EMAIL_PROVIDER: z.enum(['nodemailer', 'resend', 'mock']).default('nodemailer'),
+  // Email Notification System Configurations (Brevo HTTP Transactional API)
+  EMAIL_PROVIDER: z.enum(['brevo', 'nodemailer', 'resend', 'mock']).default('brevo'),
+  BREVO_API_KEY: z.string().optional(),
+  BREVO_FROM_EMAIL: z.string().default('no-reply@kaizenq.in'),
+  BREVO_FROM_NAME: z.string().default('KaizenQ'),
   RESEND_API_KEY: z.string().optional(),
   SMTP_HOST: z.string().default('smtp-relay.brevo.com'),
   SMTP_PORT: z.string().default('587'),

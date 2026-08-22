@@ -23,7 +23,7 @@ export class EmailAuditLogger {
       errorMessage: null,
       updatedAt: nowIso,
       lastAttemptAt: nowIso,
-      payload: record.payload || {},
+      payload: JSON.parse(JSON.stringify(record.payload || {}, (_k, v) => (v === undefined ? null : v))),
     };
 
     if (isFirestoreInitialized()) {
