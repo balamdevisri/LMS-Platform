@@ -25,6 +25,15 @@ interface MarkdownContentProps {
   isNightMode?: boolean;
 }
 
+function extractTextFromReactNode(node: any): string {
+  if (typeof node === 'string') return node;
+  if (typeof node === 'number') return String(node);
+  if (!node) return '';
+  if (Array.isArray(node)) return node.map(extractTextFromReactNode).join('');
+  if (node.props?.children) return extractTextFromReactNode(node.props.children);
+  return '';
+}
+
 /** Copy-to-clipboard button for code blocks */
 const CopyButton: React.FC<{ code: string }> = ({ code }) => {
   const [copied, setCopied] = React.useState(false);
@@ -66,13 +75,17 @@ const CopyButton: React.FC<{ code: string }> = ({ code }) => {
  */
 export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNightMode = false }) => {
   const plugins = useMemo(() => [remarkGfm], []);
-  const rehypePlugins = useMemo(() => [rehypeHighlight], []);
+  const rehypePlugins = useMemo(() => [[rehypeHighlight, { ignoreMissing: true }]], []);
 
   const processedContent = useMemo(() => {
     if (!content) return '';
     let text = content
       .replace(/\r/g, '')
       .replace(/[\u200B-\u200D\uFEFF]/g, '');
+
+    // 0. Ensure ``` code blocks always start on their own line
+    text = text.replace(/([^\n])\s*(```[a-zA-Z0-9_-]*)/g, '$1\n\n$2');
+    text = text.replace(/(```)\s*([^\n`])/g, '$1\n$2');
 
     // 1. Separate tasks so they don't merge into text
     text = text.replace(/(\S)\s+(Task\s+\d+\b)/gi, '$1\n\n$2');
@@ -87,6 +100,16 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
     // 3. Normalize unicode bullets to markdown list items
     text = text.replace(/^[ \t]*[●•✔❌]\s*/gm, '- ');
     text = text.replace(/(\S)\s+([●•✔❌]\s*)/g, '$1\n- ');
+
+    // 4. Format single-line flowcharts with ↓ or ➔ into structured step blocks
+    text = text.replace(/(?:^|\n)(?:Flowchart|Flow Chart|Process Flow)[:\s—]+([^\n]+(?:↓|➔|->)[^\n]+)/gi, (_match, steps) => {
+      const formattedSteps = steps
+        .split(/\s*(?:↓|➔|->)\s*/)
+        .map((s: string) => s.trim())
+        .filter(Boolean)
+        .join('\n  ↓\n');
+      return `\n\n\`\`\`flowchart-text\n${formattedSteps}\n\`\`\`\n\n`;
+    });
 
     return text;
   }, [content]);
@@ -164,11 +187,9 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
 
             let rawCode = '';
             if (codeElement?.props?.children) {
-              rawCode = typeof codeElement.props.children === 'string'
-                ? codeElement.props.children
-                : React.Children.toArray(codeElement.props.children)
-                    .map((c: any) => (typeof c === 'string' ? c : c?.props?.children || ''))
-                    .join('');
+              rawCode = extractTextFromReactNode(codeElement.props.children);
+            } else if (children) {
+              rawCode = extractTextFromReactNode(children);
             }
 
             // Extract language from className
@@ -307,6 +328,32 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
                 <Suspense fallback={<SimulatorFallback label="Kubernetes simulator" />}>
                   <KubernetesSimulator />
                 </Suspense>
+              );
+            }
+
+            // ── Box Drawing & Unicode Arrow Flowcharts ─────────────────────
+            const isBoxOrArrowFlowchart =
+              language === 'flowchart-text' ||
+              language === 'ascii-flowchart' ||
+              /[┌┐└┘│─▼▲►◄↓↑➔→]/.test(rawCode) ||
+              (/^(flowchart|process|workflow)\b/i.test(language) && language !== 'mermaid');
+
+            if (isBoxOrArrowFlowchart) {
+              return (
+                <div className="my-6 rounded-2xl border border-sky-500/30 dark:border-sky-500/20 bg-[#0A0E1A] shadow-xl overflow-hidden relative group">
+                  <div className="flex items-center justify-between px-4 py-2.5 bg-[#0F172A] border-b border-slate-800/80">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse inline-block" />
+                      <span className="ml-1 text-xs font-mono font-bold text-[#38BDF8] uppercase tracking-wider">
+                        Process Architecture & Flowchart
+                      </span>
+                    </div>
+                    <CopyButton code={rawCode.trim()} />
+                  </div>
+                  <pre className="p-4 sm:p-5 overflow-x-auto bg-[#0A0E1A] text-xs sm:text-sm font-mono leading-relaxed text-sky-200 selection:bg-sky-500/30 whitespace-pre">
+                    {rawCode.trim()}
+                  </pre>
+                </div>
               );
             }
 

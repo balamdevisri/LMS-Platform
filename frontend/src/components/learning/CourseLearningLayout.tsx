@@ -68,6 +68,7 @@ export const CourseLearningLayout: React.FC<CourseLearningLayoutProps> = ({
   const { theme } = useTheme();
   const isNightMode = theme === 'dark';
   const containerRef = useRef<HTMLDivElement>(null);
+  const mainScrollRef = useRef<HTMLElement>(null);
 
   const isAdmin = userProfile?.role === 'admin';
   const studentUid = user?.uid || userProfile?.uid || 'default_student';
@@ -406,17 +407,21 @@ export const CourseLearningLayout: React.FC<CourseLearningLayoutProps> = ({
     };
   }, [currentLessonData, allLessons]);
 
-  // ── Persist last active lesson ─────────────────────────────────────────
+  // ── Persist last active lesson & scroll to top ─────────────────────────
   useEffect(() => {
     if (selectedLessonId) {
       try {
         localStorage.setItem(`shaivika_last_active_${courseId}`, String(selectedLessonId));
       } catch {}
     }
-    // Scroll to top on lesson change
+    // Scroll content to top immediately on lesson change
+    if (mainScrollRef.current) {
+      mainScrollRef.current.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }
     if (containerRef.current) {
       containerRef.current.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     }
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [selectedLessonId, courseId]);
 
   // ── Persist completion state ───────────────────────────────────────────
@@ -559,9 +564,9 @@ export const CourseLearningLayout: React.FC<CourseLearningLayoutProps> = ({
   const handleNextLesson = useCallback(() => {
     if (!hasNextLesson) return;
 
-    // Must complete current lesson first
+    // Must complete and claim current lesson first
     if (!isCompleted) {
-      toast.info('Please mark the current lesson as complete before continuing.');
+      toast.warning('🔒 XP Reward Pending! Please click "⚡ Claim +50 XP" to claim your XP before continuing to the next lesson!');
       return;
     }
 
@@ -571,14 +576,50 @@ export const CourseLearningLayout: React.FC<CourseLearningLayoutProps> = ({
       return;
     }
 
-    setSelectedLessonId(nextLesson.id);
-  }, [hasNextLesson, isCompleted, allLessons, activeIndex, isLessonUnlocked]);
+    // Check if next lesson crosses into a new module
+    const isNextModule = currentLessonData?.moduleId !== undefined &&
+      nextLesson.moduleId !== undefined &&
+      String(currentLessonData.moduleId) !== String(nextLesson.moduleId);
+
+    if (isNextModule) {
+      // Find all lessons belonging to the next module and pick the initial (first) lesson
+      const nextModuleLessons = allLessons.filter(l => String(l.moduleId) === String(nextLesson.moduleId));
+      const firstLessonOfNextModule = nextModuleLessons[0] || nextLesson;
+      setSelectedLessonId(firstLessonOfNextModule.id);
+      toast.success(`🎉 ${currentLessonData.moduleTitle || 'Module'} Completed! Welcome to ${firstLessonOfNextModule.moduleTitle || nextLesson.moduleTitle || 'Next Module'}!`);
+    } else {
+      setSelectedLessonId(nextLesson.id);
+    }
+
+    // Scroll viewport to initial position immediately
+    if (mainScrollRef.current) {
+      mainScrollRef.current.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [hasNextLesson, isCompleted, allLessons, activeIndex, isLessonUnlocked, currentLessonData]);
 
   const handleMarkComplete = useCallback(async () => {
     if (!completedLessonIds.some((id) => String(id) === String(selectedLessonId))) {
       const updated = [...completedLessonIds, selectedLessonId];
       setCompletedLessonIds(updated);
-      toast.success('Unit marked as complete!');
+
+      // Award XP points and log claim
+      try {
+        courseService.addXPPoints(50);
+        courseService.addXPClaim({
+          id: `claim_${Date.now()}`,
+          title: `Unit ${selectedLessonId}: ${activeLessonFull.title}`,
+          xp: 50,
+          category: 'Lesson Completion',
+          timestamp: new Date().toISOString(),
+          courseId: String(courseId),
+          courseTitle: courseTitle,
+        });
+      } catch (err) {
+        console.warn('[CourseLearningLayout] Local XP award notice:', err);
+      }
+
+      toast.success('🎉 +50 XP Claimed! Unit marked as complete!');
 
       try {
         localStorage.setItem(`shaivika_completed_${courseId}`, JSON.stringify(updated));
@@ -731,6 +772,7 @@ export const CourseLearningLayout: React.FC<CourseLearningLayoutProps> = ({
 
         {/* Content panel */}
         <main
+          ref={mainScrollRef}
           className={`flex-1 overflow-y-auto overscroll-contain
             ${isNightMode ? 'bg-slate-950' : 'bg-white'}`}
         >

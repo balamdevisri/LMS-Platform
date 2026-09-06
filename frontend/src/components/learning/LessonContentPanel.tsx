@@ -24,8 +24,10 @@ import {
   Layers,
   Cpu,
   ShieldCheck,
-  BookOpen
+  BookOpen,
+  Zap
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { MarkdownContent } from './MarkdownContent';
 
 const getThemeColorClass = (color?: string | null) => {
@@ -524,32 +526,37 @@ export const LessonContentPanel: React.FC<LessonContentPanelProps> = ({
 
           <div>
             {isCompleted ? (
-              <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold
+              <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-xs
                 ${isNightMode
                   ? 'bg-emerald-950/40 text-emerald-300 border border-emerald-800/50'
                   : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                 }`}>
                 <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                <span>Unit Completed</span>
+                <span>✓ Claimed (+50 XP) • Unit Completed</span>
               </div>
             ) : (
               <button
                 onClick={onMarkComplete}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold
-                  transition-all duration-200 cursor-pointer active:scale-[0.98] shadow-sm
-                  ${isNightMode
-                    ? 'bg-[#3B82F6] hover:bg-[#2563EB] text-white shadow-blue-500/20'
-                    : 'bg-[#2563EB] hover:bg-[#1D4ED8] text-white shadow-blue-600/20'
-                  }`}
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs sm:text-sm font-black
+                  transition-all duration-200 cursor-pointer active:scale-[0.98] shadow-md
+                  bg-linear-to-r from-amber-500 via-amber-400 to-yellow-400 hover:from-amber-400 hover:to-yellow-300
+                  text-slate-950 border border-amber-300/80 shadow-amber-500/25 animate-pulse hover:animate-none"
+                title="Claim +50 XP & mark unit completed"
               >
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Mark as Complete</span>
+                <Zap className="w-4 h-4 fill-slate-950 text-slate-950" />
+                <span>⚡ Claim +50 XP</span>
               </button>
             )}
           </div>
 
           <button
-            onClick={onNextLesson}
+            onClick={() => {
+              if (!isCompleted) {
+                toast.warning('🔒 XP Reward Pending! Please click "⚡ Claim +50 XP" to claim your XP before continuing to the next unit!');
+                return;
+              }
+              onNextLesson();
+            }}
             disabled={!hasNextLesson}
             className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold
               transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed

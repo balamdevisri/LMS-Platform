@@ -1296,6 +1296,13 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
       setUserXP(newXP);
       setCompletedSubtopics((prev) => [...prev, currentSubtopic.id]);
 
+      // Check if this subtopic completes the module and immediately unlock next module
+      const currentModuleLessons = allLessons.filter(l => l.moduleIdx === activeModuleIdx);
+      const isModuleDone = currentModuleLessons.every(l => l.subtopicId === currentSubtopic.id || completedSubtopics.includes(l.subtopicId));
+      if (isModuleDone) {
+        setCompletedModules((prev) => prev.includes(activeModuleIdx) ? prev : [...prev, activeModuleIdx]);
+      }
+
       // Detailed Claim Log
       courseService.addXPClaim({
         id: `claim_${Date.now()}`,
@@ -1318,10 +1325,26 @@ export const CoursePlayerModal: React.FC<CoursePlayerModalProps> = ({
     setCelebrationMessage(null);
     if (safeFlatIdx < allLessons.length - 1) {
       const nextItem = allLessons[safeFlatIdx + 1];
-      setActiveModuleIdx(nextItem.moduleIdx);
-      setCurrentLessonIdx(nextItem.lessonIdx);
-      setCurrentSubtopicIdx(nextItem.subtopicIdx);
-      toast.success(`Advancing to Lesson ${nextItem.subtopicId}!`);
+      const isCrossingModule = nextItem.moduleIdx !== activeModuleIdx;
+
+      if (isCrossingModule) {
+        setCompletedModules((prev) => prev.includes(activeModuleIdx) ? prev : [...prev, activeModuleIdx]);
+        setActiveModuleIdx(nextItem.moduleIdx);
+        setCurrentLessonIdx(0);
+        setCurrentSubtopicIdx(0);
+        toast.success(`🎉 Module 0${activeModuleIdx + 1} Completed! Welcome to Module 0${nextItem.moduleIdx + 1}!`);
+      } else {
+        setActiveModuleIdx(nextItem.moduleIdx);
+        setCurrentLessonIdx(nextItem.lessonIdx);
+        setCurrentSubtopicIdx(nextItem.subtopicIdx);
+        toast.success(`Advancing to Lesson ${nextItem.subtopicId}!`);
+      }
+
+      // Reset scroll to top (initial position)
+      const mainEl = document.querySelector('main');
+      if (mainEl) {
+        mainEl.scrollTo({ top: 0, behavior: 'instant' });
+      }
     } else {
       if (!completedModules.includes(activeModuleIdx)) {
         setCompletedModules((prev) => [...prev, activeModuleIdx]);
