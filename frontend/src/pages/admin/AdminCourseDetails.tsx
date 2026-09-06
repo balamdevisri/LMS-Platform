@@ -37,7 +37,7 @@ import {
 
 export const AdminCourseDetails: React.FC = () => {
   const { courseId } = useParams<{ courseId: string }>();
-  const { getCourseById, toggleCourseStatus, updateCourse } = useCourses();
+  const { getCourseById, getCourseModules, toggleCourseStatus, updateCourse } = useCourses();
 
   const course = getCourseById(courseId || '');
 
@@ -159,10 +159,22 @@ export const AdminCourseDetails: React.FC = () => {
   // Sync state with Course Context
   useEffect(() => {
     if (course?.modules && course.modules.length > 0) {
+      console.log('[STATIC-FALLBACK]', {
+        courseId: course.id,
+        modulesLength: course.modules.length,
+        reason: 'loaded_from_course_context',
+        loadedStatic: false,
+      });
       setModules(course.modules);
     } else if (course?.id) {
-      loadStaticCourseModules(course.id).then((mods) => {
+      getCourseModules(course.id).then((mods) => {
         if (mods && mods.length > 0) {
+          console.log('[STATIC-FALLBACK]', {
+            courseId: course.id,
+            modulesLength: mods.length,
+            reason: 'loaded_via_getCourseModules',
+            loadedStatic: false,
+          });
           setModules(mods);
         } else {
           setModules([]);
@@ -171,7 +183,7 @@ export const AdminCourseDetails: React.FC = () => {
     } else {
       setModules([]);
     }
-  }, [course]);
+  }, [course, getCourseModules]);
 
   const startQuizSimulation = () => {
     setQuizSelectedAnswers({});
@@ -2260,47 +2272,6 @@ export const AdminCourseDetails: React.FC = () => {
         </div>
       )}
 
-      {/* ================= UNIT CONTENT AUTHORING MODAL / EDITOR ================= */}
-      <UnitContentEditor
-        isOpen={drawerOpen}
-        unit={activeUnit}
-        moduleTitle={modules.find((m) => m.id === drawerModuleId)?.title}
-        topicTitle={
-          modules
-            .find((m) => m.id === drawerModuleId)
-            ?.topics.find((t) => t.id === drawerTopicId)?.title
-        }
-        onSave={async (updatedUnit, isDraft) => {
-          if (!drawerModuleId || !drawerTopicId) return;
-
-          const updated = modules.map((m) => {
-            if (m.id === drawerModuleId) {
-              const nextTopics = m.topics.map((t) => {
-                if (t.id === drawerTopicId) {
-                  const nextUnits = t.learningUnits.map((u) =>
-                    u.id === updatedUnit.id ? updatedUnit : u
-                  );
-                  return { ...t, learningUnits: nextUnits };
-                }
-                return t;
-              });
-              return { ...m, topics: nextTopics };
-            }
-            return m;
-          });
-
-          setModules(updated);
-          await updateCourse(course.id, { modules: updated });
-          setDrawerOpen(false);
-          setActiveUnit(null);
-          toast.success(isDraft ? 'Unit draft saved successfully!' : 'Unit published successfully!');
-        }}
-        onClose={() => {
-          setDrawerOpen(false);
-          setActiveUnit(null);
-        }}
-        onDelete={handleDeleteUnitDrawer}
-      />
 
       {/* Certificate Modal */}
       {certificateModalOpen && (
@@ -2411,6 +2382,15 @@ export const AdminCourseDetails: React.FC = () => {
             ...updatedUnit,
             isDraft: isDraft ?? false,
           };
+          console.log('[ADMIN-DETAILS-TRACE] 2. AdminCourseDetails onSave called:', {
+            unitId: finalUnit.id,
+            title: finalUnit.title,
+            readingContentSnippet: (finalUnit.conceptTheory || finalUnit.readingContent || '').slice(0, 60),
+            moduleId: drawerModuleId,
+            topicId: drawerTopicId,
+            isDraft,
+          });
+
           const updated = modules.map((m) => {
             if (m.id === drawerModuleId) {
               const nextTopics = m.topics.map((t) => {

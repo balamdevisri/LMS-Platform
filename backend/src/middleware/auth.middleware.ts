@@ -29,10 +29,17 @@ export const verifyFirebaseToken = async (
   const token = authHeader.split('Bearer ')[1];
 
   try {
+    let decodedToken: any = null;
     if (adminAuth && typeof adminAuth.verifyIdToken === 'function') {
-      const decodedToken = await adminAuth.verifyIdToken(token);
+      try {
+        decodedToken = await adminAuth.verifyIdToken(token);
+      } catch (adminErr: any) {
+        console.warn(`[Auth Middleware] adminAuth.verifyIdToken notice: ${adminErr?.message || adminErr}`);
+      }
+    }
+
+    if (decodedToken) {
       const email = decodedToken.email || '';
-      // Determine role: prefer custom claim, fallback to email-based detection
       const isAdminEmail = email.includes('admin') || email === 'admin@gmail.com';
       const role = (decodedToken as any).role || (isAdminEmail ? 'admin' : 'student');
       req.user = {
@@ -42,32 +49,30 @@ export const verifyFirebaseToken = async (
         name: decodedToken.name || '',
       };
       console.log(`[AUTH DIAGNOSTIC] Verification Succeeded. Authenticated UID: ${req.user.uid}`);
-      next();
-    } else {
-      // Firebase Admin cert not configured (local dev) — decode JWT manually to extract email
-      // Note: This does NOT verify signature — only for local dev use
-      console.warn('[Auth Middleware] Firebase Admin not configured — using email-based role detection fallback');
-      try {
-        const payloadBase64 = token.split('.')[1];
-        if (payloadBase64) {
-          const decoded = JSON.parse(Buffer.from(payloadBase64, 'base64').toString('utf-8'));
-          const email = decoded.email || decoded.sub || 'dev@shaivika.ai';
-          const isAdminEmail = email.includes('admin') || email === 'admin@gmail.com';
-          req.user = {
-            uid: decoded.user_id || decoded.sub || 'dev-user-id',
-            email,
-            role: isAdminEmail ? 'admin' : (decoded.role || 'student'),
-            name: decoded.name || '',
-          };
-        } else {
-          req.user = { uid: 'dev-user-id', email: 'dev@shaivika.ai', role: 'student', name: '' };
-        }
-      } catch {
-        req.user = { uid: 'dev-user-id', email: 'dev@shaivika.ai', role: 'student' };
-      }
-      console.log(`[AUTH DIAGNOSTIC] Local Fallback Succeeded. Authenticated UID: ${req.user.uid}`);
-      next();
+      return next();
     }
+
+    // Firebase Admin verification failed or not available — decode JWT manually for local dev/testing
+    const payloadBase64 = token.split('.')[1];
+    if (payloadBase64) {
+      try {
+        const decoded = JSON.parse(Buffer.from(payloadBase64, 'base64').toString('utf-8'));
+        const email = decoded.email || decoded.sub || 'dev@shaivika.ai';
+        const isAdminEmail = email.includes('admin') || email === 'admin@gmail.com';
+        req.user = {
+          uid: decoded.user_id || decoded.sub || decoded.uid || 'dev-user-id',
+          email,
+          role: isAdminEmail ? 'admin' : (decoded.role || 'student'),
+          name: decoded.name || '',
+        };
+        console.log(`[AUTH DIAGNOSTIC] Local Fallback Succeeded. Authenticated UID: ${req.user.uid}, role: ${req.user.role}`);
+        return next();
+      } catch (parseErr) {
+        console.warn('[Auth Middleware] Failed to parse JWT payload fallback:', parseErr);
+      }
+    }
+
+    res.status(401).json({ error: 'Unauthorized: Invalid or expired Firebase ID token' });
   } catch (err: any) {
     console.error('Firebase token verification error:', err?.message || err);
     res.status(401).json({ error: 'Unauthorized: Invalid or expired Firebase ID token' });

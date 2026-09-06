@@ -65,6 +65,11 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
 }) => {
   if (!isOpen || !unit) return null;
 
+  // Track the current loaded unit ID and dirty state in refs to safely distinguish
+  // switching units vs parent re-renders of the same unit
+  const lastLoadedUnitIdRef = React.useRef<string | null>(unit.id || null);
+  const isDirtyRef = React.useRef<boolean>(false);
+
   // Local editor draft state
   const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
   const [title, setTitle] = useState(unit.title || '');
@@ -121,9 +126,37 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
   const [isDirty, setIsDirty] = useState(false);
   const [previewPracticeOpen, setPreviewPracticeOpen] = useState<Record<number, boolean>>({});
 
-  // Sync state whenever unit changes
+  const markDirty = () => {
+    isDirtyRef.current = true;
+    if (!isDirty) setIsDirty(true);
+  };
+
+  // Sync state safely: ONLY reset if a genuinely different unit ID is opened,
+  // or synchronize clean props if no unsaved changes exist for the same unit.
   useEffect(() => {
-    if (unit) {
+    if (!unit) {
+      lastLoadedUnitIdRef.current = null;
+      return;
+    }
+
+    const previousUnitId = lastLoadedUnitIdRef.current;
+    const isNewUnit = previousUnitId !== unit.id;
+
+    console.log('[EDITOR-INIT]', {
+      unitId: unit.id,
+      previousUnitId,
+      isDirty: isDirtyRef.current,
+      isNewUnit,
+    });
+
+    if (isNewUnit) {
+      console.log('[EDITOR-RESET]', {
+        unitId: unit.id,
+        reason: previousUnitId === null ? 'initial_mount' : 'unit_switched',
+      });
+      lastLoadedUnitIdRef.current = unit.id;
+      isDirtyRef.current = false;
+      setIsDirty(false);
       setTitle(unit.title || '');
       setDescription(unit.description || '');
       setDuration(unit.duration || '15 mins');
@@ -138,19 +171,41 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
       setQuizQuestions(unit.quizQuestions || []);
       setAssignmentInstructions(unit.assignmentInstructions || '');
       setNotes(unit.notes || '');
-      setIsDirty(false);
       setActiveTab('editor');
+    } else if (!isDirtyRef.current) {
+      // Same unit with NO unsaved changes: safe to sync external updates from parent
+      console.log('[EDITOR-RESET]', {
+        unitId: unit.id,
+        reason: 'clean_state_sync',
+      });
+      setTitle(unit.title || '');
+      setDescription(unit.description || '');
+      setDuration(unit.duration || '15 mins');
+      setType(unit.type || 'Reading');
+      setVideoUrl(unit.videoUrl || '');
+      setObjectives(unit.learningObjectives && unit.learningObjectives.length > 0 ? unit.learningObjectives : ['']);
+      setConceptTheory(unit.conceptTheory || unit.readingContent || '');
+      setCodeExamples(unit.codeExamples || []);
+      setKeyPoints(unit.keyPoints || []);
+      setPracticeQuestions(unit.practiceQuestions || []);
+      setResourceLinks(unit.resourceLinks || []);
+      setQuizQuestions(unit.quizQuestions || []);
+      setAssignmentInstructions(unit.assignmentInstructions || '');
+      setNotes(unit.notes || '');
+    } else {
+      // Same unit with UNSAVED changes: preserve local editor state and ignore parent object reference updates!
+      console.log('[EDITOR-RESET]', {
+        unitId: unit.id,
+        reason: 'skipped_due_to_unsaved_changes',
+      });
     }
   }, [unit]);
-
-  const markDirty = () => {
-    if (!isDirty) setIsDirty(true);
-  };
 
   // ─── Objectives Handlers ──────────────────────────────────────────────────
   const handleAddObjective = () => {
     setObjectives((prev) => [...prev, '']);
     markDirty();
+    console.log('[EDITOR-CHANGE]', { unitId: unit.id, field: 'objectives', valueSnippet: 'add_objective' });
   };
 
   const handleUpdateObjective = (index: number, value: string) => {
@@ -160,6 +215,7 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
       return next;
     });
     markDirty();
+    console.log('[EDITOR-CHANGE]', { unitId: unit.id, field: `objective_${index}`, valueSnippet: value.slice(0, 30) });
   };
 
   const handleRemoveObjective = (index: number) => {
@@ -399,10 +455,19 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
       lastSavedAt: new Date().toISOString(),
     };
 
+    console.log('[UNIT-EDITOR-TRACE] 1. UnitContentEditor handleSave called:', {
+      unitId: unit.id,
+      title: updatedUnit.title,
+      readingContentSnippet: (updatedUnit.conceptTheory || updatedUnit.readingContent || '').slice(0, 60),
+      isDraft,
+    });
+
     try {
       setIsSaving(true);
       await onSave(updatedUnit, isDraft);
+      isDirtyRef.current = false;
       setIsDirty(false);
+      lastLoadedUnitIdRef.current = updatedUnit.id;
       toast.success(isDraft ? 'Unit saved as draft.' : 'Unit published successfully!');
     } catch (err: any) {
       console.error(err);
@@ -535,6 +600,7 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
                       onChange={(e) => {
                         setTitle(e.target.value);
                         markDirty();
+                        console.log('[EDITOR-CHANGE]', { unitId: unit.id, field: 'title', valueSnippet: e.target.value.slice(0, 30) });
                       }}
                       placeholder="e.g. Introduction to Variables and Memory in C"
                       className="w-full bg-white dark:bg-[#111827] border border-[#E5E7EB] dark:border-[#25324A] rounded-lg py-2.5 px-3 text-sm text-[#111827] dark:text-white focus:outline-hidden focus:border-[#2563EB] dark:focus:border-[#3B82F6] font-medium"
@@ -551,6 +617,7 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
                         onChange={(e) => {
                           setType(e.target.value as LearningUnitType);
                           markDirty();
+                          console.log('[EDITOR-CHANGE]', { unitId: unit.id, field: 'type', valueSnippet: e.target.value });
                         }}
                         className="w-full bg-white dark:bg-[#111827] border border-[#E5E7EB] dark:border-[#25324A] rounded-lg py-2 px-3 text-xs text-[#111827] dark:text-white focus:outline-hidden focus:border-[#2563EB] cursor-pointer"
                       >
@@ -571,6 +638,7 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
                         onChange={(e) => {
                           setDuration(e.target.value);
                           markDirty();
+                          console.log('[EDITOR-CHANGE]', { unitId: unit.id, field: 'duration', valueSnippet: e.target.value });
                         }}
                         placeholder="e.g. 15 mins"
                         className="w-full bg-white dark:bg-[#111827] border border-[#E5E7EB] dark:border-[#25324A] rounded-lg py-2 px-3 text-xs text-[#111827] dark:text-white focus:outline-hidden focus:border-[#2563EB] font-medium"
@@ -588,6 +656,7 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
                       onChange={(e) => {
                         setDescription(e.target.value);
                         markDirty();
+                        console.log('[EDITOR-CHANGE]', { unitId: unit.id, field: 'description', valueSnippet: e.target.value.slice(0, 30) });
                       }}
                       placeholder="Brief overview explaining what students will learn in this unit..."
                       className="w-full bg-white dark:bg-[#111827] border border-[#E5E7EB] dark:border-[#25324A] rounded-lg py-2 px-3 text-xs text-[#111827] dark:text-white focus:outline-hidden focus:border-[#2563EB] resize-none"
@@ -605,6 +674,7 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
                         onChange={(e) => {
                           setVideoUrl(e.target.value);
                           markDirty();
+                          console.log('[EDITOR-CHANGE]', { unitId: unit.id, field: 'videoUrl', valueSnippet: e.target.value.slice(0, 30) });
                         }}
                         placeholder="https://www.youtube.com/watch?v=..."
                         className="w-full bg-white dark:bg-[#111827] border border-[#E5E7EB] dark:border-[#25324A] rounded-lg py-2 px-3 text-xs text-[#111827] dark:text-white focus:outline-hidden focus:border-[#2563EB]"
@@ -681,6 +751,7 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
                   onChange={(e) => {
                     setConceptTheory(e.target.value);
                     markDirty();
+                    console.log('[EDITOR-CHANGE]', { unitId: unit.id, field: 'conceptTheory', valueSnippet: e.target.value.slice(0, 30) });
                   }}
                   placeholder="## Core Concept Overview&#10;&#10;Write detailed lesson text here...&#10;&#10;### Sub-topic heading&#10;Explain low-level mechanics or workflow..."
                   className="w-full bg-[#F8FAFC] dark:bg-[#0B1120] border border-[#E5E7EB] dark:border-[#25324A] rounded-xl p-4 text-xs font-mono text-[#111827] dark:text-slate-200 focus:outline-hidden focus:border-[#2563EB] leading-relaxed"

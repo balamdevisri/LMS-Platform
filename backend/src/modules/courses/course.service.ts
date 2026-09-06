@@ -42,37 +42,79 @@ export class CourseService {
   }
 
   async updateCourse(id: string, updates: UpdateCourseDTO): Promise<ICourse | null> {
+    const reqSampleUnit = (updates as any).modules?.[0]?.topics?.[0]?.learningUnits?.[0];
+    console.log(`[BACKEND-PUT-TRACE] 5. Backend PUT received: id="${id}", targetUnitId="${reqSampleUnit?.id}", readingContentSnippet="${reqSampleUnit?.readingContent?.slice(0, 100)}"`);
+    
     const validated = UpdateCourseSchema.parse(updates);
-    const existing = await this.repository.findById(id);
+    const valSampleUnit = (validated as any).modules?.[0]?.topics?.[0]?.learningUnits?.[0];
+    console.log(`[BACKEND-PUT-TRACE] 6. AFTER Zod validation: targetUnitId="${valSampleUnit?.id}", readingContentSnippet="${valSampleUnit?.readingContent?.slice(0, 100)}"`);
+
+    let existing = await this.repository.findById(id);
+    let docId = id;
     if (!existing) {
-      throw new Error(`Course with ID ${id} not found.`);
+      existing = await this.repository.findBySlug(id);
+      if (existing) docId = existing.id;
     }
 
-    return this.repository.update(id, validated as UpdateCourseDTO);
+    if (!existing) {
+      console.log(`[BACKEND-PUT-TRACE] Course with ID/slug "${id}" not in Firestore yet. Creating new persistent document with ID "${docId}"...`);
+      const newCourse = await this.repository.create({
+        ...validated,
+        id: docId,
+        title: validated.title || id,
+        shortDescription: validated.shortDescription || 'Course track',
+        description: validated.description || 'Course track overview',
+        thumbnail: validated.thumbnail || '/assets/images/linux_course_thumbnail.webp',
+        category: validated.category || 'Development',
+        duration: validated.duration || '20 Hours',
+        instructor: validated.instructor || { name: 'Kaizen Q Team' },
+        skills: validated.skills || ['Development'],
+        learningOutcomes: validated.learningOutcomes || ['Learning Outcomes'],
+        status: validated.status || 'published',
+        modules: (validated as any).modules || [],
+      } as any);
+      return newCourse;
+    }
+
+    console.log(`[BACKEND-PUT-TRACE] 7. BEFORE Firestore update: target docId="${docId}"`);
+    const updated = await this.repository.update(docId, validated as UpdateCourseDTO);
+
+    const readBack = await this.repository.findById(docId);
+    const readBackUnit = readBack?.modules?.[0]?.topics?.[0]?.learningUnits?.[0];
+    console.log(`[BACKEND-PUT-TRACE] 8. AFTER Firestore update: docId="${docId}", targetUnitId="${readBackUnit?.id}", readingContent="${readBackUnit?.readingContent}"`);
+    return updated;
   }
 
   async deleteCourse(id: string): Promise<boolean> {
-    const existing = await this.repository.findById(id);
+    let existing = await this.repository.findById(id);
+    let docId = id;
+    if (!existing) {
+      existing = await this.repository.findBySlug(id);
+      if (existing) docId = existing.id;
+    }
     if (!existing) {
       throw new Error(`Course with ID ${id} not found.`);
     }
-    return this.repository.delete(id);
+    return this.repository.delete(docId);
   }
 
   async publishCourse(id: string): Promise<ICourse | null> {
-    return this.repository.update(id, { status: 'published' });
+    return this.updateCourse(id, { status: 'published' });
   }
 
   async unpublishCourse(id: string): Promise<ICourse | null> {
-    return this.repository.update(id, { status: 'draft' });
+    return this.updateCourse(id, { status: 'draft' });
   }
 
   async archiveCourse(id: string): Promise<ICourse | null> {
-    return this.repository.update(id, { status: 'archived' });
+    return this.updateCourse(id, { status: 'archived' });
   }
 
   async duplicateCourse(id: string): Promise<ICourse> {
-    const existing = await this.repository.findById(id);
+    let existing = await this.repository.findById(id);
+    if (!existing) {
+      existing = await this.repository.findBySlug(id);
+    }
     if (!existing) {
       throw new Error(`Course with ID ${id} not found.`);
     }
@@ -94,13 +136,21 @@ export class CourseService {
     let resolvedId = courseIdOrSlug;
     try {
       const course = (await this.getCourseById(courseIdOrSlug)) || (await this.getCourseBySlug(courseIdOrSlug));
-      if (course && course.id) {
-        resolvedId = String(course.id);
+      if (course) {
+        if (course.modules && Array.isArray(course.modules) && course.modules.length > 0) {
+          console.log(`[BACKEND-GET-MODULES-TRACE] Returning ${course.modules.length} modules directly from course doc "${course.id}"`);
+          return course.modules;
+        }
+        if (course.id) {
+          resolvedId = String(course.id);
+        }
       }
     } catch (e) {}
 
     const { courseContentService } = await import('../../services/course/courseContent.service');
-    return courseContentService.getCourseModules(resolvedId);
+    const subModules = await courseContentService.getCourseModules(resolvedId);
+    if (subModules && subModules.length > 0) return subModules;
+    return [];
   }
 
   async getModuleLessons(courseIdOrSlug: string, moduleId: string, options?: any) {

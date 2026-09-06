@@ -4,7 +4,8 @@
  */
 
 const getBaseUrl = (): string => {
-  const envApiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_BACKEND_URL;
+  const env = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env : (typeof process !== 'undefined' && process.env ? (process.env as any) : {});
+  const envApiUrl = env.VITE_API_URL || env.VITE_BACKEND_URL;
   if (envApiUrl && envApiUrl.trim()) {
     return envApiUrl.trim();
   }
