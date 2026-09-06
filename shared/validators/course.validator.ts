@@ -42,9 +42,9 @@ export const CreateCourseSchema = z.object({
   aiGenerated: z.boolean().optional(),
   aiPrompt: z.string().optional(),
   aiMetadata: z.record(z.string(), z.any()).optional(),
-});
+}).passthrough();
 
-export const UpdateCourseSchema = CreateCourseSchema.partial();
+export const UpdateCourseSchema = CreateCourseSchema.partial().passthrough();
 
 export const CourseQuerySchema = z.object({
   search: z.string().optional(),

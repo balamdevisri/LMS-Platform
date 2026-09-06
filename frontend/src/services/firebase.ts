@@ -14,35 +14,37 @@ const cleanEnv = (val?: string): string => {
   return val.trim().replace(/^["']|["']$/g, '');
 };
 
-const rawAppId = cleanEnv(import.meta.env.VITE_FIREBASE_APP_ID) || '1:977716272905:web:de0781e0988aecfc823dd8';
+const env = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env : (typeof process !== 'undefined' && process.env ? (process.env as any) : {});
+
+const rawAppId = cleanEnv(env.VITE_FIREBASE_APP_ID) || '1:977716272905:web:de0781e0988aecfc823dd8';
 const safeAppId = rawAppId.startsWith('1:') ? rawAppId : `1:${rawAppId}`;
 
-const rawAuthDomain = cleanEnv(import.meta.env.VITE_FIREBASE_AUTH_DOMAIN);
+const rawAuthDomain = cleanEnv(env.VITE_FIREBASE_AUTH_DOMAIN);
 const safeAuthDomain = (!rawAuthDomain || rawAuthDomain.includes('auth.kaizenq.in'))
   ? 'shaivika-lms-ai.firebaseapp.com'
   : rawAuthDomain;
 
 const firebaseConfig = {
   apiKey:
-    cleanEnv(import.meta.env.VITE_FIREBASE_API_KEY) ||
+    cleanEnv(env.VITE_FIREBASE_API_KEY) ||
     'AIzaSyCKPJ4klGTGxdgTxC3Q93YiaTZixlI0vE0',
 
   authDomain: safeAuthDomain,
 
   projectId:
-    cleanEnv(import.meta.env.VITE_FIREBASE_PROJECT_ID) ||
+    cleanEnv(env.VITE_FIREBASE_PROJECT_ID) ||
     'shaivika-lms-ai',
 
   storageBucket:
-    cleanEnv(import.meta.env.VITE_FIREBASE_STORAGE_BUCKET) ||
+    cleanEnv(env.VITE_FIREBASE_STORAGE_BUCKET) ||
     'shaivika-lms-ai.firebasestorage.app',
 
   messagingSenderId:
-    cleanEnv(import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID) ||
+    cleanEnv(env.VITE_FIREBASE_MESSAGING_SENDER_ID) ||
     '977716272905',
 
   appId: safeAppId,
-  measurementId: cleanEnv(import.meta.env.VITE_FIREBASE_MEASUREMENT_ID) || 'G-621GCQ0W26',
+  measurementId: cleanEnv(env.VITE_FIREBASE_MEASUREMENT_ID) || 'G-621GCQ0W26',
 };
 
 let app: FirebaseApp;

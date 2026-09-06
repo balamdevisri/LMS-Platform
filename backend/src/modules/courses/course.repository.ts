@@ -65,23 +65,24 @@ export class CourseRepository {
   }
 
   private normalizeCourseDoc(raw: any): ICourse {
-    const { modules, ...lightweight } = raw || {};
-    const title = lightweight.title || 'Untitled Technical Course';
-    const thumbnail = lightweight.thumbnail || lightweight.thumbnailUrl || lightweight.image || lightweight.imageUrl || lightweight.banner || '';
-    const description = lightweight.description || lightweight.fullDescription || lightweight.shortDescription || lightweight.overview || '';
-    const shortDescription = lightweight.shortDescription || description.slice(0, 160) || 'Comprehensive technical learning track.';
+    const rawData = raw || {};
+    const title = rawData.title || 'Untitled Technical Course';
+    const thumbnail = rawData.thumbnail || rawData.thumbnailUrl || rawData.image || rawData.imageUrl || rawData.banner || '';
+    const description = rawData.description || rawData.fullDescription || rawData.shortDescription || rawData.overview || '';
+    const shortDescription = rawData.shortDescription || description.slice(0, 160) || 'Comprehensive technical learning track.';
 
     return {
-      ...lightweight,
+      ...rawData,
       title,
       thumbnail,
-      banner: lightweight.banner || thumbnail,
+      banner: rawData.banner || thumbnail,
       description: description || title,
       shortDescription,
-      price: typeof lightweight.price === 'number' ? lightweight.price : 0,
-      skills: Array.isArray(lightweight.skills) ? lightweight.skills : [],
-      prerequisites: Array.isArray(lightweight.prerequisites) ? lightweight.prerequisites : [],
-      learningOutcomes: Array.isArray(lightweight.learningOutcomes) ? lightweight.learningOutcomes : [],
+      price: typeof rawData.price === 'number' ? rawData.price : 0,
+      skills: Array.isArray(rawData.skills) ? rawData.skills : [],
+      prerequisites: Array.isArray(rawData.prerequisites) ? rawData.prerequisites : [],
+      learningOutcomes: Array.isArray(rawData.learningOutcomes) ? rawData.learningOutcomes : [],
+      modules: rawData.modules || [],
     } as ICourse;
   }
 
@@ -151,9 +152,14 @@ export class CourseRepository {
 
   async update(id: string, updates: UpdateCourseDTO): Promise<ICourse | null> {
     if (!this.collection) return null;
-    const docRef = this.collection.doc(id);
-    const existing = await this.findById(id);
+    let existing = await this.findById(id);
+    let docId = id;
+    if (!existing) {
+      existing = await this.findBySlug(id);
+      if (existing) docId = existing.id;
+    }
 
+    const docRef = this.collection.doc(docId);
     const updatedData: Partial<ICourse> = {
       ...updates,
       updatedAt: new Date().toISOString(),
@@ -165,7 +171,7 @@ export class CourseRepository {
 
     if (!existing) {
       const newCourseDoc = {
-        id,
+        id: docId,
         enrollmentCount: 0,
         rating: 5.0,
         ratingCount: 0,
@@ -201,33 +207,32 @@ export class CourseRepository {
     const page = Math.max(1, Number(options.page) || 1);
     const limit = Math.max(1, Math.min(100, Number(options.limit) || 10));
 
-    // If search term is present, perform bounded fetch with in-memory substring matching
+    const snapshot = await this.collection.get();
+    let courses: ICourse[] = snapshot.docs.map((doc: QueryDocumentSnapshot) =>
+      this.sanitizeForCatalog({
+        ...doc.data(),
+        id: doc.id,
+      })
+    );
+
+    if (options.status && options.status !== 'all') {
+      const sStatus = options.status.toLowerCase();
+      courses = courses.filter((c) => c.status && c.status.toLowerCase() === sStatus);
+    }
+    if (options.category && options.category !== 'All') {
+      const sCat = options.category.toLowerCase();
+      courses = courses.filter((c) => c.category && c.category.toLowerCase().includes(sCat));
+    }
+    if (options.level && options.level !== 'all') {
+      const sLvl = options.level.toLowerCase();
+      courses = courses.filter((c) => c.level && (c.level.toLowerCase() === 'all_levels' || c.level.toLowerCase() === sLvl));
+    }
+    if (options.featured) {
+      courses = courses.filter((c) => c.featured === true);
+    }
+
     if (options.search) {
       const term = options.search.toLowerCase().trim();
-      const snapshot = await this.collection.limit(100).get();
-      let courses: ICourse[] = snapshot.docs.map((doc: QueryDocumentSnapshot) =>
-        this.sanitizeForCatalog({
-          ...doc.data(),
-          id: doc.id,
-        })
-      );
-
-      if (options.status && options.status !== 'all') {
-        const sStatus = options.status.toLowerCase();
-        courses = courses.filter((c) => c.status && c.status.toLowerCase() === sStatus);
-      }
-      if (options.category && options.category !== 'All') {
-        const sCat = options.category.toLowerCase();
-        courses = courses.filter((c) => c.category && c.category.toLowerCase().includes(sCat));
-      }
-      if (options.level && options.level !== 'all') {
-        const sLvl = options.level.toLowerCase();
-        courses = courses.filter((c) => c.level && (c.level.toLowerCase() === 'all_levels' || c.level.toLowerCase() === sLvl));
-      }
-      if (options.featured) {
-        courses = courses.filter((c) => c.featured === true);
-      }
-
       courses = courses.filter(
         (c) =>
           c.title.toLowerCase().includes(term) ||
@@ -236,54 +241,11 @@ export class CourseRepository {
           c.category.toLowerCase().includes(term) ||
           (c.skills && c.skills.some((s) => s.toLowerCase().includes(term)))
       );
-
-      const total = courses.length;
-      const totalPages = Math.ceil(total / limit);
-      const paginatedCourses = courses.slice((page - 1) * limit, page * limit);
-
-      const result: CoursePaginationResult = {
-        courses: paginatedCourses,
-        total,
-        page,
-        limit,
-        totalPages,
-      };
-
-      this.setInCache(this.catalogCache, cacheKey, result);
-      return result;
     }
 
-    // Direct Firestore Query with limit() and offset() pagination
-    let baseQuery: any = this.collection;
-
-    if (options.status && options.status !== 'all') {
-      baseQuery = baseQuery.where('status', '==', options.status.toLowerCase());
-    }
-
-    if (options.featured) {
-      baseQuery = baseQuery.where('featured', '==', true);
-    }
-
-    // Determine total count
-    let total = 0;
-    try {
-      const countSnap = await baseQuery.count().get();
-      total = countSnap.data().count;
-    } catch (e) {
-      const allSnap = await baseQuery.get();
-      total = allSnap.size;
-    }
-
+    const total = courses.length;
     const totalPages = Math.ceil(total / limit);
-    const offset = (page - 1) * limit;
-
-    const pagedSnap = await baseQuery.limit(limit).offset(offset).get();
-    const paginatedCourses: ICourse[] = pagedSnap.docs.map((doc: QueryDocumentSnapshot) =>
-      this.sanitizeForCatalog({
-        ...doc.data(),
-        id: doc.id,
-      })
-    );
+    const paginatedCourses = courses.slice((page - 1) * limit, page * limit);
 
     const result: CoursePaginationResult = {
       courses: paginatedCourses,

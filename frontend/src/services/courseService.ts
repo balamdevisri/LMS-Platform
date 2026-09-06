@@ -1,7 +1,7 @@
 import type { ICourse, CreateCourseDTO, UpdateCourseDTO, CourseFilterOptions, CoursePaginationResult, CourseLevel, CourseStatus, IVideoProgress } from '../../../shared/types/course';
 import { normalizeCourseData, auditCourseData } from './courseNormalizer';
 export type { ICourse };
-import { API_BASE_URL } from '@/config/api';
+import { API_BASE_URL } from '../config/api';
 
 // On-demand loader for Firebase Firestore to prevent bundling 580KB Firebase into landing page
 let _fsModule: any = null;
@@ -9,7 +9,7 @@ const getFS = async () => {
   if (!_fsModule) {
     const [fs, fb] = await Promise.all([
       import('firebase/firestore'),
-      import('@/firebase'),
+      import('../firebase'),
     ]);
     _fsModule = { ...fs, db: fb.db, auth: fb.auth };
   }
@@ -894,6 +894,26 @@ const isRemovedMockCourse = (c: any): boolean => {
   return false;
 };
 
+const getAuthHeaders = (): Record<string, string> => {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  const token =
+    localStorage.getItem('token') ||
+    localStorage.getItem('firebase_token') ||
+    localStorage.getItem('shaivika_auth_token');
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  const devToken =
+    sessionStorage.getItem('kz_dev_token') ||
+    localStorage.getItem('kz_dev_token');
+  if (devToken) {
+    headers['x-developer-token'] = devToken;
+  }
+  return headers;
+};
+
 class CourseService {
   private localCacheKey = 'shaivika_courses_data';
   private enrollmentsKey = 'shaivika_user_enrollments';
@@ -1096,13 +1116,18 @@ class CourseService {
 
     // Apply smart merge for default courses in result
     DEFAULT_COURSES.forEach((defCourse) => {
-      const existingIdx = result.findIndex((item) => String(item.id) === String(defCourse.id));
+      const existingIdx = result.findIndex(
+        (item) => String(item.id) === String(defCourse.id) || (item.slug && item.slug === defCourse.slug)
+      );
       if (existingIdx !== -1) {
         const cached = result[existingIdx];
+        const effectiveModules = (cached.modules && cached.modules.length > 0)
+          ? cached.modules
+          : (defCourse.modules && defCourse.modules.length > 0 ? defCourse.modules : []);
         result[existingIdx] = {
           ...this.normalizeCourseToICourse(defCourse),
           ...cached,
-          modules: this.mergeCourseModules(defCourse.modules, cached.modules)
+          modules: effectiveModules,
         };
       }
     });
@@ -1248,7 +1273,9 @@ class CourseService {
         if (options.page) params.append('page', String(options.page));
         if (options.limit) params.append('limit', String(options.limit));
 
-        const res = await fetch(`${API_BASE_URL}/courses?${params.toString()}`);
+        const res = await fetch(`${API_BASE_URL}/courses?${params.toString()}`, {
+          headers: getAuthHeaders(),
+        });
         if (res.ok) {
           const json = await res.json();
           if (json.success && json.data) {
@@ -1393,7 +1420,9 @@ class CourseService {
 
     // 3. Fallback: Backend REST API
     try {
-      const res = await fetch(`${API_BASE_URL}/courses/${idOrSlug}`);
+      const res = await fetch(`${API_BASE_URL}/courses/${idOrSlug}`, {
+        headers: getAuthHeaders(),
+      });
       if (res.ok) {
         const json = await res.json();
         if (json.success && json.data) {
@@ -1447,15 +1476,8 @@ class CourseService {
 
     // 2. Secondary fallback: Backend API
     try {
-      const token = localStorage.getItem('shaivika_auth_token');
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
       const res = await fetch(`${API_BASE_URL}/courses/${encodeURIComponent(courseId)}/modules`, {
-        headers,
+        headers: getAuthHeaders(),
       });
       if (res.ok) {
         const json = await res.json();
@@ -1472,13 +1494,9 @@ class CourseService {
 
   async createCourse(dto: CreateCourseDTO): Promise<ICourse> {
     try {
-      const token = localStorage.getItem('shaivika_auth_token');
       const res = await fetch(`${API_BASE_URL}/courses`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ ...dto, price: typeof dto.price === 'number' ? dto.price : 0 }),
       });
 
@@ -1537,6 +1555,8 @@ class CourseService {
         String(c.id) === String(id) ||
         (String(c.id) === 'course_linux_101' && String(id) === '1') ||
         (String(c.id) === '1' && String(id) === 'course_linux_101') ||
+        (String(c.id) === 'git-github-mastery' && String(id) === 'git-github-mastery-course-id') ||
+        (String(c.id) === 'git-github-mastery-course-id' && String(id) === 'git-github-mastery') ||
         c.slug === id
     );
     if (index === -1) return null;
@@ -1576,16 +1596,27 @@ class CourseService {
 
     // 2. Sync with Backend API
     try {
+      const sampleUnit = (updates as any).modules?.[0]?.topics?.[0]?.learningUnits?.[0];
+      console.log(`[COURSE-SERVICE-TRACE] 4. BEFORE PUT /courses/${id}: payload contains unit "${sampleUnit?.id}", readingContentSnippet="${sampleUnit?.readingContent?.slice(0, 50)}"`);
       const token = localStorage.getItem('shaivika_auth_token');
-      await fetch(`${API_BASE_URL}/courses/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/courses/${encodeURIComponent(id)}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify(updates),
       });
-    } catch (e) {}
+      if (res.ok) {
+        const json = await res.json();
+        console.log(`[COURSE-SERVICE-TRACE] PUT /courses/${id} succeeded:`, json.success);
+        if (json.success && json.data) {
+          return this.normalizeCourseToICourse(json.data);
+        }
+      }
+    } catch (err) {
+      console.warn('Backend API update sync failed (offline or local dev):', err);
+    }
 
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('shaivika_courses_updated', { detail: { courseId: targetCourseId, updates } }));

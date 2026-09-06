@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { courseService } from '@/services/courseService';
+import { courseService } from '../services/courseService';
 
 /**
  * On-demand dynamic loader for static fallback course datasets.
@@ -8,51 +8,51 @@ import { courseService } from '@/services/courseService';
 export const loadStaticCourseModules = async (courseIdOrSlug: string | number): Promise<ModuleItem[]> => {
   const target = String(courseIdOrSlug).toLowerCase().trim();
   if (target === 'course_linux_101' || target === '1' || target.includes('linux')) {
-    const mod = await import('@/data/linuxCourseFullData');
+    const mod = await import('../data/linuxCourseFullData');
     return mod.linuxCourseModules;
   }
   if (target.includes('git')) {
-    const mod = await import('@/data/gitCourseFullData');
+    const mod = await import('../data/gitCourseFullData');
     return mod.gitCourseModules;
   }
   if (target.includes('k8s') || target.includes('kubernetes')) {
-    const mod = await import('@/data/kubernetesCourseFullData');
+    const mod = await import('../data/kubernetesCourseFullData');
     return mod.kubernetesCourseModules;
   }
   if (target.includes('react')) {
-    const mod = await import('@/data/reactCourseFullData');
+    const mod = await import('../data/reactCourseFullData');
     return mod.reactCourseModules;
   }
   if (target.includes('c-prog') || target.includes('c-programming') || target === 'c-programming-course-id') {
-    const mod = await import('@/data/cCourseFullData');
+    const mod = await import('../data/cCourseFullData');
     return mod.cCourseModules;
   }
   if (target.includes('python') || target === 'python-through-oops-course-id') {
-    const mod = await import('@/data/pythonCourseFullData');
+    const mod = await import('../data/pythonCourseFullData');
     return mod.pythonCourseModules;
   }
   if (target.includes('java-through') || (target.includes('java') && !target.includes('script'))) {
-    const mod = await import('@/data/javaCourseFullData');
+    const mod = await import('../data/javaCourseFullData');
     return mod.javaCourseModules;
   }
   if (target.includes('javascript') || target.includes('js-mastery')) {
-    const mod = await import('@/data/javascriptCourseFullData');
+    const mod = await import('../data/javascriptCourseFullData');
     return mod.javascriptCourseModules;
   }
   if (target.includes('node') || target.includes('nodejs')) {
-    const mod = await import('@/data/nodejsCourseFullData');
+    const mod = await import('../data/nodejsCourseFullData');
     return mod.nodejsCourseModules;
   }
   if (target.includes('data-structures') || target.includes('dsa') || target.includes('algorithm')) {
-    const mod = await import('@/data/dsaCourseFullData');
+    const mod = await import('../data/dsaCourseFullData');
     return mod.dsaCourseModules;
   }
   if (target.includes('web-development') || target.includes('web-dev')) {
-    const mod = await import('@/data/webDevCourseFullData');
+    const mod = await import('../data/webDevCourseFullData');
     return mod.webDevCourseModules;
   }
   if (target.includes('database') || target.includes('dbms') || target.includes('sql')) {
-    const mod = await import('@/data/dbmsCourseFullData');
+    const mod = await import('../data/dbmsCourseFullData');
     return mod.dbmsCourseModules;
   }
   return [];
@@ -213,87 +213,9 @@ interface CourseContextType {
 }
 
 const mergeCourseModules = (defModules?: ModuleItem[], cachedModules?: any[]): ModuleItem[] => {
-  if (!defModules || defModules.length === 0) return cachedModules || [];
-  if (!cachedModules || cachedModules.length === 0) return defModules;
-
-  const resultModules: ModuleItem[] = [];
-  const processedCachedModIds = new Set<string>();
-
-  defModules.forEach((defMod) => {
-    const cachedMod = cachedModules.find((m) => m.id === defMod.id);
-    if (!cachedMod) {
-      resultModules.push(defMod);
-      return;
-    }
-    processedCachedModIds.add(cachedMod.id);
-
-    const resultTopics: TopicItem[] = [];
-    const processedCachedTopicIds = new Set<string>();
-
-    (defMod.topics || []).forEach((defTopic) => {
-      const cachedTopic = cachedMod.topics?.find((t: any) => t.id === defTopic.id);
-      if (!cachedTopic) {
-        resultTopics.push(defTopic);
-        return;
-      }
-      processedCachedTopicIds.add(cachedTopic.id);
-
-      const resultUnits: LearningUnitItem[] = [];
-      const processedCachedUnitIds = new Set<string>();
-
-      (defTopic.learningUnits || []).forEach((defUnit) => {
-        const cachedUnit = cachedTopic.learningUnits?.find((u: any) => u.id === defUnit.id);
-        if (!cachedUnit) {
-          resultUnits.push(defUnit);
-          return;
-        }
-        processedCachedUnitIds.add(cachedUnit.id);
-
-        // Preserve user changes on existing unit (defUnit is baseline, cachedUnit has edits)
-        resultUnits.push({
-          ...defUnit,
-          ...cachedUnit,
-        });
-      });
-
-      // Retain any new learning units added by user in this topic
-      (cachedTopic.learningUnits || []).forEach((cachedUnit: any) => {
-        if (!processedCachedUnitIds.has(cachedUnit.id)) {
-          resultUnits.push(cachedUnit);
-        }
-      });
-
-      // Preserve topic user edits + merged units
-      resultTopics.push({
-        ...defTopic,
-        ...cachedTopic,
-        learningUnits: resultUnits,
-      });
-    });
-
-    // Retain any new topics added by user in this module
-    (cachedMod.topics || []).forEach((cachedTopic: any) => {
-      if (!processedCachedTopicIds.has(cachedTopic.id)) {
-        resultTopics.push(cachedTopic);
-      }
-    });
-
-    // Preserve module user edits + merged topics
-    resultModules.push({
-      ...defMod,
-      ...cachedMod,
-      topics: resultTopics,
-    });
-  });
-
-  // Retain any new modules added by user in this course
-  cachedModules.forEach((cachedMod) => {
-    if (!processedCachedModIds.has(cachedMod.id)) {
-      resultModules.push(cachedMod);
-    }
-  });
-
-  return resultModules;
+  if (cachedModules && cachedModules.length > 0) return cachedModules;
+  if (defModules && defModules.length > 0) return defModules;
+  return [];
 };
 
 // Helper to enrich learning units with default content if missing
@@ -800,7 +722,77 @@ const initialDefaultCoursesRaw: CourseItem[] = [
 ];
 
 const initialDefaultCourses = initialDefaultCoursesRaw.map(enrichCourseMockContent);
-const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
+
+const getLatestUnitTimestamp = (modules?: ModuleItem[]): number => {
+  if (!modules || modules.length === 0) return 0;
+  let latest = 0;
+  for (const m of modules) {
+    for (const t of m.topics || []) {
+      for (const u of t.learningUnits || []) {
+        if (u.lastSavedAt) {
+          const time = new Date(u.lastSavedAt).getTime();
+          if (!isNaN(time) && time > latest) latest = time;
+        }
+      }
+    }
+  }
+  return latest;
+};
+
+const chooseEffectiveModules = (
+  logicalKey: string,
+  existingCourse?: CourseItem,
+  incomingCourse?: CourseItem,
+  defaultModules?: ModuleItem[]
+): ModuleItem[] => {
+  const existingMods = existingCourse?.modules || [];
+  const incomingMods = incomingCourse?.modules || [];
+
+  let selectedMods: ModuleItem[] = [];
+  let sourceReason = 'default';
+
+  if (existingMods.length === 0 && incomingMods.length === 0) {
+    selectedMods = defaultModules || [];
+    sourceReason = 'both_empty_fallback_default';
+  } else if (existingMods.length > 0 && incomingMods.length === 0) {
+    selectedMods = existingMods;
+    sourceReason = 'existing_has_modules_incoming_empty';
+  } else if (existingMods.length === 0 && incomingMods.length > 0) {
+    selectedMods = incomingMods;
+    sourceReason = 'incoming_has_modules_existing_empty';
+  } else {
+    // Both have modules -> determine which one is genuinely newer
+    const existingTime = Math.max(
+      getLatestUnitTimestamp(existingMods),
+      new Date(existingCourse?.updatedAt || 0).getTime()
+    );
+    const incomingTime = Math.max(
+      getLatestUnitTimestamp(incomingMods),
+      new Date(incomingCourse?.updatedAt || 0).getTime()
+    );
+
+    if (incomingTime > existingTime) {
+      selectedMods = incomingMods;
+      sourceReason = 'incoming_newer_timestamp';
+    } else {
+      selectedMods = existingMods;
+      sourceReason = 'existing_newer_or_equal_timestamp';
+    }
+  }
+
+  console.log('[COURSE-MERGE]', {
+    logicalCourseKey: logicalKey,
+    source: sourceReason,
+    existingModules: existingMods.length,
+    incomingModules: incomingMods.length,
+    selectedModules: selectedMods.length,
+    targetUnitContentSnippet: (selectedMods[0]?.topics?.[0]?.learningUnits?.[0]?.readingContent || selectedMods[0]?.topics?.[0]?.learningUnits?.[0]?.conceptTheory || '').slice(0, 40),
+  });
+
+  return selectedMods;
+};
+
+export const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
   const map = new Map<string, CourseItem>();
   list.forEach((c) => {
     const title = (c.title || '').toLowerCase();
@@ -819,14 +811,18 @@ const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
     ) {
       const key = 'course_linux_101';
       const defaultLinuxCourse = initialDefaultCourses.find(item => item.id === 'course_linux_101') || c;
+      const existingInMap = map.get(key);
+      const effectiveModules = chooseEffectiveModules(key, existingInMap, c, defaultLinuxCourse.modules);
       const updatedItem: CourseItem = {
         ...defaultLinuxCourse,
+        ...(existingInMap || {}),
         ...c,
         id: 'course_linux_101',
-        title: 'Linux Systems & Administration Mastery',
-        subtitle: '🐧 Linux Systems Mastery',
-        thumbnail: c.thumbnail || '/assets/images/linux_course_thumbnail.webp',
-        modules: mergeCourseModules(defaultLinuxCourse.modules, c.modules),
+        title: c.title || defaultLinuxCourse.title,
+        subtitle: c.subtitle || defaultLinuxCourse.subtitle,
+        thumbnail: c.thumbnail || defaultLinuxCourse.thumbnail || '/assets/images/linux_course_thumbnail.webp',
+        modules: effectiveModules,
+        updatedAt: c.updatedAt || existingInMap?.updatedAt || defaultLinuxCourse.updatedAt,
       };
       map.set(key, updatedItem);
     } else if (
@@ -837,14 +833,18 @@ const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
     ) {
       const key = 'git-github-mastery';
       const defaultGitCourse = initialDefaultCourses[1];
+      const existingInMap = map.get(key);
+      const effectiveModules = chooseEffectiveModules(key, existingInMap, c, defaultGitCourse.modules);
       const updatedItem: CourseItem = {
         ...defaultGitCourse,
+        ...(existingInMap || {}),
         ...c,
         id: 'git-github-mastery',
-        title: 'Git & GitHub Mastery',
-        subtitle: '⚡ Git & GitHub Mastery',
-        thumbnail: '/assets/images/github_course_banner.webp',
-        modules: mergeCourseModules(defaultGitCourse.modules, c.modules),
+        title: c.title || defaultGitCourse.title,
+        subtitle: c.subtitle || defaultGitCourse.subtitle,
+        thumbnail: defaultGitCourse.thumbnail || '/assets/images/github_course_banner.webp',
+        modules: effectiveModules,
+        updatedAt: c.updatedAt || existingInMap?.updatedAt || defaultGitCourse.updatedAt,
       };
       map.set(key, updatedItem);
     } else if (
@@ -854,14 +854,18 @@ const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
     ) {
       const key = 'database-management-system';
       const defaultDbmsCourse = initialDefaultCourses.find(item => item.id === 'database-management-system') || c;
+      const existingInMap = map.get(key);
+      const effectiveModules = chooseEffectiveModules(key, existingInMap, c, defaultDbmsCourse.modules);
       const updatedItem: CourseItem = {
         ...defaultDbmsCourse,
+        ...(existingInMap || {}),
         ...c,
         id: 'database-management-system',
-        title: 'Database Management System (DBMS): Beginner to Advanced',
-        subtitle: '🗄️ Database Management System',
-        thumbnail: '/assets/images/dbms_course_thumbnail.png',
-        modules: mergeCourseModules(defaultDbmsCourse.modules, c.modules),
+        title: c.title || defaultDbmsCourse.title,
+        subtitle: c.subtitle || defaultDbmsCourse.subtitle,
+        thumbnail: defaultDbmsCourse.thumbnail || '/assets/images/dbms_course_thumbnail.png',
+        modules: effectiveModules,
+        updatedAt: c.updatedAt || existingInMap?.updatedAt || defaultDbmsCourse.updatedAt,
       };
       map.set(key, updatedItem);
     } else if (
@@ -870,14 +874,18 @@ const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
     ) {
       const key = 'kubernetes-complete-course-beginner-to-advanced';
       const defaultK8sCourse = initialDefaultCourses.find(item => item.id === 'kubernetes-complete-course-beginner-to-advanced') || c;
+      const existingInMap = map.get(key);
+      const effectiveModules = chooseEffectiveModules(key, existingInMap, c, defaultK8sCourse.modules);
       const updatedItem: CourseItem = {
         ...defaultK8sCourse,
+        ...(existingInMap || {}),
         ...c,
         id: 'kubernetes-complete-course-beginner-to-advanced',
-        title: 'Kubernetes Complete Course – Beginner to Advanced',
-        subtitle: '☸️ Kubernetes Complete Course',
-        thumbnail: c.thumbnail || 'https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?auto=format&fit=crop&w=800&q=80',
-        modules: mergeCourseModules(defaultK8sCourse.modules, c.modules),
+        title: c.title || defaultK8sCourse.title,
+        subtitle: c.subtitle || defaultK8sCourse.subtitle,
+        thumbnail: c.thumbnail || defaultK8sCourse.thumbnail || 'https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?auto=format&fit=crop&w=800&q=80',
+        modules: effectiveModules,
+        updatedAt: c.updatedAt || existingInMap?.updatedAt || defaultK8sCourse.updatedAt,
       };
       map.set(key, updatedItem);
     } else if (
@@ -887,14 +895,18 @@ const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
     ) {
       const key = 'react-js-complete-course';
       const defaultReactCourse = initialDefaultCourses.find(item => item.id === 'react-js-complete-course') || c;
+      const existingInMap = map.get(key);
+      const effectiveModules = chooseEffectiveModules(key, existingInMap, c, defaultReactCourse.modules);
       const updatedItem: CourseItem = {
         ...defaultReactCourse,
+        ...(existingInMap || {}),
         ...c,
         id: 'react-js-complete-course',
-        title: 'React JS Complete Course',
-        subtitle: '⚛️ React JS Complete Course',
-        thumbnail: c.thumbnail || 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&w=800&q=80',
-        modules: mergeCourseModules(defaultReactCourse.modules, c.modules),
+        title: c.title || defaultReactCourse.title,
+        subtitle: c.subtitle || defaultReactCourse.subtitle,
+        thumbnail: defaultReactCourse.thumbnail || '/assets/images/react_course_banner.webp',
+        modules: effectiveModules,
+        updatedAt: c.updatedAt || existingInMap?.updatedAt || defaultReactCourse.updatedAt,
       };
       map.set(key, updatedItem);
     } else if (
@@ -904,14 +916,18 @@ const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
     ) {
       const key = 'c-programming-course-id';
       const defaultCCourse = initialDefaultCourses.find(item => item.id === 'c-programming-course-id') || c;
+      const existingInMap = map.get(key);
+      const effectiveModules = chooseEffectiveModules(key, existingInMap, c, defaultCCourse.modules);
       const updatedItem: CourseItem = {
         ...defaultCCourse,
+        ...(existingInMap || {}),
         ...c,
         id: 'c-programming-course-id',
-        title: 'C Programming',
-        subtitle: '💻 C Programming',
-        thumbnail: '/assets/images/c_course_thumbnail.png',
-        modules: mergeCourseModules(defaultCCourse.modules, c.modules),
+        title: c.title || defaultCCourse.title,
+        subtitle: c.subtitle || defaultCCourse.subtitle,
+        thumbnail: defaultCCourse.thumbnail || '/assets/images/c_course_thumbnail.png',
+        modules: effectiveModules,
+        updatedAt: c.updatedAt || existingInMap?.updatedAt || defaultCCourse.updatedAt,
       };
       map.set(key, updatedItem);
     } else if (
@@ -921,14 +937,18 @@ const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
     ) {
       const key = 'python-through-oops-course-id';
       const defaultPythonCourse = initialDefaultCourses.find(item => item.id === 'python-through-oops-course-id') || c;
+      const existingInMap = map.get(key);
+      const effectiveModules = chooseEffectiveModules(key, existingInMap, c, defaultPythonCourse.modules);
       const updatedItem: CourseItem = {
         ...defaultPythonCourse,
+        ...(existingInMap || {}),
         ...c,
         id: 'python-through-oops-course-id',
-        title: 'Python Through OOPs',
-        subtitle: '💻 Python Through OOPs',
-        thumbnail: '/assets/images/python_course_thumbnail.png',
-        modules: mergeCourseModules(defaultPythonCourse.modules, c.modules),
+        title: c.title || defaultPythonCourse.title,
+        subtitle: c.subtitle || defaultPythonCourse.subtitle,
+        thumbnail: defaultPythonCourse.thumbnail || '/assets/images/python_course_thumbnail.png',
+        modules: effectiveModules,
+        updatedAt: c.updatedAt || existingInMap?.updatedAt || defaultPythonCourse.updatedAt,
       };
       map.set(key, updatedItem);
     } else if (
@@ -938,29 +958,39 @@ const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
     ) {
       const key = 'java-through-oops-course-id';
       const defaultJavaCourse = initialDefaultCourses.find(item => item.id === 'java-through-oops-course-id') || c;
+      const existingInMap = map.get(key);
+      const effectiveModules = chooseEffectiveModules(key, existingInMap, c, defaultJavaCourse.modules);
       const updatedItem: CourseItem = {
         ...defaultJavaCourse,
+        ...(existingInMap || {}),
         ...c,
         id: 'java-through-oops-course-id',
-        title: 'Java Through OOPs',
-        subtitle: '💻 Java Through OOPs',
-        thumbnail: '/assets/images/java_course_thumbnail.png',
-        modules: mergeCourseModules(defaultJavaCourse.modules, c.modules),
+        title: c.title || defaultJavaCourse.title,
+        subtitle: c.subtitle || defaultJavaCourse.subtitle,
+        thumbnail: defaultJavaCourse.thumbnail || '/assets/images/java_course_thumbnail.png',
+        modules: effectiveModules,
+        updatedAt: c.updatedAt || existingInMap?.updatedAt || defaultJavaCourse.updatedAt,
       };
       map.set(key, updatedItem);
     } else {
-      const courseTitle = c.title || 'Technical Course Track';
-      const defaultThumb = (c as any).thumbnail || (c as any).thumbnailUrl || (c as any).image || (c as any).imageUrl || (c as any).banner || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=800&q=80';
-      const defaultDesc = (c as any).description || (c as any).fullDescription || (c as any).shortDescription || (c as any).subtitle || 'Comprehensive technical curriculum with hands-on labs and projects.';
-      const defaultShortDesc = (c as any).shortDescription || (c as any).description?.slice(0, 160) || 'Practical learning track with hands-on exercises.';
-      map.set(String(c.id), {
+      const key = String(c.id);
+      const existingInMap = map.get(key);
+      const effectiveModules = chooseEffectiveModules(key, existingInMap, c, existingInMap?.modules);
+      const courseTitle = c.title || existingInMap?.title || 'Technical Course Track';
+      const defaultThumb = (c as any).thumbnail || (c as any).thumbnailUrl || (c as any).image || (c as any).imageUrl || (c as any).banner || existingInMap?.thumbnail || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=800&q=80';
+      const defaultDesc = (c as any).description || (c as any).fullDescription || (c as any).shortDescription || (c as any).subtitle || existingInMap?.description || 'Comprehensive technical curriculum with hands-on labs and projects.';
+      const defaultShortDesc = (c as any).shortDescription || (c as any).description?.slice(0, 160) || existingInMap?.shortDescription || 'Practical learning track with hands-on exercises.';
+      map.set(key, {
+        ...(existingInMap || {}),
         ...c,
         title: courseTitle,
         thumbnail: defaultThumb,
         banner: (c as any).banner || defaultThumb,
         description: defaultDesc,
         shortDescription: defaultShortDesc,
-        price: typeof c.price === 'number' ? c.price : 0,
+        price: typeof c.price === 'number' ? c.price : (existingInMap?.price || 0),
+        modules: effectiveModules,
+        updatedAt: c.updatedAt || existingInMap?.updatedAt,
       });
     }
   });
@@ -1017,39 +1047,23 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (localSaved) {
       try {
         const parsed = JSON.parse(localSaved) as CourseItem[];
-        const normalizedParsed = parsed
-          .filter((c: any) => !String(c.title || '').toLowerCase().includes('untitled'))
-          .map((c: any) => {
-            const statusVal = c.status && c.status.toLowerCase() === 'published' ? 'Published' : 'Draft';
-            const instructorName = typeof c.instructor === 'object' && c.instructor !== null
-              ? (c.instructor.name || 'Kaizen Q Team')
-              : (c.instructor || 'Kaizen Q Team');
-            return {
-              ...c,
-              status: statusVal,
-              instructor: instructorName,
-            } as CourseItem;
-          });
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const normalizedParsed = parsed
+            .filter((c: any) => !String(c.title || '').toLowerCase().includes('untitled'))
+            .map((c: any) => {
+              const statusVal = c.status && c.status.toLowerCase() === 'published' ? 'Published' : 'Draft';
+              const instructorName = typeof c.instructor === 'object' && c.instructor !== null
+                ? (c.instructor.name || 'Kaizen Q Team')
+                : (c.instructor || 'Kaizen Q Team');
+              return {
+                ...c,
+                status: statusVal,
+                instructor: instructorName,
+              } as CourseItem;
+            });
 
-        // Auto-heal missing default modules or missing content fields
-        const merged = initialDefaultCourses.map((def) => {
-          const match = normalizedParsed.find((p) => String(p.id) === String(def.id));
-          if (!match) return def;
-          // Merge modules to inherit new lesson definitions and content
-          const mergedModules = mergeCourseModules(def.modules, match.modules);
-          return enrichCourseMockContent({ ...def, ...match, modules: mergedModules });
-        });
-
-        // Retain other custom admin courses
-        normalizedParsed.forEach((p) => {
-          if (!merged.find((m) => String(m.id) === String(p.id))) {
-            if (!String(p.title || '').toLowerCase().includes('untitled')) {
-              merged.push(enrichCourseMockContent(p));
-            }
-          }
-        });
-
-        return merged.filter((item) => !String(item.title || '').toLowerCase().includes('untitled'));
+          return sanitizeCourseList(normalizedParsed);
+        }
       } catch (e) {
         console.warn('LocalStorage courses parse warning:', e);
       }
@@ -1196,6 +1210,8 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return cId === target || 
              (cId === 'course_linux_101' && target === '1') || 
              (cId === '1' && target === 'course_linux_101') ||
+             (cId === 'git-github-mastery' && target === 'git-github-mastery-course-id') ||
+             (cId === 'git-github-mastery-course-id' && target === 'git-github-mastery') ||
              cSlug === target;
     });
   };
@@ -1230,33 +1246,45 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const updateCourse = async (id: number | string, updates: Partial<CourseItem>) => {
-    const searchId = String(id);
-    let resolvedCourseId = searchId;
+    const targetId = String(id);
+    console.log(`[COURSE-CONTEXT-TRACE] 3. updateCourse called: id="${targetId}", updates.modules.length=${updates.modules?.length || 0}`);
+    if (updates.modules && updates.modules.length > 0) {
+      const firstUnit = updates.modules[0]?.topics?.[0]?.learningUnits?.[0];
+      console.log(`[COURSE-CONTEXT-TRACE] Target unit sample: id="${firstUnit?.id}", readingContent snippet="${(firstUnit?.readingContent || firstUnit?.conceptTheory || '').slice(0, 40)}"`);
+    }
 
+    const updatesWithTimestamp: Partial<CourseItem> = {
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+
+    let resolvedCourseId = targetId;
     setCourses((prev) => {
       const next = prev.map((c) => {
         const cId = String(c.id);
         const cSlug = String((c as any).slug || '');
         if (
-          cId === searchId ||
-          cSlug === searchId ||
-          (cId === '1' && searchId === 'course_linux_101') ||
-          (cId === 'course_linux_101' && searchId === '1')
+          cId === targetId ||
+          cSlug === targetId ||
+          (cId === '1' && targetId === 'course_linux_101') ||
+          (cId === 'course_linux_101' && targetId === '1') ||
+          (cId === 'git-github-mastery' && targetId === 'git-github-mastery-course-id') ||
+          (cId === 'git-github-mastery-course-id' && targetId === 'git-github-mastery')
         ) {
           resolvedCourseId = String(c.id);
-          return { ...c, ...updates };
+          return { ...c, ...updatesWithTimestamp };
         }
         return c;
       });
       localStorage.setItem('shaivika_courses_data', JSON.stringify(next));
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('shaivika_courses_updated', { detail: { courseId: resolvedCourseId, updates } }));
+        window.dispatchEvent(new CustomEvent('shaivika_courses_updated', { detail: { courseId: resolvedCourseId, updates: updatesWithTimestamp } }));
       }
       return next;
     });
 
     try {
-      await courseService.updateCourse(resolvedCourseId, updates as any);
+      await courseService.updateCourse(resolvedCourseId, updatesWithTimestamp as any);
     } catch (e) {
       console.warn('Firestore sync failed in updateCourse:', e);
     }
@@ -1268,37 +1296,36 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const existingCourse = getCourseById(target);
 
-    // 1. Check static authoritative full module datasets
+    // 1. Check existing cached course modules first as the source of truth for user edits
+    if (existingCourse?.modules && existingCourse.modules.length > 0) {
+      console.log(`[COURSE-CONTEXT-TRACE] 10. getCourseModules: loaded ${existingCourse.modules.length} modules from CourseContext state for "${target}"`);
+      return existingCourse.modules;
+    }
+
+    // 2. Check backend API modules
+    try {
+      const targetId = existingCourse ? String(existingCourse.id) : target;
+      const apiMods = await courseService.getCourseModules(targetId);
+      if (apiMods && apiMods.length > 0) {
+        console.log(`[COURSE-CONTEXT-TRACE] 10. getCourseModules: loaded ${apiMods.length} modules from database/API for "${target}"`);
+        if (existingCourse) {
+          updateCourse(existingCourse.id, { modules: apiMods });
+        }
+        return apiMods;
+      }
+    } catch (e) {}
+
+    // 3. Check static authoritative full module datasets ONLY if no modules exist in state
     try {
       const staticMods = await loadStaticCourseModules(target);
       if (staticMods && staticMods.length > 0) {
-        if (existingCourse?.modules && existingCourse.modules.length > 0) {
-          // Merge static baseline with user additions/edits so nothing is lost
-          const merged = mergeCourseModules(staticMods, existingCourse.modules);
-          return merged;
-        } else {
+        console.log(`[COURSE-CONTEXT-TRACE] 10. getCourseModules: fallback to static JSON for uninitialized course "${target}"`);
+        if (!existingCourse?.modules || existingCourse.modules.length === 0) {
           if (existingCourse) {
             updateCourse(existingCourse.id, { modules: staticMods });
           }
           return staticMods;
         }
-      }
-    } catch (e) {}
-
-    // 2. Check existing cached course modules
-    if (existingCourse?.modules && existingCourse.modules.length > 0) {
-      return existingCourse.modules;
-    }
-
-    // 3. Check backend API modules
-    try {
-      const targetId = existingCourse ? String(existingCourse.id) : target;
-      const apiMods = await courseService.getCourseModules(targetId);
-      if (apiMods && apiMods.length > 0) {
-        if (existingCourse) {
-          updateCourse(existingCourse.id, { modules: apiMods });
-        }
-        return apiMods;
       }
     } catch (e) {}
 
