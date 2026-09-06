@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { Star, Clock, ArrowRight, Check, RotateCw, BookOpen } from 'lucide-react';
 import type { ICourse } from '../../../../shared/types/course';
 import { useReducedMotion } from 'framer-motion';
+import { getOptimizedImageUrl } from '@/utils/imageOptimizer';
 
 interface FlipCardProps {
   course: ICourse;
@@ -9,13 +10,15 @@ interface FlipCardProps {
   onEnrollClick: (course: ICourse) => void;
 }
 
-export const FlipCard: React.FC<FlipCardProps> = ({
+const FlipCardComponent: React.FC<FlipCardProps> = ({
   course,
   getCourseImage,
   onEnrollClick,
 }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const shouldReduceMotion = useReducedMotion();
+  const rawImageUrl = getCourseImage(course);
+  const optimizedImageUrl = getOptimizedImageUrl(rawImageUrl, { width: 600, quality: 80 });
 
   // If user prefers reduced motion, render a clean static card without flip interaction
   if (shouldReduceMotion) {
@@ -24,10 +27,11 @@ export const FlipCard: React.FC<FlipCardProps> = ({
         {/* Thumbnail */}
         <div className="relative h-48 overflow-hidden bg-slate-100 dark:bg-[#1e293b] shrink-0">
           <img
-            src={getCourseImage(course)}
+            src={optimizedImageUrl}
             alt={course.title}
             className="w-full h-full object-cover"
             loading="lazy"
+            decoding="async"
             width="384"
             height="192"
             onError={(e) => {
@@ -118,10 +122,11 @@ export const FlipCard: React.FC<FlipCardProps> = ({
           {/* Thumbnail */}
           <div className="relative h-48 overflow-hidden bg-slate-100 dark:bg-[#1e293b] shrink-0">
             <img
-              src={getCourseImage(course)}
+              src={optimizedImageUrl}
               alt={course.title}
               className="w-full h-full object-cover"
               loading="lazy"
+              decoding="async"
               width="384"
               height="192"
               onError={(e) => {
@@ -265,3 +270,5 @@ export const FlipCard: React.FC<FlipCardProps> = ({
     </div>
   );
 };
+
+export const FlipCard = memo(FlipCardComponent);

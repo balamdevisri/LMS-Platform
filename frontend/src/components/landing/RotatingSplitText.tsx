@@ -31,8 +31,8 @@ const Sparkle: React.FC<{ particle: SparkleParticle; isExit: boolean }> = ({
 }) => {
   const tx = Math.cos(particle.angle) * particle.distance;
   const ty = Math.sin(particle.angle) * particle.distance;
-  // Glow intensity scales with particle size
-  const glow = `0 0 ${particle.size * 3}px ${particle.color}, 0 0 ${particle.size * 6}px ${particle.color}55`;
+  // Lightweight GPU-friendly single-layer glow
+  const glow = `0 0 ${Math.round(particle.size * 2)}px ${particle.color}`;
 
   return (
     <motion.div

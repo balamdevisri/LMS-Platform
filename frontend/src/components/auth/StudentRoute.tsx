@@ -1,11 +1,10 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { auth } from '@/firebase';
 
 export const StudentRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, userProfile, loading } = useAuth();
-  const activeUser = user || auth?.currentUser;
+  const activeUser = user;
 
   if (loading) {
     return (

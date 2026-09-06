@@ -16,10 +16,15 @@ import {
 } from 'lucide-react';
 import { courseService } from '@/services/courseService';
 import type { ICourse } from '../../../shared/types/course';
-import { CheckoutModal } from '../components/courses/CheckoutModal';
 import { SEOHead } from '@/components/seo/SEOHead';
 import { OrganizationSchema } from '@/components/seo/StructuredData';
 import { useAuth } from '@/contexts/AuthContext';
+import { getOptimizedImageUrl } from '@/utils/imageOptimizer';
+
+// Lazy-load CheckoutModal on-demand to prevent payment bundle bloat on landing page
+const CheckoutModal = React.lazy(() =>
+  import('../components/courses/CheckoutModal').then((m) => ({ default: m.CheckoutModal }))
+);
 
 import { AnimatedHeroBackground } from '@/components/landing/AnimatedHeroBackground';
 import { RotatingSplitText } from '@/components/landing/RotatingSplitText';
@@ -43,6 +48,184 @@ const CourseSkeleton: React.FC = () => (
     <div className="h-10 bg-slate-200 dark:bg-[#1e293b] rounded-xl w-full" />
   </div>
 );
+
+// Hoisted static arrays to prevent re-allocation on each render
+const pillars = [
+  {
+    title: 'Learn',
+    description: 'Build a strong foundation through structured learning.',
+    icon: BookOpen,
+    gradientClass: 'bg-[#2563eb] text-white',
+  },
+  {
+    title: 'Build',
+    description: 'Turn knowledge into practical skills through hands-on practice.',
+    icon: Terminal,
+    gradientClass: 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white',
+  },
+  {
+    title: 'Evolve',
+    description: 'Continuously improve your skills and achieve your goals.',
+    icon: TrendingUp,
+    gradientClass: 'bg-gradient-to-r from-[#ec4899] to-[#f97316] text-white',
+  },
+];
+
+const features = [
+  {
+    icon: Bot,
+    title: 'AI Learning',
+    description:
+      '24/7 intelligent assistance explaining code line-by-line and diagnosing conceptual roadblocks.',
+  },
+  {
+    icon: BookOpen,
+    title: 'Structured Courses',
+    description:
+      'Step-by-step modular curricula covering Linux, Git, Systems, and modern engineering stacks.',
+  },
+  {
+    icon: Terminal,
+    title: 'Coding Practice',
+    description:
+      'Zero-setup interactive terminal labs and in-browser execution playgrounds for real hands-on practice.',
+  },
+  {
+    icon: Video,
+    title: 'Live Classes',
+    description:
+      'Interactive live classrooms and mentor-led sessions with real-time feedback and collaboration.',
+  },
+  {
+    icon: Award,
+    title: 'Certificates',
+    description:
+      'Tamper-proof digital credentials with cryptographic QR verification ready for LinkedIn and employers.',
+  },
+  {
+    icon: BarChart3,
+    title: 'Learning Analytics',
+    description:
+      'Visual competency graphs and progress tracking that clearly highlight skill milestones.',
+  },
+];
+
+const pricingPlans = [
+  {
+    name: 'Starter (2 Courses)',
+    price: '249',
+    period: 'one-time',
+    desc: 'Pick any 2 courses to kickstart your journey.',
+    features: ['Lifetime Course Access', 'Verified Certificates Included', 'Self-Paced Practice Labs'],
+    cta: 'Enroll Now',
+    popular: false,
+    coursesCount: 2,
+  },
+  {
+    name: 'Beginner (3 Courses)',
+    price: '349',
+    period: 'one-time',
+    desc: 'Pick any 3 courses for a solid foundation.',
+    features: ['Lifetime Course Access', 'Verified Certificates Included', 'Self-Paced Practice Labs'],
+    cta: 'Enroll Now',
+    popular: false,
+    coursesCount: 3,
+  },
+  {
+    name: 'Career (5 Courses)',
+    price: '449',
+    period: 'one-time',
+    desc: 'Best for comprehensive career preparation.',
+    features: ['Lifetime Course Access', 'Verified Certificates Included', 'Priority Lab Access', 'Portfolio Building Tools'],
+    cta: 'Enroll Now',
+    popular: true,
+    coursesCount: 5,
+  },
+  {
+    name: 'Ultra Value (All 8 Courses)',
+    price: '499',
+    period: 'one-time',
+    desc: 'Unlock all 8 expert courses across our entire catalog.',
+    features: ['All 8 Full Courses', 'Lifetime Access & Updates', 'All Verified Certificates', 'Complete Practice Labs'],
+    cta: 'Enroll Now',
+    popular: false,
+    coursesCount: 8,
+    vipPass: false,
+  },
+  {
+    name: 'VIP 3-Month All-Access Pro Pass',
+    price: '1,299',
+    originalPrice: '2,999',
+    period: '3 months',
+    desc: 'ALL courses + Portfolio Builder + Resume Builder + Recruiter Suite.',
+    features: [
+      'All 8+ Expert Courses Unlocked',
+      'Developer Portfolio & Vanity URL',
+      'Resume Builder & PDF Export',
+      'Auto-Import Verified Credentials',
+      'Use Coupon VIP300 for ₹300 OFF (Final ₹999)',
+    ],
+    cta: 'Unlock VIP Pass',
+    popular: false,
+    coursesCount: 999,
+    vipPass: true,
+  },
+];
+
+const testimonials = [
+  {
+    name: 'Priya Sharma',
+    role: 'DevOps Engineer',
+    quote:
+      'The structured curriculum and hands-on Linux and Git practice made understanding complex system concepts effortless. The clean interface kept me focused.',
+    rating: 5,
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&fm=webp&q=80',
+  },
+  {
+    name: 'Alex Chen',
+    role: 'Software Developer',
+    quote:
+      'One of the cleanest and most practical learning platforms available. Zero clutter, direct access to code exercises, and instant certificate verification.',
+    rating: 5,
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&fm=webp&q=80',
+  },
+  {
+    name: 'Sarah Jenkins',
+    role: 'Cloud Engineer',
+    quote:
+      'The step-by-step modular lessons enabled our team to onboard new engineers rapidly with practical command-line and version control confidence.',
+    rating: 5,
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&fm=webp&q=80',
+  },
+];
+
+const faqs = [
+  {
+    question: 'What is KaizenQ and who is it designed for?',
+    answer:
+      'KaizenQ is a modern learning platform built for students, aspiring developers, and engineering teams. We combine structured curricula, hands-on terminal practice, and verifiable digital credentials.',
+  },
+  {
+    question: 'How do the hands-on practice labs work?',
+    answer:
+      'Each core track includes built-in browser-based exercises. You do not need to install complex local environments—you can practice Linux commands, Git workflows, and code logic right inside your browser.',
+  },
+  {
+    question: 'Are KaizenQ certificates verified and shareable?',
+    answer:
+      'Yes. Every completed course awards a tamper-proof digital certificate featuring a unique verification ID and cryptographic QR code that can be shared on LinkedIn, resumes, and portfolios.',
+  },
+  {
+    question: 'Can I learn at my own pace?',
+    answer:
+      'Absolutely. All courses provide lifetime access with self-paced progression, bookmarking, and progress tracking across all your devices.',
+  },
+  {
+    question: 'Do you offer options for schools, colleges, and enterprise teams?',
+    answer:
+      'Yes! We provide institutional licensing, custom student cohort management, and progress dashboards for academic institutions and engineering departments. Use the contact form below to request details.',
+  },
+];
 
 export const LandingPage: React.FC = () => {
   const { user, userProfile } = useAuth();
@@ -227,187 +410,7 @@ export const LandingPage: React.FC = () => {
     setOpenFaq(openFaq === idx ? null : idx);
   };
 
-  // Section 8: Three Pillars
-  const pillars = [
-    {
-      title: 'Learn',
-      description: 'Build a strong foundation through structured learning.',
-      icon: BookOpen,
-      gradientClass: 'bg-[#2563eb] text-white',
-    },
-    {
-      title: 'Build',
-      description: 'Turn knowledge into practical skills through hands-on practice.',
-      icon: Terminal,
-      gradientClass: 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white',
-    },
-    {
-      title: 'Evolve',
-      description: 'Continuously improve your skills and achieve your goals.',
-      icon: TrendingUp,
-      gradientClass: 'bg-gradient-to-r from-[#ec4899] to-[#f97316] text-white',
-    },
-  ];
 
-  // Section 9: 6 Core Real Features
-  const features = [
-    {
-      icon: Bot,
-      title: 'AI Learning',
-      description:
-        '24/7 intelligent assistance explaining code line-by-line and diagnosing conceptual roadblocks.',
-    },
-    {
-      icon: BookOpen,
-      title: 'Structured Courses',
-      description:
-        'Step-by-step modular curricula covering Linux, Git, Systems, and modern engineering stacks.',
-    },
-    {
-      icon: Terminal,
-      title: 'Coding Practice',
-      description:
-        'Zero-setup interactive terminal labs and in-browser execution playgrounds for real hands-on practice.',
-    },
-    {
-      icon: Video,
-      title: 'Live Classes',
-      description:
-        'Interactive live classrooms and mentor-led sessions with real-time feedback and collaboration.',
-    },
-    {
-      icon: Award,
-      title: 'Certificates',
-      description:
-        'Tamper-proof digital credentials with cryptographic QR verification ready for LinkedIn and employers.',
-    },
-    {
-      icon: BarChart3,
-      title: 'Learning Analytics',
-      description:
-        'Visual competency graphs and progress tracking that clearly highlight skill milestones.',
-    },
-  ];
-
-  // Section 10: Pricing Plans
-  const pricingPlans = [
-    {
-      name: 'Starter (2 Courses)',
-      price: '249',
-      period: 'one-time',
-      desc: 'Pick any 2 courses to kickstart your journey.',
-      features: ['Lifetime Course Access', 'Verified Certificates Included', 'Self-Paced Practice Labs'],
-      cta: 'Enroll Now',
-      popular: false,
-      coursesCount: 2,
-    },
-    {
-      name: 'Beginner (3 Courses)',
-      price: '349',
-      period: 'one-time',
-      desc: 'Pick any 3 courses for a solid foundation.',
-      features: ['Lifetime Course Access', 'Verified Certificates Included', 'Self-Paced Practice Labs'],
-      cta: 'Enroll Now',
-      popular: false,
-      coursesCount: 3,
-    },
-    {
-      name: 'Career (5 Courses)',
-      price: '449',
-      period: 'one-time',
-      desc: 'Best for comprehensive career preparation.',
-      features: ['Lifetime Course Access', 'Verified Certificates Included', 'Priority Lab Access', 'Portfolio Building Tools'],
-      cta: 'Enroll Now',
-      popular: true,
-      coursesCount: 5,
-    },
-    {
-      name: 'Ultra Value (All 8 Courses)',
-      price: '499',
-      period: 'one-time',
-      desc: 'Unlock all 8 expert courses across our entire catalog.',
-      features: ['All 8 Full Courses', 'Lifetime Access & Updates', 'All Verified Certificates', 'Complete Practice Labs'],
-      cta: 'Enroll Now',
-      popular: false,
-      coursesCount: 8,
-      vipPass: false,
-    },
-    {
-      name: 'VIP 3-Month All-Access Pro Pass',
-      price: '1,299',
-      originalPrice: '2,999',
-      period: '3 months',
-      desc: 'ALL courses + Portfolio Builder + Resume Builder + Recruiter Suite.',
-      features: [
-        'All 8+ Expert Courses Unlocked',
-        'Developer Portfolio & Vanity URL',
-        'Resume Builder & PDF Export',
-        'Auto-Import Verified Credentials',
-        'Use Coupon VIP300 for ₹300 OFF (Final ₹999)',
-      ],
-      cta: 'Unlock VIP Pass',
-      popular: false,
-      coursesCount: 999,
-      vipPass: true,
-    },
-  ];
-
-  // Learner Reviews
-  const testimonials = [
-    {
-      name: 'Priya Sharma',
-      role: 'DevOps Engineer',
-      quote:
-        'The structured curriculum and hands-on Linux and Git practice made understanding complex system concepts effortless. The clean interface kept me focused.',
-      rating: 5,
-      avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&fm=webp&q=80',
-    },
-    {
-      name: 'Alex Chen',
-      role: 'Software Developer',
-      quote:
-        'One of the cleanest and most practical learning platforms available. Zero clutter, direct access to code exercises, and instant certificate verification.',
-      rating: 5,
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&fm=webp&q=80',
-    },
-    {
-      name: 'Sarah Jenkins',
-      role: 'Cloud Engineer',
-      quote:
-        'The step-by-step modular lessons enabled our team to onboard new engineers rapidly with practical command-line and version control confidence.',
-      rating: 5,
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&fm=webp&q=80',
-    },
-  ];
-
-  // FAQ Items
-  const faqs = [
-    {
-      question: 'What is KaizenQ and who is it designed for?',
-      answer:
-        'KaizenQ is a modern learning platform built for students, aspiring developers, and engineering teams. We combine structured curricula, hands-on terminal practice, and verifiable digital credentials.',
-    },
-    {
-      question: 'How do the hands-on practice labs work?',
-      answer:
-        'Each core track includes built-in browser-based exercises. You do not need to install complex local environments—you can practice Linux commands, Git workflows, and code logic right inside your browser.',
-    },
-    {
-      question: 'Are KaizenQ certificates verified and shareable?',
-      answer:
-        'Yes. Every completed course awards a tamper-proof digital certificate featuring a unique verification ID and cryptographic QR code that can be shared on LinkedIn, resumes, and portfolios.',
-    },
-    {
-      question: 'Can I learn at my own pace?',
-      answer:
-        'Absolutely. All courses provide lifetime access with self-paced progression, bookmarking, and progress tracking across all your devices.',
-    },
-    {
-      question: 'Do you offer options for schools, colleges, and enterprise teams?',
-      answer:
-        'Yes! We provide institutional licensing, custom student cohort management, and progress dashboards for academic institutions and engineering departments. Use the contact form below to request details.',
-    },
-  ];
 
   return (
     <div className="w-full bg-[#ffffff] dark:bg-[#0b0f19] text-[#0f172a] dark:text-[#ffffff] font-['Sora'] selection:bg-[#2563eb] selection:text-white transition-colors duration-300">
@@ -850,8 +853,12 @@ export const LandingPage: React.FC = () => {
 
                 <div className="flex items-center gap-3 pt-4 border-t border-[#e2e8f0] dark:border-[#1f2937]">
                   <img
-                    src={item.avatar}
+                    src={getOptimizedImageUrl(item.avatar, { width: 72, quality: 80 })}
                     alt={item.name}
+                    width="36"
+                    height="36"
+                    loading="lazy"
+                    decoding="async"
                     className="w-9 h-9 rounded-full object-cover border border-[#e2e8f0] dark:border-[#1f2937]"
                   />
                   <div>
@@ -1014,13 +1021,17 @@ export const LandingPage: React.FC = () => {
       {/* Floating Back to Top Button */}
       <BackToTop />
 
-      {/* Checkout Modal */}
-      <CheckoutModal
-        isOpen={isCheckoutOpen}
-        onClose={() => setIsCheckoutOpen(false)}
-        courses={checkoutCourses}
-        totalPrice={checkoutPrice}
-      />
+      {/* Checkout Modal (Loaded on-demand only when user opens checkout) */}
+      {isCheckoutOpen && (
+        <React.Suspense fallback={null}>
+          <CheckoutModal
+            isOpen={isCheckoutOpen}
+            onClose={() => setIsCheckoutOpen(false)}
+            courses={checkoutCourses}
+            totalPrice={checkoutPrice}
+          />
+        </React.Suspense>
+      )}
     </div>
   );
 };

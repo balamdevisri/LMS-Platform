@@ -1,15 +1,24 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, lazy, Suspense } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import { Copy, Check, Lightbulb, Info } from 'lucide-react';
-import { SqlPlayground } from './practice/SqlPlayground';
-import { LinuxTerminalSimulator } from './practice/LinuxTerminalSimulator';
-import { GitSandboxSimulator } from './practice/GitSandboxSimulator';
-import { CodeEditorRunner } from './practice/CodeEditorRunner';
-import { WebReactPlayground } from './practice/WebReactPlayground';
-import { KubernetesSimulator } from './practice/KubernetesSimulator';
-import { MermaidDiagram } from './MermaidDiagram';
+
+// Lazy-loaded practice simulators to code-split heavy dependencies (sql.js, mermaid, terminal emulators)
+const SqlPlayground = lazy(() => import('./practice/SqlPlayground').then(m => ({ default: m.SqlPlayground || m.default })));
+const LinuxTerminalSimulator = lazy(() => import('./practice/LinuxTerminalSimulator').then(m => ({ default: m.LinuxTerminalSimulator || m.default })));
+const GitSandboxSimulator = lazy(() => import('./practice/GitSandboxSimulator').then(m => ({ default: m.GitSandboxSimulator || m.default })));
+const CodeEditorRunner = lazy(() => import('./practice/CodeEditorRunner').then(m => ({ default: m.CodeEditorRunner || m.default })));
+const WebReactPlayground = lazy(() => import('./practice/WebReactPlayground').then(m => ({ default: m.WebReactPlayground || m.default })));
+const KubernetesSimulator = lazy(() => import('./practice/KubernetesSimulator').then(m => ({ default: m.KubernetesSimulator || m.default })));
+const MermaidDiagram = lazy(() => import('./MermaidDiagram').then(m => ({ default: m.MermaidDiagram || m.default })));
+
+const SimulatorFallback: React.FC<{ label?: string }> = ({ label = 'practice simulator' }) => (
+  <div className="my-6 p-6 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-center gap-3 text-xs text-slate-400 font-mono">
+    <div className="w-4 h-4 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+    <span>Loading {label}...</span>
+  </div>
+);
 
 interface MarkdownContentProps {
   content: string;
@@ -158,10 +167,12 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
             // ── Interactive Diagram & Flowcharts: Mermaid.js ─────────────
             if (language === 'mermaid' || language === 'flowchart' || language === 'sequence' || language === 'mindmap' || language === 'diagram') {
               return (
-                <MermaidDiagram
-                  chart={rawCode}
-                  isNightMode={isNightMode}
-                />
+                <Suspense fallback={<SimulatorFallback label="interactive diagram" />}>
+                  <MermaidDiagram
+                    chart={rawCode}
+                    isNightMode={isNightMode}
+                  />
+                </Suspense>
               );
             }
 
@@ -199,13 +210,15 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
               }
 
               return (
-                <SqlPlayground
-                  title={customTitle}
-                  description={customDescription}
-                  initialSchema={schema || undefined}
-                  initialQuery={query || undefined}
-                  isNightMode={isNightMode}
-                />
+                <Suspense fallback={<SimulatorFallback label="SQL playground" />}>
+                  <SqlPlayground
+                    title={customTitle}
+                    description={customDescription}
+                    initialSchema={schema || undefined}
+                    initialQuery={query || undefined}
+                    isNightMode={isNightMode}
+                  />
+                </Suspense>
               );
             }
 
@@ -219,10 +232,12 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
               if (scenarioMatch) scenario = scenarioMatch[1].trim();
 
               return (
-                <LinuxTerminalSimulator
-                  title={title}
-                  initialScenario={scenario || undefined}
-                />
+                <Suspense fallback={<SimulatorFallback label="Linux terminal" />}>
+                  <LinuxTerminalSimulator
+                    title={title}
+                    initialScenario={scenario || undefined}
+                  />
+                </Suspense>
               );
             }
 
@@ -232,7 +247,11 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
               const titleMatch = text.match(/#\s*@title:\s*(.+)/i);
               const title = titleMatch ? titleMatch[1].trim() : 'Interactive Git Sandbox';
 
-              return <GitSandboxSimulator title={title} />;
+              return (
+                <Suspense fallback={<SimulatorFallback label="Git sandbox" />}>
+                  <GitSandboxSimulator title={title} />
+                </Suspense>
+              );
             }
 
             // ── Interactive Practice: Code Editor & Compiler (C, Python, Java, DSA) ──
@@ -252,21 +271,31 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
                 'python';
 
               return (
-                <CodeEditorRunner
-                  language={detectedLang}
-                  initialCode={text || undefined}
-                />
+                <Suspense fallback={<SimulatorFallback label="code editor" />}>
+                  <CodeEditorRunner
+                    language={detectedLang}
+                    initialCode={text || undefined}
+                  />
+                </Suspense>
               );
             }
 
             // ── Interactive Practice: Web & React Live Playground ─────────
             if (language === 'practice-web' || language === 'practice-react' || language === 'web-playground') {
-              return <WebReactPlayground initialHtml={rawCode.trim() || undefined} />;
+              return (
+                <Suspense fallback={<SimulatorFallback label="React playground" />}>
+                  <WebReactPlayground initialHtml={rawCode.trim() || undefined} />
+                </Suspense>
+              );
             }
 
             // ── Interactive Practice: Kubernetes Simulator ────────────────
             if (language === 'practice-k8s' || language === 'practice-kubernetes' || language === 'k8s-sim') {
-              return <KubernetesSimulator />;
+              return (
+                <Suspense fallback={<SimulatorFallback label="Kubernetes simulator" />}>
+                  <KubernetesSimulator />
+                </Suspense>
+              );
             }
 
             return (

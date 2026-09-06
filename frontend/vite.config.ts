@@ -37,17 +37,44 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom') || id.includes('react-helmet-async')) {
-              return 'vendor-react';
+            const normalizedId = id.replace(/\\/g, '/');
+            // Core React runtime ONLY (exact package matching to prevent bundling markdown/forms)
+            if (
+              normalizedId.includes('/node_modules/react/') ||
+              normalizedId.includes('/node_modules/react-dom/') ||
+              normalizedId.includes('/node_modules/react-router/') ||
+              normalizedId.includes('/node_modules/react-router-dom/') ||
+              normalizedId.includes('/node_modules/react-helmet-async/')
+            ) {
+              return 'vendor-core';
             }
-            if (id.includes('firebase')) {
+            if (normalizedId.includes('firebase')) {
               return 'vendor-firebase';
             }
-            if (id.includes('framer-motion')) {
+            if (normalizedId.includes('framer-motion')) {
               return 'vendor-motion';
             }
-            if (id.includes('lucide-react')) {
+            if (normalizedId.includes('lucide-react')) {
               return 'vendor-icons';
+            }
+            if (
+              normalizedId.includes('mermaid') ||
+              normalizedId.includes('cytoscape') ||
+              normalizedId.includes('dagre') ||
+              normalizedId.includes('katex')
+            ) {
+              return 'vendor-diagrams';
+            }
+            if (
+              normalizedId.includes('react-markdown') ||
+              normalizedId.includes('remark-') ||
+              normalizedId.includes('rehype-') ||
+              normalizedId.includes('highlight.js')
+            ) {
+              return 'vendor-markdown';
+            }
+            if (normalizedId.includes('sql.js')) {
+              return 'vendor-sql';
             }
           }
         },

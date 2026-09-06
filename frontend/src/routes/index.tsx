@@ -1,8 +1,6 @@
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { PublicLayout } from '@/layouts/PublicLayout';
-import { AuthLayout } from '@/layouts/AuthLayout';
-import { DashboardLayout } from '@/layouts/DashboardLayout';
 import { StudentRoute } from '@/components/auth/StudentRoute';
 import { AdminRoute } from '@/components/auth/AdminRoute';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -47,8 +45,12 @@ const lazyLoad = (importFn: () => Promise<any>, name: string) => {
   return SuspenseWrapper;
 };
 
+// Lazy loaded layout components to prevent bundling dashboard into landing page
+const AuthLayout = lazyLoad(() => import('@/layouts/AuthLayout'), 'AuthLayout');
+const DashboardLayout = lazyLoad(() => import('@/layouts/DashboardLayout'), 'DashboardLayout');
+
 // Prelaunch components
-import { LaunchingSoonPage } from '@/pages/prelaunch/LaunchingSoonPage';
+const LaunchingSoonPage = lazyLoad(() => import('@/pages/prelaunch/LaunchingSoonPage'), 'LaunchingSoonPage');
 const DeveloperAccessPage = lazyLoad(() => import('@/pages/prelaunch/DeveloperAccessPage'), 'DeveloperAccessPage');
 
 // Lazy loaded page components

@@ -1,9 +1,20 @@
-import { auth, db } from '@/firebase';
-import { doc, setDoc, updateDoc, deleteDoc, collection, getDocs, getDoc, query, where } from 'firebase/firestore';
 import type { ICourse, CreateCourseDTO, UpdateCourseDTO, CourseFilterOptions, CoursePaginationResult, CourseLevel, CourseStatus, IVideoProgress } from '../../../shared/types/course';
 import { normalizeCourseData, auditCourseData } from './courseNormalizer';
 export type { ICourse };
 import { API_BASE_URL } from '@/config/api';
+
+// On-demand loader for Firebase Firestore to prevent bundling 580KB Firebase into landing page
+let _fsModule: any = null;
+const getFS = async () => {
+  if (!_fsModule) {
+    const [fs, fb] = await Promise.all([
+      import('firebase/firestore'),
+      import('@/firebase'),
+    ]);
+    _fsModule = { ...fs, db: fb.db, auth: fb.auth };
+  }
+  return _fsModule;
+};
 
 const DEFAULT_COURSES: ICourse[] = [
   {
@@ -1154,11 +1165,13 @@ class CourseService {
     }
 
     // Direct Firestore Leaderboard sync
-    if (db && userId && userId !== 'default_student') {
-      try {
-        setDoc(doc(db, 'leaderboard', userId), { xp: updated, xpTotal: updated, updatedAt: new Date().toISOString() }, { merge: true }).catch(() => {});
-        setDoc(doc(db, 'users', userId), { xp: updated, xpTotal: updated, updatedAt: new Date().toISOString() }, { merge: true }).catch(() => {});
-      } catch (e) {}
+    if (userId && userId !== 'default_student') {
+      getFS().then(({ db, doc, setDoc }) => {
+        if (db) {
+          setDoc(doc(db, 'leaderboard', userId), { xp: updated, xpTotal: updated, updatedAt: new Date().toISOString() }, { merge: true }).catch(() => {});
+          setDoc(doc(db, 'users', userId), { xp: updated, xpTotal: updated, updatedAt: new Date().toISOString() }, { merge: true }).catch(() => {});
+        }
+      }).catch(() => {});
     }
 
     return updated;
@@ -1249,10 +1262,11 @@ class CourseService {
 
       // Try Firestore directly if available (Primary Cloud Storage)
       let firestoreLoaded: ICourse[] = [];
-      if (db) {
-        try {
+      try {
+        const { db, collection, getDocs } = await getFS();
+        if (db) {
           const querySnapshot = await getDocs(collection(db, 'courses'));
-          querySnapshot.forEach((docSnap) => {
+          querySnapshot.forEach((docSnap: any) => {
             const item = this.normalizeCourseToICourse({ id: docSnap.id, ...docSnap.data() });
             if (!isRemovedMockCourse(item)) {
               firestoreLoaded.push(item);
@@ -1261,9 +1275,9 @@ class CourseService {
           if (firestoreLoaded.length > 0) {
             localStorage.setItem('shaivika_courses_data', JSON.stringify(firestoreLoaded));
           }
-        } catch (err) {
-          console.warn('Firestore fetch in getCourses failed, falling back to localStorage:', err);
         }
+      } catch (err) {
+        console.warn('Firestore fetch in getCourses notice:', err);
       }
 
       let list: ICourse[] = [];
@@ -1357,8 +1371,9 @@ class CourseService {
     } catch (e) {}
 
     // Directly query Firebase Firestore
-    if (db) {
-      try {
+    try {
+      const { db, doc, getDoc, collection, query, where, getDocs } = await getFS();
+      if (db) {
         const docRef = doc(db, 'courses', idOrSlug);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
@@ -1375,9 +1390,9 @@ class CourseService {
           this.courseDetailsCache.set(idOrSlug, { data: course, expiry: Date.now() + 300000 });
           return course;
         }
-      } catch (err) {
-        console.warn('[CourseService] Direct Firestore fetch in getCourseBySlugOrId notice:', err);
       }
+    } catch (err) {
+      console.warn('[CourseService] Direct Firestore fetch in getCourseBySlugOrId notice:', err);
     }
 
     const list = this.getStoredCourses();
@@ -1411,8 +1426,9 @@ class CourseService {
     }
 
     // Direct Firebase Firestore lookup for course modules
-    if (db) {
-      try {
+    try {
+      const { db, doc, getDoc, collection, getDocs } = await getFS();
+      if (db) {
         const docRef = doc(db, 'courses', courseId);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
@@ -1431,7 +1447,7 @@ class CourseService {
             try {
               const lessonsSnap = await getDocs(collection(db, 'courses', courseId, 'modules', mDoc.id, 'lessons'));
               if (!lessonsSnap.empty) {
-                const lessons = lessonsSnap.docs.map(lDoc => ({ id: lDoc.id, ...lDoc.data() }));
+                const lessons = lessonsSnap.docs.map((lDoc: any) => ({ id: lDoc.id, ...lDoc.data() }));
                 lessons.sort((a: any, b: any) => (a.orderIndex ?? a.order ?? 0) - (b.orderIndex ?? b.order ?? 0));
                 (mData as any).lessons = lessons;
               }
@@ -1441,9 +1457,9 @@ class CourseService {
           modulesList.sort((a: any, b: any) => (a.orderIndex ?? a.order ?? 0) - (b.orderIndex ?? b.order ?? 0));
           return modulesList;
         }
-      } catch (err) {
-        console.warn(`[CourseService] Direct Firestore getCourseModules notice for ${courseId}:`, err);
       }
+    } catch (err) {
+      console.warn(`[CourseService] Direct Firestore getCourseModules notice for ${courseId}:`, err);
     }
 
     return [];
@@ -1495,11 +1511,12 @@ class CourseService {
     this.getCoursesCache.clear();
     this.courseDetailsCache.clear();
 
-    if (db) {
-      try {
+    try {
+      const { db, doc, setDoc } = await getFS();
+      if (db) {
         await setDoc(doc(db, 'courses', id), created);
-      } catch (err) {}
-    }
+      }
+    } catch (err) {}
 
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('shaivika_courses_updated', { detail: { courseId: id, created: true } }));
@@ -1542,13 +1559,14 @@ class CourseService {
     this.courseDetailsCache.clear();
 
     // 1. Direct write to Firebase Firestore (Primary Cloud Storage)
-    if (db) {
-      try {
+    try {
+      const { db, doc, setDoc } = await getFS();
+      if (db) {
         await setDoc(doc(db, 'courses', targetCourseId), updated as any, { merge: true });
         console.log(`[Firebase] Course "${targetCourseId}" successfully saved to Firestore!`);
-      } catch (err) {
-        console.error('[Firebase] Direct Firestore course update error:', err);
       }
+    } catch (err) {
+      console.error('[Firebase] Direct Firestore course update error:', err);
     }
 
     // 2. Sync with Backend API
@@ -1579,13 +1597,14 @@ class CourseService {
     this.courseDetailsCache.clear();
 
     // 1. Direct delete from Firebase Firestore
-    if (db) {
-      try {
+    try {
+      const { db, doc, deleteDoc } = await getFS();
+      if (db) {
         await deleteDoc(doc(db, 'courses', id));
         console.log(`[Firebase] Course "${id}" deleted from Firestore.`);
-      } catch (err) {
-        console.error('[Firebase] Direct Firestore course delete error:', err);
       }
+    } catch (err) {
+      console.error('[Firebase] Direct Firestore course delete error:', err);
     }
 
     // 2. Sync with Backend API
@@ -1689,9 +1708,19 @@ class CourseService {
 
     // Trigger Email Notification for Course Enrollment
     try {
-      const recipientEmail = userMeta?.email || auth?.currentUser?.email;
+      let recipientEmail = userMeta?.email;
+      let studentName = userMeta?.name;
+      if (!recipientEmail || !studentName) {
+        try {
+          const { auth } = await getFS();
+          if (auth?.currentUser) {
+            recipientEmail = recipientEmail || auth.currentUser.email || undefined;
+            studentName = studentName || auth.currentUser.displayName || undefined;
+          }
+        } catch (e) {}
+      }
       if (recipientEmail) {
-        const studentName = userMeta?.name || auth?.currentUser?.displayName || recipientEmail.split('@')[0];
+        studentName = studentName || recipientEmail.split('@')[0];
         const courseTitle = userMeta?.courseTitle || target?.title || 'Shaivika AI LMS Track';
 
         await fetch(`${API_BASE_URL}/email/send`, {
@@ -1855,6 +1884,7 @@ class CourseService {
     localStorage.setItem(key, JSON.stringify(record));
 
     try {
+      const { db, doc, setDoc } = await getFS();
       if (db) {
         const docRef = doc(db, 'users', userId, 'videoProgress', `${courseId}_${lessonId}`);
         await setDoc(docRef, record, { merge: true });
@@ -1874,6 +1904,7 @@ class CourseService {
     }
 
     try {
+      const { db, doc, getDoc } = await getFS();
       if (db) {
         const docRef = doc(db, 'users', userId, 'videoProgress', `${courseId}_${lessonId}`);
         const snap = await getDoc(docRef);
@@ -1933,16 +1964,17 @@ class CourseService {
       console.warn('[CourseService] Backend saveLesson error:', e);
     }
 
-    if (db) {
-      try {
+    try {
+      const { db, doc, setDoc } = await getFS();
+      if (db) {
         const docRef = doc(db, 'courses', courseId, 'modules', moduleId, 'lessons', lessonDoc.id);
         await setDoc(docRef, { ...lessonDoc, courseId, moduleId, updatedAt: new Date().toISOString() }, { merge: true });
         this.courseDetailsCache.delete(courseId);
         this.getCoursesCache.clear();
         return true;
-      } catch (err) {
-        console.warn('[CourseService] Direct Firestore lesson save error:', err);
       }
+    } catch (err) {
+      console.warn('[CourseService] Direct Firestore lesson save error:', err);
     }
     return false;
   }
@@ -1985,16 +2017,17 @@ class CourseService {
       console.warn('[CourseService] deleteLessonContent error:', e);
     }
 
-    if (db) {
-      try {
+    try {
+      const { db, doc, deleteDoc } = await getFS();
+      if (db) {
         const docRef = doc(db, 'courses', courseId, 'modules', moduleId, 'lessons', lessonId);
         await deleteDoc(docRef);
         this.courseDetailsCache.delete(courseId);
         this.getCoursesCache.clear();
         return true;
-      } catch (err) {
-        console.warn('[CourseService] Direct Firestore lesson delete error:', err);
       }
+    } catch (err) {
+      console.warn('[CourseService] Direct Firestore lesson delete error:', err);
     }
     return false;
   }

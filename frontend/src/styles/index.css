@@ -13,13 +13,17 @@
 }
 @variant dark (&:where(.dark, .dark *));
 
-/* ─── Smooth theme transition (300ms) across ALL elements ─────────────────── */
-/* Applied only when not prefers-reduced-motion */
+/* ─── Smooth theme transition (300ms) on structural layout surfaces ────────── */
+/* Applied only when not prefers-reduced-motion, scoped to layout containers to avoid mobile CPU throttling */
 @media (prefers-reduced-motion: no-preference) {
-  *,
-  *::before,
-  *::after {
-    transition-property: background-color, color, border-color, box-shadow, opacity;
+  body,
+  main,
+  nav,
+  header,
+  footer,
+  aside,
+  .theme-transition {
+    transition-property: background-color, color, border-color;
     transition-duration: 300ms;
     transition-timing-function: ease;
   }

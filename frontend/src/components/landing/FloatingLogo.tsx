@@ -121,10 +121,14 @@ export const FloatingLogo: React.FC<FloatingLogoProps> = ({ className = '' }) =>
           }}
         />
 
-        {/* Logo image — ~28% larger: was w-36/sm:w-44, now w-44/sm:w-56 */}
+        {/* Logo image — explicit dimensions to prevent CLS, high fetchPriority as hero LCP */}
         <img
           src="/brand/kaizenq-logo.webp"
           alt="KaizenQ"
+          width="224"
+          height="224"
+          fetchPriority="high"
+          decoding="async"
           draggable={false}
           className="w-44 h-44 sm:w-56 sm:h-56 object-contain select-none"
           style={{
