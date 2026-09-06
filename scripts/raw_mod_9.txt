@@ -1,0 +1,270 @@
+Module  9:  Advanced  Git  Commands  
+Learning  Objectives  
+After  completing  this  module,  you  will  be  able  to:  
+●  Understand  advanced  Git  operations.  ●  Temporarily  save  work  using  git  stash.  ●  Undo  changes  using  git  reset.  ●  Safely  reverse  commits  using  git  revert.  ●  Apply  specific  commits  using  git  cherry-pick.  ●  Rewrite  commit  history  using  git  rebase.  ●  Create  and  manage  Git  tags.  ●  Apply  advanced  Git  workflows  in  real-world  projects.  
+ 
+9.1  Introduction  
+As  software  projects  grow,  developers  often  need  to:  
+●  Switch  tasks  without  losing  work.  ●  Undo  accidental  commits.  ●  Restore  previous  project  versions.  ●  Reuse  commits  from  another  branch.  ●  Organize  release  versions.  ●  Maintain  a  clean  commit  history.  
+Git  provides  several  advanced  commands  to  handle  these  situations  efficiently.  
+ 
+Definition  
+
+===== PDF PAGE 87 =====
+Advanced  Git  Commands  are  specialized  commands  used  to  manage  repository  history,  
+recover
+ 
+changes,
+ 
+organize
+ 
+releases,
+ 
+and
+ 
+improve
+ 
+collaboration
+ 
+in
+ 
+professional
+ 
+software
+ 
+development.
+ 
+ 
+Real-Time  Example  
+A  developer  is  working  on  a  Payment  Module  but  receives  an  urgent  request  to  fix  a  
+production
+ 
+bug.
+ 
+Instead  of  committing  incomplete  work,  they  use:  
+git  stash  
+Later,  after  fixing  the  bug,  they  restore  their  previous  work  using:  
+git  stash  pop   
+9.2  Git  Stash  
+git  stash temporarily  saves  uncommitted  changes  without  creating  a  commit.  
+Syntax  git  stash  
+Workflow  Modified  Files        │        ▼  git  stash        │        ▼  Temporary  Storage  
+View  all  stashes:  
+git  stash  list  
+Restore  the  latest  stash:  
+git  stash  pop  
+Apply  without  deleting:  
+
+===== PDF PAGE 88 =====
+git  stash  apply  
+Delete  a  stash:  
+git  stash  drop   
+9.3  Git  Reset  
+git  reset moves  the  current  branch  to  a  previous  commit.  
+Types  of  Reset  
+Soft  Reset  
+Keeps  staged  changes.  
+git  reset  --soft  HEAD~1   
+Mixed  Reset  (Default)  
+Keeps  files  but  removes  them  from  the  staging  area.  
+git  reset  HEAD~1   
+Hard  Reset  
+Removes  commits,  staged  changes,  and  working  directory  changes.  
+git  reset  --hard  HEAD~1  
+⚠  Warning:  --hard permanently  discards  uncommitted  work.  
+ 
+9.4  Git  Revert  
+git  revert creates  a  new  commit  that  reverses  the  changes  of  a  previous  commit.  
+Syntax  git  revert  commit_id  
+Example:  
+
+===== PDF PAGE 89 =====
+git  revert  a1b2c3d  
+Unlike  git  reset,  git  revert preserves  project  history  and  is  safer  for  shared  
+repositories.
+ 
+ 
+9.5  Git  Reset  vs  Git  Revert  
+Git  Reset  Git  Revert  
+Removes  commit  history  Preserves  history  
+Used  for  local  changes  Safe  for  shared  repositories  
+Can  rewrite  history  Creates  a  new  reversing  commit  
+Risky  on  public  branches  Recommended  for  team  projects   
+9.6  Git  Cherry-Pick  
+git  cherry-pick copies  a  specific  commit  from  one  branch  to  another.  
+Syntax  git  cherry-pick  commit_id  
+Example:  
+git  cherry-pick  5d3f2ab  
+Real-Time  Example  
+A  bug  fix  exists  in  the  bugfix branch.  
+Instead  of  merging  the  entire  branch,  only  the  required  commit  is  copied  into  the  main 
+branch.
+ 
+ 
+9.7  Git  Rebase  
+
+===== PDF PAGE 90 =====
+git  rebase moves  or  reapplies  commits  on  top  of  another  branch.  
+Syntax  git  rebase  main   
+Merge  vs  Rebase  
+Merge  A──B────M   \       /    C────D  
+Creates  a  merge  commit.  
+ 
+Rebase  A──B──C──D  
+Creates  a  clean,  linear  history.  
+ 
+Advantages  
+●  Cleaner  commit  history.  ●  Easier  project  navigation.  ●  Better  for  feature  branches.  
+ 
+9.8  Git  Tag  
+Tags  mark  important  project  versions.  
+Examples:  
+●  Version  1.0  ●  Version  2.0  ●  Production  Release  
+ 
+Create  Lightweight  Tag  git  tag  v1.0  
+
+===== PDF PAGE 91 =====
+ 
+Create  Annotated  Tag  git  tag  -a  v1.0  -m  "First  Stable  Release"   
+View  Tags  git  tag   
+Push  Tags  git  push  origin  v1.0  
+Push  all  tags:  
+git  push  origin  --tags   
+9.9  Git  Stash  Workflow  
+Modify  Files        │        ▼  git  stash        │        ▼  Temporary  Storage        │        ▼  git  stash  pop        │        ▼  Continue  Work   
+9.10  Git  History  Management  
+Commit     │     ▼  Reset     │     ▼  Revert  
+
+===== PDF PAGE 92 =====
+   │     ▼  Cherry-Pick     │     ▼  Rebase   
+9.11  Advanced  Git  Commands  Summary  
+Command  Purpose  
+git  stash Save  temporary  changes  
+git  stash  pop 
+Restore  latest  stash  
+git  stash  apply 
+Apply  stash  without  removing  it  
+git  reset Move  to  a  previous  commit  
+git  revert Reverse  a  commit  safely  
+git  cherry-pick 
+Copy  a  specific  commit  
+git  rebase Rewrite  commit  history  
+git  tag Create  version  tags  
+git  push  --tags 
+Push  tags  to  remote  
+ 
+9.12  Best  Practices  
+●  Use  git  stash before  switching  tasks.  ●  Prefer  git  revert over  git  reset for  shared  repositories.  ●  Use  git  rebase to  maintain  a  clean  history  before  merging.  ●  Create  tags  for  important  releases.  ●  Test  thoroughly  after  using  git  cherry-pick.  ●  Avoid  rewriting  the  history  of  public  branches.  
+
+===== PDF PAGE 93 =====
+ 
+9.13  Common  Mistakes  
+❌  Using  git  reset  --hard without  understanding  its  impact.  
+❌  Rebasing  branches  already  shared  with  the  team.  
+❌  Forgetting  to  push  release  tags.  
+❌  Applying  the  wrong  stash.  
+❌  Cherry-picking  the  wrong  commit.  
+ 
+Real-Time  Scenario  
+A  developer  is  working  on  a  shopping  cart  feature.  
+1.  Save  unfinished  work:  
+git  stash  
+2.  Switch  to  the  main branch.  3.  Fix  a  production  bug.  4.  Commit  the  bug  fix.  5.  Return  to  the  feature  branch.  6.  Restore  saved  work:  
+git  stash  pop  
+7.  Create  a  release  tag:  
+git  tag  -a  v2.0  -m  "Shopping  Cart  Release"  
+8.  Push  the  tag:  
+git  push  origin  --tags  
+This  workflow  is  commonly  used  in  professional  software  development.  
+ 
+Interview  Questions  
+
+===== PDF PAGE 94 =====
+1.  What  is  the  purpose  of  git  stash?  
+Answer:  
+git  stash temporarily  saves  uncommitted  changes  so  you  can  switch  branches  or  work  
+on
+ 
+another
+ 
+task
+ 
+without
+ 
+losing
+ 
+your
+ 
+progress.
+ 
+ 
+2.  What  is  the  difference  between  git  reset and  git  revert?  
+Answer:  
+●  git  reset rewrites  commit  history  and  is  mainly  used  for  local  changes.  ●  git  revert creates  a  new  commit  that  reverses  an  earlier  commit  while  preserving  
+project
+ 
+history,
+ 
+making
+ 
+it
+ 
+safer
+ 
+for
+ 
+shared
+ 
+repositories.
+ 
+ 
+3.  When  should  git  cherry-pick be  used?  
+Answer:  
+git  cherry-pick is  used  when  you  want  to  copy  a  specific  commit  from  one  branch  to  
+another
+ 
+without
+ 
+merging
+ 
+the
+ 
+entire
+ 
+branch.
+ 
+ 
+4.  Why  is  git  rebase used?  
+Answer:  
+git  rebase creates  a  cleaner,  linear  commit  history  by  replaying  commits  on  top  of  
+another
+ 
+branch.
+ 
+ 
+5.  What  is  a  Git  Tag?  
+Answer:  
+A  Git  Tag  is  a  reference  used  to  mark  important  points  in  a  repository's  history,  such  as  
+software
+ 
+releases
+ 
+(e.g.,
+ v1.0,  v2.0).  
+ 
+===== PDF PAGE 95 =====
+Practical  Lab  
+Task  1  
+Create  a  temporary  change  and  save  it  using  git  stash.  
+ 
+Task  2  
+Restore  the  saved  work  using  git  stash  pop.  
+ 
+Task  3  
+Create  an  annotated  tag  named  v1.0.  
+ 
+Task  4  
+Use  git  cherry-pick to  apply  a  commit  from  another  branch.  
+ 
+Task  5  
+Compare  the  output  of  git  merge and  git  rebase using  a  sample  repository.  

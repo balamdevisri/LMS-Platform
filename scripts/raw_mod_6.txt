@@ -1,0 +1,258 @@
+Module  6:  GitHub  Basics  
+Learning  Objectives  
+After  completing  this  module,  you  will  be  able  to:  
+●  Understand  GitHub  and  its  features.  ●  Create  a  GitHub  account.  ●  Create  a  new  repository.  ●  Connect  a  local  Git  repository  to  GitHub.  ●  Push  local  code  to  GitHub.  ●  Clone  repositories.  ●  Fork  repositories.  ●  Create  and  manage  Pull  Requests.  ●  Understand  GitHub  collaboration  workflow.  
+ 
+6.1  Introduction  
+GitHub  is  a  cloud-based  platform  built  on  Git  that  allows  developers  to  host,  manage,  and  
+collaborate
+ 
+on
+ 
+software
+ 
+projects.
+ 
+Millions  of  developers  and  organizations  use  GitHub  to:  
+●  Store  source  code.  ●  Collaborate  with  teams.  ●  Review  code.  ●  Track  project  issues.  ●  Contribute  to  open-source  projects.  ●  Automate  software  workflows.  
+GitHub  makes  collaboration  simple  by  providing  a  centralized  platform  while  Git  manages  
+version
+ 
+control
+ 
+locally.
+ 
+
+===== PDF PAGE 57 =====
+ 
+Definition  
+GitHub  is  a  cloud-based  hosting  platform  that  uses  Git  to  store,  manage,  and  collaborate  on  
+software
+ 
+projects.
+ 
+ 
+Real-Time  Example  
+A  software  company  develops  an  Online  Shopping  Application .  
+Workflow:  
+●  Developers  write  code  locally  using  Git.  ●  Changes  are  pushed  to  GitHub.  ●  Team  members  review  the  code.  ●  Approved  changes  are  merged  into  the  main  branch.  ●  The  latest  version  becomes  available  to  everyone.  
+ 
+6.2  Features  of  GitHub  
+GitHub  provides  numerous  features  for  software  development.  
+Key  Features  
+●  Cloud  Repository  Hosting  ●  Version  Control  ●  Team  Collaboration  ●  Pull  Requests  ●  Issues  Tracking  ●  Project  Management  ●  GitHub  Actions  (CI/CD)  ●  Releases  ●  Discussions  ●  Wiki  Documentation  
+ 
+6.3  Creating  a  GitHub  Account  
+
+===== PDF PAGE 58 =====
+Step  1  
+Visit:  
+https://github.com   
+Step  2  
+Click:  
+Sign  Up   
+Step  3  
+Enter:  
+●  Username  ●  Email  Address  ●  Password  
+ 
+Step  4  
+Verify  your  email.  
+ 
+Step  5  
+Log  in  to  GitHub.  
+ 
+6.4  GitHub  Dashboard  
+After  login,  the  dashboard  provides  access  to:  
+●  Repositories  ●  Organizations  ●  Projects  ●  Issues  ●  Pull  Requests  ●  Notifications  ●  Profile  
+
+===== PDF PAGE 59 =====
+ 
+6.5  Creating  a  Repository  
+A  repository  stores  your  project  files.  
+Steps  
+Click:  
+New  Repository  
+Enter:  
+●  Repository  Name  ●  Description  ●  Visibility  
+Visibility  Options:  
+●  Public  ●  Private  
+Optionally  initialize  with:  
+●  README  ●  .gitignore  ●  License  
+Click:  
+Create  Repository   
+6.6  Local  Repository  vs  GitHub  
+Repository
+ 
+Local  Repository  GitHub  Repository  
+Stored  on  your  computer  
+Stored  in  the  cloud  
+Works  offline  Accessible  online  
+Used  for  development  Used  for  collaboration  
+
+===== PDF PAGE 60 =====
+Managed  by  Git  Hosted  by  GitHub   
+6.7  Connecting  Local  Repository  to  
+GitHub
+ 
+After  creating  a  repository  on  GitHub,  connect  your  local  project.  
+Add  Remote  Repository  git  remote  add  origin  https://github.com/username/project.git  
+Verify  remote:  
+git  remote  -v  
+Example  Output  
+origin   fetch   origin   push   
+6.8  Push  Code  to  GitHub  
+Upload  local  commits  to  GitHub.  
+First  Push  git  push  -u  origin  main  
+Later  pushes:  
+git  push  
+After  pushing,  the  repository  appears  on  GitHub.  
+ 
+6.9  Clone  Repository  
+
+===== PDF PAGE 61 =====
+Download  an  existing  GitHub  repository.  
+Syntax  git  clone  https://github.com/username/project.git  
+Example  Output  
+Cloning  into  'project'...  
+Git  automatically  creates  the  project  folder  and  downloads  all  files.  
+ 
+6.10  Fork  Repository  
+A  Fork  creates  a  personal  copy  of  another  user's  repository.  
+Purpose:  
+●  Contribute  to  open-source  projects.  ●  Experiment  independently.  ●  Submit  Pull  Requests.  
+Example:  
+Original  Repository   ↓   Fork   ↓   Your  GitHub  Account   
+6.11  Pull  Requests  (PR)  
+A  Pull  Request  (PR)  is  a  request  to  merge  changes  from  one  branch  into  another.  
+Workflow:  
+Feature  Branch   ↓   
+
+===== PDF PAGE 62 =====
+Push  to  GitHub   ↓   Create  Pull  Request   ↓   Code  Review   ↓   Merge  
+Benefits:  
+●  Code  review.  ●  Team  discussion.  ●  Automated  testing.  ●  Quality  assurance.  
+ 
+6.12  GitHub  Collaboration  Workflow  
+Developer   ↓   Local  Repository   ↓   GitHub  Repository   ↓   Pull  Request   ↓   Review   ↓   Merge   
+
+===== PDF PAGE 63 =====
+6.13  Common  GitHub  Commands  
+Command  Purpose  
+git  remote  add  origin 
+Connect  remote  repository  
+git  remote  -v View  remote  repositories  
+git  push Upload  commits  
+git  clone Download  repository  
+git  pull Download  latest  changes  
+git  fetch Retrieve  updates  without  merging   
+6.14  Best  Practices  
+●  Use  descriptive  repository  names.  ●  Write  a  clear  README  file.  ●  Keep  repositories  organized.  ●  Commit  changes  frequently.  ●  Push  changes  regularly.  ●  Review  Pull  Requests  before  merging.  ●  Protect  the  main branch.  ●  Use  .gitignore for  unnecessary  files.  
+ 
+6.15  Common  Mistakes  
+❌  Forgetting  to  connect  the  remote  repository.  
+❌  Pushing  directly  to  the  main branch  without  review.  
+❌  Keeping  sensitive  files  (API  keys,  passwords)  in  the  repository.  
+❌  Ignoring  Pull  Requests.  
+❌  Using  unclear  repository  names.  
+ 
+
+===== PDF PAGE 64 =====
+Real-Time  Scenario  
+A  developer  finishes  building  a  React  application.  
+Steps:  
+Initialize  Git:  
+git  init  
+Connect  to  GitHub:  
+git  remote  add  origin  https://github.com/company/react-app.git  
+Push  the  project:  
+git  push  -u  origin  main  
+Another  developer  clones  the  project:  
+git  clone  https://github.com/company/react-app.git  
+A  new  feature  is  developed  in  a  separate  branch,  pushed  to  GitHub,  and  merged  using  a  
+Pull
+ 
+Request.
+ 
+ 
+Interview  Questions  
+1.  What  is  GitHub?  
+Answer:  
+GitHub  is  a  cloud-based  platform  that  hosts  Git  repositories  and  provides  tools  for  version  
+control,
+ 
+collaboration,
+ 
+code
+ 
+review,
+ 
+and
+ 
+project
+ 
+management.
+ 
+ 
+2.  What  is  the  difference  between  git  clone and  git  fork?  
+Answer:  
+●  git  clone creates  a  local  copy  of  a  repository  on  your  computer.  ●  Forking  creates  a  copy  of  someone  else's  repository  under  your  own  GitHub  
+account,
+ 
+allowing
+ 
+independent
+ 
+development.
+ 
+ 
+
+===== PDF PAGE 65 =====
+3.  What  is  a  Pull  Request?  
+Answer:  
+A  Pull  Request  is  a  request  to  merge  changes  from  one  branch  or  fork  into  another  branch  
+after
+ 
+code
+ 
+review
+ 
+and
+ 
+approval.
+ 
+ 
+4.  Why  is  git  remote  add  origin used?  
+Answer:  
+It  links  a  local  Git  repository  to  a  remote  GitHub  repository,  enabling  commands  such  as  git  
+push and  git  pull.  
+ 
+5.  What  is  the  purpose  of  git  push  -u  origin  main?  
+Answer:  
+It  uploads  the  local  main branch  to  the  remote  repository  and  sets  the  upstream  branch,  
+allowing
+ 
+future
+ 
+pushes
+ 
+with
+ 
+just
+ git  push.  
+ 
+Practical  Lab  
+Task  1  
+Create  a  GitHub  account.  
+ 
+Task  2  
+Create  a  new  public  repository  named  GitPractice.  
+ 
+Task  3  
+Connect  your  local  repository  to  GitHub  using  git  remote  add  origin.  
+ 
+===== PDF PAGE 66 =====
+Task  4  
+Push  your  first  commit  to  GitHub.  
+ 
+Task  5  
+Clone  your  repository  into  a  different  folder  and  verify  that  all  files  are  downloaded.  

@@ -1242,20 +1242,20 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
               </div>
 
               {/* Unit Title */}
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#111827] dark:text-white">
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0284C7] dark:text-[#38BDF8]">
                 {title || 'Untitled Learning Unit'}
               </h1>
 
               {/* Learning Objectives Box */}
               {objectives.filter((o) => o.trim().length > 0).length > 0 && (
                 <div className="p-4 rounded-xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 space-y-2">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#2563EB] dark:text-[#3B82F6] flex items-center gap-1.5">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#0284C7] dark:text-[#38BDF8] flex items-center gap-1.5">
                     <CheckCircle2 className="w-3.5 h-3.5" /> Learning Objectives
                   </h3>
                   <ul className="space-y-1.5 text-xs text-[#334155] dark:text-[#CBD5E1]">
                     {objectives.filter((o) => o.trim().length > 0).map((obj, i) => (
                       <li key={i} className="flex items-start gap-2">
-                        <span className="text-[#2563EB] dark:text-[#3B82F6] font-bold">•</span>
+                        <span className="text-[#38BDF8] dark:text-[#38BDF8] font-bold">•</span>
                         <span>{obj}</span>
                       </li>
                     ))}
@@ -1275,8 +1275,8 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
               {/* Practice Questions Preview */}
               {practiceQuestions.length > 0 && (
                 <div className="space-y-4 pt-6 border-t border-[#E5E7EB] dark:border-[#25324A]">
-                  <h3 className="text-lg font-bold text-[#111827] dark:text-white flex items-center gap-2">
-                    <HelpCircle className="w-5 h-5 text-[#2563EB] dark:text-[#3B82F6]" />
+                  <h3 className="text-lg font-bold text-[#2563EB] dark:text-[#60A5FA] flex items-center gap-2">
+                    <HelpCircle className="w-5 h-5 text-[#0284C7] dark:text-[#38BDF8]" />
                     <span>Practice Exercises</span>
                   </h3>
                   
@@ -1289,13 +1289,13 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
                           className="p-4 rounded-xl bg-[#F8FAFC] dark:bg-[#111827] border border-[#E5E7EB] dark:border-[#25324A] space-y-3"
                         >
                           <div className="flex items-start justify-between gap-3">
-                            <span className="text-xs font-bold text-[#2563EB] dark:text-[#3B82F6]">
+                            <span className="text-xs font-bold text-[#0284C7] dark:text-[#38BDF8]">
                               Exercise {idx + 1}
                             </span>
                             <button
                               type="button"
                               onClick={() => setPreviewPracticeOpen((prev) => ({ ...prev, [idx]: !prev[idx] }))}
-                              className="text-xs font-semibold text-[#2563EB] dark:text-[#3B82F6] hover:underline cursor-pointer flex items-center gap-1"
+                              className="text-xs font-semibold text-[#0284C7] dark:text-[#38BDF8] hover:underline cursor-pointer flex items-center gap-1"
                             >
                               <span>{isOpen ? 'Hide Solution' : 'Reveal Solution'}</span>
                               {isOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
@@ -1329,8 +1329,8 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
               {/* Resource Links Preview */}
               {resourceLinks.length > 0 && (
                 <div className="space-y-3 pt-6 border-t border-[#E5E7EB] dark:border-[#25324A]">
-                  <h3 className="text-base font-bold text-[#111827] dark:text-white flex items-center gap-2">
-                    <LinkIcon className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
+                  <h3 className="text-base font-bold text-[#2563EB] dark:text-[#60A5FA] flex items-center gap-2">
+                    <LinkIcon className="w-4 h-4 text-[#0284C7] dark:text-[#38BDF8]" />
                     <span>Lesson Resources</span>
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

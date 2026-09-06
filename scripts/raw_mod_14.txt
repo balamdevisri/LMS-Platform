@@ -1,0 +1,297 @@
+Module  14:  Git  &  GitHub  Projects  
+Learning  Objectives  
+After  completing  this  module,  you  will  be  able  to:  
+
+===== PDF PAGE 136 =====
+●  Build  professional  GitHub  repositories.  ●  Upload  different  types  of  projects  to  GitHub.  ●  Organize  repositories  professionally.  ●  Collaborate  on  team  projects.  ●  Contribute  to  open-source  projects.  ●  Create  an  impressive  GitHub  portfolio.  ●  Follow  industry-standard  project  workflows.  ●  Showcase  projects  for  internships  and  placements.  
+ 
+14.1  Introduction  
+Employers  don't  just  look  at  resumes—they  also  evaluate  your  GitHub  profile .  
+A  well-maintained  GitHub  profile  demonstrates:  
+●  Programming  skills  ●  Project  experience  ●  Collaboration  ability  ●  Version  control  knowledge  ●  Consistent  learning  
+A  strong  GitHub  profile  often  increases  your  chances  of  internships  and  software  
+development
+ 
+jobs.
+ 
+ 
+Definition  
+A  GitHub  Project  is  a  software  application  or  code  repository  hosted  on  GitHub  that  
+demonstrates
+ 
+programming
+ 
+skills,
+ 
+collaboration,
+ 
+documentation,
+ 
+and
+ 
+version
+ 
+control
+ 
+practices.
+ 
+ 
+Real-Time  Example  
+A  student  applies  for  a  Software  Developer  internship.  
+The  recruiter  reviews:  
+●  Resume  ●  GitHub  Profile  ●  Personal  Projects  ●  Commit  History  
+
+===== PDF PAGE 137 =====
+●  README  files  ●  Contribution  Activity  
+The  student  with  a  well-organized  GitHub  portfolio  has  a  higher  chance  of  being  shortlisted.  
+ 
+14.2  Types  of  GitHub  Projects  
+Developers  can  showcase  various  types  of  projects.  
+Examples:  
+●  Web  Applications  ●  Mobile  Applications  ●  Python  Projects  ●  Machine  Learning  Projects  ●  Data  Science  Projects  ●  API  Projects  ●  DevOps  Projects  ●  Cloud  Projects  ●  Open  Source  Contributions  
+ 
+14.3  Creating  a  Professional  Repository  
+A  professional  repository  should  include:  
+Project/  │  ├──  src/  ├──  docs/  ├──  tests/  ├──  assets/  ├──  README.md  ├──  LICENSE  ├──  .gitignore  └──  CONTRIBUTING.md  
+Purpose  of  Files  
+●  README.md  →  Project  overview  ●  LICENSE  →  Usage  permissions  ●  .gitignore  →  Ignore  unnecessary  files  ●  CONTRIBUTING.md  →  Contribution  guidelines  
+
+===== PDF PAGE 138 =====
+ 
+14.4  Writing  a  Professional  README  
+A  README  is  the  first  thing  visitors  see.  
+Recommended  Sections:  
+Project  Title   Project  Description   Features   Installation   Usage   Screenshots   Technologies  Used   Folder  Structure   Future  Enhancements   License   Author  
+Example  #  Student  Management  System   A  web  application  for  managing  student  records.   ##  Features   -  Login  -  Dashboard  -  Attendance  -  Reports   
+14.5  Uploading  a  Local  Project  to  GitHub  
+
+===== PDF PAGE 139 =====
+Step  1  
+Initialize  Git.  
+git  init  
+Step  2  
+Add  files.  
+git  add  .  
+Step  3  
+Commit  changes.  
+git  commit  -m  "Initial  project  upload"  
+Step  4  
+Connect  the  remote  repository.  
+git  remote  add  origin  https://github.com/username/project.git  
+Step  5  
+Push  the  project.  
+git  push  -u  origin  main   
+14.6  Team  Collaboration  Project  
+Professional  team  workflow:  
+Create  Repository        │        ▼  Invite  Team  Members        │        ▼  Create  Feature  Branch        │        ▼  Develop  Feature        │        ▼  
+
+===== PDF PAGE 140 =====
+Commit        │        ▼  Push        │        ▼  Pull  Request        │        ▼  Review        │        ▼  Merge   
+14.7  Open  Source  Contribution  
+Contributing  to  open-source  projects  helps  improve  coding  skills  and  visibility.  
+Workflow:  
+1.  Find  a  repository.  2.  Fork  the  repository.  3.  Clone  your  fork.  4.  Create  a  branch.  5.  Make  changes.  6.  Commit  changes.  7.  Push  your  branch.  8.  Create  a  Pull  Request.  
+ 
+14.8  Portfolio  Projects  
+Recommended  beginner-to-intermediate  projects:  
+Web  Development  
+●  Personal  Portfolio  ●  To-Do  App  ●  Weather  App  ●  Expense  Tracker  ●  Blog  Website  
+ 
+
+===== PDF PAGE 141 =====
+Python  
+●  Library  Management  System  ●  Student  Management  System  ●  Calculator  ●  File  Organizer  ●  Password  Generator  
+ 
+Data  Science  
+●  Sales  Dashboard  ●  Customer  Churn  Prediction  ●  House  Price  Prediction  ●  Movie  Recommendation  System  ●  COVID  Data  Analysis  
+ 
+DevOps  
+●  Dockerized  Web  Application  ●  Jenkins  CI/CD  Pipeline  ●  Kubernetes  Deployment  ●  Linux  Automation  Scripts  ●  Monitoring  with  Prometheus  and  Grafana  
+ 
+14.9  GitHub  Portfolio  Best  Practices  
+A  strong  GitHub  profile  should  have:  
+●  Professional  profile  picture.  ●  Clear  bio.  ●  Pinned  repositories.  ●  Detailed  README  files.  ●  Frequent  commits.  ●  Consistent  activity.  ●  Meaningful  repository  names.  ●  Proper  documentation.  
+ 
+
+===== PDF PAGE 142 =====
+14.10  Repository  Checklist  
+Before  making  a  repository  public,  verify:  
+✅  README  exists.  
+✅  License  added.  
+✅  .gitignore configured.  
+✅  No  sensitive  information.  
+✅  Meaningful  commit  history.  
+✅  Proper  folder  structure.  
+✅  Screenshots  included.  
+✅  Installation  guide  available.  
+ 
+14.11  Professional  Project  Workflow  
+Requirement        │        ▼  Planning        │        ▼  Create  Repository        │        ▼  Development        │        ▼  Commit        │        ▼  Push        │        ▼  Pull  Request        │        ▼  Review        │  
+
+===== PDF PAGE 143 =====
+      ▼  Merge        │        ▼  Release   
+14.12  GitHub  Portfolio  Tips  
+●  Pin  your  best  repositories.  ●  Keep  repository  names  simple.  ●  Add  project  screenshots.  ●  Write  clear  documentation.  ●  Update  projects  regularly.  ●  Showcase  different  technologies.  ●  Contribute  to  open-source  projects.  ●  Keep  commit  history  clean.  
+ 
+14.13  Common  Mistakes  
+❌  Uploading  incomplete  projects.  
+❌  Missing  README  files.  
+❌  Committing  passwords  or  API  keys.  
+❌  Poor  repository  organization.  
+❌  Large,  unclear  commit  history.  
+❌  No  documentation.  
+❌  Ignoring  Pull  Requests.  
+ 
+Real-Time  Scenario  
+A  final-year  Computer  Science  student  builds  a  Student  Attendance  Management  
+System
+.
+ 
+Steps:  
+
+===== PDF PAGE 144 =====
+1.  Create  a  GitHub  repository.  2.  Upload  the  project  using  Git.  3.  Add  a  detailed  README.  4.  Include  screenshots.  5.  Add  a  LICENSE.  6.  Configure  .gitignore.  7.  Pin  the  repository  to  the  GitHub  profile.  8.  Share  the  repository  link  in  the  resume  and  LinkedIn  profile.  
+During  placement  interviews,  recruiters  review  the  project  and  appreciate  the  professional  
+documentation
+ 
+and
+ 
+commit
+ 
+history.
+ 
+ 
+Interview  Questions  
+1.  Why  is  a  GitHub  portfolio  important?  
+Answer:  
+A  GitHub  portfolio  showcases  your  coding  skills,  project  experience,  collaboration  ability,  and  
+familiarity
+ 
+with
+ 
+Git.
+ 
+It
+ 
+helps
+ 
+recruiters
+ 
+evaluate
+ 
+your
+ 
+practical
+ 
+knowledge
+ 
+beyond
+ 
+your
+ 
+resume.
+ 
+ 
+2.  What  should  every  professional  repository  contain?  
+Answer:  
+A  professional  repository  should  include:  
+●  README.md  ●  LICENSE  ●  .gitignore  ●  Source  code  ●  Documentation  ●  Tests  (if  applicable)  ●  Clear  folder  structure  
+ 
+3.  Why  is  a  README  important?  
+Answer:  
+
+===== PDF PAGE 145 =====
+A  README  provides  an  overview  of  the  project,  installation  steps,  usage  instructions,  
+technologies
+ 
+used,
+ 
+and
+ 
+contribution
+ 
+guidelines,
+ 
+making
+ 
+the
+ 
+repository
+ 
+easier
+ 
+to
+ 
+understand
+ 
+and
+ 
+use.
+ 
+ 
+4.  Why  should  developers  contribute  to  open-source  projects?  
+Answer:  
+Open-source  contributions  improve  coding  skills,  provide  real-world  collaboration  
+experience,
+ 
+help
+ 
+build
+ 
+a
+ 
+professional
+ 
+reputation,
+ 
+and
+ 
+strengthen
+ 
+a
+ 
+developer's
+ 
+portfolio.
+ 
+ 
+5.  What  makes  a  GitHub  repository  attractive  to  recruiters?  
+Answer:  
+Recruiters  look  for  clean  code,  meaningful  commit  history,  clear  documentation,  active  
+maintenance,
+ 
+proper
+ 
+project
+ 
+organization,
+ 
+and
+ 
+evidence
+ 
+of
+ 
+practical
+ 
+problem-solving.
+ 
+ 
+Practical  Lab  
+Task  1  
+Create  a  new  GitHub  repository  named  Portfolio-Projects .  
+ 
+Task  2  
+Upload  one  of  your  existing  projects  with  a  complete  README.md.  
+ 
+Task  3  
+Add  a  .gitignore file  and  a  suitable  LICENSE.  
+ 
+Task  4  
+Add  screenshots  and  usage  instructions  to  the  repository.  
+===== PDF PAGE 146 =====
+ 
+Task  5  
+Fork  an  open-source  project,  make  a  small  documentation  improvement,  and  submit  a  Pull  
+Request.
+ 

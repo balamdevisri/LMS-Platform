@@ -1,0 +1,297 @@
+Module  5:  Branching  and  Merging  
+Learning  Objectives  
+After  completing  this  module,  you  will  be  able  to:  
+●  Understand  Git  branches  and  their  importance.  ●  Create,  switch,  rename,  and  delete  branches.  ●  Merge  branches  into  the  main  branch.  ●  Understand  Fast-Forward  and  Three-Way  Merge.  ●  Resolve  merge  conflicts.  ●  Learn  professional  branching  strategies.  ●  Apply  branching  in  real-world  software  development.  
+ 
+
+===== PDF PAGE 46 =====
+5.1  Introduction  
+In  software  development,  multiple  developers  often  work  on  different  features  
+simultaneously.
+ 
+For  example:  
+●  Developer  A  works  on  the  Login  page.  ●  Developer  B  develops  the  Payment  module.  ●  Developer  C  fixes  bugs.  ●  Developer  D  improves  the  UI.  
+If  everyone  works  directly  on  the  main  branch,  changes  may  overwrite  each  other  and  
+create
+ 
+instability.
+ 
+Git  solves  this  problem  using  branches .  
+ 
+Definition  
+A  Branch  is  an  independent  line  of  development  that  allows  developers  to  work  on  features,  
+bug
+ 
+fixes,
+ 
+or
+ 
+experiments
+ 
+without
+ 
+affecting
+ 
+the
+ 
+main
+ 
+project.
+ 
+ 
+Real-Time  Example  
+A  banking  application  has  separate  teams  working  on:  
+●  Login  System  ●  Money  Transfer  ●  Bill  Payments  ●  Notifications  
+Each  team  develops  its  feature  in  a  separate  branch.  Once  testing  is  complete,  the  branches  
+are
+ 
+merged
+ 
+into
+ 
+the
+ 
+main
+ 
+branch.
+ 
+ 
+5.2  What  is  a  Branch?  
+A  branch  is  simply  a  pointer  to  a  series  of  commits.  
+When  a  new  branch  is  created:  
+
+===== PDF PAGE 47 =====
+●  It  starts  from  the  current  commit.  ●  Changes  remain  isolated.  ●  Other  branches  remain  unaffected.  
+Example:  
+main   │   ├──  Login  Branch   │   ├──  Payment  Branch   │   └──  Search  Branch   
+5.3  Why  Branches  are  Important  
+Advantages:  
+●  Parallel  development.  ●  Easy  feature  development.  ●  Safe  experimentation.  ●  Faster  collaboration.  ●  Simplified  bug  fixing.  ●  Better  project  organization.  
+ 
+5.4  View  Existing  Branches  
+Display  all  local  branches.  
+Syntax  git  branch  
+Example  Output  
+*  main   login   payment  
+The  * indicates  the  current  branch.  
+
+===== PDF PAGE 48 =====
+ 
+5.5  Create  a  New  Branch  
+Syntax  git  branch  login  
+This  creates  a  new  branch  named  login .  
+The  current  branch  remains  unchanged.  
+ 
+5.6  Switch  Branches  
+Move  from  one  branch  to  another.  
+Syntax  git  checkout  login  
+Modern  Git  also  supports:  
+git  switch  login   
+5.7  Create  and  Switch  in  One  Command  
+git  checkout  -b  payment  
+or  
+git  switch  -c  payment  
+This  creates  the  branch  and  switches  to  it  immediately.  
+ 
+5.8  Rename  a  Branch  
+Syntax  git  branch  -m  new-name  
+
+===== PDF PAGE 49 =====
+Example  
+git  branch  -m  login  authentication   
+5.9  Delete  a  Branch  
+Delete  a  merged  branch.  
+Syntax  git  branch  -d  login  
+Force  delete:  
+git  branch  -D  login   
+5.10  What  is  Merging?  
+Merging  combines  changes  from  one  branch  into  another.  
+Example:  
+Login  Branch        │        ▼  main  Branch  
+After  merging,  all  login  feature  changes  become  part  of  the  main  project.  
+ 
+5.11  Merge  a  Branch  
+Step  1:  Switch  to  the  destination  branch.  
+git  checkout  main  
+Step  2:  Merge  another  branch.  
+git  merge  login  
+Git  combines  the  changes  into  the  main  branch.  
+ 
+
+===== PDF PAGE 50 =====
+5.12  Types  of  Merge  
+Fast-Forward  Merge  
+Occurs  when  no  new  commits  exist  on  the  destination  branch.  
+main   │   ▼  A──B   login   A──B──C   ↓   A──B──C  
+Git  simply  moves  the  branch  pointer  forward.  
+ 
+Three-Way  Merge  
+Occurs  when  both  branches  contain  different  commits.  
+     C       /   A──B        \         D  
+Git  creates  a  new  merge  commit  combining  both  histories.  
+ 
+5.13  Merge  Conflicts  
+A  merge  conflict  occurs  when  two  branches  modify  the  same  line  of  the  same  file.  
+Example:  
+
+===== PDF PAGE 51 =====
+Branch  A:  
+Welcome  User  
+Branch  B:  
+Welcome  Customer  
+Git  cannot  determine  which  version  to  keep  automatically.  
+ 
+Resolving  Merge  Conflicts  
+Steps:  
+1.  Open  the  conflicted  file.  2.  Review  Git  conflict  markers.  3.  Keep  the  correct  content.  4.  Save  the  file.  5.  Stage  the  file.  
+git  add  filename  
+6.  Complete  the  merge.  
+git  commit   
+5.14  Branching  Workflow  
+main   │   ▼  Create  Branch   │   ▼  Develop  Feature   │   ▼  Commit  Changes   │   ▼  Merge  into  main   │   ▼  Delete  Branch  
+
+===== PDF PAGE 52 =====
+ 
+5.15  Branch  Naming  Conventions  
+Professional  teams  use  meaningful  branch  names.  
+Examples:  
+feature/login   feature/payment   bugfix/navbar   hotfix/security   release/v1.0  
+Avoid  names  like:  
+branch1   test   abc   newbranch   
+5.16  Common  Branch  Commands  
+Command  Purpose  
+git  branch List  branches  
+git  branch  name Create  branch  
+git  checkout  name 
+Switch  branch  
+git  switch  name Switch  branch  (modern)  
+git  checkout  -b  name 
+Create  and  switch  
+
+===== PDF PAGE 53 =====
+git  switch  -c  name 
+Create  and  switch  (modern)  
+git  merge  branch Merge  branch  
+git  branch  -d Delete  merged  branch  
+git  branch  -D Force  delete  branch  
+git  branch  -m Rename  branch  
+ 
+5.17  Best  Practices  
+●  Create  a  separate  branch  for  every  feature.  ●  Keep  branches  focused  on  one  task.  ●  Merge  frequently  to  reduce  conflicts.  ●  Delete  merged  branches.  ●  Use  meaningful  branch  names.  ●  Test  code  before  merging.  
+ 
+5.18  Common  Mistakes  
+❌  Working  directly  on  the  main branch.  
+❌  Keeping  long-lived  branches  without  updates.  
+❌  Force  deleting  branches  containing  important  work.  
+❌  Ignoring  merge  conflicts.  
+❌  Using  meaningless  branch  names.  
+ 
+Real-Time  Scenario  
+A  company  is  developing  an  E-Commerce  application.  
+Workflow:  
+1.  Create  a  feature  branch.  
+
+===== PDF PAGE 54 =====
+git  checkout  -b  feature/cart  
+2.  Develop  the  shopping  cart  feature.  3.  Commit  changes.  
+git  commit  -m  "Added  shopping  cart"  
+4.  Switch  to  the  main  branch.  
+git  checkout  main  
+5.  Merge  the  feature.  
+git  merge  feature/cart  
+6.  Delete  the  feature  branch.  
+git  branch  -d  feature/cart  
+This  workflow  is  commonly  followed  in  professional  software  development  teams.  
+ 
+Interview  Questions  
+1.  What  is  a  Git  Branch?  
+Answer:  
+A  Git  branch  is  an  independent  line  of  development  that  allows  developers  to  work  on  
+features
+ 
+or
+ 
+fixes
+ 
+without
+ 
+affecting
+ 
+the
+ 
+main
+ 
+branch.
+ 
+ 
+2.  Why  are  branches  used?  
+Answer:  
+Branches  allow  parallel  development,  isolate  new  features,  simplify  collaboration,  and  
+reduce
+ 
+the
+ 
+risk
+ 
+of
+ 
+affecting
+ 
+stable
+ 
+code.
+ 
+ 
+3.  What  is  the  difference  between  a  Fast-Forward  Merge  and  a  Three-Way  
+Merge?
+ 
+Answer:  
+
+===== PDF PAGE 55 =====
+●  Fast-Forward  Merge  simply  moves  the  branch  pointer  when  there  are  no  diverging  
+commits.
+ ●  Three-Way  Merge  creates  a  new  merge  commit  when  both  branches  contain  
+independent
+ 
+changes.
+ 
+ 
+4.  What  causes  a  merge  conflict?  
+Answer:  
+A  merge  conflict  occurs  when  two  branches  modify  the  same  part  of  a  file  and  Git  cannot  
+automatically
+ 
+determine
+ 
+which
+ 
+change
+ 
+should
+ 
+be
+ 
+kept.
+ 
+ 
+5.  How  do  you  create  and  switch  to  a  new  branch  in  one  command?  
+Answer:  
+git  checkout  -b  feature-name  
+or  (modern  Git):  
+git  switch  -c  feature-name   
+Practical  Lab  
+Task  1  
+Create  a  new  branch  named  feature/profile.  
+ 
+Task  2  
+Switch  to  the  new  branch.  
+ 
+Task  3  
+Make  a  small  file  change  and  commit  it.  
+ 
+===== PDF PAGE 56 =====
+Task  4  
+Merge  the  feature/profile branch  into  the  main branch.  
+ 
+Task  5  
+Delete  the  merged  branch  and  verify  it  no  longer  appears  in  the  branch  list.  
