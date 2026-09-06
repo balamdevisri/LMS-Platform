@@ -1,0 +1,331 @@
+Module  8:  Git  Collaboration  
+Learning  Objectives  
+After  completing  this  module,  you  will  be  able  to:  
+●  Understand  collaborative  software  development.  ●  Learn  team-based  Git  workflows.  ●  Understand  Pull  Requests  in  detail.  ●  Learn  the  Code  Review  process.  ●  Understand  Merge  Requests  and  approval  workflows.  ●  Resolve  collaboration  conflicts.  ●  Follow  Git  collaboration  best  practices.  ●  Apply  professional  collaboration  techniques  in  real-world  projects.  
+ 
+8.1  Introduction  
+
+===== PDF PAGE 76 =====
+Modern  software  development  is  rarely  done  by  a  single  developer.  Teams  of  developers  
+work
+ 
+together
+ 
+on
+ 
+the
+ 
+same
+ 
+project
+ 
+using
+ 
+Git
+ 
+and
+ 
+GitHub.
+ 
+Git  Collaboration  allows  developers  to:  
+●  Work  independently  on  features.  ●  Share  code  with  teammates.  ●  Review  each  other's  work.  ●  Merge  approved  changes  safely.  ●  Maintain  code  quality.  
+GitHub  provides  collaboration  features  such  as  Pull  Requests,  Code  Reviews,  Issues,  
+Discussions,
+ 
+and
+ 
+Branch
+ 
+Protection.
+ 
+ 
+Definition  
+Git  Collaboration  is  the  process  of  multiple  developers  working  together  on  the  same  
+project
+ 
+using
+ 
+Git
+ 
+and
+ 
+GitHub
+ 
+while
+ 
+maintaining
+ 
+version
+ 
+control,
+ 
+code
+ 
+quality,
+ 
+and
+ 
+project
+ 
+history.
+ 
+ 
+Real-Time  Example  
+A  software  company  develops  a  Food  Delivery  Application.  
+Team  Members:  
+●  Developer  A  →  Login  Module  ●  Developer  B  →  Payment  Module  ●  Developer  C  →  Search  Feature  ●  Developer  D  →  Bug  Fixes  
+Each  developer  works  in  a  separate  branch,  submits  a  Pull  Request,  receives  code  review  
+feedback,
+ 
+and
+ 
+merges
+ 
+changes
+ 
+after
+ 
+approval.
+ 
+ 
+8.2  Team  Collaboration  Workflow  
+Professional  teams  usually  follow  this  workflow.  
+Clone  Repository        │        ▼  
+
+===== PDF PAGE 77 =====
+Create  Feature  Branch        │        ▼  Develop  Feature        │        ▼  Commit  Changes        │        ▼  Push  Branch        │        ▼  Create  Pull  Request        │        ▼  Code  Review        │        ▼  Merge  into  Main   
+8.3  Feature  Branch  Workflow  
+Instead  of  working  directly  on  the  main  branch,  developers  create  a  new  feature  branch.  
+Example:  
+main   │   ├──  feature/login   ├──  feature/payment   ├──  feature/search   └──  bugfix/navbar  
+Benefits:  
+●  Prevents  unstable  code  from  reaching  the  main  branch.  ●  Makes  feature  development  independent.  ●  Simplifies  testing  and  code  review.  
+ 
+8.4  Pull  Requests  (PR)  
+A  Pull  Request  (PR)  is  a  request  to  merge  changes  from  one  branch  into  another.  
+
+===== PDF PAGE 78 =====
+Workflow:  
+Feature  Branch        │        ▼  Push  to  GitHub        │        ▼  Create  Pull  Request        │        ▼  Code  Review        │        ▼  Merge  
+A  Pull  Request  includes:  
+●  Title  ●  Description  ●  Changed  files  ●  Commit  history  ●  Comments  ●  Review  status  
+ 
+8.5  Code  Review  
+Before  merging  code,  experienced  developers  review  it.  
+The  reviewer  checks:  
+●  Code  quality  ●  Readability  ●  Logic  ●  Performance  ●  Security  ●  Coding  standards  ●  Test  coverage  
+Possible  review  outcomes:  
+●  ✅  Approved  ●  🔄  Changes  Requested  ●  💬  Comment  Added  
+ 
+
+===== PDF PAGE 79 =====
+8.6  Merge  Requests  
+After  approval,  the  Pull  Request  can  be  merged.  
+Common  merge  strategies:  
+Merge  Commit  
+Creates  a  separate  merge  commit.  
+A──B──C────M        \    /         D─E   
+Squash  Merge  
+Combines  multiple  commits  into  a  single  commit.  
+Before:  
+A   B   C   D  
+After:  
+A   Single  Commit  
+Advantages:  
+●  Cleaner  commit  history.  ●  Easier  maintenance.  
+ 
+Rebase  and  Merge  
+Rewrites  commit  history  before  merging.  
+Advantages:  
+●  Linear  history.  
+
+===== PDF PAGE 80 =====
+●  Cleaner  repository.  
+ 
+8.7  Collaboration  Conflict  Resolution  
+Sometimes  multiple  developers  edit  the  same  file.  
+Example:  
+Developer  A:  
+Welcome  User  
+Developer  B:  
+Welcome  Customer  
+Git  cannot  automatically  choose  one  version.  
+Resolution  Steps:  
+1.  Pull  latest  changes.  2.  Open  conflicted  file.  3.  Edit  manually.  4.  Remove  conflict  markers.  5.  Save  the  file.  6.  Stage  changes.  
+git  add  filename  
+7.  Commit  merge.  
+git  commit   
+8.8  GitHub  Collaboration  Tools  
+GitHub  offers  additional  collaboration  features.  
+Issues  
+Used  for:  
+●  Bug  tracking  ●  Feature  requests  ●  Task  management  
+
+===== PDF PAGE 81 =====
+ 
+Discussions  
+Used  for:  
+●  Team  communication  ●  Project  planning  ●  Questions  
+ 
+Projects  
+Kanban-style  boards  used  to  organize  work.  
+Example:  
+To  Do   ↓   In  Progress   ↓   Review   ↓   Done   
+Wiki  
+Used  to  maintain  project  documentation.  
+ 
+8.9  Collaboration  Best  Practices  
+●  Create  one  branch  per  feature.  ●  Keep  Pull  Requests  small.  ●  Write  meaningful  commit  messages.  ●  Review  code  before  merging.  ●  Pull  latest  changes  frequently.  ●  Resolve  conflicts  immediately.  
+
+===== PDF PAGE 82 =====
+●  Never  push  incomplete  code  to  the  main  branch.  
+ 
+8.10  Professional  Git  Workflow  
+Clone  Repository        │        ▼  Create  Branch        │        ▼  Develop  Feature        │        ▼  Commit        │        ▼  Push        │        ▼  Pull  Request        │        ▼  Code  Review        │        ▼  Merge   
+8.11  Common  Collaboration  Commands  
+Command  Purpose  
+git  clone Download  repository  
+git  branch 
+Create/List  branches  
+git  checkout 
+Switch  branches  
+git  add Stage  changes  
+
+===== PDF PAGE 83 =====
+git  commit 
+Save  changes  
+git  push Upload  branch  
+git  pull Download  latest  changes  
+git  fetch Retrieve  updates  
+git  merge Merge  branches  
+ 
+8.12  Best  Practices  
+●  Keep  branches  short-lived.  ●  Write  descriptive  Pull  Request  titles.  ●  Review  every  Pull  Request.  ●  Follow  coding  standards.  ●  Test  before  creating  a  Pull  Request.  ●  Merge  only  approved  code.  ●  Delete  merged  branches.  
+ 
+8.13  Common  Mistakes  
+❌  Working  directly  on  the  main branch.  
+❌  Creating  very  large  Pull  Requests.  
+❌  Ignoring  code  review  comments.  
+❌  Forgetting  to  pull  the  latest  changes.  
+❌  Leaving  merge  conflicts  unresolved.  
+❌  Pushing  unfinished  features.  
+ 
+Real-Time  Scenario  
+A  team  is  building  an  Online  Banking  System .  
+
+===== PDF PAGE 84 =====
+Developer  A:  
+git  checkout  -b  feature/login  
+After  development:  
+git  add  .  git  commit  -m  "Added  login  module"  git  push  origin  feature/login  
+A  Pull  Request  is  created.  
+Reviewer  approves  the  changes.  
+The  feature  is  merged  into  the  main branch.  
+The  branch  is  then  deleted.  
+This  workflow  is  followed  for  every  feature  developed  by  the  team.  
+ 
+Interview  Questions  
+1.  What  is  Git  Collaboration?  
+Answer:  
+Git  Collaboration  is  the  process  of  multiple  developers  working  together  on  the  same  project  
+using
+ 
+Git
+ 
+and
+ 
+GitHub
+ 
+while
+ 
+maintaining
+ 
+version
+ 
+control,
+ 
+code
+ 
+quality,
+ 
+and
+ 
+project
+ 
+history.
+ 
+ 
+2.  What  is  a  Pull  Request?  
+Answer:  
+A  Pull  Request  is  a  request  to  merge  changes  from  one  branch  into  another  after  code  
+review
+ 
+and
+ 
+approval.
+ 
+ 
+3.  Why  is  Code  Review  important?  
+Answer:  
+Code  Review  helps  identify  bugs,  improve  code  quality,  ensure  coding  standards  are  
+followed,
+ 
+and
+ 
+share
+ 
+knowledge
+ 
+among
+ 
+team
+ 
+members
+ 
+before
+ 
+changes
+ 
+are
+ 
+merged.
+ 
+
+===== PDF PAGE 85 =====
+ 
+4.  Why  should  developers  use  feature  branches?  
+Answer:  
+Feature  branches  isolate  development  work,  reduce  the  risk  of  affecting  stable  code,  simplify  
+testing,
+ 
+and
+ 
+make
+ 
+collaboration
+ 
+easier.
+ 
+ 
+5.  What  are  common  merge  strategies?  
+Answer:  
+The  three  common  merge  strategies  are:  
+●  Merge  Commit  ●  Squash  Merge  ●  Rebase  and  Merge  
+Each  strategy  has  different  effects  on  the  project's  commit  history.  
+ 
+Practical  Lab  
+Task  1  
+Clone  a  GitHub  repository.  
+ 
+Task  2  
+Create  a  feature  branch  named  feature/profile.  
+ 
+Task  3  
+Make  changes,  commit  them,  and  push  the  branch  to  GitHub.  
+ 
+Task  4  
+===== PDF PAGE 86 =====
+Create  a  Pull  Request  from  feature/profile to  main.  
+ 
+Task  5  
+Review  the  Pull  Request,  merge  it,  and  delete  the  feature  branch.  

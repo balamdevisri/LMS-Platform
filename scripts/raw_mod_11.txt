@@ -1,0 +1,273 @@
+Module  11:  GitHub  Features  
+Learning  Objectives  
+After  completing  this  module,  you  will  be  able  to:  
+●  Understand  the  major  features  of  GitHub.  ●  Learn  GitHub  Issues  for  bug  tracking.  ●  Manage  work  using  GitHub  Projects.  ●  Use  GitHub  Discussions  for  collaboration.  ●  Create  documentation  with  GitHub  Wiki.  ●  Manage  software  releases.  ●  Host  websites  using  GitHub  Pages.  ●  Understand  the  basics  of  GitHub  Actions.  ●  Apply  GitHub  features  in  real-world  software  development.  
+
+===== PDF PAGE 107 =====
+ 
+11.1  Introduction  
+GitHub  is  much  more  than  a  Git  repository  hosting  service.  It  provides  a  complete  ecosystem  
+for
+ 
+software
+ 
+development,
+ 
+including
+ 
+project
+ 
+planning,
+ 
+issue
+ 
+tracking,
+ 
+documentation,
+ 
+automation,
+ 
+and
+ 
+deployment.
+ 
+Organizations  use  GitHub  to:  
+●  Manage  source  code.  ●  Track  bugs.  ●  Plan  projects.  ●  Review  code.  ●  Automate  builds  and  deployments.  ●  Publish  documentation.  ●  Collaborate  with  distributed  teams.  
+ 
+Definition  
+GitHub  Features  are  built-in  tools  that  help  developers  collaborate,  manage  projects,  
+automate
+ 
+workflows,
+ 
+document
+ 
+software,
+ 
+and
+ 
+publish
+ 
+applications
+ 
+efficiently.
+ 
+ 
+Real-Time  Example  
+A  company  develops  an  E-Commerce  Website .  
+They  use:  
+●  Repositories  →  Store  source  code.  ●  Issues  →  Track  bugs.  ●  Projects  →  Manage  development  tasks.  ●  Pull  Requests  →  Review  code.  ●  Wiki  →  Store  technical  documentation.  ●  Actions  →  Automatically  test  and  deploy  the  application.  ●  Releases  →  Publish  stable  versions.  
+ 
+11.2  GitHub  Issues  
+
+===== PDF PAGE 108 =====
+GitHub  Issues  help  teams  track:  
+●  Bugs  ●  Feature  requests  ●  Improvements  ●  Tasks  ●  Questions  
+Each  issue  contains:  
+●  Title  ●  Description  ●  Labels  ●  Assignees  ●  Milestones  ●  Comments  
+Example:  
+Issue  #25   Title:  Login  button  not  working   Status:  Open   Assigned  To:  Developer  A   
+11.3  GitHub  Projects  
+GitHub  Projects  provide  a  Kanban-style  project  management  board .  
+Example  Workflow:  
+To  Do     │     ▼  In  Progress     │     ▼  Code  Review     │     ▼  Testing  
+
+===== PDF PAGE 109 =====
+   │     ▼  Done  
+Benefits:  
+●  Organize  tasks.  ●  Assign  team  members.  ●  Track  project  progress.  ●  Improve  team  collaboration.  
+ 
+11.4  GitHub  Discussions  
+GitHub  Discussions  provide  a  space  for  team  communication.  
+Common  Uses:  
+●  Ask  technical  questions.  ●  Discuss  new  features.  ●  Share  ideas.  ●  Announce  updates.  ●  Community  support.  
+Example:  
+Topic:  Should  we  migrate  to  React  19?   Replies:  15   
+11.5  GitHub  Wiki  
+A  Wiki  is  used  for  project  documentation.  
+Typical  Wiki  Pages:  
+●  Installation  Guide  ●  API  Documentation  ●  User  Manual  ●  Developer  Guide  ●  FAQs  ●  Troubleshooting  
+
+===== PDF PAGE 110 =====
+Benefits:  
+●  Centralized  documentation.  ●  Easy  collaboration.  ●  Version-controlled  documentation.  
+ 
+11.6  GitHub  Releases  
+Releases  are  used  to  publish  stable  versions  of  software.  
+Example:  
+Version:  v1.0.0   Release  Name:  Initial  Stable  Release  
+A  release  usually  includes:  
+●  Version  number  ●  Release  notes  ●  Downloadable  files  ●  Changelog  
+ 
+11.7  GitHub  Pages  
+GitHub  Pages  allows  developers  to  host  static  websites  directly  from  a  GitHub  repository.  
+Supported  Content:  
+●  HTML  ●  CSS  ●  JavaScript  ●  Documentation  sites  ●  Portfolio  websites  
+Example:  
+https://username.github.io/project  
+Common  Uses:  
+
+===== PDF PAGE 111 =====
+●  Personal  portfolio  ●  Project  documentation  ●  Blogs  ●  Landing  pages  
+ 
+11.8  GitHub  Actions  
+GitHub  Actions  is  GitHub's  built-in  CI/CD  (Continuous  Integration  and  Continuous  
+Deployment)
+ 
+platform.
+ 
+It  automates  software  workflows.  
+Common  Tasks:  
+●  Build  applications.  ●  Run  automated  tests.  ●  Deploy  applications.  ●  Check  code  quality.  ●  Send  notifications.  
+Workflow:  
+Push  Code       │       ▼  GitHub  Actions       │       ▼  Build       │       ▼  Test       │       ▼  Deploy   
+11.9  GitHub  Notifications  
+Notifications  keep  developers  informed  about:  
+●  Pull  Requests  ●  Issues  ●  Reviews  
+
+===== PDF PAGE 112 =====
+●  Mentions  ●  Discussions  ●  Repository  activity  
+Benefits:  
+●  Stay  updated.  ●  Respond  quickly.  ●  Improve  collaboration.  
+ 
+11.10  GitHub  Insights  
+GitHub  Insights  provides  analytics  for  repositories.  
+Information  includes:  
+●  Commit  activity  ●  Contributor  statistics  ●  Traffic  ●  Pull  Request  trends  ●  Code  frequency  
+Managers  use  Insights  to  monitor  project  health  and  team  productivity.  
+ 
+11.11  GitHub  Feature  Architecture  
+Repository        │        ├──  Issues        ├──  Projects        ├──  Wiki        ├──  Discussions        ├──  Releases        ├──  Pages        └──  Actions   
+11.12  GitHub  Features  Summary  
+Feature  Purpose  
+
+===== PDF PAGE 113 =====
+Repository  Store  source  code  
+Issues  Track  bugs  and  tasks  
+Projects  Manage  work  using  Kanban  boards  
+Discussions  Team  communication  
+Wiki  Project  documentation  
+Releases  Publish  software  versions  
+Pages  Host  static  websites  
+Actions  Automate  build,  test,  and  deployment  
+Notifications  Track  repository  updates  
+Insights  Analyze  repository  activity   
+11.13  Best  Practices  
+●  Use  Issues  for  every  bug  and  feature  request.  ●  Keep  Projects  updated.  ●  Maintain  detailed  Wiki  documentation.  ●  Create  Releases  for  stable  software  versions.  ●  Automate  repetitive  tasks  using  GitHub  Actions.  ●  Monitor  repository  Insights  regularly.  ●  Enable  notifications  for  important  repositories.  
+ 
+11.14  Common  Mistakes  
+❌  Tracking  bugs  outside  GitHub  Issues.  
+❌  Ignoring  Pull  Request  reviews.  
+❌  Keeping  documentation  outdated.  
+❌  Publishing  releases  without  release  notes.  
+❌  Not  automating  repetitive  workflows.  
+❌  Forgetting  to  update  project  boards.  
+
+===== PDF PAGE 114 =====
+ 
+Real-Time  Scenario  
+A  software  company  develops  an  Online  Banking  Application .  
+Workflow:  
+1.  A  bug  is  reported  using  GitHub  Issues.  2.  The  issue  is  assigned  to  a  developer.  3.  The  task  is  added  to  GitHub  Projects.  4.  The  developer  fixes  the  issue  in  a  feature  branch.  5.  A  Pull  Request  is  created.  6.  Team  members  review  the  code.  7.  GitHub  Actions  runs  automated  tests.  8.  The  Pull  Request  is  merged.  9.  A  new  release  (v2.1.0)  is  published.  10.  Documentation  is  updated  in  the  Wiki.  
+This  end-to-end  workflow  is  commonly  used  in  enterprise  software  development.  
+ 
+Interview  Questions  
+1.  What  is  GitHub  Issues?  
+Answer:  
+GitHub  Issues  is  a  feature  used  to  track  bugs,  feature  requests,  tasks,  and  project-related  
+discussions.
+ 
+ 
+2.  What  is  the  purpose  of  GitHub  Projects?  
+Answer:  
+GitHub  Projects  helps  teams  organize  and  manage  work  using  Kanban-style  boards,  making  
+it
+ 
+easier
+ 
+to
+ 
+track
+ 
+progress
+ 
+and
+ 
+assign
+ 
+tasks.
+ 
+ 
+3.  What  is  GitHub  Actions?  
+Answer:  
+
+===== PDF PAGE 115 =====
+GitHub  Actions  is  GitHub's  built-in  CI/CD  platform  that  automates  software  development  
+workflows
+ 
+such
+ 
+as
+ 
+building,
+ 
+testing,
+ 
+and
+ 
+deploying
+ 
+applications.
+ 
+ 
+4.  What  is  GitHub  Pages?  
+Answer:  
+GitHub  Pages  is  a  hosting  service  that  allows  developers  to  publish  static  websites  directly  
+from
+ 
+a
+ 
+GitHub
+ 
+repository.
+ 
+ 
+5.  Why  are  GitHub  Releases  important?  
+Answer:  
+GitHub  Releases  allow  developers  to  publish  stable  software  versions,  provide  release  
+notes,
+ 
+distribute
+ 
+build
+ 
+files,
+ 
+and
+ 
+maintain
+ 
+version
+ 
+history.
+ 
+ 
+Practical  Lab  
+Task  1  
+Create  a  GitHub  repository  and  enable  the  Issues  feature.  
+ 
+Task  2  
+Create  three  Issues:  
+●  Login  Bug  ●  Payment  Error  ●  UI  Improvement  
+ 
+Task  3  
+Create  a  GitHub  Project  board  with  the  columns:  
+●  To  Do  ●  In  Progress  ●  Review  
+===== PDF PAGE 116 =====
+●  Done  
+ 
+Task  4  
+Create  a  Wiki  page  named  Installation  Guide .  
+ 
+Task  5  
+Create  a  release  named  v1.0.0  with  release  notes  

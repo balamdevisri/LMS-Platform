@@ -1,0 +1,277 @@
+Module  3:  Git  Repository  Fundamentals  
+Learning  Objectives  
+After  completing  this  module,  you  will  be  able  to:  
+
+===== PDF PAGE 25 =====
+●  Understand  what  a  Git  repository  is.  ●  Learn  the  structure  of  a  Git  repository.  ●  Differentiate  between  Local  and  Remote  repositories.  ●  Understand  the  Working  Directory,  Staging  Area,  and  Local  Repository.  ●  Learn  Git  Objects  (Blob,  Tree,  Commit,  Tag).  ●  Understand  the  HEAD  pointer.  ●  Learn  the  Git  lifecycle.  ●  Understand  how  Git  stores  project  history.  
+ 
+3.1  Introduction  
+A  Git  Repository  is  the  storage  area  where  Git  keeps  your  project  files,  commit  history,  
+branches,
+ 
+and
+ 
+configuration.
+ 
+Whenever  you  initialize  Git  using:  
+git  init  
+Git  creates  a  hidden  folder  called:  
+.git  
+This  folder  contains  all  the  information  required  to  manage  the  project's  version  history.  
+ 
+Definition  
+A  Git  Repository  is  a  database  that  stores  all  versions  of  a  project,  including  files,  commits,  
+branches,
+ 
+tags,
+ 
+and
+ 
+metadata.
+ 
+ 
+Real-Time  Example  
+A  software  company  develops  an  Online  Shopping  Application .  
+The  project  contains:  
+●  Login  Module  ●  Product  Module  ●  Payment  Module  ●  Admin  Panel  
+
+===== PDF PAGE 26 =====
+Git  stores  every  modification  made  to  these  modules,  allowing  developers  to  return  to  
+previous
+ 
+versions
+ 
+if
+ 
+necessary.
+ 
+ 
+3.2  Types  of  Git  Repositories  
+Git  mainly  uses  two  repositories.  
+1.  Local  Repository  
+Stored  on  the  developer's  computer.  
+Characteristics:  
+●  Works  offline.  ●  Stores  complete  project  history.  ●  Allows  commits  without  internet.  
+Example:  
+C:\Projects\OnlineStore   
+2.  Remote  Repository  
+Stored  on  cloud  platforms.  
+Examples:  
+●  GitHub  ●  GitLab  ●  Bitbucket  
+Characteristics:  
+●  Shared  among  team  members.  ●  Used  for  collaboration.  ●  Requires  internet  connectivity.  
+ 
+3.3  Local  vs  Remote  Repository  
+
+===== PDF PAGE 27 =====
+Local  Repository  Remote  Repository  
+Stored  on  local  computer  
+Stored  on  GitHub  
+Offline  access  Online  access  
+Private  development  Team  collaboration  
+Fast  operations  Shared  repository   
+3.4  Git  Repository  Structure  
+MyProject/  │  ├──  .git/  ├──  src/  ├──  README.md  ├──  package.json  └──  index.html  
+Important  Components  
+●  Project  Files  →  Source  code.  ●  .git  Folder  →  Git  database.  ●  Configuration  Files  →  Git  settings.  ●  Commit  History  →  Previous  versions.  
+ 
+3.5  The  .git Directory  
+The  .git directory  is  automatically  created  after  running:  
+git  init  
+It  contains:  
+.git/   ├──  objects/   ├──  refs/   
+
+===== PDF PAGE 28 =====
+├──  hooks/   ├──  config   ├──  HEAD   └──  index  
+Purpose  
+●  Stores  commits.  ●  Stores  branches.  ●  Stores  configuration.  ●  Stores  staging  information.  ●  Stores  repository  metadata.  
+⚠  Never  delete  or  manually  modify  the  .git folder  unless  you  understand  its  
+purpose.
+ 
+ 
+3.6  Git  Three  Working  Areas  
+Git  manages  files  using  three  important  areas.  
+Working  Directory          │          ▼  Staging  Area          │          ▼  Local  Repository   
+Working  Directory  
+The  place  where  developers  create  and  edit  project  files.  
+Example:  
+index.html   style.css   app.js  
+
+===== PDF PAGE 29 =====
+Files  here  may  be:  
+●  New  ●  Modified  ●  Deleted  
+ 
+Staging  Area  (Index)  
+The  staging  area  is  a  temporary  storage  location  where  selected  changes  are  prepared  
+before
+ 
+committing.
+ 
+Command:  
+git  add  filename  
+Purpose:  
+●  Select  specific  changes.  ●  Prepare  for  commit.  ●  Review  changes  before  saving  permanently.  
+ 
+Local  Repository  
+After  committing:  
+git  commit  
+Git  permanently  stores  the  snapshot  inside  the  local  repository.  
+ 
+3.7  Git  Workflow  
+Create  File        │        ▼  Modify  File        │        ▼  Working  Directory        │  git  add        ▼  
+
+===== PDF PAGE 30 =====
+Staging  Area        │  git  commit        ▼  Local  Repository        │  git  push        ▼  Remote  Repository   
+3.8  Git  Objects  
+Git  stores  data  as  Objects .  
+There  are  four  important  Git  Objects.  
+ 
+Blob  
+Stores  the  content  of  a  single  file.  
+Example:  
+notes.txt  
+Each  file  becomes  a  Blob  object.  
+ 
+Tree  
+Represents  folders  and  directory  structures.  
+Example:  
+Project   │   ├──  index.html   ├──  style.css   └──  app.js  
+
+===== PDF PAGE 31 =====
+ 
+Commit  Object  
+Stores:  
+●  Snapshot  of  project  ●  Author  ●  Date  ●  Commit  Message  ●  Parent  Commit  
+Every  commit  creates  a  new  Commit  Object.  
+ 
+Tag  Object  
+Tags  are  used  to  mark  important  versions.  
+Example:  
+Version  1.0   Version  2.0   Release  Candidate   
+3.9  HEAD  Pointer  
+HEAD  is  one  of  the  most  important  concepts  in  Git.  
+HEAD  points  to  the  current  branch  and  latest  commit .  
+Example:  
+HEAD   ↓   main   ↓   Latest  Commit  
+
+===== PDF PAGE 32 =====
+Whenever  a  new  commit  is  created,  HEAD  automatically  moves  to  it.  
+ 
+3.10  Git  Lifecycle  
+Every  file  in  Git  passes  through  different  states.  
+Untracked       │       ▼  Tracked       │       ▼  Modified       │       ▼  Staged       │       ▼  Committed  
+Explanation  
+●  Untracked  →  Git  is  not  monitoring  the  file.  ●  Tracked  →  Git  is  monitoring  the  file.  ●  Modified  →  File  has  changed.  ●  Staged  →  Ready  for  commit.  ●  Committed  →  Saved  permanently  in  Git  history.  
+ 
+3.11  Repository  Initialization  Workflow  
+Create  Project        │        ▼  git  init        │        ▼  .git  Created        │        ▼  Repository  Ready   
+
+===== PDF PAGE 33 =====
+3.12  Repository  Storage  Architecture  
+Developer   ↓   Working  Directory   ↓   Staging  Area   ↓   Local  Repository   ↓   GitHub   
+3.13  Best  Practices  
+●  Keep  one  repository  for  one  project.  ●  Commit  frequently.  ●  Use  meaningful  commit  messages.  ●  Push  changes  regularly.  ●  Never  edit  the  .git folder  manually.  ●  Organize  project  files  clearly.  
+ 
+3.14  Common  Mistakes  
+❌  Forgetting  to  initialize  the  repository.  
+❌  Deleting  the  .git folder  accidentally.  
+❌  Confusing  the  Working  Directory  with  the  Staging  Area.  
+❌  Forgetting  to  commit  staged  changes.  
+❌  Pushing  incomplete  work  to  the  remote  repository.  
+ 
+
+===== PDF PAGE 34 =====
+Real-Time  Scenario  
+A  developer  is  building  an  Employee  Management  System .  
+Workflow:  
+1.  Create  project  folder.  2.  Initialize  Git.  3.  Develop  new  features.  4.  Stage  changes.  5.  Commit  changes.  6.  Push  the  repository  to  GitHub.  7.  Collaborate  with  team  members.  
+This  ensures  all  project  history  is  safely  tracked  and  shared.  
+ 
+Interview  Questions  
+1.  What  is  a  Git  Repository?  
+Answer:  
+A  Git  Repository  is  a  storage  location  that  contains  project  files,  commit  history,  branches,  
+tags,
+ 
+and
+ 
+configuration
+ 
+required
+ 
+for
+ 
+version
+ 
+control.
+ 
+ 
+2.  What  is  the  purpose  of  the  .git directory?  
+Answer:  
+The  .git directory  stores  all  Git  metadata,  including  commits,  branches,  configuration  files,  
+references,
+ 
+and
+ 
+repository
+ 
+history.
+ 
+ 
+3.  What  is  the  difference  between  the  Working  Directory  and  the  Staging  
+Area?
+ 
+Answer:  
+●  The  Working  Directory  contains  files  that  are  currently  being  edited.  ●  The  Staging  Area  temporarily  stores  selected  changes  before  they  are  committed  to  
+the
+ 
+repository.
+ 
+
+===== PDF PAGE 35 =====
+ 
+4.  What  is  HEAD  in  Git?  
+Answer:  
+HEAD  is  a  pointer  that  references  the  current  branch  and  the  latest  commit,  helping  Git  
+determine
+ 
+the
+ 
+current
+ 
+working
+ 
+state
+ 
+of
+ 
+the
+ 
+repository.
+ 
+ 
+5.  What  are  Git  Objects?  
+Answer:  
+Git  stores  data  as  objects:  
+●  Blob  →  File  content  ●  Tree  →  Directory  structure  ●  Commit  →  Snapshot  and  metadata  ●  Tag  →  Named  reference  to  important  commits  
+ 
+Practical  Lab  
+Task  1  
+Initialize  a  new  Git  repository  using  git  init.  
+ 
+Task  2  
+Locate  and  inspect  the  hidden  .git directory.  
+ 
+Task  3  
+Create  three  files  and  observe  their  state  using  git  status.  
+ 
+Task  4  
+===== PDF PAGE 36 =====
+Draw  the  Git  workflow  showing  the  Working  Directory,  Staging  Area,  Local  Repository,  and  
+Remote
+ 
+Repository.
+ 
+ 
+Task  5  
+Explain  the  purpose  of  the  four  Git  objects  (Blob,  Tree,  Commit,  Tag)  with  examples.  

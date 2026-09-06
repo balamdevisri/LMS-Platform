@@ -1,0 +1,254 @@
+Module  4:  Basic  Git  Commands  
+Learning  Objectives  
+After  completing  this  module,  you  will  be  able  to:  
+●  Understand  the  purpose  of  essential  Git  commands.  ●  Check  repository  status.  ●  Stage  files  for  commit.  ●  Save  changes  using  commits.  ●  View  commit  history.  ●  Compare  file  changes.  ●  Remove  files  from  staging.  ●  Learn  the  Git  command  workflow.  ●  Apply  Git  commands  in  real-world  development.  
+ 
+4.1  Introduction  
+Git  commands  are  used  to  manage  and  track  changes  in  a  repository.  Every  Git  project  
+follows
+ 
+a
+ 
+workflow
+ 
+where
+ 
+files
+ 
+are
+ 
+created,
+ 
+modified,
+ 
+staged,
+ 
+committed,
+ 
+and
+ 
+shared.
+ 
+Some  of  the  most  frequently  used  commands  are:  
+●  git  status  ●  git  add  ●  git  commit  ●  git  log  ●  git  diff  ●  git  restore  ●  git  rm  ●  git  help  
+ 
+
+===== PDF PAGE 37 =====
+Real-Time  Example  
+A  developer  creates  a  new  React  project.  
+Tasks:  
+●  Create  project  files.  ●  Check  repository  status.  ●  Stage  modified  files.  ●  Commit  changes.  ●  View  project  history.  ●  Push  changes  to  GitHub.  
+All  these  tasks  are  performed  using  basic  Git  commands.  
+ 
+4.2  Git  Status  (git  status)  
+The  git  status command  shows  the  current  state  of  the  repository.  
+Syntax  git  status  
+Example  git  status  
+Example  Output  On  branch  main   No  commits  yet   Untracked  files:   README.md  
+Purpose  
+●  Shows  modified  files.  ●  Shows  staged  files.  ●  Shows  untracked  files.  ●  Displays  current  branch.  
+ 
+
+===== PDF PAGE 38 =====
+4.3  Git  Add  (git  add)  
+The  git  add command  moves  changes  from  the  Working  Directory  to  the  Staging  Area .  
+Syntax  git  add  filename  
+Add  Single  File  git  add  index.html  
+Add  Multiple  Files  git  add  file1.txt  file2.txt  
+Add  All  Files  git  add  .   
+4.4  Git  Commit  (git  commit)  
+A  commit  permanently  saves  staged  changes  into  the  local  repository.  
+Syntax  git  commit  -m  "Commit  Message"  
+Example  git  commit  -m  "Added  login  page"  
+Example  Output  [main  abc1234]   Added  login  page   1  file  changed  
+Good  Commit  Message  Examples  
+●  Added  Login  Page  ●  Fixed  Navigation  Bug  ●  Updated  README  ●  Improved  UI  Design  ●  Added  Payment  Module  
+
+===== PDF PAGE 39 =====
+ 
+4.5  Git  Log  (git  log)  
+Displays  the  commit  history.  
+Syntax  git  log  
+Example  Output  commit  91fd56   Author:  Prasanna   Date:  July  2026   Added  Login  Feature  
+Useful  Options  
+Compact  Log  
+git  log  --oneline  
+Graph  View  
+git  log  --graph  
+Limit  Results  
+git  log  -5   
+4.6  Git  Diff  (git  diff)  
+Shows  differences  between  file  versions.  
+Syntax  git  diff  
+Example  git  diff  
+
+===== PDF PAGE 40 =====
+Git  highlights:  
+●  Added  lines  ●  Removed  lines  ●  Modified  lines  
+Compare  Staged  Changes  git  diff  --staged   
+4.7  Git  Restore  (git  restore)  
+Used  to  discard  unwanted  changes.  
+Restore  File  git  restore  index.html  
+This  restores  the  file  to  its  last  committed  version.  
+ 
+4.8  Git  Remove  (git  rm)  
+Deletes  files  and  stages  the  deletion.  
+Syntax  git  rm  filename  
+Example  
+git  rm  oldfile.txt  
+Commit  the  deletion:  
+git  commit  -m  "Removed  unused  file"   
+4.9  Git  Help  
+Git  provides  built-in  documentation.  
+General  Help  
+
+===== PDF PAGE 41 =====
+git  help  
+Command  Help  git  help  commit  
+or  
+git  commit  --help   
+4.10  Git  Command  Workflow  
+Create  File       │       ▼  git  status       │       ▼  git  add       │       ▼  git  commit       │       ▼  git  log   
+4.11  Repository  Lifecycle  
+Working  Directory         │         ▼  git  add         │         ▼  Staging  Area         │         ▼  git  commit         │         ▼  Local  Repository   
+
+===== PDF PAGE 42 =====
+4.12  Common  Git  Commands  Summary  
+Command  Purpose  
+git  status Check  repository  status  
+git  add Stage  files  
+git  add  . Stage  all  changes  
+git  commit  -m Save  changes  
+git  log View  commit  history  
+git  log  --oneline 
+Short  commit  history  
+git  diff Compare  file  changes  
+git  diff  --staged 
+Compare  staged  changes  
+git  restore Restore  file  
+git  rm Delete  tracked  file  
+git  help Display  documentation  
+ 
+4.13  Best  Practices  
+●  Check  git  status before  committing.  ●  Write  meaningful  commit  messages.  ●  Commit  small  and  logical  changes.  ●  Review  changes  using  git  diff.  ●  Avoid  committing  unnecessary  files.  ●  Read  command  documentation  using  git  help.  
+ 
+4.14  Common  Mistakes  
+❌  Forgetting  to  stage  files  before  committing.  
+
+===== PDF PAGE 43 =====
+❌  Using  unclear  commit  messages  such  as  "update"  or  "changes".  
+❌  Forgetting  to  review  changes  before  committing.  
+❌  Accidentally  deleting  tracked  files.  
+❌  Making  one  huge  commit  instead  of  several  small  commits.  
+ 
+Real-Time  Scenario  
+A  developer  updates  a  company's  website.  
+Workflow:  
+Check  repository:  
+git  status  
+Stage  files:  
+git  add  .  
+Commit  changes:  
+git  commit  -m  "Updated  homepage  banner"  
+View  history:  
+git  log  --oneline  
+Review  modifications:  
+git  diff  
+This  is  the  workflow  developers  follow  many  times  every  day.  
+ 
+Interview  Questions  
+1.  What  is  the  purpose  of  git  status?  
+Answer:  
+
+===== PDF PAGE 44 =====
+git  status displays  the  current  state  of  the  repository,  including  staged,  modified,  and  
+untracked
+ 
+files,
+ 
+as
+ 
+well
+ 
+as
+ 
+the
+ 
+active
+ 
+branch.
+ 
+ 
+2.  What  is  the  difference  between  git  add and  git  commit?  
+Answer:  
+●  git  add moves  changes  to  the  Staging  Area .  ●  git  commit permanently  records  the  staged  changes  in  the  local  repository.  
+ 
+3.  Why  should  commit  messages  be  meaningful?  
+Answer:  
+Meaningful  commit  messages  make  it  easier  to  understand  the  purpose  of  each  change,  
+review
+ 
+project
+ 
+history,
+ 
+and
+ 
+collaborate
+ 
+with
+ 
+team
+ 
+members.
+ 
+ 
+4.  What  does  git  diff do?  
+Answer:  
+git  diff compares  changes  between  different  versions  of  files,  showing  added,  removed,  
+and
+ 
+modified
+ 
+content.
+ 
+ 
+5.  What  is  the  purpose  of  git  log  --oneline?  
+Answer:  
+git  log  --oneline displays  a  concise  view  of  the  commit  history,  showing  one  commit  
+per
+ 
+line
+ 
+with
+ 
+a
+ 
+short
+ 
+commit
+ 
+hash
+ 
+and
+ 
+message.
+ 
+ 
+Practical  Lab  
+Task  1  
+Create  a  file  named  README.md.  
+===== PDF PAGE 45 =====
+ 
+Task  2  
+Check  the  repository  status  using:  
+git  status   
+Task  3  
+Stage  the  file  using:  
+git  add  README.md   
+Task  4  
+Commit  the  changes  with  the  message:  
+Initial  project  setup   
+Task  5  
+View  the  commit  history  using:  
+git  log  --oneline  

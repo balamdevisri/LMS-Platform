@@ -99,46 +99,58 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
         components={{
           // ── Headings ─────────────────────────────────────────────
           h1: ({ children }: any) => (
-            <h1 className={`text-2xl sm:text-3xl font-extrabold tracking-tight mt-10 mb-4 leading-tight
-              ${isNightMode ? 'text-white' : 'text-slate-900'}`}>
+            <h1 className={`text-2xl sm:text-3xl font-extrabold tracking-tight mt-10 mb-5 leading-tight
+              ${isNightMode ? 'text-[#38BDF8]' : 'text-[#0284C7]'} dark:text-[#38BDF8]`}>
               {children}
             </h1>
           ),
           h2: ({ children }: any) => (
-            <h2 className={`text-xl sm:text-2xl font-bold tracking-tight mt-8 mb-3 leading-snug
-              ${isNightMode ? 'text-slate-100' : 'text-slate-800'}`}>
+            <h2 className={`text-xl sm:text-2xl font-bold tracking-tight mt-9 mb-3.5 leading-snug
+              ${isNightMode ? 'text-[#60A5FA]' : 'text-[#2563EB]'} dark:text-[#60A5FA]`}>
               {children}
             </h2>
           ),
           h3: ({ children }: any) => (
-            <h3 className={`text-lg sm:text-xl font-semibold mt-6 mb-2 leading-snug
-              ${isNightMode ? 'text-slate-200' : 'text-slate-700'}`}>
+            <h3 className={`text-lg sm:text-xl font-bold mt-7 mb-2.5 leading-snug
+              ${isNightMode ? 'text-[#7DD3FC]' : 'text-[#0369A1]'} dark:text-[#7DD3FC]`}>
               {children}
             </h3>
           ),
           h4: ({ children }: any) => (
-            <h4 className={`text-base font-semibold mt-5 mb-2
-              ${isNightMode ? 'text-slate-300' : 'text-slate-700'}`}>
+            <h4 className={`text-base font-semibold mt-5 mb-2 leading-snug
+              ${isNightMode ? 'text-[#BAE6FD]' : 'text-[#1D4ED8]'} dark:text-[#BAE6FD]`}>
               {children}
             </h4>
+          ),
+          h5: ({ children }: any) => (
+            <h5 className={`text-sm font-semibold uppercase tracking-wider mt-4 mb-2
+              ${isNightMode ? 'text-[#7DD3FC]' : 'text-sky-700'} dark:text-[#7DD3FC]`}>
+              {children}
+            </h5>
+          ),
+          h6: ({ children }: any) => (
+            <h6 className={`text-xs font-semibold uppercase tracking-wider mt-3 mb-1.5
+              ${isNightMode ? 'text-[#BAE6FD]' : 'text-sky-800'} dark:text-[#BAE6FD]`}>
+              {children}
+            </h6>
           ),
 
           // ── Paragraph ────────────────────────────────────────────
           p: ({ children }: any) => (
-            <p className={`text-[1.0625rem] leading-[1.75] mb-5
-              ${isNightMode ? 'text-slate-300' : 'text-slate-600'}`}>
+            <p className={`text-[1.05rem] leading-[1.8] mb-5
+              ${isNightMode ? 'text-slate-300' : 'text-slate-700'} dark:text-slate-300 font-normal`}>
               {children}
             </p>
           ),
 
           // ── Strong / Em ──────────────────────────────────────────
           strong: ({ children }: any) => (
-            <strong className={`font-bold ${isNightMode ? 'text-white' : 'text-slate-900'}`}>
+            <strong className={`font-bold ${isNightMode ? 'text-white' : 'text-slate-900'} dark:text-white`}>
               {children}
             </strong>
           ),
           em: ({ children }: any) => (
-            <em className={`italic ${isNightMode ? 'text-slate-200' : 'text-slate-700'}`}>
+            <em className={`italic ${isNightMode ? 'text-sky-200/90' : 'text-slate-700'} dark:text-sky-200/90`}>
               {children}
             </em>
           ),
@@ -299,16 +311,21 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
             }
 
             return (
-              <div className="my-6 rounded-xl overflow-hidden border border-slate-700/50 shadow-lg relative group">
-                {/* Header */}
-                <div className="flex items-center justify-between px-4 py-2 bg-slate-800 border-b border-slate-700/50">
-                  <span className="text-[11px] font-mono font-medium text-slate-400 uppercase tracking-wider">
-                    {language}
-                  </span>
+              <div className="my-6 rounded-2xl overflow-hidden border border-slate-700/60 dark:border-slate-800 bg-[#0A0E1A] shadow-xl relative group">
+                {/* Header bar */}
+                <div className="flex items-center justify-between px-4 py-2.5 bg-[#0F172A] border-b border-slate-800/80">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80 inline-block" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80 inline-block" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block" />
+                    <span className="ml-2 text-xs font-mono font-bold text-[#38BDF8] dark:text-[#38BDF8] uppercase tracking-wider">
+                      {language}
+                    </span>
+                  </div>
                 </div>
                 <CopyButton code={rawCode.trim()} />
                 {/* Code body */}
-                <pre className="p-4 overflow-x-auto bg-slate-900 text-sm leading-relaxed">
+                <pre className="p-4 sm:p-5 overflow-x-auto bg-[#0A0E1A] text-sm font-mono leading-relaxed text-slate-100 selection:bg-sky-500/30">
                   {children}
                 </pre>
               </div>
@@ -328,11 +345,11 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
             // Otherwise it's inline code
             return (
               <code
-                className={`px-1.5 py-0.5 rounded-md font-mono text-[0.85rem] font-medium
+                className={`px-2 py-0.5 rounded-md font-mono text-[0.875em] font-medium transition-colors
                   ${isNightMode
-                    ? 'bg-slate-800 text-amber-300 border border-slate-700'
-                    : 'bg-amber-50 text-amber-800 border border-amber-200'
-                  }`}
+                    ? 'bg-[#131C31] text-[#38BDF8] border border-sky-500/25 shadow-xs'
+                    : 'bg-sky-50 text-[#0284C7] border border-sky-200'
+                  } dark:bg-[#131C31] dark:text-[#38BDF8] dark:border-sky-500/25`}
                 {...props}
               >
                 {children}
@@ -369,8 +386,8 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
                   ${isNightMode
                     ? 'bg-emerald-950/30 border-emerald-500 text-emerald-200'
                     : 'bg-emerald-50 border-emerald-500 text-emerald-800'
-                  }`}>
-                  <Lightbulb className={`w-5 h-5 shrink-0 mt-0.5 ${isNightMode ? 'text-emerald-400' : 'text-emerald-600'}`} />
+                  } dark:bg-emerald-950/30 dark:border-emerald-500 dark:text-emerald-200`}>
+                  <Lightbulb className={`w-5 h-5 shrink-0 mt-0.5 ${isNightMode ? 'text-emerald-400' : 'text-emerald-600'} dark:text-emerald-400`} />
                   <div className="flex-1 text-[0.9375rem] leading-relaxed [&>p]:mb-2 [&>p:last-child]:mb-0">
                     {children}
                   </div>
@@ -382,10 +399,10 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
               return (
                 <div className={`my-6 p-4 rounded-xl border-l-4 flex gap-3
                   ${isNightMode
-                    ? 'bg-blue-950/30 border-blue-500 text-blue-200'
-                    : 'bg-blue-50 border-blue-500 text-blue-800'
-                  }`}>
-                  <Info className={`w-5 h-5 shrink-0 mt-0.5 ${isNightMode ? 'text-blue-400' : 'text-blue-600'}`} />
+                    ? 'bg-sky-950/30 border-sky-500 text-sky-200'
+                    : 'bg-sky-50 border-sky-500 text-sky-800'
+                  } dark:bg-sky-950/30 dark:border-sky-500 dark:text-sky-200`}>
+                  <Info className={`w-5 h-5 shrink-0 mt-0.5 ${isNightMode ? 'text-[#38BDF8]' : 'text-[#0284C7]'} dark:text-[#38BDF8]`} />
                   <div className="flex-1 text-[0.9375rem] leading-relaxed [&>p]:mb-2 [&>p:last-child]:mb-0">
                     {children}
                   </div>
@@ -399,8 +416,8 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
                   ${isNightMode
                     ? 'bg-amber-950/30 border-amber-500 text-amber-200'
                     : 'bg-amber-50 border-amber-500 text-amber-800'
-                  }`}>
-                  <Info className={`w-5 h-5 shrink-0 mt-0.5 ${isNightMode ? 'text-amber-400' : 'text-amber-600'}`} />
+                  } dark:bg-amber-950/30 dark:border-amber-500 dark:text-amber-200`}>
+                  <Info className={`w-5 h-5 shrink-0 mt-0.5 ${isNightMode ? 'text-amber-400' : 'text-amber-600'} dark:text-amber-400`} />
                   <div className="flex-1 text-[0.9375rem] leading-relaxed [&>p]:mb-2 [&>p:last-child]:mb-0">
                     {children}
                   </div>
@@ -412,9 +429,9 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
             return (
               <blockquote className={`my-6 pl-4 border-l-4 italic
                 ${isNightMode
-                  ? 'border-slate-600 text-slate-400'
-                  : 'border-slate-300 text-slate-500'
-                }`}>
+                  ? 'border-sky-500/50 bg-slate-900/40 text-slate-300'
+                  : 'border-sky-400 bg-sky-50/40 text-slate-700'
+                } dark:border-sky-500/50 dark:bg-slate-900/40 dark:text-slate-300 py-2 rounded-r-xl`}>
                 {children}
               </blockquote>
             );
@@ -422,47 +439,47 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
 
           // ── Lists ────────────────────────────────────────────────
           ul: ({ children }: any) => (
-            <ul className={`list-disc pl-6 mb-5 space-y-1.5 text-[1.0625rem] leading-[1.75]
-              ${isNightMode ? 'text-slate-300 marker:text-slate-500' : 'text-slate-600 marker:text-slate-400'}`}>
+            <ul className={`list-disc pl-6 mb-5 space-y-2 text-[1.05rem] leading-[1.8]
+              ${isNightMode ? 'text-slate-300 marker:text-[#38BDF8]' : 'text-slate-700 marker:text-[#0284C7]'} dark:text-slate-300 dark:marker:text-[#38BDF8]`}>
               {children}
             </ul>
           ),
           ol: ({ children }: any) => (
-            <ol className={`list-decimal pl-6 mb-5 space-y-1.5 text-[1.0625rem] leading-[1.75]
-              ${isNightMode ? 'text-slate-300 marker:text-slate-500' : 'text-slate-600 marker:text-slate-400'}`}>
+            <ol className={`list-decimal pl-6 mb-5 space-y-2 text-[1.05rem] leading-[1.8]
+              ${isNightMode ? 'text-slate-300 marker:text-[#38BDF8]' : 'text-slate-700 marker:text-[#0284C7]'} dark:text-slate-300 dark:marker:text-[#38BDF8]`}>
               {children}
             </ol>
           ),
           li: ({ children }: any) => (
-            <li className="pl-1">{children}</li>
+            <li className="pl-1 leading-[1.8]">{children}</li>
           ),
 
           // ── Table ────────────────────────────────────────────────
           table: ({ children }: any) => (
-            <div className="my-6 overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
-              <table className={`w-full text-sm ${isNightMode ? 'text-slate-300' : 'text-slate-700'}`}>
+            <div className="my-6 overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 shadow-md">
+              <table className={`w-full text-sm text-left border-collapse ${isNightMode ? 'text-slate-300' : 'text-slate-700'} dark:text-slate-300`}>
                 {children}
               </table>
             </div>
           ),
           thead: ({ children }: any) => (
-            <thead className={`text-xs font-semibold uppercase tracking-wider
-              ${isNightMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
+            <thead className={`text-xs font-bold uppercase tracking-wider border-b
+              ${isNightMode ? 'bg-[#111827] text-[#7DD3FC] border-slate-800' : 'bg-slate-100 text-slate-800 border-slate-200'} dark:bg-[#111827] dark:text-[#7DD3FC] dark:border-slate-800`}>
               {children}
             </thead>
           ),
           th: ({ children }: any) => (
-            <th className="px-4 py-3 text-left font-semibold">{children}</th>
+            <th className="px-4 py-3.5 font-bold">{children}</th>
           ),
           td: ({ children }: any) => (
-            <td className={`px-4 py-3 border-t ${isNightMode ? 'border-slate-700' : 'border-slate-200'}`}>
+            <td className={`px-4 py-3 border-t ${isNightMode ? 'border-slate-800 text-slate-300' : 'border-slate-200 text-slate-700'} dark:border-slate-800 dark:text-slate-300`}>
               {children}
             </td>
           ),
 
           // ── Horizontal rule ──────────────────────────────────────
           hr: () => (
-            <hr className={`my-8 border-t ${isNightMode ? 'border-slate-800' : 'border-slate-200'}`} />
+            <hr className={`my-8 border-t ${isNightMode ? 'border-slate-800' : 'border-slate-200'} dark:border-slate-800`} />
           ),
 
           // ── Links ────────────────────────────────────────────────
@@ -471,11 +488,11 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
               href={href}
               target="_blank"
               rel="noopener noreferrer"
-              className={`underline underline-offset-2 decoration-1 transition-colors
+              className={`underline underline-offset-2 decoration-1 font-medium transition-colors
                 ${isNightMode
-                  ? 'text-blue-400 hover:text-blue-300 decoration-blue-500/40'
-                  : 'text-blue-600 hover:text-blue-700 decoration-blue-300'
-                }`}
+                  ? 'text-[#38BDF8] hover:text-sky-300 decoration-sky-500/40'
+                  : 'text-[#0284C7] hover:text-sky-700 decoration-sky-300'
+                } dark:text-[#38BDF8] dark:hover:text-sky-300`}
             >
               {children}
             </a>

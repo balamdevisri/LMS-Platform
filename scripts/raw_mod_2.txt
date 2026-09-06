@@ -1,0 +1,280 @@
+Module  2:  Installing  Git  and  Initial  
+Configuration
+ 
+Learning  Objectives  
+After  completing  this  module,  you  will  be  able  to:  
+●  Understand  Git  installation  requirements.  ●  Install  Git  on  Windows,  Linux,  and  macOS.  ●  Verify  Git  installation.  ●  Configure  Git  with  your  username  and  email.  ●  Understand  Git  configuration  levels.  ●  Initialize  a  Git  repository.  
+
+===== PDF PAGE 16 =====
+●  Create  your  first  Git  project.  ●  Verify  Git  configuration.  
+ 
+2.1  Introduction  
+Before  using  Git,  it  must  be  installed  on  your  system.  
+Git  is  available  for:  
+●  Windows  ●  Linux  ●  macOS  
+After  installation,  Git  needs  some  basic  configuration,  such  as  your  username  and  email  
+address
+,
+ 
+because
+ 
+Git
+ 
+records
+ 
+this
+ 
+information
+ 
+with
+ 
+every
+ 
+commit.
+ 
+ 
+Real-Time  Example  
+A  software  developer  joins  a  company.  
+Before  writing  code,  they:  
+●  Install  Git.  ●  Configure  their  name  and  email.  ●  Create  a  local  repository.  ●  Connect  it  to  GitHub.  
+Only  then  do  they  start  developing  the  project.  
+ 
+2.2  System  Requirements  
+Git  has  minimal  hardware  requirements.  
+Component  Minimum  Requirement  
+Operating  System  
+Windows  10/11,  Linux,  macOS  
+RAM  2  GB  
+
+===== PDF PAGE 17 =====
+Storage  500  MB  Free  Space  
+Internet  Required  for  GitHub   
+2.3  Installing  Git  on  Windows  
+Step  1  
+Download  Git  from  the  official  website:  
+https://git-scm.com 
+ 
+Step  2  
+Run  the  installer.  
+Choose:  
+●  Next  ●  Install  ●  Finish  
+Most  default  options  are  suitable  for  beginners.  
+ 
+Step  3  
+Open:  
+Git  Bash  
+or  
+Command  Prompt   
+2.4  Installing  Git  on  Ubuntu/Debian  
+Update  package  list:  
+sudo  apt  update  
+
+===== PDF PAGE 18 =====
+Install  Git:  
+sudo  apt  install  git   
+2.5  Installing  Git  on  Fedora  
+sudo  dnf  install  git   
+2.6  Installing  Git  on  macOS  
+Using  Homebrew:  
+brew  install  git   
+2.7  Verify  Git  Installation  
+After  installation,  verify  Git.  
+Command:  
+git  --version  
+Example  Output:  
+git  version  2.50.1  
+This  confirms  Git  is  installed  successfully.  
+ 
+2.8  Git  Configuration  
+Git  stores  user  information  for  every  commit.  
+Configure  Username:  
+git  config  --global  user.name  "Prasanna"  
+Configure  Email:  
+git  config  --global  user.email  "prasanna@example.com"  
+
+===== PDF PAGE 19 =====
+Replace  the  example  values  with  your  own  name  and  email  address.  
+ 
+2.9  Git  Configuration  Levels  
+Git  supports  three  configuration  levels.  
+Level  Scope  
+System  
+Entire  Computer  
+Global  Current  User  
+Local  Current  Repository   
+System  Configuration  git  config  --system  
+Administrator  privileges  are  usually  required.  
+ 
+Global  Configuration  git  config  --global  user.name  "Prasanna"  
+Applies  to  all  repositories  for  the  current  user.  
+ 
+Local  Configuration  git  config  --local  user.name  "Developer"  
+Applies  only  to  the  current  repository.  
+ 
+2.10  View  Git  Configuration  
+Display  all  configuration  settings:  
+git  config  --list  
+
+===== PDF PAGE 20 =====
+Display  Username:  
+git  config  user.name  
+Display  Email:  
+git  config  user.email   
+2.11  Initialize  a  Git  Repository  
+Create  a  project  folder:  
+mkdir  MyProject  
+Go  inside  it:  
+cd  MyProject  
+Initialize  Git:  
+git  init  
+Output:  
+Initialized  empty  Git  repository  
+Git  creates  a  hidden  folder:  
+.git  
+This  folder  stores  the  repository's  history  and  configuration.  
+ 
+2.12  First  Git  Project  
+Create  a  file:  
+touch  README.md  
+Check  repository  status:  
+git  status  
+Example  Output:  
+Untracked  files:  
+
+===== PDF PAGE 21 =====
+ README.md  
+Git  now  knows  a  new  file  exists  but  is  not  yet  being  tracked.  
+ 
+2.13  Repository  Initialization  Workflow  
+Install  Git        │        ▼  Configure  User        │        ▼  Create  Folder        │        ▼  git  init        │        ▼  Repository  Ready   
+2.14  Common  Git  Commands  (So  Far)  
+Command  Purpose  
+git  --version Verify  installation  
+git  config  --global  user.name 
+Set  username  
+git  config  --global  user.email 
+Set  email  
+git  config  --list Display  configuration  
+mkdir Create  folder  
+cd Change  directory  
+git  init Initialize  repository  
+git  status Display  repository  status  
+ 
+
+===== PDF PAGE 22 =====
+2.15  Best  Practices  
+●  Install  the  latest  stable  version  of  Git.  ●  Configure  your  correct  username  and  email.  ●  Verify  the  installation  before  creating  repositories.  ●  Use  meaningful  project  folder  names.  ●  Keep  one  Git  repository  for  one  project.  ●  Do  not  manually  edit  the  .git directory.  
+ 
+2.16  Common  Mistakes  
+❌  Forgetting  to  configure  username  and  email.  
+❌  Running  git  init in  the  wrong  directory.  
+❌  Deleting  the  .git folder  accidentally.  
+❌  Using  different  email  addresses  across  projects  without  intention.  
+❌  Forgetting  to  verify  the  Git  installation.  
+ 
+Real-Time  Scenario  
+A  new  developer  joins  a  software  company.  
+They  perform  the  following  steps:  
+Install  Git:  
+git  --version  
+Configure  identity:  
+git  config  --global  user.name  "John"  git  config  --global  user.email  "john@example.com"  
+Create  project:  
+mkdir  EmployeePortal  cd  EmployeePortal  git  init  
+
+===== PDF PAGE 23 =====
+The  project  is  now  ready  for  version  control.  
+ 
+Interview  Questions  
+1.  Why  is  Git  configuration  required?  
+Answer:  
+Git  uses  the  configured  username  and  email  to  identify  the  author  of  each  commit,  making  it  
+easier
+ 
+to
+ 
+track
+ 
+changes
+ 
+and
+ 
+collaborate
+ 
+with
+ 
+other
+ 
+developers.
+ 
+ 
+2.  What  is  the  purpose  of  git  init?  
+Answer:  
+The  git  init command  creates  a  new  Git  repository  by  initializing  a  hidden  .git directory  
+that
+ 
+stores
+ 
+version
+ 
+history
+ 
+and
+ 
+repository
+ 
+metadata.
+ 
+ 
+3.  What  is  stored  inside  the  .git directory?  
+Answer:  
+The  .git directory  contains  commit  history,  branch  information,  configuration  files,  
+references,
+ 
+and
+ 
+all
+ 
+metadata
+ 
+required
+ 
+for
+ 
+version
+ 
+control.
+ 
+ 
+4.  What  is  the  difference  between  Global  and  Local  Git  configuration?  
+Answer:  
+●  Global  configuration  applies  to  all  repositories  for  the  current  user.  ●  Local  configuration  applies  only  to  a  specific  repository  and  overrides  global  
+settings
+ 
+when
+ 
+configured.
+ 
+ 
+5.  How  do  you  verify  that  Git  is  installed  correctly?  
+Answer:  
+===== PDF PAGE 24 =====
+Run:  
+git  --version  
+If  Git  is  installed  correctly,  it  displays  the  installed  version.  
+ 
+Practical  Lab  
+Task  1  
+Install  Git  on  your  operating  system.  
+ 
+Task  2  
+Verify  the  installation  using:  
+git  --version   
+Task  3  
+Configure  your  Git  username  and  email.  
+ 
+Task  4  
+Create  a  folder  named  GitPractice and  initialize  it  as  a  Git  repository.  
+ 
+Task  5  
+Use  git  config  --list to  verify  your  configuration.  

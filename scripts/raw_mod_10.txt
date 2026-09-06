@@ -1,0 +1,286 @@
+Module  10:  Git  Internals  
+Learning  Objectives  
+After  completing  this  module,  you  will  be  able  to:  
+●  Understand  Git's  internal  architecture.  ●  Learn  how  Git  stores  data.  ●  Understand  SHA-1  hashing.  ●  Learn  Git  Objects  (Blob,  Tree,  Commit,  Tag).  ●  Understand  the  HEAD  pointer.  ●  Learn  Git  References  (Refs).  ●  Understand  the  Git  Index  (Staging  Area).  ●  Apply  Git  Internals  knowledge  in  troubleshooting  and  advanced  workflows.  
+
+===== PDF PAGE 96 =====
+ 
+10.1  Introduction  
+Git  is  more  than  just  a  version  control  tool—it  is  a  content-addressable  database .  Instead  
+of
+ 
+storing
+ 
+changes
+ 
+as
+ 
+simple
+ 
+file
+ 
+differences,
+ 
+Git
+ 
+stores
+ 
+snapshots
+ 
+of
+ 
+your
+ 
+project
+ 
+and
+ 
+identifies
+ 
+them
+ 
+using
+ 
+unique
+ 
+cryptographic
+ 
+hashes.
+ 
+Every  commit,  file,  directory,  and  tag  is  stored  as  an  object  inside  the  .git directory.  
+Understanding  Git  Internals  helps  developers:  
+●  Debug  repository  issues.  ●  Understand  commit  history.  ●  Recover  lost  commits.  ●  Learn  how  Git  works  behind  the  scenes.  ●  Perform  advanced  Git  operations  confidently.  
+ 
+Definition  
+Git  Internals  refers  to  the  internal  data  structures  and  mechanisms  Git  uses  to  store  project  
+history,
+ 
+manage
+ 
+branches,
+ 
+and
+ 
+track
+ 
+changes.
+ 
+ 
+Real-Time  Example  
+When  a  developer  commits  code:  
+git  commit  -m  "Added  Login  Module"  
+Git  performs  several  actions:  
+●  Creates  Blob  objects  for  file  contents.  ●  Creates  Tree  objects  for  directories.  ●  Creates  a  Commit  object.  ●  Generates  a  unique  SHA-1  hash.  ●  Updates  the  HEAD  pointer.  
+All  of  this  happens  automatically.  
+ 
+
+===== PDF PAGE 97 =====
+10.2  Git  Internal  Architecture  
+Working  Directory         │         ▼  Staging  Area  (Index)         │         ▼  Local  Repository  (.git)         │         ▼  Objects  Database  
+The  .git directory  contains  all  internal  repository  information.  
+ 
+10.3  SHA-1  Hash  
+Git  uniquely  identifies  every  object  using  a  SHA-1  (Secure  Hash  Algorithm  1)  hash.  
+Example:  
+9fceb02d0ae598e95dc970b74767f19372d61af8  
+Properties:  
+●  40  hexadecimal  characters.  ●  Unique  identifier.  ●  Generated  based  on  object  content.  ●  Changes  whenever  the  content  changes.  
+Advantages  
+●  Ensures  data  integrity.  ●  Detects  corruption.  ●  Uniquely  identifies  objects.  
+ 
+10.4  Git  Objects  
+Git  stores  information  as  four  main  object  types.  
+Blob  
+
+===== PDF PAGE 98 =====
+ ↓   Tree   ↓   Commit   ↓   Tag   
+Blob  Object  
+A  Blob  (Binary  Large  Object)  stores  the  content  of  a  single  file.  
+Example:  
+README.md  
+Each  file  becomes  a  separate  Blob  object.  
+Blob  stores:  
+●  File  content  only.  ●  No  filename.  ●  No  directory  information.  
+ 
+Tree  Object  
+A  Tree  object  represents  directories  and  file  structure.  
+Example:  
+Project   ├──  README.md   ├──  src   └──  package.json  
+Tree  stores:  
+
+===== PDF PAGE 99 =====
+●  Folder  names.  ●  File  names.  ●  References  to  Blob  objects.  ●  References  to  other  Tree  objects.  
+ 
+Commit  Object  
+A  Commit  object  stores  a  snapshot  of  the  project.  
+Each  commit  contains:  
+●  Author  ●  Committer  ●  Commit  Message  ●  Timestamp  ●  Parent  Commit  ●  Tree  Object  Reference  
+Example:  
+Commit   ↓   Tree   ↓   Files   
+Tag  Object  
+A  Tag  points  to  a  specific  commit.  
+Example:  
+v1.0   v2.0   Production  Release  
+Tags  are  commonly  used  to  mark  software  releases.  
+ 
+
+===== PDF PAGE 100 =====
+10.5  Git  Object  Relationship  
+Commit   │   ▼   Tree   │   ▼   Blob  
+Relationship:  
+●  Commit  references  Tree.  ●  Tree  references  Blobs.  ●  Blob  stores  file  contents.  
+ 
+10.6  HEAD  Pointer  
+HEAD  is  one  of  the  most  important  concepts  in  Git.  
+HEAD  points  to:  
+●  Current  branch.  ●  Latest  commit.  
+Example:  
+HEAD   ↓   main   ↓   Latest  Commit  
+Whenever  a  new  commit  is  created:  
+
+===== PDF PAGE 101 =====
+●  HEAD  automatically  moves  to  the  latest  commit.  
+ 
+10.7  Git  References  (Refs)  
+Git  stores  branch  information  using  References  (Refs) .  
+Types:  
+●  Branch  References  ●  Tag  References  ●  Remote  References  
+Example:  
+refs   ├──  heads   ├──  tags   └──  remotes  
+Purpose:  
+●  Track  branches.  ●  Track  tags.  ●  Track  remote  branches.  
+ 
+10.8  Git  Index  (Staging  Area)  
+The  Index  (Staging  Area)  temporarily  stores  changes  before  committing.  
+Workflow:  
+Working  Directory   ↓   Index   ↓   
+
+===== PDF PAGE 102 =====
+Commit  
+Purpose:  
+●  Select  files.  ●  Review  changes.  ●  Prepare  commits.  
+ 
+10.9  Git  Object  Storage  
+Objects  are  stored  inside:  
+.git/objects/  
+Git  compresses  object  data  to  reduce  storage  usage.  
+Objects  remain  unchanged  once  created.  
+ 
+10.10  Git  Internal  Workflow  
+Edit  File   ↓   Blob   ↓   Tree   ↓   Commit   ↓   SHA-1  Hash   ↓   HEAD  Updated   
+
+===== PDF PAGE 103 =====
+10.11  Git  Data  Flow  
+Working  Directory   ↓   git  add   ↓   Index   ↓   git  commit   ↓   Object  Database   ↓   GitHub   
+10.12  Important  Git  Internal  Components  
+Component  
+Purpose  
+Blob  Stores  file  contents  
+Tree  Stores  directory  structure  
+Commit  Stores  project  snapshot  
+Tag  Marks  important  versions  
+HEAD  Points  to  current  commit  
+Refs  Stores  branch/tag  references  
+Index  Temporary  staging  area  
+SHA-1  Unique  object  identifier   
+
+===== PDF PAGE 104 =====
+10.13  Best  Practices  
+●  Avoid  modifying  the  .git directory  manually.  ●  Understand  Git  Internals  before  using  advanced  commands.  ●  Create  meaningful  commits.  ●  Use  tags  for  releases.  ●  Keep  repository  history  clean.  
+ 
+10.14  Common  Mistakes  
+❌  Deleting  the  .git directory.  
+❌  Editing  Git  object  files  manually.  
+❌  Confusing  Blob  objects  with  actual  files.  
+❌  Misunderstanding  the  HEAD  pointer.  
+❌  Deleting  references  accidentally.  
+ 
+Real-Time  Scenario  
+A  DevOps  engineer  accidentally  deletes  a  branch.  
+Using  knowledge  of:  
+●  Commit  objects  ●  SHA-1  hashes  ●  References  ●  HEAD  
+the  engineer  locates  the  missing  commit  and  restores  the  branch  without  losing  project  
+history.
+ 
+Understanding  Git  Internals  makes  advanced  recovery  possible.  
+ 
+Interview  Questions  
+
+===== PDF PAGE 105 =====
+1.  What  is  SHA-1  in  Git?  
+Answer:  
+SHA-1  is  a  cryptographic  hashing  algorithm  used  by  Git  to  generate  a  unique  40-character  
+identifier
+ 
+for
+ 
+every
+ 
+object
+ 
+stored
+ 
+in
+ 
+the
+ 
+repository.
+ 
+ 
+2.  What  are  the  four  Git  Objects?  
+Answer:  
+Git  stores  data  using  four  object  types:  
+●  Blob  ●  Tree  ●  Commit  ●  Tag  
+ 
+3.  What  is  the  purpose  of  the  HEAD  pointer?  
+Answer:  
+HEAD  is  a  reference  that  points  to  the  current  branch  and  its  latest  commit,  indicating  the  
+repository's
+ 
+current
+ 
+working
+ 
+state.
+ 
+ 
+4.  What  is  the  Git  Index?  
+Answer:  
+The  Git  Index  (Staging  Area)  is  a  temporary  storage  area  where  selected  changes  are  
+prepared
+ 
+before
+ 
+they
+ 
+are
+ 
+committed
+ 
+to
+ 
+the
+ 
+repository.
+ 
+ 
+5.  What  is  the  difference  between  a  Blob  and  a  Tree  object?  
+Answer:  
+●  A  Blob  stores  the  contents  of  a  file.  ●  A  Tree  stores  the  directory  structure  and  references  to  Blob  and  other  Tree  objects.  
+ 
+===== PDF PAGE 106 =====
+Practical  Lab  
+Task  1  
+Initialize  a  Git  repository  and  locate  the  hidden  .git directory.  
+ 
+Task  2  
+Create  a  file,  commit  it,  and  observe  the  repository  structure.  
+ 
+Task  3  
+Create  an  annotated  tag  named  v1.0.  
+ 
+Task  4  
+Draw  the  relationship  between  Blob,  Tree,  and  Commit  objects.  
+ 
+Task  5  
+Explain  the  purpose  of  HEAD,  Refs,  and  the  Index  in  your  own  words.  

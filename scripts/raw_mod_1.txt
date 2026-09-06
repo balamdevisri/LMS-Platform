@@ -1,0 +1,377 @@
+Module  1:  Introduction  to  Version  
+Control,
+ 
+Git
+ 
+&
+ 
+GitHub
+ 
+Learning  Objectives  
+After  completing  this  module,  you  will  be  able  to:  
+●  Understand  the  concept  of  Version  Control.  
+
+===== PDF PAGE 5 =====
+●  Learn  why  Version  Control  is  important  in  software  development.  ●  Differentiate  between  Local,  Centralized,  and  Distributed  Version  Control  Systems.  ●  Understand  Git  and  its  features.  ●  Learn  the  history  of  Git.  ●  Understand  GitHub  and  its  purpose.  ●  Differentiate  between  Git  and  GitHub.  ●  Understand  Git  Architecture.  ●  Explore  real-world  use  cases  of  Git  and  GitHub.  
+ 
+1.1  Introduction  
+Modern  software  development  involves  multiple  developers  working  on  the  same  project  
+simultaneously.
+ 
+Without
+ 
+a
+ 
+version
+ 
+control
+ 
+system,
+ 
+managing
+ 
+source
+ 
+code
+ 
+becomes
+ 
+difficult
+ 
+because
+ 
+changes
+ 
+can
+ 
+overwrite
+ 
+each
+ 
+other,
+ 
+causing
+ 
+conflicts
+ 
+and
+ 
+data
+ 
+loss.
+ 
+Version  Control  Systems  (VCS)  solve  this  problem  by  tracking  changes  made  to  files,  
+allowing
+ 
+developers
+ 
+to
+ 
+collaborate
+ 
+efficiently,
+ 
+maintain
+ 
+a
+ 
+complete
+ 
+history
+ 
+of
+ 
+modifications,
+ 
+and
+ 
+restore
+ 
+previous
+ 
+versions
+ 
+whenever
+ 
+required.
+ 
+Today,  almost  every  software  company—from  startups  to  global  enterprises—uses  Git  as  its  
+version
+ 
+control
+ 
+system.
+ 
+ 
+Definition  
+Version  Control  is  a  system  that  records  changes  made  to  files  over  time,  allowing  users  to  
+track
+ 
+modifications,
+ 
+compare
+ 
+versions,
+ 
+and
+ 
+restore
+ 
+previous
+ 
+versions
+ 
+if
+ 
+necessary.
+ 
+ 
+Real-Time  Example  
+Suppose  a  team  of  five  developers  is  building  an  E-commerce  website.  
+●  Developer  A  works  on  Login.  ●  Developer  B  develops  the  Payment  Module.  ●  Developer  C  designs  the  Home  Page.  ●  Developer  D  develops  Product  Search.  ●  Developer  E  fixes  bugs.  
+Without  Version  Control:  
+●  Files  may  overwrite  each  other.  
+
+===== PDF PAGE 6 =====
+●  Code  conflicts  increase.  ●  Previous  versions  may  be  lost.  
+With  Git:  
+●  Every  developer  works  independently.  ●  Changes  are  merged  safely.  ●  Every  modification  is  tracked.  ●  Older  versions  can  be  restored.  
+ 
+1.2  Why  Version  Control?  
+Version  Control  provides  many  advantages.  
+Benefits  
+●  Tracks  every  code  change.  ●  Prevents  accidental  data  loss.  ●  Supports  teamwork.  ●  Maintains  project  history.  ●  Simplifies  debugging.  ●  Enables  easy  rollback  to  previous  versions.  ●  Improves  software  quality.  ●  Supports  parallel  development  through  branches.  
+ 
+1.3  Types  of  Version  Control  Systems  
+There  are  three  major  types  of  Version  Control  Systems.  
+1.  Local  Version  Control  System  (LVCS)  
+In  Local  Version  Control,  changes  are  stored  only  on  a  single  computer.  
+Architecture  Developer   │   ▼   
+
+===== PDF PAGE 7 =====
+Local  Repository   │   ▼   Version  History  
+Advantages  
+●  Simple  to  use.  ●  No  internet  required.  
+Disadvantages  
+●  No  collaboration.  ●  Risk  of  data  loss  if  the  computer  fails.  
+ 
+2.  Centralized  Version  Control  System  (CVCS)  
+A  central  server  stores  all  project  versions.  
+Examples:  
+●  SVN  (Subversion)  ●  CVS  
+Architecture  Developer  A   │   Developer  B   │   Developer  C    \     ▼   Central  Server  
+Advantages  
+
+===== PDF PAGE 8 =====
+●  Easy  collaboration.  ●  Centralized  management.  
+Disadvantages  
+●  Single  point  of  failure.  ●  Server  downtime  affects  all  developers.  
+ 
+3.  Distributed  Version  Control  System  (DVCS)  
+Every  developer  has  a  complete  copy  of  the  repository.  
+Example:  
+●  Git  
+Architecture  Developer  A   │   Developer  B   │   Developer  C   │   ▼   Git  Repository   (Complete  Copy  for  Everyone)  
+Advantages  
+●  No  single  point  of  failure.  ●  Faster  operations.  ●  Offline  work  supported.  ●  Better  collaboration.  
+ 
+
+===== PDF PAGE 9 =====
+1.4  What  is  Git?  
+Git  is  a  Distributed  Version  Control  System  (DVCS)  developed  to  manage  source  code  
+efficiently.
+ 
+It  enables  developers  to:  
+●  Track  changes.  ●  Work  offline.  ●  Create  branches.  ●  Merge  code.  ●  Restore  previous  versions.  ●  Collaborate  with  teams.  
+ 
+Definition  
+Git  is  a  distributed  version  control  system  used  to  track  changes  in  source  code  during  
+software
+ 
+development.
+ 
+ 
+1.5  History  of  Git  
+Git  was  created  by  Linus  Torvalds  in  2005 .  
+Reason:  
+The  Linux  Kernel  project  required  a  fast,  reliable,  distributed  version  control  system.  
+Git  quickly  became  the  world's  most  popular  version  control  system.  
+ 
+1.6  Features  of  Git  
+Git  provides  many  powerful  features.  
+Key  Features  
+●  Distributed  architecture.  ●  High  performance.  ●  Branching  and  merging.  
+
+===== PDF PAGE 10 =====
+●  Fast  commits.  ●  Complete  project  history.  ●  Data  integrity.  ●  Offline  support.  ●  Lightweight.  ●  Secure.  
+ 
+1.7  Advantages  of  Git  
+●  Free  and  Open  Source.  ●  Platform  Independent.  ●  Supports  Collaboration.  ●  Fast  Performance.  ●  Easy  Rollback.  ●  Branch-based  Development.  ●  Strong  Community  Support.  ●  Widely  Used  in  Industry.  
+ 
+1.8  What  is  GitHub?  
+GitHub  is  a  cloud-based  platform  that  hosts  Git  repositories.  
+It  allows  developers  to:  
+●  Store  code  online.  ●  Collaborate  with  teams.  ●  Review  code.  ●  Track  issues.  ●  Manage  projects.  ●  Contribute  to  open-source  software.  
+GitHub  uses  Git  as  its  version  control  engine.  
+ 
+1.9  Git  vs  GitHub  
+Git  GitHub  
+Version  Control  System  Cloud  Hosting  Platform  
+
+===== PDF PAGE 11 =====
+Works  locally  Works  online  
+Tracks  code  changes  Stores  Git  repositories  
+Can  be  used  without  internet  
+Internet  required  for  cloud  features  
+Command-line  tool  Web-based  platform   
+1.10  Git  Architecture  
+Git  consists  of  three  main  areas.  
+Working  Directory          │          ▼  Staging  Area  (Index)          │          ▼  Local  Repository  (.git)          │          ▼  Remote  Repository  (GitHub)  
+Components  
+Working  Directory  
+Where  developers  create  and  modify  project  files.  
+ 
+Staging  Area  
+Temporary  area  where  selected  changes  are  prepared  before  committing.  
+ 
+Local  Repository  
+Stores  the  complete  version  history  on  the  local  computer.  
+ 
+Remote  Repository  
+
+===== PDF PAGE 12 =====
+Stores  the  project  online  (e.g.,  GitHub)  for  collaboration  and  backup.  
+ 
+1.11  Git  Workflow  
+Create  File   ↓   Modify  File   ↓   Stage  Changes   ↓   Commit  Changes   ↓   Push  to  GitHub   ↓   Collaborate   
+1.12  Applications  of  Git  &  GitHub  
+Git  and  GitHub  are  widely  used  in:  
+●  Software  Development  ●  DevOps  ●  Cloud  Computing  ●  Data  Science  ●  Machine  Learning  ●  Mobile  App  Development  ●  Web  Development  ●  Open  Source  Projects  
+ 
+
+===== PDF PAGE 13 =====
+1.13  Best  Practices  
+●  Commit  changes  frequently.  ●  Write  meaningful  commit  messages.  ●  Use  branches  for  new  features.  ●  Pull  the  latest  changes  before  starting  work.  ●  Push  code  regularly  to  GitHub.  ●  Never  commit  sensitive  information  such  as  passwords  or  API  keys.  ●  Use  .gitignore to  exclude  unnecessary  files.  
+ 
+1.14  Common  Mistakes  
+❌  Editing  code  directly  on  the  main  branch.  
+❌  Forgetting  to  commit  changes.  
+❌  Using  unclear  commit  messages  like  "update"  or  "fix".  
+❌  Committing  sensitive  credentials.  
+❌  Ignoring  merge  conflicts.  
+ 
+Real-Time  Scenario  
+A  software  company  has  a  team  developing  an  Online  Banking  Application.  
+Workflow:  
+1.  Developers  clone  the  repository  from  GitHub.  2.  Each  developer  creates  a  separate  branch.  3.  New  features  are  developed  independently.  4.  Changes  are  committed  locally.  5.  Code  is  pushed  to  GitHub.  6.  Pull  Requests  are  reviewed.  7.  Approved  changes  are  merged  into  the  main  branch.  
+This  workflow  ensures  safe  collaboration  and  maintains  a  reliable  project  history.  
+ 
+
+===== PDF PAGE 14 =====
+Interview  Questions  
+1.  What  is  Version  Control?  
+Answer:  
+Version  Control  is  a  system  that  records  changes  to  files  over  time,  allowing  users  to  track,  
+manage,
+ 
+and
+ 
+restore
+ 
+previous
+ 
+versions.
+ 
+ 
+2.  What  is  Git?  
+Answer:  
+Git  is  a  distributed  version  control  system  used  to  track  changes  in  source  code  and  support  
+collaborative
+ 
+software
+ 
+development.
+ 
+ 
+3.  What  is  GitHub?  
+Answer:  
+GitHub  is  a  cloud-based  platform  that  hosts  Git  repositories,  enabling  collaboration,  code  
+sharing,
+ 
+version
+ 
+control,
+ 
+and
+ 
+project
+ 
+management.
+ 
+ 
+4.  What  is  the  difference  between  Git  and  GitHub?  
+Answer:  
+Git  is  a  version  control  tool  that  works  locally,  while  GitHub  is  an  online  platform  that  hosts  
+Git
+ 
+repositories
+ 
+and
+ 
+provides
+ 
+collaboration
+ 
+features.
+ 
+ 
+5.  Why  is  Git  preferred  over  traditional  version  control  systems?  
+Answer:  
+Git  offers  distributed  development,  faster  performance,  offline  access,  strong  branching  and  
+merging
+ 
+capabilities,
+ 
+and
+ 
+better
+ 
+collaboration,
+ 
+making
+ 
+it
+ 
+the
+ 
+preferred
+ 
+choice
+ 
+for
+ 
+modern
+ 
+software
+ 
+development.
+ 
+ 
+===== PDF PAGE 15 =====
+Practical  Lab  
+Task  1  
+Research  three  popular  Version  Control  Systems  (Git,  SVN,  Mercurial)  and  compare  their  
+features.
+ 
+ 
+Task  2  
+Draw  the  architecture  of  Git.  
+ 
+Task  3  
+List  five  advantages  of  using  Git  in  software  development.  
+ 
+Task  4  
+Write  five  differences  between  Git  and  GitHub.  
+ 
+Task  5  
+Describe  a  real-world  software  development  workflow  using  Git  and  GitHub.  

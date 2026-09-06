@@ -229,14 +229,14 @@ export const LessonContentPanel: React.FC<LessonContentPanelProps> = ({
             </span>
           </div>
 
-          <h1 className={`text-2xl sm:text-3xl font-bold tracking-tight leading-tight
-            ${isNightMode ? 'text-white' : 'text-slate-900'}`}>
+          <h1 className={`text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight
+            ${isNightMode ? 'text-[#38BDF8]' : 'text-[#0284C7]'} dark:text-[#38BDF8]`}>
             {lessonTitle}
           </h1>
 
           {shortDescription && (
             <p className={`text-sm sm:text-base leading-relaxed
-              ${isNightMode ? 'text-slate-400' : 'text-slate-600'}`}>
+              ${isNightMode ? 'text-slate-400' : 'text-slate-600'} dark:text-slate-400`}>
               {shortDescription}
             </p>
           )}
@@ -250,14 +250,14 @@ export const LessonContentPanel: React.FC<LessonContentPanelProps> = ({
               : 'bg-blue-50/70 border-blue-100 text-slate-800'
             }`}>
             <h3 className={`text-xs font-bold uppercase tracking-wider mb-2.5 flex items-center gap-2
-              ${isNightMode ? 'text-blue-400' : 'text-[#2563EB]'}`}>
+              ${isNightMode ? 'text-[#38BDF8]' : 'text-[#0284C7]'} dark:text-[#38BDF8]`}>
               <Sparkles className="w-4 h-4" />
               <span>Learning Objectives</span>
             </h3>
             <ul className="space-y-2 text-xs sm:text-sm leading-relaxed">
               {validObjectives.map((obj, i) => (
                 <li key={i} className="flex items-start gap-2.5">
-                  <span className="text-[#2563EB] dark:text-[#3B82F6] font-bold mt-0.5">•</span>
+                  <span className="text-[#38BDF8] dark:text-[#38BDF8] font-bold mt-0.5">•</span>
                   <span>{obj}</span>
                 </li>
               ))}
@@ -274,8 +274,8 @@ export const LessonContentPanel: React.FC<LessonContentPanelProps> = ({
         {validCodeExamples.length > 0 && (
           <section className="space-y-4 pt-4 border-t border-[#E5E7EB] dark:border-[#25324A]">
             <h3 className={`text-lg font-bold flex items-center gap-2
-              ${isNightMode ? 'text-white' : 'text-slate-900'}`}>
-              <Code2 className="w-5 h-5 text-[#2563EB] dark:text-[#3B82F6]" />
+              ${isNightMode ? 'text-[#60A5FA]' : 'text-[#2563EB]'} dark:text-[#60A5FA]`}>
+              <Code2 className="w-5 h-5 text-[#38BDF8] dark:text-[#38BDF8]" />
               <span>Code Example{validCodeExamples.length > 1 ? 's' : ''}</span>
             </h3>
 
@@ -343,8 +343,8 @@ export const LessonContentPanel: React.FC<LessonContentPanelProps> = ({
         {validPracticeQuestions.length > 0 && (
           <section className="pt-4 border-t border-[#E5E7EB] dark:border-[#25324A] space-y-4">
             <h3 className={`text-lg font-bold flex items-center gap-2
-              ${isNightMode ? 'text-white' : 'text-slate-900'}`}>
-              <HelpCircle className="w-5 h-5 text-[#2563EB] dark:text-[#3B82F6]" />
+              ${isNightMode ? 'text-[#60A5FA]' : 'text-[#2563EB]'} dark:text-[#60A5FA]`}>
+              <HelpCircle className="w-5 h-5 text-[#38BDF8] dark:text-[#38BDF8]" />
               <span>Practice Questions</span>
             </h3>
 
@@ -361,13 +361,13 @@ export const LessonContentPanel: React.FC<LessonContentPanelProps> = ({
                       }`}
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-xs font-bold text-[#2563EB] dark:text-[#3B82F6]">
+                      <span className="text-xs font-bold text-[#38BDF8] dark:text-[#38BDF8]">
                         Question #{idx + 1}
                       </span>
                       <button
                         type="button"
                         onClick={() => toggleSolution(idx)}
-                        className="text-xs font-semibold text-[#2563EB] dark:text-[#3B82F6] hover:underline cursor-pointer flex items-center gap-1"
+                        className="text-xs font-semibold text-[#38BDF8] dark:text-[#38BDF8] hover:underline cursor-pointer flex items-center gap-1"
                       >
                         <span>{isOpen ? 'Hide Solution' : 'Reveal Solution'}</span>
                         {isOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
@@ -407,8 +407,8 @@ export const LessonContentPanel: React.FC<LessonContentPanelProps> = ({
           <section className="pt-6 border-t border-[#E5E7EB] dark:border-[#25324A] space-y-4">
             <div>
               <h3 className={`text-base font-bold flex items-center gap-2
-                ${isNightMode ? 'text-white' : 'text-slate-900'}`}>
-                <LinkIcon className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
+                ${isNightMode ? 'text-[#60A5FA]' : 'text-[#2563EB]'} dark:text-[#60A5FA]`}>
+                <LinkIcon className="w-4 h-4 text-[#38BDF8] dark:text-[#38BDF8]" />
                 <span>Lesson Resources</span>
               </h3>
               <p className={`text-xs mt-0.5

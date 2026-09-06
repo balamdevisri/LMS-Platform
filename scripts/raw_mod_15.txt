@@ -1,0 +1,410 @@
+Module  15:  Git  &  GitHub  Interview  
+Preparation
+ 
+&
+ 
+Career
+ 
+Guidance
+ 
+Learning  Objectives  
+After  completing  this  module,  you  will  be  able  to:  
+●  Revise  all  Git  and  GitHub  concepts.  ●  Prepare  for  technical  interviews.  ●  Solve  real-world  Git  scenarios.  ●  Learn  troubleshooting  techniques.  ●  Understand  Git  usage  in  software  companies.  ●  Build  confidence  for  internships  and  placements.  ●  Plan  a  career  path  using  Git  and  GitHub  skills.  
+ 
+15.1  Introduction  
+Git  and  GitHub  are  among  the  most  essential  skills  for  software  developers,  DevOps  
+engineers,
+ 
+cloud
+ 
+engineers,
+ 
+and
+ 
+data
+ 
+scientists.
+ 
+Almost  every  software  company  uses  Git  for:  
+●  Version  Control  ●  Team  Collaboration  ●  Continuous  Integration  (CI)  ●  Continuous  Deployment  (CD)  ●  Code  Reviews  ●  Release  Management  
+Mastering  Git  and  GitHub  not  only  improves  productivity  but  also  increases  employability.  
+ 
+Definition  
+
+===== PDF PAGE 147 =====
+Git  Interview  Preparation  is  the  process  of  revising  Git  concepts,  practicing  commands,  
+understanding
+ 
+workflows,
+ 
+and
+ 
+solving
+ 
+practical
+ 
+scenarios
+ 
+to
+ 
+perform
+ 
+confidently
+ 
+in
+ 
+technical
+ 
+interviews
+ 
+and
+ 
+real-world
+ 
+development.
+ 
+ 
+Real-Time  Example  
+A  final-year  student  attends  a  software  developer  interview.  
+The  interviewer  asks:  
+●  Explain  Git  Branching.  ●  Differentiate  between  Git  Fetch  and  Git  Pull.  ●  Resolve  a  merge  conflict.  ●  Describe  your  GitHub  projects.  ●  Explain  a  Pull  Request  workflow.  
+A  candidate  with  practical  Git  experience  confidently  answers  these  questions  and  
+demonstrates
+ 
+projects
+ 
+hosted
+ 
+on
+ 
+GitHub.
+ 
+ 
+15.2  Git  Revision  Roadmap  
+Version  Control        │        ▼  Git  Basics        │        ▼  Repositories        │        ▼  Git  Commands        │        ▼  Branching        │        ▼  GitHub        │        ▼  Collaboration        │        ▼  Advanced  Git  
+
+===== PDF PAGE 148 =====
+      │        ▼  Projects        │        ▼  Interview  Preparation   
+15.3  Essential  Git  Commands  Revision  
+Category  Important  Commands  
+Repository  git  init,  git  clone,  git  status 
+Staging  git  add,  git  restore 
+Commit  git  commit,  git  log,  git  diff 
+Branching  git  branch,  git  switch,  git  merge 
+Remote  git  remote,  git  push,  git  pull,  git  fetch 
+Advanced  git  stash,  git  reset,  git  revert,  git  rebase,  git  cherry-pick,  git  tag  
+15.4  Most  Frequently  Asked  Git  Interview  
+Questions
+ 
+1.  What  is  Git?  
+Answer:  
+Git  is  a  distributed  version  control  system  that  tracks  changes  in  source  code  and  enables  
+collaborative
+ 
+software
+ 
+development.
+ 
+ 
+2.  What  is  GitHub?  
+Answer:  
+GitHub  is  a  cloud-based  platform  that  hosts  Git  repositories  and  provides  collaboration  tools  
+such
+ 
+as
+ 
+Pull
+ 
+Requests,
+ 
+Issues,
+ 
+Projects,
+ 
+and
+ 
+Actions.
+ 
+
+===== PDF PAGE 149 =====
+ 
+3.  What  is  the  difference  between  Git  and  GitHub?  
+Git  GitHub  
+Version  Control  System  Repository  Hosting  Platform  
+Works  locally  Cloud-based  
+Tracks  code  history  Enables  collaboration   
+4.  What  is  a  Branch?  
+Answer:  
+A  branch  is  an  independent  line  of  development  that  allows  developers  to  work  on  new  
+features
+ 
+or
+ 
+bug
+ 
+fixes
+ 
+without
+ 
+affecting
+ 
+the
+ 
+main
+ 
+branch.
+ 
+ 
+5.  What  is  a  Pull  Request?  
+Answer:  
+A  Pull  Request  is  a  request  to  merge  changes  from  one  branch  into  another  after  review  and  
+approval.
+ 
+ 
+6.  What  is  the  difference  between  git  fetch and  git  pull?  
+Answer:  
+●  git  fetch downloads  changes  without  merging  them.  ●  git  pull downloads  and  automatically  merges  changes  into  the  current  branch.  
+ 
+7.  What  is  git  stash?  
+Answer:  
+git  stash temporarily  saves  uncommitted  changes  so  that  developers  can  switch  
+branches
+ 
+or
+ 
+perform
+ 
+other
+ 
+tasks
+ 
+without
+ 
+losing
+ 
+their
+ 
+work.
+ 
+ 
+
+===== PDF PAGE 150 =====
+8.  What  is  the  difference  between  git  reset and  git  revert?  
+Answer:  
+●  git  reset rewrites  commit  history  and  is  typically  used  for  local  changes.  ●  git  revert creates  a  new  commit  that  reverses  a  previous  commit  while  
+preserving
+ 
+project
+ 
+history.
+ 
+ 
+9.  What  is  Git  Rebase?  
+Answer:  
+Git  Rebase  moves  or  reapplies  commits  onto  another  branch  to  create  a  cleaner,  linear  
+commit
+ 
+history.
+ 
+ 
+10.  What  is  .gitignore?  
+Answer:  
+.gitignore specifies  files  and  directories  that  Git  should  ignore  and  not  track.  
+ 
+15.5  Real-World  Git  Scenarios  
+Scenario  1:  Merge  Conflict  
+Situation:  
+Two  developers  modify  the  same  line  of  a  file.  
+Solution:  
+●  Pull  the  latest  changes.  ●  Resolve  the  conflict  manually.  ●  Stage  the  resolved  file.  ●  Commit  the  merge.  
+ 
+Scenario  2:  Wrong  Commit  Message  
+
+===== PDF PAGE 151 =====
+Situation:  
+A  commit  message  contains  a  typo.  
+Solution:  
+git  commit  --amend   
+Scenario  3:  Accidentally  Deleted  a  Branch  
+Situation:  
+A  feature  branch  is  deleted.  
+Solution:  
+Recover  it  using  the  commit  history  (for  example,  by  locating  the  commit  in  the  log  or  reflog,  
+if
+ 
+available)
+ 
+and
+ 
+recreate
+ 
+the
+ 
+branch.
+ 
+ 
+Scenario  4:  Need  to  Switch  Tasks  
+Situation:  
+You  have  unfinished  work  but  must  fix  an  urgent  bug.  
+Solution:  
+git  stash  
+Restore  later:  
+git  stash  pop   
+Scenario  5:  Wrong  File  Committed  
+Situation:  
+A  confidential  file  was  committed  accidentally.  
+Solution:  
+Remove  the  sensitive  file  from  the  repository  history  before  sharing  it  and  rotate  any  
+exposed
+ 
+credentials.
+ 
+Also
+ 
+update
+ .gitignore to  prevent  it  from  being  committed  again.  
+
+===== PDF PAGE 152 =====
+ 
+15.6  Git  Troubleshooting  Guide  
+Problem  Solution  
+Merge  Conflict  Resolve  conflicts  manually  
+Wrong  Branch  Switch  to  the  correct  branch  
+Push  Rejected  Pull  latest  changes,  resolve  conflicts  if  needed,  then  push  again  
+Detached  HEAD  Checkout  or  switch  back  to  a  branch  
+Forgotten  Commit  Use  git  log to  locate  it   
+15.7  Git  Career  Opportunities  
+Git  is  required  in  many  technical  roles.  
+Popular  Careers:  
+●  Software  Developer  ●  Full  Stack  Developer  ●  Backend  Developer  ●  Frontend  Developer  ●  DevOps  Engineer  ●  Cloud  Engineer  ●  Site  Reliability  Engineer  (SRE)  ●  Data  Scientist  ●  Machine  Learning  Engineer  ●  Cybersecurity  Engineer  
+ 
+15.8  Git  Learning  Roadmap  
+Git  Basics       │       ▼  GitHub       │       ▼  
+
+===== PDF PAGE 153 =====
+Branching       │       ▼  Projects       │       ▼  Docker       │       ▼  Kubernetes       │       ▼  CI/CD       │       ▼  Cloud   
+15.9  Git  Cheat  Sheet  
+Task  Command  
+Initialize  Repository  git  init 
+Clone  Repository  git  clone 
+Check  Status  git  status 
+Stage  Files  git  add  . 
+Commit  Changes  git  commit  -m  "message" 
+View  History  git  log  --oneline 
+Create  Branch  git  branch  feature-name 
+Switch  Branch  git  switch  feature-name 
+Merge  Branch  git  merge  feature-name 
+Push  Changes  git  push 
+
+===== PDF PAGE 154 =====
+Pull  Changes  git  pull 
+Fetch  Updates  git  fetch 
+Save  Work  git  stash 
+Restore  Work  git  stash  pop  
+15.10  Best  Practices  Before  an  Interview  
+●  Practice  Git  commands  daily.  ●  Create  multiple  GitHub  projects.  ●  Write  professional  README  files.  ●  Learn  branching  and  merging  thoroughly.  ●  Understand  Pull  Requests.  ●  Practice  resolving  merge  conflicts.  ●  Keep  your  GitHub  profile  active.  ●  Contribute  to  at  least  one  open-source  project.  
+ 
+15.11  Common  Interview  Mistakes  
+❌  Memorizing  commands  without  understanding  them.  
+❌  Not  practicing  GitHub  workflows.  
+❌  Having  an  incomplete  GitHub  profile.  
+❌  Using  vague  commit  messages.  
+❌  Not  knowing  the  difference  between  git  fetch and  git  pull.  
+❌  Being  unable  to  explain  personal  projects.  
+ 
+Real-Time  Scenario  
+A  recruiter  asks  a  candidate  to  demonstrate  Git  knowledge.  
+The  candidate:  
+
+===== PDF PAGE 155 =====
+1.  Creates  a  repository.  2.  Creates  a  feature  branch.  3.  Commits  changes.  4.  Pushes  the  branch.  5.  Opens  a  Pull  Request.  6.  Explains  the  workflow.  7.  Shows  GitHub  projects.  
+The  candidate's  practical  demonstration  leaves  a  strong  impression.  
+ 
+Interview  Questions  
+1.  Why  is  Git  preferred  over  traditional  version  control  systems?  
+Answer:  
+Git  is  distributed,  fast,  supports  offline  work,  provides  powerful  branching  and  merging  
+capabilities,
+ 
+and
+ 
+enables
+ 
+efficient
+ 
+collaboration.
+ 
+ 
+2.  What  happens  when  you  run  git  commit?  
+Answer:  
+Git  creates  a  new  commit  object  containing  a  snapshot  of  the  staged  changes  along  with  
+metadata
+ 
+such
+ 
+as
+ 
+the
+ 
+author,
+ 
+timestamp,
+ 
+and
+ 
+commit
+ 
+message.
+ 
+ 
+3.  What  is  a  merge  conflict?  
+Answer:  
+A  merge  conflict  occurs  when  Git  cannot  automatically  combine  changes  because  multiple  
+branches
+ 
+modified
+ 
+the
+ 
+same
+ 
+part
+ 
+of
+ 
+a
+ 
+file.
+ 
+ 
+4.  What  is  the  purpose  of  GitHub  Actions?  
+Answer:  
+GitHub  Actions  automates  workflows  such  as  building,  testing,  and  deploying  applications.  
+ 
+
+===== PDF PAGE 156 =====
+5.  How  would  you  describe  your  Git  workflow  during  an  interview?  
+Answer:  
+A  typical  workflow  is:  
+●  Clone  the  repository.  ●  Create  a  feature  branch.  ●  Develop  the  feature.  ●  Commit  changes  with  meaningful  messages.  ●  Push  the  branch.  ●  Create  a  Pull  Request.  ●  Review  and  merge  after  approval.  
+ 
+Practical  Lab  
+Task  1  
+Create  a  new  GitHub  repository  and  upload  a  sample  project.  
+ 
+Task  2  
+Create  a  feature  branch,  commit  changes,  and  merge  it  into  the  main branch.  
+ 
+Task  3  
+Simulate  a  merge  conflict  and  resolve  it.  
+ 
+Task  4  
+Create  a  release  tag  named  v1.0.0.  
+ 
+Task  5  
+Prepare  your  GitHub  profile  by  adding:  
+●  Professional  profile  photo.  
+
+===== PDF PAGE 157 =====
+●  Bio.  ●  Pinned  repositories.  ●  README  files.  ●  Portfolio  projects.  
+ 
