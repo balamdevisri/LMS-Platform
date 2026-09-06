@@ -1,5 +1,5 @@
 import { auth, db } from '@/firebase';
-import { doc, setDoc, updateDoc, deleteDoc, collection, getDocs, getDoc } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, deleteDoc, collection, getDocs, getDoc, query, where } from 'firebase/firestore';
 import type { ICourse, CreateCourseDTO, UpdateCourseDTO, CourseFilterOptions, CoursePaginationResult, CourseLevel, CourseStatus, IVideoProgress } from '../../../shared/types/course';
 import { normalizeCourseData, auditCourseData } from './courseNormalizer';
 export type { ICourse };
@@ -893,34 +893,87 @@ class CourseService {
   private courseDetailsCache: Map<string, { data: ICourse; expiry: number }> = new Map();
 
   private mergeCourseModules(defModules?: any[], cachedModules?: any[]): any[] {
-    if (!defModules) return cachedModules || [];
+    if (!defModules || defModules.length === 0) return cachedModules || [];
     if (!cachedModules || cachedModules.length === 0) return defModules;
-    return defModules.map(defMod => {
-      const cachedMod = cachedModules.find(m => m.id === defMod.id);
-      if (!cachedMod) return defMod;
-      const mergedTopics = defMod.topics.map((defTopic: any) => {
+
+    const resultModules: any[] = [];
+    const processedCachedModIds = new Set<string>();
+
+    defModules.forEach((defMod) => {
+      const cachedMod = cachedModules.find((m) => m.id === defMod.id);
+      if (!cachedMod) {
+        resultModules.push(defMod);
+        return;
+      }
+      processedCachedModIds.add(cachedMod.id);
+
+      const resultTopics: any[] = [];
+      const processedCachedTopicIds = new Set<string>();
+
+      (defMod.topics || []).forEach((defTopic: any) => {
         const cachedTopic = cachedMod.topics?.find((t: any) => t.id === defTopic.id);
-        if (!cachedTopic) return defTopic;
-        const mergedUnits = defTopic.learningUnits.map((defUnit: any) => {
+        if (!cachedTopic) {
+          resultTopics.push(defTopic);
+          return;
+        }
+        processedCachedTopicIds.add(cachedTopic.id);
+
+        const resultUnits: any[] = [];
+        const processedCachedUnitIds = new Set<string>();
+
+        (defTopic.learningUnits || []).forEach((defUnit: any) => {
           const cachedUnit = cachedTopic.learningUnits?.find((u: any) => u.id === defUnit.id);
-          if (!cachedUnit) return defUnit;
-          return {
+          if (!cachedUnit) {
+            resultUnits.push(defUnit);
+            return;
+          }
+          processedCachedUnitIds.add(cachedUnit.id);
+
+          // Preserve user changes on existing unit (defUnit is baseline, cachedUnit has edits)
+          resultUnits.push({
+            ...defUnit,
             ...cachedUnit,
-            ...defUnit
-          };
+          });
         });
-        return {
-          ...cachedTopic,
+
+        // Retain any new learning units added by user in this topic
+        (cachedTopic.learningUnits || []).forEach((cachedUnit: any) => {
+          if (!processedCachedUnitIds.has(cachedUnit.id)) {
+            resultUnits.push(cachedUnit);
+          }
+        });
+
+        // Preserve topic user edits + merged units
+        resultTopics.push({
           ...defTopic,
-          learningUnits: mergedUnits
-        };
+          ...cachedTopic,
+          learningUnits: resultUnits,
+        });
       });
-      return {
-        ...cachedMod,
+
+      // Retain any new topics added by user in this module
+      (cachedMod.topics || []).forEach((cachedTopic: any) => {
+        if (!processedCachedTopicIds.has(cachedTopic.id)) {
+          resultTopics.push(cachedTopic);
+        }
+      });
+
+      // Preserve module user edits + merged topics
+      resultModules.push({
         ...defMod,
-        topics: mergedTopics
-      };
+        ...cachedMod,
+        topics: resultTopics,
+      });
     });
+
+    // Retain any new modules added by user in this course
+    cachedModules.forEach((cachedMod) => {
+      if (!processedCachedModIds.has(cachedMod.id)) {
+        resultModules.push(cachedMod);
+      }
+    });
+
+    return resultModules;
   }
 
   normalizeCourseToICourse(c: any): ICourse {
@@ -1194,26 +1247,49 @@ class CourseService {
         }
       } catch (err) {}
 
-      // Try Firestore directly if available
+      // Try Firestore directly if available (Primary Cloud Storage)
+      let firestoreLoaded: ICourse[] = [];
       if (db) {
         try {
           const querySnapshot = await getDocs(collection(db, 'courses'));
-          const loaded: ICourse[] = [];
           querySnapshot.forEach((docSnap) => {
             const item = this.normalizeCourseToICourse({ id: docSnap.id, ...docSnap.data() });
             if (!isRemovedMockCourse(item)) {
-              loaded.push(item);
+              firestoreLoaded.push(item);
             }
           });
-          if (loaded.length > 0) {
-            localStorage.setItem('shaivika_courses_data', JSON.stringify(loaded));
+          if (firestoreLoaded.length > 0) {
+            localStorage.setItem('shaivika_courses_data', JSON.stringify(firestoreLoaded));
           }
         } catch (err) {
           console.warn('Firestore fetch in getCourses failed, falling back to localStorage:', err);
         }
       }
 
-      let list = this.getStoredCourses().filter((c) => !isRemovedMockCourse(c));
+      let list: ICourse[] = [];
+      if (firestoreLoaded.length > 0) {
+        const firestoreMap = new Map<string, ICourse>();
+        firestoreLoaded.forEach(c => firestoreMap.set(String(c.id), c));
+        
+        // Ensure default courses baseline is present and merged with live Firebase content
+        DEFAULT_COURSES.forEach(defCourse => {
+          if (isRemovedMockCourse(defCourse)) return;
+          const defId = String(defCourse.id);
+          const fromFirestore = firestoreMap.get(defId) || firestoreLoaded.find(c => c.slug === defCourse.slug);
+          if (fromFirestore) {
+            firestoreMap.set(defId, {
+              ...this.normalizeCourseToICourse(defCourse),
+              ...fromFirestore,
+              modules: this.mergeCourseModules(defCourse.modules, fromFirestore.modules)
+            });
+          } else {
+            firestoreMap.set(defId, this.normalizeCourseToICourse(defCourse));
+          }
+        });
+        list = Array.from(firestoreMap.values()).filter(c => !isRemovedMockCourse(c));
+      } else {
+        list = this.getStoredCourses().filter((c) => !isRemovedMockCourse(c));
+      }
 
       if (options.status && options.status !== 'all') {
         list = list.filter((c) => c.status === options.status);
@@ -1280,6 +1356,30 @@ class CourseService {
       }
     } catch (e) {}
 
+    // Directly query Firebase Firestore
+    if (db) {
+      try {
+        const docRef = doc(db, 'courses', idOrSlug);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const course = this.normalizeCourseToICourse({ id: docSnap.id, ...docSnap.data() });
+          this.courseDetailsCache.set(idOrSlug, { data: course, expiry: Date.now() + 300000 });
+          return course;
+        }
+
+        const q = query(collection(db, 'courses'), where('slug', '==', idOrSlug));
+        const querySnap = await getDocs(q);
+        if (!querySnap.empty) {
+          const snap = querySnap.docs[0];
+          const course = this.normalizeCourseToICourse({ id: snap.id, ...snap.data() });
+          this.courseDetailsCache.set(idOrSlug, { data: course, expiry: Date.now() + 300000 });
+          return course;
+        }
+      } catch (err) {
+        console.warn('[CourseService] Direct Firestore fetch in getCourseBySlugOrId notice:', err);
+      }
+    }
+
     const list = this.getStoredCourses();
     const found = list.find((c) => c.id === idOrSlug || c.slug === idOrSlug) || null;
     if (found) {
@@ -1309,6 +1409,43 @@ class CourseService {
     } catch (err) {
       console.warn(`[CourseService] Backend modules fetch notice for ${courseId}:`, err);
     }
+
+    // Direct Firebase Firestore lookup for course modules
+    if (db) {
+      try {
+        const docRef = doc(db, 'courses', courseId);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (Array.isArray(data.modules) && data.modules.length > 0) {
+            return data.modules;
+          }
+        }
+
+        // Subcollection check: courses/{courseId}/modules
+        const modsSnap = await getDocs(collection(db, 'courses', courseId, 'modules'));
+        if (!modsSnap.empty) {
+          const modulesList: any[] = [];
+          for (const mDoc of modsSnap.docs) {
+            const mData = { id: mDoc.id, ...mDoc.data() };
+            try {
+              const lessonsSnap = await getDocs(collection(db, 'courses', courseId, 'modules', mDoc.id, 'lessons'));
+              if (!lessonsSnap.empty) {
+                const lessons = lessonsSnap.docs.map(lDoc => ({ id: lDoc.id, ...lDoc.data() }));
+                lessons.sort((a: any, b: any) => (a.orderIndex ?? a.order ?? 0) - (b.orderIndex ?? b.order ?? 0));
+                (mData as any).lessons = lessons;
+              }
+            } catch (e) {}
+            modulesList.push(mData);
+          }
+          modulesList.sort((a: any, b: any) => (a.orderIndex ?? a.order ?? 0) - (b.orderIndex ?? b.order ?? 0));
+          return modulesList;
+        }
+      } catch (err) {
+        console.warn(`[CourseService] Direct Firestore getCourseModules notice for ${courseId}:`, err);
+      }
+    }
+
     return [];
   }
 
@@ -1372,29 +1509,20 @@ class CourseService {
   }
 
   async updateCourse(id: string, updates: UpdateCourseDTO): Promise<ICourse | null> {
-    try {
-      const token = localStorage.getItem('shaivika_auth_token');
-      const res = await fetch(`${API_BASE_URL}/courses/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(updates),
-      });
-
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success) return json.data;
-      }
-    } catch (e) {}
-
     const list = this.getStoredCourses();
-    const index = list.findIndex((c) => c.id === id);
+    const index = list.findIndex(
+      (c) =>
+        String(c.id) === String(id) ||
+        (String(c.id) === 'course_linux_101' && String(id) === '1') ||
+        (String(c.id) === '1' && String(id) === 'course_linux_101') ||
+        c.slug === id
+    );
     if (index === -1) return null;
 
     const existing = list[index];
+    const targetCourseId = String(existing.id);
     this.courseDetailsCache.delete(id);
+    this.courseDetailsCache.delete(targetCourseId);
     if (existing.slug) this.courseDetailsCache.delete(existing.slug);
 
     const updated: ICourse = {
@@ -1413,40 +1541,61 @@ class CourseService {
     this.getCoursesCache.clear();
     this.courseDetailsCache.clear();
 
+    // 1. Direct write to Firebase Firestore (Primary Cloud Storage)
     if (db) {
       try {
-        await updateDoc(doc(db, 'courses', id), updated as any);
-      } catch (err) {}
+        await setDoc(doc(db, 'courses', targetCourseId), updated as any, { merge: true });
+        console.log(`[Firebase] Course "${targetCourseId}" successfully saved to Firestore!`);
+      } catch (err) {
+        console.error('[Firebase] Direct Firestore course update error:', err);
+      }
     }
 
+    // 2. Sync with Backend API
+    try {
+      const token = localStorage.getItem('shaivika_auth_token');
+      await fetch(`${API_BASE_URL}/courses/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(updates),
+      });
+    } catch (e) {}
+
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('shaivika_courses_updated', { detail: { courseId: id, updates } }));
+      window.dispatchEvent(new CustomEvent('shaivika_courses_updated', { detail: { courseId: targetCourseId, updates } }));
     }
 
     return updated;
   }
 
   async deleteCourse(id: string): Promise<boolean> {
-    try {
-      const token = localStorage.getItem('shaivika_auth_token');
-      const res = await fetch(`${API_BASE_URL}/courses/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) return true;
-    } catch (e) {}
-
     const list = this.getStoredCourses();
     const filtered = list.filter((c) => c.id !== id);
     this.saveStoredCourses(filtered);
     this.getCoursesCache.clear();
     this.courseDetailsCache.clear();
 
+    // 1. Direct delete from Firebase Firestore
     if (db) {
       try {
         await deleteDoc(doc(db, 'courses', id));
-      } catch (err) {}
+        console.log(`[Firebase] Course "${id}" deleted from Firestore.`);
+      } catch (err) {
+        console.error('[Firebase] Direct Firestore course delete error:', err);
+      }
     }
+
+    // 2. Sync with Backend API
+    try {
+      const token = localStorage.getItem('shaivika_auth_token');
+      await fetch(`${API_BASE_URL}/courses/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch (e) {}
 
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('shaivika_courses_updated', { detail: { courseId: id, deleted: true } }));

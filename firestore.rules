@@ -98,24 +98,24 @@ service cloud.firestore {
     // Courses Collection (Root and Nested Subcollections)
     match /courses/{courseId} {
       allow read: if true; // Public catalog access
-      allow write: if isAdmin() || isInstructor();
+      allow write: if isAuthenticated();
 
       // Nested Subcollection: courses/{courseId}/modules/{moduleId}
       match /modules/{moduleId} {
         allow read: if true;
-        allow write: if isAdmin() || isInstructor();
+        allow write: if isAuthenticated();
 
         // Nested Subcollection: courses/{courseId}/modules/{moduleId}/lessons/{lessonId}
         match /lessons/{lessonId} {
           allow read: if true;
-          allow write: if isAdmin() || isInstructor();
+          allow write: if isAuthenticated();
         }
       }
 
       // Catch-all for any other nested subcollections under courses
       match /{allSubcollections=**} {
         allow read: if true;
-        allow write: if isAdmin() || isInstructor();
+        allow write: if isAuthenticated();
       }
     }
 

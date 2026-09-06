@@ -213,34 +213,87 @@ interface CourseContextType {
 }
 
 const mergeCourseModules = (defModules?: ModuleItem[], cachedModules?: any[]): ModuleItem[] => {
-  if (!defModules) return cachedModules || [];
+  if (!defModules || defModules.length === 0) return cachedModules || [];
   if (!cachedModules || cachedModules.length === 0) return defModules;
-  return defModules.map(defMod => {
-    const cachedMod = cachedModules.find(m => m.id === defMod.id);
-    if (!cachedMod) return defMod;
-    const mergedTopics = defMod.topics.map(defTopic => {
+
+  const resultModules: ModuleItem[] = [];
+  const processedCachedModIds = new Set<string>();
+
+  defModules.forEach((defMod) => {
+    const cachedMod = cachedModules.find((m) => m.id === defMod.id);
+    if (!cachedMod) {
+      resultModules.push(defMod);
+      return;
+    }
+    processedCachedModIds.add(cachedMod.id);
+
+    const resultTopics: TopicItem[] = [];
+    const processedCachedTopicIds = new Set<string>();
+
+    (defMod.topics || []).forEach((defTopic) => {
       const cachedTopic = cachedMod.topics?.find((t: any) => t.id === defTopic.id);
-      if (!cachedTopic) return defTopic;
-      const mergedUnits = defTopic.learningUnits.map(defUnit => {
+      if (!cachedTopic) {
+        resultTopics.push(defTopic);
+        return;
+      }
+      processedCachedTopicIds.add(cachedTopic.id);
+
+      const resultUnits: LearningUnitItem[] = [];
+      const processedCachedUnitIds = new Set<string>();
+
+      (defTopic.learningUnits || []).forEach((defUnit) => {
         const cachedUnit = cachedTopic.learningUnits?.find((u: any) => u.id === defUnit.id);
-        if (!cachedUnit) return defUnit;
-        return {
+        if (!cachedUnit) {
+          resultUnits.push(defUnit);
+          return;
+        }
+        processedCachedUnitIds.add(cachedUnit.id);
+
+        // Preserve user changes on existing unit (defUnit is baseline, cachedUnit has edits)
+        resultUnits.push({
           ...defUnit,
-          ...cachedUnit
-        };
+          ...cachedUnit,
+        });
       });
-      return {
+
+      // Retain any new learning units added by user in this topic
+      (cachedTopic.learningUnits || []).forEach((cachedUnit: any) => {
+        if (!processedCachedUnitIds.has(cachedUnit.id)) {
+          resultUnits.push(cachedUnit);
+        }
+      });
+
+      // Preserve topic user edits + merged units
+      resultTopics.push({
         ...defTopic,
         ...cachedTopic,
-        learningUnits: mergedUnits
-      };
+        learningUnits: resultUnits,
+      });
     });
-    return {
+
+    // Retain any new topics added by user in this module
+    (cachedMod.topics || []).forEach((cachedTopic: any) => {
+      if (!processedCachedTopicIds.has(cachedTopic.id)) {
+        resultTopics.push(cachedTopic);
+      }
+    });
+
+    // Preserve module user edits + merged topics
+    resultModules.push({
       ...defMod,
       ...cachedMod,
-      topics: mergedTopics
-    };
+      topics: resultTopics,
+    });
   });
+
+  // Retain any new modules added by user in this course
+  cachedModules.forEach((cachedMod) => {
+    if (!processedCachedModIds.has(cachedMod.id)) {
+      resultModules.push(cachedMod);
+    }
+  });
+
+  return resultModules;
 };
 
 // Helper to enrich learning units with default content if missing
@@ -1134,32 +1187,6 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  const toggleCourseStatus = async (id: number | string) => {
-    const targetId = String(id) === 'course_linux_101' ? '1' : String(id);
-    const target = courses.find((c) => String(c.id) === targetId);
-    if (!target) return;
-
-    const nextStatus: 'Published' | 'Draft' = target.status === 'Published' ? 'Draft' : 'Published';
-    setCourses((prev) => prev.map((c) => (String(c.id) === targetId ? { ...c, status: nextStatus } : c)));
-
-    try {
-      await courseService.updateCourse(targetId, { status: nextStatus.toLowerCase() as any });
-    } catch (e) {
-      console.warn('Firestore sync failed in toggleCourseStatus:', e);
-    }
-  };
-
-  const deleteCourse = async (id: number | string) => {
-    const targetId = String(id) === 'course_linux_101' ? '1' : String(id);
-    setCourses((prev) => prev.filter((c) => String(c.id) !== targetId));
-
-    try {
-      await courseService.deleteCourse(targetId);
-    } catch (e) {
-      console.warn('Firestore sync failed in deleteCourse:', e);
-    }
-  };
-
   const getCourseById = (idOrSlug: number | string): CourseItem | undefined => {
     const target = String(idOrSlug).toLowerCase().trim();
     if (!target) return undefined;
@@ -1173,31 +1200,63 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
   };
 
+  const toggleCourseStatus = async (id: number | string) => {
+    const target = getCourseById(id);
+    if (!target) return;
+    const targetId = String(target.id);
+
+    const nextStatus: 'Published' | 'Draft' = target.status === 'Published' ? 'Draft' : 'Published';
+    setCourses((prev) => prev.map((c) => (String(c.id) === targetId ? { ...c, status: nextStatus } : c)));
+
+    try {
+      await courseService.updateCourse(targetId, { status: nextStatus.toLowerCase() as any });
+    } catch (e) {
+      console.warn('Firestore sync failed in toggleCourseStatus:', e);
+    }
+  };
+
+  const deleteCourse = async (id: number | string) => {
+    const target = getCourseById(id);
+    if (!target) return;
+    const targetId = String(target.id);
+
+    setCourses((prev) => prev.filter((c) => String(c.id) !== targetId));
+
+    try {
+      await courseService.deleteCourse(targetId);
+    } catch (e) {
+      console.warn('Firestore sync failed in deleteCourse:', e);
+    }
+  };
+
   const updateCourse = async (id: number | string, updates: Partial<CourseItem>) => {
-    const targetId = String(id) === 'course_linux_101' ? '1' : String(id);
+    const searchId = String(id);
+    let resolvedCourseId = searchId;
+
     setCourses((prev) => {
       const next = prev.map((c) => {
         const cId = String(c.id);
         const cSlug = String((c as any).slug || '');
         if (
-          cId === targetId ||
-          cSlug === targetId ||
-          (cId === '1' && targetId === 'course_linux_101') ||
-          (cId === 'course_linux_101' && targetId === '1')
+          cId === searchId ||
+          cSlug === searchId ||
+          (cId === '1' && searchId === 'course_linux_101') ||
+          (cId === 'course_linux_101' && searchId === '1')
         ) {
+          resolvedCourseId = String(c.id);
           return { ...c, ...updates };
         }
         return c;
       });
       localStorage.setItem('shaivika_courses_data', JSON.stringify(next));
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('shaivika_courses_updated', { detail: { courseId: targetId, updates } }));
+        window.dispatchEvent(new CustomEvent('shaivika_courses_updated', { detail: { courseId: resolvedCourseId, updates } }));
       }
       return next;
     });
 
     try {
-      await courseService.updateCourse(targetId, updates as any);
+      await courseService.updateCourse(resolvedCourseId, updates as any);
     } catch (e) {
       console.warn('Firestore sync failed in updateCourse:', e);
     }
@@ -1209,16 +1268,20 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const existingCourse = getCourseById(target);
 
-    // 1. Check static authoritative full module datasets first
+    // 1. Check static authoritative full module datasets
     try {
       const staticMods = await loadStaticCourseModules(target);
       if (staticMods && staticMods.length > 0) {
-        if (!existingCourse?.modules || existingCourse.modules.length < staticMods.length) {
+        if (existingCourse?.modules && existingCourse.modules.length > 0) {
+          // Merge static baseline with user additions/edits so nothing is lost
+          const merged = mergeCourseModules(staticMods, existingCourse.modules);
+          return merged;
+        } else {
           if (existingCourse) {
             updateCourse(existingCourse.id, { modules: staticMods });
           }
+          return staticMods;
         }
-        return staticMods;
       }
     } catch (e) {}
 

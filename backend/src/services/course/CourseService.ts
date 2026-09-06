@@ -83,7 +83,21 @@ export class CourseService {
       const docRef = this.collection().doc(id);
       const docSnap = await docRef.get();
       if (!docSnap.exists) {
-        throw new ApiError(404, `Course with ID '${id}' not found.`);
+        const partialSchema = CourseValidationSchema.partial();
+        const parsedData = partialSchema.parse(data);
+        const slug = parsedData.slug || (parsedData.title ? parsedData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') : id);
+        const newCourse: Course = {
+          enrollmentCount: 0,
+          rating: 5.0,
+          ratingCount: 0,
+          ...parsedData,
+          id,
+          slug,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        } as Course;
+        await docRef.set(toDocument(newCourse), { merge: true });
+        return newCourse;
       }
 
       const existingCourse = fromDocument<Course>(docSnap);
@@ -108,10 +122,10 @@ export class CourseService {
       } as Course;
 
       // 5. Update only the changed fields in Firestore
-      await docRef.update({
+      await docRef.set({
         ...toDocument(parsedData),
         updatedAt: FieldValue.serverTimestamp(),
-      });
+      }, { merge: true });
 
       return updatedCourse;
     } catch (error: any) {

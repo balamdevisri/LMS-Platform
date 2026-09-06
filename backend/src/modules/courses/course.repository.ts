@@ -153,7 +153,6 @@ export class CourseRepository {
     if (!this.collection) return null;
     const docRef = this.collection.doc(id);
     const existing = await this.findById(id);
-    if (!existing) return null;
 
     const updatedData: Partial<ICourse> = {
       ...updates,
@@ -164,7 +163,21 @@ export class CourseRepository {
       updatedData.slug = this.generateSlug(updates.title);
     }
 
-    await docRef.update(updatedData);
+    if (!existing) {
+      const newCourseDoc = {
+        id,
+        enrollmentCount: 0,
+        rating: 5.0,
+        ratingCount: 0,
+        createdAt: new Date().toISOString(),
+        ...updatedData,
+      };
+      await docRef.set(newCourseDoc, { merge: true });
+      this.invalidateCache();
+      return newCourseDoc as ICourse;
+    }
+
+    await docRef.set(updatedData, { merge: true });
     this.invalidateCache();
     return { ...existing, ...updatedData } as ICourse;
   }

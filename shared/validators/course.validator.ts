@@ -38,6 +38,7 @@ export const CreateCourseSchema = z.object({
       duration: z.string().optional(),
     })
   ).optional(),
+  modules: z.array(z.any()).optional(),
   aiGenerated: z.boolean().optional(),
   aiPrompt: z.string().optional(),
   aiMetadata: z.record(z.string(), z.any()).optional(),
