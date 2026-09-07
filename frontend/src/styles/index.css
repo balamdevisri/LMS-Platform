@@ -940,5 +940,44 @@ html.dark .ribbon-drawer-card {
   }
 }
 
+/* ─── 3D Depth Parallax Pop-Out Cards ─────────────────────────────────────── */
+.perspective-container {
+  perspective: 1200px;
+}
 
+.parallax-card-wrapper {
+  transform-style: preserve-3d;
+  will-change: transform;
+  transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease-out, border-color 0.25s ease-out;
+}
 
+.parallax-card-wrapper.is-resetting {
+  transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.5s ease;
+}
+
+.layer-depth-base {
+  transform: translateZ(0px);
+}
+
+.layer-depth-watermark {
+  transform: translateZ(16px);
+}
+
+.layer-depth-content {
+  transform: translateZ(26px);
+}
+
+.layer-depth-highlight {
+  transform: translateZ(36px);
+}
+
+.layer-depth-popout {
+  transform: translateZ(48px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .parallax-card-wrapper {
+    transform: none !important;
+    transition: none !important;
+  }
+}

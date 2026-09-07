@@ -30,6 +30,7 @@ import { AnimatedHeroBackground } from '@/components/landing/AnimatedHeroBackgro
 import { RotatingSplitText } from '@/components/landing/RotatingSplitText';
 import { FloatingLogo } from '@/components/landing/FloatingLogo';
 import { FlipCard } from '@/components/landing/FlipCard';
+import { ParallaxMethodologyCards } from '@/components/landing/ParallaxMethodologyCards';
 import { RevealOnScroll, StaggerContainer, StaggerItem } from '@/components/landing/RevealOnScroll';
 import { BackToTop } from '@/components/landing/BackToTop';
 
@@ -50,26 +51,6 @@ const CourseSkeleton: React.FC = () => (
 );
 
 // Hoisted static arrays to prevent re-allocation on each render
-const pillars = [
-  {
-    title: 'Learn',
-    description: 'Build a strong foundation through structured learning.',
-    icon: BookOpen,
-    gradientClass: 'bg-[#2563eb] text-white',
-  },
-  {
-    title: 'Build',
-    description: 'Turn knowledge into practical skills through hands-on practice.',
-    icon: Terminal,
-    gradientClass: 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white',
-  },
-  {
-    title: 'Evolve',
-    description: 'Continuously improve your skills and achieve your goals.',
-    icon: TrendingUp,
-    gradientClass: 'bg-gradient-to-r from-[#ec4899] to-[#f97316] text-white',
-  },
-];
 
 const features = [
   {
@@ -549,45 +530,27 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* ========================================================================= */}
-      {/* 8. SECTION — LEARN / BUILD / EVOLVE                                       */}
+      {/* 8. SECTION — LEARN / BUILD / EVOLVE (3D DEPTH PARALLAX POP-OUT CARDS)     */}
       {/* ========================================================================= */}
-      <section className="w-full py-24 border-t border-[#e2e8f0] dark:border-[#1f2937]">
-        <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-16 space-y-14">
+      <section className="w-full py-24 border-t border-[#e2e8f0] dark:border-[#1f2937] relative overflow-hidden">
+        {/* Subtle background decorative ambient glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[350px] bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-amber-500/5 blur-3xl pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-16 space-y-14 relative z-10">
           
           <RevealOnScroll className="text-center space-y-3">
             <span className="text-[11px] font-bold tracking-[0.25em] text-[#475569] dark:text-[#a1a5b7] uppercase">
               THE METHODOLOGY
             </span>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0f172a] dark:text-[#ffffff] tracking-tight">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#0f172a] dark:text-[#ffffff] tracking-tight font-heading">
               How You Grow With KaizenQ
             </h2>
+            <p className="text-xs sm:text-sm text-[#475569] dark:text-[#a1a5b7] max-w-xl mx-auto font-normal leading-relaxed">
+              A 3-stage progression from conceptual clarity to practical mastery and continuous career excellence.
+            </p>
           </RevealOnScroll>
   
-          <StaggerContainer className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {pillars.map((pillar) => {
-              const Icon = pillar.icon;
-              return (
-                <StaggerItem
-                  key={pillar.title}
-                  className="bg-[#f8fafc] dark:bg-[#111827] rounded-2xl p-8 border border-[#e2e8f0] dark:border-[#1f2937] space-y-5 flex flex-col justify-between shadow-2xs hover:border-slate-300 dark:hover:border-slate-800 transition-all duration-200"
-                >
-                  <div className="space-y-4">
-                    <div className={`w-11 h-11 rounded-xl ${pillar.gradientClass} flex items-center justify-center shadow-xs`}>
-                      <Icon className="w-5 h-5" />
-                    </div>
-
-                    <h3 className="text-lg font-bold text-[#0f172a] dark:text-[#ffffff]">
-                      {pillar.title}
-                    </h3>
-
-                    <p className="text-xs sm:text-sm text-[#475569] dark:text-[#a1a5b7] leading-relaxed font-normal">
-                      {pillar.description}
-                    </p>
-                  </div>
-                </StaggerItem>
-              );
-            })}
-          </StaggerContainer>
+          <ParallaxMethodologyCards />
         </div>
       </section>
 
