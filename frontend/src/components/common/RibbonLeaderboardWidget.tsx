@@ -2,20 +2,14 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Trophy,
-  Award,
   Zap,
   ChevronRight,
-  Sparkles,
-  TrendingUp,
   X,
-  Flame,
-  Medal,
-  Users
+  Flame
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   LeaderboardService,
-  getLevelForXP,
   getLevelTitle,
   type LeaderboardEntry
 } from '@/services/achievementService';
@@ -258,9 +252,9 @@ export const RibbonLeaderboardWidget: React.FC = () => {
                     </span>
 
                     <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[10px] flex items-center justify-center shrink-0 border border-white/20">
-                      {scholar.avatar ? (
+                      {scholar.avatarUrl ? (
                         <img
-                          src={scholar.avatar}
+                          src={scholar.avatarUrl}
                           alt={scholar.name}
                           className="w-full h-full rounded-full object-cover"
                         />

@@ -1,0 +1,9 @@
+{
+  "$schema": "https://raw.githubusercontent.com/sxnnyside-project/animoria/main/packages/animoria-vscode/schemas/animoriarc.schema.json",
+  "rules": {
+    "no-duplicate-content": "off",
+    "max-file-size-kb": 50000,
+    "no-unreferenced-assets": "off",
+    "no-gif": "off"
+  }
+}
