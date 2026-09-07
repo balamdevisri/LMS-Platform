@@ -464,7 +464,7 @@ export const LandingPage: React.FC = () => {
       {/* ========================================================================= */}
       {/* 9. SECTION — PLATFORM FEATURES (SMOOTH VIEW TRANSITION GRID CARDS)        */}
       {/* ========================================================================= */}
-      <section id="features" className="py-24 border-t border-[#e2e8f0] dark:border-[#1f2937] bg-[#f8fafc]/60 dark:bg-[#111827]/40 relative overflow-hidden">
+      <section id="features" className="py-24 border-t border-[#e2e8f0] dark:border-[#1f2937] bg-[#f8fafc] dark:bg-[#0b0f19] relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-16 space-y-12 relative z-10">
           
           <RevealOnScroll className="text-center space-y-3">
