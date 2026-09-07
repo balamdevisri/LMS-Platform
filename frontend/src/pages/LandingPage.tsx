@@ -514,6 +514,7 @@ export const LandingPage: React.FC = () => {
                 <StaggerItem key={course.id || course.slug || idx}>
                   <FlipCard
                     course={course}
+                    index={idx}
                     getCourseImage={getCourseImage}
                     onEnrollClick={(c) => {
                       setCheckoutCourses([{ id: c.id || c.slug, title: c.title }]);

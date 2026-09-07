@@ -1,21 +1,7 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Link } from 'react-router-dom';
 import type { ICourse } from '../../../../shared/types/course';
-import { CourseThumbnail } from './CourseThumbnail';
-import { CourseStatusBadge } from './CourseStatusBadge';
-import {
-  Star,
-  Clock,
-  Users,
-  ArrowRight,
-  Bookmark,
-  Award,
-  PlayCircle,
-  CheckCircle2,
-  Zap,
-  Sparkles,
-  BookOpen
-} from 'lucide-react';
+import { Bookmark, BookmarkCheck } from 'lucide-react';
 import { courseService } from '../../services/courseService';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -27,46 +13,53 @@ interface CourseCardProps {
   onArchive?: (id: string) => void;
   onDelete?: (id: string) => void;
   onDuplicate?: (id: string) => void;
+  index?: number;
 }
 
-// ─── Difficulty color map ────────────────────────────────────────────────────
-const levelColors: Record<string, { bg: string; text: string; dot: string }> = {
-  beginner:           { bg: 'bg-emerald-50 dark:bg-emerald-950/50',  text: 'text-emerald-700 dark:text-emerald-400', dot: 'bg-emerald-500' },
-  intermediate:       { bg: 'bg-amber-50 dark:bg-amber-950/50',      text: 'text-amber-700 dark:text-amber-400',     dot: 'bg-amber-500'   },
-  advanced:           { bg: 'bg-rose-50 dark:bg-rose-950/50',        text: 'text-rose-700 dark:text-rose-400',       dot: 'bg-rose-500'    },
-  beginner_to_advanced: { bg: 'bg-indigo-50 dark:bg-indigo-950/50',  text: 'text-indigo-700 dark:text-indigo-400',   dot: 'bg-indigo-500'  },
-  all_levels:         { bg: 'bg-slate-100 dark:bg-zinc-800',         text: 'text-slate-600 dark:text-zinc-300',      dot: 'bg-slate-400'   },
-};
-
-// ── Spotlight color mapping according to course category ────────────────────
-const getCategorySpotlightColor = (category?: string): string => {
-  const cat = (category || '').toLowerCase();
-  if (cat.includes('python') || cat.includes('ai') || cat.includes('data')) {
-    return 'rgba(168, 85, 247, 0.25)';
-  }
-  if (cat.includes('cloud') || cat.includes('devops') || cat.includes('linux') || cat.includes('k8s')) {
-    return 'rgba(14, 165, 233, 0.25)';
-  }
-  if (cat.includes('git') || cat.includes('dbms') || cat.includes('sql')) {
-    return 'rgba(245, 158, 11, 0.25)';
-  }
-  if (cat.includes('c') || cat.includes('java') || cat.includes('dsa')) {
-    return 'rgba(16, 185, 129, 0.25)';
-  }
-  return 'rgba(99, 102, 241, 0.25)';
-};
-
-// Social proof avatars
-const MOCK_AVATARS = [
-  { initials: 'AK', bg: 'bg-gradient-to-tr from-blue-500 to-indigo-600' },
-  { initials: 'PV', bg: 'bg-gradient-to-tr from-emerald-500 to-teal-600' },
-  { initials: 'RS', bg: 'bg-gradient-to-tr from-purple-500 to-pink-600' },
+// Curated avatar pairs matching the exact Pexels references from the user template
+const AVATAR_PAIRS = [
+  [
+    'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150',
+    'https://images.pexels.com/photos/1043474/pexels-photo-1043474.jpeg?auto=compress&cs=tinysrgb&w=150',
+  ],
+  [
+    'https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?auto=compress&cs=tinysrgb&w=150',
+    'https://images.pexels.com/photos/874158/pexels-photo-874158.jpeg?auto=compress&cs=tinysrgb&w=150',
+  ],
+  [
+    'https://images.pexels.com/photos/91227/pexels-photo-91227.jpeg?auto=compress&cs=tinysrgb&w=150',
+    'https://images.pexels.com/photos/733872/pexels-photo-733872.jpeg?auto=compress&cs=tinysrgb&w=150',
+  ],
+  [
+    'https://images.pexels.com/photos/2379005/pexels-photo-2379005.jpeg?auto=compress&cs=tinysrgb&w=150',
+    'https://images.pexels.com/photos/1036623/pexels-photo-1036623.jpeg?auto=compress&cs=tinysrgb&w=150',
+  ],
 ];
+
+// Determine card color class based on course topic
+const getCardColorClass = (category?: string, index: number = 0): string => {
+  const cat = (category || '').toLowerCase();
+  if (cat.includes('c ') || cat.includes('c-') || cat.includes('dsa') || cat.includes('algorithm') || cat.includes('beginner')) {
+    return 'card-green';
+  }
+  if (cat.includes('web') || cat.includes('react') || cat.includes('frontend') || cat.includes('javascript') || cat.includes('node')) {
+    return 'card-blue';
+  }
+  if (cat.includes('git') || cat.includes('linux') || cat.includes('devops') || cat.includes('cloud')) {
+    return 'card-orange';
+  }
+  if (cat.includes('dbms') || cat.includes('sql') || cat.includes('database') || cat.includes('k8s') || cat.includes('python')) {
+    return 'card-red';
+  }
+  const fallback = ['card-green', 'card-blue', 'card-orange', 'card-red'];
+  return fallback[index % fallback.length];
+};
 
 export const CourseCard: React.FC<CourseCardProps> = ({
   course,
   isAdmin = false,
   onBookmark,
+  index = 0,
 }) => {
   // ── Progress from courseService (preserves all existing logic) ──────────────
   const { user } = useAuth();
@@ -75,219 +68,129 @@ export const CourseCard: React.FC<CourseCardProps> = ({
   const progressPercent = checkpoint?.progressPercent ?? 0;
   const isCompleted = progressPercent >= 100;
   const isInProgress = progressPercent > 0 && !isCompleted;
-  // ───────────────────────────────────────────────────────────────────────────
-
   const isFree = course.price === 0;
-  const levelKey = (course.level || 'all_levels').toLowerCase().replace(/\s+to\s+/, '_to_').replace(/\s/g, '_');
-  const levelStyle = levelColors[levelKey] ?? levelColors['all_levels'];
 
-  // Humanize level label
-  const levelLabel = (course.level || 'All Levels')
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  const colorClass = getCardColorClass(course.category, index);
+  const avatarPair = AVATAR_PAIRS[index % AVATAR_PAIRS.length];
 
-  // Star rating display
-  const ratingStars = Math.round((course.rating ?? 0) * 2) / 2;
-  const fullStars = Math.floor(ratingStars);
-  const spotlightColor = getCategorySpotlightColor(course.category);
-  const studentCount = (course.enrollmentCount && course.enrollmentCount > 0)
-    ? course.enrollmentCount
-    : 1120;
+  // Duration / CTA text
+  const ctaLabel = isCompleted
+    ? 'Review'
+    : isInProgress
+    ? 'Continue'
+    : isFree
+    ? 'Free • Start'
+    : `₹${course.price.toFixed(0)} • Enroll`;
+
+  const subtitle = course.category || course.shortDescription || 'Core Curriculum';
+  const displayProgress = progressPercent > 0 ? Math.round(progressPercent) : 10;
 
   return (
-    <div
-      className="course-design-card group hover:-translate-y-2 hover:shadow-2xl transition-all duration-300 shadow-sm"
-      style={{ '--spotlight-color': spotlightColor } as React.CSSProperties}
-    >
-      {/* ── 1. Top-Right Radial Gradient Spotlight Overlay ── */}
-      <div className="course-design-spotlight" />
+    <div className={`dribbble-course-card ${colorClass}`}>
+      {/* ── Card Header ── */}
+      <div className="d-card-header">
+        <div className="d-date">
+          {(course.level || 'All Levels').replace('_', ' ').toUpperCase()}
+        </div>
 
-      {/* ── 2. Thumbnail & Badges ─────────────────────────────────────────── */}
-      <div className="relative overflow-hidden">
-        <CourseThumbnail src={course.thumbnail} alt={course.title} category={course.category} />
-
-        {/* Soft dark gradient vignette */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
-
-        {/* Admin status badge */}
-        {isAdmin && (
-          <div className="absolute top-3 right-3 z-10">
-            <CourseStatusBadge status={course.status} />
-          </div>
-        )}
-
-        {/* Bookmark */}
-        {!isAdmin && onBookmark && (
+        {onBookmark ? (
           <button
-            onClick={(e) => { e.preventDefault(); onBookmark(course.id); }}
-            className="absolute top-3 right-3 p-2 rounded-xl bg-white/80 dark:bg-zinc-900/80 border border-white/60 dark:border-zinc-700 text-slate-700 dark:text-zinc-300 hover:text-white hover:bg-indigo-600 transition-colors backdrop-blur-md cursor-pointer shadow-sm z-10"
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              onBookmark(course.id);
+            }}
+            className="text-white hover:opacity-80 transition-opacity cursor-pointer p-1"
             title="Bookmark Course"
           >
-            <Bookmark className="w-3.5 h-3.5" />
+            <Bookmark className="w-5 h-5 text-white fill-transparent hover:fill-white transition-colors" />
           </button>
-        )}
-
-        {/* Completion badge overlay */}
-        {isCompleted && (
-          <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/90 backdrop-blur-md text-white text-[10px] font-black shadow-md z-10">
-            <CheckCircle2 className="w-3 h-3" />
-            COMPLETED
-          </div>
-        )}
-
-        {/* Floating Category Pill on Bottom of Thumbnail */}
-        {course.category && (
-          <div className="absolute bottom-2.5 left-3 z-10">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-md text-white text-[10px] font-bold">
-              <Sparkles className="w-2.5 h-2.5 text-indigo-400" />
-              {course.category}
-            </span>
-          </div>
+        ) : (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            className="size-6"
+            title="Options"
+          >
+            <path
+              fillRule="evenodd"
+              d="M10.5 6a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Zm0 6a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Zm0 6a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Z"
+              clipRule="evenodd"
+            />
+          </svg>
         )}
       </div>
 
-      {/* ── 3. Card Body ───────────────────────────────────────────────────── */}
-      <div className="flex flex-col flex-1 p-5 space-y-3.5 relative z-10">
+      {/* ── Card Body ── */}
+      <div className="d-card-body">
+        <Link to={`/course/${course.slug}`}>
+          <h3>{course.title}</h3>
+        </Link>
+        <p>{subtitle}</p>
 
-        {/* Difficulty + Price row */}
-        <div className="flex items-center justify-between gap-2">
-          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold border border-transparent ${levelStyle.bg} ${levelStyle.text}`}>
-            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${levelStyle.dot}`} />
-            {levelLabel}
-          </span>
-          <span className={`text-xs font-black ${isFree ? 'text-emerald-600 dark:text-emerald-400' : 'text-indigo-600 dark:text-indigo-400'}`}>
-            {isFree ? 'Free' : `₹${course.price.toFixed(2)}`}
-          </span>
-        </div>
-
-        {/* Title */}
-        <h3 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-zinc-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-2 leading-snug">
-          <Link to={`/course/${course.slug}`}>{course.title}</Link>
-        </h3>
-
-        {/* Short description */}
-        <p className="text-xs text-slate-500 dark:text-zinc-400 line-clamp-2 leading-relaxed flex-1 font-normal">
-          {course.shortDescription || course.description || 'Comprehensive technical curriculum with practical exercises.'}
-        </p>
-
-        {/* Skills Chips */}
-        {course.skills && course.skills.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {course.skills.slice(0, 3).map((skill, idx) => (
-              <span
-                key={idx}
-                className="text-[10px] font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-800/50"
-              >
-                {skill}
-              </span>
-            ))}
-            {course.skills.length > 3 && (
-              <span className="text-[10px] text-slate-400 font-medium self-center">
-                +{course.skills.length - 3} more
-              </span>
-            )}
+        <div className="d-progress">
+          <div className="d-progress-labels">
+            <span>Progress</span>
+            <span>{progressPercent > 0 ? `${Math.round(progressPercent)}%` : 'Ready'}</span>
           </div>
-        )}
-
-        {/* ── 4. Stats Row: Rating · Overlapping Avatars · Duration ─────────── */}
-        <div className="flex items-center justify-between text-xs text-slate-500 dark:text-zinc-400 pt-2 border-t border-slate-100 dark:border-zinc-800/80">
-          {/* Rating */}
-          <div className="flex items-center gap-1">
-            <div className="flex items-center">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star
-                  key={i}
-                  className={`w-3 h-3 ${i < fullStars ? 'fill-amber-400 text-amber-400' : 'text-slate-200 dark:text-zinc-700'}`}
-                />
-              ))}
-            </div>
-            <span className="font-bold text-slate-700 dark:text-zinc-200 ml-0.5 text-[11px]">
-              {(course.rating ?? 0).toFixed(1)}
-            </span>
-          </div>
-
-          {/* Overlapping Avatar Stack */}
-          <div className="flex items-center gap-1.5">
-            <div className="course-avatar-stack">
-              {MOCK_AVATARS.map((av, aIdx) => (
-                <div
-                  key={aIdx}
-                  className={`w-5 h-5 rounded-full border border-white dark:border-zinc-900 ${av.bg} flex items-center justify-center text-[8px] font-black text-white shadow-xs`}
-                  title="Enrolled Learner"
-                >
-                  {av.initials}
-                </div>
-              ))}
-            </div>
-            <span className="text-[10px] font-semibold text-slate-500 dark:text-zinc-400">
-              {studentCount.toLocaleString()}
-            </span>
-          </div>
-
-          {/* Duration */}
-          <div className="flex items-center gap-1">
-            <Clock className="w-3 h-3 text-slate-400 shrink-0" />
-            <span className="text-[11px]">{course.duration}</span>
-          </div>
-        </div>
-
-        {/* ── 5. Dynamic Progress / Milestone Bar ──────────────────────────── */}
-        <div className="space-y-1.5 pt-1">
-          <div className="flex items-center justify-between text-[10px] font-bold">
-            <span className="flex items-center gap-1 text-slate-600 dark:text-zinc-400">
-              <BookOpen className="w-3 h-3 text-indigo-500" />
-              <span>{isCompleted ? 'All Modules Finished' : isInProgress ? 'In Progress' : 'Curriculum Track'}</span>
-            </span>
-            <span className={isCompleted ? 'text-emerald-600 dark:text-emerald-400' : isInProgress ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}>
-              {progressPercent > 0 ? `${Math.round(progressPercent)}%` : 'Ready to Start'}
-            </span>
-          </div>
-
-          <div className="w-full h-1.5 rounded-full bg-slate-100 dark:bg-zinc-800 overflow-hidden">
+          <div className="d-progress-bar">
             <div
-              className={`h-full rounded-full transition-all duration-700 ${
-                isCompleted
-                  ? 'bg-emerald-500'
-                  : isInProgress
-                  ? 'bg-gradient-to-r from-indigo-500 to-blue-500'
-                  : 'bg-slate-200 dark:bg-zinc-700 w-full opacity-60'
-              }`}
-              style={{ width: progressPercent > 0 ? `${Math.min(progressPercent, 100)}%` : '100%' }}
+              className="d-progress-fill"
+              style={{ width: `${displayProgress}%` }}
             />
           </div>
         </div>
+      </div>
 
-        {/* ── 6. CTA Button ─────────────────────────────────────────────────── */}
+      {/* ── Card Footer ── */}
+      <div className="d-card-footer">
+        <ul>
+          <li>
+            <img
+              src={avatarPair[0]}
+              alt="Student"
+              loading="lazy"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100';
+              }}
+            />
+          </li>
+          <li>
+            <img
+              src={avatarPair[1]}
+              alt="Student"
+              loading="lazy"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100';
+              }}
+            />
+          </li>
+          <div className="btn-add" title="Student community">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="size-6"
+            >
+              <path
+                fillRule="evenodd"
+                d="M12 3.75a.75.75 0 0 1 .75.75v6.75h6.75a.75.75 0 0 1 0 1.5h-6.75v6.75a.75.75 0 0 1-1.5 0v-6.75H4.5a.75.75 0 0 1 0-1.5h6.75V4.5a.75.75 0 0 1 .75-.75Z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </div>
+        </ul>
+
         <Link
           to={`/course/${course.slug}`}
-          className={`group/btn w-full py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm active:scale-98 ${
-            isCompleted
-              ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20'
-              : isInProgress
-              ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-500/20'
-              : 'bg-slate-900 dark:bg-zinc-100 hover:bg-indigo-600 dark:hover:bg-indigo-500 text-white dark:text-slate-900 dark:hover:text-white shadow-slate-900/10'
-          }`}
+          className="btn-countdown"
         >
-          {isCompleted ? (
-            <>
-              <CheckCircle2 className="w-4 h-4" />
-              <span>Review Course</span>
-            </>
-          ) : isInProgress ? (
-            <>
-              <PlayCircle className="w-4 h-4" />
-              <span>Continue Learning</span>
-              <ArrowRight className="w-3.5 h-3.5 ml-auto group-hover/btn:translate-x-0.5 transition-transform" />
-            </>
-          ) : (
-            <>
-              <Zap className="w-4 h-4" />
-              <span>Start Course</span>
-              <ArrowRight className="w-3.5 h-3.5 ml-auto group-hover/btn:translate-x-0.5 transition-transform" />
-            </>
-          )}
+          {ctaLabel}
         </Link>
       </div>
     </div>
   );
 };
+
+export default memo(CourseCard);

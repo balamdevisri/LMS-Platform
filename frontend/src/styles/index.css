@@ -1056,97 +1056,309 @@ html.dark .ribbon-drawer-card {
   border-left: 6px solid transparent;
 }
 
-/* ─── Course Design Cards (#2025-05-23-course-design-cards-l) ──────────────── */
-.course-design-card {
+/* ─── Dribbble Course Design Dashboard Cards (User Code) ─────────────────── */
+.dribbble-course-card {
   position: relative;
-  border-radius: 1.5rem; /* 24px */
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
-  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  overflow: hidden;
+  z-index: 10;
+  width: 100%;
+  min-height: 21rem;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
+  border-radius: 2.25rem;
+  box-shadow: 0.063em 0.75em 1.563em rgba(0, 0, 0, 0.78);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
 }
 
-html.dark .course-design-card {
-  background: rgba(17, 24, 39, 0.92);
-  box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.4);
+.dribbble-course-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.85), 0 8px 16px rgba(0, 0, 0, 0.5);
 }
 
-/* Thin glowing border mask via gradient pseudo-element and mask-composite */
-.course-design-card::before {
-  content: '';
+.dribbble-course-card::before {
   position: absolute;
+  content: "";
   inset: 0;
-  border-radius: inherit;
-  padding: 1.5px;
-  background: linear-gradient(
-    135deg,
-    rgba(99, 102, 241, 0.6) 0%,
-    rgba(168, 85, 247, 0.45) 35%,
-    rgba(148, 163, 184, 0.2) 70%,
-    rgba(255, 255, 255, 0.08) 100%
-  );
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
+  border-radius: 2.25rem;
+  z-index: 1;
+  border: 0.155rem solid transparent;
+  -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: destination-out;
   mask-composite: exclude;
   pointer-events: none;
-  z-index: 15;
-  transition: background 0.4s ease, opacity 0.4s ease;
-  opacity: 0.85;
+  transition: opacity 0.3s ease;
 }
 
-.course-design-card:hover::before {
-  opacity: 1;
-  background: linear-gradient(
-    135deg,
-    rgba(99, 102, 241, 1) 0%,
-    rgba(168, 85, 247, 0.85) 35%,
-    rgba(59, 130, 246, 0.7) 70%,
-    rgba(255, 255, 255, 0.3) 100%
-  );
-}
-
-/* Dynamic Top-Right Radial Gradient Spotlight Overlay */
-.course-design-spotlight {
-  position: absolute;
-  top: 0;
-  right: 0;
+/* Card Header */
+.dribbble-course-card .d-card-header {
+  position: relative;
+  z-index: 5;
   width: 100%;
-  height: 100%;
-  border-radius: inherit;
-  pointer-events: none;
-  z-index: 1;
-  background: radial-gradient(circle at 90% 10%, var(--spotlight-color, rgba(99, 102, 241, 0.2)) 0%, transparent 62%);
-  transition: opacity 0.35s ease, transform 0.35s ease;
-  opacity: 0.85;
-}
-
-.course-design-card:hover .course-design-spotlight {
-  opacity: 1;
-  transform: scale(1.05);
-}
-
-/* Overlapping Avatar Stack */
-.course-avatar-stack {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem 0.5rem 1.75rem;
 }
 
-.course-avatar-stack > * {
-  margin-left: -7px;
-  transition: transform 0.2s ease;
+.dribbble-course-card .d-card-header .d-date {
+  color: #dddddd;
+  font-size: 0.825rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
-.course-avatar-stack > *:first-child {
-  margin-left: 0;
+.dribbble-course-card .d-card-header svg {
+  color: #ffffff;
+  width: 1.5rem;
+  height: 1.5rem;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
-.course-avatar-stack > *:hover {
-  transform: translateY(-2px) scale(1.12);
-  z-index: 10;
+.dribbble-course-card .d-card-header svg:hover {
+  opacity: 0.8;
+  transform: scale(1.1);
 }
+
+/* Card Body */
+.dribbble-course-card .d-card-body {
+  position: relative;
+  z-index: 5;
+  width: 100%;
+  padding: 1rem 1.75rem 1.25rem 1.75rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.dribbble-course-card .d-card-body h3 {
+  color: #ffffff;
+  font-size: 1.35rem;
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+  text-transform: capitalize;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.dribbble-course-card .d-card-body p {
+  color: #dddddd;
+  font-size: 0.95rem;
+  letter-spacing: 0.02rem;
+  line-height: 1.4;
+  margin-bottom: 0.75rem;
+}
+
+/* Progress in Card Body */
+.dribbble-course-card .d-progress {
+  margin-top: 0.75rem;
+  width: 100%;
+}
+
+.dribbble-course-card .d-progress-labels {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+}
+
+.dribbble-course-card .d-progress-labels span:first-child {
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.dribbble-course-card .d-progress-labels span:last-child {
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.dribbble-course-card .d-progress-bar {
+  position: relative;
+  width: 100%;
+  background: #363636;
+  height: 0.35rem;
+  display: block;
+  border-radius: 3.125rem;
+  overflow: hidden;
+}
+
+.dribbble-course-card .d-progress-fill {
+  height: 100%;
+  border-radius: 3.125rem;
+  transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Card Footer */
+.dribbble-course-card .d-card-footer {
+  position: relative;
+  z-index: 5;
+  width: 100%;
+  border-top: 0.063rem solid #292929;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.5rem 0.85rem 1.75rem;
+  background: #151419;
+  border-bottom-left-radius: 2.25rem;
+  border-bottom-right-radius: 2.25rem;
+}
+
+.dribbble-course-card .d-card-footer ul {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+}
+
+.dribbble-course-card .d-card-footer ul li {
+  list-style-type: none;
+  display: flex;
+  margin-right: -0.625rem;
+}
+
+.dribbble-course-card .d-card-footer ul li img {
+  border-radius: 50%;
+  width: 1.875rem;
+  height: 1.875rem;
+  object-fit: cover;
+  border: 2px solid #151419;
+}
+
+.dribbble-course-card .d-card-footer .btn-add {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  color: #ffffff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-left: 0.35rem;
+  transition: transform 0.2s ease, filter 0.2s ease;
+  text-decoration: none;
+}
+
+.dribbble-course-card .d-card-footer .btn-add:hover {
+  transform: scale(1.15);
+}
+
+.dribbble-course-card .d-card-footer .btn-add svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.dribbble-course-card .d-card-footer .btn-countdown {
+  background: #222127;
+  color: #ffffff;
+  border-radius: 2em;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: background-color 0.25s ease, color 0.25s ease, transform 0.15s ease;
+  cursor: pointer;
+}
+
+.dribbble-course-card .d-card-footer .btn-countdown:active {
+  transform: scale(0.96);
+}
+
+/* ── Four Color Variants from User SCSS ── */
+/* Green */
+.dribbble-course-card.card-green {
+  background: radial-gradient(ellipse at right top, #107667ed 0%, #151419 47%, #151419 100%);
+}
+
+.dribbble-course-card.card-green::before {
+  background: linear-gradient(45deg, #232228, #232228, #232228, #232228, #01c3a8) border-box;
+}
+
+.dribbble-course-card.card-green .btn-add {
+  background: #01c3a8;
+}
+
+.dribbble-course-card.card-green .d-progress-fill {
+  background: #01c3a8;
+}
+
+.dribbble-course-card.card-green .btn-countdown:hover {
+  background: #01c3a8;
+  color: #ffffff;
+}
+
+/* Blue */
+.dribbble-course-card.card-blue {
+  background: radial-gradient(ellipse at right top, #00458f8f 0%, #151419 45%, #151419 100%);
+}
+
+.dribbble-course-card.card-blue::before {
+  background: linear-gradient(45deg, #232228, #232228, #232228, #232228, #1890ff) border-box;
+}
+
+.dribbble-course-card.card-blue .btn-add {
+  background: #1890ff;
+}
+
+.dribbble-course-card.card-blue .d-progress-fill {
+  background: #1890ff;
+}
+
+.dribbble-course-card.card-blue .btn-countdown:hover {
+  background: #1890ff;
+  color: #ffffff;
+}
+
+/* Orange */
+.dribbble-course-card.card-orange {
+  background: radial-gradient(ellipse at right top, #ffb74194 0%, #151419 47%, #151419 100%);
+}
+
+.dribbble-course-card.card-orange::before {
+  background: linear-gradient(45deg, #232228, #232228, #232228, #232228, #ffb741) border-box;
+}
+
+.dribbble-course-card.card-orange .btn-add {
+  background: #ffb741;
+  color: #151419;
+}
+
+.dribbble-course-card.card-orange .d-progress-fill {
+  background: #ffb741;
+}
+
+.dribbble-course-card.card-orange .btn-countdown:hover {
+  background: #ffb741;
+  color: #151419;
+}
+
+/* Red */
+.dribbble-course-card.card-red {
+  background: radial-gradient(ellipse at right top, #a63d2a82 0%, #151419 47%, #151419 100%);
+}
+
+.dribbble-course-card.card-red::before {
+  background: linear-gradient(45deg, #232228, #232228, #232228, #232228, #a63d2a) border-box;
+}
+
+.dribbble-course-card.card-red .btn-add {
+  background: #a63d2a;
+}
+
+.dribbble-course-card.card-red .d-progress-fill {
+  background: #a63d2a;
+}
+
+.dribbble-course-card.card-red .btn-countdown:hover {
+  background: #a63d2a;
+  color: #ffffff;
+}
+
 
 
 
