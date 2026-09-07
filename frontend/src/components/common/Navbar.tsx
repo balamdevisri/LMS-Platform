@@ -1030,9 +1030,9 @@ export const Navbar: React.FC = () => {
         isProcessing={isLoggingOut}
         onCancel={() => setLogoutModalOpen(false)}
         onConfirm={handleConfirmLogout}
-        userName={user?.displayName || user?.email?.split('@')[0] || 'User'}
+        userName={userProfile?.name || user?.displayName || user?.email?.split('@')[0] || 'User'}
         userEmail={user?.email || undefined}
-        userRole={user?.role}
+        userRole={userProfile?.role || 'student'}
       />
     </>
   );
