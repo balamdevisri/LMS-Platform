@@ -6,6 +6,7 @@ import {
   X,
   ArrowRight,
   User,
+  Users,
   LogOut,
   Settings,
   ChevronDown,
@@ -23,14 +24,11 @@ import {
   Globe,
   Code2,
   CheckCircle2,
-  Zap,
   ChevronRight,
   Database,
   Cpu,
   Trophy,
   HelpCircle,
-  Clock,
-  Briefcase
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -1029,9 +1027,12 @@ export const Navbar: React.FC = () => {
 
       <LogoutConfirmModal
         isOpen={logoutModalOpen}
-        isLoading={isLoggingOut}
-        onClose={() => setLogoutModalOpen(false)}
+        isProcessing={isLoggingOut}
+        onCancel={() => setLogoutModalOpen(false)}
         onConfirm={handleConfirmLogout}
+        userName={user?.displayName || user?.email?.split('@')[0] || 'User'}
+        userEmail={user?.email || undefined}
+        userRole={user?.role}
       />
     </>
   );
