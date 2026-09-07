@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { ICourse, CourseLevel } from '../../../../shared/types/course';
 import { courseService } from '../../services/courseService';
 import { useCourses } from '../../contexts/CourseContext';
@@ -31,8 +32,17 @@ const quickFilters: { id: QuickFilter; label: string; icon: React.ElementType }[
 
 export const CoursesList: React.FC = () => {
   const { courses: contextCourses, refreshCourses } = useCourses();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const activeUserId = user?.uid || 'default_student';
+
+  // Protect full courses view: Require login
+  useEffect(() => {
+    if (!authLoading && !user) {
+      toast.info('Please sign in to view all courses.');
+      navigate('/auth/login?redirect=/courses', { replace: true });
+    }
+  }, [user, authLoading, navigate]);
 
   const [courses, setCourses] = useState<ICourse[]>([]);
   const [loading, setLoading] = useState(true);

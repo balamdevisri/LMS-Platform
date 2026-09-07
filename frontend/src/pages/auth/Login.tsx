@@ -36,10 +36,11 @@ export const Login: React.FC = () => {
   useEffect(() => {
     const activeUser = user || auth?.currentUser;
     if (activeUser && !loading) {
-      const from = (location.state as any)?.from?.pathname;
+      const searchParams = new URLSearchParams(location.search);
+      const redirectUrl = searchParams.get('redirect') || searchParams.get('from') || (location.state as any)?.from?.pathname;
       const role = userProfile?.role || (activeUser.email?.toLowerCase().includes('admin') ? 'admin' : 'student');
-      if (from && from !== '/auth/login' && from !== '/login' && from !== '/student/login' && !from.includes('login')) {
-        navigate(from, { replace: true });
+      if (redirectUrl && redirectUrl !== '/auth/login' && redirectUrl !== '/login' && !redirectUrl.includes('login')) {
+        navigate(redirectUrl, { replace: true });
       } else if (role === 'admin') {
         navigate('/admin/dashboard', { replace: true });
       } else {
@@ -59,7 +60,11 @@ export const Login: React.FC = () => {
     try {
       const profile = await login(email, password, rememberMe);
       toast.success('Signed in successfully!');
-      if (profile?.role === 'admin') {
+      const searchParams = new URLSearchParams(location.search);
+      const redirectUrl = searchParams.get('redirect') || searchParams.get('from') || (location.state as any)?.from?.pathname;
+      if (redirectUrl && redirectUrl !== '/auth/login' && redirectUrl !== '/login' && !redirectUrl.includes('login')) {
+        navigate(redirectUrl, { replace: true });
+      } else if (profile?.role === 'admin') {
         navigate('/admin/dashboard', { replace: true });
       } else {
         navigate('/dashboard', { replace: true });
@@ -91,8 +96,12 @@ export const Login: React.FC = () => {
     try {
       const profile = await signInWithGithub();
       toast.success('Signed in with GitHub successfully!');
+      const searchParams = new URLSearchParams(location.search);
+      const redirectUrl = searchParams.get('redirect') || searchParams.get('from') || (location.state as any)?.from?.pathname;
       const role = profile?.role || (auth?.currentUser?.email?.toLowerCase().includes('admin') ? 'admin' : 'student');
-      if (role === 'admin') {
+      if (redirectUrl && redirectUrl !== '/auth/login' && redirectUrl !== '/login' && !redirectUrl.includes('login')) {
+        navigate(redirectUrl, { replace: true });
+      } else if (role === 'admin') {
         navigate('/admin/dashboard', { replace: true });
       } else {
         navigate('/dashboard', { replace: true });

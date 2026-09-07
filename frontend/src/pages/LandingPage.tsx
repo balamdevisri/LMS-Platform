@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
   Check,
   ChevronDown,
   Send,
   Star,
+  Sparkles,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { courseService } from '@/services/courseService';
 import type { ICourse } from '../../../shared/types/course';
 import { SEOHead } from '@/components/seo/SEOHead';
@@ -104,6 +106,17 @@ const faqs = [
 
 export const LandingPage: React.FC = () => {
   const { user, userProfile } = useAuth();
+  const navigate = useNavigate();
+
+  const handleViewAllCourses = (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    if (user) {
+      navigate('/courses');
+    } else {
+      toast.info('Please sign in to view all courses.');
+      navigate('/auth/login?redirect=/courses');
+    }
+  };
 
   const getStartedRoute = user
     ? (userProfile?.role === 'admin'
@@ -487,13 +500,14 @@ export const LandingPage: React.FC = () => {
               </h2>
             </div>
 
-            <Link
-              to="/courses"
-              className="px-4 py-2 rounded-xl bg-[#f8fafc] hover:bg-slate-200/70 dark:bg-[#111827] dark:hover:bg-[#1e293b] text-[#0f172a] dark:text-[#ffffff] border border-[#e2e8f0] dark:border-[#1f2937] font-semibold text-xs flex items-center gap-1.5 self-start md:self-auto transition-all"
+            <button
+              type="button"
+              onClick={handleViewAllCourses}
+              className="px-4 py-2 rounded-xl bg-[#f8fafc] hover:bg-slate-200/70 dark:bg-[#111827] dark:hover:bg-[#1e293b] text-[#0f172a] dark:text-[#ffffff] border border-[#e2e8f0] dark:border-[#1f2937] font-semibold text-xs flex items-center gap-1.5 self-start md:self-auto transition-all cursor-pointer shadow-xs active:scale-98"
             >
               <span>View All Courses</span>
               <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+            </button>
           </RevealOnScroll>
 
           {loadingCourses ? (
@@ -504,27 +518,57 @@ export const LandingPage: React.FC = () => {
           ) : catalogCourses.length === 0 ? (
             <div className="py-16 text-center text-slate-500 bg-[#f8fafc] dark:bg-[#111827] rounded-2xl border border-[#e2e8f0] dark:border-[#1f2937] p-8 space-y-4">
               <p className="text-[#0f172a] dark:text-[#ffffff] font-bold text-base">No featured courses available.</p>
-              <Link to="/courses" className="px-5 py-2.5 rounded-xl bg-[#2563eb] text-white font-bold text-xs inline-flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleViewAllCourses}
+                className="px-5 py-2.5 rounded-xl bg-[#2563eb] text-white font-bold text-xs inline-flex items-center gap-2 cursor-pointer"
+              >
                 Explore Catalog
-              </Link>
+              </button>
             </div>
           ) : (
-            <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-              {catalogCourses.map((course, idx) => (
-                <StaggerItem key={course.id || course.slug || idx}>
-                  <FlipCard
-                    course={course}
-                    index={idx}
-                    getCourseImage={getCourseImage}
-                    onEnrollClick={(c) => {
-                      setCheckoutCourses([{ id: c.id || c.slug, title: c.title }]);
-                      setCheckoutPrice(c.price ?? 0);
-                      setIsCheckoutOpen(true);
-                    }}
-                  />
-                </StaggerItem>
-              ))}
-            </StaggerContainer>
+            <div className="space-y-10">
+              <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                {catalogCourses.slice(0, 2).map((course, idx) => (
+                  <StaggerItem key={course.id || course.slug || idx}>
+                    <FlipCard
+                      course={course}
+                      index={idx}
+                      getCourseImage={getCourseImage}
+                      onEnrollClick={(c) => {
+                        setCheckoutCourses([{ id: c.id || c.slug, title: c.title }]);
+                        setCheckoutPrice(c.price ?? 0);
+                        setIsCheckoutOpen(true);
+                      }}
+                    />
+                  </StaggerItem>
+                ))}
+              </StaggerContainer>
+
+              {/* View All Courses Unlock Banner */}
+              <div className="max-w-4xl mx-auto p-6 sm:p-7 rounded-3xl bg-linear-to-r from-blue-500/5 via-indigo-500/5 to-cyan-500/5 dark:from-blue-500/10 dark:via-indigo-500/10 dark:to-cyan-500/10 border border-blue-500/20 dark:border-blue-500/30 flex flex-col sm:flex-row items-center justify-between gap-5 text-center sm:text-left backdrop-blur-md shadow-xs">
+                <div className="space-y-1.5">
+                  <h4 className="font-heading font-extrabold text-sm sm:text-base text-[#0f172a] dark:text-white flex items-center justify-center sm:justify-start gap-2">
+                    <Sparkles className="w-4 h-4 text-blue-500 shrink-0" />
+                    <span>Want to explore all technical courses?</span>
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xl font-normal leading-relaxed">
+                    {user
+                      ? 'Browse our complete catalog with Linux, Git, DSA, Web Development, Databases, and DevOps labs.'
+                      : 'Sign in to your KaizenQ account to unlock the full engineering course catalog and interactive playgrounds.'}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleViewAllCourses}
+                  className="px-6 py-3 rounded-2xl bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-blue-500/25 active:scale-98 shrink-0"
+                >
+                  <span>{user ? 'Explore All Courses' : 'Sign In to View All Courses'}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
           )}
         </div>
       </section>
