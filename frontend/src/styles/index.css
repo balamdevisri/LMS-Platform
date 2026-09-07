@@ -1056,4 +1056,97 @@ html.dark .ribbon-drawer-card {
   border-left: 6px solid transparent;
 }
 
+/* ─── Course Design Cards (#2025-05-23-course-design-cards-l) ──────────────── */
+.course-design-card {
+  position: relative;
+  border-radius: 1.5rem; /* 24px */
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+html.dark .course-design-card {
+  background: rgba(17, 24, 39, 0.92);
+  box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.4);
+}
+
+/* Thin glowing border mask via gradient pseudo-element and mask-composite */
+.course-design-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.6) 0%,
+    rgba(168, 85, 247, 0.45) 35%,
+    rgba(148, 163, 184, 0.2) 70%,
+    rgba(255, 255, 255, 0.08) 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 15;
+  transition: background 0.4s ease, opacity 0.4s ease;
+  opacity: 0.85;
+}
+
+.course-design-card:hover::before {
+  opacity: 1;
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 1) 0%,
+    rgba(168, 85, 247, 0.85) 35%,
+    rgba(59, 130, 246, 0.7) 70%,
+    rgba(255, 255, 255, 0.3) 100%
+  );
+}
+
+/* Dynamic Top-Right Radial Gradient Spotlight Overlay */
+.course-design-spotlight {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(circle at 90% 10%, var(--spotlight-color, rgba(99, 102, 241, 0.2)) 0%, transparent 62%);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  opacity: 0.85;
+}
+
+.course-design-card:hover .course-design-spotlight {
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+/* Overlapping Avatar Stack */
+.course-avatar-stack {
+  display: flex;
+  align-items: center;
+}
+
+.course-avatar-stack > * {
+  margin-left: -7px;
+  transition: transform 0.2s ease;
+}
+
+.course-avatar-stack > *:first-child {
+  margin-left: 0;
+}
+
+.course-avatar-stack > *:hover {
+  transform: translateY(-2px) scale(1.12);
+  z-index: 10;
+}
+
+
 
