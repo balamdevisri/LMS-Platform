@@ -2,17 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight,
-  Award,
-  BarChart3,
-  Bot,
-  BookOpen,
   Check,
   ChevronDown,
   Send,
   Star,
-  Terminal,
-  TrendingUp,
-  Video,
 } from 'lucide-react';
 import { courseService } from '@/services/courseService';
 import type { ICourse } from '../../../shared/types/course';
@@ -31,6 +24,7 @@ import { RotatingSplitText } from '@/components/landing/RotatingSplitText';
 import { FloatingLogo } from '@/components/landing/FloatingLogo';
 import { FlipCard } from '@/components/landing/FlipCard';
 import { ParallaxMethodologyCards } from '@/components/landing/ParallaxMethodologyCards';
+import { SmoothViewTransitionGridCards } from '@/components/landing/SmoothViewTransitionGridCards';
 import { RevealOnScroll, StaggerContainer, StaggerItem } from '@/components/landing/RevealOnScroll';
 import { BackToTop } from '@/components/landing/BackToTop';
 
@@ -51,45 +45,6 @@ const CourseSkeleton: React.FC = () => (
 );
 
 // Hoisted static arrays to prevent re-allocation on each render
-
-const features = [
-  {
-    icon: Bot,
-    title: 'AI Learning',
-    description:
-      '24/7 intelligent assistance explaining code line-by-line and diagnosing conceptual roadblocks.',
-  },
-  {
-    icon: BookOpen,
-    title: 'Structured Courses',
-    description:
-      'Step-by-step modular curricula covering Linux, Git, Systems, and modern engineering stacks.',
-  },
-  {
-    icon: Terminal,
-    title: 'Coding Practice',
-    description:
-      'Zero-setup interactive terminal labs and in-browser execution playgrounds for real hands-on practice.',
-  },
-  {
-    icon: Video,
-    title: 'Live Classes',
-    description:
-      'Interactive live classrooms and mentor-led sessions with real-time feedback and collaboration.',
-  },
-  {
-    icon: Award,
-    title: 'Certificates',
-    description:
-      'Tamper-proof digital credentials with cryptographic QR verification ready for LinkedIn and employers.',
-  },
-  {
-    icon: BarChart3,
-    title: 'Learning Analytics',
-    description:
-      'Visual competency graphs and progress tracking that clearly highlight skill milestones.',
-  },
-];
 
 const pricingPlans = [
   {
@@ -555,41 +510,24 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* ========================================================================= */}
-      {/* 9. SECTION — FEATURES (USE EXISTING FEATURES ONLY)                        */}
+      {/* 9. SECTION — PLATFORM FEATURES (SMOOTH VIEW TRANSITION GRID CARDS)        */}
       {/* ========================================================================= */}
-      <section id="features" className="py-24 border-t border-[#e2e8f0] dark:border-[#1f2937] bg-[#f8fafc]/60 dark:bg-[#111827]/40">
-        <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-16 space-y-14">
+      <section id="features" className="py-24 border-t border-[#e2e8f0] dark:border-[#1f2937] bg-[#f8fafc]/60 dark:bg-[#111827]/40 relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-16 space-y-12 relative z-10">
           
           <RevealOnScroll className="text-center space-y-3">
             <span className="text-[11px] font-bold tracking-[0.25em] text-[#2563eb] dark:text-[#3b82f6] uppercase">
               PLATFORM FEATURES
             </span>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0f172a] dark:text-[#ffffff] tracking-tight">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#0f172a] dark:text-[#ffffff] tracking-tight font-heading">
               Essential Tools for Practical Mastery
             </h2>
+            <p className="text-xs sm:text-sm text-[#475569] dark:text-[#a1a5b7] max-w-xl mx-auto font-normal leading-relaxed">
+              Engineered for seamless conceptual learning, terminal execution, live collaboration, and verifiable credentials.
+            </p>
           </RevealOnScroll>
 
-          <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            {features.map((feature, idx) => {
-              const Icon = feature.icon;
-              return (
-                <StaggerItem
-                  key={idx}
-                  className="bg-white dark:bg-[#111827] p-7 rounded-2xl border border-[#e2e8f0] dark:border-[#1f2937] space-y-3.5 shadow-2xs hover:border-slate-300 dark:hover:border-slate-800 transition-all duration-200"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-[#f8fafc] dark:bg-[#1e293b] text-[#2563eb] dark:text-[#3b82f6] flex items-center justify-center">
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <h3 className="text-base font-bold text-[#0f172a] dark:text-[#ffffff]">
-                    {feature.title}
-                  </h3>
-                  <p className="text-xs sm:text-sm text-[#475569] dark:text-[#a1a5b7] leading-relaxed font-normal">
-                    {feature.description}
-                  </p>
-                </StaggerItem>
-              );
-            })}
-          </StaggerContainer>
+          <SmoothViewTransitionGridCards />
 
         </div>
       </section>

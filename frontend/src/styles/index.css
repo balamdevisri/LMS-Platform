@@ -981,3 +981,20 @@ html.dark .ribbon-drawer-card {
     transition: none !important;
   }
 }
+
+/* ─── Smooth View Transition Grid Cards ────────────────────────────────────── */
+.view-transition-card {
+  transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
+              box-shadow 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
+              border-color 0.25s ease,
+              opacity 0.25s ease;
+  will-change: transform, box-shadow;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .view-transition-card {
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
