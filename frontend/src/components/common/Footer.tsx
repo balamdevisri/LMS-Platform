@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Mail, ArrowRight, BookOpen, Terminal, Briefcase, Award, Check } from 'lucide-react';
+import { Mail, ArrowRight, BookOpen, Terminal, Briefcase, Award, Check, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BrandLogo } from './BrandLogo';
 import { ThemeToggle } from './ThemeToggle';
@@ -49,6 +49,39 @@ export const Footer: React.FC = () => {
             <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-sm leading-relaxed font-normal">
               KaizenQ is a modern learning platform designed to help students and aspiring developers build practical technology skills through structured learning and hands-on practice.
             </p>
+
+            {/* Powered By Shaivika IT Technologies Callout Card */}
+            <div className="pt-1">
+              <a
+                href="https://www.shaivikaittechnologies.in"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group inline-flex items-center gap-3.5 p-3 pr-5 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200/90 dark:border-slate-800 hover:border-blue-500/50 dark:hover:border-blue-400/50 shadow-xs hover:shadow-md transition-all duration-300"
+                title="Visit Shaivika IT Technologies - www.shaivikaittechnologies.in"
+              >
+                <div className="w-12 h-12 rounded-xl bg-white dark:bg-white/95 border border-slate-200/80 dark:border-white/20 flex items-center justify-center p-1 overflow-hidden shrink-0 group-hover:scale-105 transition-transform shadow-2xs">
+                  <img
+                    src="/brand/shaivika-logo.png"
+                    alt="Shaivika IT Technologies Logo"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <div className="text-left">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] uppercase tracking-wider font-extrabold text-blue-600 dark:text-cyan-400">
+                      Powered by
+                    </span>
+                    <ExternalLink className="w-2.5 h-2.5 text-slate-400 group-hover:text-blue-500 transition-colors" />
+                  </div>
+                  <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition-colors">
+                    Shaivika IT Technologies
+                  </p>
+                  <span className="text-[11px] text-blue-600/90 dark:text-cyan-400/90 font-mono underline decoration-blue-400/40 underline-offset-2">
+                    www.shaivikaittechnologies.in
+                  </span>
+                </div>
+              </a>
+            </div>
 
             <div className="pt-2">
               <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest block mb-2.5">
@@ -141,9 +174,39 @@ export const Footer: React.FC = () => {
         <div className="h-px bg-slate-200/80 dark:bg-slate-800 w-full" />
 
         {/* Bottom Bar */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-slate-500 dark:text-slate-400">
-          <div className="text-center md:text-left">
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-6 text-xs text-slate-500 dark:text-slate-400">
+          <div className="text-center lg:text-left">
             <p>© {new Date().getFullYear()} KaizenQ. All rights reserved.</p>
+          </div>
+
+          {/* Powered by Shaivika IT Technologies Bottom Pill */}
+          <div className="flex items-center">
+            <a
+              href="https://www.shaivikaittechnologies.in"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-blue-500/50 dark:hover:border-blue-400/50 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-cyan-400 transition-all shadow-2xs"
+              title="Powered by Shaivika IT Technologies"
+            >
+              <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center overflow-hidden shrink-0 shadow-2xs">
+                <img
+                  src="/brand/shaivika-logo.png"
+                  alt="Shaivika IT Technologies"
+                  className="w-full h-full object-contain group-hover:scale-110 transition-transform"
+                />
+              </div>
+              <span className="text-[11px] font-medium">
+                Powered by{' '}
+                <strong className="font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition-colors">
+                  Shaivika IT Technologies
+                </strong>
+                <span className="hidden sm:inline text-slate-400 dark:text-slate-500 mx-1">•</span>
+                <span className="font-mono text-blue-600 dark:text-cyan-400 underline decoration-blue-400/40 underline-offset-2">
+                  www.shaivikaittechnologies.in
+                </span>
+              </span>
+              <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
+            </a>
           </div>
 
           {/* Theme Selector & Social Icons */}
