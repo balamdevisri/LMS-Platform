@@ -998,3 +998,62 @@ html.dark .ribbon-drawer-card {
   }
 }
 
+/* ─── Product Plan Cards with CSS Ribbons ─────────────────────────────────── */
+.plan-ribbon-wrapper {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 140px;
+  height: 140px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.plan-corner-ribbon {
+  position: absolute;
+  top: 26px;
+  right: -38px;
+  width: 160px;
+  transform: rotate(45deg);
+  text-align: center;
+  font-size: 9.5px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 5px 0;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  user-select: none;
+}
+
+/* 3D Draped Bookmark Ribbon Banner (Top Edge for VIP Card) */
+.plan-draped-ribbon {
+  position: absolute;
+  top: -6px;
+  right: 28px;
+  padding: 8px 16px 14px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 6px), 50% 100%, 0 calc(100% - 6px));
+  z-index: 25;
+  user-select: none;
+}
+
+/* 3D Folded ear behind the card edge */
+.plan-draped-ribbon::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -6px;
+  width: 0;
+  height: 0;
+  border-bottom: 6px solid #78350F;
+  border-left: 6px solid transparent;
+}
+
+
