@@ -32,6 +32,7 @@ import { SEOHead } from '@/components/seo/SEOHead';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { LogoutConfirmModal } from '@/components/common/LogoutConfirmModal';
 import { RibbonLeaderboardWidget } from '@/components/common/RibbonLeaderboardWidget';
+import { GooeyNavbar } from '@/components/common/GooeyNavbar';
 import { useAuth } from '@/contexts/AuthContext';
 import { notificationService, type NotificationItem } from '@/services/notificationService';
 
@@ -263,8 +264,13 @@ export const DashboardLayout: React.FC = () => {
         />
       )}
 
+      {/* ── Desktop Gooey Elastic Pill Navbar (User Spec) ── */}
+      <div className="hidden lg:flex">
+        <GooeyNavbar onSignOutClick={handleSignOutClick} />
+      </div>
+
       <aside
-        className={`fixed top-0 left-0 bottom-0 w-64 bg-white/95 dark:bg-slate-950/95 backdrop-blur-2xl z-50 flex flex-col transition-transform duration-300 border-r border-slate-200/80 dark:border-slate-800/80 shadow-2xl shadow-blue-500/5 lg:translate-x-0 ${
+        className={`fixed top-0 left-0 bottom-0 w-64 bg-white/95 dark:bg-slate-950/95 backdrop-blur-2xl z-50 flex flex-col transition-transform duration-300 border-r border-slate-200/80 dark:border-slate-800/80 shadow-2xl shadow-blue-500/5 lg:hidden ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -456,7 +462,7 @@ export const DashboardLayout: React.FC = () => {
         </div>
       </aside>
 
-      <div className="lg:pl-64 flex-1 flex flex-col">
+      <div className="lg:pl-28 flex-1 flex flex-col transition-all duration-300">
         <header className="h-14 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl border-b border-slate-200/80 dark:border-zinc-800 px-4 sm:px-6 lg:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm transition-colors duration-300">
           
           <div className="flex items-center gap-3">
