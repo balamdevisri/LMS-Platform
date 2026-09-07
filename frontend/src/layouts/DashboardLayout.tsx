@@ -31,6 +31,7 @@ import { BrandLogo } from '@/components/common/BrandLogo';
 import { SEOHead } from '@/components/seo/SEOHead';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { LogoutConfirmModal } from '@/components/common/LogoutConfirmModal';
+import { RibbonLeaderboardWidget } from '@/components/common/RibbonLeaderboardWidget';
 import { useAuth } from '@/contexts/AuthContext';
 import { notificationService, type NotificationItem } from '@/services/notificationService';
 
@@ -770,6 +771,11 @@ export const DashboardLayout: React.FC = () => {
         onCancel={() => setLogoutModalOpen(false)}
         isProcessing={isLoggingOut}
       />
+
+      {/* Floating Ribbon Hover CSS Leaderboard Widget */}
+      {!location.pathname.includes('/dashboard/leaderboard') && !location.pathname.includes('/leaderboard') && (
+        <RibbonLeaderboardWidget />
+      )}
     </div>
   );
 };

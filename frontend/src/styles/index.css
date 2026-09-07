@@ -812,4 +812,133 @@ html.dark .markdown-content li::marker {
   margin-bottom: 0;
 }
 
+/* ==========================================================================
+   RIBBON HOVER CSS LEADERBOARD WIDGET
+   ========================================================================== */
+
+/* Outer floating container fixed on right edge */
+.ribbon-leaderboard-widget {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%) translateX(calc(100% - 46px));
+  z-index: 45;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), filter 0.3s ease;
+  display: flex;
+  align-items: stretch;
+  filter: drop-shadow(-4px 8px 24px rgba(0, 0, 0, 0.22));
+  will-change: transform;
+}
+
+/* Pure CSS Hover & Focus-Within Slide Expansion */
+.ribbon-leaderboard-widget:hover,
+.ribbon-leaderboard-widget:focus-within,
+.ribbon-leaderboard-widget.is-open {
+  transform: translateY(-50%) translateX(0);
+  filter: drop-shadow(-8px 12px 36px rgba(0, 0, 0, 0.35));
+}
+
+/* 3D Folded Ribbon Tab Handle */
+.ribbon-tab-handle {
+  width: 46px;
+  min-height: 165px;
+  background: linear-gradient(180deg, #F59E0B 0%, #D97706 45%, #B45309 100%);
+  border-top-left-radius: 14px;
+  border-bottom-left-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px 4px;
+  cursor: pointer;
+  position: relative;
+  box-shadow: -4px 0 16px rgba(217, 119, 6, 0.35);
+  border: 1.5px solid rgba(254, 243, 199, 0.45);
+  border-right: none;
+  user-select: none;
+  transition: background 0.3s ease;
+}
+
+.ribbon-tab-handle:hover {
+  background: linear-gradient(180deg, #FBBF24 0%, #F59E0B 45%, #D97706 100%);
+}
+
+/* Authentic 3D Ribbon Corner Folds */
+.ribbon-tab-handle::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-bottom: 8px solid #78350F;
+  border-right: 8px solid transparent;
+}
+
+.ribbon-tab-handle::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-top: 8px solid #78350F;
+  border-right: 8px solid transparent;
+}
+
+/* Vertical Rotated Text on Ribbon */
+.ribbon-text-vertical {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-family: 'Sora', var(--font-heading), sans-serif;
+  font-weight: 900;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #1E293B;
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.6);
+  white-space: nowrap;
+}
+
+/* Expanded Card Flyout Drawer */
+.ribbon-drawer-card {
+  width: 340px;
+  max-width: calc(100vw - 60px);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-top-left-radius: 22px;
+  border-bottom-left-radius: 22px;
+  border: 1.5px solid var(--kq-border, rgba(226, 232, 240, 0.8));
+  border-right: none;
+  box-shadow: -12px 12px 40px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+html.dark .ribbon-drawer-card {
+  background: rgba(10, 14, 26, 0.96);
+  border-color: rgba(37, 50, 74, 0.8);
+  box-shadow: -15px 15px 50px rgba(0, 0, 0, 0.6);
+}
+
+@media (max-width: 640px) {
+  .ribbon-leaderboard-widget {
+    top: auto;
+    bottom: 24px;
+    transform: translateY(0) translateX(calc(100% - 46px));
+  }
+  .ribbon-leaderboard-widget:hover,
+  .ribbon-leaderboard-widget:focus-within,
+  .ribbon-leaderboard-widget.is-open {
+    transform: translateY(0) translateX(0);
+  }
+  .ribbon-drawer-card {
+    width: 300px;
+  }
+}
+
+
 

@@ -17,6 +17,7 @@ import { CertificatePreviewModal } from '../courses/CertificatePreviewModal';
 import { CertificateService } from '@/services/achievementService';
 import { CourseActionConfirmModal } from '../courses/CourseActionConfirmModal';
 import { QuizPlayer } from '../quiz/QuizPlayer';
+import { RibbonLeaderboardWidget } from '@/components/common/RibbonLeaderboardWidget';
 
 const AITutorDrawer = lazy(() => import('./AITutorDrawer').then(m => ({ default: m.AITutorDrawer })));
 
@@ -953,6 +954,9 @@ export const CourseLearningLayout: React.FC<CourseLearningLayoutProps> = ({
         }}
         onCancel={() => setIsExitConfirmOpen(false)}
       />
+
+      {/* Floating Ribbon Hover CSS Leaderboard Widget */}
+      <RibbonLeaderboardWidget />
     </div>
   );
 };
