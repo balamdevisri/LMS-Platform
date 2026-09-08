@@ -68,16 +68,6 @@ export const LiveClassroomScreen: React.FC = () => {
   const navigate = useNavigate();
   const { user, userProfile, loading: authLoading } = useAuth();
 
-  const isInstructor = userProfile?.role === 'instructor' || userProfile?.role === 'admin';
-
-  const resolvedDisplayName = useMemo(() => {
-    if (userProfile?.fullName) return userProfile.fullName;
-    if (userProfile?.name) return userProfile.name;
-    if (user?.displayName) return user.displayName;
-    if (user?.email) return user.email.split('@')[0];
-    return isInstructor ? 'Lead Instructor' : 'KaizenQ Learner';
-  }, [userProfile, user, isInstructor]);
-
   // Core Room & Socket States
   const [socket, setSocket] = useState<Socket | null>(null);
   const [liveClassData, setLiveClassData] = useState<LiveClass | null>(null);
@@ -95,8 +85,8 @@ export const LiveClassroomScreen: React.FC = () => {
   const [secondsElapsed, setSecondsElapsed] = useState(0);
 
   // Hardware States
-  const [micOn, setMicOn] = useState(true);
-  const [camOn, setCamOn] = useState(true);
+  const [micOn, setMicOn] = useState(false);
+  const [camOn, setCamOn] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -111,6 +101,40 @@ export const LiveClassroomScreen: React.FC = () => {
   // Sidebar Tabs (Strict KaizenQ design: Participants, Chat, Q&A)
   const [activeTab, setActiveTab] = useState<'participants' | 'chat' | 'questions'>('chat');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  const isPlatformStaff = userProfile?.role === 'instructor' || userProfile?.role === 'admin' || userProfile?.role === 'mentor';
+
+  const isAssignedInstructor = useMemo(() => {
+    if (userProfile?.role === 'admin') return true;
+    if (!isPlatformStaff) return false;
+    if (!liveClassData) return false;
+
+    const currentUid = (user?.uid || userProfile?.uid || '').trim();
+    const currentEmail = (user?.email || userProfile?.email || '').trim().toLowerCase();
+    const currentName = (userProfile?.fullName || userProfile?.name || user?.displayName || '').trim().toLowerCase();
+
+    const instId = (liveClassData.instructorId || '').trim();
+    const createdBy = (liveClassData.createdBy || '').trim();
+    const instEmail = ((liveClassData as any).instructorEmail || '').trim().toLowerCase();
+    const instName = (liveClassData.instructorName || '').trim().toLowerCase();
+
+    if (currentUid && (instId === currentUid || createdBy === currentUid)) return true;
+    if (currentEmail && instEmail && instEmail === currentEmail) return true;
+    if (currentName && instName && (instName === currentName || instName.includes(currentName) || currentName.includes(instName))) return true;
+    if (['inst_kaizen', 'inst_default', 'instructor_lead', 'admin', ''].includes(instId)) return true;
+
+    return false;
+  }, [userProfile, user, liveClassData, isPlatformStaff]);
+
+  const isInstructor = isAssignedInstructor;
+
+  const resolvedDisplayName = useMemo(() => {
+    if (userProfile?.fullName) return userProfile.fullName;
+    if (userProfile?.name) return userProfile.name;
+    if (user?.displayName) return user.displayName;
+    if (user?.email) return user.email.split('@')[0];
+    return isInstructor ? 'Lead Instructor' : 'KaizenQ Learner';
+  }, [userProfile, user, isInstructor]);
 
   // Modals & Drawers
   const [isWhiteboardOpen, setIsWhiteboardOpen] = useState(false);
@@ -483,7 +507,14 @@ export const LiveClassroomScreen: React.FC = () => {
         token = await user.getIdToken().catch(() => undefined);
       }
 
-      const res = await liveClassService.startClass(classId, token);
+      const userMeta = {
+        uid: user?.uid || userProfile?.uid,
+        role: userProfile?.role,
+        email: user?.email || userProfile?.email,
+        name: userProfile?.fullName || userProfile?.name || user?.displayName,
+      };
+
+      const res = await liveClassService.startClass(classId, token, userMeta);
       if (!res.success) {
         toast.error(res.error || 'Failed to start live class.');
         setIsStartingClass(false);
@@ -858,8 +889,12 @@ export const LiveClassroomScreen: React.FC = () => {
 
             {/* Primary Action Area */}
             <div className="pt-2 relative z-10">
-              {isInstructor ? (
+              {isAssignedInstructor ? (
                 <div className="space-y-3 text-center sm:text-left">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold text-xs">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Designated Instructor: You are authorized to start this live session</span>
+                  </div>
                   <div className="flex flex-col sm:flex-row gap-3">
                     <button
                       type="button"
@@ -895,10 +930,10 @@ export const LiveClassroomScreen: React.FC = () => {
                 <div className="p-6 rounded-2xl bg-slate-950/60 border border-slate-800 text-center space-y-4">
                   <div className="flex items-center justify-center gap-2 text-sky-400 font-bold text-sm">
                     <span className="w-2.5 h-2.5 rounded-full bg-sky-400 animate-ping" />
-                    <span>Waiting for instructor to start the live class...</span>
+                    <span>Waiting for assigned instructor to start the live class...</span>
                   </div>
                   <p className="text-xs text-slate-400 max-w-md mx-auto">
-                    The session is scheduled. As soon as your instructor commences the class, this screen will automatically transition into the live interactive classroom.
+                    Instructor <strong className="text-white">{liveClassData?.instructorName || 'Lead Mentor'}</strong> has not commenced the broadcast yet. This screen will automatically launch into the live classroom the instant the instructor starts the session.
                   </p>
                   <button
                     type="button"
@@ -906,7 +941,7 @@ export const LiveClassroomScreen: React.FC = () => {
                     className="py-2.5 px-4 mx-auto rounded-xl bg-slate-900 border border-slate-700 text-slate-300 hover:text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all"
                   >
                     <Settings className="w-3.5 h-3.5 text-sky-400" />
-                    <span>Check Devices & Permissions</span>
+                    <span>Test Audio & Video Preview</span>
                   </button>
                 </div>
               )}
@@ -941,12 +976,12 @@ export const LiveClassroomScreen: React.FC = () => {
             {liveClassData?.instructorAvatar ? (
               <img
                 src={liveClassData.instructorAvatar}
-                alt={liveClassData.instructorName}
+                alt={liveClassData.instructorName || 'Instructor'}
                 className="w-10 h-10 rounded-full object-cover border-2 border-sky-400 shadow-md"
               />
             ) : (
               <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-black text-xs flex items-center justify-center border-2 border-sky-400 shadow-md">
-                {liveClassData?.instructorName.charAt(0) || 'M'}
+                {(liveClassData?.instructorName || 'M').charAt(0).toUpperCase()}
               </div>
             )}
             <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full animate-ping" />
@@ -1167,6 +1202,8 @@ export const LiveClassroomScreen: React.FC = () => {
               role={isInstructor ? 'instructor' : 'student'}
               onClientReady={(client) => {
                 mediaClientRef.current = client;
+                setMicOn(client.getIsAudioEnabled());
+                setCamOn(client.getIsVideoEnabled());
               }}
               onMediaConnectionStateChange={(state) => {
                 setMediaConnectionState(state);
@@ -1547,7 +1584,7 @@ export const LiveClassroomScreen: React.FC = () => {
                       <div className="p-3 bg-slate-950 border border-slate-800 rounded-2xl flex items-center justify-between text-xs">
                         <div className="flex items-center gap-2.5">
                           <div className="w-7 h-7 rounded-full bg-sky-500/20 text-sky-300 font-bold flex items-center justify-center text-xs">
-                            {resolvedDisplayName.charAt(0).toUpperCase()}
+                            {(resolvedDisplayName || 'U').charAt(0).toUpperCase()}
                           </div>
                           <div>
                             <p className="font-bold text-white">{resolvedDisplayName}</p>

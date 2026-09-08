@@ -1,5 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 import type { User as FirebaseUser } from 'firebase/auth';
+import { liveClassService } from './liveClassService';
 
 const getSocketUrl = (): string => {
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
@@ -133,6 +134,36 @@ class SocketService {
 
     this.socket.io.on('reconnect_failed', () => {
       this.emitStatus('disconnected');
+    });
+
+    // Global real-time deletion listener for all connected clients
+    this.socket.on('liveClass:deleted', (data: { liveClassId?: string; classId?: string }) => {
+      const id = data?.liveClassId || data?.classId;
+      if (id) {
+        liveClassService.deleteLiveClass(id);
+      }
+    });
+
+    this.socket.on('live_class_deleted', (data: { liveClassId?: string; classId?: string }) => {
+      const id = data?.liveClassId || data?.classId;
+      if (id) {
+        liveClassService.deleteLiveClass(id);
+      }
+    });
+
+    this.socket.on('live_class_ended', (data: { liveClassId?: string; classId?: string }) => {
+      const id = data?.liveClassId || data?.classId;
+      if (id) {
+        liveClassService.deleteLiveClass(id);
+      }
+    });
+
+    this.socket.on('liveClass:status', (data: { liveClassId?: string; status?: string }) => {
+      const id = data?.liveClassId;
+      const status = (data?.status || '').toUpperCase();
+      if (id && (status === 'ENDED' || status === 'COMPLETED' || status === 'CANCELLED')) {
+        liveClassService.deleteLiveClass(id);
+      }
     });
 
     return this.socket;

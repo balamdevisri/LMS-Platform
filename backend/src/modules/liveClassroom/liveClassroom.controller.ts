@@ -121,6 +121,13 @@ export class LiveClassroomController {
     try {
       const classId = (req.params.classId || req.params.id) as string;
       const result = await liveClassroomService.deleteLiveClass(classId);
+
+      const liveNS = getLiveNamespace();
+      if (liveNS) {
+        liveNS.emit('liveClass:deleted', { liveClassId: classId, classId });
+        liveNS.emit('live_class_deleted', { liveClassId: classId, classId });
+      }
+
       res.json({ success: true, deleted: result });
     } catch (err) {
       next(err);
@@ -135,11 +142,18 @@ export class LiveClassroomController {
 
       // 1. Authorize: Only assigned instructor or administrator can start
       if (user && user.uid) {
-        const isAuthorized = await liveClassroomService.verifyInstructorOwnership(classId, user.uid, user.role);
+        const isAuthorized = await liveClassroomService.verifyInstructorOwnership(
+          classId,
+          user.uid,
+          user.role,
+          user.email,
+          user.name
+        );
         if (!isAuthorized) {
+          const liveClass = await liveClassroomService.getLiveClassById(classId);
           res.status(403).json({
             success: false,
-            error: 'Forbidden: Only the assigned instructor or an administrator can start this live class.',
+            error: `Forbidden: Only the assigned instructor (${liveClass?.instructorName || 'assigned mentor'}) or an administrator can start this live class.`,
           });
           return;
         }
@@ -147,22 +161,21 @@ export class LiveClassroomController {
 
       const liveClass = await liveClassroomService.startLiveClass(classId);
 
-      // Realtime Socket.IO Broadcast to room
+      // Realtime Socket.IO Broadcast to room and namespace
       const liveNS = getLiveNamespace();
       if (liveNS) {
         const roomName = `live-class:${classId}`;
-        liveNS.to(roomName).emit('liveClass:status', {
+        const payload = {
           liveClassId: classId,
           status: 'LIVE',
-          startedAt: liveClass?.startedAt,
+          startedAt: liveClass?.startedAt || new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           updatedBy: user?.name || user?.email || 'Instructor',
-        });
-        liveNS.to(roomName).emit('live_class_started', {
-          liveClassId: classId,
-          status: 'LIVE',
-          startedAt: liveClass?.startedAt,
-        });
+        };
+        liveNS.to(roomName).emit('liveClass:status', payload);
+        liveNS.to(roomName).emit('live_class_started', payload);
+        liveNS.emit('liveClass:status', payload);
+        liveNS.emit('live_class_started', payload);
       }
 
       res.json({ success: true, message: 'Class set to live status', data: liveClass, liveClass });
@@ -190,7 +203,7 @@ export class LiveClassroomController {
 
       const liveClass = await liveClassroomService.endLiveClass(classId);
 
-      // Realtime Socket.IO Broadcast to room
+      // Realtime Socket.IO Broadcast to room and namespace
       const liveNS = getLiveNamespace();
       if (liveNS) {
         const roomName = `live-class:${classId}`;
@@ -206,9 +219,19 @@ export class LiveClassroomController {
           status: 'ENDED',
           endedAt: liveClass?.endedAt,
         });
+        liveNS.emit('liveClass:status', {
+          liveClassId: classId,
+          status: 'ENDED',
+          endedAt: liveClass?.endedAt,
+        });
+        liveNS.emit('liveClass:deleted', { liveClassId: classId, classId });
+        liveNS.emit('live_class_deleted', { liveClassId: classId, classId });
       }
 
-      res.json({ success: true, message: 'Class session ended', data: liveClass, liveClass });
+      // Delete the class record so it does not linger in active panels
+      await liveClassroomService.deleteLiveClass(classId);
+
+      res.json({ success: true, message: 'Class session ended and deleted', data: liveClass, liveClass });
     } catch (err: any) {
       res.status(400).json({ success: false, error: err.message });
     }

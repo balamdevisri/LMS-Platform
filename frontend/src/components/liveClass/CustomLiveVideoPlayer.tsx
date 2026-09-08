@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { VideoOff, Sparkles, Clock, CheckCircle2, AlertCircle, Radio } from 'lucide-react';
 import { extractYouTubeVideoId } from './YouTubePlayer';
 
@@ -85,8 +86,8 @@ export const CustomLiveVideoPlayer: React.FC<CustomLiveVideoPlayerProps> = ({
         </p>
 
         {classId && (
-          <a
-            href={`/live-classroom/room/${classId}`}
+          <Link
+            to={`/live-classroom/room/${classId}`}
             className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-xs shadow-lg transition-all cursor-pointer ${
               isLive
                 ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/30'
@@ -95,7 +96,7 @@ export const CustomLiveVideoPlayer: React.FC<CustomLiveVideoPlayerProps> = ({
           >
             <Radio className="w-4 h-4" />
             <span>{isLive ? 'JOIN LIVE CLASS' : 'ENTER CLASSROOM STANDBY'}</span>
-          </a>
+          </Link>
         )}
       </div>
     );

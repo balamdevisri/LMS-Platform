@@ -324,6 +324,12 @@ export class LiveClassroomRepository {
     if (isFirebaseAdminInitialized()) {
       try {
         await db.collection('liveClasses').doc(id).delete();
+        const snap = await db.collection('liveClasses').where('classId', '==', id).get().catch(() => null);
+        if (snap && !snap.empty) {
+          for (const doc of snap.docs) {
+            await doc.ref.delete().catch(() => null);
+          }
+        }
       } catch (err) {
         logger.error('[REPO] Failed to delete liveClass in Firestore:', err);
       }

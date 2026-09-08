@@ -46,11 +46,11 @@ export const ParticipantPanel: React.FC<ParticipantPanelProps> = ({
               <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
                 p.role === 'instructor' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' : 'bg-slate-800 text-cyan-400'
               }`}>
-                {p.name.charAt(0).toUpperCase()}
+                {(p.name || 'U').charAt(0).toUpperCase()}
               </div>
               <div className="truncate">
                 <div className="font-bold text-white flex items-center gap-1.5 truncate">
-                  <span className="truncate">{p.name}</span>
+                  <span className="truncate">{p.name || 'User'}</span>
                   {p.role === 'instructor' && <ShieldCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
                 </div>
                 <span className="text-[10px] text-slate-400 uppercase font-mono">{p.role}</span>

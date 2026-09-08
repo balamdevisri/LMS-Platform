@@ -121,6 +121,10 @@ export class MediaClient {
     this.setConnectionState('disconnected');
   }
 
+  public async cleanup(): Promise<void> {
+    this.disconnect();
+  }
+
   // --- AUDIO CONTROLS ---
 
   public async toggleMicrophone(): Promise<boolean> {
@@ -495,7 +499,7 @@ export class MediaClient {
       }
     };
 
-    // Connection State Change
+    // Track connection state changes
     pc.onconnectionstatechange = () => {
       const state = pc.connectionState;
       if (state === 'connected') {
@@ -506,6 +510,17 @@ export class MediaClient {
         const p = this.participants.get(targetUserId);
         if (p) p.connectionState = 'disconnected';
         this.emit('participantsUpdate', this.getParticipants());
+      }
+    };
+
+    // Renegotiate when tracks change (e.g. mic, cam, screen share toggled)
+    pc.onnegotiationneeded = async () => {
+      try {
+        if (this.config.userId > targetUserId) {
+          await this.initiateOffer(targetUserId);
+        }
+      } catch (err) {
+        console.warn('[MediaClient] Negotiation error:', err);
       }
     };
 
@@ -537,6 +552,20 @@ export class MediaClient {
     if (!this.socket) return;
     try {
       const pc = this.getOrCreatePeerConnection(senderUserId);
+
+      // WebRTC glare protection
+      const isPolite = this.config.userId < senderUserId;
+      if (pc.signalingState !== 'stable') {
+        if (!isPolite) {
+          // Impolite peer rejects incoming colliding offer; its own offer takes precedence
+          return;
+        }
+        // Polite peer rolls back local description to accept remote offer
+        try {
+          await pc.setLocalDescription({ type: 'rollback' } as any);
+        } catch {}
+      }
+
       await pc.setRemoteDescription(new RTCSessionDescription(offer));
 
       // Flush queued ICE candidates
@@ -630,8 +659,10 @@ export class MediaClient {
           });
           this.emit('participantsUpdate', this.getParticipants());
         }
-        // Initiate peer connection to the newly joined peer
-        this.initiateOffer(data.userId);
+        // Exactly one peer initiates the offer deterministically
+        if (this.config.userId > data.userId) {
+          this.initiateOffer(data.userId);
+        }
       }
     });
 
@@ -649,7 +680,9 @@ export class MediaClient {
           connectionState: 'connecting',
         });
         this.emit('participantsUpdate', this.getParticipants());
-        this.initiateOffer(data.userId);
+        if (this.config.userId > data.userId) {
+          this.initiateOffer(data.userId);
+        }
       }
     });
 
@@ -678,8 +711,10 @@ export class MediaClient {
                 isHandRaised: false,
                 connectionState: 'connecting',
               });
-              // Initiate connection if we are in the room
-              this.initiateOffer(u.userId);
+              // Initiate connection if our ID is higher
+              if (this.config.userId > u.userId) {
+                this.initiateOffer(u.userId);
+              }
             }
           }
         });

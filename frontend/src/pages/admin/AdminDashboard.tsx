@@ -828,8 +828,8 @@ export const AdminDashboard: React.FC = () => {
             </div>
 
             <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-60 overflow-y-auto pr-1">
-              {studentsList.slice(0, 5).map((stud) => (
-                <div key={stud.id} className="py-3 flex items-center justify-between text-xs font-semibold">
+              {studentsList.slice(0, 5).map((stud, idx) => (
+                <div key={stud.id ? `student-${stud.id}` : `student-idx-${idx}`} className="py-3 flex items-center justify-between text-xs font-semibold">
                   <div>
                     <span className="block font-bold text-slate-900 dark:text-white">{stud.name}</span>
                     <span className="text-[11px] text-slate-500 dark:text-slate-400">{stud.email}</span>

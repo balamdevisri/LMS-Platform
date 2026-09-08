@@ -18,12 +18,21 @@ export const VideoTile: React.FC<VideoTileProps> = ({
   isSpotlighted = false,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
     if (videoRef.current && participant.stream) {
       videoRef.current.srcObject = participant.stream;
+      videoRef.current.play().catch(() => {});
     }
   }, [participant.stream, participant.isVideoOn]);
+
+  useEffect(() => {
+    if (!isLocal && audioRef.current && participant.stream) {
+      audioRef.current.srcObject = participant.stream;
+      audioRef.current.play().catch(() => {});
+    }
+  }, [participant.stream, isLocal]);
 
   const isInstructor = participant.role === 'instructor' || participant.role === 'mentor';
 
@@ -37,6 +46,9 @@ export const VideoTile: React.FC<VideoTileProps> = ({
           : 'border-slate-800 hover:border-slate-700 shadow-md'
       } ${isHero ? 'w-full h-full min-h-[300px] sm:min-h-[420px]' : 'aspect-video w-full'}`}
     >
+      {/* Remote Audio Stream (Persists regardless of camera toggle) */}
+      {!isLocal && <audio ref={audioRef} autoPlay playsInline />}
+
       {/* Actual Live Video Track */}
       {participant.isVideoOn && participant.stream ? (
         <video

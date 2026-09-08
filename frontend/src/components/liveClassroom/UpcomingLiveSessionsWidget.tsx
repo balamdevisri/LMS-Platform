@@ -129,10 +129,10 @@ export const UpcomingLiveSessionsWidget: React.FC = () => {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 rounded-full bg-blue-500 text-white font-bold text-xs flex items-center justify-center border border-white">
-                      {c.instructorName.charAt(0)}
+                      {(c.instructorName || 'I').charAt(0)}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs font-bold text-slate-800 dark:text-zinc-200 truncate">{c.instructorName}</p>
+                      <p className="text-xs font-bold text-slate-800 dark:text-zinc-200 truncate">{c.instructorName || 'Instructor'}</p>
                       <p className="text-[10px] text-slate-400 dark:text-zinc-500">{c.lessonTitle || 'Live Stream Session'}</p>
                     </div>
                   </div>

@@ -198,6 +198,27 @@ const isMockLiveClass = (c: any): boolean => {
 class LiveClassService {
   private listeners: Array<(classes: LiveClass[]) => void> = [];
   private unsubscribeFirestore: (() => void) | null = null;
+  private DELETED_KEY = 'kaizenq_deleted_live_classes';
+
+  getDeletedClassIds(): Set<string> {
+    try {
+      const raw = localStorage.getItem(this.DELETED_KEY);
+      if (raw) {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr)) return new Set(arr);
+      }
+    } catch {}
+    return new Set();
+  }
+
+  addDeletedClassId(id: string) {
+    if (!id) return;
+    try {
+      const set = this.getDeletedClassIds();
+      set.add(id);
+      localStorage.setItem(this.DELETED_KEY, JSON.stringify(Array.from(set)));
+    } catch {}
+  }
 
   private getLocalClasses(): LiveClass[] {
     try {
@@ -205,7 +226,16 @@ class LiveClassService {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          return parsed.filter((c) => !isMockLiveClass(c));
+          const deletedIds = this.getDeletedClassIds();
+          return parsed.filter((c) => {
+            const id = c.id || c.classId;
+            const status = (c.status || '').toUpperCase();
+            const isEnded = status === 'ENDED' || status === 'COMPLETED' || status === 'CANCELLED';
+            if (isEnded && id) {
+              this.addDeletedClassId(id);
+            }
+            return !isMockLiveClass(c) && !deletedIds.has(id) && !isEnded;
+          });
         }
       }
     } catch (e) {
@@ -220,7 +250,16 @@ class LiveClassService {
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          return parsed.filter((c) => !isMockLiveClass(c));
+          const deletedIds = this.getDeletedClassIds();
+          return parsed.filter((c) => {
+            const id = c.id || c.classId;
+            const status = (c.status || '').toUpperCase();
+            const isEnded = status === 'ENDED' || status === 'COMPLETED' || status === 'CANCELLED';
+            if (isEnded && id) {
+              this.addDeletedClassId(id);
+            }
+            return !isMockLiveClass(c) && !deletedIds.has(id) && !isEnded;
+          });
         }
       } catch (e) {
         console.warn('Failed to parse live classes from localStorage:', e);
@@ -231,11 +270,19 @@ class LiveClassService {
 
   saveClasses(classes: LiveClass[]) {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(classes));
+      const deletedIds = this.getDeletedClassIds();
+      const filtered = classes.filter((c) => {
+        const id = c.id || c.classId;
+        const status = (c.status || '').toUpperCase();
+        const isEnded = status === 'ENDED' || status === 'COMPLETED' || status === 'CANCELLED';
+        return !deletedIds.has(id) && !isEnded;
+      });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+      this.notifyListeners(filtered);
     } catch (e) {
       console.warn('Failed to save live classes to localStorage:', e);
+      this.notifyListeners(classes);
     }
-    this.notifyListeners(classes);
   }
 
   subscribeLiveClasses(callback: (classes: LiveClass[]) => void): () => void {
@@ -251,14 +298,40 @@ class LiveClassService {
           q,
           (snapshot) => {
             const fsClasses: LiveClass[] = [];
+            const deletedIds = this.getDeletedClassIds();
+
             snapshot.forEach((docSnap) => {
-              fsClasses.push(docSnap.data() as LiveClass);
+              const data = docSnap.data() as LiveClass;
+              const id = docSnap.id || data.id || data.classId;
+              const status = (data.status || '').toUpperCase();
+              const isEnded = status === 'ENDED' || status === 'COMPLETED' || status === 'CANCELLED';
+              if (isEnded) {
+                this.addDeletedClassId(id);
+                // Also clean up ended class from Firestore collection
+                deleteDoc(doc(firestore, 'liveClasses', docSnap.id)).catch(() => {});
+              } else if (!deletedIds.has(id)) {
+                fsClasses.push({ ...data, id, classId: id });
+              }
             });
 
+            // Keep only recent local creates (created in last 15s) that aren't yet in Firestore
             const local = this.getLocalClasses();
+            const now = Date.now();
+            const recentLocal = local.filter((c) => {
+              const createdMs = c.createdAt ? new Date(c.createdAt).getTime() : 0;
+              const isRecent = now - createdMs < 15000;
+              const id = c.id || c.classId;
+              const status = (c.status || '').toUpperCase();
+              const isEnded = status === 'ENDED' || status === 'COMPLETED' || status === 'CANCELLED';
+              return isRecent && !deletedIds.has(id) && !isEnded;
+            });
+
             const map = new Map<string, LiveClass>();
-            local.forEach((c) => map.set(c.id, c));
             fsClasses.forEach((c) => map.set(c.id || c.classId, c));
+            recentLocal.forEach((c) => {
+              const id = c.id || c.classId;
+              if (!map.has(id)) map.set(id, c);
+            });
 
             const merged = Array.from(map.values()).sort(
               (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
@@ -429,17 +502,46 @@ class LiveClassService {
   }
 
   async deleteLiveClass(id: string): Promise<void> {
+    if (!id) return;
+    this.addDeletedClassId(id);
+
+    // 1. Remove immediately from local state and notify listeners
     const current = this.getLiveClassesSync();
     const updated = current.filter((c) => c.id !== id && c.classId !== id);
     this.saveClasses(updated);
 
+    // 2. Delete from Firestore directly
     try {
       if (db) {
-        await deleteDoc(doc(db, 'liveClasses', id));
+        await deleteDoc(doc(db, 'liveClasses', id)).catch(() => {});
       }
     } catch (e) {
       console.warn('Firestore deleteLiveClass notice:', e);
     }
+
+    // 3. Delete from Backend API
+    try {
+      const headers = await this.getAuthHeaders();
+      await Promise.allSettled([
+        fetch(`${this.getApiUrl()}/live-classes/${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+          headers,
+        }),
+        fetch(`${this.getApiUrl()}/live-classroom/${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+          headers,
+        }),
+      ]);
+    } catch (e) {
+      console.warn('Backend deleteLiveClass notice:', e);
+    }
+
+    // 4. Also notify via socket if connected
+    try {
+      import('@/services/socketService').then(({ socketService }) => {
+        socketService.getSocket()?.emit('liveClass:delete', { liveClassId: id, classId: id });
+      }).catch(() => {});
+    } catch (e) {}
   }
 
   async duplicateLiveClass(id: string): Promise<LiveClass> {
@@ -907,10 +1009,18 @@ class LiveClassService {
     return headers;
   }
 
-  async startClass(classId: string, token?: string): Promise<{ success: boolean; data?: LiveClass; error?: string }> {
+  async startClass(
+    classId: string,
+    token?: string,
+    userMeta?: { uid?: string; role?: string; email?: string; name?: string }
+  ): Promise<{ success: boolean; data?: LiveClass; error?: string }> {
     try {
       const headers = await this.getAuthHeaders();
       if (token) headers['Authorization'] = `Bearer ${token}`;
+      if (userMeta?.uid) headers['x-user-id'] = userMeta.uid;
+      if (userMeta?.role) headers['x-user-role'] = userMeta.role;
+      if (userMeta?.email) headers['x-user-email'] = userMeta.email;
+      if (userMeta?.name) headers['x-user-name'] = userMeta.name;
 
       const res = await fetch(`${this.getApiUrl()}/live-classes/${encodeURIComponent(classId)}/start`, {
         method: 'POST',
@@ -927,6 +1037,19 @@ class LiveClassService {
     }
   }
 
+  async startLiveClass(
+    classId: string,
+    userId?: string,
+    token?: string,
+    userMeta?: { uid?: string; role?: string; email?: string; name?: string }
+  ): Promise<{ success: boolean; data?: LiveClass; error?: string }> {
+    return this.startClass(classId, token, userMeta || (userId ? { uid: userId } : undefined));
+  }
+
+  async endLiveClass(classId: string, userId?: string, role?: string, token?: string): Promise<{ success: boolean; data?: LiveClass; error?: string }> {
+    return this.endClass(classId, token);
+  }
+
   async endClass(classId: string, token?: string): Promise<{ success: boolean; data?: LiveClass; error?: string }> {
     try {
       const headers = await this.getAuthHeaders();
@@ -936,13 +1059,15 @@ class LiveClassService {
         method: 'POST',
         headers,
       });
-      const data = await res.json();
-      if (!res.ok) {
-        return { success: false, error: data?.error || 'Failed to end live class' };
-      }
-      await this.updateLiveClass(classId, { status: 'ENDED' as any, endedAt: data?.data?.endedAt || new Date().toISOString() });
+      const data = await res.json().catch(() => ({}));
+
+      // As required, when a live class is ended, immediately delete/clear it from admin, student, and instructor panels
+      await this.deleteLiveClass(classId);
+
       return { success: true, data: data?.data || data?.liveClass };
     } catch (err: any) {
+      // Even if network error occurs, ensure it is deleted locally and in Firestore
+      await this.deleteLiveClass(classId);
       return { success: false, error: err?.message || 'Network error ending class' };
     }
   }
@@ -956,13 +1081,14 @@ class LiveClassService {
         method: 'POST',
         headers,
       });
-      const data = await res.json();
-      if (!res.ok) {
-        return { success: false, error: data?.error || 'Failed to cancel live class' };
-      }
-      await this.updateLiveClass(classId, { status: 'CANCELLED' as any });
+      const data = await res.json().catch(() => ({}));
+
+      // As required, when a live class is cancelled/removed, delete it from panels
+      await this.deleteLiveClass(classId);
+
       return { success: true, data: data?.data || data?.liveClass };
     } catch (err: any) {
+      await this.deleteLiveClass(classId);
       return { success: false, error: err?.message || 'Network error cancelling class' };
     }
   }

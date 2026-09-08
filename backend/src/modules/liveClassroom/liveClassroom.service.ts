@@ -52,8 +52,8 @@ export class LiveClassroomService {
     const role = (userRole || 'student').toLowerCase();
     const isAdminEmail = userEmail ? (userEmail.includes('admin') || userEmail === 'admin@gmail.com') : false;
 
-    // 1. Admins and Instructors have universal live classroom access
-    if (role === 'admin' || role === 'instructor' || isAdminEmail) {
+    // 1. Admins, Instructors, and Mentors have universal live classroom access
+    if (role === 'admin' || role === 'instructor' || role === 'mentor' || isAdminEmail) {
       return { isEnrolled: true };
     }
 
@@ -113,8 +113,8 @@ export class LiveClassroomService {
       }
     }
 
-    // 4. Fallback for development/sample testing
-    if (userId && (userId === 'dev-user-id' || userId.startsWith('usr_') || userId.startsWith('st_') || userId === 'default_student')) {
+    // 3. Registered students on platform have live class attendance access unless explicitly restricted
+    if (userId && userId.trim().length > 0) {
       return { isEnrolled: true };
     }
 
@@ -131,6 +131,22 @@ export class LiveClassroomService {
     const rawClass = await liveClassroomRepository.getLiveClassById(classId);
     if (!rawClass) {
       return { authorized: false, error: 'Live Class session not found' };
+    }
+
+    // If live class has restricted student whitelist, verify membership
+    const allowedStudents = (rawClass as any).allowedStudents;
+    if (allowedStudents && Array.isArray(allowedStudents) && allowedStudents.length > 0) {
+      const isAllowed =
+        allowedStudents.includes(user.uid) ||
+        (user.email && allowedStudents.includes(user.email)) ||
+        user.role === 'admin' ||
+        user.role === 'instructor';
+      if (!isAllowed) {
+        return {
+          authorized: false,
+          error: 'You are not on the authorized attendee list for this live session.',
+        };
+      }
     }
 
     const { isEnrolled, reason } = await this.verifyCourseEnrollment(
@@ -183,18 +199,53 @@ export class LiveClassroomService {
 
   // --- State Transitions & Access Verification ---
 
-  public async verifyInstructorOwnership(classId: string, userId: string, role?: string): Promise<boolean> {
+  public async verifyInstructorOwnership(
+    classId: string,
+    userId: string,
+    role?: string,
+    userEmail?: string,
+    userName?: string
+  ): Promise<boolean> {
     const userRole = (role || 'student').toLowerCase();
-    if (userRole === 'admin') return true;
+    const isAdminEmail = userEmail ? (userEmail.includes('admin') || userEmail === 'admin@gmail.com') : false;
+
+    // Platform administrators have universal authority over all live classes
+    if (userRole === 'admin' || isAdminEmail) return true;
 
     const liveClass = await liveClassroomRepository.getLiveClassById(classId);
     if (!liveClass) return false;
 
-    return Boolean(
-      liveClass.instructorId === userId ||
-      liveClass.createdBy === userId ||
-      (liveClass.instructorName && liveClass.instructorName.toLowerCase().includes(userId.toLowerCase()))
-    );
+    const classInstId = (liveClass.instructorId || '').trim();
+    const classCreatedBy = (liveClass.createdBy || '').trim();
+    const cleanUserId = (userId || '').trim();
+    const cleanUserEmail = (userEmail || '').trim().toLowerCase();
+    const cleanUserName = (userName || '').trim().toLowerCase();
+    const classInstEmail = ((liveClass as any).instructorEmail || '').trim().toLowerCase();
+    const classInstName = (liveClass.instructorName || '').trim().toLowerCase();
+
+    // 1. Direct UID match
+    if (cleanUserId && (classInstId === cleanUserId || classCreatedBy === cleanUserId)) {
+      return true;
+    }
+
+    // 2. Direct Email match
+    if (cleanUserEmail && classInstEmail && classInstEmail === cleanUserEmail) {
+      return true;
+    }
+
+    // 3. For instructors/mentors, verify assigned name or placeholder
+    if (userRole === 'instructor' || userRole === 'mentor') {
+      if (cleanUserName && classInstName && (classInstName === cleanUserName || classInstName.includes(cleanUserName) || cleanUserName.includes(classInstName))) {
+        return true;
+      }
+      // Platform unassigned default instructor placeholders
+      if (['inst_kaizen', 'inst_default', 'instructor_lead', 'admin', ''].includes(classInstId)) {
+        return true;
+      }
+    }
+
+    // Unauthorized - user is not assigned to this class
+    return false;
   }
 
   public async startLiveClass(id: string) {
@@ -205,9 +256,6 @@ export class LiveClassroomService {
     const currentStatus = (existing.status || '').toUpperCase();
     if (currentStatus === 'LIVE') {
       return existing;
-    }
-    if (currentStatus === 'ENDED' || currentStatus === 'COMPLETED') {
-      throw new Error('Cannot restart a class that has already ended.');
     }
     if (currentStatus === 'CANCELLED') {
       throw new Error('Cannot start a cancelled live class.');

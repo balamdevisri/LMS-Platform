@@ -98,9 +98,9 @@ export const LiveQuestionsWidget: React.FC<QuestionsWidgetProps> = ({ classId, c
               <div className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-full bg-slate-800 border border-slate-700 text-white font-bold flex items-center justify-center text-[10px]">
-                    {q.studentName.charAt(0)}
+                    {(q.studentName || 'S').charAt(0)}
                   </div>
-                  <span className="font-bold text-white truncate max-w-[120px]">{q.studentName}</span>
+                  <span className="font-bold text-white truncate max-w-[120px]">{q.studentName || 'Student'}</span>
                 </div>
                 <div className="flex items-center gap-1 text-[10px] text-slate-400 font-mono">
                   <Clock className="w-3 h-3" />

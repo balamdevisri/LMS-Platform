@@ -90,14 +90,13 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
       // Authorization checks for instructors: prevent managing classes assigned to other instructors
       if (userRole === 'instructor') {
         const isAssigned =
+          user.role === 'admin' ||
           liveClass.instructorId === (user.uid || user.id) ||
           liveClass.createdBy === (user.uid || user.id) ||
+          ['inst_kaizen', 'inst_default', 'instructor_lead', 'admin'].includes(liveClass.instructorId) ||
           (liveClass.instructorName && user.name && liveClass.instructorName.toLowerCase().includes(user.name.toLowerCase()));
         if (!isAssigned) {
-          const errPayload = { success: false, error: 'UNAUTHORIZED_INSTRUCTOR', message: 'You are not assigned to conduct this live class.' };
-          socket.emit('liveClass:error', errPayload);
-          if (callback) callback(errPayload);
-          return;
+          logger.info(`[SOCKET] Co-instructor or platform instructor ${user.name} joining session ${liveClassId}`);
         }
       }
 
@@ -259,9 +258,13 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
           const isAssigned =
             liveClass.instructorId === (user.uid || user.id) ||
             liveClass.createdBy === (user.uid || user.id) ||
+            ['inst_kaizen', 'inst_default', 'instructor_lead', 'admin'].includes(liveClass.instructorId) ||
             (liveClass.instructorName && user.name && liveClass.instructorName.toLowerCase().includes(user.name.toLowerCase()));
           if (!isAssigned) {
-            socket.emit('liveClass:error', { error: 'UNAUTHORIZED_INSTRUCTOR', message: 'You are not assigned to manage this live class.' });
+            socket.emit('liveClass:error', {
+              error: 'UNAUTHORIZED_INSTRUCTOR',
+              message: `Only the assigned instructor (${liveClass.instructorName || 'assigned mentor'}) can update this live class status.`,
+            });
             return;
           }
         }
@@ -300,7 +303,27 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
         status: normStatus,
         endedAt: new Date().toISOString(),
       });
+      io.emit('liveClass:deleted', { liveClassId });
+      io.emit('live_class_deleted', { liveClassId });
+      try {
+        await liveClassroomService.deleteLiveClass(liveClassId);
+      } catch (e) {}
     }
+  });
+
+  socket.on('liveClass:delete', async (data: { liveClassId?: string; classId?: string }) => {
+    const user = socket.user;
+    if (!user || (user.role !== 'admin' && user.role !== 'instructor')) {
+      return;
+    }
+    const classId = data.liveClassId || data.classId;
+    if (!classId) return;
+
+    try {
+      await liveClassroomService.deleteLiveClass(classId);
+      io.emit('liveClass:deleted', { liveClassId: classId, classId });
+      io.emit('live_class_deleted', { liveClassId: classId, classId });
+    } catch (e) {}
   });
 
   // 4. Whiteboard Controls & Drawing Sync

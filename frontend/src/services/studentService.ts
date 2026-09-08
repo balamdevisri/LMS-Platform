@@ -275,6 +275,47 @@ class StudentService {
     };
   }
 
+  private deduplicateStudents(students: StudentUser[]): StudentUser[] {
+    const idMap = new Map<string, StudentUser>();
+    const emailMap = new Map<string, StudentUser>();
+    const unique: StudentUser[] = [];
+
+    students.forEach((st) => {
+      if (!st) return;
+      const id = (st.id || st.uid || '').trim();
+      const email = (st.email || '').trim().toLowerCase();
+      if (!id && !email) return;
+
+      let existing: StudentUser | undefined;
+      if (id && idMap.has(id)) {
+        existing = idMap.get(id);
+      } else if (email && emailMap.has(email)) {
+        existing = emailMap.get(email);
+      }
+
+      if (existing) {
+        Object.assign(existing, st);
+        if (id) {
+          existing.id = id;
+          existing.uid = id;
+          idMap.set(id, existing);
+        }
+        if (email) {
+          existing.email = email;
+          emailMap.set(email, existing);
+        }
+      } else {
+        const canonicalId = id || st.uid || email;
+        const copy = { ...st, id: canonicalId, uid: canonicalId };
+        unique.push(copy);
+        if (id) idMap.set(id, copy);
+        if (email) emailMap.set(email, copy);
+      }
+    });
+
+    return unique.sort((a, b) => (b.xp || 0) - (a.xp || 0));
+  }
+
   /**
    * Directly fetch all students from Firestore students and users collections.
    */
@@ -311,17 +352,7 @@ class StudentService {
         });
       }
 
-      const combinedMap = new Map<string, StudentUser>();
-      firestoreStudents.forEach((st) => combinedMap.set((st.email || st.id).toLowerCase(), st));
-      currentLocal.forEach((st) => {
-        const key = (st.email || st.id).toLowerCase();
-        if (!combinedMap.has(key)) combinedMap.set(key, st);
-      });
-
-      const finalStudents = Array.from(combinedMap.values()).sort((a, b) => {
-        return (b.xp || 0) - (a.xp || 0);
-      });
-
+      const finalStudents = this.deduplicateStudents([...firestoreStudents, ...currentLocal]);
       this.saveLocalStudents(finalStudents);
       return finalStudents;
     } catch (e) {
@@ -369,21 +400,11 @@ class StudentService {
 
       const emitCombined = () => {
         const currentLocal = this.getLocalStudents();
-        const combinedMap = new Map<string, StudentUser>();
-
-        firestoreStudentDocs.forEach((st) => combinedMap.set((st.email || st.id || st.uid).toLowerCase(), st));
-        firestoreUserDocs.forEach((st) => {
-          const key = (st.email || st.id || st.uid).toLowerCase();
-          if (!combinedMap.has(key)) combinedMap.set(key, st);
-        });
-        currentLocal.forEach((st) => {
-          const key = (st.email || st.id || st.uid).toLowerCase();
-          if (!combinedMap.has(key)) combinedMap.set(key, st);
-        });
-
-        const finalStudents = Array.from(combinedMap.values()).sort((a, b) => {
-          return (b.xp || 0) - (a.xp || 0);
-        });
+        const finalStudents = this.deduplicateStudents([
+          ...firestoreStudentDocs,
+          ...firestoreUserDocs,
+          ...currentLocal,
+        ]);
 
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(finalStudents));
         callback(finalStudents);
