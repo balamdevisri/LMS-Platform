@@ -670,11 +670,17 @@ export const Dashboard: React.FC = () => {
 
     const fetchAndSyncFromBackend = async () => {
       try {
-        const response = await fetch(`${apiBase}/certificates/student/${encodeURIComponent(studentEmail)}`);
+        const headers: Record<string, string> = {};
+        if (user && typeof (user as any).getIdToken === 'function') {
+          try {
+            const token = await (user as any).getIdToken();
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+          } catch {}
+        }
+
+        const response = await fetch(`${apiBase}/certificates/student/${encodeURIComponent(studentEmail)}`, { headers });
         if (!response.ok) {
-          if (response.status !== 404) {
-            console.warn(`[Dashboard Sync] Notice: ${response.status} ${response.statusText}`);
-          }
+          // 401/404 are normal for newly signed-in students without issued backend certificates
           return;
         }
         const contentType = response.headers.get('content-type');

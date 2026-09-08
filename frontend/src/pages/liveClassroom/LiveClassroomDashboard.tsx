@@ -393,10 +393,11 @@ export const LiveClassroomDashboard: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredClasses.map((c) => {
+          {filteredClasses.map((c, idx) => {
             const isLiveNow = c.status === 'Live';
+            const uniqueKey = c.id ? `live_class_${c.id}` : `live_class_idx_${idx}_${c.title || 'untitled'}`;
             return (
-              <div key={c.id} className={`bg-white dark:bg-slate-900/90 rounded-3xl border transition-all flex flex-col justify-between overflow-hidden shadow-xs hover:shadow-xl ${isLiveNow ? 'border-rose-300 dark:border-rose-700 ring-2 ring-rose-500/20' : 'border-sky-200/80 dark:border-slate-800 hover:border-blue-400 dark:hover:border-cyan-500'}`}>
+              <div key={uniqueKey} className={`bg-white dark:bg-slate-900/90 rounded-3xl border transition-all flex flex-col justify-between overflow-hidden shadow-xs hover:shadow-xl ${isLiveNow ? 'border-rose-300 dark:border-rose-700 ring-2 ring-rose-500/20' : 'border-sky-200/80 dark:border-slate-800 hover:border-blue-400 dark:hover:border-cyan-500'}`}>
                 <div className="relative h-44 bg-slate-900 overflow-hidden">
                   <img src={c.banner || c.thumbnail || 'https://images.unsplash.com/photo-1629654297299-c8506221ca97?w=800&q=80'} alt={c.title} className="w-full h-full object-cover opacity-80" />
                   <div className="absolute inset-0 bg-linear-to-t from-slate-950 via-slate-950/40 to-transparent" />
@@ -532,10 +533,10 @@ export const LiveClassroomDashboard: React.FC = () => {
                 </div>
                 <div className="space-y-3">
                   <h4 className="font-extrabold text-xs text-slate-900 dark:text-white uppercase tracking-wider">Active & Scheduled Polls</h4>
-                  {pollsList.length === 0 ? <p className="text-xs text-slate-400 dark:text-slate-500 italic">No polls created for this session yet.</p> : pollsList.map((p) => {
+                  {pollsList.length === 0 ? <p className="text-xs text-slate-400 dark:text-slate-500 italic">No polls created for this session yet.</p> : pollsList.map((p, pIdx) => {
                     const totalVotes = p.options.reduce((sum, o) => sum + o.votes, 0);
                     return (
-                      <div key={p.id} className="p-4 bg-slate-50 dark:bg-slate-950/90 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3 text-xs">
+                      <div key={p.id || `poll_item_${pIdx}`} className="p-4 bg-slate-50 dark:bg-slate-950/90 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3 text-xs">
                         <div className="flex items-start justify-between gap-2">
                           <div>
                             <p className="font-bold text-slate-900 dark:text-white">{p.question}</p>
@@ -550,7 +551,7 @@ export const LiveClassroomDashboard: React.FC = () => {
                           {p.options.map((opt, idx) => {
                             const pct = totalVotes > 0 ? Math.round((opt.votes / totalVotes) * 100) : 0;
                             return (
-                              <div key={idx} className="space-y-0.5">
+                              <div key={`poll_opt_${idx}`} className="space-y-0.5">
                                 <div className="flex justify-between text-[11px]"><span className="text-slate-700 dark:text-slate-300 font-medium">{opt.text}</span><span className="font-bold text-slate-900 dark:text-white">{pct}% ({opt.votes})</span></div>
                                 <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden"><div className="h-full bg-blue-600 dark:bg-cyan-500 rounded-full" style={{ width: `${pct}%` }} /></div>
                               </div>
@@ -590,7 +591,7 @@ export const LiveClassroomDashboard: React.FC = () => {
                     <div className="space-y-2">
                       <label className="font-bold text-slate-700 dark:text-slate-300 block">MCQ Options</label>
                       {quizOptions.map((opt, idx) => (
-                        <div key={idx} className="flex items-center gap-2">
+                        <div key={`quiz_opt_${idx}`} className="flex items-center gap-2">
                           <input type="text" value={opt} onChange={(e) => { const updated = [...quizOptions]; updated[idx] = e.target.value; setQuizOptions(updated); if (quizCorrectAnswer === opt) setQuizCorrectAnswer(e.target.value); }} placeholder={`Option ${idx + 1}`} className="flex-1 bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-900/60 rounded-xl p-2 text-xs text-slate-900 dark:text-white focus:outline-hidden" />
                           <button onClick={() => setQuizCorrectAnswer(opt)} className={`p-2 rounded-lg text-[10px] font-bold cursor-pointer ${quizCorrectAnswer === opt && opt.trim() ? 'bg-emerald-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}`} title="Set as Correct Answer">Correct</button>
                         </div>
@@ -602,8 +603,8 @@ export const LiveClassroomDashboard: React.FC = () => {
                 </div>
                 <div className="space-y-3">
                   <h4 className="font-extrabold text-xs text-slate-900 dark:text-white uppercase tracking-wider">Session Quiz Bank</h4>
-                  {quizzesList.length === 0 ? <p className="text-xs text-slate-400 dark:text-slate-500 italic">No quizzes published for this session yet.</p> : quizzesList.map((q) => (
-                    <div key={q.id} className="p-4 bg-slate-50 dark:bg-slate-950/90 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3 text-xs">
+                  {quizzesList.length === 0 ? <p className="text-xs text-slate-400 dark:text-slate-500 italic">No quizzes published for this session yet.</p> : quizzesList.map((q, qIdx) => (
+                    <div key={q.id || `quiz_item_${qIdx}`} className="p-4 bg-slate-50 dark:bg-slate-950/90 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3 text-xs">
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <p className="font-bold text-slate-900 dark:text-white">{q.question}</p>
@@ -622,7 +623,7 @@ export const LiveClassroomDashboard: React.FC = () => {
                         {q.options.map((opt, idx) => {
                           const isCorrect = opt === q.correctAnswer;
                           return (
-                            <div key={idx} className={`p-2 rounded-xl border text-[11px] font-medium flex items-center justify-between ${isCorrect ? 'bg-emerald-50 dark:bg-emerald-950/80 border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 font-bold' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300'}`}>
+                            <div key={`quiz_opt_val_${idx}`} className={`p-2 rounded-xl border text-[11px] font-medium flex items-center justify-between ${isCorrect ? 'bg-emerald-50 dark:bg-emerald-950/80 border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 font-bold' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300'}`}>
                               <span className="truncate">{opt}</span>
                               {isCorrect && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />}
                             </div>

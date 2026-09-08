@@ -34,7 +34,6 @@ export const LottieLoader: React.FC<LottieLoaderProps> = ({
           title="Loading..."
           className="w-full h-full border-0 pointer-events-none bg-transparent"
           loading="eager"
-          allowTransparency={true}
           style={{ overflow: 'hidden' }}
         />
       </div>
