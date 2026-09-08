@@ -14,6 +14,8 @@ export interface ParticipantInfo {
 
 // In-memory active presence tracker: classId -> Map<socketId, ParticipantInfo>
 const activeRoomPresences = new Map<string, Map<string, ParticipantInfo>>();
+// In-memory locked / private classroom tracker: classId -> boolean
+const lockedClassrooms = new Set<string>();
 
 export const getRoomParticipants = (classId: string): ParticipantInfo[] => {
   const roomMap = activeRoomPresences.get(classId);
@@ -56,6 +58,18 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
 
       // Authorization checks for students
       if (userRole === 'student') {
+        // Enforce private / locked room check
+        if (lockedClassrooms.has(liveClassId) || Boolean(liveClass.isLocked)) {
+          const errPayload = {
+            success: false,
+            error: 'ROOM_LOCKED',
+            message: 'This classroom is currently private and locked by the instructor.',
+          };
+          socket.emit('liveClass:error', errPayload);
+          if (callback) callback(errPayload);
+          return;
+        }
+
         if (normClassStatus === 'CANCELLED') {
           const errPayload = { success: false, error: 'CLASS_CANCELLED', message: 'This live class has been cancelled.' };
           socket.emit('liveClass:error', errPayload);
@@ -353,18 +367,31 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
     io.to(roomName).emit('whiteboard_clear_event');
   });
 
-  // 5. Classroom Lock Control
-  socket.on('toggle_lock', (data: { classId: string; liveClassId?: string; locked: boolean }) => {
+  // 5. Classroom Lock Control (Make Private)
+  socket.on('toggle_lock', async (data: { classId: string; liveClassId?: string; locked: boolean }) => {
     const user = socket.user;
     if (!user || (user.role !== 'admin' && user.role !== 'instructor')) {
       return;
     }
     const classId = data.liveClassId || data.classId;
+    if (!classId) return;
+
+    if (data.locked) {
+      lockedClassrooms.add(classId);
+    } else {
+      lockedClassrooms.delete(classId);
+    }
+
+    try {
+      await liveClassroomService.updateLiveClass(classId, { isLocked: data.locked } as any);
+    } catch {}
+
     const roomName = `live-class:${classId}`;
     io.to(roomName).emit('lock_toggled', { locked: data.locked });
+    logger.info(`[SOCKET] Classroom ${classId} locked/privacy state set to: ${data.locked} by ${user.name}`);
   });
 
-  // 6. Moderation: Mute Student & Kick Participant
+  // 6. Moderation: Mute Student, Mute All Students, Chat Mute & Kick Participant
   socket.on('mute_student', (data: { classId: string; liveClassId?: string; userId: string; isMuted: boolean }) => {
     const user = socket.user;
     if (!user || (user.role !== 'admin' && user.role !== 'instructor' && user.role !== 'mentor')) {
@@ -374,6 +401,35 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
     const roomName = `live-class:${classId}`;
     logger.info(`[SOCKET] Instructor ${user.name} muted student ${data.userId} in room ${roomName}`);
     io.to(roomName).emit('student_muted', { userId: data.userId, isMuted: data.isMuted });
+  });
+
+  socket.on('mute_all_students', (data: { classId: string; liveClassId?: string }) => {
+    const user = socket.user;
+    if (!user || (user.role !== 'admin' && user.role !== 'instructor' && user.role !== 'mentor')) {
+      return;
+    }
+    const classId = data.liveClassId || data.classId;
+    if (!classId) return;
+    const roomName = `live-class:${classId}`;
+    logger.info(`[SOCKET] Instructor ${user.name} muted ALL students in room ${roomName}`);
+    io.to(roomName).emit('mute_all_students', { classId, mutedBy: user.name });
+  });
+
+  socket.on('toggle_chat_mute', async (data: { classId: string; liveClassId?: string; isMuted: boolean }) => {
+    const user = socket.user;
+    if (!user || (user.role !== 'admin' && user.role !== 'instructor' && user.role !== 'mentor')) {
+      return;
+    }
+    const classId = data.liveClassId || data.classId;
+    if (!classId) return;
+    const roomName = `live-class:${classId}`;
+
+    try {
+      await liveClassroomService.updateLiveClass(classId, { isChatMuted: data.isMuted } as any);
+    } catch {}
+
+    logger.info(`[SOCKET] Instructor ${user.name} set chat mute to ${data.isMuted} in ${roomName}`);
+    io.to(roomName).emit('room_chat_muted', { classId, isMuted: data.isMuted, updatedBy: user.name });
   });
 
   socket.on('kick_participant', (data: { classId: string; liveClassId?: string; userId: string }) => {
@@ -416,7 +472,26 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
     }
   });
 
-  // 7. WebRTC Track State Sync & Signaling
+  // 7. WebRTC Track State Sync & Screen Share Signaling
+  socket.on('screen_share_started', (data: { classId: string; liveClassId?: string; userId?: string; name?: string }) => {
+    const user = socket.user;
+    const classId = data.liveClassId || data.classId;
+    const roomName = `live-class:${classId}`;
+    socket.to(roomName).emit('screen_share_started', {
+      userId: user?.uid || user?.id || data.userId,
+      name: user?.name || data.name || 'Instructor',
+    });
+  });
+
+  socket.on('screen_share_stopped', (data: { classId: string; liveClassId?: string; userId?: string }) => {
+    const user = socket.user;
+    const classId = data.liveClassId || data.classId;
+    const roomName = `live-class:${classId}`;
+    socket.to(roomName).emit('screen_share_stopped', {
+      userId: user?.uid || user?.id || data.userId,
+    });
+  });
+
   socket.on('webrtc_track_change', (data: { classId: string; liveClassId?: string; userId?: string; isAudioOn: boolean; isVideoOn: boolean; isScreenSharing: boolean }) => {
     const user = socket.user;
     const classId = data.liveClassId || data.classId;

@@ -94,7 +94,7 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
       }
     });
 
-    // Listen for mute status
+    // Listen for individual student mute
     socket.on('student_muted', (data: { userId: string; isMuted: boolean }) => {
       if (data.userId === currentUser.uid) {
         setIsMuted(data.isMuted);
@@ -106,13 +106,26 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
       }
     });
 
+    // Listen for room-wide chat mute
+    socket.on('room_chat_muted', (data: { isMuted: boolean; updatedBy?: string }) => {
+      if (!isInstructor) {
+        setIsMuted(data.isMuted);
+        if (data.isMuted) {
+          toast.info('🔒 Live chat has been disabled by the instructor.');
+        } else {
+          toast.success('💬 Live chat has been enabled by the instructor.');
+        }
+      }
+    });
+
     return () => {
       socket.off('chat_received');
       socket.off('chat_pinned');
       socket.off('typing_received');
       socket.off('student_muted');
+      socket.off('room_chat_muted');
     };
-  }, [socket, currentUser.uid]);
+  }, [socket, currentUser.uid, isInstructor]);
 
   const handleSend = (type: 'normal' | 'announcement' = 'normal') => {
     if (!inputMessage.trim() || isMuted || !socket) return;

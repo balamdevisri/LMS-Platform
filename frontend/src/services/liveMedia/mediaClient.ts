@@ -183,6 +183,12 @@ export class MediaClient {
     return this.isAudioEnabled;
   }
 
+  public async muteMicrophone(): Promise<void> {
+    if (this.isAudioEnabled) {
+      await this.toggleMicrophone();
+    }
+  }
+
   // --- CAMERA CONTROLS ---
 
   public async toggleCamera(): Promise<boolean> {
@@ -259,19 +265,44 @@ export class MediaClient {
       };
 
       // Replace video track on active peer connections with screen track
-      this.peerConnections.forEach((pc) => {
+      for (const [targetUserId, pc] of this.peerConnections.entries()) {
         const videoSender = pc.getSenders().find((s) => s.track?.kind === 'video');
         if (videoSender) {
-          videoSender.replaceTrack(screenTrack).catch(() => {});
+          await videoSender.replaceTrack(screenTrack).catch(() => {});
         } else {
           try {
             pc.addTrack(screenTrack, this.localScreenStream!);
           } catch {}
         }
-      });
+
+        // Trigger WebRTC renegotiation offer so remote peer (student) updates its video track
+        try {
+          const offer = await pc.createOffer({
+            offerToReceiveAudio: true,
+            offerToReceiveVideo: true,
+          });
+          await pc.setLocalDescription(offer);
+          this.socket?.emit('webrtc_offer', {
+            classId: this.config.classId,
+            targetUserId,
+            offer,
+          });
+        } catch (negErr) {
+          console.warn(`[MediaClient] Screenshare renegotiation warning for ${targetUserId}:`, negErr);
+        }
+      }
 
       this.updateLocalParticipantState();
       this.broadcastMediaState();
+
+      if (this.socket) {
+        this.socket.emit('screen_share_started', {
+          classId: this.config.classId,
+          userId: this.config.userId,
+          name: this.config.userName,
+        });
+      }
+
       return this.localScreenStream;
     } catch (err) {
       console.warn('[MediaClient] Screen share cancelled or failed:', err);
@@ -279,7 +310,7 @@ export class MediaClient {
     }
   }
 
-  public stopScreenShare(): void {
+  public async stopScreenShare(): Promise<void> {
     if (this.localScreenStream) {
       this.localScreenStream.getTracks().forEach((t) => {
         try {
@@ -292,15 +323,35 @@ export class MediaClient {
 
     // Restore camera video track on peer connections if camera was enabled
     const camTrack = this.localStream.getVideoTracks()[0] || null;
-    this.peerConnections.forEach((pc) => {
+    for (const [targetUserId, pc] of this.peerConnections.entries()) {
       const videoSender = pc.getSenders().find((s) => s.track?.kind === 'video');
       if (videoSender) {
-        videoSender.replaceTrack(camTrack).catch(() => {});
+        await videoSender.replaceTrack(camTrack).catch(() => {});
       }
-    });
+
+      try {
+        const offer = await pc.createOffer({
+          offerToReceiveAudio: true,
+          offerToReceiveVideo: true,
+        });
+        await pc.setLocalDescription(offer);
+        this.socket?.emit('webrtc_offer', {
+          classId: this.config.classId,
+          targetUserId,
+          offer,
+        });
+      } catch {}
+    }
 
     this.updateLocalParticipantState();
     this.broadcastMediaState();
+
+    if (this.socket) {
+      this.socket.emit('screen_share_stopped', {
+        classId: this.config.classId,
+        userId: this.config.userId,
+      });
+    }
   }
 
   // --- DEVICE MANAGEMENT ---
@@ -749,6 +800,29 @@ export class MediaClient {
         p.isVideoOn = data.isVideoOn;
         p.isScreenSharing = data.isScreenSharing;
         this.emit('participantsUpdate', this.getParticipants());
+      }
+    });
+
+    this.socket.on('screen_share_started', (data: { userId: string; name: string }) => {
+      const p = this.participants.get(data.userId);
+      if (p) {
+        p.isScreenSharing = true;
+        this.emit('participantsUpdate', this.getParticipants());
+      }
+    });
+
+    this.socket.on('screen_share_stopped', (data: { userId: string }) => {
+      const p = this.participants.get(data.userId);
+      if (p) {
+        p.isScreenSharing = false;
+        this.emit('participantsUpdate', this.getParticipants());
+      }
+    });
+
+    // Global Mute All Students
+    this.socket.on('mute_all_students', () => {
+      if (this.config.role === 'student' && this.isAudioEnabled) {
+        this.toggleMicrophone().catch(() => {});
       }
     });
 

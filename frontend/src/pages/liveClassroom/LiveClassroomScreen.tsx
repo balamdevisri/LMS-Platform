@@ -89,6 +89,7 @@ export const LiveClassroomScreen: React.FC = () => {
   const [camOn, setCamOn] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
+  const [isChatMuted, setIsChatMuted] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
 
   // Hand Raise States
@@ -396,7 +397,24 @@ export const LiveClassroomScreen: React.FC = () => {
         // Lock & Whiteboard Listeners
         socketInstance.on('lock_toggled', (data: { locked: boolean }) => {
           setIsLocked(data.locked);
-          toast.info(data.locked ? '🔒 Classroom is now locked by instructor.' : '🔓 Classroom is now unlocked.');
+          toast.info(data.locked ? '🔒 Classroom is now locked (Private).' : '🔓 Classroom is now unlocked.');
+        });
+
+        socketInstance.on('mute_all_students', () => {
+          if (!isInstructor) {
+            if (mediaClientRef.current) {
+              mediaClientRef.current.muteMicrophone().catch(() => {});
+            }
+            setMicOn(false);
+            toast.info('🔇 Instructor has muted all student microphones.');
+          }
+        });
+
+        socketInstance.on('room_chat_muted', (data: { isMuted: boolean }) => {
+          setIsChatMuted(Boolean(data.isMuted));
+          if (!isInstructor) {
+            toast.info(data.isMuted ? '💬 Instructor disabled classroom chat.' : '💬 Classroom chat is re-enabled.');
+          }
         });
 
         socketInstance.on('whiteboard_toggled', (data: { isOpen: boolean }) => {
@@ -640,7 +658,20 @@ export const LiveClassroomScreen: React.FC = () => {
 
   const handleToggleLock = () => {
     if (!socket || !isInstructor) return;
-    socket.emit('toggle_lock', { classId, locked: !isLocked });
+    socket.emit('toggle_lock', { classId, liveClassId: classId, locked: !isLocked });
+  };
+
+  const handleMuteAllStudents = () => {
+    if (!socket || !isInstructor) return;
+    socket.emit('mute_all_students', { classId, liveClassId: classId });
+    toast.success('🔇 Muted all student microphones.');
+  };
+
+  const handleToggleChatMute = (mute: boolean) => {
+    if (!socket || !isInstructor) return;
+    socket.emit('toggle_chat_mute', { classId, liveClassId: classId, isMuted: mute });
+    setIsChatMuted(mute);
+    toast.info(mute ? '💬 Classroom chat muted for students' : '💬 Classroom chat re-enabled');
   };
 
   // Student Hand Raise Toggle
@@ -1020,6 +1051,13 @@ export const LiveClassroomScreen: React.FC = () => {
             <span className="flex items-center gap-1.5 text-[10px] font-black uppercase text-red-500 bg-red-500/10 border border-red-500/20 px-2.5 py-1.5 rounded-xl animate-pulse">
               <span className="w-2 h-2 rounded-full bg-red-500" />
               <span>REC</span>
+            </span>
+          )}
+
+          {isLocked && (
+            <span className="flex items-center gap-1.5 text-[10px] font-black uppercase text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2.5 py-1.5 rounded-xl shadow-xs">
+              <Lock className="w-3 h-3 text-amber-400" />
+              <span>PRIVATE / LOCKED</span>
             </span>
           )}
 
@@ -1912,7 +1950,7 @@ export const LiveClassroomScreen: React.FC = () => {
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2">
                 <ShieldAlert className="w-5 h-5 text-amber-400" />
-                <h3 className="font-heading font-black text-base text-white">Student Restrictions Control</h3>
+                <h3 className="font-heading font-black text-base text-white">Classroom Moderation & Privacy</h3>
               </div>
               <button onClick={() => setIsRestrictModalOpen(false)} className="p-1 rounded-lg text-slate-400 hover:text-white cursor-pointer">
                 <X className="w-5 h-5" />
@@ -1920,45 +1958,70 @@ export const LiveClassroomScreen: React.FC = () => {
             </div>
 
             <p className="text-xs text-slate-400 font-medium">
-              Manage live classroom permissions & restrict student interactions in real time.
+              Manage live classroom privacy, entry permissions, and silence student interactions in real time.
             </p>
 
             <div className="space-y-3">
+              {/* Classroom Privacy / Lock */}
               <div className="p-3.5 bg-slate-950 border border-slate-800 rounded-2xl flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
-                  <VolumeX className="w-4.5 h-4.5 text-rose-400" />
+                  {isLocked ? <Lock className="w-5 h-5 text-amber-400" /> : <Unlock className="w-5 h-5 text-emerald-400" />}
                   <div>
-                    <p className="text-xs font-bold text-white">Mute All Student Microphones</p>
-                    <p className="text-[10px] text-slate-400 font-medium">Silences all active student audio inputs</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => {
-                    toast.warning('🔇 Muted all student microphones.');
-                  }}
-                  className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold cursor-pointer"
-                >
-                  Mute All
-                </button>
-              </div>
-
-              <div className="p-3.5 bg-slate-950 border border-slate-800 rounded-2xl flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  {isLocked ? <Lock className="w-4.5 h-4.5 text-rose-400" /> : <Unlock className="w-4.5 h-4.5 text-sky-400" />}
-                  <div>
-                    <p className="text-xs font-bold text-white">Lock Classroom Entry</p>
+                    <p className="text-xs font-bold text-white">Room Privacy & Lock</p>
                     <p className="text-[10px] text-slate-400 font-medium">
-                      Status: {isLocked ? 'Locked (No new joins)' : 'Unlocked (Open)'}
+                      {isLocked ? '🔒 Private Session (New students blocked)' : '🔓 Open Session (Anyone can join)'}
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={handleToggleLock}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer ${
-                    isLocked ? 'bg-slate-700 text-slate-200' : 'bg-rose-600 text-white'
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all ${
+                    isLocked
+                      ? 'bg-slate-800 border border-slate-700 text-slate-200 hover:bg-slate-700'
+                      : 'bg-amber-500 hover:bg-amber-400 text-slate-950 font-black shadow-lg shadow-amber-500/20'
                   }`}
                 >
-                  {isLocked ? 'Unlock' : 'Lock Room'}
+                  {isLocked ? 'Unlock (Open)' : 'Make Private'}
+                </button>
+              </div>
+
+              {/* Mute All Microphones */}
+              <div className="p-3.5 bg-slate-950 border border-slate-800 rounded-2xl flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <VolumeX className="w-5 h-5 text-rose-400" />
+                  <div>
+                    <p className="text-xs font-bold text-white">Mute All Student Microphones</p>
+                    <p className="text-[10px] text-slate-400 font-medium">Instantly silence all student microphones</p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleMuteAllStudents}
+                  className="px-3.5 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold cursor-pointer shadow-lg shadow-rose-600/20 transition-all"
+                >
+                  Mute All
+                </button>
+              </div>
+
+              {/* Chat Moderation */}
+              <div className="p-3.5 bg-slate-950 border border-slate-800 rounded-2xl flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  {isChatMuted ? <MessageSquareOff className="w-5 h-5 text-rose-400" /> : <MessageSquare className="w-5 h-5 text-sky-400" />}
+                  <div>
+                    <p className="text-xs font-bold text-white">Classroom Chat Moderation</p>
+                    <p className="text-[10px] text-slate-400 font-medium">
+                      {isChatMuted ? '🔇 Chat is currently muted for students' : '💬 Students can post in live chat'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleToggleChatMute(!isChatMuted)}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all ${
+                    isChatMuted
+                      ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20'
+                      : 'bg-rose-600/20 border border-rose-500/30 text-rose-300 hover:bg-rose-600/30'
+                  }`}
+                >
+                  {isChatMuted ? 'Unmute Chat' : 'Mute Chat'}
                 </button>
               </div>
             </div>

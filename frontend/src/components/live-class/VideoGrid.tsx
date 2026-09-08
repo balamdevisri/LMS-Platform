@@ -164,14 +164,20 @@ export const VideoGrid: React.FC<VideoGridProps> = ({
   const [spotlightedUserId, setSpotlightedUserId] = useState<string | null>(null);
 
   // Detect active screen share stream (either passed explicitly or from any participant with active screen share)
+  const activeSharer = participants.find((p) => p.isScreenSharing);
   const activeScreenStream =
     screenShareStream ||
+    activeSharer?.stream ||
     participants.find((p) => p.isScreenSharing && p.stream)?.stream ||
     null;
 
   useEffect(() => {
     if (screenRef.current && activeScreenStream) {
       screenRef.current.srcObject = activeScreenStream;
+      screenRef.current.muted = true;
+      screenRef.current.play().catch((err) => {
+        console.warn('[VideoGrid] Screen share video play catch:', err);
+      });
     }
   }, [activeScreenStream]);
 
@@ -189,11 +195,12 @@ export const VideoGrid: React.FC<VideoGridProps> = ({
             ref={screenRef}
             autoPlay
             playsInline
+            muted
             className="w-full h-full object-contain"
           />
           <div className="absolute top-4 left-4 bg-slate-950/80 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-slate-800 text-xs font-bold text-amber-400 flex items-center gap-2 shadow-lg">
             <Monitor className="w-4 h-4 text-amber-400 animate-pulse" />
-            <span>Shared Screen Stream</span>
+            <span>Shared Screen Stream • {activeSharer?.name || 'Live Presenter'}</span>
           </div>
         </div>
 
