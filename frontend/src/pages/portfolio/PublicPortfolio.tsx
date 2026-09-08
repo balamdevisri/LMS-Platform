@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { API_BASE_URL } from '@/config/api';
 import { toast } from 'sonner';
+import { LottieLoader } from '@/components/common/LottieLoader';
 
 export const PublicPortfolio: React.FC = () => {
   const { handleOrId } = useParams<{ handleOrId: string }>();
@@ -147,10 +148,7 @@ export const PublicPortfolio: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#070b14] text-slate-100 flex items-center justify-center p-4">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-3 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-xs font-semibold text-slate-400">Loading verified portfolio profile...</p>
-        </div>
+        <LottieLoader size="lg" message="Loading verified portfolio profile..." />
       </div>
     );
   }

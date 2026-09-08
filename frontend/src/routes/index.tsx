@@ -6,6 +6,8 @@ import { AdminRoute } from '@/components/auth/AdminRoute';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { DeveloperGate } from '@/components/auth/DeveloperGate';
 
+import { LottieLoader } from '@/components/common/LottieLoader';
+
 // Helper to lazy load named exports and wrap them in a Suspense boundary
 const lazyLoad = (importFn: () => Promise<any>, name: string) => {
   const LazyComponent = lazy(async () => {
@@ -34,8 +36,8 @@ const lazyLoad = (importFn: () => Promise<any>, name: string) => {
   });
   const SuspenseWrapper = (props: any) => (
     <Suspense fallback={
-      <div className="flex items-center justify-center min-h-[400px] w-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
+      <div className="flex items-center justify-center min-h-[420px] w-full py-12">
+        <LottieLoader size="lg" message="Loading experience..." />
       </div>
     }>
       <LazyComponent {...props} />

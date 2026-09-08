@@ -36,12 +36,14 @@ import { useCourseTimeTracker } from '@/hooks/useCourseTimeTracker';
 import { studentService, type StudentUser } from '@/services/studentService';
 import { soundService } from '@/services/soundService';
 import { liveClassService, normalizeLiveClassStatus, type LiveClass } from '@/services/liveClassService';
+import { LottieLoader } from '@/components/common/LottieLoader';
 
 // Lazy loader helper for heavy tab modules
 const lazyComponent = <T extends Record<string, any>, K extends keyof T>(
   importFn: () => Promise<T>,
   name: K
 ) => {
+
   const LazyComp = lazy(async () => {
     const mod = await importFn();
     return { default: mod[name] };
@@ -49,8 +51,8 @@ const lazyComponent = <T extends Record<string, any>, K extends keyof T>(
   const ComponentWithSuspense = (props: any) => (
     <Suspense
       fallback={
-        <div className="flex items-center justify-center min-h-[300px] w-full">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
+        <div className="flex items-center justify-center min-h-[320px] w-full py-8">
+          <LottieLoader size="md" message="Opening module..." />
         </div>
       }
     >
