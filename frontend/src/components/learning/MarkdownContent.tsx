@@ -2,7 +2,17 @@ import React, { useMemo, lazy, Suspense } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
-import { Copy, Check, Lightbulb, Info } from 'lucide-react';
+import {
+  Copy,
+  Check,
+  Lightbulb,
+  Info,
+  AlertTriangle,
+  AlertCircle,
+  ShieldAlert,
+  Tag,
+  Code as CodeIcon
+} from 'lucide-react';
 
 // Lazy-loaded practice simulators to code-split heavy dependencies (sql.js, mermaid, terminal emulators)
 const SqlPlayground = lazy(() => import('./practice/SqlPlayground').then(m => ({ default: m.SqlPlayground || m.default })));
@@ -15,7 +25,7 @@ const MermaidDiagram = lazy(() => import('./MermaidDiagram').then(m => ({ defaul
 
 const SimulatorFallback: React.FC<{ label?: string }> = ({ label = 'practice simulator' }) => (
   <div className="my-6 p-6 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-center gap-3 text-xs text-slate-400 font-mono">
-    <div className="w-4 h-4 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+    <div className="w-4 h-4 rounded-full border-2 border-sky-500 border-t-transparent animate-spin" />
     <span>Loading {label}...</span>
   </div>
 );
@@ -49,7 +59,7 @@ const CopyButton: React.FC<{ code: string }> = ({ code }) => {
   return (
     <button
       onClick={handleCopy}
-      className="absolute top-2.5 right-2.5 flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium
+      className="absolute top-2.5 right-2.5 flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium
         bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white
         transition-all duration-150 cursor-pointer active:scale-95 backdrop-blur-sm border border-white/10"
       title="Copy code"
@@ -57,11 +67,11 @@ const CopyButton: React.FC<{ code: string }> = ({ code }) => {
       {copied ? (
         <>
           <Check className="w-3 h-3 text-emerald-400" />
-          <span className="text-emerald-400">Copied</span>
+          <span className="text-emerald-400 font-semibold">Copied</span>
         </>
       ) : (
         <>
-          <Copy className="w-3 h-3" />
+          <Copy className="w-3 h-3 text-sky-400" />
           <span>Copy</span>
         </>
       )}
@@ -71,7 +81,8 @@ const CopyButton: React.FC<{ code: string }> = ({ code }) => {
 
 /**
  * MarkdownContent — renders Markdown lesson content using react-markdown
- * with syntax-highlighted code blocks, callout boxes, and clean typography.
+ * with syntax-highlighted code blocks, themed callout boxes, responsive tables,
+ * sky-blue heading hierarchy, and readable soft-white typography for all LMS courses.
  */
 export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNightMode = false }) => {
   const plugins = useMemo(() => [remarkGfm], []);
@@ -101,7 +112,17 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
     text = text.replace(/^[ \t]*[●•✔❌]\s*/gm, '- ');
     text = text.replace(/(\S)\s+([●•✔❌]\s*)/g, '$1\n- ');
 
-    // 4. Format single-line flowcharts with ↓ or ➔ into structured step blocks
+    // 4. Handle standalone hashtags / metadata tags (e.g., `#tags`, `#github #aws`, `Tags: git, devops`)
+    // Prevent `#tag` or `#tags` from blowing up into oversized H1 headings.
+    text = text.replace(/^(?:#\s*tags|#tags|Tags|Keywords|Hashtags|Topic Tags)[:\s]+([^\n]+)$/gim, (_match, tagLine) => {
+      return `\n\n\`\`\`tags\n${tagLine.trim()}\n\`\`\`\n\n`;
+    });
+    // Standalone lines with multiple hashtags: e.g. `#git #github #versioncontrol`
+    text = text.replace(/^(#\w[\w-]*\s+)+#\w[\w-]*$/gm, (_match) => {
+      return `\n\n\`\`\`tags\n${_match.trim()}\n\`\`\`\n\n`;
+    });
+
+    // 5. Format single-line flowcharts with ↓ or ➔ into structured step blocks
     text = text.replace(/(?:^|\n)(?:Flowchart|Flow Chart|Process Flow)[:\s—]+([^\n]+(?:↓|➔|->)[^\n]+)/gi, (_match, steps) => {
       const formattedSteps = steps
         .split(/\s*(?:↓|➔|->)\s*/)
@@ -128,19 +149,19 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
             </h1>
           ),
           h2: ({ children }: any) => (
-            <h2 className={`text-xl sm:text-2xl font-bold tracking-tight mt-9 mb-3.5 leading-snug
-              ${isNightMode ? 'text-[#60A5FA]' : 'text-[#2563EB]'} dark:text-[#60A5FA]`}>
+            <h2 className={`text-xl sm:text-2xl font-bold tracking-tight mt-9 mb-4 leading-snug
+              ${isNightMode ? 'text-[#38BDF8]' : 'text-[#0284C7]'} dark:text-[#38BDF8]`}>
               {children}
             </h2>
           ),
           h3: ({ children }: any) => (
-            <h3 className={`text-lg sm:text-xl font-bold mt-7 mb-2.5 leading-snug
+            <h3 className={`text-lg sm:text-xl font-bold mt-7 mb-3 leading-snug
               ${isNightMode ? 'text-[#7DD3FC]' : 'text-[#0369A1]'} dark:text-[#7DD3FC]`}>
               {children}
             </h3>
           ),
           h4: ({ children }: any) => (
-            <h4 className={`text-base font-semibold mt-5 mb-2 leading-snug
+            <h4 className={`text-base sm:text-lg font-semibold mt-5 mb-2.5 leading-snug
               ${isNightMode ? 'text-[#BAE6FD]' : 'text-[#1D4ED8]'} dark:text-[#BAE6FD]`}>
               {children}
             </h4>
@@ -160,7 +181,7 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
 
           // ── Paragraph ────────────────────────────────────────────
           p: ({ children }: any) => (
-            <p className={`text-[1.05rem] leading-[1.8] mb-5
+            <p className={`text-base sm:text-[1.05rem] leading-[1.85] sm:leading-[1.9] mb-5
               ${isNightMode ? 'text-slate-300' : 'text-slate-700'} dark:text-slate-300 font-normal`}>
               {children}
             </p>
@@ -173,7 +194,7 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
             </strong>
           ),
           em: ({ children }: any) => (
-            <em className={`italic ${isNightMode ? 'text-sky-200/90' : 'text-slate-700'} dark:text-sky-200/90`}>
+            <em className={`italic ${isNightMode ? 'text-sky-200/90' : 'text-slate-800'} dark:text-sky-200/90`}>
               {children}
             </em>
           ),
@@ -196,6 +217,38 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
             const langClass = codeElement?.props?.className || '';
             const langMatch = langClass.match(/language-([\w-]+)/);
             const language = (langMatch ? langMatch[1] : 'code').toLowerCase();
+
+            // ── Metadata Tags Badge Block ────────────────────────────────
+            if (language === 'tags') {
+              const tagsList = rawCode
+                .replace(/^(?:Tags|Keywords|Hashtags|Topic Tags)[:\s]*/i, '')
+                .split(/[,\s]+/)
+                .map((t) => t.replace(/^#/, '').trim())
+                .filter((t) => t.length > 0);
+
+              if (tagsList.length === 0) return null;
+
+              return (
+                <div className="my-5 p-3 rounded-xl border border-sky-500/20 bg-sky-950/20 flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-bold text-[#38BDF8] flex items-center gap-1 mr-1">
+                    <Tag className="w-3.5 h-3.5" />
+                    <span>Topic Tags:</span>
+                  </span>
+                  {tagsList.map((tag, idx) => (
+                    <span
+                      key={idx}
+                      className={`text-xs font-mono font-semibold px-2.5 py-0.5 rounded-full border transition-colors
+                        ${isNightMode
+                          ? 'bg-[#131C31] text-[#38BDF8] border-sky-500/30'
+                          : 'bg-sky-50 text-[#0284C7] border-sky-200'
+                        }`}
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              );
+            }
 
             // ── Interactive Diagram & Flowcharts: Mermaid.js ─────────────
             if (language === 'mermaid' || language === 'flowchart' || language === 'sequence' || language === 'mindmap' || language === 'diagram') {
@@ -365,8 +418,9 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
                     <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80 inline-block" />
                     <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80 inline-block" />
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block" />
-                    <span className="ml-2 text-xs font-mono font-bold text-[#38BDF8] dark:text-[#38BDF8] uppercase tracking-wider">
-                      {language}
+                    <span className="ml-2 text-xs font-mono font-bold text-[#38BDF8] dark:text-[#38BDF8] uppercase tracking-wider flex items-center gap-1.5">
+                      <CodeIcon className="w-3.5 h-3.5" />
+                      <span>{language}</span>
                     </span>
                   </div>
                 </div>
@@ -392,7 +446,7 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
             // Otherwise it's inline code
             return (
               <code
-                className={`px-2 py-0.5 rounded-md font-mono text-[0.875em] font-medium transition-colors
+                className={`px-2 py-0.5 rounded-md font-mono text-[0.875em] font-semibold transition-colors
                   ${isNightMode
                     ? 'bg-[#131C31] text-[#38BDF8] border border-sky-500/25 shadow-xs'
                     : 'bg-sky-50 text-[#0284C7] border border-sky-200'
@@ -404,7 +458,7 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
             );
           },
 
-          // ── Blockquote (Tip / Note callouts) ─────────────────────
+          // ── Blockquote (Tip / Note / Warning / Important / Caution callouts) ─────────────────────
           blockquote: ({ children }: any) => {
             const childText = React.Children.toArray(children)
               .map((c: any) => {
@@ -422,17 +476,18 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
               .join('')
               .trim();
 
-            const isTip = /^(\*\*)?tip(\*\*)?[:\s]/i.test(childText);
-            const isNote = /^(\*\*)?note(\*\*)?[:\s]/i.test(childText);
-            const isWarning = /^(\*\*)?warning(\*\*)?[:\s]/i.test(childText);
-            const isImportant = /^(\*\*)?important(\*\*)?[:\s]/i.test(childText);
+            const isTip = /^(\[\!TIP\]|💡|\*\*tip\*\*|tip:|\*\*tip:)/i.test(childText);
+            const isNote = /^(\[\!NOTE\]|ℹ️|\*\*note\*\*|note:|\*\*note:)/i.test(childText);
+            const isWarning = /^(\[\!WARNING\]|⚠️|\*\*warning\*\*|warning:|\*\*warning:)/i.test(childText);
+            const isImportant = /^(\[\!IMPORTANT\]|⚡|\*\*important\*\*|important:|\*\*important:)/i.test(childText);
+            const isCaution = /^(\[\!CAUTION\]|🛑|🚨|\*\*caution\*\*|caution:|\*\*caution:)/i.test(childText);
 
             if (isTip) {
               return (
-                <div className={`my-6 p-4 rounded-xl border-l-4 flex gap-3
+                <div className={`my-6 p-4.5 rounded-2xl border-l-4 flex gap-3.5 shadow-sm transition-colors
                   ${isNightMode
                     ? 'bg-emerald-950/30 border-emerald-500 text-emerald-200'
-                    : 'bg-emerald-50 border-emerald-500 text-emerald-800'
+                    : 'bg-emerald-50/80 border-emerald-500 text-emerald-900'
                   } dark:bg-emerald-950/30 dark:border-emerald-500 dark:text-emerald-200`}>
                   <Lightbulb className={`w-5 h-5 shrink-0 mt-0.5 ${isNightMode ? 'text-emerald-400' : 'text-emerald-600'} dark:text-emerald-400`} />
                   <div className="flex-1 text-[0.9375rem] leading-relaxed [&>p]:mb-2 [&>p:last-child]:mb-0">
@@ -442,12 +497,12 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
               );
             }
 
-            if (isNote || isImportant) {
+            if (isNote) {
               return (
-                <div className={`my-6 p-4 rounded-xl border-l-4 flex gap-3
+                <div className={`my-6 p-4.5 rounded-2xl border-l-4 flex gap-3.5 shadow-sm transition-colors
                   ${isNightMode
                     ? 'bg-sky-950/30 border-sky-500 text-sky-200'
-                    : 'bg-sky-50 border-sky-500 text-sky-800'
+                    : 'bg-sky-50/80 border-sky-500 text-sky-900'
                   } dark:bg-sky-950/30 dark:border-sky-500 dark:text-sky-200`}>
                   <Info className={`w-5 h-5 shrink-0 mt-0.5 ${isNightMode ? 'text-[#38BDF8]' : 'text-[#0284C7]'} dark:text-[#38BDF8]`} />
                   <div className="flex-1 text-[0.9375rem] leading-relaxed [&>p]:mb-2 [&>p:last-child]:mb-0">
@@ -457,14 +512,44 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
               );
             }
 
+            if (isImportant) {
+              return (
+                <div className={`my-6 p-4.5 rounded-2xl border-l-4 flex gap-3.5 shadow-sm transition-colors
+                  ${isNightMode
+                    ? 'bg-indigo-950/30 border-indigo-500 text-indigo-200'
+                    : 'bg-indigo-50/80 border-indigo-500 text-indigo-900'
+                  } dark:bg-indigo-950/30 dark:border-indigo-500 dark:text-indigo-200`}>
+                  <AlertCircle className={`w-5 h-5 shrink-0 mt-0.5 ${isNightMode ? 'text-indigo-400' : 'text-indigo-600'} dark:text-indigo-400`} />
+                  <div className="flex-1 text-[0.9375rem] leading-relaxed [&>p]:mb-2 [&>p:last-child]:mb-0">
+                    {children}
+                  </div>
+                </div>
+              );
+            }
+
             if (isWarning) {
               return (
-                <div className={`my-6 p-4 rounded-xl border-l-4 flex gap-3
+                <div className={`my-6 p-4.5 rounded-2xl border-l-4 flex gap-3.5 shadow-sm transition-colors
                   ${isNightMode
                     ? 'bg-amber-950/30 border-amber-500 text-amber-200'
-                    : 'bg-amber-50 border-amber-500 text-amber-800'
+                    : 'bg-amber-50/80 border-amber-500 text-amber-900'
                   } dark:bg-amber-950/30 dark:border-amber-500 dark:text-amber-200`}>
-                  <Info className={`w-5 h-5 shrink-0 mt-0.5 ${isNightMode ? 'text-amber-400' : 'text-amber-600'} dark:text-amber-400`} />
+                  <AlertTriangle className={`w-5 h-5 shrink-0 mt-0.5 ${isNightMode ? 'text-amber-400' : 'text-amber-600'} dark:text-amber-400`} />
+                  <div className="flex-1 text-[0.9375rem] leading-relaxed [&>p]:mb-2 [&>p:last-child]:mb-0">
+                    {children}
+                  </div>
+                </div>
+              );
+            }
+
+            if (isCaution) {
+              return (
+                <div className={`my-6 p-4.5 rounded-2xl border-l-4 flex gap-3.5 shadow-sm transition-colors
+                  ${isNightMode
+                    ? 'bg-rose-950/30 border-rose-500 text-rose-200'
+                    : 'bg-rose-50/80 border-rose-500 text-rose-900'
+                  } dark:bg-rose-950/30 dark:border-rose-500 dark:text-rose-200`}>
+                  <ShieldAlert className={`w-5 h-5 shrink-0 mt-0.5 ${isNightMode ? 'text-rose-400' : 'text-rose-600'} dark:text-rose-400`} />
                   <div className="flex-1 text-[0.9375rem] leading-relaxed [&>p]:mb-2 [&>p:last-child]:mb-0">
                     {children}
                   </div>
@@ -474,11 +559,11 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
 
             // Default blockquote
             return (
-              <blockquote className={`my-6 pl-4 border-l-4 italic
+              <blockquote className={`my-6 pl-4 py-2.5 rounded-r-xl border-l-4 italic
                 ${isNightMode
-                  ? 'border-sky-500/50 bg-slate-900/40 text-slate-300'
-                  : 'border-sky-400 bg-sky-50/40 text-slate-700'
-                } dark:border-sky-500/50 dark:bg-slate-900/40 dark:text-slate-300 py-2 rounded-r-xl`}>
+                  ? 'border-sky-500/50 bg-[#131C31]/50 text-slate-300'
+                  : 'border-sky-400 bg-sky-50/50 text-slate-700'
+                } dark:border-sky-500/50 dark:bg-[#131C31]/50 dark:text-slate-300`}>
                 {children}
               </blockquote>
             );
@@ -486,47 +571,47 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
 
           // ── Lists ────────────────────────────────────────────────
           ul: ({ children }: any) => (
-            <ul className={`list-disc pl-6 mb-5 space-y-2 text-[1.05rem] leading-[1.8]
+            <ul className={`list-disc pl-6 mb-5 space-y-2.5 text-base sm:text-[1.05rem] leading-[1.85]
               ${isNightMode ? 'text-slate-300 marker:text-[#38BDF8]' : 'text-slate-700 marker:text-[#0284C7]'} dark:text-slate-300 dark:marker:text-[#38BDF8]`}>
               {children}
             </ul>
           ),
           ol: ({ children }: any) => (
-            <ol className={`list-decimal pl-6 mb-5 space-y-2 text-[1.05rem] leading-[1.8]
-              ${isNightMode ? 'text-slate-300 marker:text-[#38BDF8]' : 'text-slate-700 marker:text-[#0284C7]'} dark:text-slate-300 dark:marker:text-[#38BDF8]`}>
+            <ol className={`list-decimal pl-6 mb-5 space-y-2.5 text-base sm:text-[1.05rem] leading-[1.85]
+              ${isNightMode ? 'text-slate-300 marker:text-[#38BDF8] marker:font-bold' : 'text-slate-700 marker:text-[#0284C7] marker:font-bold'} dark:text-slate-300 dark:marker:text-[#38BDF8]`}>
               {children}
             </ol>
           ),
           li: ({ children }: any) => (
-            <li className="pl-1 leading-[1.8]">{children}</li>
+            <li className="pl-1 leading-[1.85]">{children}</li>
           ),
 
           // ── Table ────────────────────────────────────────────────
           table: ({ children }: any) => (
-            <div className="my-6 overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 shadow-md">
-              <table className={`w-full text-sm text-left border-collapse ${isNightMode ? 'text-slate-300' : 'text-slate-700'} dark:text-slate-300`}>
+            <div className="my-6 overflow-x-auto rounded-2xl border border-slate-700/60 dark:border-slate-800 shadow-md bg-[#0A0E1A]/40">
+              <table className={`w-full text-xs sm:text-sm text-left border-collapse ${isNightMode ? 'text-slate-300' : 'text-slate-700'} dark:text-slate-300`}>
                 {children}
               </table>
             </div>
           ),
           thead: ({ children }: any) => (
             <thead className={`text-xs font-bold uppercase tracking-wider border-b
-              ${isNightMode ? 'bg-[#111827] text-[#7DD3FC] border-slate-800' : 'bg-slate-100 text-slate-800 border-slate-200'} dark:bg-[#111827] dark:text-[#7DD3FC] dark:border-slate-800`}>
+              ${isNightMode ? 'bg-[#0F172A] text-[#38BDF8] border-slate-800' : 'bg-slate-100 text-[#0284C7] border-slate-200'} dark:bg-[#0F172A] dark:text-[#38BDF8] dark:border-slate-800`}>
               {children}
             </thead>
           ),
           th: ({ children }: any) => (
-            <th className="px-4 py-3.5 font-bold">{children}</th>
+            <th className="px-4 sm:px-5 py-3.5 font-bold whitespace-nowrap">{children}</th>
           ),
           td: ({ children }: any) => (
-            <td className={`px-4 py-3 border-t ${isNightMode ? 'border-slate-800 text-slate-300' : 'border-slate-200 text-slate-700'} dark:border-slate-800 dark:text-slate-300`}>
+            <td className={`px-4 sm:px-5 py-3 border-t ${isNightMode ? 'border-slate-800/80 text-slate-300' : 'border-slate-200 text-slate-700'} dark:border-slate-800/80 dark:text-slate-300`}>
               {children}
             </td>
           ),
 
           // ── Horizontal rule ──────────────────────────────────────
           hr: () => (
-            <hr className={`my-8 border-t ${isNightMode ? 'border-slate-800' : 'border-slate-200'} dark:border-slate-800`} />
+            <hr className={`my-8 border-0 h-px bg-gradient-to-r from-transparent via-sky-500/30 to-transparent`} />
           ),
 
           // ── Links ────────────────────────────────────────────────
@@ -535,9 +620,9 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
               href={href}
               target="_blank"
               rel="noopener noreferrer"
-              className={`underline underline-offset-2 decoration-1 font-medium transition-colors
+              className={`underline underline-offset-4 decoration-1 font-semibold transition-colors
                 ${isNightMode
-                  ? 'text-[#38BDF8] hover:text-sky-300 decoration-sky-500/40'
+                  ? 'text-[#38BDF8] hover:text-sky-300 decoration-sky-500/40 hover:decoration-sky-400'
                   : 'text-[#0284C7] hover:text-sky-700 decoration-sky-300'
                 } dark:text-[#38BDF8] dark:hover:text-sky-300`}
             >
@@ -551,12 +636,12 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
               <img
                 src={src}
                 alt={alt || ''}
-                className="rounded-xl max-w-full h-auto shadow-sm"
+                className="rounded-2xl max-w-full h-auto shadow-md border border-slate-800"
                 loading="lazy"
               />
               {alt && (
-                <figcaption className={`mt-2 text-center text-sm italic
-                  ${isNightMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                <figcaption className={`mt-2.5 text-center text-xs sm:text-sm italic
+                  ${isNightMode ? 'text-slate-400' : 'text-slate-500'}`}>
                   {alt}
                 </figcaption>
               )}
@@ -569,3 +654,4 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
     </div>
   );
 };
+
