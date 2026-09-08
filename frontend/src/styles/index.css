@@ -13,8 +13,8 @@
 }
 @variant dark (&:where(.dark, .dark *));
 
-/* ─── Smooth theme transition (300ms) on structural layout surfaces ────────── */
-/* Applied only when not prefers-reduced-motion, scoped to layout containers to avoid mobile CPU throttling */
+/* ─── Smooth theme transition on structural layout surfaces ────────────────── */
+/* Scoped to layout containers with 650ms cubic-bezier for silky transitions */
 @media (prefers-reduced-motion: no-preference) {
   body,
   main,
@@ -22,15 +22,70 @@
   header,
   footer,
   aside,
+  section,
+  article,
   .theme-transition {
-    transition-property: background-color, color, border-color;
-    transition-duration: 300ms;
-    transition-timing-function: ease;
+    transition-property: background-color, color, border-color, box-shadow;
+    transition-duration: 650ms;
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
   }
   /* Exclude elements that have their own animation — avoid fighting with Framer Motion */
   [data-framer-motion],
   [style*="animation"] {
     transition: none !important;
+  }
+}
+
+/* ─── Pervasive Smooth Theme Transition (Slow, Silky & Attractive) ──────────── */
+html.theme-transitioning,
+html.theme-transitioning *,
+html.theme-transitioning *::before,
+html.theme-transitioning *::after {
+  transition: background-color 650ms cubic-bezier(0.22, 1, 0.36, 1),
+              border-color 650ms cubic-bezier(0.22, 1, 0.36, 1),
+              color 650ms cubic-bezier(0.22, 1, 0.36, 1),
+              fill 650ms cubic-bezier(0.22, 1, 0.36, 1),
+              stroke 650ms cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 650ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+  transition-delay: 0s !important;
+}
+
+/* ─── Premium View Transitions API Animations (Luminous Crossfade) ─────────── */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 650ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+::view-transition-old(root) {
+  animation: 650ms cubic-bezier(0.22, 1, 0.36, 1) both theme-fade-out;
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  animation: 650ms cubic-bezier(0.22, 1, 0.36, 1) both theme-fade-in;
+  z-index: 2;
+}
+
+@keyframes theme-fade-out {
+  0% {
+    opacity: 1;
+    filter: saturate(1) brightness(1);
+  }
+  100% {
+    opacity: 0;
+    filter: saturate(0.9) brightness(0.96);
+  }
+}
+
+@keyframes theme-fade-in {
+  0% {
+    opacity: 0;
+    filter: saturate(1.08) brightness(1.03);
+  }
+  100% {
+    opacity: 1;
+    filter: saturate(1) brightness(1);
   }
 }
 

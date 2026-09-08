@@ -40,10 +40,10 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '' }) => {
         {isNight ? (
           <motion.span
             key="sun"
-            initial={{ opacity: 0, rotate: -45, scale: 0.7 }}
+            initial={{ opacity: 0, rotate: -90, scale: 0.6 }}
             animate={{ opacity: 1, rotate: 0, scale: 1 }}
-            exit={{ opacity: 0, rotate: 45, scale: 0.7 }}
-            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+            exit={{ opacity: 0, rotate: 90, scale: 0.6 }}
+            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
             className="flex items-center justify-center"
           >
             <Sun className="w-4 h-4 text-amber-400" />
@@ -51,10 +51,10 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '' }) => {
         ) : (
           <motion.span
             key="moon"
-            initial={{ opacity: 0, rotate: 45, scale: 0.7 }}
+            initial={{ opacity: 0, rotate: 90, scale: 0.6 }}
             animate={{ opacity: 1, rotate: 0, scale: 1 }}
-            exit={{ opacity: 0, rotate: -45, scale: 0.7 }}
-            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+            exit={{ opacity: 0, rotate: -90, scale: 0.6 }}
+            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
             className="flex items-center justify-center"
           >
             <Moon className="w-4 h-4 text-slate-600 dark:text-slate-300" />
