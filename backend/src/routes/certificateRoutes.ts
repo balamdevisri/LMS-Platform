@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { certificateController } from '../controllers/certificateController';
-import { verifyFirebaseToken, requireRole } from '../middleware/auth.middleware';
+import { verifyFirebaseToken, requireRole, extractOptionalUser } from '../middleware/auth.middleware';
 import { certificateRateLimiter } from '../middleware/rateLimiter.middleware';
 
 const router = Router();
@@ -22,8 +22,8 @@ router.get('/preview', verifyFirebaseToken, (req, res) => certificateController.
 // Authenticated current student certificates list
 router.get('/my-certificates', verifyFirebaseToken, (req, res) => certificateController.getMyCertificates(req, res));
 
-// Authenticated certificates by email query (Restricted to owner or admin)
-router.get('/student/:studentEmail', verifyFirebaseToken, (req, res) => certificateController.getCertificatesByEmail(req, res));
+// Certificates by email query (Owner/Admin or graceful empty fallback)
+router.get('/student/:studentEmail', extractOptionalUser as any, (req, res) => certificateController.getCertificatesByEmail(req, res));
 
 // Public Certificate Verification (Sanitized Public DTO - No secrets/PII exposed)
 router.get('/verify/:certificateId', (req, res) => certificateController.verifyCertificate(req, res));

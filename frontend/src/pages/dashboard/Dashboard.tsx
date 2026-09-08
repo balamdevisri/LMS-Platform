@@ -663,24 +663,30 @@ export const Dashboard: React.FC = () => {
   }, [earnedCerts]);
 
   React.useEffect(() => {
-    const uid = userProfile?.uid || user?.uid || 'default_student';
-    const studentEmail = user?.email || userProfile?.email || 'shaivikagroups@gmail.com';
+    // Only attempt backend certificate sync if user is authenticated
+    if (!user || !user.email) return;
+
+    const uid = userProfile?.uid || user.uid;
+    const studentEmail = user.email;
     const studentId = uid;
     const apiBase = API_BASE_URL;
 
     const fetchAndSyncFromBackend = async () => {
       try {
-        const headers: Record<string, string> = {};
-        if (user && typeof (user as any).getIdToken === 'function') {
+        let token = '';
+        if (typeof (user as any).getIdToken === 'function') {
           try {
-            const token = await (user as any).getIdToken();
-            if (token) headers['Authorization'] = `Bearer ${token}`;
+            token = await (user as any).getIdToken();
           } catch {}
+        }
+
+        const headers: Record<string, string> = {};
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
         }
 
         const response = await fetch(`${apiBase}/certificates/student/${encodeURIComponent(studentEmail)}`, { headers });
         if (!response.ok) {
-          // 401/404 are normal for newly signed-in students without issued backend certificates
           return;
         }
         const contentType = response.headers.get('content-type');
