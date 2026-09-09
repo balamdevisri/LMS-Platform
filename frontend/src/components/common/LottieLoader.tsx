@@ -1,4 +1,6 @@
 import React from 'react';
+import { LottieLight } from 'lottie-react';
+import hourglassAnimation from '@/assets/animations/hourglass-loading.json';
 
 export interface LottieLoaderProps {
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'fullscreen';
@@ -6,8 +8,6 @@ export interface LottieLoaderProps {
   className?: string;
   fullScreen?: boolean;
 }
-
-const LOTTIE_EMBED_URL = 'https://lottie.host/embed/aa5f02ef-6296-4c52-b864-d8ece9c14c0b/f1gQRPloq9.lottie';
 
 export const LottieLoader: React.FC<LottieLoaderProps> = ({
   size = 'md',
@@ -30,12 +30,12 @@ export const LottieLoader: React.FC<LottieLoaderProps> = ({
   const content = (
     <div className={`flex flex-col items-center justify-center select-none bg-transparent ${className}`}>
       <div className={`relative ${selectedSizeClass} flex items-center justify-center overflow-hidden pointer-events-none bg-transparent`}>
-        <iframe
-          src={LOTTIE_EMBED_URL}
-          title="Loading..."
-          className="w-full h-full border-0 pointer-events-none bg-transparent"
-          loading="eager"
-          style={{ overflow: 'hidden', background: 'transparent', backgroundColor: 'transparent' }}
+        <LottieLight
+          animationData={hourglassAnimation}
+          loop={true}
+          autoplay={true}
+          className="w-full h-full bg-transparent"
+          style={{ background: 'transparent' }}
         />
       </div>
       {message && (
