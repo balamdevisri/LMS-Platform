@@ -8,19 +8,11 @@ import {
   Radio,
   Sparkles,
   Send,
-  Users,
-  ShieldCheck,
-  MessageSquare,
-  HelpCircle,
-  BarChart3,
-  Mic,
-  VideoOff,
-  Lock,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCourses } from '@/contexts/CourseContext';
 import { instructorService, type InstructorUser } from '@/services/instructorService';
-import { liveClassService, type LiveClass } from '@/services/liveClassService';
+import { liveClassService } from '@/services/liveClassService';
 import { socketService } from '@/services/socketService';
 import { webNotificationService } from '@/services/webNotificationService';
 import {

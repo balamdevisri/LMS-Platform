@@ -19,6 +19,7 @@ export interface LiveClass {
   moduleTitle?: string;
   lessonId?: string;
   lessonTitle?: string;
+  topicId?: string;
   instructorId: string;
   instructorName: string;
   instructorAvatar?: string;
