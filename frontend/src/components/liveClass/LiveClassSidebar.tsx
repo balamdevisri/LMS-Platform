@@ -38,6 +38,7 @@ export const LiveClassSidebar: React.FC<LiveClassSidebarProps> = ({
     activeQuiz,
     quizResult,
     hasRaisedHand,
+    classroomSettings,
     sendChat,
     deleteChat,
     askQuestion,
@@ -96,6 +97,10 @@ export const LiveClassSidebar: React.FC<LiveClassSidebarProps> = ({
   };
 
   const handleToggleHand = async () => {
+    if (!isInstructorOrAdmin && !classroomSettings.raiseHand?.enabled) {
+      toast.info('✋ Hand raising is currently disabled by the instructor.');
+      return;
+    }
     try {
       await toggleRaiseHand();
       if (!hasRaisedHand) {
@@ -196,17 +201,26 @@ export const LiveClassSidebar: React.FC<LiveClassSidebarProps> = ({
             onSendMessage={handleSendMessage}
             onDeleteMessage={deleteChat}
             isInstructorOrAdmin={isInstructorOrAdmin}
+            isChatDisabled={!isInstructorOrAdmin && !classroomSettings.chat?.enabled}
             currentUserId={userProfile?.uid || user?.uid}
           />
         )}
 
         {activeTab === 'qna' && (
-          <LiveQnA
-            questions={questions}
-            onAskQuestion={handleAskQuestion}
-            onAnswerQuestion={handleAnswerQuestion}
-            isInstructorOrAdmin={isInstructorOrAdmin}
-          />
+          !isInstructorOrAdmin && !classroomSettings.qa?.enabled ? (
+            <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-400 space-y-2">
+              <HelpCircle className="w-8 h-8 text-amber-400/60 mx-auto" />
+              <span className="text-xs font-bold text-slate-200 block">Q&A is Paused</span>
+              <p className="text-[11px] text-slate-400 max-w-xs">The instructor has temporarily paused new student questions for this session.</p>
+            </div>
+          ) : (
+            <LiveQnA
+              questions={questions}
+              onAskQuestion={handleAskQuestion}
+              onAnswerQuestion={handleAnswerQuestion}
+              isInstructorOrAdmin={isInstructorOrAdmin}
+            />
+          )
         )}
 
         {activeTab === 'quiz' && (
@@ -218,10 +232,18 @@ export const LiveClassSidebar: React.FC<LiveClassSidebarProps> = ({
         )}
 
         {activeTab === 'poll' && (
-          <LivePoll
-            activePoll={activePoll}
-            onVote={handleVotePoll}
-          />
+          !isInstructorOrAdmin && !classroomSettings.polls?.enabled ? (
+            <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-400 space-y-2">
+              <BarChart2 className="w-8 h-8 text-emerald-400/60 mx-auto" />
+              <span className="text-xs font-bold text-slate-200 block">Polls Disabled</span>
+              <p className="text-[11px] text-slate-400 max-w-xs">Live polling is currently turned off by the instructor.</p>
+            </div>
+          ) : (
+            <LivePoll
+              activePoll={activePoll}
+              onVote={handleVotePoll}
+            />
+          )
         )}
 
         {activeTab === 'participants' && (

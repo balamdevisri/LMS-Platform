@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { socketService } from '@/services/socketService';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { DEFAULT_CLASSROOM_SETTINGS, type ClassroomInteractionSettings } from '@/types/liveClassroomSettings';
 
 export type SocketConnectionStatus = 'connected' | 'reconnecting' | 'disconnected';
 
@@ -97,6 +98,7 @@ export const useLiveClassSocket = (liveClassId?: string, initialStatus?: string)
   const [quizResult, setQuizResult] = useState<QuizResultItem | null>(null);
   const [classStatus, setClassStatus] = useState<string>(initialStatus || 'SCHEDULED');
   const [hasRaisedHand, setHasRaisedHand] = useState<boolean>(false);
+  const [classroomSettings, setClassroomSettings] = useState<ClassroomInteractionSettings>(DEFAULT_CLASSROOM_SETTINGS);
 
   const currentUserId = userProfile?.uid || user?.uid || 'student_guest';
   const currentUserName = userProfile?.name || user?.displayName || 'Student';
@@ -238,6 +240,12 @@ export const useLiveClassSocket = (liveClassId?: string, initialStatus?: string)
       }
     };
 
+    const handleInteractionState = (data: { liveClassId: string; settings: ClassroomInteractionSettings; updatedBy?: string }) => {
+      if (data?.settings) {
+        setClassroomSettings(data.settings);
+      }
+    };
+
     const handleConnect = () => {
       if (!isMounted) return;
       setConnectionStatus('connected');
@@ -248,10 +256,15 @@ export const useLiveClassSocket = (liveClassId?: string, initialStatus?: string)
           if (res?.onlineCount) setOnlineCount(res.onlineCount);
           if (res?.participants) setParticipants(res.participants);
           if (res?.status) setClassStatus(res.status);
+          if (res?.settings) setClassroomSettings(res.settings);
         })
         .catch((_err) => {
           // Connected spectator fallback
         });
+      socketService.getClassroomSettings(liveClassId).then((res: any) => {
+        if (!isMounted) return;
+        if (res?.settings) setClassroomSettings(res.settings);
+      });
     };
 
     const handleDisconnect = () => {
@@ -319,6 +332,7 @@ export const useLiveClassSocket = (liveClassId?: string, initialStatus?: string)
       socket.on('quiz:result', handleQuizResult);
       socket.on('quiz_ended', handleQuizResult);
       socket.on('liveClass:status', handleLiveClassStatus);
+      socket.on('liveClass:interaction:state', handleInteractionState);
 
       if (socket.connected) {
         handleConnect();
@@ -361,6 +375,7 @@ export const useLiveClassSocket = (liveClassId?: string, initialStatus?: string)
         activeSocket.off('quiz:result', handleQuizResult);
         activeSocket.off('quiz_ended', handleQuizResult);
         activeSocket.off('liveClass:status', handleLiveClassStatus);
+        activeSocket.off('liveClass:interaction:state', handleInteractionState);
       }
       socketService.leaveLiveClass(liveClassId);
     };
@@ -487,6 +502,19 @@ export const useLiveClassSocket = (liveClassId?: string, initialStatus?: string)
     [liveClassId]
   );
 
+  const updateSettings = useCallback(
+    async (newSettings: Partial<ClassroomInteractionSettings>) => {
+      if (!liveClassId) return;
+      setClassroomSettings((prev) => ({
+        ...prev,
+        ...newSettings,
+        updatedAt: new Date().toISOString(),
+      }));
+      return socketService.updateClassroomSettings(liveClassId, newSettings);
+    },
+    [liveClassId]
+  );
+
   return {
     connectionStatus,
     onlineCount,
@@ -500,6 +528,7 @@ export const useLiveClassSocket = (liveClassId?: string, initialStatus?: string)
     quizResult,
     classStatus,
     hasRaisedHand,
+    classroomSettings,
     // Actions
     sendChat,
     deleteChat,
@@ -515,5 +544,6 @@ export const useLiveClassSocket = (liveClassId?: string, initialStatus?: string)
     submitQuizAnswer,
     endQuiz,
     updateClassStatus,
+    updateSettings,
   };
 };

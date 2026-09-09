@@ -23,11 +23,24 @@ import {
   Edit,
   Hand,
   BarChart2,
+  ShieldCheck,
+  Lock,
+  Unlock,
+  Mic,
+  MicOff,
+  VideoOff,
+  Monitor,
+  Smile,
+  FileText,
+  Terminal,
+  Bot,
+  Settings2,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { liveClassService, type LiveClass } from '@/services/liveClassService';
 import { useLiveClassSocket } from '@/hooks/useLiveClassSocket';
 import { YouTubePlayer, extractYouTubeVideoId } from '@/components/liveClass/YouTubePlayer';
+import type { ClassroomInteractionSettings } from '@/types/liveClassroomSettings';
 import { toast } from 'sonner';
 
 export const AdminLiveControlCenter: React.FC = () => {
@@ -37,7 +50,7 @@ export const AdminLiveControlCenter: React.FC = () => {
 
   const [liveClass, setLiveClass] = useState<LiveClass | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'announcements' | 'students' | 'chat' | 'qna' | 'quiz' | 'polls' | 'hands'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'controls' | 'announcements' | 'students' | 'chat' | 'qna' | 'quiz' | 'polls' | 'hands'>('overview');
 
   const classId = id || 'class_react_101_live';
   const role = userProfile?.role || 'student';
@@ -55,6 +68,7 @@ export const AdminLiveControlCenter: React.FC = () => {
     activePoll,
     activeQuiz,
     quizResult,
+    classroomSettings,
     sendChat,
     deleteChat,
     answerQuestion,
@@ -65,6 +79,7 @@ export const AdminLiveControlCenter: React.FC = () => {
     startQuiz,
     endQuiz,
     updateClassStatus,
+    updateSettings,
   } = useLiveClassSocket(classId, liveClass?.status);
 
   // Confirmation Modal State
@@ -524,6 +539,7 @@ export const AdminLiveControlCenter: React.FC = () => {
           {/* Navigation Tabs for Modules */}
           <div className="flex items-center bg-white dark:bg-zinc-900 p-1.5 rounded-2xl border border-slate-200 dark:border-zinc-800 gap-1 overflow-x-auto scrollbar-none">
             {[
+              { key: 'controls', label: 'Controls (18)', icon: ShieldCheck },
               { key: 'announcements', label: 'Announce', icon: Sparkles },
               { key: 'students', label: `Students (${participants.length || onlineCount})`, icon: Users },
               { key: 'hands', label: `Hands (${raisedHands.length})`, icon: Hand },
@@ -550,6 +566,515 @@ export const AdminLiveControlCenter: React.FC = () => {
               );
             })}
           </div>
+
+          {/* Module: Granular Interaction Controls (18 Features) */}
+          {activeTab === 'controls' && (
+            <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-5 shadow-sm space-y-6 animate-in fade-in duration-200">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-zinc-800">
+                <div>
+                  <h3 className="font-heading font-extrabold text-sm text-slate-900 dark:text-zinc-100 flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                    Interaction Permissions & Command Switchboard
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-zinc-400">
+                    Live changes propagate to all students via Socket.IO instantaneously.
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-[10px] font-extrabold text-emerald-700 dark:text-emerald-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Realtime Sync</span>
+                </div>
+              </div>
+
+              {/* Group 1: Communication & Messaging */}
+              <div className="space-y-3">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
+                  1. Communication & Discussion
+                </span>
+                <div className="space-y-2">
+                  {/* Chat */}
+                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-200/70 dark:border-zinc-800 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`p-2 rounded-xl ${classroomSettings.chat.enabled ? 'bg-blue-600/10 text-blue-600' : 'bg-slate-200 dark:bg-zinc-700 text-slate-400'}`}>
+                        <MessageSquare className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 dark:text-zinc-100 block">Live Chat Stream</span>
+                        <span className="text-[10px] text-slate-500 dark:text-zinc-400">Allows students to post questions and replies in main room</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => updateSettings({ chat: { ...classroomSettings.chat, enabled: !classroomSettings.chat.enabled } })}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                        classroomSettings.chat.enabled ? 'bg-blue-600' : 'bg-slate-300 dark:bg-zinc-700'
+                      }`}
+                    >
+                      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                        classroomSettings.chat.enabled ? 'translate-x-5' : 'translate-x-0'
+                      }`} />
+                    </button>
+                  </div>
+
+                  {/* Q&A */}
+                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-200/70 dark:border-zinc-800 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`p-2 rounded-xl ${classroomSettings.qa.enabled ? 'bg-amber-600/10 text-amber-600' : 'bg-slate-200 dark:bg-zinc-700 text-slate-400'}`}>
+                        <HelpCircle className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 dark:text-zinc-100 block">Structured Q&A Board</span>
+                        <span className="text-[10px] text-slate-500 dark:text-zinc-400">Formal query queue with upvoting and instructor answers</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => updateSettings({ qa: { ...classroomSettings.qa, enabled: !classroomSettings.qa.enabled } })}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                        classroomSettings.qa.enabled ? 'bg-amber-600' : 'bg-slate-300 dark:bg-zinc-700'
+                      }`}
+                    >
+                      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                        classroomSettings.qa.enabled ? 'translate-x-5' : 'translate-x-0'
+                      }`} />
+                    </button>
+                  </div>
+
+                  {/* Student Questions */}
+                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-200/70 dark:border-zinc-800 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`p-2 rounded-xl ${classroomSettings.studentQuestions?.enabled ? 'bg-indigo-600/10 text-indigo-600' : 'bg-slate-200 dark:bg-zinc-700 text-slate-400'}`}>
+                        <Send className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 dark:text-zinc-100 block">Student Direct Questions</span>
+                        <span className="text-[10px] text-slate-500 dark:text-zinc-400">Allows students to post new questions directly to instructor</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => updateSettings({ studentQuestions: { enabled: !classroomSettings.studentQuestions?.enabled } })}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                        classroomSettings.studentQuestions?.enabled ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-zinc-700'
+                      }`}
+                    >
+                      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                        classroomSettings.studentQuestions?.enabled ? 'translate-x-5' : 'translate-x-0'
+                      }`} />
+                    </button>
+                  </div>
+
+                  {/* Private Questions */}
+                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-200/70 dark:border-zinc-800 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`p-2 rounded-xl ${classroomSettings.privateQuestions?.enabled ? 'bg-purple-600/10 text-purple-600' : 'bg-slate-200 dark:bg-zinc-700 text-slate-400'}`}>
+                        <Lock className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 dark:text-zinc-100 block">Private Instructor DMs</span>
+                        <span className="text-[10px] text-slate-500 dark:text-zinc-400">Private questions visible only to instructor/co-host</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => updateSettings({ privateQuestions: { enabled: !classroomSettings.privateQuestions?.enabled } })}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                        classroomSettings.privateQuestions?.enabled ? 'bg-purple-600' : 'bg-slate-300 dark:bg-zinc-700'
+                      }`}
+                    >
+                      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                        classroomSettings.privateQuestions?.enabled ? 'translate-x-5' : 'translate-x-0'
+                      }`} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Group 2: Engagement & Interaction */}
+              <div className="space-y-3">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
+                  2. Engagement & Interactive Activities
+                </span>
+                <div className="space-y-2">
+                  {/* Live Polls */}
+                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-200/70 dark:border-zinc-800 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`p-2 rounded-xl ${classroomSettings.polls.enabled ? 'bg-emerald-600/10 text-emerald-600' : 'bg-slate-200 dark:bg-zinc-700 text-slate-400'}`}>
+                        <BarChart2 className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 dark:text-zinc-100 block">Live Polls & Voting</span>
+                        <span className="text-[10px] text-slate-500 dark:text-zinc-400">Real-time instant polling and vote tallying</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => updateSettings({ polls: { enabled: !classroomSettings.polls.enabled } })}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                        classroomSettings.polls.enabled ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-zinc-700'
+                      }`}
+                    >
+                      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                        classroomSettings.polls.enabled ? 'translate-x-5' : 'translate-x-0'
+                      }`} />
+                    </button>
+                  </div>
+
+                  {/* Live Quiz */}
+                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-200/70 dark:border-zinc-800 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`p-2 rounded-xl ${classroomSettings.quiz.enabled ? 'bg-rose-600/10 text-rose-600' : 'bg-slate-200 dark:bg-zinc-700 text-slate-400'}`}>
+                        <Award className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 dark:text-zinc-100 block">Live Quiz Studio</span>
+                        <span className="text-[10px] text-slate-500 dark:text-zinc-400">Timed knowledge checks with real-time scoring</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => updateSettings({ quiz: { enabled: !classroomSettings.quiz.enabled } })}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                        classroomSettings.quiz.enabled ? 'bg-rose-600' : 'bg-slate-300 dark:bg-zinc-700'
+                      }`}
+                    >
+                      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                        classroomSettings.quiz.enabled ? 'translate-x-5' : 'translate-x-0'
+                      }`} />
+                    </button>
+                  </div>
+
+                  {/* Raise Hand */}
+                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-200/70 dark:border-zinc-800 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`p-2 rounded-xl ${classroomSettings.raiseHand.enabled ? 'bg-amber-600/10 text-amber-600' : 'bg-slate-200 dark:bg-zinc-700 text-slate-400'}`}>
+                        <Hand className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 dark:text-zinc-100 block">Raise Hand Queue</span>
+                        <span className="text-[10px] text-slate-500 dark:text-zinc-400">Students can raise hand for acknowledgment</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => updateSettings({ raiseHand: { enabled: !classroomSettings.raiseHand.enabled } })}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                        classroomSettings.raiseHand.enabled ? 'bg-amber-600' : 'bg-slate-300 dark:bg-zinc-700'
+                      }`}
+                    >
+                      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                        classroomSettings.raiseHand.enabled ? 'translate-x-5' : 'translate-x-0'
+                      }`} />
+                    </button>
+                  </div>
+
+                  {/* Reactions */}
+                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-200/70 dark:border-zinc-800 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`p-2 rounded-xl ${classroomSettings.reactions?.enabled ? 'bg-pink-600/10 text-pink-600' : 'bg-slate-200 dark:bg-zinc-700 text-slate-400'}`}>
+                        <Smile className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 dark:text-zinc-100 block">Floating Live Reactions</span>
+                        <span className="text-[10px] text-slate-500 dark:text-zinc-400">Heart, clap, thumbs-up floating animations</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => updateSettings({ reactions: { enabled: !classroomSettings.reactions?.enabled } })}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                        classroomSettings.reactions?.enabled ? 'bg-pink-600' : 'bg-slate-300 dark:bg-zinc-700'
+                      }`}
+                    >
+                      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                        classroomSettings.reactions?.enabled ? 'translate-x-5' : 'translate-x-0'
+                      }`} />
+                    </button>
+                  </div>
+
+                  {/* Peer Interaction */}
+                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-200/70 dark:border-zinc-800 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`p-2 rounded-xl ${classroomSettings.peerInteraction?.enabled ? 'bg-teal-600/10 text-teal-600' : 'bg-slate-200 dark:bg-zinc-700 text-slate-400'}`}>
+                        <Users className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 dark:text-zinc-100 block">Peer-to-Peer Interaction</span>
+                        <span className="text-[10px] text-slate-500 dark:text-zinc-400">Student direct replies and collaborative interaction</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => updateSettings({ peerInteraction: { enabled: !classroomSettings.peerInteraction?.enabled } })}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                        classroomSettings.peerInteraction?.enabled ? 'bg-teal-600' : 'bg-slate-300 dark:bg-zinc-700'
+                      }`}
+                    >
+                      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                        classroomSettings.peerInteraction?.enabled ? 'translate-x-5' : 'translate-x-0'
+                      }`} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Group 3: Workspace & Learning Tools */}
+              <div className="space-y-3">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
+                  3. Learning Tools & Practice Environments
+                </span>
+                <div className="space-y-2">
+                  {/* Screen Interaction / Whiteboard */}
+                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-200/70 dark:border-zinc-800 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`p-2 rounded-xl ${classroomSettings.screenInteraction?.enabled ? 'bg-cyan-600/10 text-cyan-600' : 'bg-slate-200 dark:bg-zinc-700 text-slate-400'}`}>
+                        <Monitor className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 dark:text-zinc-100 block">Interactive Screen & Whiteboard</span>
+                        <span className="text-[10px] text-slate-500 dark:text-zinc-400">Allows collaborative drawing and whiteboard access</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => updateSettings({ screenInteraction: { enabled: !classroomSettings.screenInteraction?.enabled } })}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                        classroomSettings.screenInteraction?.enabled ? 'bg-cyan-600' : 'bg-slate-300 dark:bg-zinc-700'
+                      }`}
+                    >
+                      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                        classroomSettings.screenInteraction?.enabled ? 'translate-x-5' : 'translate-x-0'
+                      }`} />
+                    </button>
+                  </div>
+
+                  {/* Notes */}
+                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-200/70 dark:border-zinc-800 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`p-2 rounded-xl ${classroomSettings.notes?.enabled ? 'bg-amber-600/10 text-amber-600' : 'bg-slate-200 dark:bg-zinc-700 text-slate-400'}`}>
+                        <FileText className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 dark:text-zinc-100 block">Personal Scratchpad Notes</span>
+                        <span className="text-[10px] text-slate-500 dark:text-zinc-400">In-classroom lecture note taking and saving</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => updateSettings({ notes: { enabled: !classroomSettings.notes?.enabled } })}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                        classroomSettings.notes?.enabled ? 'bg-amber-600' : 'bg-slate-300 dark:bg-zinc-700'
+                      }`}
+                    >
+                      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                        classroomSettings.notes?.enabled ? 'translate-x-5' : 'translate-x-0'
+                      }`} />
+                    </button>
+                  </div>
+
+                  {/* Resource Sharing */}
+                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-200/70 dark:border-zinc-800 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`p-2 rounded-xl ${classroomSettings.resourceSharing?.enabled ? 'bg-blue-600/10 text-blue-600' : 'bg-slate-200 dark:bg-zinc-700 text-slate-400'}`}>
+                        <BookOpen className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 dark:text-zinc-100 block">Live Handouts & Lab Resources</span>
+                        <span className="text-[10px] text-slate-500 dark:text-zinc-400">Downloadable PDFs, lab code, slides during session</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => updateSettings({ resourceSharing: { enabled: !classroomSettings.resourceSharing?.enabled } })}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                        classroomSettings.resourceSharing?.enabled ? 'bg-blue-600' : 'bg-slate-300 dark:bg-zinc-700'
+                      }`}
+                    >
+                      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                        classroomSettings.resourceSharing?.enabled ? 'translate-x-5' : 'translate-x-0'
+                      }`} />
+                    </button>
+                  </div>
+
+                  {/* Code Sandbox */}
+                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-200/70 dark:border-zinc-800 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`p-2 rounded-xl ${classroomSettings.codePractice?.enabled ? 'bg-emerald-600/10 text-emerald-600' : 'bg-slate-200 dark:bg-zinc-700 text-slate-400'}`}>
+                        <Terminal className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 dark:text-zinc-100 block">In-Browser Code Sandbox</span>
+                        <span className="text-[10px] text-slate-500 dark:text-zinc-400">Embedded coding sandbox for hands-on exercises</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => updateSettings({ codePractice: { enabled: !classroomSettings.codePractice?.enabled } })}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                        classroomSettings.codePractice?.enabled ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-zinc-700'
+                      }`}
+                    >
+                      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                        classroomSettings.codePractice?.enabled ? 'translate-x-5' : 'translate-x-0'
+                      }`} />
+                    </button>
+                  </div>
+
+                  {/* AI Tutor */}
+                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-200/70 dark:border-zinc-800 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`p-2 rounded-xl ${classroomSettings.aiTutor?.enabled ? 'bg-violet-600/10 text-violet-600' : 'bg-slate-200 dark:bg-zinc-700 text-slate-400'}`}>
+                        <Bot className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 dark:text-zinc-100 block">AI Lecture Companion (Shaivika AI)</span>
+                        <span className="text-[10px] text-slate-500 dark:text-zinc-400">On-demand AI clarification without interrupting instructor</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => updateSettings({ aiTutor: { enabled: !classroomSettings.aiTutor?.enabled } })}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                        classroomSettings.aiTutor?.enabled ? 'bg-violet-600' : 'bg-slate-300 dark:bg-zinc-700'
+                      }`}
+                    >
+                      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                        classroomSettings.aiTutor?.enabled ? 'translate-x-5' : 'translate-x-0'
+                      }`} />
+                    </button>
+                  </div>
+
+                  {/* Attendance */}
+                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-200/70 dark:border-zinc-800 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`p-2 rounded-xl ${classroomSettings.attendance?.enabled ? 'bg-teal-600/10 text-teal-600' : 'bg-slate-200 dark:bg-zinc-700 text-slate-400'}`}>
+                        <CheckCircle2 className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 dark:text-zinc-100 block">Automated Attendance Logging</span>
+                        <span className="text-[10px] text-slate-500 dark:text-zinc-400">Records student join duration and active presence</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => updateSettings({ attendance: { enabled: !classroomSettings.attendance?.enabled } })}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                        classroomSettings.attendance?.enabled ? 'bg-teal-600' : 'bg-slate-300 dark:bg-zinc-700'
+                      }`}
+                    >
+                      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                        classroomSettings.attendance?.enabled ? 'translate-x-5' : 'translate-x-0'
+                      }`} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Group 4: Student AV Devices & Classroom Security */}
+              <div className="space-y-3">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-rose-500 block">
+                  4. Audio/Video Media & Room Security (High Moderation)
+                </span>
+                <div className="space-y-2">
+                  {/* Student Mic */}
+                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-200/70 dark:border-zinc-800 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`p-2 rounded-xl ${classroomSettings.studentMic?.enabled ? 'bg-emerald-600/10 text-emerald-600' : 'bg-rose-500/10 text-rose-500'}`}>
+                        {classroomSettings.studentMic?.enabled ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 dark:text-zinc-100 block">Student Audio Microphone</span>
+                        <span className="text-[10px] text-slate-500 dark:text-zinc-400">Allows students to un-mute their microphone to speak</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => updateSettings({ studentMic: { enabled: !classroomSettings.studentMic?.enabled } })}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                        classroomSettings.studentMic?.enabled ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-zinc-700'
+                      }`}
+                    >
+                      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                        classroomSettings.studentMic?.enabled ? 'translate-x-5' : 'translate-x-0'
+                      }`} />
+                    </button>
+                  </div>
+
+                  {/* Student Camera */}
+                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-200/70 dark:border-zinc-800 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`p-2 rounded-xl ${classroomSettings.studentCamera?.enabled ? 'bg-emerald-600/10 text-emerald-600' : 'bg-rose-500/10 text-rose-500'}`}>
+                        {classroomSettings.studentCamera?.enabled ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 dark:text-zinc-100 block">Student Video Camera</span>
+                        <span className="text-[10px] text-slate-500 dark:text-zinc-400">Allows students to transmit webcam video stream</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => updateSettings({ studentCamera: { enabled: !classroomSettings.studentCamera?.enabled } })}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                        classroomSettings.studentCamera?.enabled ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-zinc-700'
+                      }`}
+                    >
+                      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                        classroomSettings.studentCamera?.enabled ? 'translate-x-5' : 'translate-x-0'
+                      }`} />
+                    </button>
+                  </div>
+
+                  {/* Student Screen Share */}
+                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-200/70 dark:border-zinc-800 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`p-2 rounded-xl ${classroomSettings.studentScreenShare?.enabled ? 'bg-emerald-600/10 text-emerald-600' : 'bg-slate-200 dark:bg-zinc-700 text-slate-400'}`}>
+                        <Monitor className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 dark:text-zinc-100 block">Student Screen Sharing</span>
+                        <span className="text-[10px] text-slate-500 dark:text-zinc-400">Allows students to present their screen to class</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => updateSettings({ studentScreenShare: { enabled: !classroomSettings.studentScreenShare?.enabled } })}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                        classroomSettings.studentScreenShare?.enabled ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-zinc-700'
+                      }`}
+                    >
+                      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                        classroomSettings.studentScreenShare?.enabled ? 'translate-x-5' : 'translate-x-0'
+                      }`} />
+                    </button>
+                  </div>
+
+                  {/* Private Classroom Entry Lock */}
+                  <div className="p-3 rounded-2xl bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/50 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`p-2 rounded-xl ${classroomSettings.isLocked ? 'bg-rose-600 text-white' : 'bg-slate-200 dark:bg-zinc-700 text-slate-400'}`}>
+                        {classroomSettings.isLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-rose-900 dark:text-rose-200 block">Private Classroom Entry Lock</span>
+                        <span className="text-[10px] text-rose-700/80 dark:text-rose-300/80">Blocks new students from entering room while session is private</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => updateSettings({ isLocked: !classroomSettings.isLocked })}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                        classroomSettings.isLocked ? 'bg-rose-600' : 'bg-slate-300 dark:bg-zinc-700'
+                      }`}
+                    >
+                      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                        classroomSettings.isLocked ? 'translate-x-5' : 'translate-x-0'
+                      }`} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Module: Raised Hands Queue */}
           {activeTab === 'hands' && (

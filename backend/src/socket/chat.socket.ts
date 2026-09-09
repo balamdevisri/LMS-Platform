@@ -2,6 +2,7 @@ import { Server as SocketServer } from 'socket.io';
 import { AuthenticatedSocket } from './socket.auth';
 import { liveClassroomService } from '../modules/liveClassroom/liveClassroom.service';
 import logger from '../config/logger';
+import { getClassroomSettings } from './liveClass.socket';
 
 // In-memory sliding window rate limiter: userId -> array of timestamps
 const userMessageTimestamps = new Map<string, number[]>();
@@ -50,6 +51,15 @@ export const registerChatHandlers = (io: SocketServer, socket: AuthenticatedSock
 
         if (!user || !liveClassId) {
           const errRes = { success: false, error: 'UNAUTHORIZED_SOCKET', message: 'Authentication required' };
+          socket.emit('chat:error', errRes);
+          if (callback) callback(errRes);
+          return;
+        }
+
+        // Authoritative Interaction Settings Check
+        const settings = getClassroomSettings(liveClassId);
+        if (user.role === 'student' && !settings.chat.enabled) {
+          const errRes = { success: false, error: 'CHAT_DISABLED', message: 'Chat is currently disabled by the instructor.' };
           socket.emit('chat:error', errRes);
           if (callback) callback(errRes);
           return;
@@ -191,6 +201,12 @@ export const registerChatHandlers = (io: SocketServer, socket: AuthenticatedSock
 
       const user = socket.user;
       if (!user) return;
+
+      const settings = getClassroomSettings(liveClassId);
+      if (user.role === 'student' && !settings.chat.enabled) {
+        socket.emit('chat:error', { success: false, error: 'CHAT_DISABLED', message: 'Chat is currently disabled by the instructor.' });
+        return;
+      }
 
       const rawMessage = (data.message || '').trim();
       if (!rawMessage || rawMessage.length > 500) return;

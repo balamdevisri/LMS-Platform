@@ -2,6 +2,7 @@ import { Server as SocketServer } from 'socket.io';
 import { AuthenticatedSocket } from './socket.auth';
 import { liveClassroomService } from '../modules/liveClassroom/liveClassroom.service';
 import logger from '../config/logger';
+import { getClassroomSettings } from './liveClass.socket';
 
 // In-memory Q&A store for active live classes
 const activeQuestions = new Map<string, any[]>();
@@ -13,6 +14,15 @@ export const registerQnaHandlers = (io: SocketServer, socket: AuthenticatedSocke
       const user = socket.user;
       if (!user || !liveClassId) {
         const err = { success: false, error: 'UNAUTHORIZED_SOCKET', message: 'Authentication required' };
+        socket.emit('qna:error', err);
+        if (callback) callback(err);
+        return;
+      }
+
+      // Authoritative Interaction Settings Check
+      const settings = getClassroomSettings(liveClassId);
+      if (user.role === 'student' && !settings.qa?.enabled) {
+        const err = { success: false, error: 'QNA_DISABLED', message: 'Q&A is currently disabled by the instructor.' };
         socket.emit('qna:error', err);
         if (callback) callback(err);
         return;

@@ -1,6 +1,7 @@
 import { Server as SocketServer } from 'socket.io';
 import { AuthenticatedSocket } from './socket.auth';
 import logger from '../config/logger';
+import { getClassroomSettings } from './liveClass.socket';
 
 // In-memory raised hands store: liveClassId -> Map<userId, { studentId, studentName, timestamp }>
 const raisedHandsMap = new Map<string, Map<string, { studentId: string; studentName: string; timestamp: string }>>();
@@ -12,6 +13,15 @@ export const registerHandHandlers = (io: SocketServer, socket: AuthenticatedSock
       const user = socket.user;
       if (!user || !liveClassId) {
         const err = { success: false, error: 'UNAUTHORIZED_SOCKET' };
+        socket.emit('hand:error', err);
+        if (callback) callback(err);
+        return;
+      }
+
+      // Authoritative Interaction Settings Check
+      const settings = getClassroomSettings(liveClassId);
+      if (user.role === 'student' && !settings.raiseHand?.enabled) {
+        const err = { success: false, error: 'HAND_RAISE_DISABLED', message: 'Hand raising is currently disabled by the instructor.' };
         socket.emit('hand:error', err);
         if (callback) callback(err);
         return;

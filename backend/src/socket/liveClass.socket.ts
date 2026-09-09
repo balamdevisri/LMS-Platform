@@ -2,6 +2,7 @@ import { Server as SocketServer } from 'socket.io';
 import { AuthenticatedSocket } from './socket.auth';
 import { liveClassroomService } from '../modules/liveClassroom/liveClassroom.service';
 import logger from '../config/logger';
+import { ClassroomInteractionSettings, DEFAULT_CLASSROOM_SETTINGS } from '../validators/liveClassroomSettings';
 
 export interface ParticipantInfo {
   socketId: string;
@@ -16,6 +17,26 @@ export interface ParticipantInfo {
 const activeRoomPresences = new Map<string, Map<string, ParticipantInfo>>();
 // In-memory locked / private classroom tracker: classId -> boolean
 const lockedClassrooms = new Set<string>();
+// In-memory authoratitative classroom interaction settings tracker: classId -> ClassroomInteractionSettings
+const classroomSettingsMap = new Map<string, ClassroomInteractionSettings>();
+
+export const getClassroomSettings = (classId: string): ClassroomInteractionSettings => {
+  return classroomSettingsMap.get(classId) || { ...DEFAULT_CLASSROOM_SETTINGS };
+};
+
+export const setClassroomSettings = (
+  classId: string,
+  settings: Partial<ClassroomInteractionSettings>
+): ClassroomInteractionSettings => {
+  const current = getClassroomSettings(classId);
+  const updated: ClassroomInteractionSettings = {
+    ...current,
+    ...settings,
+    updatedAt: new Date().toISOString(),
+  };
+  classroomSettingsMap.set(classId, updated);
+  return updated;
+};
 
 export const getRoomParticipants = (classId: string): ParticipantInfo[] => {
   const roomMap = activeRoomPresences.get(classId);
@@ -53,13 +74,30 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
         return;
       }
 
+      // Initialize authoritative interaction settings if not in memory
+      if (!classroomSettingsMap.has(liveClassId)) {
+        if (liveClass.interactionSettings) {
+          classroomSettingsMap.set(liveClassId, {
+            ...DEFAULT_CLASSROOM_SETTINGS,
+            ...liveClass.interactionSettings,
+            isLocked: Boolean(liveClass.isLocked ?? liveClass.interactionSettings?.isLocked),
+          });
+        } else {
+          classroomSettingsMap.set(liveClassId, {
+            ...DEFAULT_CLASSROOM_SETTINGS,
+            isLocked: Boolean(liveClass.isLocked),
+          });
+        }
+      }
+      const classroomSettings = getClassroomSettings(liveClassId);
+
       const normClassStatus = (classStatus || '').toUpperCase();
       const userRole = (user.role || 'student').toLowerCase();
 
       // Authorization checks for students
       if (userRole === 'student') {
         // Enforce private / locked room check
-        if (lockedClassrooms.has(liveClassId) || Boolean(liveClass.isLocked)) {
+        if (lockedClassrooms.has(liveClassId) || Boolean(liveClass.isLocked) || classroomSettings.isLocked) {
           const errPayload = {
             success: false,
             error: 'ROOM_LOCKED',
@@ -145,6 +183,7 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
         status: classStatus.toUpperCase(),
         onlineCount: activeCount,
         participants: currentRoster.map((p) => ({ userId: p.userId, name: p.name, role: p.role })),
+        settings: classroomSettings,
       };
       socket.emit('liveClass:joined', successPayload);
       if (callback) callback(successPayload);
@@ -382,13 +421,109 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
       lockedClassrooms.delete(classId);
     }
 
+    const updated = setClassroomSettings(classId, { isLocked: data.locked });
+
     try {
-      await liveClassroomService.updateLiveClass(classId, { isLocked: data.locked } as any);
+      await liveClassroomService.updateLiveClass(classId, {
+        isLocked: data.locked,
+        interactionSettings: updated,
+      } as any);
     } catch {}
 
     const roomName = `live-class:${classId}`;
     io.to(roomName).emit('lock_toggled', { locked: data.locked });
+    io.to(roomName).emit('liveClass:interaction:state', {
+      liveClassId: classId,
+      settings: updated,
+      updatedBy: user.name || user.email,
+    });
     logger.info(`[SOCKET] Classroom ${classId} locked/privacy state set to: ${data.locked} by ${user.name}`);
+  });
+
+  // 5b. Authoritative Granular Classroom Settings Update (Instructor/Admin)
+  socket.on(
+    'liveClass:settings:update',
+    async (
+      data: { liveClassId: string; settings: Partial<ClassroomInteractionSettings> },
+      callback?: (res: any) => void
+    ) => {
+      try {
+        const user = socket.user;
+        if (!user || (user.role !== 'admin' && user.role !== 'instructor' && user.role !== 'mentor')) {
+          const errRes = { success: false, error: 'INVALID_PERMISSION', message: 'Only instructors/admins can update classroom settings.' };
+          socket.emit('liveClass:error', errRes);
+          if (callback) callback(errRes);
+          return;
+        }
+
+        const classId = data?.liveClassId;
+        if (!classId || !data?.settings) {
+          const errRes = { success: false, error: 'INVALID_PAYLOAD', message: 'liveClassId and settings are required.' };
+          socket.emit('liveClass:error', errRes);
+          if (callback) callback(errRes);
+          return;
+        }
+
+        // Apply settings in-memory
+        const updated = setClassroomSettings(classId, data.settings);
+
+        // Sync locked state if modified
+        if (typeof data.settings.isLocked === 'boolean') {
+          if (data.settings.isLocked) {
+            lockedClassrooms.add(classId);
+          } else {
+            lockedClassrooms.delete(classId);
+          }
+        }
+
+        // Persist to database non-blockingly
+        liveClassroomService
+          .updateLiveClass(classId, {
+            interactionSettings: updated,
+            isLocked: updated.isLocked,
+            isChatMuted: !updated.chat.enabled,
+          } as any)
+          .catch((err: any) => logger.warn(`[SOCKET] Settings persistence notice for ${classId}:`, err?.message));
+
+        const roomName = `live-class:${classId}`;
+        const statePayload = {
+          liveClassId: classId,
+          settings: updated,
+          updatedBy: user.name || user.email || 'Instructor',
+          updatedAt: updated.updatedAt,
+        };
+
+        // Broadcast new interaction state to all participants in real time
+        io.to(roomName).emit('liveClass:interaction:state', statePayload);
+        if (typeof data.settings.isLocked === 'boolean') {
+          io.to(roomName).emit('lock_toggled', { locked: data.settings.isLocked });
+        }
+        if (data.settings.chat && typeof data.settings.chat.enabled === 'boolean') {
+          io.to(roomName).emit('room_chat_muted', { classId, isMuted: !data.settings.chat.enabled, updatedBy: user.name });
+        }
+
+        logger.info(`[SOCKET] Classroom ${classId} settings updated by ${user.name}`);
+        if (callback) callback({ success: true, settings: updated });
+      } catch (err: any) {
+        logger.error('[SOCKET] Error updating classroom settings:', err);
+        if (callback) callback({ success: false, error: err.message });
+      }
+    }
+  );
+
+  socket.on('liveClass:settings:get', (data: { liveClassId: string }, callback?: (res: any) => void) => {
+    const classId = data?.liveClassId;
+    if (!classId) return;
+    const settings = getClassroomSettings(classId);
+    socket.emit('liveClass:interaction:state', { liveClassId: classId, settings });
+    if (callback) callback({ success: true, settings });
+  });
+
+  // Global Real-Time Event: Live Class Published & Student Notification Pipeline
+  socket.on('liveClass:published', (data: { liveClass: any; audience?: any }) => {
+    logger.info(`[SOCKET] Live class published & broadcasting notification: ${data?.liveClass?.title}`);
+    io.emit('liveClass:published', data);
+    io.emit('live_class_scheduled', data);
   });
 
   // 6. Moderation: Mute Student, Mute All Students, Chat Mute & Kick Participant
@@ -424,12 +559,25 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
     if (!classId) return;
     const roomName = `live-class:${classId}`;
 
+    const currentSettings = getClassroomSettings(classId);
+    const updated = setClassroomSettings(classId, {
+      chat: { ...currentSettings.chat, enabled: !data.isMuted },
+    });
+
     try {
-      await liveClassroomService.updateLiveClass(classId, { isChatMuted: data.isMuted } as any);
+      await liveClassroomService.updateLiveClass(classId, {
+        isChatMuted: data.isMuted,
+        interactionSettings: updated,
+      } as any);
     } catch {}
 
     logger.info(`[SOCKET] Instructor ${user.name} set chat mute to ${data.isMuted} in ${roomName}`);
     io.to(roomName).emit('room_chat_muted', { classId, isMuted: data.isMuted, updatedBy: user.name });
+    io.to(roomName).emit('liveClass:interaction:state', {
+      liveClassId: classId,
+      settings: updated,
+      updatedBy: user.name,
+    });
   });
 
   socket.on('kick_participant', (data: { classId: string; liveClassId?: string; userId: string }) => {

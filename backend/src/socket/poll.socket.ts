@@ -2,6 +2,7 @@ import { Server as SocketServer } from 'socket.io';
 import { AuthenticatedSocket } from './socket.auth';
 import { liveClassroomService } from '../modules/liveClassroom/liveClassroom.service';
 import logger from '../config/logger';
+import { getClassroomSettings } from './liveClass.socket';
 
 interface PollItem {
   id: string;
@@ -109,6 +110,15 @@ export const registerPollHandlers = (io: SocketServer, socket: AuthenticatedSock
       const user = socket.user;
       if (!user || !liveClassId) {
         const err = { success: false, error: 'UNAUTHORIZED_SOCKET' };
+        socket.emit('poll:error', err);
+        if (callback) callback(err);
+        return;
+      }
+
+      // Authoritative Interaction Settings Check
+      const settings = getClassroomSettings(liveClassId);
+      if (user.role === 'student' && !settings.polls?.enabled) {
+        const err = { success: false, error: 'POLLS_DISABLED', message: 'Polls are currently disabled by the instructor.' };
         socket.emit('poll:error', err);
         if (callback) callback(err);
         return;

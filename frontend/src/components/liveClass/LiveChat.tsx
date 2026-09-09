@@ -7,6 +7,7 @@ export interface LiveChatProps {
   onSendMessage: (message: string) => Promise<void> | void;
   onDeleteMessage?: (messageId: string) => Promise<void> | void;
   isInstructorOrAdmin?: boolean;
+  isChatDisabled?: boolean;
   currentUserId?: string;
   className?: string;
 }
@@ -16,6 +17,7 @@ export const LiveChat: React.FC<LiveChatProps> = ({
   onSendMessage,
   onDeleteMessage,
   isInstructorOrAdmin = false,
+  isChatDisabled = false,
   className = '',
 }) => {
   const [input, setInput] = useState('');
@@ -107,25 +109,32 @@ export const LiveChat: React.FC<LiveChatProps> = ({
         )}
       </div>
 
-      {/* Message Input Box */}
-      <form onSubmit={handleSubmit} className="flex items-center gap-2 pt-2 border-t border-slate-800/80 shrink-0">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Send a message to live room..."
-          className="flex-1 px-3 py-2 text-xs rounded-xl bg-slate-900 border border-slate-800 text-slate-100 placeholder:text-slate-500 focus:outline-hidden focus:ring-1 focus:ring-blue-500"
-        />
-        <button
-          type="submit"
-          disabled={!input.trim() || sending}
-          className="p-2 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white transition-colors cursor-pointer shrink-0 shadow-sm"
-          title="Send message"
-          aria-label="Send message"
-        >
-          <Send className="w-3.5 h-3.5" />
-        </button>
-      </form>
+      {/* Message Input Box or Paused State */}
+      {isChatDisabled ? (
+        <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 text-center flex items-center justify-center gap-2 text-slate-400 text-xs shrink-0 pt-2">
+          <MessageSquare className="w-3.5 h-3.5 text-amber-400/80" />
+          <span>Chat has been paused by the instructor</span>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="flex items-center gap-2 pt-2 border-t border-slate-800/80 shrink-0">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Send a message to live room..."
+            className="flex-1 px-3 py-2 text-xs rounded-xl bg-slate-900 border border-slate-800 text-slate-100 placeholder:text-slate-500 focus:outline-hidden focus:ring-1 focus:ring-blue-500"
+          />
+          <button
+            type="submit"
+            disabled={!input.trim() || sending}
+            className="p-2 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white transition-colors cursor-pointer shrink-0 shadow-sm"
+            title="Send message"
+            aria-label="Send message"
+          >
+            <Send className="w-3.5 h-3.5" />
+          </button>
+        </form>
+      )}
     </div>
   );
 };

@@ -7,11 +7,27 @@ import {
   CheckCircle2,
   Radio,
   Sparkles,
+  Send,
+  Users,
+  ShieldCheck,
+  MessageSquare,
+  HelpCircle,
+  BarChart3,
+  Mic,
+  VideoOff,
+  Lock,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCourses } from '@/contexts/CourseContext';
 import { instructorService, type InstructorUser } from '@/services/instructorService';
 import { liveClassService, type LiveClass } from '@/services/liveClassService';
+import { socketService } from '@/services/socketService';
+import { webNotificationService } from '@/services/webNotificationService';
+import {
+  DEFAULT_CLASSROOM_SETTINGS,
+  type ClassroomInteractionSettings,
+  type TargetAudienceType,
+} from '@/types/liveClassroomSettings';
 import { extractYouTubeVideoId, YouTubePlayer } from '@/components/liveClass/YouTubePlayer';
 import { toast } from 'sonner';
 
@@ -61,6 +77,12 @@ export const AdminCreateLiveClass: React.FC = () => {
   // Metadata
   const [tags, setTags] = useState<string>('React, Live Classroom, Interactive');
   const [difficulty, setDifficulty] = useState<'Beginner' | 'Intermediate' | 'Advanced'>('Intermediate');
+
+  // Audience Targeting & Permissions
+  const [targetAudience, setTargetAudience] = useState<TargetAudienceType>('enrolled_students');
+  const [targetBatch, setTargetBatch] = useState<string>('Batch 2026');
+  const [targetSection, setTargetSection] = useState<string>('All Sections');
+  const [interactionSettings, setInteractionSettings] = useState<ClassroomInteractionSettings>(DEFAULT_CLASSROOM_SETTINGS);
 
   const [loading, setLoading] = useState<boolean>(isEditing);
   const [submitting, setSubmitting] = useState<boolean>(false);
@@ -204,6 +226,16 @@ export const AdminCreateLiveClass: React.FC = () => {
           setTags(existing.tags.join(', '));
         }
 
+        if ((existing as any).targetAudience) setTargetAudience((existing as any).targetAudience);
+        if ((existing as any).targetBatch) setTargetBatch((existing as any).targetBatch);
+        if ((existing as any).targetSection) setTargetSection((existing as any).targetSection);
+        if ((existing as any).interactionSettings) {
+          setInteractionSettings({
+            ...DEFAULT_CLASSROOM_SETTINGS,
+            ...(existing as any).interactionSettings,
+          });
+        }
+
         const rawDate = existing.scheduledAt || existing.startTime;
         if (rawDate) {
           try {
@@ -303,7 +335,9 @@ export const AdminCreateLiveClass: React.FC = () => {
       .filter((val, idx, arr) => arr.indexOf(val) === idx);
 
     const classIdToUse = id || `class_live_${Date.now()}`;
-    const payload: Partial<LiveClass> & { mode: 'interactive' | 'youtube' } = {
+    const statusToUse = shouldPublish ? 'PUBLISHED' : (isEditing ? (status as any) : 'SCHEDULED');
+
+    const payload: any = {
       id: classIdToUse,
       classId: classIdToUse,
       courseId,
@@ -325,14 +359,20 @@ export const AdminCreateLiveClass: React.FC = () => {
       scheduledAt: scheduledDateTime,
       startTime: scheduledDateTime,
       duration: Number(duration),
-      status: isEditing ? (status as any) : 'SCHEDULED',
+      status: statusToUse,
       difficulty,
       tags: normalizedTags,
-      isChatEnabled: true,
-      isPollEnabled: true,
-      isQuizEnabled: true,
+      targetAudience,
+      targetBatch: targetAudience === 'selected_batch' ? targetBatch : undefined,
+      targetSection: targetAudience === 'selected_section' ? targetSection : undefined,
+      interactionSettings,
+      isLocked: interactionSettings.isLocked,
+      isChatMuted: !interactionSettings.chat.enabled,
+      isChatEnabled: interactionSettings.chat.enabled,
+      isPollEnabled: interactionSettings.polls.enabled,
+      isQuizEnabled: interactionSettings.quiz.enabled,
       isRecordingEnabled: false,
-      isAttendanceEnabled: true,
+      isAttendanceEnabled: interactionSettings.attendance.enabled,
       maxParticipants: 100,
       updatedAt: new Date().toISOString(),
     };
@@ -341,18 +381,33 @@ export const AdminCreateLiveClass: React.FC = () => {
     try {
       if (isEditing && id) {
         await liveClassService.updateLiveClass(id, payload);
-        toast.success('Live class updated successfully!');
       } else {
         await liveClassService.createLiveClass({
           ...payload,
           createdAt: new Date().toISOString(),
           createdBy: userProfile?.uid || user?.uid || 'admin',
         } as any);
-        toast.success('Live class scheduled successfully!');
       }
+
+      // If published, broadcast real-time socket announcement and trigger notification pipeline
+      if (shouldPublish || statusToUse === 'PUBLISHED') {
+        socketService.publishLiveClass(payload, { audience: targetAudience, batch: targetBatch, section: targetSection });
+        webNotificationService.notifyLiveClassScheduled({
+          id: classIdToUse,
+          title: cleanTitle,
+          instructorName,
+          scheduledAt: scheduledDateTime,
+          courseName,
+          meetingUrl: payload.meetingUrl,
+        });
+        toast.success('🚀 Live Class published! Instant notifications dispatched to enrolled students.');
+      } else {
+        toast.success(isEditing ? 'Live class updated successfully!' : 'Live class scheduled successfully!');
+      }
+
       navigate('/admin/live-classes');
     } catch (err: any) {
-      toast.error(err?.message || 'Unable to create live class. Please try again.');
+      toast.error(err?.message || 'Unable to save live class. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -751,8 +806,197 @@ export const AdminCreateLiveClass: React.FC = () => {
             </div>
           </div>
 
+          {/* SECTION 5 — AUDIENCE TARGETING & INTERACTION PERMISSIONS */}
+          <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-zinc-800">
+            <div className="border-b border-slate-100 dark:border-zinc-800/60 pb-2">
+              <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-zinc-100 flex items-center gap-2">
+                <span className="flex items-center justify-center w-4 h-4 rounded-full bg-emerald-600 text-white text-[10px] font-black">5</span>
+                Audience Targeting & Interaction Permissions
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              {/* Target Audience Scope */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-extrabold text-slate-800 dark:text-zinc-200 uppercase tracking-wider block">
+                  Target Audience
+                </label>
+                <select
+                  value={targetAudience}
+                  onChange={(e) => setTargetAudience(e.target.value as TargetAudienceType)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-900 dark:text-zinc-100 text-xs font-medium focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                >
+                  <option value="enrolled_students">Enrolled Course Students Only</option>
+                  <option value="all">All Platform Students (Public)</option>
+                  <option value="selected_batch">Specific Batch / Cohort</option>
+                  <option value="selected_section">Specific Section</option>
+                </select>
+              </div>
+
+              {/* Batch Selector (Conditional) */}
+              {targetAudience === 'selected_batch' && (
+                <div className="space-y-1.5 animate-in fade-in duration-200">
+                  <label className="text-xs font-extrabold text-slate-800 dark:text-zinc-200 uppercase tracking-wider block">
+                    Target Batch
+                  </label>
+                  <input
+                    type="text"
+                    value={targetBatch}
+                    onChange={(e) => setTargetBatch(e.target.value)}
+                    placeholder="e.g. Batch 2026, Cohort Alpha"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-900 dark:text-zinc-100 text-xs font-medium focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              )}
+
+              {/* Section Selector (Conditional) */}
+              {targetAudience === 'selected_section' && (
+                <div className="space-y-1.5 animate-in fade-in duration-200">
+                  <label className="text-xs font-extrabold text-slate-800 dark:text-zinc-200 uppercase tracking-wider block">
+                    Target Section
+                  </label>
+                  <input
+                    type="text"
+                    value={targetSection}
+                    onChange={(e) => setTargetSection(e.target.value)}
+                    placeholder="e.g. Section A, Lab 01"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-900 dark:text-zinc-100 text-xs font-medium focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Interaction Permission Defaults Grid */}
+            <div className="mt-4 p-4 rounded-2xl bg-slate-50 dark:bg-zinc-800/50 border border-slate-200/80 dark:border-zinc-800">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider block mb-3">
+                Student Interaction Permissions (Initial Classroom State)
+              </span>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                <label className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-xs font-semibold text-slate-800 dark:text-zinc-200 cursor-pointer hover:border-blue-400">
+                  <input
+                    type="checkbox"
+                    checked={interactionSettings.chat.enabled}
+                    onChange={(e) =>
+                      setInteractionSettings((s) => ({
+                        ...s,
+                        chat: { ...s.chat, enabled: e.target.checked },
+                      }))
+                    }
+                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                  />
+                  <span>Live Chat</span>
+                </label>
+
+                <label className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-xs font-semibold text-slate-800 dark:text-zinc-200 cursor-pointer hover:border-blue-400">
+                  <input
+                    type="checkbox"
+                    checked={interactionSettings.qa.enabled}
+                    onChange={(e) =>
+                      setInteractionSettings((s) => ({
+                        ...s,
+                        qa: { ...s.qa, enabled: e.target.checked },
+                      }))
+                    }
+                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                  />
+                  <span>Q&A Tab</span>
+                </label>
+
+                <label className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-xs font-semibold text-slate-800 dark:text-zinc-200 cursor-pointer hover:border-blue-400">
+                  <input
+                    type="checkbox"
+                    checked={interactionSettings.polls.enabled}
+                    onChange={(e) =>
+                      setInteractionSettings((s) => ({
+                        ...s,
+                        polls: { ...s.polls, enabled: e.target.checked },
+                      }))
+                    }
+                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                  />
+                  <span>Live Polls</span>
+                </label>
+
+                <label className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-xs font-semibold text-slate-800 dark:text-zinc-200 cursor-pointer hover:border-blue-400">
+                  <input
+                    type="checkbox"
+                    checked={interactionSettings.raiseHand.enabled}
+                    onChange={(e) =>
+                      setInteractionSettings((s) => ({
+                        ...s,
+                        raiseHand: { ...s.raiseHand, enabled: e.target.checked },
+                      }))
+                    }
+                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                  />
+                  <span>Raise Hand</span>
+                </label>
+
+                <label className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-xs font-semibold text-slate-800 dark:text-zinc-200 cursor-pointer hover:border-blue-400">
+                  <input
+                    type="checkbox"
+                    checked={interactionSettings.studentMic.enabled}
+                    onChange={(e) =>
+                      setInteractionSettings((s) => ({
+                        ...s,
+                        studentMic: { ...s.studentMic, enabled: e.target.checked },
+                      }))
+                    }
+                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                  />
+                  <span>Student Mic</span>
+                </label>
+
+                <label className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-xs font-semibold text-slate-800 dark:text-zinc-200 cursor-pointer hover:border-blue-400">
+                  <input
+                    type="checkbox"
+                    checked={interactionSettings.studentCamera.enabled}
+                    onChange={(e) =>
+                      setInteractionSettings((s) => ({
+                        ...s,
+                        studentCamera: { ...s.studentCamera, enabled: e.target.checked },
+                      }))
+                    }
+                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                  />
+                  <span>Student Camera</span>
+                </label>
+
+                <label className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-xs font-semibold text-slate-800 dark:text-zinc-200 cursor-pointer hover:border-blue-400">
+                  <input
+                    type="checkbox"
+                    checked={interactionSettings.studentScreenShare.enabled}
+                    onChange={(e) =>
+                      setInteractionSettings((s) => ({
+                        ...s,
+                        studentScreenShare: { ...s.studentScreenShare, enabled: e.target.checked },
+                      }))
+                    }
+                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                  />
+                  <span>Screen Share</span>
+                </label>
+
+                <label className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-xs font-semibold text-slate-800 dark:text-zinc-200 cursor-pointer hover:border-rose-400">
+                  <input
+                    type="checkbox"
+                    checked={interactionSettings.isLocked}
+                    onChange={(e) =>
+                      setInteractionSettings((s) => ({
+                        ...s,
+                        isLocked: e.target.checked,
+                      }))
+                    }
+                    className="w-4 h-4 rounded text-rose-600 focus:ring-rose-500"
+                  />
+                  <span className="text-rose-600 dark:text-rose-400">Private Lock</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
           {/* Form Action Buttons */}
-          <div className="flex items-center justify-end gap-3 pt-6 border-t border-slate-100 dark:border-zinc-800">
+          <div className="flex flex-wrap items-center justify-end gap-3 pt-6 border-t border-slate-100 dark:border-zinc-800">
             <button
               type="button"
               onClick={() => navigate('/admin/live-classes')}
@@ -764,10 +1008,19 @@ export const AdminCreateLiveClass: React.FC = () => {
             <button
               type="submit"
               disabled={submitting}
-              className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-lg shadow-blue-600/25 transition-all inline-flex items-center gap-2 cursor-pointer disabled:opacity-60"
+              className="px-5 py-2.5 rounded-xl bg-slate-200 dark:bg-zinc-700 hover:bg-slate-300 text-slate-800 dark:text-zinc-200 font-bold text-xs transition-all inline-flex items-center gap-2 cursor-pointer disabled:opacity-60"
             >
               <Save className="w-4 h-4" />
-              <span>{submitting ? 'Saving...' : isEditing ? 'Save Changes' : 'Create Live Class'}</span>
+              <span>{submitting ? 'Saving...' : isEditing ? 'Save Changes' : 'Save Draft'}</span>
+            </button>
+            <button
+              type="button"
+              disabled={submitting}
+              onClick={(e) => handleSubmit(e, true)}
+              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs shadow-lg shadow-emerald-600/25 transition-all inline-flex items-center gap-2 cursor-pointer disabled:opacity-60"
+            >
+              <Send className="w-4 h-4" />
+              <span>Publish Live Class & Notify Students</span>
             </button>
           </div>
         </div>

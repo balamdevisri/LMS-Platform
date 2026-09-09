@@ -3,6 +3,7 @@ import type { User as FirebaseUser } from 'firebase/auth';
 import { liveClassService } from './liveClassService';
 import { webNotificationService } from './webNotificationService';
 import { notificationService } from './notificationService';
+import type { ClassroomInteractionSettings } from '@/types/liveClassroomSettings';
 
 const getSocketUrl = (): string => {
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
@@ -384,6 +385,34 @@ class SocketService {
   public updateLiveClassStatus(liveClassId: string, status: 'SCHEDULED' | 'LIVE' | 'ENDED' | 'CANCELLED'): void {
     if (this.socket) {
       this.socket.emit('liveClass:status', { liveClassId, status });
+    }
+  }
+
+  // --- Authoritative Interaction Settings ---
+  public updateClassroomSettings(
+    liveClassId: string,
+    settings: Partial<ClassroomInteractionSettings>
+  ): Promise<any> {
+    return new Promise((resolve, reject) => {
+      if (!this.socket) return reject(new Error('Socket not connected'));
+      this.socket.emit('liveClass:settings:update', { liveClassId, settings }, (res: any) => {
+        if (res && res.error) reject(res);
+        else resolve(res);
+      });
+    });
+  }
+
+  public getClassroomSettings(liveClassId: string): Promise<any> {
+    return new Promise((resolve) => {
+      if (!this.socket) return resolve({ success: false });
+      this.socket.emit('liveClass:settings:get', { liveClassId }, resolve);
+    });
+  }
+
+  // --- Live Class Publish & Audience Notification ---
+  public publishLiveClass(liveClass: any, audience?: any): void {
+    if (this.socket) {
+      this.socket.emit('liveClass:published', { liveClass, audience });
     }
   }
 }
