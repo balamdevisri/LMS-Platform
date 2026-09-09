@@ -1060,10 +1060,11 @@ export const AdminCourseEdit: React.FC = () => {
 
     try {
       const formValues = getValues();
+      const resolvedVersion = typeof forceVersion === 'number' ? forceVersion : (courseData?.version || 1);
       const payload: any = {
         ...courseData,
         ...formValues,
-        version: forceVersion !== undefined ? forceVersion : (courseData?.version || 1),
+        version: resolvedVersion,
         thumbnail: thumbnailPreview || formValues.thumbnail || courseData.thumbnail,
         thumbnailUrl: thumbnailPreview || formValues.thumbnail || courseData.thumbnail,
         thumbnailPublicId: thumbnailPublicId || undefined,
@@ -1164,7 +1165,7 @@ export const AdminCourseEdit: React.FC = () => {
 
           <button
             type="button"
-            onClick={handleSaveAll}
+            onClick={() => handleSaveAll()}
             disabled={saveStatus === 'saving'}
             className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer disabled:opacity-50"
           >
