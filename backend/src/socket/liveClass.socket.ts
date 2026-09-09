@@ -580,6 +580,12 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
     });
   });
 
+  // Global Real-Time Event: Live Class Scheduled / Published
+  socket.on('live_class_scheduled', (data: { liveClass: any }) => {
+    logger.info(`[SOCKET] Live class scheduled broadcast: ${data.liveClass?.title}`);
+    io.emit('live_class_scheduled', data);
+  });
+
   // 9. Handle Disconnection
   socket.on('disconnect', () => {
     activeRoomPresences.forEach((roomMap, classId) => {

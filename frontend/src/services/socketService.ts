@@ -1,6 +1,8 @@
 import { io, Socket } from 'socket.io-client';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { liveClassService } from './liveClassService';
+import { webNotificationService } from './webNotificationService';
+import { notificationService } from './notificationService';
 
 const getSocketUrl = (): string => {
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
@@ -163,6 +165,26 @@ class SocketService {
       const status = (data?.status || '').toUpperCase();
       if (id && (status === 'ENDED' || status === 'COMPLETED' || status === 'CANCELLED')) {
         liveClassService.deleteLiveClass(id);
+      }
+    });
+
+    // Global real-time live class notification listeners
+    this.socket.on('live_class_scheduled', (data: { liveClass?: any }) => {
+      if (data?.liveClass) {
+        webNotificationService.notifyLiveClassScheduled(data.liveClass);
+        notificationService.addNotification({
+          title: `Live Class Scheduled: ${data.liveClass.title}`,
+          desc: `Instructor ${data.liveClass.instructorName || 'Lead Mentor'} scheduled a live session for ${data.liveClass.courseName || 'Course'}.`,
+          type: 'live_class',
+          link: data.liveClass.meetingUrl || `/live-classroom/room/${data.liveClass.id}`,
+          recipientRole: 'all',
+        });
+      }
+    });
+
+    this.socket.on('live_class_started', (data: { liveClass?: any }) => {
+      if (data?.liveClass) {
+        webNotificationService.notifyLiveClassStarted(data.liveClass);
       }
     });
 

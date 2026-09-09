@@ -1,6 +1,8 @@
 import { db, auth } from '@/firebase';
 import { collection, onSnapshot, query, doc, setDoc, updateDoc, deleteDoc, where } from 'firebase/firestore';
 import { adminNotificationService } from './adminNotificationService';
+import { webNotificationService } from './webNotificationService';
+import { notificationService } from './notificationService';
 import { API_BASE_URL } from '@/config/api';
 
 const generateSecureRoomId = (classId?: string) => `kaizenq-room-${classId || Date.now()}`;
@@ -181,17 +183,32 @@ const QUESTIONS_STORAGE_KEY = 'kaizenq_live_questions_v4';
 const NOTES_STORAGE_KEY = 'kaizenq_live_notes_v4';
 const RESOURCES_STORAGE_KEY = 'kaizenq_live_resources_v4';
 
-const isMockLiveClass = (c: any): boolean => {
+export const isMockLiveClass = (c: any): boolean => {
   if (!c) return true;
-  const id = String(c.id || c.classId || '');
-  const courseId = String(c.courseId || '');
+  const id = String(c.id || c.classId || '').toLowerCase().trim();
+  const courseId = String(c.courseId || '').toLowerCase().trim();
+  const title = String(c.title || '').toLowerCase().trim();
+  const desc = String(c.description || '').toLowerCase().trim();
   return (
     id === 'live_linux_kernel_1' ||
     id === 'live_git_conflict_2' ||
     id === 'live_ebpf_perf_3' ||
+    id === 'class_react_101_live' ||
+    id === 'class_linux_101_live' ||
     courseId === 'course_linux_kernel' ||
     courseId === 'course_git_mastery' ||
-    courseId === 'course_linux_perf'
+    courseId === 'course_linux_perf' ||
+    courseId === 'react-101' ||
+    courseId === 'course_linux_101' ||
+    id.includes('demo') ||
+    id.includes('sample') ||
+    id.includes('mock') ||
+    title.includes('demo') ||
+    title.includes('sample') ||
+    title.includes('mock') ||
+    title.includes('test live') ||
+    desc.includes('demo live') ||
+    desc.includes('sample live')
   );
 };
 
@@ -305,9 +322,10 @@ class LiveClassService {
               const id = docSnap.id || data.id || data.classId;
               const status = (data.status || '').toUpperCase();
               const isEnded = status === 'ENDED' || status === 'COMPLETED' || status === 'CANCELLED';
-              if (isEnded) {
+              const isMock = isMockLiveClass(data);
+              if (isEnded || isMock) {
                 this.addDeletedClassId(id);
-                // Also clean up ended class from Firestore collection
+                // Also clean up ended or mock class from Firestore collection
                 deleteDoc(doc(firestore, 'liveClasses', docSnap.id)).catch(() => {});
               } else if (!deletedIds.has(id)) {
                 fsClasses.push({ ...data, id, classId: id });
@@ -323,7 +341,7 @@ class LiveClassService {
               const id = c.id || c.classId;
               const status = (c.status || '').toUpperCase();
               const isEnded = status === 'ENDED' || status === 'COMPLETED' || status === 'CANCELLED';
-              return isRecent && !deletedIds.has(id) && !isEnded;
+              return isRecent && !deletedIds.has(id) && !isEnded && !isMockLiveClass(c);
             });
 
             const map = new Map<string, LiveClass>();
@@ -336,6 +354,19 @@ class LiveClassService {
             const merged = Array.from(map.values()).sort(
               (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
             );
+
+            // Trigger real-time web notifications for students on newly received scheduled/live sessions
+            merged.forEach((c) => {
+              const norm = normalizeLiveClassStatus(c.status);
+              if (norm === 'live') {
+                webNotificationService.notifyLiveClassStarted(c);
+              } else if (norm === 'scheduled') {
+                const diffMs = new Date(c.startTime).getTime() - Date.now();
+                if (diffMs > -24 * 60 * 60 * 1000) {
+                  webNotificationService.notifyLiveClassScheduled(c);
+                }
+              }
+            });
 
             this.saveClasses(merged);
           },
@@ -390,12 +421,29 @@ class LiveClassService {
       console.warn('Firestore createLiveClass notice:', e);
     }
 
-    if (newClass.status === 'Scheduled' || newClass.status === 'Live') {
+    const norm = normalizeLiveClassStatus(newClass.status);
+    if (norm === 'scheduled' || norm === 'live') {
       adminNotificationService.addNotification({
         type: 'COURSE_CREATED',
         title: `Live Session Published: ${newClass.title}`,
         message: `Instructor ${newClass.instructorName} scheduled a live classroom session for ${newClass.courseName}.`,
         link: `/live-classroom`
+      });
+
+      // Dispatch Web Notification to browser & play chime
+      if (norm === 'live') {
+        webNotificationService.notifyLiveClassStarted(newClass);
+      } else {
+        webNotificationService.notifyLiveClassScheduled(newClass);
+      }
+
+      // Add to student In-App Notification Center
+      notificationService.addNotification({
+        title: `Live Class Scheduled: ${newClass.title}`,
+        desc: `Instructor ${newClass.instructorName} scheduled a live session for ${newClass.courseName}. Click to join.`,
+        type: 'live_class',
+        link: newClass.meetingUrl || `/live-classroom/room/${newClass.id}`,
+        recipientRole: 'all',
       });
     }
 

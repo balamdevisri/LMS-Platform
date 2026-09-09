@@ -8,14 +8,22 @@ import {
   Crown,
   ArrowRight,
   CheckCircle2,
+  Bell,
 } from 'lucide-react';
-import { liveClassService, normalizeLiveClassStatus, type LiveClass } from '@/services/liveClassService';
+import { liveClassService, normalizeLiveClassStatus, isMockLiveClass, type LiveClass } from '@/services/liveClassService';
+import { webNotificationService } from '@/services/webNotificationService';
 
 export const StudentLiveClassroomSection: React.FC = () => {
   const navigate = useNavigate();
   const [classes, setClasses] = useState<LiveClass[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<'today' | 'upcoming' | 'completed' | 'missed'>('today');
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission>(webNotificationService.getPermission());
+
+  const handleEnableNotifications = async () => {
+    const perm = await webNotificationService.requestPermission();
+    setNotifPermission(perm);
+  };
 
   // Real-time ticker for countdown timers
   const [nowMs, setNowMs] = useState(Date.now());
@@ -23,7 +31,8 @@ export const StudentLiveClassroomSection: React.FC = () => {
   useEffect(() => {
     setLoading(true);
     const unsubscribe = liveClassService.subscribeLiveClasses((data) => {
-      setClasses(data);
+      // Exclude all mock / demo classes from student dashboard
+      setClasses(data.filter((c) => !isMockLiveClass(c)));
       setLoading(false);
     });
 
@@ -92,11 +101,24 @@ export const StudentLiveClassroomSection: React.FC = () => {
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-zinc-800">
         <div>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex flex-wrap items-center gap-2 mb-1">
             <span className="px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1">
               <Radio className="w-3 h-3 text-blue-600 animate-pulse" />
               <span>ENTERPRISE LIVE CLASSROOMS</span>
             </span>
+
+            <button
+              onClick={handleEnableNotifications}
+              className={`px-3 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                notifPermission === 'granted'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300'
+                  : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-xs'
+              }`}
+              title={notifPermission === 'granted' ? 'Web notifications are active for live classes' : 'Click to enable live class web notifications'}
+            >
+              <Bell className="w-3 h-3" />
+              <span>{notifPermission === 'granted' ? 'Web Alerts Active' : 'Enable Live Class Alerts'}</span>
+            </button>
           </div>
           <h2 className="font-heading font-extrabold text-xl text-slate-900 dark:text-white flex items-center gap-2">
             <Video className="w-5 h-5 text-blue-600" />

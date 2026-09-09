@@ -35,7 +35,7 @@ import { courseTimeService } from '@/services/courseTimeService';
 import { useCourseTimeTracker } from '@/hooks/useCourseTimeTracker';
 import { studentService, type StudentUser } from '@/services/studentService';
 import { soundService } from '@/services/soundService';
-import { liveClassService, normalizeLiveClassStatus, type LiveClass } from '@/services/liveClassService';
+import { liveClassService, normalizeLiveClassStatus, isMockLiveClass, type LiveClass } from '@/services/liveClassService';
 import { LottieLoader } from '@/components/common/LottieLoader';
 
 // Lazy loader helper for heavy tab modules
@@ -93,7 +93,7 @@ export const Dashboard: React.FC = () => {
 
   useEffect(() => {
     const unsubLive = liveClassService.subscribeLiveClasses((data) => {
-      setLiveClasses(data || []);
+      setLiveClasses((data || []).filter((c) => !isMockLiveClass(c)));
     });
     return () => unsubLive();
   }, []);

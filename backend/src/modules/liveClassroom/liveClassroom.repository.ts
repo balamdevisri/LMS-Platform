@@ -173,58 +173,9 @@ const memoryDb = {
   announcements: new Map<string, IAnnouncementData[]>(),
 };
 
-// Seed initial memory store
+// Seed initial memory store (demo live classes removed; only live sessions created dynamically are served)
 const seedMemory = () => {
-  const sample1: ILiveClassData = {
-    id: 'class_react_101_live',
-    classId: 'class_react_101_live',
-    courseId: 'react-101',
-    courseName: 'React & Next.js AI Masterclass',
-    instructorId: 'inst_kaizen',
-    instructorName: 'Prof. Manoj Acharya',
-    instructorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=256',
-    title: 'React Fundamentals - Live Class 01',
-    description: 'Interactive deep dive into React Component Architecture, State Management, and Next.js App Router hooks.',
-    youtubeVideoId: 'bMknfKXIFA8',
-    scheduledAt: new Date().toISOString(),
-    startTime: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
-    startedAt: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
-    duration: 90,
-    status: 'LIVE',
-    meetingProvider: 'youtube',
-    meetingRoomId: 'kaizenq-react-101-live',
-    meetingUrl: '/student/live-class/class_react_101_live',
-    recordingUrl: '',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-
-  const sample2: ILiveClassData = {
-    id: 'class_linux_101_live',
-    classId: 'class_linux_101_live',
-    courseId: 'course_linux_101',
-    courseName: 'Linux Kernel & System Architecture',
-    instructorId: 'inst_kaizen',
-    instructorName: 'Prof. Manoj Acharya',
-    instructorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=256',
-    title: 'Linux Kernel Monolithic Architecture & Memory Management',
-    description: 'Deep dive into virtual memory management, page tables, and process schedulers.',
-    youtubeVideoId: 'jfKfPfyJRdk',
-    scheduledAt: new Date().toISOString(),
-    startTime: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-    startedAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-    duration: 90,
-    status: 'LIVE',
-    meetingProvider: 'youtube',
-    meetingRoomId: 'kaizenq-linux-kernel-101',
-    meetingUrl: '/student/live-class/class_linux_101_live',
-    recordingUrl: '',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-
-  memoryDb.liveClasses.set(sample1.id, sample1);
-  memoryDb.liveClasses.set(sample2.id, sample2);
+  // Empty seed - no mock/demo classes
 };
 seedMemory();
 

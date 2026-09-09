@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Video, Radio, Play, ArrowRight, X } from 'lucide-react';
-import { liveClassService, normalizeLiveClassStatus, type LiveClass } from '@/services/liveClassService';
+import { liveClassService, normalizeLiveClassStatus, isMockLiveClass, type LiveClass } from '@/services/liveClassService';
 
 export const UpcomingLiveSessionsWidget: React.FC = () => {
   const navigate = useNavigate();
@@ -14,8 +14,9 @@ export const UpcomingLiveSessionsWidget: React.FC = () => {
 
   useEffect(() => {
     const unsubscribe = liveClassService.subscribeLiveClasses((data) => {
-      // Filter out completed/cancelled sessions automatically
+      // Filter out demo classes and completed/cancelled sessions automatically
       const active = data.filter((c) => {
+        if (isMockLiveClass(c)) return false;
         const norm = normalizeLiveClassStatus(c.status);
         return norm === 'live' || norm === 'scheduled';
       });
