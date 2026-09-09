@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Socket } from 'socket.io-client';
-import { getLiveClassroomSocket, socketService } from '@/services/socketService';
+import { socketService } from '@/services/socketService';
 import { useAuth } from '@/contexts/AuthContext';
 import { liveClassService, type LiveClass, type AttendanceRecord } from '@/services/liveClassService';
 import {
@@ -24,24 +24,18 @@ import {
   Hand,
   Monitor,
   FileText,
-  Upload,
   Pencil,
   FileSpreadsheet,
   X,
-  XCircle,
-  CheckCircle2,
   ShieldAlert,
-  ShieldCheck,
   VolumeX,
   MessageSquareOff,
   Play,
   Calendar,
   ArrowLeft,
-  Bell,
   Megaphone,
   UserX,
   Loader2,
-  AlertCircle,
   Settings,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -73,8 +67,6 @@ export const LiveClassroomScreen: React.FC = () => {
   const [liveClassData, setLiveClassData] = useState<LiveClass | null>(null);
   const [loading, setLoading] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'reconnecting' | 'disconnected' | 'idle'>('idle');
-  const [classEnded, setClassEnded] = useState(false);
-  const [classEndedReason, setClassEndedReason] = useState<'ENDED' | 'CANCELLED'>('ENDED');
 
   // Pre-flight Start Class Action State
   const [isStartingClass, setIsStartingClass] = useState(false);
@@ -107,7 +99,7 @@ export const LiveClassroomScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'participants' | 'chat' | 'questions'>('chat');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  const isPlatformStaff = userProfile?.role === 'instructor' || userProfile?.role === 'admin' || userProfile?.role === 'mentor';
+  const isPlatformStaff = userProfile?.role === 'instructor' || userProfile?.role === 'admin' || (userProfile?.role as string) === 'mentor';
 
   const isAssignedInstructor = useMemo(() => {
     if (userProfile?.role === 'admin') return true;
