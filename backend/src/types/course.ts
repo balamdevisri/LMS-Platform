@@ -46,6 +46,12 @@ export interface ICourse {
   modules?: any[];
   progress?: number;
   isEnrolled?: boolean;
+  version?: number;
+  isDeleted?: boolean;
+  deletedAt?: string;
+  deletedBy?: string;
+  createdBy?: string;
+  updatedBy?: string;
   createdAt: string;
   updatedAt: string;
 }

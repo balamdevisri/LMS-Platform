@@ -9,7 +9,7 @@ export class CourseService {
     this.repository = new CourseRepository();
   }
 
-  async createCourse(dto: CreateCourseDTO): Promise<ICourse> {
+  async createCourse(dto: CreateCourseDTO, userId?: string): Promise<ICourse> {
     const validated = CreateCourseSchema.parse(dto);
 
     let slug = validated.slug;
@@ -26,7 +26,7 @@ export class CourseService {
     return this.repository.create({
       ...validated,
       slug,
-    } as CreateCourseDTO);
+    } as CreateCourseDTO, userId);
   }
 
   async getCourseById(id: string): Promise<ICourse | null> {
@@ -41,7 +41,12 @@ export class CourseService {
     return this.repository.findAll(options);
   }
 
-  async updateCourse(id: string, updates: UpdateCourseDTO): Promise<ICourse | null> {
+  async updateCourse(
+    id: string,
+    updates: UpdateCourseDTO,
+    expectedVersion?: number,
+    userId?: string
+  ): Promise<ICourse | null> {
     const reqSampleUnit = (updates as any).modules?.[0]?.topics?.[0]?.learningUnits?.[0];
     console.log(`[BACKEND-PUT-TRACE] 5. Backend PUT received: id="${id}", targetUnitId="${reqSampleUnit?.id}", readingContentSnippet="${reqSampleUnit?.readingContent?.slice(0, 100)}"`);
     
@@ -72,12 +77,12 @@ export class CourseService {
         learningOutcomes: validated.learningOutcomes || ['Learning Outcomes'],
         status: validated.status || 'published',
         modules: (validated as any).modules || [],
-      } as any);
+      } as any, userId);
       return newCourse;
     }
 
-    console.log(`[BACKEND-PUT-TRACE] 7. BEFORE Firestore update: target docId="${docId}"`);
-    const updated = await this.repository.update(docId, validated as UpdateCourseDTO);
+    console.log(`[BACKEND-PUT-TRACE] 7. BEFORE Firestore update: target docId="${docId}", expectedVersion=${expectedVersion}`);
+    const updated = await this.repository.update(docId, validated as UpdateCourseDTO, expectedVersion, userId);
 
     const readBack = await this.repository.findById(docId);
     const readBackUnit = readBack?.modules?.[0]?.topics?.[0]?.learningUnits?.[0];
@@ -85,7 +90,7 @@ export class CourseService {
     return updated;
   }
 
-  async deleteCourse(id: string): Promise<boolean> {
+  async deleteCourse(id: string, userId?: string, hardDelete: boolean = false): Promise<boolean> {
     let existing = await this.repository.findById(id);
     let docId = id;
     if (!existing) {
@@ -95,7 +100,7 @@ export class CourseService {
     if (!existing) {
       throw new Error(`Course with ID ${id} not found.`);
     }
-    return this.repository.delete(docId);
+    return this.repository.delete(docId, userId, hardDelete);
   }
 
   async publishCourse(id: string): Promise<ICourse | null> {

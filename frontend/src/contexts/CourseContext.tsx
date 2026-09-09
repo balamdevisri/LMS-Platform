@@ -1036,7 +1036,7 @@ export const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
     if (defaultWeb) map.set('web-development-fundamentals', defaultWeb);
   }
 
-  return Array.from(map.values()).filter(item => !String(item.title || '').toLowerCase().includes('untitled'));
+  return Array.from(map.values()).filter((item) => (item as any).isDeleted !== true);
 };
 
 const CourseContext = createContext<CourseContextType | undefined>(undefined);
@@ -1049,7 +1049,7 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const parsed = JSON.parse(localSaved) as CourseItem[];
         if (Array.isArray(parsed) && parsed.length > 0) {
           const normalizedParsed = parsed
-            .filter((c: any) => !String(c.title || '').toLowerCase().includes('untitled'))
+            .filter((c: any) => c.isDeleted !== true)
             .map((c: any) => {
               const statusVal = c.status && c.status.toLowerCase() === 'published' ? 'Published' : 'Draft';
               const instructorName = typeof c.instructor === 'object' && c.instructor !== null
@@ -1072,41 +1072,12 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   });
 
   const refreshCourses = useCallback(async () => {
-    const localSaved = localStorage.getItem('shaivika_courses_data');
-    let localList = initialDefaultCourses;
-    if (localSaved) {
-      try {
-        const parsed = JSON.parse(localSaved);
-        if (Array.isArray(parsed)) {
-          const mapped = parsed
-            .filter((c: any) => !String(c.title || '').toLowerCase().includes('untitled'))
-            .map((c: any) => {
-              const statusVal = c.status && c.status.toLowerCase() === 'published' ? 'Published' : 'Draft';
-              const instructorName = typeof c.instructor === 'object' && c.instructor !== null
-                ? (c.instructor.name || 'Kaizen Q Team')
-                : (c.instructor || 'Kaizen Q Team');
-              return {
-                ...c,
-                status: statusVal,
-                instructor: instructorName,
-              } as CourseItem;
-            });
-          localList = sanitizeCourseList(mapped);
-        }
-      } catch (e) {
-        console.warn('LocalStorage courses parse warning in refreshCourses:', e);
-      }
-    }
-    
-    setCourses(localList);
-
-    let merged = localList;
     try {
       const loadedResult = await courseService.getCourses();
       const loaded = loadedResult.courses;
       if (loaded && loaded.length > 0) {
         const normalized = loaded
-          .filter((c: any) => !String(c.title || '').toLowerCase().includes('untitled'))
+          .filter((c: any) => (c as any).isDeleted !== true)
           .map((c: any) => {
             const statusVal = c.status && c.status.toLowerCase() === 'published' ? 'Published' : 'Draft';
             const instructorName = typeof c.instructor === 'object' && c.instructor !== null
@@ -1119,14 +1090,13 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             } as CourseItem;
           });
 
-        merged = sanitizeCourseList([...localList, ...normalized]);
+        const merged = sanitizeCourseList(normalized);
+        setCourses(merged);
+        localStorage.setItem('shaivika_courses_data', JSON.stringify(merged));
       }
     } catch (err) {
       console.warn('Firestore courses fetch notice in refreshCourses:', err);
     }
-
-    setCourses(merged);
-    localStorage.setItem('shaivika_courses_data', JSON.stringify(merged));
   }, []);
 
   // Sync with Firestore if available
@@ -1158,46 +1128,30 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Update LocalStorage whenever courses state changes
   useEffect(() => {
-    localStorage.setItem('shaivika_courses_data', JSON.stringify(courses));
+    if (courses && courses.length > 0) {
+      localStorage.setItem('shaivika_courses_data', JSON.stringify(courses));
+    }
   }, [courses]);
 
   const publishedCourses = courses.filter((c) => c.status === 'Published');
 
   const addCourse = async (coursePayload: Partial<CourseItem>) => {
-    const newId = Date.now();
-    const created: CourseItem = {
-      id: newId,
-      title: coursePayload.title || 'Untitled Technical Course',
-      subtitle: coursePayload.subtitle || '⚡ Enterprise Track',
-      instructor: coursePayload.instructor || 'KaizenQ Team',
-      role: coursePayload.role || 'Senior Technical Instructor',
-      avatar: coursePayload.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-      rating: 5.0,
-      reviews: 1,
-      students: '0',
-      duration: coursePayload.duration || '20 hrs',
-      category: coursePayload.category || 'Linux & Systems',
-      level: coursePayload.level || 'Beginner to Advanced',
-      badge: 'New Track',
-      status: coursePayload.status || 'Published',
-      price: coursePayload.price !== undefined ? coursePayload.price : 0,
-      thumbnail: coursePayload.thumbnail || '/assets/images/linux_course_thumbnail.webp',
-      description: coursePayload.description || 'Enterprise technical course with hands-on labs and automated AI evaluations.',
-      syllabus: coursePayload.syllabus || [
-        'Module 1: Fundamental Concepts & Environment Setup',
-        'Module 2: Core Command Line & Configuration',
-        'Module 3: Advanced Optimization & Security',
-        'Module 4: Final Capstone Assessment',
-      ],
-    };
-
-    const enriched = enrichCourseMockContent(created);
-    setCourses((prev) => [enriched, ...prev]);
-
     try {
-      await courseService.createCourse(enriched as any);
+      const created = await courseService.createCourse(coursePayload as any);
+      const mapped: CourseItem = {
+        ...created,
+        id: created.id,
+        status: created.status && created.status.toLowerCase() === 'published' ? 'Published' : 'Draft',
+        instructor:
+          typeof created.instructor === 'object' && created.instructor !== null
+            ? (created.instructor.name || 'Kaizen Q Team')
+            : (created.instructor || 'Kaizen Q Team'),
+      } as CourseItem;
+
+      setCourses((prev) => [mapped, ...prev.filter((c) => String(c.id) !== String(mapped.id))]);
     } catch (e) {
-      console.warn('Firestore sync failed in addCourse:', e);
+      console.error('Failed to create course in CourseContext:', e);
+      throw e;
     }
   };
 
@@ -1207,12 +1161,14 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return courses.find((c) => {
       const cId = String(c.id).toLowerCase().trim();
       const cSlug = String((c as any).slug || '').toLowerCase().trim();
-      return cId === target || 
-             (cId === 'course_linux_101' && target === '1') || 
-             (cId === '1' && target === 'course_linux_101') ||
-             (cId === 'git-github-mastery' && target === 'git-github-mastery-course-id') ||
-             (cId === 'git-github-mastery-course-id' && target === 'git-github-mastery') ||
-             cSlug === target;
+      return (
+        cId === target ||
+        (cId === 'course_linux_101' && target === '1') ||
+        (cId === '1' && target === 'course_linux_101') ||
+        (cId === 'git-github-mastery' && target === 'git-github-mastery-course-id') ||
+        (cId === 'git-github-mastery-course-id' && target === 'git-github-mastery') ||
+        cSlug === target
+      );
     });
   };
 
@@ -1233,60 +1189,52 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const deleteCourse = async (id: number | string) => {
     const target = getCourseById(id);
-    if (!target) return;
-    const targetId = String(target.id);
-
-    setCourses((prev) => prev.filter((c) => String(c.id) !== targetId));
+    const targetId = target ? String(target.id) : String(id);
 
     try {
       await courseService.deleteCourse(targetId);
+      setCourses((prev) => prev.filter((c) => String(c.id) !== targetId && (c as any).slug !== targetId));
     } catch (e) {
-      console.warn('Firestore sync failed in deleteCourse:', e);
+      console.error('Failed to delete course in CourseContext:', e);
+      throw e;
     }
   };
 
   const updateCourse = async (id: number | string, updates: Partial<CourseItem>) => {
     const targetId = String(id);
-    console.log(`[COURSE-CONTEXT-TRACE] 3. updateCourse called: id="${targetId}", updates.modules.length=${updates.modules?.length || 0}`);
-    if (updates.modules && updates.modules.length > 0) {
-      const firstUnit = updates.modules[0]?.topics?.[0]?.learningUnits?.[0];
-      console.log(`[COURSE-CONTEXT-TRACE] Target unit sample: id="${firstUnit?.id}", readingContent snippet="${(firstUnit?.readingContent || firstUnit?.conceptTheory || '').slice(0, 40)}"`);
-    }
-
     const updatesWithTimestamp: Partial<CourseItem> = {
       ...updates,
       updatedAt: new Date().toISOString(),
     };
 
-    let resolvedCourseId = targetId;
-    setCourses((prev) => {
-      const next = prev.map((c) => {
-        const cId = String(c.id);
-        const cSlug = String((c as any).slug || '');
-        if (
-          cId === targetId ||
-          cSlug === targetId ||
-          (cId === '1' && targetId === 'course_linux_101') ||
-          (cId === 'course_linux_101' && targetId === '1') ||
-          (cId === 'git-github-mastery' && targetId === 'git-github-mastery-course-id') ||
-          (cId === 'git-github-mastery-course-id' && targetId === 'git-github-mastery')
-        ) {
-          resolvedCourseId = String(c.id);
-          return { ...c, ...updatesWithTimestamp };
-        }
-        return c;
-      });
-      localStorage.setItem('shaivika_courses_data', JSON.stringify(next));
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('shaivika_courses_updated', { detail: { courseId: resolvedCourseId, updates: updatesWithTimestamp } }));
-      }
-      return next;
-    });
-
     try {
-      await courseService.updateCourse(resolvedCourseId, updatesWithTimestamp as any);
+      const updated = await courseService.updateCourse(targetId, updatesWithTimestamp as any);
+      setCourses((prev) => {
+        const next = prev.map((c) => {
+          const cId = String(c.id);
+          const cSlug = String((c as any).slug || '');
+          if (
+            cId === targetId ||
+            cSlug === targetId ||
+            (cId === '1' && targetId === 'course_linux_101') ||
+            (cId === 'course_linux_101' && targetId === '1') ||
+            (cId === 'git-github-mastery' && targetId === 'git-github-mastery-course-id') ||
+            (cId === 'git-github-mastery-course-id' && targetId === 'git-github-mastery')
+          ) {
+            return {
+              ...c,
+              ...updated,
+              status: updated.status?.toLowerCase() === 'published' ? 'Published' : 'Draft',
+            } as CourseItem;
+          }
+          return c;
+        });
+        localStorage.setItem('shaivika_courses_data', JSON.stringify(next));
+        return next;
+      });
     } catch (e) {
-      console.warn('Firestore sync failed in updateCourse:', e);
+      console.error('Failed to update course in CourseContext:', e);
+      throw e;
     }
   };
 

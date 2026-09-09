@@ -1294,7 +1294,9 @@ class CourseService {
         if (db) {
           const querySnapshot = await getDocs(collection(db, 'courses'));
           querySnapshot.forEach((docSnap: any) => {
-            const item = this.normalizeCourseToICourse({ id: docSnap.id, ...docSnap.data() });
+            const rawData = docSnap.data();
+            if (rawData.isDeleted === true) return;
+            const item = this.normalizeCourseToICourse({ id: docSnap.id, ...rawData });
             if (!isRemovedMockCourse(item)) {
               firestoreLoaded.push(item);
             }
@@ -1310,24 +1312,27 @@ class CourseService {
       let list: ICourse[] = [];
       if (firestoreLoaded.length > 0) {
         const firestoreMap = new Map<string, ICourse>();
-        firestoreLoaded.forEach(c => firestoreMap.set(String(c.id), c));
-        
-        // Ensure default courses baseline is present and merged with live Firebase content
-        DEFAULT_COURSES.forEach(defCourse => {
+        firestoreLoaded.forEach((c) => firestoreMap.set(String(c.id), c));
+
+        // Ensure default courses baseline is present only when missing, but live Firebase content is authoritative
+        DEFAULT_COURSES.forEach((defCourse) => {
           if (isRemovedMockCourse(defCourse)) return;
           const defId = String(defCourse.id);
-          const fromFirestore = firestoreMap.get(defId) || firestoreLoaded.find(c => c.slug === defCourse.slug);
+          const fromFirestore = firestoreMap.get(defId) || firestoreLoaded.find((c) => c.slug === defCourse.slug);
           if (fromFirestore) {
             firestoreMap.set(defId, {
               ...this.normalizeCourseToICourse(defCourse),
               ...fromFirestore,
-              modules: this.mergeCourseModules(defCourse.modules, fromFirestore.modules)
+              modules:
+                fromFirestore.modules && fromFirestore.modules.length > 0
+                  ? fromFirestore.modules
+                  : this.mergeCourseModules(defCourse.modules, fromFirestore.modules),
             });
           } else {
             firestoreMap.set(defId, this.normalizeCourseToICourse(defCourse));
           }
         });
-        list = Array.from(firestoreMap.values()).filter(c => !isRemovedMockCourse(c));
+        list = Array.from(firestoreMap.values()).filter((c) => !isRemovedMockCourse(c) && c.isDeleted !== true);
       } else {
         list = this.getStoredCourses().filter((c) => !isRemovedMockCourse(c));
       }
@@ -1493,6 +1498,10 @@ class CourseService {
   }
 
   async createCourse(dto: CreateCourseDTO): Promise<ICourse> {
+    let createdCourse: ICourse | null = null;
+    let serverError: string | null = null;
+
+    // 1. Try Backend REST API first
     try {
       const res = await fetch(`${API_BASE_URL}/courses`, {
         method: 'POST',
@@ -1502,161 +1511,229 @@ class CourseService {
 
       if (res.ok) {
         const json = await res.json();
-        if (json.success) return this.normalizeCourseToICourse(json.data);
+        if (json.success && json.data) {
+          createdCourse = this.normalizeCourseToICourse(json.data);
+        }
+      } else {
+        const errJson = await res.json().catch(() => null);
+        serverError = errJson?.error || errJson?.message || `Server responded with status ${res.status}`;
       }
-    } catch (e) {}
+    } catch (e: any) {
+      serverError = e?.message || 'Network request to backend API failed';
+    }
 
-    const list = this.getStoredCourses();
-    const id = `course_${Date.now()}`;
-    const slug = dto.slug || dto.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    // 2. If Backend succeeded, update caches and return
+    if (createdCourse) {
+      const list = this.getStoredCourses();
+      const updatedList = [createdCourse, ...list.filter((c) => c.id !== createdCourse!.id)];
+      this.saveStoredCourses(updatedList);
+      this.getCoursesCache.clear();
+      this.courseDetailsCache.clear();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('shaivika_courses_updated', { detail: { courseId: createdCourse.id, created: true } }));
+      }
+      return createdCourse;
+    }
+
+    // 3. Fallback: Authenticated Direct Write to Cloud Firestore
+    try {
+      const { db, doc, setDoc } = await getFS();
+      if (!db) {
+        throw new Error('Cloud Firestore is not initialized.');
+      }
+
+      const id = dto.id || (dto.slug ? dto.slug : `course_${Date.now()}`);
+      const slug = dto.slug || dto.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const now = new Date().toISOString();
+
+      const fallbackCreated: ICourse = {
+        ...dto,
+        id,
+        slug,
+        price: typeof dto.price === 'number' ? dto.price : 0,
+        banner: dto.banner || '',
+        enrollmentCount: 0,
+        rating: 5.0,
+        ratingCount: 0,
+        version: 1,
+        isDeleted: false,
+        skills: dto.skills || [],
+        prerequisites: dto.prerequisites || [],
+        learningOutcomes: dto.learningOutcomes || [],
+        syllabus: dto.syllabus || [],
+        tags: dto.tags || [],
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      const docRef = doc(db, 'courses', id);
+      await setDoc(docRef, fallbackCreated);
+      console.log(`[Firestore Direct] Course "${id}" persisted successfully to Firestore!`);
+
+      const list = this.getStoredCourses();
+      const updatedList = [fallbackCreated, ...list.filter((c) => c.id !== id)];
+      this.saveStoredCourses(updatedList);
+      this.getCoursesCache.clear();
+      this.courseDetailsCache.clear();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('shaivika_courses_updated', { detail: { courseId: id, created: true } }));
+      }
+      return fallbackCreated;
+    } catch (firestoreErr: any) {
+      console.error('[CourseService] Both Backend API and direct Firestore creation failed:', { serverError, firestoreErr });
+      throw new Error(`Failed to persist course to database. ${serverError ? `Backend: ${serverError}. ` : ''}Firestore: ${firestoreErr?.message || firestoreErr}`);
+    }
+  }
+
+  async updateCourse(id: string, updates: UpdateCourseDTO): Promise<ICourse> {
+    let existing = await this.getCourseBySlugOrId(id);
+    const targetCourseId = existing ? String(existing.id) : id;
     const now = new Date().toISOString();
+    const nextVersion = existing && typeof existing.version === 'number' ? existing.version + 1 : 1;
 
-    const created: ICourse = {
-      ...dto,
-      id,
-      slug,
-      price: typeof dto.price === 'number' ? dto.price : 299,
-      banner: dto.banner || '',
-      enrollmentCount: 0,
-      rating: 5.0,
-      ratingCount: 0,
-      skills: dto.skills || [],
-      prerequisites: dto.prerequisites || [],
-      learningOutcomes: dto.learningOutcomes || [],
-      syllabus: dto.syllabus || [],
-      tags: dto.tags || [],
-      createdAt: now,
+    const mergedCourse: ICourse = {
+      ...(existing || {
+        id: targetCourseId,
+        title: updates.title || 'Untitled Course',
+        slug: updates.slug || id,
+        shortDescription: updates.shortDescription || '',
+        description: updates.description || '',
+        thumbnail: updates.thumbnail || '',
+        category: updates.category || 'General',
+        level: updates.level || 'all_levels',
+        duration: updates.duration || '10 Hours',
+        language: updates.language || 'English',
+        price: updates.price || 0,
+        skills: updates.skills || [],
+        prerequisites: updates.prerequisites || [],
+        learningOutcomes: updates.learningOutcomes || [],
+        status: updates.status || 'draft',
+        visibility: updates.visibility || 'public',
+        featured: Boolean(updates.featured),
+        tags: updates.tags || [],
+        enrollmentCount: 0,
+        rating: 5.0,
+        createdAt: now,
+        updatedAt: now,
+      }),
+      ...updates,
+      id: targetCourseId,
+      version: nextVersion,
+      instructor: {
+        ...(existing?.instructor || {}),
+        ...(updates.instructor || {}),
+        name: updates.instructor?.name || existing?.instructor?.name || 'KaizenQ Instructor',
+      },
       updatedAt: now,
     };
 
-    const updatedList = [created, ...list];
-    this.saveStoredCourses(updatedList);
-    this.getCoursesCache.clear();
-    this.courseDetailsCache.clear();
-
+    // 1. Direct write to Cloud Firestore (Authoritative)
+    let firestoreSuccess = false;
     try {
       const { db, doc, setDoc } = await getFS();
       if (db) {
-        await setDoc(doc(db, 'courses', id), created);
+        await setDoc(doc(db, 'courses', targetCourseId), mergedCourse as any, { merge: true });
+        firestoreSuccess = true;
+        console.log(`[Firebase] Course "${targetCourseId}" successfully updated in Firestore (v${nextVersion})`);
       }
-    } catch (err) {}
-
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('shaivika_courses_updated', { detail: { courseId: id, created: true } }));
+    } catch (err: any) {
+      console.error('[Firebase] Direct Firestore update error:', err);
     }
 
-    return created;
-  }
-
-  async updateCourse(id: string, updates: UpdateCourseDTO): Promise<ICourse | null> {
-    const list = this.getStoredCourses();
-    const index = list.findIndex(
-      (c) =>
-        String(c.id) === String(id) ||
-        (String(c.id) === 'course_linux_101' && String(id) === '1') ||
-        (String(c.id) === '1' && String(id) === 'course_linux_101') ||
-        (String(c.id) === 'git-github-mastery' && String(id) === 'git-github-mastery-course-id') ||
-        (String(c.id) === 'git-github-mastery-course-id' && String(id) === 'git-github-mastery') ||
-        c.slug === id
-    );
-    if (index === -1) return null;
-
-    const existing = list[index];
-    const targetCourseId = String(existing.id);
-    this.courseDetailsCache.delete(id);
-    this.courseDetailsCache.delete(targetCourseId);
-    if (existing.slug) this.courseDetailsCache.delete(existing.slug);
-
-    const updated: ICourse = {
-      ...existing,
-      ...updates,
-      instructor: {
-        ...existing.instructor,
-        ...(updates.instructor || {}),
-        name: updates.instructor?.name || existing.instructor?.name || 'KaizenQ Instructor',
-      },
-      updatedAt: new Date().toISOString(),
-    };
-
-    list[index] = updated;
-    this.saveStoredCourses(list);
-    this.getCoursesCache.clear();
-    this.courseDetailsCache.clear();
-
-    // 1. Direct write to Firebase Firestore (Primary Cloud Storage)
+    // 2. Sync to Backend REST API (with concurrency checking)
+    let backendUpdated: ICourse | null = null;
     try {
-      const { db, doc, setDoc } = await getFS();
-      if (db) {
-        await setDoc(doc(db, 'courses', targetCourseId), updated as any, { merge: true });
-        console.log(`[Firebase] Course "${targetCourseId}" successfully saved to Firestore!`);
-      }
-    } catch (err) {
-      console.error('[Firebase] Direct Firestore course update error:', err);
-    }
-
-    // 2. Sync with Backend API
-    try {
-      const sampleUnit = (updates as any).modules?.[0]?.topics?.[0]?.learningUnits?.[0];
-      console.log(`[COURSE-SERVICE-TRACE] 4. BEFORE PUT /courses/${id}: payload contains unit "${sampleUnit?.id}", readingContentSnippet="${sampleUnit?.readingContent?.slice(0, 50)}"`);
-      const token = localStorage.getItem('shaivika_auth_token');
-      const res = await fetch(`${API_BASE_URL}/courses/${encodeURIComponent(id)}`, {
+      const token = localStorage.getItem('shaivika_auth_token') || localStorage.getItem('token');
+      const res = await fetch(`${API_BASE_URL}/courses/${encodeURIComponent(targetCourseId)}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify(updates),
+        body: JSON.stringify({ ...updates, version: existing?.version }),
       });
+
+      if (res.status === 409) {
+        const conflictJson = await res.json().catch(() => ({}));
+        const conflictErr: any = new Error(conflictJson.message || 'Course modified by another session. Please refresh.');
+        conflictErr.status = 409;
+        conflictErr.code = 409;
+        throw conflictErr;
+      }
+
       if (res.ok) {
         const json = await res.json();
-        console.log(`[COURSE-SERVICE-TRACE] PUT /courses/${id} succeeded:`, json.success);
         if (json.success && json.data) {
-          return this.normalizeCourseToICourse(json.data);
+          backendUpdated = this.normalizeCourseToICourse(json.data);
         }
       }
-    } catch (err) {
-      console.warn('Backend API update sync failed (offline or local dev):', err);
+    } catch (err: any) {
+      if (err.status === 409 || err.code === 409) {
+        throw err;
+      }
+      console.warn('Backend update notice (offline or background):', err?.message || err);
     }
+
+    const finalCourse = backendUpdated || mergedCourse;
+
+    // Update in local memory & cache
+    const list = this.getStoredCourses();
+    const idx = list.findIndex((c) => String(c.id) === targetCourseId || c.slug === targetCourseId);
+    if (idx !== -1) {
+      list[idx] = finalCourse;
+    } else {
+      list.unshift(finalCourse);
+    }
+    this.saveStoredCourses(list);
+    this.courseDetailsCache.set(targetCourseId, { data: finalCourse, expiry: Date.now() + 300000 });
+    this.getCoursesCache.clear();
 
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('shaivika_courses_updated', { detail: { courseId: targetCourseId, updates } }));
     }
 
-    return updated;
+    return finalCourse;
   }
 
   async deleteCourse(id: string): Promise<boolean> {
-    const list = this.getStoredCourses();
-    const filtered = list.filter((c) => c.id !== id);
-    this.saveStoredCourses(filtered);
-    this.getCoursesCache.clear();
-    this.courseDetailsCache.clear();
+    let deleted = false;
 
-    // 1. Direct delete from Firebase Firestore
+    // 1. Direct delete / soft-delete from Firebase Firestore
     try {
-      const { db, doc, deleteDoc } = await getFS();
+      const { db, doc, setDoc } = await getFS();
       if (db) {
-        await deleteDoc(doc(db, 'courses', id));
-        console.log(`[Firebase] Course "${id}" deleted from Firestore.`);
+        await setDoc(doc(db, 'courses', id), { isDeleted: true, deletedAt: new Date().toISOString() }, { merge: true });
+        deleted = true;
+        console.log(`[Firebase] Course "${id}" marked deleted in Firestore.`);
       }
     } catch (err) {
       console.error('[Firebase] Direct Firestore course delete error:', err);
     }
 
-    // 2. Sync with Backend API
+    // 2. Call backend DELETE
     try {
-      const token = localStorage.getItem('shaivika_auth_token');
-      await fetch(`${API_BASE_URL}/courses/${id}`, {
+      const token = localStorage.getItem('shaivika_auth_token') || localStorage.getItem('token');
+      await fetch(`${API_BASE_URL}/courses/${encodeURIComponent(id)}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       });
+      deleted = true;
     } catch (e) {}
+
+    // 3. Update local cache
+    const list = this.getStoredCourses();
+    const filtered = list.filter((c) => String(c.id) !== String(id) && c.slug !== id);
+    this.saveStoredCourses(filtered);
+    this.getCoursesCache.clear();
+    this.courseDetailsCache.clear();
 
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('shaivika_courses_updated', { detail: { courseId: id, deleted: true } }));
     }
 
-    return true;
+    return deleted || true;
   }
 
   async publishCourse(id: string): Promise<ICourse | null> {

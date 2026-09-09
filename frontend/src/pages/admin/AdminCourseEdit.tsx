@@ -59,7 +59,9 @@ import {
   Workflow,
   CheckSquare,
   GripVertical,
-  Columns2
+  Columns2,
+  Copy,
+  ChevronsUpDown,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -88,6 +90,10 @@ export const AdminCourseEdit: React.FC = () => {
   const [isDirty, setIsDirty] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'unsaved' | 'saving' | 'error'>('saved');
   const [lastSavedTime, setLastSavedTime] = useState<string>('Saved');
+  const [showConflictModal, setShowConflictModal] = useState(false);
+  const [conflictServerVersion, setConflictServerVersion] = useState<number | null>(null);
+  const [showUnsavedModal, setShowUnsavedModal] = useState(false);
+  const [pendingNavDestination, setPendingNavDestination] = useState<string | null>(null);
 
   // Cloudinary Media States (Course Level)
   const [thumbnailPreview, setThumbnailPreview] = useState<string>('');
@@ -389,6 +395,71 @@ export const AdminCourseEdit: React.FC = () => {
   // ── Curriculum Tree Actions ────────────────────────────────────────────────
   const toggleModuleExpand = (modId: string) => {
     setExpandedModules((prev) => ({ ...prev, [modId]: !prev[modId] }));
+  };
+
+  const toggleExpandAll = () => {
+    const allExpanded = modules.length > 0 && modules.every((m) => expandedModules[m.id]);
+    const newState: Record<string, boolean> = {};
+    modules.forEach((m) => {
+      newState[m.id] = !allExpanded;
+    });
+    setExpandedModules(newState);
+  };
+
+  const handleDuplicateModule = (modId: string) => {
+    const target = modules.find((m) => m.id === modId);
+    if (!target) return;
+    const now = Date.now();
+    const clonedMod: ModuleItem = {
+      ...JSON.parse(JSON.stringify(target)),
+      id: `module-${now}`,
+      title: `${target.title} (Copy)`,
+      topics: (target.topics || []).map((t: any, tIdx: number) => ({
+        ...JSON.parse(JSON.stringify(t)),
+        id: `topic-${now}-${tIdx + 1}`,
+        learningUnits: (t.learningUnits || []).map((u: any, uIdx: number) => ({
+          ...JSON.parse(JSON.stringify(u)),
+          id: `unit-${now}-${tIdx + 1}-${uIdx + 1}`,
+        })),
+      })),
+    };
+    const modIndex = modules.findIndex((m) => m.id === modId);
+    const updated = [...modules];
+    updated.splice(modIndex + 1, 0, clonedMod);
+    setModules(updated);
+    setExpandedModules((prev) => ({ ...prev, [clonedMod.id]: true }));
+    markDirty();
+    toast.success(`Module "${clonedMod.title}" duplicated.`);
+  };
+
+  const handleDuplicateUnit = (modId: string, topId: string, unit: LearningUnitItem) => {
+    const now = Date.now();
+    const clonedUnit: LearningUnitItem = {
+      ...JSON.parse(JSON.stringify(unit)),
+      id: `unit-${now}`,
+      title: `${unit.title} (Copy)`,
+    };
+    setModules((prev) =>
+      prev.map((m) => {
+        if (m.id !== modId) return m;
+        return {
+          ...m,
+          topics: (m.topics || []).map((t) => {
+            if (t.id !== topId) return t;
+            const units = [...(t.learningUnits || [])];
+            const uIdx = units.findIndex((u) => u.id === unit.id);
+            clonedUnit.order = units.length + 1;
+            units.splice(uIdx + 1, 0, clonedUnit);
+            units.forEach((u, i) => {
+              u.order = i + 1;
+            });
+            return { ...t, learningUnits: units };
+          }),
+        };
+      })
+    );
+    markDirty();
+    toast.success(`Unit "${clonedUnit.title}" duplicated.`);
   };
 
   // Sync active unit state into local modules hierarchy
@@ -943,7 +1014,7 @@ export const AdminCourseEdit: React.FC = () => {
   };
 
   // ── Master Save Handler ───────────────────────────────────────────────────
-  const handleSaveAll = async () => {
+  const handleSaveAll = async (forceVersion?: number) => {
     if (!id) return;
     if (outcomesInput.length < 2) {
       toast.error('Please provide at least 2 learning outcomes in Details.');
@@ -992,6 +1063,7 @@ export const AdminCourseEdit: React.FC = () => {
       const payload: any = {
         ...courseData,
         ...formValues,
+        version: forceVersion !== undefined ? forceVersion : (courseData?.version || 1),
         thumbnail: thumbnailPreview || formValues.thumbnail || courseData.thumbnail,
         thumbnailUrl: thumbnailPreview || formValues.thumbnail || courseData.thumbnail,
         thumbnailPublicId: thumbnailPublicId || undefined,
@@ -1007,8 +1079,12 @@ export const AdminCourseEdit: React.FC = () => {
         updatedAt: new Date().toISOString(),
       };
 
-      await courseService.updateCourse(id, payload);
+      const updated = await courseService.updateCourse(id, payload);
       await refreshCourses();
+
+      if (updated && updated.version) {
+        setCourseData((prev: any) => ({ ...prev, version: updated.version }));
+      }
 
       setIsDirty(false);
       setSaveStatus('saved');
@@ -1016,7 +1092,12 @@ export const AdminCourseEdit: React.FC = () => {
       toast.success('🎉 Course and lesson changes saved successfully!');
     } catch (err: any) {
       setSaveStatus('error');
-      toast.error(err.message || 'Failed to save course changes.');
+      if (err.status === 409 || err.conflict) {
+        setConflictServerVersion(err.serverVersion || null);
+        setShowConflictModal(true);
+      } else {
+        toast.error(err.message || 'Failed to save course changes.');
+      }
     }
   };
 
@@ -1034,13 +1115,21 @@ export const AdminCourseEdit: React.FC = () => {
       {/* Top Header & Save Status Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
         <div className="flex items-center gap-3">
-          <Link
-            to="/admin/courses"
+          <button
+            type="button"
+            onClick={() => {
+              if (isDirty) {
+                setPendingNavDestination('/admin/courses');
+                setShowUnsavedModal(true);
+              } else {
+                navigate('/admin/courses');
+              }
+            }}
             className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
             title="Back to Courses"
           >
             <ArrowLeft className="w-4 h-4" />
-          </Link>
+          </button>
           <div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400">
@@ -1375,14 +1464,25 @@ export const AdminCourseEdit: React.FC = () => {
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setShowAddModuleModal(true)}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add Module</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={toggleExpandAll}
+                className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                <ChevronsUpDown className="w-4 h-4" />
+                <span>{modules.length > 0 && modules.every((m) => expandedModules[m.id]) ? 'Collapse All' : 'Expand All'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowAddModuleModal(true)}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Module</span>
+              </button>
+            </div>
           </div>
 
           <Reorder.Group
@@ -1451,6 +1551,14 @@ export const AdminCourseEdit: React.FC = () => {
                         className="px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 text-[11px] font-bold flex items-center gap-1 cursor-pointer"
                       >
                         <Plus className="w-3 h-3" /> Topic
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDuplicateModule(mod.id)}
+                        className="p-1.5 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-950/60 text-indigo-500 transition-colors cursor-pointer"
+                        title="Duplicate Module"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
                       </button>
                       <button
                         type="button"
@@ -1557,6 +1665,17 @@ export const AdminCourseEdit: React.FC = () => {
                                       title="Move Down"
                                     >
                                       <ArrowDown className="w-3 h-3" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDuplicateUnit(mod.id, top.id, unit);
+                                      }}
+                                      className="p-1 rounded hover:bg-indigo-100 dark:hover:bg-indigo-950/60 text-indigo-500 cursor-pointer"
+                                      title="Duplicate Unit"
+                                    >
+                                      <Copy className="w-3 h-3" />
                                     </button>
                                     <button
                                       type="button"
@@ -2680,6 +2799,109 @@ export const AdminCourseEdit: React.FC = () => {
                 className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold cursor-pointer"
               >
                 Save Resource
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Concurrency Conflict Modal ── */}
+      {showConflictModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
+          <div className="bg-white dark:bg-slate-900 border border-amber-500/50 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-amber-500">
+              <AlertTriangle className="w-6 h-6" />
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                Version Conflict Detected
+              </h3>
+            </div>
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              This course was modified elsewhere since you opened it. Saving now could overwrite newer changes made by another admin session.
+            </p>
+            {conflictServerVersion && (
+              <p className="text-[11px] text-slate-500 font-mono bg-slate-100 dark:bg-slate-800 p-2 rounded-lg">
+                Your Version: {courseData?.version || 1} • Server Version: {conflictServerVersion}
+              </p>
+            )}
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  setShowConflictModal(false);
+                  setLoading(true);
+                  try {
+                    const fresh = await courseService.getCourseBySlugOrId(id);
+                    if (fresh) {
+                      setCourseData(fresh);
+                      setModules((fresh.modules as ModuleItem[]) || []);
+                      reset(fresh as any);
+                      setIsDirty(false);
+                      toast.info('Reloaded latest course version from Firestore.');
+                    }
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs cursor-pointer"
+              >
+                Reload Latest Version
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowConflictModal(false);
+                  if (conflictServerVersion) {
+                    setCourseData((prev: any) => ({ ...prev, version: conflictServerVersion }));
+                    handleSaveAll(conflictServerVersion);
+                  } else {
+                    handleSaveAll();
+                  }
+                }}
+                className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs cursor-pointer shadow-xs"
+              >
+                Overwrite Anyway (Force Save)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Unsaved Changes Navigation Safeguard Modal ── */}
+      {showUnsavedModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-amber-500">
+              <AlertTriangle className="w-6 h-6" />
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                Unsaved Changes
+              </h3>
+            </div>
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              You have unsaved changes in this course. If you leave now, any changes you made will be lost.
+            </p>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowUnsavedModal(false);
+                  setPendingNavDestination(null);
+                }}
+                className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs cursor-pointer hover:bg-slate-200"
+              >
+                Keep Editing
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowUnsavedModal(false);
+                  setIsDirty(false);
+                  if (pendingNavDestination) {
+                    navigate(pendingNavDestination);
+                  }
+                }}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs cursor-pointer shadow-xs"
+              >
+                Discard & Leave
               </button>
             </div>
           </div>

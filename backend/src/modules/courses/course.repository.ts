@@ -86,8 +86,8 @@ export class CourseRepository {
     } as ICourse;
   }
 
-  async create(data: CreateCourseDTO): Promise<ICourse> {
-    const docRef = this.collection ? this.collection.doc() : null;
+  async create(data: CreateCourseDTO, userId?: string): Promise<ICourse> {
+    const docRef = this.collection ? (data.id ? this.collection.doc(data.id) : this.collection.doc()) : null;
     const now = new Date().toISOString();
     const id = docRef ? docRef.id : data.id || `course_${Date.now()}`;
 
@@ -98,6 +98,10 @@ export class CourseRepository {
       enrollmentCount: 0,
       rating: 5.0,
       ratingCount: 0,
+      version: 1,
+      isDeleted: false,
+      createdBy: userId || (data as any).createdBy || 'admin',
+      updatedBy: userId || (data as any).updatedBy || 'admin',
       banner: data.banner || '',
       syllabus: data.syllabus || [],
       tags: data.tags || [],
@@ -112,6 +116,7 @@ export class CourseRepository {
       await docRef.set(newCourse);
     }
 
+    console.log(`[COURSE_CREATED] courseId="${id}", title="${newCourse.title}", version=1, userId="${userId || 'system'}", timestamp="${now}"`);
     this.invalidateCache();
     return newCourse;
   }
@@ -150,7 +155,12 @@ export class CourseRepository {
     return course;
   }
 
-  async update(id: string, updates: UpdateCourseDTO): Promise<ICourse | null> {
+  async update(
+    id: string,
+    updates: UpdateCourseDTO,
+    expectedVersion?: number,
+    userId?: string
+  ): Promise<ICourse | null> {
     if (!this.collection) return null;
     let existing = await this.findById(id);
     let docId = id;
@@ -159,10 +169,29 @@ export class CourseRepository {
       if (existing) docId = existing.id;
     }
 
+    // Concurrency Check: optimistic locking
+    if (existing && typeof expectedVersion === 'number' && typeof existing.version === 'number') {
+      if (existing.version !== expectedVersion) {
+        console.warn(`[COURSE_CONFLICT] courseId="${docId}", currentVersion=${existing.version}, expectedVersion=${expectedVersion}, userId="${userId}"`);
+        const conflictErr: any = new Error(
+          `Course was modified by another session (current version: ${existing.version}, attempted version: ${expectedVersion}). Please reload latest version before saving.`
+        );
+        conflictErr.status = 409;
+        conflictErr.code = 409;
+        conflictErr.currentVersion = existing.version;
+        throw conflictErr;
+      }
+    }
+
     const docRef = this.collection.doc(docId);
+    const now = new Date().toISOString();
+    const nextVersion = existing ? ((existing.version || 1) + 1) : 1;
+
     const updatedData: Partial<ICourse> = {
       ...updates,
-      updatedAt: new Date().toISOString(),
+      version: nextVersion,
+      updatedBy: userId || existing?.updatedBy || 'admin',
+      updatedAt: now,
     };
 
     if (updates.title && !updates.slug) {
@@ -175,22 +204,47 @@ export class CourseRepository {
         enrollmentCount: 0,
         rating: 5.0,
         ratingCount: 0,
-        createdAt: new Date().toISOString(),
+        version: 1,
+        isDeleted: false,
+        createdBy: userId || 'admin',
+        createdAt: now,
         ...updatedData,
       };
       await docRef.set(newCourseDoc, { merge: true });
+      console.log(`[COURSE_CREATED_ON_UPDATE] courseId="${docId}", version=1, userId="${userId}"`);
       this.invalidateCache();
       return newCourseDoc as ICourse;
     }
 
     await docRef.set(updatedData, { merge: true });
+    console.log(`[COURSE_UPDATED] courseId="${docId}", newVersion=${nextVersion}, userId="${userId}", timestamp="${now}"`);
     this.invalidateCache();
     return { ...existing, ...updatedData } as ICourse;
   }
 
-  async delete(id: string): Promise<boolean> {
+  async delete(id: string, userId?: string, hardDelete: boolean = false): Promise<boolean> {
     if (!this.collection) return false;
-    await this.collection.doc(id).delete();
+    let existing = await this.findById(id);
+    let docId = id;
+    if (!existing) {
+      existing = await this.findBySlug(id);
+      if (existing) docId = existing.id;
+    }
+
+    if (!existing) return false;
+
+    if (hardDelete) {
+      await this.collection.doc(docId).delete();
+      console.log(`[COURSE_HARD_DELETED] courseId="${docId}", userId="${userId}"`);
+    } else {
+      await this.collection.doc(docId).set({
+        isDeleted: true,
+        deletedAt: new Date().toISOString(),
+        deletedBy: userId || 'admin',
+      }, { merge: true });
+      console.log(`[COURSE_SOFT_DELETED] courseId="${docId}", userId="${userId}"`);
+    }
+
     this.invalidateCache();
     return true;
   }
@@ -208,12 +262,15 @@ export class CourseRepository {
     const limit = Math.max(1, Math.min(100, Number(options.limit) || 10));
 
     const snapshot = await this.collection.get();
-    let courses: ICourse[] = snapshot.docs.map((doc: QueryDocumentSnapshot) =>
-      this.sanitizeForCatalog({
-        ...doc.data(),
-        id: doc.id,
-      })
-    );
+    let courses: ICourse[] = snapshot.docs
+      .map((doc: QueryDocumentSnapshot) =>
+        this.sanitizeForCatalog({
+          ...doc.data(),
+          id: doc.id,
+        })
+      )
+      // Exclude soft-deleted courses from normal queries
+      .filter((c: any) => c.isDeleted !== true);
 
     if (options.status && options.status !== 'all') {
       const sStatus = options.status.toLowerCase();

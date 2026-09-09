@@ -17,11 +17,22 @@ export const CourseDeleteModal: React.FC<CourseDeleteModalProps> = ({
   onCancel,
   isDeleting = false,
 }) => {
+  const [confirmationText, setConfirmationText] = React.useState('');
+
+  // Reset confirmation input when modal opens or course changes
+  React.useEffect(() => {
+    if (isOpen) {
+      setConfirmationText('');
+    }
+  }, [isOpen, course]);
+
   if (!isOpen || !course) return null;
+
+  const isConfirmed = confirmationText.trim().toUpperCase() === 'DELETE' || confirmationText.trim() === course.title.trim();
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-6 text-slate-900 dark:text-slate-100">
+      <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5 text-slate-900 dark:text-slate-100">
         
         {/* Close Button */}
         <button
@@ -46,8 +57,24 @@ export const CourseDeleteModal: React.FC<CourseDeleteModalProps> = ({
             Are you sure you want to delete <span className="font-bold text-slate-900 dark:text-slate-100">"{course.title}"</span>?
           </p>
           <p className="text-[11px] text-rose-500/90 dark:text-rose-400/90 font-semibold bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 p-2.5 rounded-xl">
-            ⚠️ This will remove the Firestore document and associated Storage thumbnails. This action cannot be undone.
+            ⚠️ This will soft-delete the course document from Firestore. Type <span className="font-mono font-bold text-rose-600 dark:text-rose-300">DELETE</span> below to confirm.
           </p>
+        </div>
+
+        {/* Typing Confirmation Safeguard */}
+        <div className="space-y-1.5">
+          <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+            Confirmation Safeguard
+          </label>
+          <input
+            type="text"
+            value={confirmationText}
+            onChange={(e) => setConfirmationText(e.target.value)}
+            disabled={isDeleting}
+            placeholder="Type DELETE to confirm"
+            className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500/50"
+            autoFocus
+          />
         </div>
 
         {/* Actions */}
@@ -63,8 +90,8 @@ export const CourseDeleteModal: React.FC<CourseDeleteModalProps> = ({
           <button
             type="button"
             onClick={onConfirm}
-            disabled={isDeleting}
-            className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-rose-500/20 transition-all cursor-pointer disabled:opacity-50"
+            disabled={isDeleting || !isConfirmed}
+            className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-rose-500/20 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {isDeleting ? (
               <>

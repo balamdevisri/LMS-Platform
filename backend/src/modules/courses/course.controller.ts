@@ -45,19 +45,39 @@ export class CourseController {
   });
 
   createCourse = asyncHandler(async (req: Request, res: Response) => {
-    const course = await this.courseService.createCourse(req.body);
+    const userId = (req as any).user?.uid;
+    const course = await this.courseService.createCourse(req.body, userId);
     res.status(201).json(formatResponse(true, course, 'Course created successfully'));
   });
 
   updateCourse = asyncHandler(async (req: Request, res: Response) => {
     const id = req.params.id as string;
-    const course = await this.courseService.updateCourse(id, req.body);
-    res.json(formatResponse(true, course, 'Course updated successfully'));
+    const userId = (req as any).user?.uid;
+    const expectedVersion = typeof req.body.version === 'number' ? req.body.version : undefined;
+
+    try {
+      const course = await this.courseService.updateCourse(id, req.body, expectedVersion, userId);
+      res.json(formatResponse(true, course, 'Course updated successfully'));
+    } catch (err: any) {
+      if (err.status === 409 || err.code === 409 || (err.message && err.message.includes('modified by another'))) {
+        res.status(409).json({
+          success: false,
+          conflict: true,
+          error: err.message,
+          message: err.message,
+          currentVersion: err.currentVersion,
+        });
+        return;
+      }
+      throw err;
+    }
   });
 
   deleteCourse = asyncHandler(async (req: Request, res: Response) => {
     const id = req.params.id as string;
-    await this.courseService.deleteCourse(id);
+    const userId = (req as any).user?.uid;
+    const hardDelete = req.query.hard === 'true';
+    await this.courseService.deleteCourse(id, userId, hardDelete);
     res.json(formatResponse(true, null, 'Course deleted successfully'));
   });
 

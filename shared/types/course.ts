@@ -210,7 +210,12 @@ export interface ICourse {
   practiceType?: 'sql' | 'terminal' | 'git' | 'code-c' | 'code-python' | 'code-java' | 'sandpack' | 'k8s-sim' | null;
   progress?: number; // Enrollment completion percentage (0-100)
   isEnrolled?: boolean; // Whether current student is enrolled
+  version?: number; // Optimistic concurrency version
+  isDeleted?: boolean; // Soft delete flag
+  deletedAt?: string;
+  deletedBy?: string;
   createdBy?: string;
+  updatedBy?: string;
   createdAt: string;
   updatedAt: string;
 }

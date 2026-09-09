@@ -435,15 +435,15 @@ export const AdminCourseCreate: React.FC = () => {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="py-3 px-8 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer disabled:opacity-50"
+            className="py-3 px-8 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Creating Course...</span>
+                <span>Persisting to Firestore...</span>
               </>
             ) : (
-              <span>Create & Publish Course</span>
+              <span>Create & Persist Course</span>
             )}
           </button>
         </div>
