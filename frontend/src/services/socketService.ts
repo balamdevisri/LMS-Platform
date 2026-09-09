@@ -171,21 +171,29 @@ class SocketService {
 
     // Global real-time live class notification listeners
     this.socket.on('live_class_scheduled', (data: { liveClass?: any }) => {
-      if (data?.liveClass) {
-        webNotificationService.notifyLiveClassScheduled(data.liveClass);
-        notificationService.addNotification({
-          title: `Live Class Scheduled: ${data.liveClass.title}`,
-          desc: `Instructor ${data.liveClass.instructorName || 'Lead Mentor'} scheduled a live session for ${data.liveClass.courseName || 'Course'}.`,
-          type: 'live_class',
-          link: data.liveClass.meetingUrl || `/live-classroom/room/${data.liveClass.id}`,
-          recipientRole: 'all',
-        });
+      try {
+        if (data?.liveClass) {
+          webNotificationService.notifyLiveClassScheduled(data.liveClass);
+          notificationService.addNotification({
+            title: `Live Class Scheduled: ${data.liveClass.title}`,
+            desc: `Instructor ${data.liveClass.instructorName || 'Lead Mentor'} scheduled a live session for ${data.liveClass.courseName || 'Course'}.`,
+            type: 'live_class',
+            link: data.liveClass.meetingUrl || `/live-classroom/room/${data.liveClass.id}`,
+            recipientRole: 'all',
+          });
+        }
+      } catch (err) {
+        console.warn('[SocketService] live_class_scheduled handler notice:', err);
       }
     });
 
     this.socket.on('live_class_started', (data: { liveClass?: any }) => {
-      if (data?.liveClass) {
-        webNotificationService.notifyLiveClassStarted(data.liveClass);
+      try {
+        if (data?.liveClass) {
+          webNotificationService.notifyLiveClassStarted(data.liveClass);
+        }
+      } catch (err) {
+        console.warn('[SocketService] live_class_started handler notice:', err);
       }
     });
 

@@ -1,5 +1,5 @@
 import { db, auth } from '@/firebase';
-import { collection, onSnapshot, query, doc, setDoc, updateDoc, deleteDoc, where } from 'firebase/firestore';
+import { collection, onSnapshot, query, doc, setDoc, updateDoc, deleteDoc, where, getDoc } from 'firebase/firestore';
 import { adminNotificationService } from './adminNotificationService';
 import { webNotificationService } from './webNotificationService';
 import { notificationService } from './notificationService';
@@ -392,8 +392,8 @@ class LiveClassService {
     this.listeners.forEach((l) => l(classes));
   }
 
-  async createLiveClass(data: Omit<LiveClass, 'id' | 'classId' | 'createdAt' | 'updatedAt' | 'meetingRoomId'> & { meetingRoomId?: string }): Promise<LiveClass> {
-    const id = `live_class_${Date.now()}`;
+  async createLiveClass(data: Omit<LiveClass, 'id' | 'classId' | 'createdAt' | 'updatedAt' | 'meetingRoomId'> & { id?: string; classId?: string; meetingRoomId?: string }): Promise<LiveClass> {
+    const id = data.id || data.classId || `live_class_${Date.now()}`;
     const courseSlug = (data.courseName || 'batch').toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
     const roomId = data.meetingRoomId || `kaizenq-${courseSlug}-${Date.now().toString().slice(-4)}`;
     const meetingUrl = data.meetingUrl || `/live-classroom/room/${id}`;
@@ -423,28 +423,40 @@ class LiveClassService {
 
     const norm = normalizeLiveClassStatus(newClass.status);
     if (norm === 'scheduled' || norm === 'live') {
-      adminNotificationService.addNotification({
-        type: 'COURSE_CREATED',
-        title: `Live Session Published: ${newClass.title}`,
-        message: `Instructor ${newClass.instructorName} scheduled a live classroom session for ${newClass.courseName}.`,
-        link: `/live-classroom`
-      });
-
-      // Dispatch Web Notification to browser & play chime
-      if (norm === 'live') {
-        webNotificationService.notifyLiveClassStarted(newClass);
-      } else {
-        webNotificationService.notifyLiveClassScheduled(newClass);
+      try {
+        adminNotificationService.addNotification({
+          type: 'COURSE_CREATED',
+          title: `Live Session Published: ${newClass.title}`,
+          message: `Instructor ${newClass.instructorName} scheduled a live classroom session for ${newClass.courseName}.`,
+          link: `/live-classroom`
+        });
+      } catch (e) {
+        console.warn('Admin notification notice:', e);
       }
 
-      // Add to student In-App Notification Center
-      notificationService.addNotification({
-        title: `Live Class Scheduled: ${newClass.title}`,
-        desc: `Instructor ${newClass.instructorName} scheduled a live session for ${newClass.courseName}. Click to join.`,
-        type: 'live_class',
-        link: newClass.meetingUrl || `/live-classroom/room/${newClass.id}`,
-        recipientRole: 'all',
-      });
+      try {
+        // Dispatch Web Notification to browser & play chime
+        if (norm === 'live') {
+          webNotificationService.notifyLiveClassStarted(newClass);
+        } else {
+          webNotificationService.notifyLiveClassScheduled(newClass);
+        }
+      } catch (e) {
+        console.warn('Web notification notice:', e);
+      }
+
+      try {
+        // Add to student In-App Notification Center
+        notificationService.addNotification({
+          title: `Live Class Scheduled: ${newClass.title}`,
+          desc: `Instructor ${newClass.instructorName} scheduled a live session for ${newClass.courseName}. Click to join.`,
+          type: 'live_class',
+          link: newClass.meetingUrl || `/live-classroom/room/${newClass.id}`,
+          recipientRole: 'all',
+        });
+      } catch (e) {
+        console.warn('Student notification notice:', e);
+      }
     }
 
     return newClass;
@@ -526,6 +538,16 @@ class LiveClassService {
       const localClass = this.getLiveClassesSync().find((c) => c.id === classId || c.classId === classId);
       if (localClass) {
         return { success: true, liveClass: localClass };
+      }
+      if (db) {
+        try {
+          const snap = await getDoc(doc(db, 'liveClasses', classId));
+          if (snap.exists()) {
+            const data = snap.data() as LiveClass;
+            const fullClass = { ...data, id: snap.id, classId: snap.id };
+            return { success: true, liveClass: fullClass };
+          }
+        } catch {}
       }
       return {
         success: false,

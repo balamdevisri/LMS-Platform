@@ -141,13 +141,18 @@ class WebNotificationService {
       icon?: string;
     }
   ): boolean {
-    this.playChime(options.urgent);
-
-    if (!this.isSupported() || Notification.permission !== 'granted') {
-      return false;
-    }
-
     try {
+      this.playChime(options.urgent);
+
+      if (!this.isSupported()) return false;
+      let permission: string = 'denied';
+      try {
+        permission = Notification.permission;
+      } catch {
+        return false;
+      }
+      if (permission !== 'granted') return false;
+
       const notif = new Notification(title, {
         body: options.body,
         icon: options.icon || '/favicon.ico',
@@ -175,45 +180,49 @@ class WebNotificationService {
    */
   public notifyLiveClassScheduled(liveClass: LiveClass): void {
     if (!liveClass) return;
-    const classId = liveClass.id || liveClass.classId;
-    const cacheKey = `scheduled_${classId}`;
-    if (this.getNotifiedClassIds().has(cacheKey)) return;
-    this.markClassNotified(cacheKey);
+    try {
+      const classId = liveClass.id || liveClass.classId;
+      const cacheKey = `scheduled_${classId}`;
+      if (this.getNotifiedClassIds().has(cacheKey)) return;
+      this.markClassNotified(cacheKey);
 
-    const formattedTime = new Date(liveClass.startTime || liveClass.scheduledAt || Date.now()).toLocaleTimeString(
-      undefined,
-      { hour: '2-digit', minute: '2-digit', hour12: true }
-    );
-    const dateFormatted = new Date(liveClass.startTime || liveClass.scheduledAt || Date.now()).toLocaleDateString(
-      undefined,
-      { month: 'short', day: 'numeric' }
-    );
+      const formattedTime = new Date(liveClass.startTime || liveClass.scheduledAt || Date.now()).toLocaleTimeString(
+        undefined,
+        { hour: '2-digit', minute: '2-digit', hour12: true }
+      );
+      const dateFormatted = new Date(liveClass.startTime || liveClass.scheduledAt || Date.now()).toLocaleDateString(
+        undefined,
+        { month: 'short', day: 'numeric' }
+      );
 
-    const title = `📅 Live Class Scheduled: ${liveClass.title}`;
-    const body = `${liveClass.courseName || 'Enterprise Course'} • ${liveClass.instructorName || 'Lead Mentor'}\nStarting: ${dateFormatted} at ${formattedTime}`;
-    const targetUrl = liveClass.meetingProvider === 'kaizenq' || (liveClass as any).mode === 'interactive'
-      ? `/live-classroom/room/${classId}`
-      : `/student/live-class/${classId}`;
+      const title = `📅 Live Class Scheduled: ${liveClass.title}`;
+      const body = `${liveClass.courseName || 'Enterprise Course'} • ${liveClass.instructorName || 'Lead Mentor'}\nStarting: ${dateFormatted} at ${formattedTime}`;
+      const targetUrl = liveClass.meetingProvider === 'kaizenq' || (liveClass as any).mode === 'interactive'
+        ? `/live-classroom/room/${classId}`
+        : `/student/live-class/${classId}`;
 
-    // Send native notification
-    this.sendNotification(title, {
-      body,
-      tag: `live-scheduled-${classId}`,
-      url: targetUrl,
-      urgent: false,
-    });
+      // Send native notification
+      this.sendNotification(title, {
+        body,
+        tag: `live-scheduled-${classId}`,
+        url: targetUrl,
+        urgent: false,
+      });
 
-    // In-app interactive toast
-    toast.info(`📅 Live Class Scheduled: ${liveClass.title}`, {
-      description: `Course: ${liveClass.courseName} • At ${dateFormatted}, ${formattedTime}`,
-      duration: 8000,
-      action: {
-        label: 'View Session',
-        onClick: () => {
-          window.location.href = targetUrl;
+      // In-app interactive toast
+      toast.info(`📅 Live Class Scheduled: ${liveClass.title}`, {
+        description: `Course: ${liveClass.courseName} • At ${dateFormatted}, ${formattedTime}`,
+        duration: 8000,
+        action: {
+          label: 'View Session',
+          onClick: () => {
+            window.location.href = targetUrl;
+          },
         },
-      },
-    });
+      });
+    } catch (err) {
+      console.warn('[WebNotificationService] notifyLiveClassScheduled caught error:', err);
+    }
   }
 
   /**
@@ -221,36 +230,40 @@ class WebNotificationService {
    */
   public notifyLiveClassStarted(liveClass: LiveClass): void {
     if (!liveClass) return;
-    const classId = liveClass.id || liveClass.classId;
-    const cacheKey = `started_${classId}`;
-    if (this.getNotifiedClassIds().has(cacheKey)) return;
-    this.markClassNotified(cacheKey);
+    try {
+      const classId = liveClass.id || liveClass.classId;
+      const cacheKey = `started_${classId}`;
+      if (this.getNotifiedClassIds().has(cacheKey)) return;
+      this.markClassNotified(cacheKey);
 
-    const title = `🔴 LIVE NOW: ${liveClass.title}`;
-    const body = `${liveClass.courseName} is live with ${liveClass.instructorName || 'Lead Instructor'}. Click to join now!`;
-    const targetUrl = liveClass.meetingProvider === 'kaizenq' || (liveClass as any).mode === 'interactive'
-      ? `/live-classroom/room/${classId}`
-      : `/student/live-class/${classId}`;
+      const title = `🔴 LIVE NOW: ${liveClass.title}`;
+      const body = `${liveClass.courseName} is live with ${liveClass.instructorName || 'Lead Instructor'}. Click to join now!`;
+      const targetUrl = liveClass.meetingProvider === 'kaizenq' || (liveClass as any).mode === 'interactive'
+        ? `/live-classroom/room/${classId}`
+        : `/student/live-class/${classId}`;
 
-    // Send urgent native notification
-    this.sendNotification(title, {
-      body,
-      tag: `live-now-${classId}`,
-      url: targetUrl,
-      urgent: true,
-    });
+      // Send urgent native notification
+      this.sendNotification(title, {
+        body,
+        tag: `live-now-${classId}`,
+        url: targetUrl,
+        urgent: true,
+      });
 
-    // In-app interactive toast
-    toast.success(`🔴 LIVE CLASS IN PROGRESS: ${liveClass.title}`, {
-      description: `Instructor ${liveClass.instructorName || 'Lead Faculty'} started the broadcast. Join the classroom now!`,
-      duration: 10000,
-      action: {
-        label: 'Join Live Now',
-        onClick: () => {
-          window.location.href = targetUrl;
+      // In-app interactive toast
+      toast.success(`🔴 LIVE CLASS IN PROGRESS: ${liveClass.title}`, {
+        description: `Instructor ${liveClass.instructorName || 'Lead Faculty'} started the broadcast. Join the classroom now!`,
+        duration: 10000,
+        action: {
+          label: 'Join Live Now',
+          onClick: () => {
+            window.location.href = targetUrl;
+          },
         },
-      },
-    });
+      });
+    } catch (err) {
+      console.warn('[WebNotificationService] notifyLiveClassStarted caught error:', err);
+    }
   }
 }
 

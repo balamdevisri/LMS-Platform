@@ -391,8 +391,16 @@ export const AdminCreateLiveClass: React.FC = () => {
 
       // If published, broadcast real-time socket announcement and trigger notification pipeline
       if (shouldPublish || statusToUse === 'PUBLISHED') {
-        socketService.publishLiveClass(payload, { audience: targetAudience, batch: targetBatch, section: targetSection });
-        webNotificationService.notifyLiveClassScheduled(payload as any);
+        try {
+          socketService.publishLiveClass(payload, { audience: targetAudience, batch: targetBatch, section: targetSection });
+        } catch (e) {
+          console.warn('[AdminCreateLiveClass] Socket publish notice:', e);
+        }
+        try {
+          webNotificationService.notifyLiveClassScheduled(payload as any);
+        } catch (e) {
+          console.warn('[AdminCreateLiveClass] Web notification notice:', e);
+        }
         toast.success('🚀 Live Class published! Instant notifications dispatched to enrolled students.');
       } else {
         toast.success(isEditing ? 'Live class updated successfully!' : 'Live class scheduled successfully!');

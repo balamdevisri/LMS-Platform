@@ -391,6 +391,20 @@ class NotificationService {
     }
   }
 
+  /**
+   * Alias / compatibility method for sendNotification to support addNotification callers
+   */
+  async addNotification(payload: {
+    title: string;
+    desc: string;
+    type?: 'info' | 'success' | 'warning' | 'certificate' | 'assignment' | 'live_class' | string;
+    recipientId?: string;
+    recipientRole?: 'student' | 'admin' | 'all';
+    link?: string;
+  }): Promise<void> {
+    return this.sendNotification(payload as any);
+  }
+
   private formatTimeAgo(isoString: string): string {
     const sec = Math.floor((Date.now() - new Date(isoString).getTime()) / 1000);
     if (sec < 60) return 'Just now';
