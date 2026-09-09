@@ -294,8 +294,8 @@ export const AdminCreateLiveClass: React.FC = () => {
     if (found) setInstructorName(found.name);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent | React.MouseEvent, shouldPublish: boolean = false) => {
+    e?.preventDefault?.();
 
     // Validation
     const cleanTitle = title.trim();
@@ -392,14 +392,7 @@ export const AdminCreateLiveClass: React.FC = () => {
       // If published, broadcast real-time socket announcement and trigger notification pipeline
       if (shouldPublish || statusToUse === 'PUBLISHED') {
         socketService.publishLiveClass(payload, { audience: targetAudience, batch: targetBatch, section: targetSection });
-        webNotificationService.notifyLiveClassScheduled({
-          id: classIdToUse,
-          title: cleanTitle,
-          instructorName,
-          scheduledAt: scheduledDateTime,
-          courseName,
-          meetingUrl: payload.meetingUrl,
-        });
+        webNotificationService.notifyLiveClassScheduled(payload as any);
         toast.success('🚀 Live Class published! Instant notifications dispatched to enrolled students.');
       } else {
         toast.success(isEditing ? 'Live class updated successfully!' : 'Live class scheduled successfully!');
