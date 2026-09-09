@@ -53,6 +53,41 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
 
   const [permissionError, setPermissionError] = useState<string | null>(null);
   const [micLevel, setMicLevel] = useState<number>(0);
+  const [isPlayingTestSound, setIsPlayingTestSound] = useState<boolean>(false);
+
+  const testSpeaker = () => {
+    try {
+      setIsPlayingTestSound(true);
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) {
+        setIsPlayingTestSound(false);
+        return;
+      }
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(520, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.3);
+
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start();
+      osc.stop(ctx.currentTime + 0.5);
+
+      setTimeout(() => {
+        setIsPlayingTestSound(false);
+        ctx.close().catch(() => {});
+      }, 600);
+    } catch {
+      setIsPlayingTestSound(false);
+    }
+  };
 
   const previewVideoRef = useRef<HTMLVideoElement>(null);
   const previewStreamRef = useRef<MediaStream | null>(null);
@@ -351,10 +386,21 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
             </select>
           </div>
 
-          {/* Speaker Selector (where supported) */}
-          {devices.audioOutputs.length > 0 && (
-            <div>
-              <label className="text-slate-300 font-bold block mb-1">Speaker Audio Output</label>
+          {/* Speaker Selector & Test (where supported) */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-slate-300 font-bold block">Speaker Audio Output</label>
+              <button
+                type="button"
+                onClick={testSpeaker}
+                disabled={isPlayingTestSound}
+                className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-400 text-[11px] font-bold flex items-center gap-1.5 cursor-pointer border border-slate-700 transition-all"
+              >
+                <Volume2 className="w-3 h-3" />
+                <span>{isPlayingTestSound ? 'Testing chime...' : 'Test Speaker'}</span>
+              </button>
+            </div>
+            {devices.audioOutputs.length > 0 ? (
               <select
                 value={selectedAudioOutput}
                 onChange={(e) => setSelectedAudioOutput(e.target.value)}
@@ -366,8 +412,38 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
                   </option>
                 ))}
               </select>
+            ) : (
+              <div className="text-[11px] text-slate-500 italic p-2 bg-slate-950/60 rounded-xl border border-slate-800">
+                Default system audio output device
+              </div>
+            )}
+          </div>
+
+          {/* Audio Quality & Noise Processing Badges */}
+          <div className="p-3 rounded-2xl bg-slate-950/90 border border-slate-800 space-y-1.5 text-[11px]">
+            <div className="font-bold text-slate-300 flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span>Realtime Voice Processing Engine Active</span>
             </div>
-          )}
+            <div className="grid grid-cols-2 gap-2 pt-0.5 text-slate-400 text-[10px]">
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                <span>Echo Cancellation</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                <span>Noise Suppression</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                <span>Auto Gain Control</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                <span>48 kHz Low-Latency Audio</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Footer Actions */}

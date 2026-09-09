@@ -71,6 +71,26 @@ export const KaizenQClassroom: React.FC<KaizenQClassroomProps> = ({
           setParticipants([...list]);
         });
 
+        activeClient.on('instructorMuteStateChange', (isMuted: boolean) => {
+          if (isMuted) {
+            toast.warning('You were muted by the instructor.');
+          } else {
+            toast.success('Your microphone access has been enabled.');
+          }
+        });
+
+        activeClient.on('moderationRequestUnmute', (data: { instructorName?: string }) => {
+          toast.info(`${data.instructorName || 'The instructor'} asked you to unmute your microphone.`, {
+            duration: 10000,
+            action: {
+              label: 'Unmute',
+              onClick: () => {
+                activeClient?.toggleMicrophone();
+              },
+            },
+          });
+        });
+
         activeClient.on('mediaError', (data: { type: string; message: string }) => {
           toast.error(data.message);
         });
@@ -121,6 +141,8 @@ export const KaizenQClassroom: React.FC<KaizenQClassroomProps> = ({
     );
   }
 
+  const isInstructor = role === 'instructor' || role === 'mentor';
+
   return (
     <div className="w-full h-full flex flex-col bg-slate-950 relative overflow-hidden font-sans">
       {/* Connection State Banner (if reconnecting) */}
@@ -137,6 +159,8 @@ export const KaizenQClassroom: React.FC<KaizenQClassroomProps> = ({
           participants={participants}
           screenShareStream={client?.getLocalScreenStream() || null}
           localUserId={userId}
+          isInstructor={isInstructor}
+          onPinParticipant={(targetId) => client?.pinParticipant(targetId)}
         />
       </div>
     </div>

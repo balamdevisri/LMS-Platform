@@ -5,6 +5,9 @@ export interface ParticipantItem {
   userId: string;
   name: string;
   role?: string;
+  isSpeaking?: boolean;
+  isAudioOn?: boolean;
+  isPinned?: boolean;
 }
 
 export interface ParticipantsPanelProps {
@@ -68,17 +71,28 @@ export const ParticipantsPanel: React.FC<ParticipantsPanelProps> = ({
             return (
               <div
                 key={p.userId || idx}
-                className="flex items-center justify-between p-2 rounded-xl bg-slate-900/60 border border-slate-800/60 text-xs"
+                className={`flex items-center justify-between p-2 rounded-xl border text-xs transition-all ${
+                  p.isSpeaking
+                    ? 'bg-emerald-950/30 border-emerald-500/40'
+                    : 'bg-slate-900/60 border-slate-800/60'
+                }`}
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-6 h-6 rounded-full bg-slate-800 border border-slate-700 text-slate-300 font-bold text-[10px] flex items-center justify-center shrink-0">
+                  <div className={`w-6 h-6 rounded-full border text-[10px] font-bold flex items-center justify-center shrink-0 ${
+                    p.isSpeaking ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300' : 'bg-slate-800 border-slate-700 text-slate-300'
+                  }`}>
                     {(p.name || 'S').charAt(0).toUpperCase()}
                   </div>
                   <span className="font-medium text-slate-200 truncate max-w-[140px]">{p.name || 'Student'}</span>
                 </div>
 
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  {p.isSpeaking && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-black flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      Speaking
+                    </span>
+                  )}
                   <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-400 font-extrabold uppercase">
                     {isInst ? 'Instructor' : isMentor ? 'Mentor' : 'Student'}
                   </span>

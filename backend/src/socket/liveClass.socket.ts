@@ -11,6 +11,34 @@ export interface ParticipantInfo {
   role: string;
   email?: string;
   joinedAt: Date;
+  isAudioOn?: boolean;
+  isVideoOn?: boolean;
+  isScreenSharing?: boolean;
+  isSpeaking?: boolean;
+  audioLevel?: number;
+  isMutedByInstructor?: boolean;
+  micPermission?: 'prompt' | 'granted' | 'denied';
+  isPinned?: boolean;
+}
+
+export interface ActiveSpeakerState {
+  userId: string;
+  name: string;
+  role: string;
+  startedAt: number;
+  audioLevel: number;
+}
+
+export interface ActiveScreenShareState {
+  userId: string;
+  name: string;
+  startedAt: string;
+}
+
+export interface ModerationRecord {
+  mutedByInstructor: boolean;
+  micPermission: 'prompt' | 'granted' | 'denied';
+  updatedAt: string;
 }
 
 // In-memory active presence tracker: classId -> Map<socketId, ParticipantInfo>
@@ -19,6 +47,32 @@ const activeRoomPresences = new Map<string, Map<string, ParticipantInfo>>();
 const lockedClassrooms = new Set<string>();
 // In-memory authoratitative classroom interaction settings tracker: classId -> ClassroomInteractionSettings
 const classroomSettingsMap = new Map<string, ClassroomInteractionSettings>();
+
+// In-memory authoritative active speaker tracker: classId -> ActiveSpeakerState | null
+const activeRoomSpeakers = new Map<string, ActiveSpeakerState | null>();
+// In-memory authoritative screen share tracker: classId -> ActiveScreenShareState | null
+const activeRoomScreenShares = new Map<string, ActiveScreenShareState | null>();
+// In-memory authoritative pinned participant tracker: classId -> string (userId) | null
+const activeRoomPinned = new Map<string, string | null>();
+// In-memory authoritative student moderation state: classId -> Map<userId, ModerationRecord>
+const activeRoomModeration = new Map<string, Map<string, ModerationRecord>>();
+
+export const getRoomActiveSpeaker = (classId: string): ActiveSpeakerState | null => {
+  return activeRoomSpeakers.get(classId) || null;
+};
+
+export const getRoomScreenShare = (classId: string): ActiveScreenShareState | null => {
+  return activeRoomScreenShares.get(classId) || null;
+};
+
+export const getRoomPinned = (classId: string): string | null => {
+  return activeRoomPinned.get(classId) || null;
+};
+
+export const getModerationRecord = (classId: string, userId: string): ModerationRecord => {
+  const roomMod = activeRoomModeration.get(classId);
+  return roomMod?.get(userId) || { mutedByInstructor: false, micPermission: 'prompt', updatedAt: new Date().toISOString() };
+};
 
 export const getClassroomSettings = (classId: string): ClassroomInteractionSettings => {
   return classroomSettingsMap.get(classId) || { ...DEFAULT_CLASSROOM_SETTINGS };
@@ -160,13 +214,27 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
         activeRoomPresences.set(liveClassId, new Map());
       }
 
+      const joinedUserId = user.uid || user.id;
+      const modRecord = getModerationRecord(liveClassId, joinedUserId);
+      const isPinned = getRoomPinned(liveClassId) === joinedUserId;
+      const currentScreenShare = getRoomScreenShare(liveClassId);
+      const isScreenSharing = currentScreenShare?.userId === joinedUserId;
+
       const participant: ParticipantInfo = {
         socketId: socket.id,
-        userId: user.uid || user.id,
+        userId: joinedUserId,
         name: customName || user.name || 'Student',
         role: user.role || 'student',
         email: user.email,
         joinedAt: new Date(),
+        isAudioOn: false,
+        isVideoOn: false,
+        isScreenSharing,
+        isSpeaking: false,
+        audioLevel: 0,
+        isMutedByInstructor: modRecord.mutedByInstructor,
+        micPermission: modRecord.micPermission,
+        isPinned,
       };
       activeRoomPresences.get(liveClassId)!.set(socket.id, participant);
 
@@ -175,15 +243,32 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
 
       logger.info(`[SOCKET] User ${participant.name} (${participant.role}) joined ${roomName}. Total online: ${activeCount}`);
 
-      // Respond to joiner
+      const formattedParticipants = currentRoster.map((p) => ({
+        userId: p.userId,
+        name: p.name,
+        role: p.role,
+        isAudioOn: p.isAudioOn ?? false,
+        isVideoOn: p.isVideoOn ?? false,
+        isScreenSharing: p.isScreenSharing ?? false,
+        isSpeaking: p.isSpeaking ?? false,
+        audioLevel: p.audioLevel ?? 0,
+        isMutedByInstructor: p.isMutedByInstructor ?? false,
+        micPermission: p.micPermission ?? 'prompt',
+        isPinned: p.isPinned ?? false,
+      }));
+
+      // Respond to joiner with full authoritative state snapshot
       const successPayload = {
         success: true,
         liveClassId,
         roomName,
         status: classStatus.toUpperCase(),
         onlineCount: activeCount,
-        participants: currentRoster.map((p) => ({ userId: p.userId, name: p.name, role: p.role })),
+        participants: formattedParticipants,
         settings: classroomSettings,
+        activeSpeaker: getRoomActiveSpeaker(liveClassId),
+        screenShare: currentScreenShare,
+        pinnedUserId: getRoomPinned(liveClassId),
       };
       socket.emit('liveClass:joined', successPayload);
       if (callback) callback(successPayload);
@@ -191,12 +276,15 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
       // Broadcast presence updates to entire room
       io.to(roomName).emit('liveClass:presence', {
         onlineCount: activeCount,
-        participants: currentRoster.map((p) => ({ userId: p.userId, name: p.name, role: p.role })),
+        participants: formattedParticipants,
+        activeSpeaker: getRoomActiveSpeaker(liveClassId),
+        screenShare: currentScreenShare,
+        pinnedUserId: getRoomPinned(liveClassId),
       });
 
       io.to(roomName).emit('participants_update', {
         count: activeCount,
-        users: currentRoster.map((p) => ({ userId: p.userId, name: p.name, role: p.role })),
+        users: formattedParticipants,
       });
 
       io.to(roomName).emit('participant_count', {
@@ -526,16 +614,114 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
     io.emit('live_class_scheduled', data);
   });
 
-  // 6. Moderation: Mute Student, Mute All Students, Chat Mute & Kick Participant
+  // 6. Moderation: Mute Student, Mute All Students, Allow Mic, Ask to Unmute & Kick Participant
+  socket.on('liveClass:moderation:mute', (data: { classId: string; liveClassId?: string; userId: string; reason?: string }) => {
+    const user = socket.user;
+    if (!user || (user.role !== 'admin' && user.role !== 'instructor' && user.role !== 'mentor')) {
+      socket.emit('liveClass:error', { success: false, error: 'FORBIDDEN', message: 'Only instructors can moderate audio.' });
+      return;
+    }
+    const classId = data.liveClassId || data.classId;
+    if (!classId || !data.userId) return;
+    const roomName = `live-class:${classId}`;
+
+    if (!activeRoomModeration.has(classId)) activeRoomModeration.set(classId, new Map());
+    activeRoomModeration.get(classId)!.set(data.userId, {
+      mutedByInstructor: true,
+      micPermission: 'denied',
+      updatedAt: new Date().toISOString(),
+    });
+
+    const roomMap = activeRoomPresences.get(classId);
+    if (roomMap) {
+      for (const p of roomMap.values()) {
+        if (p.userId === data.userId) {
+          p.isMutedByInstructor = true;
+          p.isAudioOn = false;
+          p.isSpeaking = false;
+        }
+      }
+    }
+
+    logger.info(`[SOCKET] Instructor ${user.name} muted student ${data.userId} in room ${roomName}`);
+    io.to(roomName).emit('liveClass:moderation:muted', {
+      userId: data.userId,
+      mutedBy: user.name,
+      mutedByInstructor: true,
+    });
+    io.to(roomName).emit('student_muted', { userId: data.userId, isMuted: true });
+  });
+
   socket.on('mute_student', (data: { classId: string; liveClassId?: string; userId: string; isMuted: boolean }) => {
     const user = socket.user;
     if (!user || (user.role !== 'admin' && user.role !== 'instructor' && user.role !== 'mentor')) {
       return;
     }
     const classId = data.liveClassId || data.classId;
+    if (!classId || !data.userId) return;
     const roomName = `live-class:${classId}`;
-    logger.info(`[SOCKET] Instructor ${user.name} muted student ${data.userId} in room ${roomName}`);
+
+    if (!activeRoomModeration.has(classId)) activeRoomModeration.set(classId, new Map());
+    activeRoomModeration.get(classId)!.set(data.userId, {
+      mutedByInstructor: data.isMuted,
+      micPermission: data.isMuted ? 'denied' : 'granted',
+      updatedAt: new Date().toISOString(),
+    });
+
+    const roomMap = activeRoomPresences.get(classId);
+    if (roomMap) {
+      for (const p of roomMap.values()) {
+        if (p.userId === data.userId) {
+          p.isMutedByInstructor = data.isMuted;
+          if (data.isMuted) {
+            p.isAudioOn = false;
+            p.isSpeaking = false;
+          }
+        }
+      }
+    }
+
+    logger.info(`[SOCKET] Instructor ${user.name} set mute to ${data.isMuted} for student ${data.userId} in ${roomName}`);
     io.to(roomName).emit('student_muted', { userId: data.userId, isMuted: data.isMuted });
+    io.to(roomName).emit('liveClass:moderation:muted', {
+      userId: data.userId,
+      mutedBy: user.name,
+      mutedByInstructor: data.isMuted,
+    });
+  });
+
+  socket.on('liveClass:moderation:muteAll', (data: { classId: string; liveClassId?: string }) => {
+    const user = socket.user;
+    if (!user || (user.role !== 'admin' && user.role !== 'instructor' && user.role !== 'mentor')) {
+      socket.emit('liveClass:error', { success: false, error: 'FORBIDDEN', message: 'Only instructors can mute all students.' });
+      return;
+    }
+    const classId = data.liveClassId || data.classId;
+    if (!classId) return;
+    const roomName = `live-class:${classId}`;
+
+    if (!activeRoomModeration.has(classId)) activeRoomModeration.set(classId, new Map());
+    const modMap = activeRoomModeration.get(classId)!;
+    const roomMap = activeRoomPresences.get(classId);
+
+    if (roomMap) {
+      for (const p of roomMap.values()) {
+        if (p.role !== 'admin' && p.role !== 'instructor' && p.role !== 'mentor') {
+          p.isMutedByInstructor = true;
+          p.isAudioOn = false;
+          p.isSpeaking = false;
+          modMap.set(p.userId, {
+            mutedByInstructor: true,
+            micPermission: 'denied',
+            updatedAt: new Date().toISOString(),
+          });
+        }
+      }
+    }
+
+    logger.info(`[SOCKET] Instructor ${user.name} muted ALL students in ${roomName}`);
+    io.to(roomName).emit('liveClass:moderation:muteAll', { classId, mutedBy: user.name });
+    io.to(roomName).emit('mute_all_students', { classId, mutedBy: user.name });
   });
 
   socket.on('mute_all_students', (data: { classId: string; liveClassId?: string }) => {
@@ -546,8 +732,97 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
     const classId = data.liveClassId || data.classId;
     if (!classId) return;
     const roomName = `live-class:${classId}`;
+
+    if (!activeRoomModeration.has(classId)) activeRoomModeration.set(classId, new Map());
+    const modMap = activeRoomModeration.get(classId)!;
+    const roomMap = activeRoomPresences.get(classId);
+
+    if (roomMap) {
+      for (const p of roomMap.values()) {
+        if (p.role !== 'admin' && p.role !== 'instructor' && p.role !== 'mentor') {
+          p.isMutedByInstructor = true;
+          p.isAudioOn = false;
+          p.isSpeaking = false;
+          modMap.set(p.userId, {
+            mutedByInstructor: true,
+            micPermission: 'denied',
+            updatedAt: new Date().toISOString(),
+          });
+        }
+      }
+    }
+
     logger.info(`[SOCKET] Instructor ${user.name} muted ALL students in room ${roomName}`);
     io.to(roomName).emit('mute_all_students', { classId, mutedBy: user.name });
+    io.to(roomName).emit('liveClass:moderation:muteAll', { classId, mutedBy: user.name });
+  });
+
+  socket.on('liveClass:moderation:allowMic', (data: { classId: string; liveClassId?: string; userId: string }) => {
+    const user = socket.user;
+    if (!user || (user.role !== 'admin' && user.role !== 'instructor' && user.role !== 'mentor')) {
+      return;
+    }
+    const classId = data.liveClassId || data.classId;
+    if (!classId || !data.userId) return;
+    const roomName = `live-class:${classId}`;
+
+    if (!activeRoomModeration.has(classId)) activeRoomModeration.set(classId, new Map());
+    activeRoomModeration.get(classId)!.set(data.userId, {
+      mutedByInstructor: false,
+      micPermission: 'granted',
+      updatedAt: new Date().toISOString(),
+    });
+
+    const roomMap = activeRoomPresences.get(classId);
+    if (roomMap) {
+      for (const p of roomMap.values()) {
+        if (p.userId === data.userId) {
+          p.isMutedByInstructor = false;
+          p.micPermission = 'granted';
+        }
+      }
+    }
+
+    logger.info(`[SOCKET] Instructor ${user.name} allowed mic for student ${data.userId}`);
+    io.to(roomName).emit('liveClass:moderation:micAllowed', {
+      userId: data.userId,
+      allowedBy: user.name,
+    });
+  });
+
+  socket.on('liveClass:moderation:requestUnmute', (data: { classId: string; liveClassId?: string; userId: string }) => {
+    const user = socket.user;
+    if (!user || (user.role !== 'admin' && user.role !== 'instructor' && user.role !== 'mentor')) {
+      return;
+    }
+    const classId = data.liveClassId || data.classId;
+    if (!classId || !data.userId) return;
+
+    // Allow the student's mic permission first
+    if (!activeRoomModeration.has(classId)) activeRoomModeration.set(classId, new Map());
+    activeRoomModeration.get(classId)!.set(data.userId, {
+      mutedByInstructor: false,
+      micPermission: 'granted',
+      updatedAt: new Date().toISOString(),
+    });
+
+    const roomMap = activeRoomPresences.get(classId);
+    if (roomMap) {
+      for (const [sId, p] of roomMap.entries()) {
+        if (p.userId === data.userId) {
+          p.isMutedByInstructor = false;
+          p.micPermission = 'granted';
+          const targetSocket = io.sockets.sockets?.get(sId);
+          if (targetSocket) {
+            targetSocket.emit('liveClass:moderation:requestUnmute', {
+              classId,
+              instructorName: user.name || 'Instructor',
+            });
+          }
+          break;
+        }
+      }
+    }
   });
 
   socket.on('toggle_chat_mute', async (data: { classId: string; liveClassId?: string; isMuted: boolean }) => {
@@ -620,30 +895,233 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
     }
   });
 
-  // 7. WebRTC Track State Sync & Screen Share Signaling
+  // 7. Active Speaker Detection State Synchronization
+  socket.on('liveClass:speaker:started', (data: { classId: string; liveClassId?: string; audioLevel?: number }) => {
+    const user = socket.user;
+    const classId = data.liveClassId || data.classId;
+    if (!user || !classId) return;
+
+    const userId = user.uid || user.id;
+    const roomName = `live-class:${classId}`;
+
+    // Verify participant is not muted by instructor
+    const modRecord = getModerationRecord(classId, userId);
+    if (modRecord.mutedByInstructor) {
+      return;
+    }
+
+    const roomMap = activeRoomPresences.get(classId);
+    const participant = roomMap?.get(socket.id);
+    if (participant) {
+      participant.isSpeaking = true;
+      participant.audioLevel = data.audioLevel ?? 0.8;
+    }
+
+    const speakerInfo: ActiveSpeakerState = {
+      userId,
+      name: participant?.name || user.name || 'Speaker',
+      role: participant?.role || user.role || 'student',
+      startedAt: Date.now(),
+      audioLevel: data.audioLevel ?? 0.8,
+    };
+    activeRoomSpeakers.set(classId, speakerInfo);
+
+    io.to(roomName).emit('liveClass:speaker:changed', speakerInfo);
+    io.to(roomName).emit('liveClass:speaker:started', speakerInfo);
+  });
+
+  socket.on('liveClass:speaker:stopped', (data: { classId: string; liveClassId?: string }) => {
+    const user = socket.user;
+    const classId = data.liveClassId || data.classId;
+    if (!user || !classId) return;
+
+    const userId = user.uid || user.id;
+    const roomName = `live-class:${classId}`;
+
+    const roomMap = activeRoomPresences.get(classId);
+    const participant = roomMap?.get(socket.id);
+    if (participant) {
+      participant.isSpeaking = false;
+      participant.audioLevel = 0;
+    }
+
+    const currentSpeaker = activeRoomSpeakers.get(classId);
+    if (currentSpeaker && currentSpeaker.userId === userId) {
+      activeRoomSpeakers.set(classId, null);
+      io.to(roomName).emit('liveClass:speaker:changed', null);
+      io.to(roomName).emit('liveClass:speaker:stopped', { userId });
+    }
+  });
+
+  // 8. Authoritative Screen Sharing Signaling
+  socket.on('liveClass:screenShare:start', (data: { classId: string; liveClassId?: string }) => {
+    const user = socket.user;
+    const classId = data.liveClassId || data.classId;
+    if (!user || !classId) return;
+
+    const userRole = (user.role || '').toLowerCase();
+    const classroomSettings = getClassroomSettings(classId);
+
+    // Server-side permission check: Admin / Instructor / Mentor or student with permission
+    const canShare =
+      userRole === 'admin' ||
+      userRole === 'instructor' ||
+      userRole === 'mentor' ||
+      Boolean(classroomSettings?.studentScreenShare?.enabled);
+
+    if (!canShare) {
+      socket.emit('liveClass:error', {
+        success: false,
+        error: 'SCREEN_SHARE_UNAUTHORIZED',
+        message: 'Only instructors can share their screen in this classroom.',
+      });
+      return;
+    }
+
+    const roomName = `live-class:${classId}`;
+    const shareInfo: ActiveScreenShareState = {
+      userId: user.uid || user.id || 'instructor',
+      name: user.name || 'Instructor',
+      startedAt: new Date().toISOString(),
+    };
+    activeRoomScreenShares.set(classId, shareInfo);
+
+    const roomMap = activeRoomPresences.get(classId);
+    const p = roomMap?.get(socket.id);
+    if (p) p.isScreenSharing = true;
+
+    logger.info(`[SOCKET] Screen share started by ${shareInfo.name} in ${roomName}`);
+    io.to(roomName).emit('liveClass:screenShare:started', shareInfo);
+    socket.to(roomName).emit('screen_share_started', {
+      userId: shareInfo.userId,
+      name: shareInfo.name,
+    });
+  });
+
+  socket.on('liveClass:screenShare:stop', (data: { classId: string; liveClassId?: string }) => {
+    const user = socket.user;
+    const classId = data.liveClassId || data.classId;
+    if (!user || !classId) return;
+
+    const roomName = `live-class:${classId}`;
+    const current = activeRoomScreenShares.get(classId);
+    const isAuthorized =
+      user.role === 'admin' ||
+      user.role === 'instructor' ||
+      current?.userId === (user.uid || user.id);
+
+    if (!isAuthorized) return;
+
+    activeRoomScreenShares.set(classId, null);
+    const roomMap = activeRoomPresences.get(classId);
+    if (roomMap) {
+      for (const p of roomMap.values()) {
+        if (p.userId === (user.uid || user.id)) p.isScreenSharing = false;
+      }
+    }
+
+    logger.info(`[SOCKET] Screen share stopped in ${roomName}`);
+    io.to(roomName).emit('liveClass:screenShare:stopped', { userId: user.uid || user.id });
+    socket.to(roomName).emit('screen_share_stopped', { userId: user.uid || user.id });
+  });
+
   socket.on('screen_share_started', (data: { classId: string; liveClassId?: string; userId?: string; name?: string }) => {
     const user = socket.user;
     const classId = data.liveClassId || data.classId;
+    if (!user || !classId) return;
+
     const roomName = `live-class:${classId}`;
-    socket.to(roomName).emit('screen_share_started', {
-      userId: user?.uid || user?.id || data.userId,
-      name: user?.name || data.name || 'Instructor',
-    });
+    const shareInfo: ActiveScreenShareState = {
+      userId: user.uid || user.id || data.userId || 'instructor',
+      name: user.name || data.name || 'Instructor',
+      startedAt: new Date().toISOString(),
+    };
+    activeRoomScreenShares.set(classId, shareInfo);
+    io.to(roomName).emit('liveClass:screenShare:started', shareInfo);
+    socket.to(roomName).emit('screen_share_started', shareInfo);
   });
 
   socket.on('screen_share_stopped', (data: { classId: string; liveClassId?: string; userId?: string }) => {
     const user = socket.user;
     const classId = data.liveClassId || data.classId;
+    if (!user || !classId) return;
+
     const roomName = `live-class:${classId}`;
-    socket.to(roomName).emit('screen_share_stopped', {
-      userId: user?.uid || user?.id || data.userId,
-    });
+    activeRoomScreenShares.set(classId, null);
+    io.to(roomName).emit('liveClass:screenShare:stopped', { userId: user.uid || user.id });
+    socket.to(roomName).emit('screen_share_stopped', { userId: user.uid || user.id });
+  });
+
+  // 9. Participant Pinning
+  socket.on('liveClass:pin:set', (data: { classId: string; liveClassId?: string; userId: string }) => {
+    const user = socket.user;
+    if (!user || (user.role !== 'admin' && user.role !== 'instructor' && user.role !== 'mentor')) return;
+    const classId = data.liveClassId || data.classId;
+    if (!classId || !data.userId) return;
+
+    activeRoomPinned.set(classId, data.userId);
+    io.to(`live-class:${classId}`).emit('liveClass:pin:updated', { pinnedUserId: data.userId });
+  });
+
+  socket.on('liveClass:pin:clear', (data: { classId: string; liveClassId?: string }) => {
+    const user = socket.user;
+    if (!user || (user.role !== 'admin' && user.role !== 'instructor' && user.role !== 'mentor')) return;
+    const classId = data.liveClassId || data.classId;
+    if (!classId) return;
+
+    activeRoomPinned.set(classId, null);
+    io.to(`live-class:${classId}`).emit('liveClass:pin:updated', { pinnedUserId: null });
+  });
+
+  // 10. Reconnect State Reconciliation
+  socket.on('liveClass:reconnect:sync', (data: { classId: string; liveClassId?: string }, callback?: (res: any) => void) => {
+    const user = socket.user;
+    const classId = data.liveClassId || data.classId;
+    if (!user || !classId) return;
+
+    const currentRoster = getRoomParticipants(classId);
+    const userId = user.uid || user.id;
+
+    const snapshot = {
+      success: true,
+      classId,
+      participants: currentRoster.map((p) => ({
+        userId: p.userId,
+        name: p.name,
+        role: p.role,
+        isAudioOn: p.isAudioOn ?? false,
+        isVideoOn: p.isVideoOn ?? false,
+        isScreenSharing: p.isScreenSharing ?? false,
+        isSpeaking: p.isSpeaking ?? false,
+        audioLevel: p.audioLevel ?? 0,
+        isMutedByInstructor: p.isMutedByInstructor ?? false,
+        micPermission: p.micPermission ?? 'prompt',
+        isPinned: p.isPinned ?? false,
+      })),
+      activeSpeaker: getRoomActiveSpeaker(classId),
+      screenShare: getRoomScreenShare(classId),
+      pinnedUserId: getRoomPinned(classId),
+      settings: getClassroomSettings(classId),
+      moderationState: getModerationRecord(classId, userId),
+    };
+
+    socket.emit('liveClass:reconnect:synced', snapshot);
+    if (callback) callback(snapshot);
   });
 
   socket.on('webrtc_track_change', (data: { classId: string; liveClassId?: string; userId?: string; isAudioOn: boolean; isVideoOn: boolean; isScreenSharing: boolean }) => {
     const user = socket.user;
     const classId = data.liveClassId || data.classId;
     const roomName = `live-class:${classId}`;
+
+    const roomMap = activeRoomPresences.get(classId);
+    const participant = roomMap?.get(socket.id);
+    if (participant) {
+      participant.isAudioOn = data.isAudioOn;
+      participant.isVideoOn = data.isVideoOn;
+      participant.isScreenSharing = data.isScreenSharing;
+    }
+
     socket.to(roomName).emit('webrtc_track_change', {
       userId: user?.uid || user?.id || data.userId,
       isAudioOn: data.isAudioOn,
@@ -744,14 +1222,54 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
         const roomName = `live-class:${classId}`;
         const currentRoster = getRoomParticipants(classId);
 
+        // If disconnected participant was speaking, clear active speaker
+        const currentSpeaker = activeRoomSpeakers.get(classId);
+        if (leftParticipant && currentSpeaker && currentSpeaker.userId === leftParticipant.userId) {
+          activeRoomSpeakers.set(classId, null);
+          io.to(roomName).emit('liveClass:speaker:changed', null);
+          io.to(roomName).emit('liveClass:speaker:stopped', { userId: leftParticipant.userId });
+        }
+
+        // If disconnected participant was sharing screen, clear screen share
+        const currentScreen = activeRoomScreenShares.get(classId);
+        if (leftParticipant && currentScreen && currentScreen.userId === leftParticipant.userId) {
+          activeRoomScreenShares.set(classId, null);
+          io.to(roomName).emit('liveClass:screenShare:stopped', { userId: leftParticipant.userId });
+          io.to(roomName).emit('screen_share_stopped', { userId: leftParticipant.userId });
+        }
+
+        // If disconnected participant was pinned, clear pin
+        const currentPinned = activeRoomPinned.get(classId);
+        if (leftParticipant && currentPinned === leftParticipant.userId) {
+          activeRoomPinned.set(classId, null);
+          io.to(roomName).emit('liveClass:pin:updated', { pinnedUserId: null });
+        }
+
+        const formattedParticipants = currentRoster.map((p) => ({
+          userId: p.userId,
+          name: p.name,
+          role: p.role,
+          isAudioOn: p.isAudioOn ?? false,
+          isVideoOn: p.isVideoOn ?? false,
+          isScreenSharing: p.isScreenSharing ?? false,
+          isSpeaking: p.isSpeaking ?? false,
+          audioLevel: p.audioLevel ?? 0,
+          isMutedByInstructor: p.isMutedByInstructor ?? false,
+          micPermission: p.micPermission ?? 'prompt',
+          isPinned: p.isPinned ?? false,
+        }));
+
         io.to(roomName).emit('liveClass:presence', {
           onlineCount: currentRoster.length,
-          participants: currentRoster.map((p) => ({ userId: p.userId, name: p.name, role: p.role })),
+          participants: formattedParticipants,
+          activeSpeaker: getRoomActiveSpeaker(classId),
+          screenShare: getRoomScreenShare(classId),
+          pinnedUserId: getRoomPinned(classId),
         });
 
         io.to(roomName).emit('participants_update', {
           count: currentRoster.length,
-          users: currentRoster.map((p) => ({ userId: p.userId, name: p.name, role: p.role })),
+          users: formattedParticipants,
         });
 
         if (leftParticipant) {

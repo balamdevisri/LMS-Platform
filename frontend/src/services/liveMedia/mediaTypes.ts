@@ -18,7 +18,12 @@ export interface MediaParticipant {
   isVideoOn: boolean;
   isScreenSharing: boolean;
   isHandRaised: boolean;
+  isSpeaking?: boolean;
+  audioLevel?: number;
+  isPinned?: boolean;
   isMutedByInstructor?: boolean;
+  micPermission?: 'prompt' | 'granted' | 'denied';
+  requestedToUnmute?: boolean;
   connectionState: 'connected' | 'reconnecting' | 'disconnected';
   audioTrack?: MediaStreamTrack;
   videoTrack?: MediaStreamTrack;

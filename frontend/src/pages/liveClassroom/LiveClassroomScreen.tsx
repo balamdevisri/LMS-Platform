@@ -99,6 +99,10 @@ export const LiveClassroomScreen: React.FC = () => {
   // Announcements State
   const [announcements, setAnnouncements] = useState<AnnouncementItem[]>([]);
 
+  // Active Speaker & Moderation State
+  const [activeSpeakerInfo, setActiveSpeakerInfo] = useState<{ userId: string; name?: string; role?: string } | null>(null);
+  const [unmuteRequest, setUnmuteRequest] = useState<{ instructorName: string } | null>(null);
+
   // Sidebar Tabs (Strict KaizenQ design: Participants, Chat, Q&A)
   const [activeTab, setActiveTab] = useState<'participants' | 'chat' | 'questions'>('chat');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -398,6 +402,38 @@ export const LiveClassroomScreen: React.FC = () => {
         socketInstance.on('lock_toggled', (data: { locked: boolean }) => {
           setIsLocked(data.locked);
           toast.info(data.locked ? '🔒 Classroom is now locked (Private).' : '🔓 Classroom is now unlocked.');
+        });
+
+        // Active Speaker & Moderation Listeners
+        socketInstance.on('liveClass:speaker:changed', (data: { userId: string; name?: string; role?: string } | null) => {
+          setActiveSpeakerInfo(data);
+        });
+
+        socketInstance.on('liveClass:moderation:requestUnmute', (data: { instructorName?: string }) => {
+          setUnmuteRequest({ instructorName: data.instructorName || 'Instructor' });
+        });
+
+        socketInstance.on('liveClass:moderation:muteAll', () => {
+          if (!isInstructor) {
+            toast.warning('🔇 All student microphones have been muted by the instructor.');
+            setMicOn(false);
+          }
+        });
+
+        socketInstance.on('liveClass:moderation:muted', (data: { userId: string }) => {
+          const myId = user?.uid || userProfile?.uid;
+          if (data.userId === myId) {
+            toast.warning('🔇 Your microphone was muted by the instructor.');
+            setMicOn(false);
+          }
+        });
+
+        socketInstance.on('liveClass:screenShare:started', (data: { name?: string }) => {
+          toast.info(`🖥️ ${data.name || 'Presenter'} started sharing their screen`);
+        });
+
+        socketInstance.on('liveClass:screenShare:stopped', () => {
+          toast.info('⏹️ Screen sharing ended');
         });
 
         socketInstance.on('mute_all_students', () => {
@@ -1231,6 +1267,17 @@ export const LiveClassroomScreen: React.FC = () => {
                 </a>
               )}
             </div>
+
+            {/* Active Speaker Floating Badge */}
+            {activeSpeakerInfo && (
+              <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-slate-950/85 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-emerald-500/40 text-xs font-bold text-emerald-300 shadow-xl pointer-events-none">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
+                <span className="truncate">Active Speaker: {activeSpeakerInfo.name}</span>
+                <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-500/30 font-mono">
+                  {activeSpeakerInfo.role}
+                </span>
+              </div>
+            )}
 
             {/* Core WebRTC Video Grid Container */}
             <KaizenQClassroom
@@ -2077,6 +2124,40 @@ export const LiveClassroomScreen: React.FC = () => {
         onSwitchCamera={(deviceId) => mediaClientRef.current?.switchCamera(deviceId) ?? Promise.resolve(false)}
         onSwitchMicrophone={(deviceId) => mediaClientRef.current?.switchMicrophone(deviceId) ?? Promise.resolve(false)}
       />
+
+      {/* Ask to Unmute Interactive Modal */}
+      {unmuteRequest && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-sm rounded-3xl bg-slate-900 border border-emerald-500/40 p-6 shadow-2xl text-center space-y-4 animate-in zoom-in-95 duration-200">
+            <div className="w-14 h-14 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center mx-auto text-emerald-400">
+              <Mic className="w-7 h-7 animate-bounce" />
+            </div>
+            <div>
+              <h4 className="text-base font-black text-white">Microphone Request</h4>
+              <p className="text-xs text-slate-300 mt-1">
+                <strong>{unmuteRequest.instructorName}</strong> has requested you to unmute your microphone.
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                onClick={() => {
+                  setUnmuteRequest(null);
+                  if (!micOn) handleToggleMic();
+                }}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 cursor-pointer transition-all"
+              >
+                Unmute Mic
+              </button>
+              <button
+                onClick={() => setUnmuteRequest(null)}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs cursor-pointer transition-all"
+              >
+                Keep Muted
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

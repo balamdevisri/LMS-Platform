@@ -7,6 +7,7 @@ import type {
   MediaRole,
   AvailableMediaDevices
 } from './mediaTypes';
+import { AudioActivityDetector, getOptimizedAudioConstraints } from './audioActivityDetector';
 
 type EventListener<T = any> = (data: T) => void;
 
@@ -35,6 +36,11 @@ export class MediaClient {
 
   private selectedCameraId: string | null = null;
   private selectedMicrophoneId: string | null = null;
+
+  // Active speaker & moderation state
+  private audioDetector: AudioActivityDetector | null = null;
+  private isMutedByInstructor = false;
+  private pinnedUserId: string | null = null;
 
   constructor(config: MediaClientConfig) {
     this.config = {
@@ -83,6 +89,17 @@ export class MediaClient {
   }
 
   public disconnect(): void {
+    if (this.audioDetector) {
+      this.audioDetector.destroy();
+      this.audioDetector = null;
+    }
+
+    if (this.socket && this.isAudioEnabled) {
+      this.socket.emit('liveClass:speaker:stopped', {
+        classId: this.config.classId,
+      });
+    }
+
     // Stop local camera and microphone tracks
     this.localStream.getTracks().forEach((t) => {
       try {
@@ -128,7 +145,26 @@ export class MediaClient {
   // --- AUDIO CONTROLS ---
 
   public async toggleMicrophone(): Promise<boolean> {
+    if (this.isMutedByInstructor && !this.isAudioEnabled) {
+      this.emit('mediaError', {
+        type: 'microphone',
+        message: 'Your microphone is currently disabled by the instructor.',
+      });
+      return false;
+    }
+
     if (this.isAudioEnabled) {
+      // Clean up detector
+      if (this.audioDetector) {
+        this.audioDetector.destroy();
+        this.audioDetector = null;
+      }
+      if (this.socket) {
+        this.socket.emit('liveClass:speaker:stopped', {
+          classId: this.config.classId,
+        });
+      }
+
       // Disable local audio tracks
       this.localStream.getAudioTracks().forEach((track) => {
         track.enabled = false;
@@ -136,6 +172,12 @@ export class MediaClient {
         this.localStream.removeTrack(track);
       });
       this.isAudioEnabled = false;
+
+      const self = this.participants.get(this.config.userId);
+      if (self) {
+        self.isSpeaking = false;
+        self.audioLevel = 0;
+      }
 
       // Update active peer senders
       this.peerConnections.forEach((pc) => {
@@ -145,12 +187,10 @@ export class MediaClient {
         }
       });
     } else {
-      // Enable microphone
+      // Enable microphone with high-quality echo cancellation & noise suppression
       try {
         const constraints: MediaStreamConstraints = {
-          audio: this.selectedMicrophoneId
-            ? { deviceId: { exact: this.selectedMicrophoneId } }
-            : true,
+          audio: getOptimizedAudioConstraints(this.selectedMicrophoneId),
         };
         const audioStream = await navigator.mediaDevices.getUserMedia(constraints);
         const newTrack = audioStream.getAudioTracks()[0];
@@ -158,6 +198,37 @@ export class MediaClient {
         if (newTrack) {
           this.localStream.addTrack(newTrack);
           this.isAudioEnabled = true;
+
+          // Attach active speaker detector with RMS energy calculation
+          this.audioDetector = new AudioActivityDetector({
+            threshold: 0.02,
+            attackMs: 200,
+            releaseMs: 900,
+            onSpeakingChange: (isSpeaking, level) => {
+              const self = this.participants.get(this.config.userId);
+              if (self) {
+                const changed = self.isSpeaking !== isSpeaking;
+                self.isSpeaking = isSpeaking;
+                self.audioLevel = level;
+                if (changed) {
+                  this.emit('participantsUpdate', this.getParticipants());
+                  if (this.socket) {
+                    if (isSpeaking) {
+                      this.socket.emit('liveClass:speaker:started', {
+                        classId: this.config.classId,
+                        audioLevel: level,
+                      });
+                    } else {
+                      this.socket.emit('liveClass:speaker:stopped', {
+                        classId: this.config.classId,
+                      });
+                    }
+                  }
+                }
+              }
+            },
+          });
+          this.audioDetector.attachTrack(newTrack);
 
           // Replace track on all active peer senders
           this.peerConnections.forEach((pc) => {
@@ -252,14 +323,17 @@ export class MediaClient {
   public async startScreenShare(): Promise<MediaStream | null> {
     try {
       this.localScreenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
+        video: {
+          cursor: 'always' as any,
+          frameRate: { max: 30 },
+        },
         audio: true,
       });
 
       this.isScreenSharing = true;
       const screenTrack = this.localScreenStream.getVideoTracks()[0];
 
-      // Handle user stopping screen share via browser floating bar
+      // Handle user stopping screen share via browser native control bar
       screenTrack.onended = () => {
         this.stopScreenShare();
       };
@@ -275,7 +349,7 @@ export class MediaClient {
           } catch {}
         }
 
-        // Trigger WebRTC renegotiation offer so remote peer (student) updates its video track
+        // Trigger WebRTC renegotiation offer so remote peer updates its video track
         try {
           const offer = await pc.createOffer({
             offerToReceiveAudio: true,
@@ -296,6 +370,9 @@ export class MediaClient {
       this.broadcastMediaState();
 
       if (this.socket) {
+        this.socket.emit('liveClass:screenShare:start', {
+          classId: this.config.classId,
+        });
         this.socket.emit('screen_share_started', {
           classId: this.config.classId,
           userId: this.config.userId,
@@ -347,6 +424,9 @@ export class MediaClient {
     this.broadcastMediaState();
 
     if (this.socket) {
+      this.socket.emit('liveClass:screenShare:stop', {
+        classId: this.config.classId,
+      });
       this.socket.emit('screen_share_stopped', {
         classId: this.config.classId,
         userId: this.config.userId,
@@ -396,12 +476,68 @@ export class MediaClient {
 
   public muteParticipant(userId: string): void {
     if (this.socket && (this.config.role === 'instructor' || this.config.role === 'mentor')) {
+      this.socket.emit('liveClass:moderation:mute', {
+        classId: this.config.classId,
+        userId,
+      });
       this.socket.emit('mute_student', {
         classId: this.config.classId,
         userId,
         isMuted: true,
       });
     }
+  }
+
+  public askToUnmuteParticipant(userId: string): void {
+    if (this.socket && (this.config.role === 'instructor' || this.config.role === 'mentor')) {
+      this.socket.emit('liveClass:moderation:requestUnmute', {
+        classId: this.config.classId,
+        userId,
+      });
+    }
+  }
+
+  public allowParticipantMic(userId: string): void {
+    if (this.socket && (this.config.role === 'instructor' || this.config.role === 'mentor')) {
+      this.socket.emit('liveClass:moderation:allowMic', {
+        classId: this.config.classId,
+        userId,
+      });
+    }
+  }
+
+  public muteAllStudents(): void {
+    if (this.socket && (this.config.role === 'instructor' || this.config.role === 'mentor')) {
+      this.socket.emit('liveClass:moderation:muteAll', {
+        classId: this.config.classId,
+      });
+      this.socket.emit('mute_all_students', {
+        classId: this.config.classId,
+      });
+    }
+  }
+
+  public pinParticipant(userId: string | null): void {
+    if (this.socket && (this.config.role === 'instructor' || this.config.role === 'mentor')) {
+      if (userId) {
+        this.socket.emit('liveClass:pin:set', {
+          classId: this.config.classId,
+          userId,
+        });
+      } else {
+        this.socket.emit('liveClass:pin:clear', {
+          classId: this.config.classId,
+        });
+      }
+    }
+  }
+
+  public getPinnedUserId(): string | null {
+    return this.pinnedUserId;
+  }
+
+  public getIsMutedByInstructor(): boolean {
+    return this.isMutedByInstructor;
   }
 
   public kickParticipant(userId: string): void {
@@ -803,12 +939,63 @@ export class MediaClient {
       }
     });
 
+    // Active Speaker Events
+    this.socket.on('liveClass:speaker:changed', (data: { userId: string; name?: string; role?: string; audioLevel?: number } | null) => {
+      this.participants.forEach((p, uid) => {
+        const isThisSpeaker = Boolean(data && uid === data.userId);
+        p.isSpeaking = isThisSpeaker;
+        if (isThisSpeaker && typeof data?.audioLevel === 'number') {
+          p.audioLevel = data.audioLevel;
+        } else if (!isThisSpeaker) {
+          p.audioLevel = 0;
+        }
+      });
+      this.emit('participantsUpdate', this.getParticipants());
+      this.emit('activeSpeakerChange', data);
+    });
+
+    this.socket.on('liveClass:speaker:started', (data: { userId: string; audioLevel?: number }) => {
+      const p = this.participants.get(data.userId);
+      if (p) {
+        p.isSpeaking = true;
+        p.audioLevel = data.audioLevel ?? 0.8;
+        this.emit('participantsUpdate', this.getParticipants());
+      }
+    });
+
+    this.socket.on('liveClass:speaker:stopped', (data: { userId: string }) => {
+      const p = this.participants.get(data.userId);
+      if (p) {
+        p.isSpeaking = false;
+        p.audioLevel = 0;
+        this.emit('participantsUpdate', this.getParticipants());
+      }
+    });
+
+    // Screen Share Events
+    this.socket.on('liveClass:screenShare:started', (data: { userId: string; name: string }) => {
+      this.participants.forEach((p, uid) => {
+        p.isScreenSharing = uid === data.userId;
+      });
+      this.emit('participantsUpdate', this.getParticipants());
+      this.emit('screenShareStateChange', { isSharing: true, sharerUserId: data.userId, sharerName: data.name });
+    });
+
     this.socket.on('screen_share_started', (data: { userId: string; name: string }) => {
       const p = this.participants.get(data.userId);
       if (p) {
         p.isScreenSharing = true;
         this.emit('participantsUpdate', this.getParticipants());
+        this.emit('screenShareStateChange', { isSharing: true, sharerUserId: data.userId, sharerName: data.name });
       }
+    });
+
+    this.socket.on('liveClass:screenShare:stopped', () => {
+      this.participants.forEach((p) => {
+        p.isScreenSharing = false;
+      });
+      this.emit('participantsUpdate', this.getParticipants());
+      this.emit('screenShareStateChange', { isSharing: false });
     });
 
     this.socket.on('screen_share_stopped', (data: { userId: string }) => {
@@ -816,20 +1003,139 @@ export class MediaClient {
       if (p) {
         p.isScreenSharing = false;
         this.emit('participantsUpdate', this.getParticipants());
+        this.emit('screenShareStateChange', { isSharing: false });
       }
     });
 
-    // Global Mute All Students
+    // Pinning Events
+    this.socket.on('liveClass:pin:updated', (data: { pinnedUserId: string | null }) => {
+      this.pinnedUserId = data.pinnedUserId;
+      this.participants.forEach((p, uid) => {
+        p.isPinned = Boolean(data.pinnedUserId && uid === data.pinnedUserId);
+      });
+      this.emit('participantsUpdate', this.getParticipants());
+      this.emit('pinChange', data.pinnedUserId);
+    });
+
+    // Moderation: Mute All Students
+    this.socket.on('liveClass:moderation:muteAll', () => {
+      if (this.config.role === 'student') {
+        this.isMutedByInstructor = true;
+        if (this.isAudioEnabled) {
+          this.toggleMicrophone().catch(() => {});
+        }
+        this.emit('instructorMuteStateChange', true);
+      }
+      this.participants.forEach((p) => {
+        if (p.role === 'student') {
+          p.isMutedByInstructor = true;
+          p.isAudioOn = false;
+          p.isSpeaking = false;
+          p.audioLevel = 0;
+        }
+      });
+      this.emit('participantsUpdate', this.getParticipants());
+    });
+
     this.socket.on('mute_all_students', () => {
-      if (this.config.role === 'student' && this.isAudioEnabled) {
-        this.toggleMicrophone().catch(() => {});
+      if (this.config.role === 'student') {
+        this.isMutedByInstructor = true;
+        if (this.isAudioEnabled) {
+          this.toggleMicrophone().catch(() => {});
+        }
+        this.emit('instructorMuteStateChange', true);
       }
     });
 
-    // Instructor muted local microphone
+    // Moderation: Individual Mute
+    this.socket.on('liveClass:moderation:muted', (data: { userId: string; mutedBy?: string }) => {
+      const p = this.participants.get(data.userId);
+      if (p) {
+        p.isMutedByInstructor = true;
+        p.isAudioOn = false;
+        p.isSpeaking = false;
+        p.audioLevel = 0;
+      }
+      if (data.userId === this.config.userId) {
+        this.isMutedByInstructor = true;
+        if (this.isAudioEnabled) {
+          this.toggleMicrophone().catch(() => {});
+        }
+        this.emit('instructorMuteStateChange', true);
+      }
+      this.emit('participantsUpdate', this.getParticipants());
+    });
+
     this.socket.on('student_muted', (data: { userId: string; isMuted: boolean }) => {
-      if (data.userId === this.config.userId && data.isMuted && this.isAudioEnabled) {
-        this.toggleMicrophone();
+      if (data.userId === this.config.userId) {
+        this.isMutedByInstructor = data.isMuted;
+        if (data.isMuted && this.isAudioEnabled) {
+          this.toggleMicrophone().catch(() => {});
+        }
+        this.emit('instructorMuteStateChange', data.isMuted);
+      }
+    });
+
+    // Moderation: Allow Mic
+    this.socket.on('liveClass:moderation:micAllowed', (data: { userId: string }) => {
+      const p = this.participants.get(data.userId);
+      if (p) {
+        p.isMutedByInstructor = false;
+        p.micPermission = 'granted';
+      }
+      if (data.userId === this.config.userId) {
+        this.isMutedByInstructor = false;
+        this.emit('instructorMuteStateChange', false);
+      }
+      this.emit('participantsUpdate', this.getParticipants());
+    });
+
+    // Moderation: Ask to Unmute
+    this.socket.on('liveClass:moderation:requestUnmute', (data: { classId: string; instructorName?: string }) => {
+      this.isMutedByInstructor = false;
+      this.emit('moderationRequestUnmute', data);
+    });
+
+    // Presence & Reconnect State Synchronization
+    this.socket.on('liveClass:presence', (data: any) => {
+      if (data?.pinnedUserId !== undefined) {
+        this.pinnedUserId = data.pinnedUserId;
+      }
+      if (data?.participants && Array.isArray(data.participants)) {
+        data.participants.forEach((remote: any) => {
+          const localP = this.participants.get(remote.userId);
+          if (localP) {
+            localP.isSpeaking = Boolean(remote.isSpeaking);
+            localP.audioLevel = remote.audioLevel ?? 0;
+            localP.isPinned = Boolean(remote.isPinned || (data.pinnedUserId && remote.userId === data.pinnedUserId));
+            localP.isMutedByInstructor = Boolean(remote.isMutedByInstructor);
+            localP.isScreenSharing = Boolean(remote.isScreenSharing);
+          }
+        });
+        this.emit('participantsUpdate', this.getParticipants());
+      }
+    });
+
+    this.socket.on('liveClass:reconnect:synced', (data: any) => {
+      if (data?.pinnedUserId !== undefined) {
+        this.pinnedUserId = data.pinnedUserId;
+      }
+      if (data?.moderationState) {
+        this.isMutedByInstructor = Boolean(data.moderationState.mutedByInstructor);
+        this.emit('instructorMuteStateChange', this.isMutedByInstructor);
+      }
+      if (data?.participants && Array.isArray(data.participants)) {
+        data.participants.forEach((remote: any) => {
+          const localP = this.participants.get(remote.userId);
+          if (localP) {
+            localP.isSpeaking = Boolean(remote.isSpeaking);
+            localP.audioLevel = remote.audioLevel ?? 0;
+            localP.isPinned = Boolean(remote.isPinned);
+            localP.isMutedByInstructor = Boolean(remote.isMutedByInstructor);
+            localP.isScreenSharing = Boolean(remote.isScreenSharing);
+          }
+        });
+        this.emit('participantsUpdate', this.getParticipants());
       }
     });
 
