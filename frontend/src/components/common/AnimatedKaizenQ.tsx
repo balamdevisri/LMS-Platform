@@ -376,18 +376,7 @@ export const AnimatedKaizenQ: React.FC<AnimatedKaizenQProps> = ({
 
       const isDark = theme === 'dark';
       ctx.clearRect(0, 0, width, height);
-
-      // Transparent background rendering when theme is transparent or on light/dark canvas
-      ctx.fillStyle = isDark ? '#0B1220' : '#FFFFFF';
-      ctx.fillRect(0, 0, width, height);
-
-      if (elapsed > 1200) {
-        const glowRad = ctx.createRadialGradient(symCx, symCy, 10, symCx, symCy, 180);
-        glowRad.addColorStop(0, isDark ? 'rgba(34, 211, 238, 0.12)' : 'rgba(37, 99, 235, 0.06)');
-        glowRad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        ctx.fillStyle = glowRad;
-        ctx.fillRect(0, 0, width, height);
-      }
+      // Canvas background is kept transparent
 
       let stepIndex = 0;
 

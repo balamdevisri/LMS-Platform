@@ -24,17 +24,18 @@ export const LottieLoader: React.FC<LottieLoaderProps> = ({
     fullscreen: 'w-56 h-56 sm:w-72 sm:h-72',
   };
 
-  const selectedSizeClass = sizeClasses[fullScreen ? 'fullscreen' : size] || sizeClasses.md;
+  const isFullScreen = fullScreen || size === 'fullscreen';
+  const selectedSizeClass = sizeClasses[isFullScreen ? 'fullscreen' : size] || sizeClasses.md;
 
   const content = (
-    <div className={`flex flex-col items-center justify-center select-none ${className}`}>
-      <div className={`relative ${selectedSizeClass} flex items-center justify-center overflow-hidden pointer-events-none`}>
+    <div className={`flex flex-col items-center justify-center select-none bg-transparent ${className}`}>
+      <div className={`relative ${selectedSizeClass} flex items-center justify-center overflow-hidden pointer-events-none bg-transparent`}>
         <iframe
           src={LOTTIE_EMBED_URL}
           title="Loading..."
           className="w-full h-full border-0 pointer-events-none bg-transparent"
           loading="eager"
-          style={{ overflow: 'hidden' }}
+          style={{ overflow: 'hidden', background: 'transparent', backgroundColor: 'transparent' }}
         />
       </div>
       {message && (
@@ -45,10 +46,12 @@ export const LottieLoader: React.FC<LottieLoaderProps> = ({
     </div>
   );
 
-  if (fullScreen) {
+  if (isFullScreen) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-50/90 dark:bg-slate-950/90 backdrop-blur-md transition-colors duration-500 p-4">
-        {content}
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent pointer-events-none p-4">
+        <div className="pointer-events-auto">
+          {content}
+        </div>
       </div>
     );
   }
