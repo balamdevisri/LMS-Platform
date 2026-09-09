@@ -67,6 +67,8 @@ export const LiveClassroomScreen: React.FC = () => {
   const [liveClassData, setLiveClassData] = useState<LiveClass | null>(null);
   const [loading, setLoading] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'reconnecting' | 'disconnected' | 'idle'>('idle');
+  const [classEnded, setClassEnded] = useState(false);
+  const [classEndedReason, setClassEndedReason] = useState<'ENDED' | 'CANCELLED'>('ENDED');
 
   // Pre-flight Start Class Action State
   const [isStartingClass, setIsStartingClass] = useState(false);
@@ -843,6 +845,9 @@ export const LiveClassroomScreen: React.FC = () => {
 
   // 3. Post-Class / Ended Screen
   if (classEnded || normStatus === 'ENDED' || normStatus === 'COMPLETED' || normStatus === 'CANCELLED') {
+    if (classEndedReason === 'CANCELLED' && liveClassData && liveClassData.status !== 'CANCELLED') {
+      liveClassData.status = 'CANCELLED' as any;
+    }
     return (
       <PostClassView
         classId={classId || ''}
