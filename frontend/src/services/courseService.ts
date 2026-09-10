@@ -1012,31 +1012,9 @@ class CourseService {
   }
 
   private getStoredCourses(): ICourse[] {
-    // Purge old mock courses from localStorage cache
-    ['shaivika_courses_data', 'shaivika_enterprise_courses'].forEach((key) => {
-      const stored = localStorage.getItem(key);
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed)) {
-            const cleaned = parsed.filter((item: any) => !isRemovedMockCourse(item));
-            localStorage.setItem(key, JSON.stringify(cleaned));
-          }
-        } catch (e) {}
-      }
-    });
     const mergedList: ICourse[] = [];
     const idSet = new Set<string>();
 
-    // 1. Add Default Mock Courses
-    for (const c of DEFAULT_COURSES) {
-      if (isRemovedMockCourse(c)) continue;
-      const normalized = this.normalizeCourseToICourse(c);
-      mergedList.push(normalized);
-      idSet.add(normalized.id);
-    }
-
-    // 2. Read from 'shaivika_courses_data' (Admin Portal local storage key)
     const adminData = localStorage.getItem('shaivika_courses_data');
     if (adminData) {
       try {
@@ -1045,15 +1023,10 @@ class CourseService {
           for (const c of parsed) {
             if (isRemovedMockCourse(c)) continue;
             const normalized = this.normalizeCourseToICourse(c);
-            const existingIdx = mergedList.findIndex(
-              (item) => String(item.id) === String(normalized.id) || item.slug === normalized.slug
-            );
-            if (existingIdx !== -1) {
-              mergedList[existingIdx] = normalized;
-            } else {
+            if (!idSet.has(normalized.id)) {
               mergedList.push(normalized);
+              idSet.add(normalized.id);
             }
-            idSet.add(normalized.id);
           }
         }
       } catch (e) {
@@ -1061,78 +1034,7 @@ class CourseService {
       }
     }
 
-    // 3. Read from 'shaivika_enterprise_courses' (Student Portal legacy cache key)
-    const studentData = localStorage.getItem('shaivika_enterprise_courses');
-    if (studentData) {
-      try {
-        const parsed = JSON.parse(studentData);
-        if (Array.isArray(parsed)) {
-          for (const c of parsed) {
-            if (isRemovedMockCourse(c)) continue;
-            const normalized = this.normalizeCourseToICourse(c);
-            const existingIdx = mergedList.findIndex(
-              (item) => String(item.id) === String(normalized.id) || item.slug === normalized.slug
-            );
-            if (existingIdx !== -1) {
-              mergedList[existingIdx] = {
-                ...normalized,
-                ...mergedList[existingIdx],
-                progress: c.progress !== undefined ? c.progress : mergedList[existingIdx].progress,
-                isEnrolled: c.isEnrolled !== undefined ? c.isEnrolled : mergedList[existingIdx].isEnrolled,
-              };
-            } else {
-              mergedList.push(normalized);
-            }
-            idSet.add(normalized.id);
-          }
-        }
-      } catch (e) {
-        console.warn('Error parsing shaivika_enterprise_courses:', e);
-      }
-    }
-
-    const result = mergedList.filter((c) => !isRemovedMockCourse(c));
-
-    // Guarantee core courses (Linux Systems Mastery, Git Mastery, & DBMS) are ALWAYS present
-    if (!result.some((c) => String(c.id) === 'course_linux_101' || c.slug === 'linux-systems-administration-mastery' || c.title.toLowerCase().includes('linux'))) {
-      result.unshift(this.normalizeCourseToICourse(DEFAULT_COURSES[0]));
-    }
-    if (!result.some((c) => String(c.id) === 'git-github-mastery' || c.slug === 'git-github-mastery' || c.title.toLowerCase().includes('git'))) {
-      const gitCourse = DEFAULT_COURSES.find((c) => c.id === 'git-github-mastery') || DEFAULT_COURSES[1];
-      if (gitCourse) result.push(this.normalizeCourseToICourse(gitCourse));
-    }
-    if (!result.some((c) => String(c.id) === 'database-management-system' || c.slug === 'database-management-system' || c.title.toLowerCase().includes('database') || c.title.toLowerCase().includes('dbms'))) {
-      const dbmsCourse = DEFAULT_COURSES.find((c) => c.id === 'database-management-system') || DEFAULT_COURSES[2];
-      if (dbmsCourse) result.push(this.normalizeCourseToICourse(dbmsCourse));
-    }
-    if (!result.some((c) => String(c.id) === 'kubernetes-complete-course-beginner-to-advanced' || c.slug === 'kubernetes-complete-course-beginner-to-advanced' || c.title.toLowerCase().includes('kubernetes') || c.title.toLowerCase().includes('k8s'))) {
-      const k8sCourse = DEFAULT_COURSES.find((c) => c.id === 'kubernetes-complete-course-beginner-to-advanced') || DEFAULT_COURSES[3];
-      if (k8sCourse) result.push(this.normalizeCourseToICourse(k8sCourse));
-    }
-    if (!result.some((c) => String(c.id) === 'react-js-complete-course' || c.slug === 'react-js-complete-course' || c.title.toLowerCase().includes('react js complete'))) {
-      const reactCourse = DEFAULT_COURSES.find((c) => c.id === 'react-js-complete-course') || DEFAULT_COURSES[4];
-      if (reactCourse) result.push(this.normalizeCourseToICourse(reactCourse));
-    }
-
-    // Apply smart merge for default courses in result
-    DEFAULT_COURSES.forEach((defCourse) => {
-      const existingIdx = result.findIndex(
-        (item) => String(item.id) === String(defCourse.id) || (item.slug && item.slug === defCourse.slug)
-      );
-      if (existingIdx !== -1) {
-        const cached = result[existingIdx];
-        const effectiveModules = (cached.modules && cached.modules.length > 0)
-          ? cached.modules
-          : (defCourse.modules && defCourse.modules.length > 0 ? defCourse.modules : []);
-        result[existingIdx] = {
-          ...this.normalizeCourseToICourse(defCourse),
-          ...cached,
-          modules: effectiveModules,
-        };
-      }
-    });
-
-    return result;
+    return mergedList.filter((c) => !isRemovedMockCourse(c));
   }
 
   private saveStoredCourses(courses: ICourse[]): void {
@@ -1311,30 +1213,9 @@ class CourseService {
 
       let list: ICourse[] = [];
       if (firestoreLoaded.length > 0) {
-        const firestoreMap = new Map<string, ICourse>();
-        firestoreLoaded.forEach((c) => firestoreMap.set(String(c.id), c));
-
-        // Ensure default courses baseline is present only when missing, but live Firebase content is authoritative
-        DEFAULT_COURSES.forEach((defCourse) => {
-          if (isRemovedMockCourse(defCourse)) return;
-          const defId = String(defCourse.id);
-          const fromFirestore = firestoreMap.get(defId) || firestoreLoaded.find((c) => c.slug === defCourse.slug);
-          if (fromFirestore) {
-            firestoreMap.set(defId, {
-              ...this.normalizeCourseToICourse(defCourse),
-              ...fromFirestore,
-              modules:
-                fromFirestore.modules && fromFirestore.modules.length > 0
-                  ? fromFirestore.modules
-                  : this.mergeCourseModules(defCourse.modules, fromFirestore.modules),
-            });
-          } else {
-            firestoreMap.set(defId, this.normalizeCourseToICourse(defCourse));
-          }
-        });
-        list = Array.from(firestoreMap.values()).filter((c) => !isRemovedMockCourse(c) && c.isDeleted !== true);
+        list = firestoreLoaded.filter((c) => !isRemovedMockCourse(c) && c.isDeleted !== true);
       } else {
-        list = this.getStoredCourses().filter((c) => !isRemovedMockCourse(c));
+        list = this.getStoredCourses().filter((c) => !isRemovedMockCourse(c) && c.isDeleted !== true);
       }
 
       if (options.status && options.status !== 'all') {
@@ -2052,42 +1933,69 @@ class CourseService {
     return 0;
   }
 
-  async saveLessonContent(courseId: string, moduleId: string, lessonDoc: any): Promise<boolean> {
-    let saved = false;
+  async saveLessonContent(courseId: string, moduleId: string, lessonDoc: any): Promise<any> {
+    const token = localStorage.getItem('shaivika_auth_token');
 
-    // 1. Direct write to Firebase Firestore (instant write to local IndexedDB & auto-syncs)
+    // 1. Authoritative Backend Save with Optimistic Concurrency Protection
     try {
-      const { db, doc, setDoc } = await getFS();
-      if (db) {
-        const docRef = doc(db, 'courses', courseId, 'modules', moduleId, 'lessons', lessonDoc.id);
-        await setDoc(docRef, { ...lessonDoc, courseId, moduleId, updatedAt: new Date().toISOString() }, { merge: true });
-        saved = true;
-      }
-    } catch (err) {
-      console.warn('[CourseService] Direct Firestore lesson save error:', err);
-    }
-
-    this.courseDetailsCache.delete(courseId);
-    this.getCoursesCache.clear();
-
-    // 2. Background sync to Backend API (non-blocking)
-    try {
-      const token = localStorage.getItem('shaivika_auth_token');
-      fetch(`${API_BASE_URL}/lessons`, {
+      const res = await fetch(`${API_BASE_URL}/lessons`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
           courseId,
           moduleId,
           ...lessonDoc,
         }),
-      }).catch((e) => console.warn('[CourseService] Backend saveLesson background notice:', e));
-    } catch (e) {}
+      });
 
-    return saved || true;
+      if (res.status === 409) {
+        const json = await res.json().catch(() => ({}));
+        const err: any = new Error(json.message || 'Conflict: Lesson was modified by another session.');
+        err.statusCode = 409;
+        err.isConflict = true;
+        throw err;
+      }
+
+      if (res.ok) {
+        const json = await res.json();
+        this.courseDetailsCache.delete(courseId);
+        this.getCoursesCache.clear();
+        return json.data || lessonDoc;
+      }
+    } catch (err: any) {
+      if (err.isConflict || err.statusCode === 409) {
+        throw err;
+      }
+      console.warn('[CourseService] Backend saveLesson API notice, attempting direct Firestore save:', err);
+    }
+
+    // 2. Direct Firestore write (if backend unreachable in offline/local mode)
+    try {
+      const { db, doc, setDoc } = await getFS();
+      if (db) {
+        const docRef = doc(db, 'courses', courseId, 'modules', moduleId, 'lessons', lessonDoc.id);
+        const updatedPayload = {
+          ...lessonDoc,
+          courseId,
+          moduleId,
+          revision: (lessonDoc.revision || 1) + 1,
+          lastSavedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        await setDoc(docRef, updatedPayload, { merge: true });
+        this.courseDetailsCache.delete(courseId);
+        this.getCoursesCache.clear();
+        return updatedPayload;
+      }
+    } catch (err) {
+      console.error('[CourseService] Direct Firestore lesson save error:', err);
+      throw err;
+    }
+
+    throw new Error('Failed to save lesson content to database.');
   }
 
   async batchReorderLessons(courseId: string, updates: any[]): Promise<boolean> {
@@ -2097,7 +2005,7 @@ class CourseService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ courseId, updates }),
       });
@@ -2115,7 +2023,20 @@ class CourseService {
   async deleteLessonContent(lessonId: string, courseId: string, moduleId: string): Promise<boolean> {
     let deleted = false;
 
-    // 1. Direct delete from Firebase Firestore
+    try {
+      const token = localStorage.getItem('shaivika_auth_token');
+      const res = await fetch(`${API_BASE_URL}/lessons/${lessonId}?courseId=${courseId}&moduleId=${moduleId}`, {
+        method: 'DELETE',
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      });
+      if (res.ok) {
+        deleted = true;
+      }
+    } catch (e) {
+      console.warn('[CourseService] deleteLessonContent backend notice:', e);
+    }
+
+    // Direct delete from Firebase Firestore
     try {
       const { db, doc, deleteDoc } = await getFS();
       if (db) {
@@ -2129,35 +2050,36 @@ class CourseService {
 
     this.courseDetailsCache.delete(courseId);
     this.getCoursesCache.clear();
-
-    // 2. Background sync to Backend API (non-blocking)
-    try {
-      const token = localStorage.getItem('shaivika_auth_token');
-      fetch(`${API_BASE_URL}/lessons/${lessonId}?courseId=${courseId}&moduleId=${moduleId}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      }).catch((e) => console.warn('[CourseService] deleteLessonContent background notice:', e));
-    } catch (e) {}
-
-    return deleted || true;
+    return deleted;
   }
 
   async deleteModuleContent(moduleId: string, courseId: string): Promise<boolean> {
+    let deleted = false;
     try {
       const token = localStorage.getItem('shaivika_auth_token');
       const res = await fetch(`${API_BASE_URL}/lessons/modules/${moduleId}?courseId=${courseId}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       });
       if (res.ok) {
-        this.courseDetailsCache.delete(courseId);
-        this.getCoursesCache.clear();
-        return true;
+        deleted = true;
       }
     } catch (e) {
       console.warn('[CourseService] deleteModuleContent error:', e);
     }
-    return false;
+
+    try {
+      const { db, doc, deleteDoc } = await getFS();
+      if (db) {
+        const docRef = doc(db, 'courses', courseId, 'modules', moduleId);
+        await deleteDoc(docRef);
+        deleted = true;
+      }
+    } catch (e) {}
+
+    this.courseDetailsCache.delete(courseId);
+    this.getCoursesCache.clear();
+    return deleted;
   }
 }
 

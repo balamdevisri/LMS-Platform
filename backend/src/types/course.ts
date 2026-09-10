@@ -45,8 +45,9 @@ export interface ICourse {
   aiMetadata?: Record<string, any>;
   modules?: any[];
   progress?: number;
-  isEnrolled?: boolean;
   version?: number;
+  revision?: number;
+  expectedRevision?: number;
   isDeleted?: boolean;
   deletedAt?: string;
   deletedBy?: string;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useParams, useSearchParams, useNavigate, useLocation } from 'react-router-dom';
-import { useCourses, loadStaticCourseModules } from '@/contexts/CourseContext';
+import { useCourses } from '@/contexts/CourseContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { courseService } from '@/services/courseService';
 import { toast } from 'sonner';
@@ -131,30 +131,12 @@ export const CourseView: React.FC = () => {
 
     getCourseModules(courseTarget)
       .then((mods) => {
-        if (isMounted) {
-          if (mods && mods.length > 0) {
-            setCourseModules(mods);
-          } else {
-            loadStaticCourseModules(courseTarget)
-              .then((staticMods) => {
-                if (isMounted && staticMods && staticMods.length > 0) {
-                  setCourseModules(staticMods);
-                }
-              })
-              .catch(() => {});
-          }
+        if (isMounted && mods && mods.length > 0) {
+          setCourseModules(mods);
         }
       })
-      .catch(() => {
-        if (isMounted) {
-          loadStaticCourseModules(courseTarget)
-            .then((staticMods) => {
-              if (isMounted && staticMods && staticMods.length > 0) {
-                setCourseModules(staticMods);
-              }
-            })
-            .catch(() => {});
-        }
+      .catch((err) => {
+        console.warn('Failed to load course modules:', err);
       })
       .finally(() => {
         if (isMounted) {

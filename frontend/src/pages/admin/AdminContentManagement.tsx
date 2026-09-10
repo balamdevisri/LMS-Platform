@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { useCourses, loadStaticCourseModules } from '@/contexts/CourseContext';
+import { useCourses } from '@/contexts/CourseContext';
 import type { ModuleItem, LearningUnitItem } from '@/contexts/CourseContext';
 import {
   Folder,
@@ -153,16 +153,7 @@ export const AdminContentManagement: React.FC = () => {
     }
   }, [courses, searchParams]);
 
-  // Dynamic fallback module loader for courses that have empty modules
-  useEffect(() => {
-    if (activeCourse && (!activeCourse.modules || activeCourse.modules.length === 0)) {
-      loadStaticCourseModules(activeCourse.id).then((mods) => {
-        if (mods && mods.length > 0) {
-          updateCourse(activeCourse.id, { modules: mods });
-        }
-      }).catch(() => {});
-    }
-  }, [activeCourse?.id]);
+
 
   // Automatically expand all modules on course change
   useEffect(() => {

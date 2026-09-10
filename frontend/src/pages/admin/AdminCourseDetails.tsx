@@ -26,9 +26,9 @@ import {
 import { toast } from 'sonner';
 import { AssignmentPortal } from '@/components/courses/AssignmentPortal';
 import { UnitContentEditor } from '@/components/admin/UnitContentEditor';
+import { courseService } from '@/services/courseService';
 import {
   useCourses,
-  loadStaticCourseModules,
   type ModuleItem,
   type TopicItem,
   type LearningUnitItem,
@@ -2377,7 +2377,7 @@ export const AdminCourseDetails: React.FC = () => {
           setActiveUnit(null);
         }}
         onSave={async (updatedUnit, isDraft) => {
-          if (!drawerModuleId || !drawerTopicId) return;
+          if (!drawerModuleId || !drawerTopicId || !course?.id) return;
           const finalUnit = {
             ...updatedUnit,
             isDraft: isDraft ?? false,
@@ -2385,19 +2385,37 @@ export const AdminCourseDetails: React.FC = () => {
           console.log('[ADMIN-DETAILS-TRACE] 2. AdminCourseDetails onSave called:', {
             unitId: finalUnit.id,
             title: finalUnit.title,
-            readingContentSnippet: (finalUnit.conceptTheory || finalUnit.readingContent || '').slice(0, 60),
             moduleId: drawerModuleId,
             topicId: drawerTopicId,
+            revision: finalUnit.revision,
             isDraft,
           });
 
+          // 1. Authoritative direct save to canonical database subcollection
+          const savedResult = await courseService.saveLessonContent(String(course.id), drawerModuleId, {
+            ...finalUnit,
+            id: finalUnit.id,
+            courseId: String(course.id),
+            moduleId: drawerModuleId,
+            content: finalUnit.readingContent || finalUnit.conceptTheory || '',
+            readingContent: finalUnit.readingContent || finalUnit.conceptTheory || '',
+            expectedRevision: finalUnit.expectedRevision ?? activeUnit?.revision,
+          });
+
+          const confirmedUnit = {
+            ...finalUnit,
+            revision: savedResult?.revision ?? (finalUnit.revision || 1) + 1,
+            lastSavedAt: savedResult?.lastSavedAt || new Date().toISOString(),
+          };
+
+          // 2. Synchronize local modules state
           const updated = modules.map((m) => {
             if (m.id === drawerModuleId) {
               const nextTopics = m.topics.map((t) => {
                 if (t.id === drawerTopicId) {
                   return {
                     ...t,
-                    learningUnits: t.learningUnits.map((u) => (u.id === finalUnit.id ? finalUnit : u)),
+                    learningUnits: t.learningUnits.map((u) => (u.id === confirmedUnit.id ? confirmedUnit : u)),
                   };
                 }
                 return t;
@@ -2406,13 +2424,12 @@ export const AdminCourseDetails: React.FC = () => {
             }
             return m;
           });
+
           setModules(updated);
-          if (course?.id) {
-            await updateCourse(course.id, { modules: updated });
-          }
+          await updateCourse(course.id, { modules: updated });
           setDrawerOpen(false);
           setActiveUnit(null);
-          toast.success(`Unit "${finalUnit.title}" ${isDraft ? 'saved as draft' : 'published'} successfully!`);
+          toast.success(`Unit "${confirmedUnit.title}" ${isDraft ? 'saved as draft' : 'published'} successfully!`);
         }}
         onDelete={handleDeleteUnitDrawer}
       />

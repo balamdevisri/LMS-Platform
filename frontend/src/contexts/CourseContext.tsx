@@ -2,61 +2,13 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { courseService } from '../services/courseService';
 
 /**
- * On-demand dynamic loader for static fallback course datasets.
- * Prevents loading megabytes of static curriculum into the root entry bundle.
+ * Legacy compatibility dummy - always resolves to empty array.
+ * Database is the single source of truth.
  */
-export const loadStaticCourseModules = async (courseIdOrSlug: string | number): Promise<ModuleItem[]> => {
-  const target = String(courseIdOrSlug).toLowerCase().trim();
-  if (target === 'course_linux_101' || target === '1' || target.includes('linux')) {
-    const mod = await import('../data/linuxCourseFullData');
-    return mod.linuxCourseModules;
-  }
-  if (target.includes('git')) {
-    const mod = await import('../data/gitCourseFullData');
-    return mod.gitCourseModules;
-  }
-  if (target.includes('k8s') || target.includes('kubernetes')) {
-    const mod = await import('../data/kubernetesCourseFullData');
-    return mod.kubernetesCourseModules;
-  }
-  if (target.includes('react')) {
-    const mod = await import('../data/reactCourseFullData');
-    return mod.reactCourseModules;
-  }
-  if (target.includes('c-prog') || target.includes('c-programming') || target === 'c-programming-course-id') {
-    const mod = await import('../data/cCourseFullData');
-    return mod.cCourseModules;
-  }
-  if (target.includes('python') || target === 'python-through-oops-course-id') {
-    const mod = await import('../data/pythonCourseFullData');
-    return mod.pythonCourseModules;
-  }
-  if (target.includes('java-through') || (target.includes('java') && !target.includes('script'))) {
-    const mod = await import('../data/javaCourseFullData');
-    return mod.javaCourseModules;
-  }
-  if (target.includes('javascript') || target.includes('js-mastery')) {
-    const mod = await import('../data/javascriptCourseFullData');
-    return mod.javascriptCourseModules;
-  }
-  if (target.includes('node') || target.includes('nodejs')) {
-    const mod = await import('../data/nodejsCourseFullData');
-    return mod.nodejsCourseModules;
-  }
-  if (target.includes('data-structures') || target.includes('dsa') || target.includes('algorithm')) {
-    const mod = await import('../data/dsaCourseFullData');
-    return mod.dsaCourseModules;
-  }
-  if (target.includes('web-development') || target.includes('web-dev')) {
-    const mod = await import('../data/webDevCourseFullData');
-    return mod.webDevCourseModules;
-  }
-  if (target.includes('database') || target.includes('dbms') || target.includes('sql')) {
-    const mod = await import('../data/dbmsCourseFullData');
-    return mod.dbmsCourseModules;
-  }
+export const loadStaticCourseModules = async (_courseIdOrSlug: string | number): Promise<ModuleItem[]> => {
   return [];
 };
+
 
 export type LearningUnitType = 'Video' | 'Reading' | 'Quiz' | 'Assignment';
 
@@ -136,6 +88,8 @@ export interface LearningUnitItem {
   topicImagePublicId?: string | null;
   themeColor?: string | null;
   themeIcon?: string | null;
+  revision?: number;
+  expectedRevision?: number;
 }
 
 export interface TopicItem {
@@ -1244,41 +1198,24 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const existingCourse = getCourseById(target);
 
-    // 1. Check existing cached course modules first as the source of truth for user edits
+    // 1. Check existing cached course modules in local state
     if (existingCourse?.modules && existingCourse.modules.length > 0) {
-      console.log(`[COURSE-CONTEXT-TRACE] 10. getCourseModules: loaded ${existingCourse.modules.length} modules from CourseContext state for "${target}"`);
       return existingCourse.modules;
     }
 
-    // 2. Check backend API modules
+    // 2. Query canonical database modules via courseService
     try {
       const targetId = existingCourse ? String(existingCourse.id) : target;
       const apiMods = await courseService.getCourseModules(targetId);
       if (apiMods && apiMods.length > 0) {
-        console.log(`[COURSE-CONTEXT-TRACE] 10. getCourseModules: loaded ${apiMods.length} modules from database/API for "${target}"`);
-        if (existingCourse) {
-          updateCourse(existingCourse.id, { modules: apiMods });
-        }
         return apiMods;
       }
-    } catch (e) {}
-
-    // 3. Check static authoritative full module datasets ONLY if no modules exist in state
-    try {
-      const staticMods = await loadStaticCourseModules(target);
-      if (staticMods && staticMods.length > 0) {
-        console.log(`[COURSE-CONTEXT-TRACE] 10. getCourseModules: fallback to static JSON for uninitialized course "${target}"`);
-        if (!existingCourse?.modules || existingCourse.modules.length === 0) {
-          if (existingCourse) {
-            updateCourse(existingCourse.id, { modules: staticMods });
-          }
-          return staticMods;
-        }
-      }
-    } catch (e) {}
+    } catch (e) {
+      console.warn(`[CourseContext] Error loading modules for ${target}:`, e);
+    }
 
     return [];
-  }, [getCourseById, updateCourse]);
+  }, [getCourseById]);
 
   return (
     <CourseContext.Provider

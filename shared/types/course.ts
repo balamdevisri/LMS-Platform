@@ -121,6 +121,9 @@ export interface ILessonItem {
   topicImagePublicId?: string | null;
   themeColor?: string | null;
   themeIcon?: string | null;
+  revision?: number;
+  expectedRevision?: number;
+  lastSavedAt?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -138,6 +141,9 @@ export interface IModuleItem {
   topicImagePublicId?: string | null;
   themeColor?: string | null;
   themeIcon?: string | null;
+  revision?: number;
+  expectedRevision?: number;
+  lastSavedAt?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -211,6 +217,8 @@ export interface ICourse {
   progress?: number; // Enrollment completion percentage (0-100)
   isEnrolled?: boolean; // Whether current student is enrolled
   version?: number; // Optimistic concurrency version
+  revision?: number;
+  expectedRevision?: number;
   isDeleted?: boolean; // Soft delete flag
   deletedAt?: string;
   deletedBy?: string;

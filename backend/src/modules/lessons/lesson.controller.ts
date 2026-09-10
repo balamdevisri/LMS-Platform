@@ -31,13 +31,13 @@ export class LessonController {
       return;
     }
 
-    await this.lessonService.saveLesson(courseId, moduleId, {
+    const savedLesson = await this.lessonService.saveLesson(courseId, moduleId, {
       ...lessonData,
       courseId,
       moduleId,
     });
 
-    res.status(201).json(formatResponse(true, lessonData, 'Lesson saved successfully'));
+    res.status(200).json(formatResponse(true, savedLesson, 'Lesson saved successfully'));
   });
 
   batchReorder = asyncHandler(async (req: Request, res: Response) => {
