@@ -424,11 +424,12 @@ class LiveClassService {
 
     const norm = normalizeLiveClassStatus(newClass.status);
     if (norm === 'scheduled' || norm === 'live') {
+      const instName = newClass.instructorName || 'Assigned Instructor';
       try {
         adminNotificationService.addNotification({
           type: 'COURSE_CREATED',
           title: `Live Session Published: ${newClass.title}`,
-          message: `Instructor ${newClass.instructorName} scheduled a live classroom session for ${newClass.courseName}.`,
+          message: `Assigned Instructor ${instName} scheduled a live classroom session for ${newClass.courseName}.`,
           link: `/live-classroom`
         });
       } catch (e) {
@@ -449,8 +450,8 @@ class LiveClassService {
       try {
         // Add to student In-App Notification Center
         notificationService.addNotification({
-          title: `Live Class Scheduled: ${newClass.title}`,
-          desc: `Instructor ${newClass.instructorName} scheduled a live session for ${newClass.courseName}. Click to join.`,
+          title: `📅 Live Class Scheduled: ${newClass.title}`,
+          desc: `Assigned Instructor: ${instName} • ${newClass.courseName}. Starts ${new Date(newClass.startTime).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} at ${new Date(newClass.startTime).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}. Click to join.`,
           type: 'live_class',
           link: newClass.meetingUrl || `/live-classroom/room/${newClass.id}`,
           recipientRole: 'all',
@@ -560,7 +561,14 @@ class LiveClassService {
 
   async updateLiveClass(id: string, updates: Partial<LiveClass>): Promise<void> {
     const current = this.getLiveClassesSync();
-    const updated = current.map((c) => (c.id === id || c.classId === id ? { ...c, ...updates, updatedAt: new Date().toISOString() } : c));
+    let targetClass: LiveClass | null = null;
+    const updated = current.map((c) => {
+      if (c.id === id || c.classId === id) {
+        targetClass = { ...c, ...updates, updatedAt: new Date().toISOString() };
+        return targetClass;
+      }
+      return c;
+    });
     this.saveClasses(updated);
 
     try {
@@ -569,6 +577,30 @@ class LiveClassService {
       }
     } catch (e) {
       console.warn('Firestore updateLiveClass notice:', e);
+    }
+
+    if (targetClass) {
+      const cls = targetClass as LiveClass;
+      const norm = normalizeLiveClassStatus(cls.status);
+      if (norm === 'scheduled' || norm === 'live') {
+        const instName = cls.instructorName || 'Assigned Instructor';
+        try {
+          if (norm === 'live') {
+            webNotificationService.notifyLiveClassStarted(cls);
+          } else {
+            webNotificationService.notifyLiveClassScheduled(cls);
+          }
+          notificationService.addNotification({
+            title: `📅 Live Session Updated: ${cls.title}`,
+            desc: `Assigned Instructor: ${instName} • ${cls.courseName}. Starts ${new Date(cls.startTime).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}. Click to join.`,
+            type: 'live_class',
+            link: cls.meetingUrl || `/live-classroom/room/${cls.id}`,
+            recipientRole: 'all',
+          });
+        } catch (e) {
+          console.warn('Update live class notification notice:', e);
+        }
+      }
     }
   }
 

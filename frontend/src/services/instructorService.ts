@@ -12,6 +12,8 @@ import {
   where,
 } from 'firebase/firestore';
 import { API_BASE_URL } from '@/config/api';
+import { webNotificationService } from './webNotificationService';
+import { notificationService } from './notificationService';
 
 export interface InstructorUser {
   id: string;
@@ -422,6 +424,20 @@ class InstructorService {
       console.warn('Backend Nodemailer SMTP instructor approval dispatch notice:', smtpErr);
     }
 
+    // Notify students and platform in real-time about the new Assigned Instructor
+    try {
+      webNotificationService.notifyInstructorOnboarded(newInstructor.name, newInstructor.specialty);
+      notificationService.addNotification({
+        title: `👨‍🏫 New Assigned Instructor: ${newInstructor.name}`,
+        desc: `${newInstructor.name} has joined as Assigned Instructor for ${newInstructor.specialty || 'Engineering Studies'}. View their upcoming live masterclasses and sessions.`,
+        type: 'info',
+        link: '/dashboard/live-classroom',
+        recipientRole: 'all',
+      });
+    } catch (e) {
+      console.warn('Instructor notification notice:', e);
+    }
+
     return newInstructor;
   }
 
@@ -485,6 +501,20 @@ class InstructorService {
             });
             if (response.ok) {
               console.log(`[SMTP Email Sent] Dispatched approval email to ${email}`);
+            }
+
+            // Real-time student notification for newly approved instructor
+            try {
+              webNotificationService.notifyInstructorOnboarded(name, data.department || data.specialty);
+              notificationService.addNotification({
+                title: `👨‍🏫 Verified Assigned Instructor: ${name}`,
+                desc: `${name} has been verified and assigned to teach ${data.department || data.specialty || 'Technical Tracks'}.`,
+                type: 'info',
+                link: '/dashboard/live-classroom',
+                recipientRole: 'all',
+              });
+            } catch (e) {
+              console.warn('Instructor approval notification notice:', e);
             }
           }
         } catch (smtpErr) {

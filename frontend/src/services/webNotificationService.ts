@@ -182,7 +182,8 @@ class WebNotificationService {
     if (!liveClass) return;
     try {
       const classId = liveClass.id || liveClass.classId;
-      const cacheKey = `scheduled_${classId}`;
+      const instName = liveClass.instructorName || 'Assigned Instructor';
+      const cacheKey = `scheduled_${classId}_${instName}`;
       if (this.getNotifiedClassIds().has(cacheKey)) return;
       this.markClassNotified(cacheKey);
 
@@ -196,12 +197,12 @@ class WebNotificationService {
       );
 
       const title = `📅 Live Class Scheduled: ${liveClass.title}`;
-      const body = `${liveClass.courseName || 'Enterprise Course'} • ${liveClass.instructorName || 'Lead Mentor'}\nStarting: ${dateFormatted} at ${formattedTime}`;
+      const body = `Assigned Instructor: ${instName}\nCourse: ${liveClass.courseName || 'Enterprise Course'} • Starting: ${dateFormatted} at ${formattedTime}`;
       const targetUrl = liveClass.meetingProvider === 'kaizenq' || (liveClass as any).mode === 'interactive'
         ? `/live-classroom/room/${classId}`
         : `/student/live-class/${classId}`;
 
-      // Send native notification
+      // Send native browser notification
       this.sendNotification(title, {
         body,
         tag: `live-scheduled-${classId}`,
@@ -211,8 +212,8 @@ class WebNotificationService {
 
       // In-app interactive toast
       toast.info(`📅 Live Class Scheduled: ${liveClass.title}`, {
-        description: `Course: ${liveClass.courseName} • At ${dateFormatted}, ${formattedTime}`,
-        duration: 8000,
+        description: `Assigned Instructor: ${instName} • Course: ${liveClass.courseName} • At ${dateFormatted}, ${formattedTime}`,
+        duration: 9000,
         action: {
           label: 'View Session',
           onClick: () => {
@@ -232,12 +233,13 @@ class WebNotificationService {
     if (!liveClass) return;
     try {
       const classId = liveClass.id || liveClass.classId;
-      const cacheKey = `started_${classId}`;
+      const instName = liveClass.instructorName || 'Assigned Instructor';
+      const cacheKey = `started_${classId}_${instName}`;
       if (this.getNotifiedClassIds().has(cacheKey)) return;
       this.markClassNotified(cacheKey);
 
       const title = `🔴 LIVE NOW: ${liveClass.title}`;
-      const body = `${liveClass.courseName} is live with ${liveClass.instructorName || 'Lead Instructor'}. Click to join now!`;
+      const body = `Assigned Instructor: ${instName} is live for ${liveClass.courseName || 'Live Session'}. Click to join now!`;
       const targetUrl = liveClass.meetingProvider === 'kaizenq' || (liveClass as any).mode === 'interactive'
         ? `/live-classroom/room/${classId}`
         : `/student/live-class/${classId}`;
@@ -252,7 +254,7 @@ class WebNotificationService {
 
       // In-app interactive toast
       toast.success(`🔴 LIVE CLASS IN PROGRESS: ${liveClass.title}`, {
-        description: `Instructor ${liveClass.instructorName || 'Lead Faculty'} started the broadcast. Join the classroom now!`,
+        description: `Assigned Instructor: ${instName} started the live broadcast for ${liveClass.courseName || 'your course'}. Join now!`,
         duration: 10000,
         action: {
           label: 'Join Live Now',
@@ -265,6 +267,43 @@ class WebNotificationService {
       console.warn('[WebNotificationService] notifyLiveClassStarted caught error:', err);
     }
   }
+
+  /**
+   * Notify students when a new faculty instructor is onboarded by Administrator
+   */
+  public notifyInstructorOnboarded(instructorName: string, specialty?: string): void {
+    if (!instructorName) return;
+    try {
+      const cacheKey = `inst_onboard_${instructorName.toLowerCase().replace(/\s+/g, '_')}`;
+      if (this.getNotifiedClassIds().has(cacheKey)) return;
+      this.markClassNotified(cacheKey);
+
+      const title = `👨‍🏫 New Assigned Instructor: ${instructorName}`;
+      const body = `${instructorName} has joined the faculty for ${specialty || 'Technical Studies'}. View their live masterclasses!`;
+      const targetUrl = '/dashboard/live-classroom';
+
+      this.sendNotification(title, {
+        body,
+        tag: cacheKey,
+        url: targetUrl,
+        urgent: false,
+      });
+
+      toast.info(`👨‍🏫 New Assigned Instructor: ${instructorName}`, {
+        description: `Specialty: ${specialty || 'Technical Studies'} • Check upcoming live masterclasses.`,
+        duration: 8000,
+        action: {
+          label: 'View Sessions',
+          onClick: () => {
+            window.location.href = targetUrl;
+          },
+        },
+      });
+    } catch (err) {
+      console.warn('[WebNotificationService] notifyInstructorOnboarded error:', err);
+    }
+  }
 }
 
 export const webNotificationService = new WebNotificationService();
+

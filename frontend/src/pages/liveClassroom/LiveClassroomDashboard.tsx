@@ -525,10 +525,10 @@ export const LiveClassroomDashboard: React.FC = () => {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <p className="font-bold text-xs text-slate-900 dark:text-white truncate">
-                            {c.instructorName || 'Prof. Manoj Acharya'}
+                            {c.instructorName || 'Assigned Instructor'}
                           </p>
                           <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-sky-100 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800">
-                            Assigned Mentor
+                            Assigned Instructor
                           </span>
                         </div>
                         <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate font-medium">

@@ -214,8 +214,8 @@ export const LiveClassroomScreen: React.FC = () => {
           lessonId: 'les_1',
           lessonTitle: 'Lesson 1.1: Live Media Architecture & WebRTC',
           instructorId: userProfile?.uid || 'instructor_lead',
-          instructorName: 'Prof. Manoj Acharya',
-          instructorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+          instructorName: userProfile?.role === 'instructor' ? (userProfile.name || 'Faculty Instructor') : 'Assigned Instructor',
+          instructorAvatar: userProfile?.photoURL || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
           meetingProvider: 'kaizenq',
           meetingRoomId: `kaizenq-room-${classId}`,
           meetingUrl: `/live-classroom/room/${classId}`,
@@ -938,7 +938,7 @@ export const LiveClassroomScreen: React.FC = () => {
                 </div>
                 <div>
                   <span className="text-slate-400 font-medium">Assigned Instructor</span>
-                  <p className="font-bold text-white">{liveClassData?.instructorName || 'Lead Mentor'}</p>
+                  <p className="font-bold text-white">{liveClassData?.instructorName || 'Assigned Instructor'}</p>
                 </div>
               </div>
 

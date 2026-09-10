@@ -22,6 +22,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCourses } from '@/contexts/CourseContext';
 import { liveClassService, normalizeLiveClassStatus, type LiveClass, type AttendanceRecord } from '@/services/liveClassService';
 import { instructorService } from '@/services/instructorService';
+import { webNotificationService } from '@/services/webNotificationService';
 import { extractYouTubeVideoId } from '@/components/liveClass/YouTubePlayer';
 
 export const AdminLiveClassroom: React.FC = () => {
@@ -211,16 +212,21 @@ export const AdminLiveClassroom: React.FC = () => {
     };
   }, [classes]);
 
+  useEffect(() => {
+    if (!formInstructorId && dynamicInstructors.length > 0) {
+      setFormInstructorId(userProfile?.role === 'instructor' ? userProfile.uid : dynamicInstructors[0].id);
+    }
+  }, [dynamicInstructors, formInstructorId, userProfile]);
+
   const openCreateModal = (initialStatus: 'Scheduled' | 'Live' = 'Scheduled') => {
     setEditingClass(null);
     setFormCourseId(courses[0]?.id ? String(courses[0].id) : 'course_linux_kernel');
     setFormModuleId('');
     setFormLessonId('');
-    setFormInstructorId(
-      userProfile?.role === 'instructor'
-        ? userProfile.uid
-        : dynamicInstructors[0]?.id || 'inst_kaizen'
-    );
+    const defaultInstId = userProfile?.role === 'instructor'
+      ? userProfile.uid
+      : (dynamicInstructors.length > 0 ? dynamicInstructors[0].id : (userProfile?.uid || 'inst_assigned'));
+    setFormInstructorId(defaultInstId);
     setFormTitle(initialStatus === 'Live' ? '🔴 Live Masterclass Session' : '');
     setFormDescription(initialStatus === 'Live' ? 'Real-time broadcast session with interactive whiteboard, AI code playground, polls, and live video control panel.' : '');
     setFormDate(new Date().toISOString().split('T')[0]);
@@ -298,8 +304,8 @@ export const AdminLiveClassroom: React.FC = () => {
     }
 
     try {
-      const selectedInst = dynamicInstructors.find((i) => i.id === formInstructorId || i.name === formInstructorId);
-      const instructorName = selectedInst?.name || userProfile?.name || 'Prof. Manoj Acharya';
+      const selectedInst = dynamicInstructors.find((i) => String(i.id) === String(formInstructorId) || i.name === formInstructorId);
+      const instructorName = selectedInst?.name || (formInstructorId && dynamicInstructors.length > 0 ? dynamicInstructors[0].name : '') || userProfile?.name || 'Assigned Instructor';
 
       const courseNameStr = selectedCourse?.title || 'Enterprise Engineering Track';
       const moduleNameStr = selectedModule?.title || 'Core System Architecture';
@@ -325,8 +331,9 @@ export const AdminLiveClassroom: React.FC = () => {
         moduleTitle: moduleNameStr,
         lessonId: formLessonId,
         lessonTitle: lessonNameStr,
-        instructorId: formInstructorId || 'inst_sys',
+        instructorId: formInstructorId || selectedInst?.id || 'inst_assigned',
         instructorName,
+        instructorAvatar: selectedInst?.avatar || userProfile?.photoURL || undefined,
         youtubeVideoId: extractedVideoId,
         branch: formBranch,
         semester: formSemester,
@@ -356,10 +363,19 @@ export const AdminLiveClassroom: React.FC = () => {
 
       if (editingClass) {
         await liveClassService.updateLiveClass(editingClass.id, payload);
-        toast.success(`Live session "${formTitle}" updated!`);
+        toast.success(`Live session "${formTitle}" updated with Assigned Instructor: ${instructorName}!`);
       } else {
         const createdClass = await liveClassService.createLiveClass(payload);
-        toast.success(`🎉 Live Class "${formTitle}" published!`);
+        toast.success(`🎉 Live Class "${formTitle}" published with Assigned Instructor: ${instructorName}!`);
+        try {
+          if (formStatus === 'Live') {
+            webNotificationService.notifyLiveClassStarted(createdClass);
+          } else {
+            webNotificationService.notifyLiveClassScheduled(createdClass);
+          }
+        } catch (notifErr) {
+          console.warn('Web notification dispatch notice:', notifErr);
+        }
         if (formStatus === 'Live' && createdClass?.id) {
           navigate(`/live-classroom/room/${createdClass.id}`);
         }

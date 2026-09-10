@@ -257,13 +257,18 @@ export const StudentLiveClassroomSection: React.FC = () => {
                 {/* Card Content */}
                 <div className="p-4 space-y-4 flex-1 flex flex-col justify-between">
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full bg-blue-500 text-white font-bold text-xs flex items-center justify-center border border-white">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-linear-to-tr from-sky-500 to-indigo-600 text-white font-bold text-xs flex items-center justify-center border-2 border-white dark:border-zinc-800 shadow-xs shrink-0">
                         {(c.instructorName || 'I').charAt(0)}
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-slate-800 dark:text-zinc-200 truncate">{c.instructorName || 'Instructor'}</p>
-                        <p className="text-[10px] text-slate-400 dark:text-zinc-500">{c.moduleTitle || 'Core Module'}</p>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="text-xs font-bold text-slate-900 dark:text-zinc-100 truncate">{c.instructorName || 'Assigned Instructor'}</p>
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-sky-50 dark:bg-sky-950/70 text-sky-600 dark:text-cyan-400 border border-sky-200 dark:border-sky-800/80 shrink-0">
+                            Assigned Instructor
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 dark:text-zinc-400 truncate font-medium">{c.moduleTitle || c.courseName || 'Core Module'}</p>
                       </div>
                     </div>
 

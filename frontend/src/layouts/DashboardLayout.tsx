@@ -35,6 +35,7 @@ import { RibbonLeaderboardWidget } from '@/components/common/RibbonLeaderboardWi
 import { GooeyNavbar } from '@/components/common/GooeyNavbar';
 import { useAuth } from '@/contexts/AuthContext';
 import { notificationService, type NotificationItem } from '@/services/notificationService';
+import { liveClassService } from '@/services/liveClassService';
 
 export const DashboardLayout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -53,7 +54,11 @@ export const DashboardLayout: React.FC = () => {
     const unsubscribe = notificationService.subscribeToNotifications(user?.uid, (items) => {
       setNotifications([...items]);
     });
-    return () => unsubscribe();
+    const unsubClasses = liveClassService.subscribeLiveClasses(() => {});
+    return () => {
+      unsubscribe();
+      unsubClasses();
+    };
   }, [user?.uid]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;

@@ -12,6 +12,8 @@ import {
   orderBy,
   limit,
 } from 'firebase/firestore';
+import { webNotificationService } from './webNotificationService';
+import { toast } from 'sonner';
 
 export interface NotificationItem {
   id: string;
@@ -158,10 +160,39 @@ class NotificationService {
 
         // Global map to hold and merge notifications from all query snapshot channels
         const notificationCacheMap = new Map<string, NotificationItem>();
+        let isInitialSnapshot = true;
 
         const handleSnapshot = (snapshot: any, sourceLabel: string) => {
           console.log(`[Firestore Audit] Received update from: ${sourceLabel} | Count: ${snapshot.size}`);
           
+          if (!isInitialSnapshot) {
+            snapshot.docChanges().forEach((change: any) => {
+              if (change.type === 'added' && !change.doc.metadata?.hasPendingWrites) {
+                const data = change.doc.data();
+                if (data && !deletedIds.has(change.doc.id)) {
+                  const createdMs = data.createdAt ? new Date(data.createdAt).getTime() : 0;
+                  const isRecent = Date.now() - createdMs < 5 * 60 * 1000;
+                  if (isRecent) {
+                    webNotificationService.sendNotification(data.title || 'Platform Notification', {
+                      body: data.desc || '',
+                      url: data.link || '/dashboard/live-classroom',
+                      urgent: data.type === 'live_class',
+                    });
+                    toast.info(data.title || 'Platform Notification', {
+                      description: data.desc || '',
+                      duration: 8000,
+                      action: data.link ? {
+                        label: 'View',
+                        onClick: () => { window.location.href = data.link; },
+                      } : undefined,
+                    });
+                  }
+                }
+              }
+            });
+          }
+          isInitialSnapshot = false;
+
           snapshot.forEach((docSnap: any) => {
             const data = docSnap.data();
             if (!deletedIds.has(docSnap.id)) {

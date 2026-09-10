@@ -381,21 +381,22 @@ export const AdminCreateLiveClass: React.FC = () => {
         } as any);
       }
 
-      // If published, broadcast real-time socket announcement and trigger notification pipeline
+      // Broadcast real-time socket announcement and trigger notification pipeline
+      try {
+        socketService.publishLiveClass(payload, { audience: targetAudience, batch: targetBatch, section: targetSection });
+      } catch (e) {
+        console.warn('[AdminCreateLiveClass] Socket publish notice:', e);
+      }
+      try {
+        webNotificationService.notifyLiveClassScheduled(payload as any);
+      } catch (e) {
+        console.warn('[AdminCreateLiveClass] Web notification notice:', e);
+      }
+
       if (shouldPublish || statusToUse === 'PUBLISHED') {
-        try {
-          socketService.publishLiveClass(payload, { audience: targetAudience, batch: targetBatch, section: targetSection });
-        } catch (e) {
-          console.warn('[AdminCreateLiveClass] Socket publish notice:', e);
-        }
-        try {
-          webNotificationService.notifyLiveClassScheduled(payload as any);
-        } catch (e) {
-          console.warn('[AdminCreateLiveClass] Web notification notice:', e);
-        }
-        toast.success('🚀 Live Class published! Instant notifications dispatched to enrolled students.');
+        toast.success(`🚀 Live Class published with Assigned Instructor: ${instructorName || 'Faculty'}! Instant notifications dispatched.`);
       } else {
-        toast.success(isEditing ? 'Live class updated successfully!' : 'Live class scheduled successfully!');
+        toast.success(`📅 Live class scheduled with Assigned Instructor: ${instructorName || 'Faculty'}! Notifications sent.`);
       }
 
       navigate('/admin/live-classes');
