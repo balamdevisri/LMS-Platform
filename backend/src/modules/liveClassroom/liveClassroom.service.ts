@@ -41,6 +41,54 @@ export class LiveClassroomService {
   }
 
   /**
+   * Resolve eligible live classes based on user role, course enrollment, whitelist, and batch.
+   */
+  public async getEligibleLiveClasses(user?: { uid?: string; role?: string; email?: string }): Promise<ILiveClassData[]> {
+    const allClasses = await liveClassroomRepository.getAllLiveClasses();
+    if (!user || !user.uid || user.role === 'admin') {
+      return allClasses;
+    }
+
+    if (user.role === 'instructor' || user.role === 'mentor') {
+      const uid = user.uid.trim();
+      const email = (user.email || '').toLowerCase().trim();
+      return allClasses.filter((c) => {
+        return (
+          c.instructorId === uid ||
+          c.createdBy === uid ||
+          (email && (c as any).instructorEmail === email) ||
+          user.role === 'admin'
+        );
+      });
+    }
+
+    // Student role:
+    const eligibleClasses: ILiveClassData[] = [];
+    for (const c of allClasses) {
+      const targetAudience = (c as any).targetAudience || 'all';
+      if (targetAudience === 'all') {
+        eligibleClasses.push(c);
+        continue;
+      }
+      const allowed = (c as any).allowedStudents;
+      if (Array.isArray(allowed) && (allowed.includes(user.uid) || (user.email && allowed.includes(user.email)))) {
+        eligibleClasses.push(c);
+        continue;
+      }
+      if (c.courseId) {
+        const { isEnrolled } = await this.verifyCourseEnrollment(user.uid, c.courseId, user.role, user.email);
+        if (isEnrolled) {
+          eligibleClasses.push(c);
+          continue;
+        }
+      } else {
+        eligibleClasses.push(c);
+      }
+    }
+    return eligibleClasses;
+  }
+
+  /**
    * Verify if a user is enrolled in a specific course or has administrative privileges.
    */
   public async verifyCourseEnrollment(

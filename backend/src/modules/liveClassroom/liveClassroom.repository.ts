@@ -258,17 +258,41 @@ export class LiveClassroomRepository {
   }
 
   public async getLiveClassById(id: string): Promise<ILiveClassData | null> {
+    if (!id) return null;
     if (isFirebaseAdminInitialized()) {
       try {
         const snap = await db.collection('liveClasses').doc(id).get();
         if (snap.exists) {
-          return snap.data() as ILiveClassData;
+          return { ...snap.data(), id: snap.id, classId: snap.data()?.classId || snap.id } as ILiveClassData;
+        }
+
+        // Fallback: search by classId property
+        const qSnap = await db.collection('liveClasses').where('classId', '==', id).limit(1).get().catch(() => null);
+        if (qSnap && !qSnap.empty) {
+          const doc = qSnap.docs[0];
+          return { ...doc.data(), id: doc.id, classId: doc.data()?.classId || doc.id } as ILiveClassData;
+        }
+
+        // Fallback: search by id property
+        const idSnap = await db.collection('liveClasses').where('id', '==', id).limit(1).get().catch(() => null);
+        if (idSnap && !idSnap.empty) {
+          const doc = idSnap.docs[0];
+          return { ...doc.data(), id: doc.id, classId: doc.data()?.classId || doc.id } as ILiveClassData;
         }
       } catch (err) {
         logger.error('[REPO] Failed to fetch liveClass from Firestore:', err);
       }
     }
-    return memoryDb.liveClasses.get(id) || null;
+    // Check in-memory store
+    if (memoryDb.liveClasses.has(id)) {
+      return memoryDb.liveClasses.get(id) || null;
+    }
+    for (const item of memoryDb.liveClasses.values()) {
+      if (item.classId === id || item.id === id) {
+        return item;
+      }
+    }
+    return null;
   }
 
   public async deleteLiveClass(id: string): Promise<boolean> {
@@ -289,17 +313,35 @@ export class LiveClassroomRepository {
   }
 
   public async getAllLiveClasses(): Promise<ILiveClassData[]> {
+    const classMap = new Map<string, ILiveClassData>();
+
+    // 1. First populate from memoryDb
+    for (const [id, item] of memoryDb.liveClasses.entries()) {
+      const cid = item.id || item.classId || id;
+      classMap.set(cid, { ...item, id: cid, classId: cid });
+    }
+
+    // 2. Fetch all from Firestore via Admin SDK
     if (isFirebaseAdminInitialized()) {
       try {
         const snap = await db.collection('liveClasses').get();
         if (!snap.empty) {
-          return snap.docs.map((doc: QueryDocumentSnapshot) => doc.data() as ILiveClassData);
+          snap.docs.forEach((docSnap: any) => {
+            const data = docSnap.data() as ILiveClassData;
+            const cid = docSnap.id || data.id || data.classId;
+            const mergedItem = { ...data, id: cid, classId: cid };
+            classMap.set(cid, mergedItem);
+            memoryDb.liveClasses.set(cid, mergedItem);
+          });
         }
       } catch (err) {
         logger.error('[REPO] Failed to fetch all liveClasses from Firestore:', err);
       }
     }
-    return Array.from(memoryDb.liveClasses.values());
+
+    return Array.from(classMap.values()).sort(
+      (a, b) => new Date(b.startTime || b.scheduledAt || 0).getTime() - new Date(a.startTime || a.scheduledAt || 0).getTime()
+    );
   }
 
   // --- 2. Attendance Operations ---

@@ -67,7 +67,7 @@ export const LiveClassroomDashboard: React.FC = () => {
 
   const [classes, setClasses] = useState<LiveClass[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'today' | 'upcoming' | 'completed' | 'all'>('today');
+  const [filter, setFilter] = useState<'today' | 'upcoming' | 'completed' | 'all'>('all');
 
   // Modal & Drawer States
   const [confirmLiveClass, setConfirmLiveClass] = useState<LiveClass | null>(null);

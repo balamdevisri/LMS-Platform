@@ -206,6 +206,96 @@ class LiveClassService {
   private unsubscribeFirestore: (() => void) | null = null;
   private DELETED_KEY = 'kaizenq_deleted_live_classes';
 
+  getApiUrl(): string {
+    return API_BASE_URL;
+  }
+
+  getAuthHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    try {
+      let token = localStorage.getItem('shaivika_auth_token') || localStorage.getItem('token');
+      if (auth?.currentUser) {
+        auth.currentUser.getIdToken().then((fresh) => {
+          if (fresh) {
+            localStorage.setItem('shaivika_auth_token', fresh);
+          }
+        }).catch(() => {});
+      }
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      const rawUser = localStorage.getItem('shaivika_user');
+      if (rawUser) {
+        const u = JSON.parse(rawUser);
+        if (u.uid) headers['x-user-id'] = u.uid;
+        if (u.role) headers['x-user-role'] = u.role;
+        if (u.email) headers['x-user-email'] = u.email;
+      }
+    } catch {}
+    return headers;
+  }
+
+  upsertLiveClass(cls: LiveClass): void {
+    if (!cls || isMockLiveClass(cls)) return;
+    const cid = cls.id || cls.classId;
+    if (!cid) return;
+    console.info(`[LIVE_CLASS_REALTIME_RECEIVED] Upserting class: ${cls.title} (${cls.status})`);
+    const current = this.getLiveClassesSync();
+    const map = new Map<string, LiveClass>();
+    current.forEach((c) => map.set(c.id || c.classId, c));
+    map.set(cid, { ...cls, id: cid, classId: cid });
+    const merged = Array.from(map.values()).sort(
+      (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+    );
+    this.saveClasses(merged);
+  }
+
+  removeLiveClassLocally(classId: string): void {
+    if (!classId) return;
+    this.addDeletedClassId(classId);
+    const current = this.getLiveClassesSync();
+    const updated = current.filter((c) => (c.id || c.classId) !== classId);
+    this.saveClasses(updated);
+  }
+
+  async syncWithBackend(): Promise<LiveClass[]> {
+    try {
+      const headers = this.getAuthHeaders();
+      const res = await fetch(`${this.getApiUrl()}/live-classroom`, {
+        method: 'GET',
+        headers,
+      });
+      if (res.ok) {
+        const data = await res.json().catch(() => null);
+        const fetched: LiveClass[] = Array.isArray(data?.data)
+          ? data.data
+          : (Array.isArray(data?.liveClasses) ? data.liveClasses : (Array.isArray(data) ? data : []));
+        if (fetched.length > 0) {
+          console.info(`[LIVE_CLASS_RETURNED] Synced ${fetched.length} live classes from backend API`);
+          const current = this.getLiveClassesSync();
+          const map = new Map<string, LiveClass>();
+          current.forEach((c) => map.set(c.id || c.classId, c));
+          fetched.forEach((c) => {
+            const cid = c.id || c.classId;
+            if (cid && !isMockLiveClass(c)) {
+              map.set(cid, { ...c, id: cid, classId: cid });
+            }
+          });
+          const merged = Array.from(map.values()).sort(
+            (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+          );
+          this.saveClasses(merged);
+          return merged;
+        }
+      }
+    } catch (err) {
+      console.warn('[LiveClassService] syncWithBackend notice:', err);
+    }
+    return this.getLiveClassesSync();
+  }
+
   getDeletedClassIds(): Set<string> {
     try {
       const raw = localStorage.getItem(this.DELETED_KEY);
@@ -294,6 +384,13 @@ class LiveClassService {
   subscribeLiveClasses(callback: (classes: LiveClass[]) => void): () => void {
     this.listeners.push(callback);
     callback(this.getLiveClassesSync());
+
+    // 1. Authoritative Backend REST API Sync (guarantees student receives newly created classes immediately)
+    this.syncWithBackend().then((fresh) => {
+      if (Array.isArray(fresh) && fresh.length > 0) {
+        callback(fresh);
+      }
+    }).catch(() => {});
 
     const firestore = db;
     if (firestore && !this.unsubscribeFirestore) {
@@ -399,9 +496,22 @@ class LiveClassService {
     };
 
     const current = this.getLiveClassesSync();
-    const updated = [newClass, ...current];
+    const updated = [newClass, ...current.filter((c) => (c.id || c.classId) !== id)];
     this.saveClasses(updated);
 
+    // 2. Persist to authoritative Backend REST API
+    try {
+      const headers = this.getAuthHeaders();
+      await fetch(`${this.getApiUrl()}/live-classroom`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(newClass),
+      });
+    } catch (e) {
+      console.warn('[LiveClassService] Backend createLiveClass notice:', e);
+    }
+
+    // 3. Persist to Firestore Client
     try {
       if (db) {
         await setDoc(doc(db, 'liveClasses', id), newClass);
@@ -409,6 +519,17 @@ class LiveClassService {
     } catch (e) {
       console.warn('Firestore createLiveClass notice:', e);
     }
+
+    // 4. Real-time broadcast via Socket.IO
+    try {
+      import('@/services/socketService').then(({ socketService }) => {
+        socketService.publishLiveClass(newClass, {
+          audience: (newClass as any).targetAudience || 'all',
+          batch: (newClass as any).targetBatch,
+          section: (newClass as any).targetSection,
+        });
+      }).catch(() => {});
+    } catch (e) {}
 
     const norm = normalizeLiveClassStatus(newClass.status);
     if (norm === 'scheduled' || norm === 'live') {
@@ -574,12 +695,35 @@ class LiveClassService {
     });
     this.saveClasses(updated);
 
+    // 2. Persist to authoritative Backend REST API
+    try {
+      const headers = this.getAuthHeaders();
+      await fetch(`${this.getApiUrl()}/live-classroom/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify(updates),
+      });
+    } catch (e) {
+      console.warn('[LiveClassService] Backend updateLiveClass notice:', e);
+    }
+
+    // 3. Persist to Firestore Client
     try {
       if (db) {
         await setDoc(doc(db, 'liveClasses', id), { ...updates, updatedAt: new Date().toISOString() }, { merge: true });
       }
     } catch (e) {
       console.warn('Firestore updateLiveClass notice:', e);
+    }
+
+    // 4. Real-time broadcast via Socket.IO
+    if (targetClass) {
+      try {
+        const full = targetClass;
+        import('@/services/socketService').then(({ socketService }) => {
+          socketService.getSocket()?.emit('liveClass:update', { liveClassId: id, updates: full });
+        }).catch(() => {});
+      } catch (e) {}
     }
 
     if (targetClass) {

@@ -95,7 +95,17 @@ export const setClassroomSettings = (
 
 export const getRoomParticipants = (classId: string): ParticipantInfo[] => {
   const roomMap = activeRoomPresences.get(classId);
-  return roomMap ? Array.from(roomMap.values()) : [];
+  if (!roomMap) return [];
+  // Authoritative deduplication by userId to prevent ghost sockets on reconnect
+  const seenUsers = new Set<string>();
+  const list: ParticipantInfo[] = [];
+  for (const p of roomMap.values()) {
+    if (p.userId && !seenUsers.has(p.userId)) {
+      seenUsers.add(p.userId);
+      list.push(p);
+    }
+  }
+  return list;
 };
 
 export const registerLiveClassHandlers = (io: SocketServer, socket: AuthenticatedSocket) => {
@@ -104,11 +114,17 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
     try {
       const user = socket.user;
       if (!liveClassId || !user) {
+        logger.warn(`[LiveClass][JOIN_REJECTED] classId=${liveClassId || 'UNKNOWN'} userUid=ANONYMOUS reason=AUTH_REQUIRED`);
         const errPayload = { success: false, error: 'UNAUTHORIZED_SOCKET', message: 'Authentication required' };
         socket.emit('liveClass:error', errPayload);
         if (callback) callback(errPayload);
         return;
       }
+
+      const userUid = user.uid || user.id;
+      const userRole = (user.role || 'student').toLowerCase();
+
+      logger.info(`[LiveClass][JOIN_ATTEMPT] classId=${liveClassId} userUid=${userUid} role=${userRole}`);
 
       // Query class status from DB with authorization verification
       let classStatus = 'SCHEDULED';
@@ -123,7 +139,8 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
       }
 
       if (!liveClass) {
-        const errPayload = { success: false, error: 'NOT_FOUND', message: 'Live class session not found.' };
+        logger.warn(`[LiveClass][JOIN_REJECTED] classId=${liveClassId} userUid=${userUid} reason=CLASS_NOT_FOUND`);
+        const errPayload = { success: false, error: 'CLASS_NOT_FOUND', message: 'Live class session not found.' };
         socket.emit('liveClass:error', errPayload);
         if (callback) callback(errPayload);
         return;
@@ -147,12 +164,12 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
       const classroomSettings = getClassroomSettings(liveClassId);
 
       const normClassStatus = (classStatus || '').toUpperCase();
-      const userRole = (user.role || 'student').toLowerCase();
 
       // Authorization checks for students
       if (userRole === 'student') {
         // Enforce private / locked room check
         if (lockedClassrooms.has(liveClassId) || Boolean(liveClass.isLocked) || classroomSettings.isLocked) {
+          logger.warn(`[LiveClass][JOIN_REJECTED] classId=${liveClassId} userUid=${userUid} reason=ROOM_LOCKED`);
           const errPayload = {
             success: false,
             error: 'ROOM_LOCKED',
@@ -164,6 +181,7 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
         }
 
         if (normClassStatus === 'CANCELLED') {
+          logger.warn(`[LiveClass][JOIN_REJECTED] classId=${liveClassId} userUid=${userUid} reason=CLASS_CANCELLED`);
           const errPayload = { success: false, error: 'CLASS_CANCELLED', message: 'This live class has been cancelled.' };
           socket.emit('liveClass:error', errPayload);
           if (callback) callback(errPayload);
@@ -173,6 +191,7 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
         if (normClassStatus === 'COMPLETED' || normClassStatus === 'ENDED') {
           socket.emit('liveClass:status', { liveClassId, status: 'COMPLETED' });
           socket.emit('live_class_ended', { classId: liveClassId, endedAt: liveClass.endedAt || new Date().toISOString() });
+          logger.warn(`[LiveClass][JOIN_REJECTED] classId=${liveClassId} userUid=${userUid} reason=CLASS_COMPLETED`);
           const errPayload = { success: false, error: 'CLASS_COMPLETED', message: 'This live class session has ended.' };
           socket.emit('liveClass:error', errPayload);
           if (callback) callback(errPayload);
@@ -181,12 +200,14 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
 
         // Verify enrollment
         const { isEnrolled, reason } = await liveClassroomService.verifyCourseEnrollment(
-          user.uid || user.id,
+          userUid,
           liveClass.courseId,
           user.role,
           user.email
         );
+        logger.info(`[LiveClass][ENROLLMENT] classId=${liveClassId} userUid=${userUid} result=${isEnrolled ? 'ALLOWED' : 'REJECTED'}`);
         if (!isEnrolled) {
+          logger.warn(`[LiveClass][JOIN_REJECTED] classId=${liveClassId} userUid=${userUid} reason=NOT_ENROLLED`);
           const errPayload = { success: false, error: 'NOT_ENROLLED', message: reason || 'You are not enrolled in this course.' };
           socket.emit('liveClass:error', errPayload);
           if (callback) callback(errPayload);
@@ -198,32 +219,42 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
       if (userRole === 'instructor') {
         const isAssigned =
           user.role === 'admin' ||
-          liveClass.instructorId === (user.uid || user.id) ||
-          liveClass.createdBy === (user.uid || user.id) ||
+          liveClass.instructorId === userUid ||
+          liveClass.createdBy === userUid ||
           ['inst_kaizen', 'inst_default', 'instructor_lead', 'admin'].includes(liveClass.instructorId) ||
           (liveClass.instructorName && user.name && liveClass.instructorName.toLowerCase().includes(user.name.toLowerCase()));
         if (!isAssigned) {
-          logger.info(`[SOCKET] Co-instructor or platform instructor ${user.name} joining session ${liveClassId}`);
+          logger.info(`[LiveClass][AUTH] Co-instructor or platform instructor ${user.name} joining session ${liveClassId}`);
+        } else {
+          logger.info(`[LiveClass][AUTH] Authorized instructor ${user.name} verified for session ${liveClassId}`);
         }
       }
 
       const roomName = `live-class:${liveClassId}`;
       socket.join(roomName);
+      logger.info(`[LiveClass][ROOM_JOIN] classId=${liveClassId} userUid=${userUid} room=${roomName}`);
 
       // Track presence
       if (!activeRoomPresences.has(liveClassId)) {
         activeRoomPresences.set(liveClassId, new Map());
       }
 
-      const joinedUserId = user.uid || user.id;
-      const modRecord = getModerationRecord(liveClassId, joinedUserId);
-      const isPinned = getRoomPinned(liveClassId) === joinedUserId;
+      const roomMap = activeRoomPresences.get(liveClassId)!;
+      // Remove stale socket ID for the same user if reconnecting
+      for (const [sId, p] of roomMap.entries()) {
+        if (p.userId === userUid && sId !== socket.id) {
+          roomMap.delete(sId);
+        }
+      }
+
+      const modRecord = getModerationRecord(liveClassId, userUid);
+      const isPinned = getRoomPinned(liveClassId) === userUid;
       const currentScreenShare = getRoomScreenShare(liveClassId);
-      const isScreenSharing = currentScreenShare?.userId === joinedUserId;
+      const isScreenSharing = currentScreenShare?.userId === userUid;
 
       const participant: ParticipantInfo = {
         socketId: socket.id,
-        userId: joinedUserId,
+        userId: userUid,
         name: customName || user.name || 'Student',
         role: user.role || 'student',
         email: user.email,
@@ -237,12 +268,11 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
         micPermission: modRecord.micPermission,
         isPinned,
       };
-      activeRoomPresences.get(liveClassId)!.set(socket.id, participant);
+      roomMap.set(socket.id, participant);
+      logger.info(`[LiveClass][PRESENCE] classId=${liveClassId} userUid=${userUid} action=JOIN`);
 
       const currentRoster = getRoomParticipants(liveClassId);
       const activeCount = currentRoster.length;
-
-      logger.info(`[SOCKET] User ${participant.name} (${participant.role}) joined ${roomName}. Total online: ${activeCount}`);
 
       const formattedParticipants = currentRoster.map((p) => ({
         userId: p.userId,
@@ -263,7 +293,7 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
         success: true,
         liveClassId,
         roomName,
-        status: classStatus.toUpperCase(),
+        status: normClassStatus || 'SCHEDULED',
         onlineCount: activeCount,
         participants: formattedParticipants,
         settings: classroomSettings,
@@ -273,6 +303,8 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
       };
       socket.emit('liveClass:joined', successPayload);
       if (callback) callback(successPayload);
+
+      logger.info(`[LiveClass][JOIN_SUCCESS] classId=${liveClassId} userUid=${userUid} room=${roomName} participantCount=${activeCount}`);
 
       // Broadcast presence updates to entire room
       io.to(roomName).emit('liveClass:presence', {
@@ -416,11 +448,15 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
     const normStatus = status.toUpperCase();
     const roomName = `live-class:${liveClassId}`;
 
+    logger.info(`[LiveClass][START] classId=${liveClassId} instructorUid=${user.uid || user.id} status=${normStatus}`);
+
     // Persist status change in Firestore
+    let classDoc: any = null;
     try {
       await liveClassroomService.updateLiveClass(liveClassId, {
         status: (normStatus === 'LIVE' ? 'Live' : normStatus === 'ENDED' ? 'Completed' : 'Scheduled') as any,
       });
+      classDoc = await liveClassroomService.getLiveClassById(liveClassId);
     } catch (e: any) {
       logger.warn('[SOCKET] Live class status DB update notice:', e?.message);
     }
@@ -434,21 +470,21 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
     });
 
     if (normStatus === 'LIVE') {
-      io.to(roomName).emit('live_class_started', {
+      const liveStartPayload = {
         liveClassId,
         status: 'LIVE',
+        liveClass: classDoc || { id: liveClassId, classId: liveClassId, status: 'LIVE' },
         startedAt: new Date().toISOString(),
-      });
-      io.emit('live_class_started', {
-        liveClassId,
-        status: 'LIVE',
-        startedAt: new Date().toISOString(),
-      });
+      };
+      io.to(roomName).emit('live_class_started', liveStartPayload);
+      io.emit('live_class_started', liveStartPayload);
 
       // Trigger durable notification pipeline to eligible students for live start
       (async () => {
         try {
-          const classDoc = await liveClassroomService.getLiveClassById(liveClassId);
+          if (!classDoc) {
+            classDoc = await liveClassroomService.getLiveClassById(liveClassId);
+          }
           if (classDoc) {
             await notificationService.dispatchLiveClassNotification(classDoc, 'STARTED', io);
           }
@@ -630,6 +666,15 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
     logger.info(`[SOCKET] Live class published & broadcasting notification: ${data?.liveClass?.title}`);
     io.emit('liveClass:published', data);
     io.emit('live_class_scheduled', data);
+
+    // Persist to authoritative repository
+    try {
+      if (data?.liveClass) {
+        await liveClassroomService.createLiveClass(data.liveClass);
+      }
+    } catch (repoErr: any) {
+      logger.warn('[SOCKET] Error persisting liveClass on publish:', repoErr?.message || repoErr);
+    }
 
     // Trigger durable notification pipeline to eligible students
     try {
@@ -1234,9 +1279,16 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
   });
 
   // Global Real-Time Event: Live Class Scheduled / Published
-  socket.on('live_class_scheduled', (data: { liveClass: any }) => {
+  socket.on('live_class_scheduled', async (data: { liveClass: any }) => {
     logger.info(`[SOCKET] Live class scheduled broadcast: ${data.liveClass?.title}`);
     io.emit('live_class_scheduled', data);
+    try {
+      if (data?.liveClass) {
+        await liveClassroomService.createLiveClass(data.liveClass);
+      }
+    } catch (err: any) {
+      logger.warn('[SOCKET] Error persisting live_class_scheduled:', err?.message || err);
+    }
   });
 
   // 9. Handle Disconnection

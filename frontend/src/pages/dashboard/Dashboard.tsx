@@ -104,6 +104,13 @@ export const Dashboard: React.FC = () => {
     return liveClasses.find((lc) => normalizeLiveClassStatus(lc.status) === 'live');
   }, [liveClasses]);
 
+  const upcomingLiveSession = useMemo(() => {
+    return liveClasses.find((lc) => {
+      const norm = normalizeLiveClassStatus(lc.status);
+      return norm === 'scheduled' || norm === 'draft';
+    });
+  }, [liveClasses]);
+
   // Instructor Student Roster State
   const [allStudents, setAllStudents] = useState<StudentUser[]>([]);
 
@@ -1210,6 +1217,46 @@ export const Dashboard: React.FC = () => {
                 className="px-6 py-3 bg-white hover:bg-rose-50 text-rose-700 font-black text-xs rounded-2xl shadow-lg hover:shadow-xl transition-all active:scale-95 flex items-center gap-2 cursor-pointer shrink-0"
               >
                 <span>Enter Live Classroom</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Scheduled Live Session Alert Banner (Displays whenever a session is scheduled and not yet live) */}
+          {!activeLiveSession && upcomingLiveSession && (
+            <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-700 text-white p-5 rounded-3xl shadow-xl shadow-blue-600/15 border border-blue-400/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-3">
+              <div className="flex items-start sm:items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/30 shadow-inner">
+                  <Video className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-0.5 rounded-full bg-white text-blue-700 font-extrabold text-[10px] uppercase tracking-wider shadow-xs">
+                      📅 SCHEDULED LIVE SESSION
+                    </span>
+                    <span className="text-xs font-bold text-blue-100">
+                      {upcomingLiveSession.courseName || 'Enterprise Masterclass'}
+                    </span>
+                  </div>
+                  <h3 className="font-heading font-black text-base sm:text-lg text-white mt-1 leading-snug">
+                    {upcomingLiveSession.title}
+                  </h3>
+                  <p className="text-xs text-blue-100/90 font-medium mt-0.5">
+                    Assigned Instructor: <strong className="text-white font-bold">{upcomingLiveSession.instructorName || 'Lead Faculty'}</strong> • Starts {new Date(upcomingLiveSession.startTime).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} at {new Date(upcomingLiveSession.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  if (upcomingLiveSession.meetingProvider === 'kaizenq' || (upcomingLiveSession as any).mode === 'interactive' || !upcomingLiveSession.youtubeVideoId) {
+                    navigate(`/live-classroom/room/${upcomingLiveSession.id}`);
+                  } else {
+                    navigate(`/student/live-class/${upcomingLiveSession.id}`);
+                  }
+                }}
+                className="px-6 py-3 bg-white hover:bg-blue-50 text-blue-700 font-black text-xs rounded-2xl shadow-lg hover:shadow-xl transition-all active:scale-95 flex items-center gap-2 cursor-pointer shrink-0"
+              >
+                <span>View Session Details</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>

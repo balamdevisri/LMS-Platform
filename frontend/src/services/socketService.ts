@@ -76,30 +76,40 @@ class SocketService {
   }
 
   public connect(token?: string, userInfo?: { uid?: string; name?: string; role?: string; email?: string }): Socket {
-    if (this.socket && this.socket.connected) {
-      return this.socket;
-    }
-
-    if (this.socket) {
-      this.socket.disconnect();
-    }
-
-    const socketUrl = `${getSocketUrl()}/live-classroom`;
     const authToken =
       token ||
       localStorage.getItem('token') ||
       localStorage.getItem('shaivika_auth_token') ||
       localStorage.getItem('firebase_token') ||
       '';
+    const targetUserId = userInfo?.uid || 'student_guest';
+    const targetRole = userInfo?.role || 'student';
+
+    if (this.socket && this.socket.connected) {
+      const currentAuth = (this.socket as any).auth || {};
+      const tokenChanged = Boolean(authToken && currentAuth.token !== authToken);
+      const userChanged = Boolean(userInfo?.uid && currentAuth.userId !== targetUserId);
+      const roleChanged = Boolean(userInfo?.role && currentAuth.role !== targetRole);
+      if (!tokenChanged && !userChanged && !roleChanged) {
+        return this.socket;
+      }
+      this.socket.disconnect();
+      this.socket = null;
+    } else if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
+    }
+
+    const socketUrl = `${getSocketUrl()}/live-classroom`;
 
     this.socket = io(socketUrl, {
       autoConnect: true,
       transports: ['websocket', 'polling'],
       auth: {
         token: authToken,
-        userId: userInfo?.uid || 'student_guest',
+        userId: targetUserId,
         name: userInfo?.name || 'Student',
-        role: userInfo?.role || 'student',
+        role: targetRole,
         email: userInfo?.email || '',
       },
       reconnection: true,
@@ -173,6 +183,7 @@ class SocketService {
     this.socket.on('live_class_scheduled', (data: { liveClass?: any }) => {
       try {
         if (data?.liveClass) {
+          liveClassService.upsertLiveClass(data.liveClass);
           webNotificationService.notifyLiveClassScheduled(data.liveClass);
           notificationService.addNotification({
             title: `Live Class Scheduled: ${data.liveClass.title}`,
@@ -187,17 +198,65 @@ class SocketService {
       }
     });
 
-    this.socket.on('live_class_started', (data: { liveClass?: any }) => {
+    this.socket.on('live_class_started', (data: { liveClass?: any; liveClassId?: string; status?: string }) => {
       try {
-        if (data?.liveClass) {
-          webNotificationService.notifyLiveClassStarted(data.liveClass);
+        const cls =
+          data?.liveClass ||
+          (data?.liveClassId
+            ? liveClassService.getLiveClassesSync().find((c) => c.id === data.liveClassId || c.classId === data.liveClassId)
+            : null);
+        if (cls) {
+          const updatedCls = { ...cls, status: 'live' as any };
+          liveClassService.upsertLiveClass(updatedCls);
+          webNotificationService.notifyLiveClassStarted(updatedCls);
+          notificationService.addNotification({
+            title: `🔴 LIVE NOW: ${updatedCls.title}`,
+            desc: `Instructor ${updatedCls.instructorName || 'Lead Mentor'} started the live class for ${updatedCls.courseName || 'Course'}. Click to join!`,
+            type: 'live_class',
+            link: updatedCls.meetingUrl || `/live-classroom/room/${updatedCls.id}`,
+            recipientRole: 'all',
+          });
         }
       } catch (err) {
         console.warn('[SocketService] live_class_started handler notice:', err);
       }
     });
 
+    this.socket.on('liveClass:created', (data: { liveClass?: any }) => {
+      if (data?.liveClass) {
+        liveClassService.upsertLiveClass(data.liveClass);
+      }
+    });
+
+    this.socket.on('liveClass:published', (data: { liveClass?: any }) => {
+      if (data?.liveClass) {
+        liveClassService.upsertLiveClass(data.liveClass);
+      }
+    });
+
+    this.socket.on('liveClass:updated', (data: { liveClass?: any; updates?: any }) => {
+      const cls = data?.liveClass || data?.updates;
+      if (cls) {
+        liveClassService.upsertLiveClass(cls);
+      }
+    });
+
+    this.socket.on('liveClass:deleted', (data: { liveClassId?: string; classId?: string }) => {
+      const cid = data?.liveClassId || data?.classId;
+      if (cid) {
+        liveClassService.removeLiveClassLocally(cid);
+      }
+    });
+
     return this.socket;
+  }
+
+  public setCurrentLiveClassId(liveClassId: string | null): void {
+    this.currentLiveClassId = liveClassId;
+  }
+
+  public getCurrentLiveClassId(): string | null {
+    return this.currentLiveClassId;
   }
 
   public disconnect(): void {

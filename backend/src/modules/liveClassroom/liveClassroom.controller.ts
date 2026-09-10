@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { liveClassroomService } from './liveClassroom.service';
 import { notificationService } from '../notifications/notification.service';
 import { getLiveNamespace } from '../../socket/socket.server';
+import logger from '../../config/logger';
 
 export class LiveClassroomController {
   // Generate KaizenQ Secure Room Token
@@ -59,8 +60,15 @@ export class LiveClassroomController {
   // Live Class CRUD & Management
   public async getAllClasses(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const classes = await liveClassroomService.getAllLiveClasses();
-      res.json({ success: true, data: classes });
+      const user = (req as any).user || {
+        uid: (req.query.userId as string) || (req.headers['x-user-id'] as string),
+        role: (req.query.userRole as string) || (req.headers['x-user-role'] as string) || 'student',
+        email: (req.query.userEmail as string) || (req.headers['x-user-email'] as string),
+      };
+
+      const classes = await liveClassroomService.getEligibleLiveClasses(user);
+      logger.info(`[LIVE_CLASS_QUERY] User: ${user?.uid || 'anonymous'} (${user?.role}) | Fetched ${classes.length} eligible classes`);
+      res.json({ success: true, data: classes, liveClasses: classes });
     } catch (err) {
       next(err);
     }
@@ -89,6 +97,7 @@ export class LiveClassroomController {
         return;
       }
 
+      logger.info(`[LIVE_CLASS_ELIGIBILITY] Student: ${user.uid} | Class: ${classId} | Authorized: ${result.authorized}`);
       res.json({
         success: true,
         liveClass: result.liveClass,
@@ -102,7 +111,16 @@ export class LiveClassroomController {
   public async createClass(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const liveClass = await liveClassroomService.createLiveClass(req.body);
-      res.status(201).json({ success: true, data: liveClass });
+      logger.info(`[LIVE_CLASS_CREATED] ID: ${liveClass.id} | Title: ${liveClass.title} | Course: ${liveClass.courseId}`);
+
+      const liveNS = getLiveNamespace();
+      if (liveNS && liveClass) {
+        liveNS.emit('live_class_scheduled', { liveClass });
+        liveNS.emit('liveClass:created', { liveClass });
+        liveNS.emit('liveClass:published', { liveClass });
+      }
+
+      res.status(201).json({ success: true, data: liveClass, liveClass });
     } catch (err) {
       next(err);
     }
@@ -112,7 +130,14 @@ export class LiveClassroomController {
     try {
       const classId = (req.params.classId || req.params.id) as string;
       const liveClass = await liveClassroomService.updateLiveClass(classId, req.body);
-      res.json({ success: true, data: liveClass });
+
+      const liveNS = getLiveNamespace();
+      if (liveNS && liveClass) {
+        liveNS.emit('liveClass:updated', { liveClass });
+        liveNS.emit('live_class_updated', { liveClass });
+      }
+
+      res.json({ success: true, data: liveClass, liveClass });
     } catch (err) {
       next(err);
     }
@@ -161,6 +186,7 @@ export class LiveClassroomController {
       }
 
       const liveClass = await liveClassroomService.startLiveClass(classId);
+      logger.info(`[LIVE_CLASS_STARTED] Class: ${classId} transitioned to LIVE`);
 
       // Realtime Socket.IO Broadcast to room and namespace
       const liveNS = getLiveNamespace();

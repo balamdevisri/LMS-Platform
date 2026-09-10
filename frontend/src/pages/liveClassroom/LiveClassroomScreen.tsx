@@ -271,13 +271,16 @@ export const LiveClassroomScreen: React.FC = () => {
 
   // 2. Realtime Socket.IO Connection & Listeners
   useEffect(() => {
-    if (!classId || !userProfile) return;
+    if (!classId || (!user && !userProfile)) return;
 
     let socketInstance: Socket | null = null;
     let unsubStatus: (() => void) | null = null;
 
     const initSocket = async () => {
       try {
+        const currentUserUid = user?.uid || userProfile?.uid || 'student_guest';
+        const currentUserEmail = user?.email || userProfile?.email || '';
+
         if (user && typeof user.getIdToken === 'function') {
           socketInstance = await socketService.connectWithFirebaseUser(user, {
             name: resolvedDisplayName,
@@ -285,26 +288,106 @@ export const LiveClassroomScreen: React.FC = () => {
           });
         } else {
           socketInstance = socketService.connect(undefined, {
-            uid: userProfile.uid,
+            uid: currentUserUid,
+            email: currentUserEmail,
             name: resolvedDisplayName,
             role: isInstructor ? 'instructor' : 'student',
           });
         }
 
         setSocket(socketInstance);
+        socketService.setCurrentLiveClassId(classId);
 
         // Connection status tracking
         unsubStatus = socketService.onStatusChange((status) => {
           setConnectionStatus(status);
         });
 
-        // Join the classroom room
-        socketInstance.emit('join_class', {
-          classId,
-          liveClassId: classId,
-          userId: userProfile.uid,
-          name: resolvedDisplayName,
-          role: isInstructor ? 'instructor' : 'student',
+        // Authoritative Room Join Handler
+        const performAuthoritativeJoin = () => {
+          if (!socketInstance) return;
+
+          const joinPayload = {
+            classId,
+            liveClassId: classId,
+            userId: currentUserUid,
+            name: resolvedDisplayName,
+            role: isInstructor ? 'instructor' : 'student',
+          };
+
+          socketInstance.emit('join_class', joinPayload, (res: any) => {
+            if (res && res.success) {
+              if (res.status) {
+                const upperStatus = String(res.status).toUpperCase();
+                setLiveClassData((prev) => (prev ? { ...prev, status: upperStatus as any } : null));
+                if (upperStatus === 'LIVE') {
+                  setClassEnded(false);
+                }
+              }
+              if (res.onlineCount !== undefined) {
+                setOnlineCount(Math.max(1, res.onlineCount));
+              }
+              if (res.participants && Array.isArray(res.participants)) {
+                setParticipants(res.participants);
+              }
+            } else if (res && res.error) {
+              console.warn('[LiveClassroomScreen] Join error from server:', res);
+              if (res.error === 'ROOM_LOCKED') {
+                toast.warning('🔒 ' + (res.message || 'Classroom is currently locked.'));
+              } else if (res.error === 'NOT_ENROLLED') {
+                toast.error('🚫 ' + (res.message || 'You are not enrolled in this course.'));
+              } else {
+                toast.error(res.message || 'Failed to join classroom.');
+              }
+            }
+          });
+
+          // Also emit modern canonical event
+          socketInstance.emit('liveClass:join', { liveClassId: classId, name: resolvedDisplayName });
+
+          // Join attendance tracking for students
+          if (!isInstructor) {
+            socketInstance.emit('attendance:join', { liveClassId: classId });
+          }
+        };
+
+        if (socketInstance.connected) {
+          performAuthoritativeJoin();
+        } else {
+          socketInstance.once('connect', performAuthoritativeJoin);
+        }
+
+        // Authoritative State Snapshot on Join
+        socketInstance.on('liveClass:joined', (res: any) => {
+          if (res?.status) {
+            const upperStatus = String(res.status).toUpperCase();
+            setLiveClassData((prev) => (prev ? { ...prev, status: upperStatus as any } : null));
+            if (upperStatus === 'LIVE') {
+              setClassEnded(false);
+            }
+          }
+          if (res?.onlineCount !== undefined) {
+            setOnlineCount(Math.max(1, res.onlineCount));
+          }
+          if (res?.participants && Array.isArray(res.participants)) {
+            setParticipants(res.participants);
+          }
+        });
+
+        // Server Error Listener
+        socketInstance.on('liveClass:error', (err: { error: string; message: string }) => {
+          console.warn('[LiveClassroomScreen] Received liveClass:error:', err);
+          if (err.error === 'ROOM_LOCKED') {
+            toast.warning('🔒 ' + (err.message || 'This classroom is locked by the instructor.'));
+          } else if (err.error === 'NOT_ENROLLED') {
+            toast.error('🚫 ' + (err.message || 'You are not enrolled in this course.'));
+          } else if (err.error === 'CLASS_COMPLETED') {
+            setClassEndedReason('ENDED');
+            setClassEnded(true);
+            toast.info('🎓 ' + (err.message || 'This live class session has concluded.'));
+          } else if (err.error !== 'UNAUTHORIZED_INSTRUCTOR') {
+            toast.error(err.message || 'Classroom interaction notice.');
+          }
         });
 
         // Presence & Participant Count Listeners
@@ -536,6 +619,8 @@ export const LiveClassroomScreen: React.FC = () => {
         socketInstance.off('liveClass:status');
         socketInstance.off('live_class_started');
         socketInstance.off('live_class_ended');
+        socketInstance.off('liveClass:joined');
+        socketInstance.off('liveClass:error');
         socketInstance.off('kicked');
       }
       if (classId) socketService.leaveLiveClass(classId);
