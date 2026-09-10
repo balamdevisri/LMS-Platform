@@ -437,11 +437,26 @@ class LiveClassService {
 
       try {
         // Add to student In-App Notification Center
+        const notifTitle = norm === 'live'
+          ? `🔴 Live Class Started: ${newClass.title}`
+          : `📅 Live Class Scheduled: ${newClass.title}`;
+        const notifDesc = norm === 'live'
+          ? `Instructor ${instName} started the live class for ${newClass.courseName}. Click to join now!`
+          : `Assigned Instructor: ${instName} • ${newClass.courseName}. Starts ${new Date(newClass.startTime).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} at ${new Date(newClass.startTime).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}. Click to join.`;
+        const link = newClass.meetingUrl || `/live-classroom/room/${newClass.id}`;
+
         notificationService.addNotification({
-          title: `📅 Live Class Scheduled: ${newClass.title}`,
-          desc: `Assigned Instructor: ${instName} • ${newClass.courseName}. Starts ${new Date(newClass.startTime).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} at ${new Date(newClass.startTime).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}. Click to join.`,
+          title: notifTitle,
+          desc: notifDesc,
           type: 'live_class',
-          link: newClass.meetingUrl || `/live-classroom/room/${newClass.id}`,
+          link,
+          recipientRole: 'student',
+        });
+        notificationService.addNotification({
+          title: notifTitle,
+          desc: notifDesc,
+          type: 'live_class',
+          link,
           recipientRole: 'all',
         });
       } catch (e) {
@@ -1086,6 +1101,30 @@ class LiveClassService {
         console.warn('[LiveClassService] Web notification warning:', webNotifErr);
       }
 
+      try {
+        // Dispatch to student in-app notification center
+        const startTitle = `🔴 LIVE NOW: ${target?.title || 'Live Class Started'}`;
+        const startDesc = `Instructor ${target?.instructorName || 'Lead Mentor'} has started the live class for ${target?.courseName || 'Course'}. Click to join!`;
+        const startLink = target?.meetingUrl || `/live-classroom/room/${classId}`;
+
+        notificationService.addNotification({
+          title: startTitle,
+          desc: startDesc,
+          type: 'live_class',
+          link: startLink,
+          recipientRole: 'student',
+        });
+        notificationService.addNotification({
+          title: startTitle,
+          desc: startDesc,
+          type: 'live_class',
+          link: startLink,
+          recipientRole: 'all',
+        });
+      } catch (notifErr) {
+        console.warn('[LiveClassService] Student notification error:', notifErr);
+      }
+
       if (db) {
         try {
           const notifRef = doc(collection(db, 'notifications'));
@@ -1093,8 +1132,10 @@ class LiveClassService {
             id: notifRef.id,
             recipientRole: 'student',
             classId,
-            title: '🔴 LIVE NOW',
+            title: `🔴 LIVE NOW: ${target?.title || 'Live Session'}`,
+            desc: `Instructor ${target?.instructorName || 'Lead Mentor'} has started the live class. Click to join!`,
             message: `${target?.title || 'Live Session'} - Instructor has started the live class.`,
+            link: `/live-classroom/room/${classId}`,
             type: 'live_class',
             createdAt: nowISO,
             read: false,

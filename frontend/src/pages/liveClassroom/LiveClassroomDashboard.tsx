@@ -430,7 +430,7 @@ export const LiveClassroomDashboard: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredClasses.map((c, idx) => {
-            const isLiveNow = c.status === 'Live';
+            const isLiveNow = normalizeLiveClassStatus(c.status) === 'live';
             const uniqueKey = c.id ? `live_class_${c.id}` : `live_class_idx_${idx}_${c.title || 'untitled'}`;
             const dt = formatClassDateTime(c.startTime, c.createdAt);
             const instInitial = (c.instructorName || 'M').charAt(0).toUpperCase();
