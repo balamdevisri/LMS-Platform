@@ -156,6 +156,7 @@ export const LiveClassroomScreen: React.FC = () => {
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
 
   const mediaClientRef = useRef<MediaClient | null>(null);
+  const hasJoinedRef = useRef<string | null>(null);
   const [isDeviceSettingsOpen, setIsDeviceSettingsOpen] = useState(false);
   const [mediaConnectionState, setMediaConnectionState] = useState<MediaConnectionState>('idle');
 
@@ -303,9 +304,16 @@ export const LiveClassroomScreen: React.FC = () => {
           setConnectionStatus(status);
         });
 
-        // Authoritative Room Join Handler
+        // Authoritative Room Join Handler with idempotency protection
         const performAuthoritativeJoin = () => {
           if (!socketInstance) return;
+
+          const joinKey = `${socketInstance.id || 'sock'}:${classId}:${currentUserUid}`;
+          if (hasJoinedRef.current === joinKey) {
+            return;
+          }
+          hasJoinedRef.current = joinKey;
+          (socketInstance as any)._hasJoinedLiveClass = classId;
 
           const joinPayload = {
             classId,
@@ -342,10 +350,7 @@ export const LiveClassroomScreen: React.FC = () => {
             }
           });
 
-          // Also emit modern canonical event
-          socketInstance.emit('liveClass:join', { liveClassId: classId, name: resolvedDisplayName });
-
-          // Join attendance tracking for students
+          // Join attendance tracking for students only
           if (!isInstructor) {
             socketInstance.emit('attendance:join', { liveClassId: classId });
           }
@@ -599,6 +604,7 @@ export const LiveClassroomScreen: React.FC = () => {
     window.addEventListener('beforeunload', handleBeforeUnload);
 
     return () => {
+      hasJoinedRef.current = null;
       clearInterval(heartbeatTimer);
       window.removeEventListener('beforeunload', handleBeforeUnload);
       if (unsubStatus) unsubStatus();
@@ -622,10 +628,11 @@ export const LiveClassroomScreen: React.FC = () => {
         socketInstance.off('liveClass:joined');
         socketInstance.off('liveClass:error');
         socketInstance.off('kicked');
+        delete (socketInstance as any)._hasJoinedLiveClass;
       }
       if (classId) socketService.leaveLiveClass(classId);
     };
-  }, [classId, userProfile, user, isInstructor, resolvedDisplayName, navigate]);
+  }, [classId, user?.uid, userProfile?.uid, isInstructor]);
 
   // --- ACTIONS ---
 

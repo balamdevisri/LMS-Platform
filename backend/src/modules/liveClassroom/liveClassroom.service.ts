@@ -310,6 +310,7 @@ export class LiveClassroomService {
     }
 
     const now = new Date().toISOString();
+    logger.info(`[LIVE_CLASS_START] Starting classId=${id} startedAt=${now}`);
     const updated = await liveClassroomRepository.updateLiveClass(id, {
       status: 'LIVE',
       startedAt: existing.startedAt || now,

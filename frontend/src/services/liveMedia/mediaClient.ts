@@ -57,15 +57,21 @@ export class MediaClient {
 
       this.setupSocketListeners();
 
-      // Emit join class request to socket signaling room
-      this.socket.emit('join_class', {
-        classId: this.config.classId,
-        liveClassId: this.config.classId,
-        userId: this.config.userId,
-        name: this.config.userName,
-        role: this.config.role,
-        token: this.config.token,
-      });
+      // Emit join class request to socket signaling room only if not already joined
+      const alreadyJoined = (this.socket as any)?._hasJoinedLiveClass === this.config.classId;
+      if (!alreadyJoined) {
+        if (this.socket) {
+          (this.socket as any)._hasJoinedLiveClass = this.config.classId;
+        }
+        this.socket.emit('join_class', {
+          classId: this.config.classId,
+          liveClassId: this.config.classId,
+          userId: this.config.userId,
+          name: this.config.userName,
+          role: this.config.role,
+          token: this.config.token,
+        });
+      }
 
       // Add self as local participant
       this.participants.set(this.config.userId, {

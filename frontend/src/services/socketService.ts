@@ -122,11 +122,6 @@ class SocketService {
     // Connection lifecycle — drives the connection status indicator in the UI
     this.socket.on('connect', () => {
       this.emitStatus('connected');
-      // Automatically rejoin live classroom upon reconnect
-      if (this.currentLiveClassId && this.socket) {
-        this.socket.emit('liveClass:join', { liveClassId: this.currentLiveClassId });
-        this.socket.emit('attendance:join', { liveClassId: this.currentLiveClassId });
-      }
     });
 
     this.socket.on('disconnect', () => {
@@ -143,6 +138,20 @@ class SocketService {
 
     this.socket.io.on('reconnect', () => {
       this.emitStatus('connected');
+      // Automatically rejoin live classroom upon reconnect only
+      if (this.currentLiveClassId && this.socket) {
+        console.info(`[LIVE_CLASS_RECONNECT] Auto-rejoining live class ${this.currentLiveClassId} on socket reconnect`);
+        this.socket.emit('join_class', {
+          classId: this.currentLiveClassId,
+          liveClassId: this.currentLiveClassId,
+          userId: currentAuth.userId,
+          name: currentAuth.name,
+          role: currentAuth.role,
+        });
+        if (currentAuth.role !== 'instructor' && currentAuth.role !== 'admin') {
+          this.socket.emit('attendance:join', { liveClassId: this.currentLiveClassId });
+        }
+      }
     });
 
     this.socket.io.on('reconnect_failed', () => {
@@ -276,15 +285,23 @@ class SocketService {
         return reject(new Error('Socket not initialized. Please connect first.'));
       }
       this.currentLiveClassId = liveClassId;
-      this.socket.emit('liveClass:join', { liveClassId, name }, (response: any) => {
+      this.socket.emit('join_class', {
+        classId: liveClassId,
+        liveClassId,
+        name: name || this.currentAuth?.name,
+        userId: this.currentAuth?.userId,
+        role: this.currentAuth?.role,
+      }, (response: any) => {
         if (response && response.error) {
           reject(response);
         } else {
           resolve(response);
         }
       });
-      // Fallback join attendance
-      this.socket.emit('attendance:join', { liveClassId });
+      // Join attendance tracking for students only
+      if (this.currentAuth?.role !== 'instructor' && this.currentAuth?.role !== 'admin') {
+        this.socket.emit('attendance:join', { liveClassId });
+      }
     });
   }
 

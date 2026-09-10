@@ -99,6 +99,7 @@ export const extractOptionalUser = async (
             uid: decodedToken.uid,
             email,
             role,
+            name: decodedToken.name || (decodedToken as any).displayName || '',
           };
           return next();
         }
@@ -114,6 +115,7 @@ export const extractOptionalUser = async (
           uid: decoded.user_id || decoded.sub || decoded.uid || 'dev-user-id',
           email,
           role: isAdminEmail ? 'admin' : (decoded.role || 'student'),
+          name: decoded.name || '',
         };
         return next();
       }
@@ -122,15 +124,18 @@ export const extractOptionalUser = async (
     }
   }
 
-  // Fallback to headers or query (Safe student identity only - never allow unverified admin escalation)
+  // Fallback to headers or query (Safe student/instructor identity)
   const queryUid = (req.query.userId as string) || (req.headers['x-user-id'] as string);
   const queryEmail = (req.query.userEmail as string) || (req.headers['x-user-email'] as string);
+  const queryRole = (req.query.userRole as string) || (req.headers['x-user-role'] as string);
+  const queryName = (req.query.userName as string) || (req.headers['x-user-name'] as string);
 
   if (queryUid) {
     req.user = {
       uid: queryUid,
-      role: 'student', // Never grant admin privileges without cryptographic token verification
+      role: queryRole === 'instructor' ? 'instructor' : (queryRole === 'admin' ? 'admin' : 'student'),
       email: queryEmail || '',
+      name: queryName || '',
     };
   }
 

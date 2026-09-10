@@ -123,8 +123,60 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
 
       const userUid = user.uid || user.id;
       const userRole = (user.role || 'student').toLowerCase();
+      const roomName = `live-class:${liveClassId}`;
 
-      logger.info(`[LiveClass][JOIN_ATTEMPT] classId=${liveClassId} userUid=${userUid} role=${userRole}`);
+      // --- 1. IDEMPOTENCY CHECK: If this exact socket has already joined this class room, return snapshot and skip duplicate events ---
+      const existingRoomMap = activeRoomPresences.get(liveClassId);
+      if (existingRoomMap && existingRoomMap.has(socket.id)) {
+        logger.info(`[LIVE_CLASS_JOIN_DEDUP] classId=${liveClassId} userUid=${userUid} socketId=${socket.id}`);
+        if (!socket.rooms.has(roomName)) {
+          socket.join(roomName);
+        }
+        const currentRoster = getRoomParticipants(liveClassId);
+        const activeCount = currentRoster.length;
+        const formattedParticipants = currentRoster.map((p) => ({
+          userId: p.userId,
+          name: p.name,
+          role: p.role,
+          isAudioOn: p.isAudioOn ?? false,
+          isVideoOn: p.isVideoOn ?? false,
+          isScreenSharing: p.isScreenSharing ?? false,
+          isSpeaking: p.isSpeaking ?? false,
+          audioLevel: p.audioLevel ?? 0,
+          isMutedByInstructor: p.isMutedByInstructor ?? false,
+          micPermission: p.micPermission ?? 'prompt',
+          isPinned: p.isPinned ?? false,
+        }));
+        const existingClass = await liveClassroomService.getLiveClassById(liveClassId).catch(() => null);
+        const classroomSettings = getClassroomSettings(liveClassId);
+        const successPayload = {
+          success: true,
+          liveClassId,
+          roomName,
+          status: (existingClass?.status || 'SCHEDULED').toUpperCase(),
+          onlineCount: activeCount,
+          participants: formattedParticipants,
+          settings: classroomSettings,
+          activeSpeaker: getRoomActiveSpeaker(liveClassId),
+          screenShare: getRoomScreenShare(liveClassId),
+          pinnedUserId: getRoomPinned(liveClassId),
+        };
+        socket.emit('liveClass:joined', successPayload);
+        if (callback) callback(successPayload);
+        return;
+      }
+
+      // --- 2. RECONNECT RECONCILIATION: Check if user is reconnecting from an older socket ID ---
+      if (existingRoomMap) {
+        for (const [sId, p] of existingRoomMap.entries()) {
+          if (p.userId === userUid && sId !== socket.id) {
+            logger.info(`[LIVE_CLASS_RECONNECT] classId=${liveClassId} userUid=${userUid} oldSocketId=${sId} newSocketId=${socket.id}`);
+            existingRoomMap.delete(sId);
+          }
+        }
+      }
+
+      logger.info(`[LIVE_CLASS_JOIN] classId=${liveClassId} userUid=${userUid} role=${userRole}`);
 
       // Query class status from DB with authorization verification
       let classStatus = 'SCHEDULED';
@@ -230,7 +282,6 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
         }
       }
 
-      const roomName = `live-class:${liveClassId}`;
       socket.join(roomName);
       logger.info(`[LiveClass][ROOM_JOIN] classId=${liveClassId} userUid=${userUid} room=${roomName}`);
 
@@ -667,10 +718,18 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
     io.emit('liveClass:published', data);
     io.emit('live_class_scheduled', data);
 
-    // Persist to authoritative repository
+    // Persist to authoritative repository (upsert without changing canonical classId)
     try {
       if (data?.liveClass) {
-        await liveClassroomService.createLiveClass(data.liveClass);
+        const targetId = data.liveClass.id || data.liveClass.classId;
+        if (targetId) {
+          const exists = await liveClassroomService.getLiveClassById(targetId);
+          if (exists) {
+            await liveClassroomService.updateLiveClass(targetId, data.liveClass);
+          } else {
+            await liveClassroomService.createLiveClass(data.liveClass);
+          }
+        }
       }
     } catch (repoErr: any) {
       logger.warn('[SOCKET] Error persisting liveClass on publish:', repoErr?.message || repoErr);
@@ -1284,7 +1343,15 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
     io.emit('live_class_scheduled', data);
     try {
       if (data?.liveClass) {
-        await liveClassroomService.createLiveClass(data.liveClass);
+        const targetId = data.liveClass.id || data.liveClass.classId;
+        if (targetId) {
+          const exists = await liveClassroomService.getLiveClassById(targetId);
+          if (exists) {
+            await liveClassroomService.updateLiveClass(targetId, data.liveClass);
+          } else {
+            await liveClassroomService.createLiveClass(data.liveClass);
+          }
+        }
       }
     } catch (err: any) {
       logger.warn('[SOCKET] Error persisting live_class_scheduled:', err?.message || err);

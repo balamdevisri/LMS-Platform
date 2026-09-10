@@ -210,28 +210,64 @@ class LiveClassService {
     return API_BASE_URL;
   }
 
-  getAuthHeaders(): Record<string, string> {
+  async getAuthHeadersAsync(): Promise<Record<string, string>> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
     try {
-      let token = localStorage.getItem('shaivika_auth_token') || localStorage.getItem('token');
+      let token = localStorage.getItem('shaivika_auth_token') || localStorage.getItem('token') || localStorage.getItem('firebase_token');
       if (auth?.currentUser) {
-        auth.currentUser.getIdToken().then((fresh) => {
+        try {
+          const fresh = await auth.currentUser.getIdToken();
           if (fresh) {
+            token = fresh;
             localStorage.setItem('shaivika_auth_token', fresh);
           }
-        }).catch(() => {});
+        } catch {}
       }
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
       const rawUser = localStorage.getItem('shaivika_user');
       if (rawUser) {
-        const u = JSON.parse(rawUser);
-        if (u.uid) headers['x-user-id'] = u.uid;
-        if (u.role) headers['x-user-role'] = u.role;
-        if (u.email) headers['x-user-email'] = u.email;
+        try {
+          const u = JSON.parse(rawUser);
+          if (u.uid) headers['x-user-id'] = u.uid;
+          if (u.role) headers['x-user-role'] = u.role;
+          if (u.email) headers['x-user-email'] = u.email;
+          if (u.name || u.displayName) headers['x-user-name'] = u.name || u.displayName;
+        } catch {}
+      } else if (auth?.currentUser) {
+        headers['x-user-id'] = auth.currentUser.uid;
+        if (auth.currentUser.email) headers['x-user-email'] = auth.currentUser.email;
+        if (auth.currentUser.displayName) headers['x-user-name'] = auth.currentUser.displayName;
+      }
+    } catch {}
+    return headers;
+  }
+
+  getAuthHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    try {
+      let token = localStorage.getItem('shaivika_auth_token') || localStorage.getItem('token') || localStorage.getItem('firebase_token');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      const rawUser = localStorage.getItem('shaivika_user');
+      if (rawUser) {
+        try {
+          const u = JSON.parse(rawUser);
+          if (u.uid) headers['x-user-id'] = u.uid;
+          if (u.role) headers['x-user-role'] = u.role;
+          if (u.email) headers['x-user-email'] = u.email;
+          if (u.name || u.displayName) headers['x-user-name'] = u.name || u.displayName;
+        } catch {}
+      } else if (auth?.currentUser) {
+        headers['x-user-id'] = auth.currentUser.uid;
+        if (auth.currentUser.email) headers['x-user-email'] = auth.currentUser.email;
+        if (auth.currentUser.displayName) headers['x-user-name'] = auth.currentUser.displayName;
       }
     } catch {}
     return headers;
@@ -262,7 +298,7 @@ class LiveClassService {
 
   async syncWithBackend(): Promise<LiveClass[]> {
     try {
-      const headers = this.getAuthHeaders();
+      const headers = await this.getAuthHeadersAsync();
       const res = await fetch(`${this.getApiUrl()}/live-classroom`, {
         method: 'GET',
         headers,
@@ -479,15 +515,15 @@ class LiveClassService {
   }
 
   async createLiveClass(data: Omit<LiveClass, 'id' | 'classId' | 'createdAt' | 'updatedAt' | 'meetingRoomId'> & { id?: string; classId?: string; meetingRoomId?: string }): Promise<LiveClass> {
-    const id = data.id || data.classId || `live_class_${Date.now()}`;
+    const canonicalId = data.id || data.classId || `class_${Date.now()}`;
     const courseSlug = (data.courseName || 'batch').toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
     const roomId = data.meetingRoomId || `kaizenq-${courseSlug}-${Date.now().toString().slice(-4)}`;
-    const meetingUrl = data.meetingUrl || `/live-classroom/room/${id}`;
+    const meetingUrl = data.meetingUrl || `/live-classroom/room/${canonicalId}`;
 
     const newClass: LiveClass = {
       ...data,
-      id,
-      classId: id,
+      id: canonicalId,
+      classId: canonicalId,
       meetingProvider: data.meetingProvider || 'kaizenq',
       meetingRoomId: roomId,
       meetingUrl: meetingUrl,
@@ -495,26 +531,42 @@ class LiveClassService {
       updatedAt: new Date().toISOString(),
     };
 
-    const current = this.getLiveClassesSync();
-    const updated = [newClass, ...current.filter((c) => (c.id || c.classId) !== id)];
-    this.saveClasses(updated);
-
-    // 2. Persist to authoritative Backend REST API
+    // 1. Persist to authoritative Backend REST API
+    let persistedClass = newClass;
     try {
-      const headers = this.getAuthHeaders();
-      await fetch(`${this.getApiUrl()}/live-classroom`, {
+      const headers = await this.getAuthHeadersAsync();
+      const res = await fetch(`${this.getApiUrl()}/live-classroom`, {
         method: 'POST',
         headers,
         body: JSON.stringify(newClass),
       });
-    } catch (e) {
-      console.warn('[LiveClassService] Backend createLiveClass notice:', e);
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => null);
+        throw new Error(errJson?.error || `Failed to create live class in backend: ${res.statusText}`);
+      }
+
+      const resJson = await res.json().catch(() => null);
+      if (resJson?.data || resJson?.liveClass) {
+        const returned = resJson.data || resJson.liveClass;
+        const finalId = returned.id || returned.classId || canonicalId;
+        persistedClass = { ...newClass, ...returned, id: finalId, classId: finalId };
+      }
+    } catch (e: any) {
+      console.error('[LiveClassService] Authoritative backend creation failed:', e);
+      throw e;
     }
+
+    // 2. Persist to local cache only after successful backend persistence
+    const current = this.getLiveClassesSync();
+    const finalId = persistedClass.id || persistedClass.classId;
+    const updated = [persistedClass, ...current.filter((c) => (c.id || c.classId) !== finalId)];
+    this.saveClasses(updated);
 
     // 3. Persist to Firestore Client
     try {
       if (db) {
-        await setDoc(doc(db, 'liveClasses', id), newClass);
+        await setDoc(doc(db, 'liveClasses', finalId), persistedClass);
       }
     } catch (e) {
       console.warn('Firestore createLiveClass notice:', e);
@@ -697,7 +749,7 @@ class LiveClassService {
 
     // 2. Persist to authoritative Backend REST API
     try {
-      const headers = this.getAuthHeaders();
+      const headers = await this.getAuthHeadersAsync();
       await fetch(`${this.getApiUrl()}/live-classroom/${encodeURIComponent(id)}`, {
         method: 'PATCH',
         headers,
@@ -1188,23 +1240,6 @@ class LiveClassService {
   }
 
   // --- LIVE CONTROL CENTER REST API CLIENT HELPERS ---
-
-  private getApiUrl(): string {
-    return API_BASE_URL;
-  }
-
-  private async getAuthHeaders(): Promise<Record<string, string>> {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-    try {
-      const token = localStorage.getItem('token') || localStorage.getItem('shaivika_auth_token') || localStorage.getItem('firebase_token');
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-    } catch {}
-    return headers;
-  }
 
   async startClass(
     classId: string,

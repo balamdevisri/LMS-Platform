@@ -1,0 +1,1 @@
+import{r as e}from"./rolldown-runtime-B0Z9INg1.js";import{a as t,i as n,n as r,r as i,t as a}from"./firebase-De03ogXp.js";var o=e({app:()=>n,auth:()=>a,db:()=>r,default:()=>s,firebaseConfig:()=>i,storage:()=>t}),s=n;export{o as t};

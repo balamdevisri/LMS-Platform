@@ -326,7 +326,7 @@ export const AdminCreateLiveClass: React.FC = () => {
       .filter((t) => t.length > 0)
       .filter((val, idx, arr) => arr.indexOf(val) === idx);
 
-    const classIdToUse = id || `class_live_${Date.now()}`;
+    const classIdToUse = id || `class_${Date.now()}`;
     const statusToUse = shouldPublish ? 'PUBLISHED' : (isEditing ? (status as any) : 'SCHEDULED');
 
     const payload: any = {
@@ -379,18 +379,6 @@ export const AdminCreateLiveClass: React.FC = () => {
           createdAt: new Date().toISOString(),
           createdBy: userProfile?.uid || user?.uid || 'admin',
         } as any);
-      }
-
-      // Broadcast real-time socket announcement and trigger notification pipeline
-      try {
-        socketService.publishLiveClass(payload, { audience: targetAudience, batch: targetBatch, section: targetSection });
-      } catch (e) {
-        console.warn('[AdminCreateLiveClass] Socket publish notice:', e);
-      }
-      try {
-        webNotificationService.notifyLiveClassScheduled(payload as any);
-      } catch (e) {
-        console.warn('[AdminCreateLiveClass] Web notification notice:', e);
       }
 
       if (shouldPublish || statusToUse === 'PUBLISHED') {

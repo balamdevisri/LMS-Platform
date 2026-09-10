@@ -179,13 +179,33 @@ const seedMemory = () => {
 };
 seedMemory();
 
+/**
+ * Deeply strips all undefined fields from an object to prevent Firestore "Cannot use undefined as a Firestore value" errors.
+ */
+export function sanitizeForFirestore<T extends Record<string, any>>(obj: T): Record<string, any> {
+  const clean: Record<string, any> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value === undefined) {
+      continue;
+    }
+    if (value !== null && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+      clean[key] = sanitizeForFirestore(value);
+    } else {
+      clean[key] = value;
+    }
+  }
+  return clean;
+}
+
 export class LiveClassroomRepository {
   // --- 1. Live Class Operations ---
 
   public async createLiveClass(data: Partial<ILiveClassData>): Promise<ILiveClassData> {
     const classId = data.id || data.classId || `class_${Date.now()}`;
     const now = new Date().toISOString();
-    const payload: ILiveClassData = {
+    const isLive = String(data.status || '').toLowerCase() === 'live';
+
+    const payload: Partial<ILiveClassData> = {
       id: classId,
       classId,
       courseId: data.courseId || 'course_default',
@@ -198,9 +218,6 @@ export class LiveClassroomRepository {
       youtubeVideoId: data.youtubeVideoId || '',
       scheduledAt: data.scheduledAt || data.startTime || now,
       startTime: data.startTime || data.scheduledAt || now,
-      startedAt: data.startedAt || (data.status === 'live' || data.status === 'LIVE' ? now : undefined),
-      endTime: data.endTime,
-      endedAt: data.endedAt,
       duration: data.duration || 60,
       status: (data.status as any) || 'scheduled',
       mode: (data as any).mode || (data.youtubeVideoId ? 'youtube' : 'interactive'),
@@ -224,33 +241,59 @@ export class LiveClassroomRepository {
       updatedAt: now,
     };
 
+    // Strict startedAt rule:
+    // If class is live, set startedAt. If not live, omit or preserve existing startedAt.
+    // NEVER assign undefined.
+    if (isLive) {
+      payload.startedAt = data.startedAt || now;
+    } else if (data.startedAt) {
+      payload.startedAt = data.startedAt;
+    }
+
+    if (data.endTime) payload.endTime = data.endTime;
+    if (data.endedAt) payload.endedAt = data.endedAt;
+
+    const cleanPayload = sanitizeForFirestore(payload);
+
     if (isFirebaseAdminInitialized()) {
       try {
-        await db.collection('liveClasses').doc(classId).set(payload, { merge: true });
-      } catch (err) {
+        await db.collection('liveClasses').doc(classId).set(cleanPayload, { merge: true });
+        logger.info(`[REPO] Successfully persisted liveClass ${classId} to Firestore`);
+      } catch (err: any) {
         logger.error('[REPO] Failed to create liveClass in Firestore:', err);
+        throw new Error(`Firestore creation failed: ${err?.message || err}`);
       }
     }
 
-    memoryDb.liveClasses.set(classId, payload);
-    return payload;
+    const fullPayload = payload as ILiveClassData;
+    memoryDb.liveClasses.set(classId, fullPayload);
+    return fullPayload;
   }
 
   public async updateLiveClass(id: string, updates: Partial<ILiveClassData>): Promise<ILiveClassData | null> {
     const now = new Date().toISOString();
-    const patch = { ...updates, updatedAt: now };
+    const isLive = updates.status && String(updates.status).toLowerCase() === 'live';
+    const patch: Record<string, any> = { ...updates, updatedAt: now };
+
+    if (isLive && !patch.startedAt) {
+      patch.startedAt = now;
+    }
+
+    const cleanPatch = sanitizeForFirestore(patch);
 
     if (isFirebaseAdminInitialized()) {
       try {
-        await db.collection('liveClasses').doc(id).set(patch, { merge: true });
-      } catch (err) {
+        await db.collection('liveClasses').doc(id).set(cleanPatch, { merge: true });
+        logger.info(`[REPO] Successfully updated liveClass ${id} in Firestore`);
+      } catch (err: any) {
         logger.error('[REPO] Failed to update liveClass in Firestore:', err);
+        throw new Error(`Firestore update failed: ${err?.message || err}`);
       }
     }
 
     const existing = memoryDb.liveClasses.get(id);
     if (existing) {
-      const updated = { ...existing, ...patch };
+      const updated = { ...existing, ...cleanPatch } as ILiveClassData;
       memoryDb.liveClasses.set(id, updated);
       return updated;
     }

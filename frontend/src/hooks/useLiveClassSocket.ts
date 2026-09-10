@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { socketService } from '@/services/socketService';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -99,6 +99,7 @@ export const useLiveClassSocket = (liveClassId?: string, initialStatus?: string)
   const [classStatus, setClassStatus] = useState<string>(initialStatus || 'SCHEDULED');
   const [hasRaisedHand, setHasRaisedHand] = useState<boolean>(false);
   const [classroomSettings, setClassroomSettings] = useState<ClassroomInteractionSettings>(DEFAULT_CLASSROOM_SETTINGS);
+  const hasJoinedRef = useRef<string | null>(null);
 
   const currentUserId = userProfile?.uid || user?.uid || 'student_guest';
   const currentUserName = userProfile?.name || user?.displayName || 'Student';
@@ -249,18 +250,22 @@ export const useLiveClassSocket = (liveClassId?: string, initialStatus?: string)
     const handleConnect = () => {
       if (!isMounted) return;
       setConnectionStatus('connected');
-      socketService
-        .joinLiveClass(liveClassId, currentUserName)
-        .then((res) => {
-          if (!isMounted) return;
-          if (res?.onlineCount) setOnlineCount(res.onlineCount);
-          if (res?.participants) setParticipants(res.participants);
-          if (res?.status) setClassStatus(res.status);
-          if (res?.settings) setClassroomSettings(res.settings);
-        })
-        .catch((_err) => {
-          // Connected spectator fallback
-        });
+      const joinKey = `${liveClassId}:${currentUserId}`;
+      if (hasJoinedRef.current !== joinKey) {
+        hasJoinedRef.current = joinKey;
+        socketService
+          .joinLiveClass(liveClassId, currentUserName)
+          .then((res) => {
+            if (!isMounted) return;
+            if (res?.onlineCount) setOnlineCount(res.onlineCount);
+            if (res?.participants) setParticipants(res.participants);
+            if (res?.status) setClassStatus(res.status);
+            if (res?.settings) setClassroomSettings(res.settings);
+          })
+          .catch((_err) => {
+            // Connected spectator fallback
+          });
+      }
       socketService.getClassroomSettings(liveClassId).then((res: any) => {
         if (!isMounted) return;
         if (res?.settings) setClassroomSettings(res.settings);
@@ -377,9 +382,10 @@ export const useLiveClassSocket = (liveClassId?: string, initialStatus?: string)
         activeSocket.off('liveClass:status', handleLiveClassStatus);
         activeSocket.off('liveClass:interaction:state', handleInteractionState);
       }
+      hasJoinedRef.current = null;
       socketService.leaveLiveClass(liveClassId);
     };
-  }, [liveClassId, user, currentUserId, currentUserName, currentUserRole, currentUserEmail]);
+  }, [liveClassId, user?.uid, currentUserId, currentUserName, currentUserRole, currentUserEmail]);
 
   // Action Dispatchers
   const sendChat = useCallback(

@@ -30,6 +30,12 @@ export const registerAttendanceHandlers = (io: SocketServer, socket: Authenticat
     const sessionKey = `${studentId}:${liveClassId}`;
     const existingSocketId = userClassIndex.get(sessionKey);
 
+    // If this exact socket has already joined, ignore duplicate join
+    if (existingSocketId === socket.id && activeSessions.has(socket.id)) {
+      logger.info(`[ATTENDANCE] Duplicate join ignored for student ${user.name || studentId} in ${liveClassId}`);
+      return;
+    }
+
     // If there's an existing session for this user in this class (reconnect scenario),
     // remove the stale entry without persisting a leave record — this was a reconnect,
     // not an intentional leave. The original joinedAt is preserved via the new session entry.
