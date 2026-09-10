@@ -56,6 +56,23 @@ export const registerChatHandlers = (io: SocketServer, socket: AuthenticatedSock
           return;
         }
 
+        // Live Class Access Authorization Check
+        const accessCheck = await liveClassroomService.getLiveClassForStudent(liveClassId, {
+          uid: user.uid || user.id,
+          role: user.role,
+          email: user.email,
+        });
+        if (!accessCheck.authorized) {
+          const errRes = {
+            success: false,
+            error: 'LIVE_CLASS_ACCESS_DENIED',
+            message: accessCheck.error || 'You are not authorized to participate in this class.',
+          };
+          socket.emit('chat:error', errRes);
+          if (callback) callback(errRes);
+          return;
+        }
+
         // Authoritative Interaction Settings Check
         const settings = getClassroomSettings(liveClassId);
         if (user.role === 'student' && !settings.chat.enabled) {

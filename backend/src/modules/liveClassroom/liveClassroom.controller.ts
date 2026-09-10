@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { liveClassroomService } from './liveClassroom.service';
+import { notificationService } from '../notifications/notification.service';
 import { getLiveNamespace } from '../../socket/socket.server';
 
 export class LiveClassroomController {
@@ -177,6 +178,17 @@ export class LiveClassroomController {
         liveNS.emit('liveClass:status', payload);
         liveNS.emit('live_class_started', payload);
       }
+
+      // Durable notification dispatch to eligible students
+      (async () => {
+        try {
+          if (liveClass) {
+            await notificationService.dispatchLiveClassNotification(liveClass, 'STARTED', liveNS);
+          }
+        } catch (notifErr: any) {
+          console.warn('[LiveClassroomController] Start notification notice:', notifErr?.message || notifErr);
+        }
+      })();
 
       res.json({ success: true, message: 'Class set to live status', data: liveClass, liveClass });
     } catch (err: any) {

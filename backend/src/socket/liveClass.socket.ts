@@ -1,6 +1,7 @@
 import { Server as SocketServer } from 'socket.io';
 import { AuthenticatedSocket } from './socket.auth';
 import { liveClassroomService } from '../modules/liveClassroom/liveClassroom.service';
+import { notificationService } from '../modules/notifications/notification.service';
 import logger from '../config/logger';
 import { ClassroomInteractionSettings, DEFAULT_CLASSROOM_SETTINGS } from '../validators/liveClassroomSettings';
 
@@ -438,6 +439,23 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
         status: 'LIVE',
         startedAt: new Date().toISOString(),
       });
+      io.emit('live_class_started', {
+        liveClassId,
+        status: 'LIVE',
+        startedAt: new Date().toISOString(),
+      });
+
+      // Trigger durable notification pipeline to eligible students for live start
+      (async () => {
+        try {
+          const classDoc = await liveClassroomService.getLiveClassById(liveClassId);
+          if (classDoc) {
+            await notificationService.dispatchLiveClassNotification(classDoc, 'STARTED', io);
+          }
+        } catch (notifErr: any) {
+          logger.warn(`[SOCKET] Live class started notification pipeline error for ${liveClassId}:`, notifErr?.message || notifErr);
+        }
+      })();
     } else if (normStatus === 'ENDED' || normStatus === 'COMPLETED') {
       io.to(roomName).emit('live_class_ended', {
         liveClassId,
@@ -608,10 +626,19 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
   });
 
   // Global Real-Time Event: Live Class Published & Student Notification Pipeline
-  socket.on('liveClass:published', (data: { liveClass: any; audience?: any }) => {
+  socket.on('liveClass:published', async (data: { liveClass: any; audience?: any }) => {
     logger.info(`[SOCKET] Live class published & broadcasting notification: ${data?.liveClass?.title}`);
     io.emit('liveClass:published', data);
     io.emit('live_class_scheduled', data);
+
+    // Trigger durable notification pipeline to eligible students
+    try {
+      if (data?.liveClass) {
+        await notificationService.dispatchLiveClassNotification(data.liveClass, 'PUBLISHED', io);
+      }
+    } catch (notifErr: any) {
+      logger.warn('[SOCKET] Error in liveClass:published notification dispatch:', notifErr?.message || notifErr);
+    }
   });
 
   // 6. Moderation: Mute Student, Mute All Students, Allow Mic, Ask to Unmute & Kick Participant

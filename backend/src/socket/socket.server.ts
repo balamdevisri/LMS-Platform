@@ -31,6 +31,13 @@ export const setupSocketServer = (io: SocketServer) => {
     const user = authSocket.user;
     logger.info(`[SOCKET CONNECTED] Socket ID: ${socket.id} | User: ${user?.name || user?.email || 'Anonymous'} (${user?.role || 'student'})`);
 
+    // Ensure socket joins personal user room for direct real-time notifications
+    const targetUserId = user?.uid || user?.id;
+    if (targetUserId) {
+      socket.join(`user:${targetUserId}`);
+      logger.info(`[SOCKET ROOM] Socket ${socket.id} joined personal room user:${targetUserId}`);
+    }
+
     // Register All Feature Socket Handlers
     registerLiveClassHandlers(liveNS as any, authSocket);
     registerChatHandlers(liveNS as any, authSocket);

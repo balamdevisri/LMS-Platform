@@ -190,6 +190,14 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
       }
     });
 
+    // Listen for server-side chat rejection or rate limiting
+    const handleChatError = (errData: { error?: string; message?: string }) => {
+      if (errData?.message) {
+        toast.error(errData.message);
+      }
+    };
+    socket.on('chat:error', handleChatError);
+
     return () => {
       socket.off('chat_received', handleIncomingMessage);
       socket.off('chat:message', handleIncomingMessage);
@@ -197,6 +205,7 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
       socket.off('typing_received');
       socket.off('student_muted');
       socket.off('room_chat_muted');
+      socket.off('chat:error', handleChatError);
     };
   }, [socket, currentUser.uid, isInstructor]);
 
