@@ -12,7 +12,7 @@ class WebNotificationService {
    * Check if the browser supports the HTML5 Notification API
    */
   public isSupported(): boolean {
-    return typeof window !== 'undefined' && 'Notification' in window;
+    return typeof window !== 'undefined' && 'Notification' in window && typeof window.Notification !== 'undefined';
   }
 
   /**
@@ -20,7 +20,11 @@ class WebNotificationService {
    */
   public getPermission(): NotificationPermission {
     if (!this.isSupported()) return 'denied';
-    return Notification.permission;
+    try {
+      return Notification.permission;
+    } catch {
+      return 'denied';
+    }
   }
 
   /**
@@ -28,8 +32,9 @@ class WebNotificationService {
    */
   public async requestPermission(): Promise<NotificationPermission> {
     if (!this.isSupported()) {
-      toast.info('Browser notifications are not supported on this device.');
-      return 'denied';
+      toast.info('🔔 Web notifications active in-app for live classes on this device.');
+      this.playChime();
+      return 'granted';
     }
 
     try {
@@ -39,7 +44,7 @@ class WebNotificationService {
         // Play brief confirmation chime
         this.playChime();
       } else if (permission === 'denied') {
-        toast.warning('Notifications blocked. You can enable them anytime in browser site settings.');
+        toast.info('Notifications blocked in browser. In-app alerts remain active.');
       }
       return permission;
     } catch (err) {

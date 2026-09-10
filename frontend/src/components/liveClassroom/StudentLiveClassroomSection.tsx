@@ -17,7 +17,7 @@ export const StudentLiveClassroomSection: React.FC = () => {
   const navigate = useNavigate();
   const [classes, setClasses] = useState<LiveClass[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState<'today' | 'upcoming' | 'completed' | 'missed'>('today');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'today' | 'upcoming' | 'completed' | 'missed'>('all');
   const [notifPermission, setNotifPermission] = useState<NotificationPermission>(webNotificationService.getPermission());
 
   const handleEnableNotifications = async () => {
@@ -52,7 +52,14 @@ export const StudentLiveClassroomSection: React.FC = () => {
     return d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
   };
 
+  const activeLiveClasses = useMemo(() => {
+    return classes.filter((c) => normalizeLiveClassStatus(c.status) === 'live');
+  }, [classes]);
+
   const filteredClasses = useMemo(() => {
+    if (activeFilter === 'all') {
+      return classes.filter((c) => normalizeLiveClassStatus(c.status) !== 'completed');
+    }
     if (activeFilter === 'today') {
       return classes.filter((c) => (isToday(c.startTime) || normalizeLiveClassStatus(c.status) === 'live') && normalizeLiveClassStatus(c.status) !== 'completed');
     }
@@ -69,6 +76,7 @@ export const StudentLiveClassroomSection: React.FC = () => {
   }, [classes, activeFilter, nowMs]);
 
   // Counts
+  const allCount = useMemo(() => classes.filter((c) => normalizeLiveClassStatus(c.status) !== 'completed').length, [classes]);
   const todayCount = useMemo(() => classes.filter((c) => isToday(c.startTime) || normalizeLiveClassStatus(c.status) === 'live').length, [classes]);
   const upcomingCount = useMemo(() => classes.filter((c) => new Date(c.startTime).getTime() > nowMs && normalizeLiveClassStatus(c.status) !== 'completed').length, [classes]);
   const completedCount = useMemo(() => classes.filter((c) => normalizeLiveClassStatus(c.status) === 'completed').length, [classes]);
@@ -148,6 +156,17 @@ export const StudentLiveClassroomSection: React.FC = () => {
         {/* Filter Buttons */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
           <button
+            onClick={() => setActiveFilter('all')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              activeFilter === 'all'
+                ? 'bg-blue-600 dark:bg-cyan-600 text-white shadow-md shadow-blue-500/20'
+                : 'bg-slate-50 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-sky-50 dark:hover:bg-zinc-700 border border-slate-200 dark:border-zinc-700'
+            }`}
+          >
+            All Sessions ({allCount})
+          </button>
+
+          <button
             onClick={() => setActiveFilter('today')}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               activeFilter === 'today'
@@ -192,6 +211,44 @@ export const StudentLiveClassroomSection: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Prominent Live Classroom Alert Banner (Displays whenever a session is actively LIVE) */}
+      {activeLiveClasses.length > 0 && (
+        <div className="bg-gradient-to-r from-rose-500/15 via-red-500/10 to-rose-500/15 border-2 border-rose-500/40 dark:border-rose-500/30 rounded-2xl p-4 sm:p-5 shadow-lg shadow-rose-500/5">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-start sm:items-center gap-3">
+              <span className="relative flex h-3.5 w-3.5 mt-1 sm:mt-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-rose-500"></span>
+              </span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded-md bg-rose-600 text-white font-extrabold text-[10px] uppercase tracking-wider">
+                    🔴 LIVE NOW
+                  </span>
+                  <span className="text-xs font-bold text-slate-600 dark:text-zinc-400">
+                    {activeLiveClasses[0].courseName || 'Enterprise Live Class'}
+                  </span>
+                </div>
+                <h3 className="font-heading font-extrabold text-sm sm:text-base text-slate-900 dark:text-white mt-1">
+                  {activeLiveClasses[0].title}
+                </h3>
+                <p className="text-xs text-slate-600 dark:text-zinc-300">
+                  Assigned Instructor: <strong className="text-blue-600 dark:text-cyan-400">{activeLiveClasses[0].instructorName || 'Lead Faculty'}</strong>
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => handleJoinLive(activeLiveClasses[0])}
+              className="px-5 py-2.5 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-rose-600/25 flex items-center gap-2 cursor-pointer transition-all shrink-0"
+            >
+              <Radio className="w-4 h-4 animate-pulse" />
+              <span>Join Live Classroom</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Class Cards Grid */}
       {loading ? (

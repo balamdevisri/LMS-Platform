@@ -187,29 +187,17 @@ const RESOURCES_STORAGE_KEY = 'kaizenq_live_resources_v4';
 export const isMockLiveClass = (c: any): boolean => {
   if (!c) return true;
   const id = String(c.id || c.classId || '').toLowerCase().trim();
-  const courseId = String(c.courseId || '').toLowerCase().trim();
   const title = String(c.title || '').toLowerCase().trim();
   const desc = String(c.description || '').toLowerCase().trim();
   return (
     id === 'live_linux_kernel_1' ||
     id === 'live_git_conflict_2' ||
     id === 'live_ebpf_perf_3' ||
-    id === 'class_react_101_live' ||
-    id === 'class_linux_101_live' ||
-    courseId === 'course_linux_kernel' ||
-    courseId === 'course_git_mastery' ||
-    courseId === 'course_linux_perf' ||
-    courseId === 'react-101' ||
-    courseId === 'course_linux_101' ||
-    id.includes('demo') ||
-    id.includes('sample') ||
-    id.includes('mock') ||
-    title.includes('demo') ||
-    title.includes('sample') ||
-    title.includes('mock') ||
-    title.includes('test live') ||
-    desc.includes('demo live') ||
-    desc.includes('sample live')
+    id.startsWith('mock_') ||
+    id.startsWith('demo_') ||
+    (id.includes('mock') && !id.startsWith('class_')) ||
+    title.startsWith('mock live test') ||
+    title.startsWith('sample demo test')
   );
 };
 

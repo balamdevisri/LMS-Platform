@@ -144,7 +144,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return null;
     }
   });
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(() => {
+    try {
+      const hasUser = Boolean(localStorage.getItem('shaivika_user'));
+      const hasToken = Boolean(localStorage.getItem('shaivika_auth_token') || localStorage.getItem('token'));
+      return !(hasUser && hasToken);
+    } catch {
+      return true;
+    }
+  });
 
   // Fetch or create user document from Firestore
   const fetchUserProfile = async (
@@ -427,17 +435,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const safetyTimer = setTimeout(() => {
       setLoading(false);
-    }, 4000);
+    }, 2200);
 
     try {
       const unsubscribe = onAuthStateChanged(auth, async (currentUser: User | null) => {
-        clearTimeout(safetyTimer);
         try {
           setUser(currentUser);
           if (currentUser) {
-            const token = await currentUser.getIdToken(true);
-            localStorage.setItem('shaivika_auth_token', token);
-            localStorage.setItem('token', token);
+            // Non-blocking token retrieval with fallback to cached token
+            const token = await Promise.race([
+              currentUser.getIdToken(false),
+              new Promise<string>((resolve) =>
+                setTimeout(() => resolve(localStorage.getItem('token') || localStorage.getItem('shaivika_auth_token') || ''), 1500)
+              ),
+            ]).catch(() => localStorage.getItem('token') || '');
+
+            if (token) {
+              localStorage.setItem('shaivika_auth_token', token);
+              localStorage.setItem('token', token);
+            }
+
+            // If profile is already cached in localStorage, release loading state immediately for mobile performance
+            const cachedProfileRaw = localStorage.getItem('shaivika_user');
+            if (cachedProfileRaw) {
+              setLoading(false);
+            }
 
             const storedSignupRole = typeof window !== 'undefined' ? sessionStorage.getItem('kaizenq_signup_role') as UserRole : undefined;
             const profile = await fetchUserProfile(currentUser, undefined, storedSignupRole);

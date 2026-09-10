@@ -3,6 +3,17 @@ import { Socket } from 'socket.io-client';
 import { Send, Pin, Reply, VolumeX, Sparkles, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
 import { API_BASE_URL } from '@/config/api';
+import { db } from '@/firebase';
+import {
+  collection,
+  doc,
+  setDoc,
+  updateDoc,
+  onSnapshot,
+  query,
+  orderBy,
+  limit,
+} from 'firebase/firestore';
 
 interface ChatMessage {
   id?: string;
@@ -46,30 +57,91 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
     scrollToBottom();
   }, [messages, typingUsers]);
 
+  // 1. Dual real-time chat listener: Firestore onSnapshot + REST Hydration
   useEffect(() => {
-    // Fetch initial chat logs from database
+    if (!classId) return;
+
+    // Fetch initial chat logs from backend database
     const fetchChatLogs = async () => {
       try {
         const apiBaseUrl = API_BASE_URL;
         const res = await fetch(`${apiBaseUrl}/live-classroom/chat/${classId}`);
         const data = await res.json();
         if (data.success && Array.isArray(data.data)) {
-          setMessages(data.data);
+          setMessages((prev) => {
+            const map = new Map<string, ChatMessage>();
+            prev.forEach((m) => map.set(m.id || m._id?.toString() || '', m));
+            data.data.forEach((m: ChatMessage) => {
+              const key = m.id || m._id?.toString() || '';
+              if (key && !map.has(key)) map.set(key, m);
+            });
+            return Array.from(map.values()).sort(
+              (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
+            );
+          });
         }
       } catch (err) {
         console.warn('Failed to load chat history:', err);
       }
     };
     fetchChatLogs();
+
+    // Real-time sync via Firestore (reliable across all network environments)
+    let unsubscribeFs: (() => void) | null = null;
+    if (db) {
+      try {
+        const chatColRef = collection(db, 'liveClasses', classId, 'chat');
+        const q = query(chatColRef, orderBy('createdAt', 'asc'), limit(150));
+        unsubscribeFs = onSnapshot(
+          q,
+          (snapshot) => {
+            if (!snapshot.empty) {
+              const fsMessages: ChatMessage[] = snapshot.docs.map((docSnap) => ({
+                id: docSnap.id,
+                ...(docSnap.data() as any),
+              }));
+              setMessages((prev) => {
+                const map = new Map<string, ChatMessage>();
+                prev.forEach((m) => map.set(m.id || m._id?.toString() || '', m));
+                fsMessages.forEach((m) => map.set(m.id || m._id?.toString() || '', m));
+                return Array.from(map.values()).sort(
+                  (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
+                );
+              });
+            }
+          },
+          (err) => {
+            console.warn('[LiveChat] Firestore snapshot notice:', err);
+          }
+        );
+      } catch (err) {
+        console.warn('[LiveChat] Firestore setup notice:', err);
+      }
+    }
+
+    return () => {
+      if (unsubscribeFs) unsubscribeFs();
+    };
   }, [classId]);
 
+  // 2. Real-time sync via Socket.IO
   useEffect(() => {
     if (!socket) return;
 
-    // Listen for new messages
-    socket.on('chat_received', (msg: ChatMessage) => {
-      setMessages((prev) => [...prev, msg]);
-    });
+    const handleIncomingMessage = (msg: ChatMessage) => {
+      if (!msg) return;
+      const msgKey = msg.id || msg._id?.toString();
+      setMessages((prev) => {
+        if (msgKey && prev.some((m) => (m.id || m._id?.toString()) === msgKey)) {
+          return prev;
+        }
+        return [...prev, msg];
+      });
+    };
+
+    // Listen for new messages (support both legacy and new event names)
+    socket.on('chat_received', handleIncomingMessage);
+    socket.on('chat:message', handleIncomingMessage);
 
     // Listen for pinned messages update
     socket.on('chat_pinned', (data: { messageId: string; pinned: boolean }) => {
@@ -119,7 +191,8 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
     });
 
     return () => {
-      socket.off('chat_received');
+      socket.off('chat_received', handleIncomingMessage);
+      socket.off('chat:message', handleIncomingMessage);
       socket.off('chat_pinned');
       socket.off('typing_received');
       socket.off('student_muted');
@@ -128,48 +201,118 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
   }, [socket, currentUser.uid, isInstructor]);
 
   const handleSend = (type: 'normal' | 'announcement' = 'normal') => {
-    if (!inputMessage.trim() || isMuted || !socket) return;
+    const trimmed = inputMessage.trim();
+    if (!trimmed) return;
 
-    const payload = {
+    if (isMuted) {
+      toast.error('Your chat is muted by the instructor.');
+      return;
+    }
+
+    const msgId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const nowIso = new Date().toISOString();
+
+    const payload: ChatMessage = {
+      id: msgId,
       classId,
       userId: currentUser.uid,
       userName: currentUser.name,
       role: currentUser.role,
-      message: inputMessage.trim(),
+      message: trimmed,
       messageType: type,
+      pinned: false,
       replyToId: replyTo?.id || replyTo?._id?.toString(),
+      createdAt: nowIso,
     };
 
-    socket.emit('send_chat', payload);
+    // 1. Optimistic instant UI update
+    setMessages((prev) => [...prev, payload]);
     setInputMessage('');
     setReplyTo(null);
 
-    // Cancel typing status
-    socket.emit('typing_status', { classId, userName: currentUser.name, isTyping: false });
+    // 2. Transmit through Socket.IO if connected
+    if (socket && socket.connected) {
+      socket.emit('send_chat', payload);
+      socket.emit('chat:send', {
+        liveClassId: classId,
+        message: payload.message,
+        messageType: type,
+        replyToId: payload.replyToId,
+      });
+      // Cancel typing status
+      socket.emit('typing_status', { classId, userName: currentUser.name, isTyping: false });
+    }
+
+    // 3. Persist to Firestore subcollection in real-time
+    if (db) {
+      try {
+        const msgDocRef = doc(db, 'liveClasses', classId, 'chat', msgId);
+        setDoc(msgDocRef, payload).catch((err) =>
+          console.warn('[LiveChat] Firestore message save notice:', err)
+        );
+      } catch (err) {
+        console.warn('[LiveChat] Firestore setDoc error:', err);
+      }
+    }
+
+    // 4. Send to backend REST API fallback
+    try {
+      const apiBaseUrl = API_BASE_URL;
+      fetch(`${apiBaseUrl}/live-classroom/${classId}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      }).catch(() => {});
+    } catch {}
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputMessage(e.target.value);
-    if (!socket) return;
+    if (!socket || !socket.connected) return;
 
     // Send typing status
     socket.emit('typing_status', { classId, userName: currentUser.name, isTyping: true });
 
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     typingTimeoutRef.current = setTimeout(() => {
-      socket.emit('typing_status', { classId, userName: currentUser.name, isTyping: false });
+      if (socket && socket.connected) {
+        socket.emit('typing_status', { classId, userName: currentUser.name, isTyping: false });
+      }
     }, 1500);
   };
 
   const togglePin = (messageId: string, currentPinned: boolean) => {
-    if (!isInstructor || !socket) return;
-    socket.emit('pin_chat', { classId, messageId, pinned: !currentPinned });
+    const newPinned = !currentPinned;
+    // Optimistic update
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === messageId || m._id?.toString() === messageId
+          ? { ...m, pinned: newPinned }
+          : m
+      )
+    );
+
+    if (socket && socket.connected) {
+      socket.emit('pin_chat', { classId, messageId, pinned: newPinned });
+    }
+
+    if (db) {
+      try {
+        const msgDocRef = doc(db, 'liveClasses', classId, 'chat', messageId);
+        updateDoc(msgDocRef, { pinned: newPinned }).catch(() => {});
+      } catch {}
+    }
+
+    toast.info(newPinned ? 'Message pinned.' : 'Message unpinned.');
   };
 
   const toggleMuteStudent = (userId: string, currentMuted: boolean) => {
-    if (!isInstructor || !socket) return;
-    socket.emit('mute_student', { classId, userId, isMuted: !currentMuted });
-    toast.success(`Student chat status updated!`);
+    if (!isInstructor) return;
+    const newMuted = !currentMuted;
+    if (socket && socket.connected) {
+      socket.emit('mute_student', { classId, userId, isMuted: newMuted });
+    }
+    toast.success(newMuted ? 'Student chat muted.' : 'Student chat unmuted.');
   };
 
   const pinnedMessages = messages.filter((m) => m.pinned);

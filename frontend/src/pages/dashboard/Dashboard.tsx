@@ -21,6 +21,8 @@ import {
   Link2,
   FolderSearch,
   RefreshCw,
+  Radio,
+  ArrowRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -97,6 +99,10 @@ export const Dashboard: React.FC = () => {
     });
     return () => unsubLive();
   }, []);
+
+  const activeLiveSession = useMemo(() => {
+    return liveClasses.find((lc) => normalizeLiveClassStatus(lc.status) === 'live');
+  }, [liveClasses]);
 
   // Instructor Student Roster State
   const [allStudents, setAllStudents] = useState<StudentUser[]>([]);
@@ -1168,7 +1174,47 @@ export const Dashboard: React.FC = () => {
       {/* ------------------- 1. OVERVIEW TAB ------------------- */}
       {currentTab === 'overview' && (
         <div className="space-y-8 animate-in fade-in duration-300">
-          
+
+          {/* Prominent Global Live Broadcast Banner (Displays whenever ANY session is live) */}
+          {activeLiveSession && (
+            <div className="bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 text-white p-5 rounded-3xl shadow-xl shadow-rose-600/20 border border-rose-400/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-3">
+              <div className="flex items-start sm:items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/30 shadow-inner">
+                  <Radio className="w-6 h-6 text-white animate-pulse" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-0.5 rounded-full bg-white text-rose-700 font-extrabold text-[10px] uppercase tracking-wider shadow-xs">
+                      🔴 LIVE SESSION IN PROGRESS
+                    </span>
+                    <span className="text-xs font-bold text-rose-100">
+                      {activeLiveSession.courseName || 'Enterprise Masterclass'}
+                    </span>
+                  </div>
+                  <h3 className="font-heading font-black text-base sm:text-lg text-white mt-1 leading-snug">
+                    {activeLiveSession.title}
+                  </h3>
+                  <p className="text-xs text-rose-100/90 font-medium mt-0.5">
+                    Assigned Instructor: <strong className="text-white font-bold">{activeLiveSession.instructorName || 'Lead Faculty'}</strong> • Broadcasting now
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  if (activeLiveSession.meetingProvider === 'kaizenq' || (activeLiveSession as any).mode === 'interactive' || !activeLiveSession.youtubeVideoId) {
+                    navigate(`/live-classroom/room/${activeLiveSession.id}`);
+                  } else {
+                    navigate(`/student/live-class/${activeLiveSession.id}`);
+                  }
+                }}
+                className="px-6 py-3 bg-white hover:bg-rose-50 text-rose-700 font-black text-xs rounded-2xl shadow-lg hover:shadow-xl transition-all active:scale-95 flex items-center gap-2 cursor-pointer shrink-0"
+              >
+                <span>Enter Live Classroom</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
           {/* Top 4 Stat Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="p-5 rounded-3xl border border-sky-100 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 shadow-xs flex flex-col justify-between space-y-3">

@@ -358,5 +358,38 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (isAdmin() || resource.data.studentId == request.auth.uid);
       allow write: if isAdmin();
     }
+
+    // =========================================================================
+    // 9. LIVE CLASSROOM & REAL-TIME INTERACTION
+    // =========================================================================
+    match /liveClasses/{classId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+
+      match /chat/{messageId} {
+        allow read: if true;
+        allow create: if isAuthenticated() || true;
+        allow update, delete: if isAuthenticated();
+      }
+
+      match /questions/{questionId} {
+        allow read: if true;
+        allow write: if isAuthenticated();
+      }
+
+      match /attendance/{studentId} {
+        allow read, write: if isAuthenticated();
+      }
+
+      match /polls/{pollId} {
+        allow read: if true;
+        allow write: if isAuthenticated();
+      }
+
+      match /quizzes/{quizId} {
+        allow read: if true;
+        allow write: if isAuthenticated();
+      }
+    }
   }
 }
