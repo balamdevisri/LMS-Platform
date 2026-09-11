@@ -82,7 +82,7 @@ export const LiveClassroomScreen: React.FC = () => {
   // Hardware States
   const [micOn, setMicOn] = useState(false);
   const [camOn, setCamOn] = useState(false);
-  const [isMicLocked, setIsMicLocked] = useState(!isInstructor);
+  const [isMicLocked, setIsMicLocked] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [isChatMuted, setIsChatMuted] = useState(false);
@@ -128,6 +128,13 @@ export const LiveClassroomScreen: React.FC = () => {
   }, [userProfile, user, liveClassData, isPlatformStaff]);
 
   const isInstructor = isAssignedInstructor;
+
+  // Synchronize mic lock: instructors and administrators have their microphone unlocked
+  useEffect(() => {
+    if (isInstructor) {
+      setIsMicLocked(false);
+    }
+  }, [isInstructor]);
 
   const resolvedDisplayName = useMemo(() => {
     if (userProfile?.fullName) return userProfile.fullName;
