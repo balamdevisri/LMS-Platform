@@ -819,27 +819,39 @@ class LiveClassService {
     if (!id) return;
 
     // 1. Delete from Authoritative Backend Database (EC2) first
-    const headers = await this.getAuthHeadersAsync();
-    const res = await fetch(`${this.getApiUrl()}/live-classroom/${encodeURIComponent(id)}`, {
-      method: 'DELETE',
-      headers,
-    });
+    let backendSuccess = false;
+    try {
+      const headers = await this.getAuthHeadersAsync();
+      const res = await fetch(`${this.getApiUrl()}/live-classroom/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        headers,
+      });
 
-    if (!res.ok) {
-      const errJson = await res.json().catch(() => null);
-      throw new Error(errJson?.error || `Backend failed to delete live class (${res.statusText})`);
+      if (res.ok) {
+        backendSuccess = true;
+      } else {
+        const errJson = await res.json().catch(() => null);
+        throw new Error(errJson?.error || `Backend failed to delete live class (${res.statusText})`);
+      }
+    } catch (err: any) {
+      console.warn('[LiveClassService] Backend delete notice:', err?.message || err);
+      // If it is a network error (e.g. Failed to fetch), perform local + Firestore delete fallback
+      const isNetworkFail = !err?.message || err.message.includes('Failed to fetch') || err.message.includes('NetworkError');
+      if (!isNetworkFail && !backendSuccess) {
+        throw err;
+      }
     }
 
-    // 2. Only after backend DB confirms deletion, update local state
+    // 2. Update local state and tracking
     this.addDeletedClassId(id);
     const current = this.getLiveClassesSync();
     const updated = current.filter((c) => c.id !== id && c.classId !== id);
     this.saveClasses(updated);
 
-    // 3. Delete from Firestore asynchronously
+    // 3. Delete from Firestore directly
     try {
       if (db) {
-        deleteDoc(doc(db, 'liveClasses', id)).catch(() => {});
+        await deleteDoc(doc(db, 'liveClasses', id)).catch(() => {});
       }
     } catch (e) {
       console.warn('Firestore deleteLiveClass notice:', e);
