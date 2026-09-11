@@ -2,7 +2,7 @@ import { Server as SocketServer } from 'socket.io';
 import { AuthenticatedSocket } from './socket.auth';
 import { liveClassroomService } from '../modules/liveClassroom/liveClassroom.service';
 import logger from '../config/logger';
-import { getClassroomSettings } from './liveClass.socket';
+import { getClassroomSettings, getModerationRecord } from './liveClass.socket';
 
 // In-memory sliding window rate limiter: userId -> array of timestamps
 const userMessageTimestamps = new Map<string, number[]>();
@@ -42,6 +42,8 @@ export const registerChatHandlers = (io: SocketServer, socket: AuthenticatedSock
         message: string;
         messageType?: 'normal' | 'announcement';
         replyToId?: string;
+        clientMessageId?: string;
+        id?: string;
       },
       callback?: (res: any) => void
     ) => {
@@ -73,10 +75,16 @@ export const registerChatHandlers = (io: SocketServer, socket: AuthenticatedSock
           return;
         }
 
-        // Authoritative Interaction Settings Check
+        // Authoritative Interaction Settings & Moderation Check
         const settings = getClassroomSettings(liveClassId);
-        if (user.role === 'student' && !settings.chat.enabled) {
-          const errRes = { success: false, error: 'CHAT_DISABLED', message: 'Chat is currently disabled by the instructor.' };
+        const modRecord = getModerationRecord(liveClassId, user.uid || user.id, user.role);
+        const isChatAllowed =
+          user.role !== 'student' ||
+          modRecord.chatPermission === 'granted' ||
+          (Boolean(settings?.chat?.enabled) && modRecord.chatPermission !== 'denied' && !modRecord.mutedByInstructor);
+
+        if (user.role === 'student' && !isChatAllowed) {
+          const errRes = { success: false, error: 'CHAT_LOCKED', message: 'Chat is currently locked by the instructor.' };
           socket.emit('chat:error', errRes);
           if (callback) callback(errRes);
           return;
@@ -118,9 +126,11 @@ export const registerChatHandlers = (io: SocketServer, socket: AuthenticatedSock
           createdAt: new Date().toISOString(),
         });
 
+        const finalMsgId = data.clientMessageId || data.id || (savedMessage as any).id || `msg_${Date.now()}`;
         const chatPayload = {
-          id: (savedMessage as any).id || `msg_${Date.now()}`,
+          id: finalMsgId,
           liveClassId,
+          classId: liveClassId,
           userId: user.uid || user.id,
           userName: user.name || 'User',
           role: user.role,
@@ -131,9 +141,8 @@ export const registerChatHandlers = (io: SocketServer, socket: AuthenticatedSock
           createdAt: new Date().toISOString(),
         };
 
-        // Broadcast to entire room in both modern and legacy format
+        // Broadcast to entire room strictly once on canonical chat:message event
         io.to(roomName).emit('chat:message', chatPayload);
-        io.to(roomName).emit('chat_received', chatPayload);
 
         if (callback) callback({ success: true, message: chatPayload });
       } catch (err: any) {
@@ -220,7 +229,8 @@ export const registerChatHandlers = (io: SocketServer, socket: AuthenticatedSock
       if (!user) return;
 
       const settings = getClassroomSettings(liveClassId);
-      if (user.role === 'student' && !settings.chat.enabled) {
+      const modRecord = getModerationRecord(liveClassId, user.uid || user.id);
+      if (user.role === 'student' && (!settings.chat.enabled || modRecord.mutedByInstructor)) {
         socket.emit('chat:error', { success: false, error: 'CHAT_DISABLED', message: 'Chat is currently disabled by the instructor.' });
         return;
       }
@@ -242,8 +252,9 @@ export const registerChatHandlers = (io: SocketServer, socket: AuthenticatedSock
           createdAt: new Date().toISOString(),
         });
 
+        const finalMsgId = (data as any).clientMessageId || (data as any).id || (savedMessage as any).id || `msg_${Date.now()}`;
         const chatPayload = {
-          id: (savedMessage as any).id || `msg_${Date.now()}`,
+          id: finalMsgId,
           liveClassId,
           classId: liveClassId,
           userId: user.uid || user.id,
@@ -256,8 +267,8 @@ export const registerChatHandlers = (io: SocketServer, socket: AuthenticatedSock
           createdAt: new Date().toISOString(),
         };
 
+        // Broadcast once to room on canonical chat:message
         io.to(roomName).emit('chat:message', chatPayload);
-        io.to(roomName).emit('chat_received', chatPayload);
       } catch (err: any) {
         logger.error('[SOCKET] send_chat exception:', err);
       }

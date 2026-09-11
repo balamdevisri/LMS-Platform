@@ -140,15 +140,16 @@ class SocketService {
       this.emitStatus('connected');
       // Automatically rejoin live classroom upon reconnect only
       if (this.currentLiveClassId && this.socket) {
+        const authData = (this.socket as any)?.auth || {};
         console.info(`[LIVE_CLASS_RECONNECT] Auto-rejoining live class ${this.currentLiveClassId} on socket reconnect`);
         this.socket.emit('join_class', {
           classId: this.currentLiveClassId,
           liveClassId: this.currentLiveClassId,
-          userId: currentAuth.userId,
-          name: currentAuth.name,
-          role: currentAuth.role,
+          userId: authData.userId || 'guest',
+          name: authData.name || 'Student',
+          role: authData.role || 'student',
         });
-        if (currentAuth.role !== 'instructor' && currentAuth.role !== 'admin') {
+        if (authData.role !== 'instructor' && authData.role !== 'admin') {
           this.socket.emit('attendance:join', { liveClassId: this.currentLiveClassId });
         }
       }
@@ -162,21 +163,21 @@ class SocketService {
     this.socket.on('liveClass:deleted', (data: { liveClassId?: string; classId?: string }) => {
       const id = data?.liveClassId || data?.classId;
       if (id) {
-        liveClassService.deleteLiveClass(id);
+        liveClassService.removeLiveClassLocally(id);
       }
     });
 
     this.socket.on('live_class_deleted', (data: { liveClassId?: string; classId?: string }) => {
       const id = data?.liveClassId || data?.classId;
       if (id) {
-        liveClassService.deleteLiveClass(id);
+        liveClassService.removeLiveClassLocally(id);
       }
     });
 
     this.socket.on('live_class_ended', (data: { liveClassId?: string; classId?: string }) => {
       const id = data?.liveClassId || data?.classId;
       if (id) {
-        liveClassService.deleteLiveClass(id);
+        liveClassService.removeLiveClassLocally(id);
       }
     });
 

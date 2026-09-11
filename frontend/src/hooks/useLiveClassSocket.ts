@@ -126,7 +126,14 @@ export const useLiveClassSocket = (liveClassId?: string, initialStatus?: string)
     const handleStudentLeft = (_data: any) => {};
 
     const handleChatMessage = (msg: ChatMessageItem) => {
-      setChatMessages((prev) => [...prev, msg]);
+      if (!msg) return;
+      setChatMessages((prev) => {
+        const msgKey = msg.id;
+        if (msgKey && prev.some((m) => m.id === msgKey)) {
+          return prev;
+        }
+        return [...prev, msg];
+      });
     };
 
     const handleChatDelete = (data: { messageId: string }) => {
@@ -313,7 +320,6 @@ export const useLiveClassSocket = (liveClassId?: string, initialStatus?: string)
       socket.on('student:joined', handleStudentJoined);
       socket.on('student:left', handleStudentLeft);
       socket.on('chat:message', handleChatMessage);
-      socket.on('chat_received', handleChatMessage);
       socket.on('chat:delete', handleChatDelete);
       socket.on('chat:moderate', handleChatModerate);
       socket.on('chat:error', handleChatError);
@@ -356,7 +362,6 @@ export const useLiveClassSocket = (liveClassId?: string, initialStatus?: string)
         activeSocket.off('student:joined', handleStudentJoined);
         activeSocket.off('student:left', handleStudentLeft);
         activeSocket.off('chat:message', handleChatMessage);
-        activeSocket.off('chat_received', handleChatMessage);
         activeSocket.off('chat:delete', handleChatDelete);
         activeSocket.off('chat:moderate', handleChatModerate);
         activeSocket.off('chat:error', handleChatError);

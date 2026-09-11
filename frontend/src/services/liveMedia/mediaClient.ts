@@ -47,6 +47,10 @@ export class MediaClient {
       ...config,
       iceServers: config.iceServers || DEFAULT_ICE_SERVERS,
     };
+    // Default: student mic is locked by default until instructor explicitly grants permission
+    if (this.config.role === 'student') {
+      this.isMutedByInstructor = true;
+    }
   }
 
   public async connect(): Promise<void> {
@@ -264,6 +268,22 @@ export class MediaClient {
     if (this.isAudioEnabled) {
       await this.toggleMicrophone();
     }
+    this.localStream.getAudioTracks().forEach((t) => {
+      try {
+        t.enabled = false;
+        t.stop();
+        this.localStream.removeTrack(t);
+      } catch {}
+    });
+    this.peerConnections.forEach((pc) => {
+      const audioSender = pc.getSenders().find((s) => s.track?.kind === 'audio');
+      if (audioSender) {
+        audioSender.replaceTrack(null).catch(() => {});
+      }
+    });
+    this.isAudioEnabled = false;
+    this.updateLocalParticipantState();
+    this.broadcastMediaState();
   }
 
   // --- CAMERA CONTROLS ---
@@ -669,6 +689,20 @@ export class MediaClient {
       });
     }
 
+    // Pre-allocate audio & video transceivers with sendrecv so unmuting sends media immediately without renegotiation delay
+    try {
+      const hasAudio = pc.getSenders().some((s) => s.track?.kind === 'audio');
+      if (!hasAudio) {
+        pc.addTransceiver('audio', { direction: 'sendrecv' });
+      }
+      const hasVideo = pc.getSenders().some((s) => s.track?.kind === 'video');
+      if (!hasVideo) {
+        pc.addTransceiver('video', { direction: 'sendrecv' });
+      }
+    } catch (e) {
+      console.warn('[MediaClient] Transceiver setup warning:', e);
+    }
+
     // ICE Candidate Generation
     pc.onicecandidate = (event) => {
       if (event.candidate && this.socket) {
@@ -709,9 +743,7 @@ export class MediaClient {
     // Renegotiate when tracks change (e.g. mic, cam, screen share toggled)
     pc.onnegotiationneeded = async () => {
       try {
-        if (this.config.userId > targetUserId) {
-          await this.initiateOffer(targetUserId);
-        }
+        await this.initiateOffer(targetUserId);
       } catch (err) {
         console.warn('[MediaClient] Negotiation error:', err);
       }
@@ -725,10 +757,14 @@ export class MediaClient {
     if (!this.socket) return;
     try {
       const pc = this.getOrCreatePeerConnection(targetUserId);
+      if (pc.signalingState !== 'stable') {
+        return; // Glare protection: polite rollback will handle incoming offer
+      }
       const offer = await pc.createOffer({
         offerToReceiveAudio: true,
         offerToReceiveVideo: true,
       });
+      if (pc.signalingState !== 'stable') return;
       await pc.setLocalDescription(offer);
 
       this.socket.emit('webrtc_offer', {

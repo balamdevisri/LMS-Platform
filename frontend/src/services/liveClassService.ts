@@ -531,14 +531,17 @@ class LiveClassService {
       updatedAt: new Date().toISOString(),
     };
 
-    // 1. Persist to authoritative Backend REST API
+    // 1. Persist to authoritative Backend REST API with timeout safety
     let persistedClass = newClass;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
     try {
       const headers = await this.getAuthHeadersAsync();
       const res = await fetch(`${this.getApiUrl()}/live-classroom`, {
         method: 'POST',
         headers,
         body: JSON.stringify(newClass),
+        signal: controller.signal,
       });
 
       if (!res.ok) {
@@ -554,7 +557,12 @@ class LiveClassService {
       }
     } catch (e: any) {
       console.error('[LiveClassService] Authoritative backend creation failed:', e);
+      if (e.name === 'AbortError') {
+        throw new Error('Live class creation timed out after 15s. Please check network connection and try again.');
+      }
       throw e;
+    } finally {
+      clearTimeout(timeoutId);
     }
 
     // 2. Persist to local cache only after successful backend persistence
@@ -563,10 +571,14 @@ class LiveClassService {
     const updated = [persistedClass, ...current.filter((c) => (c.id || c.classId) !== finalId)];
     this.saveClasses(updated);
 
-    // 3. Persist to Firestore Client
+    // 3. Persist to Firestore Client asynchronously (non-blocking fallback with 3s timeout)
     try {
       if (db) {
-        await setDoc(doc(db, 'liveClasses', finalId), persistedClass);
+        const fsTimeout = new Promise((resolve) => setTimeout(resolve, 3000));
+        Promise.race([
+          setDoc(doc(db, 'liveClasses', finalId), persistedClass),
+          fsTimeout,
+        ]).catch((e) => console.warn('Firestore createLiveClass notice:', e));
       }
     } catch (e) {
       console.warn('Firestore createLiveClass notice:', e);
@@ -805,40 +817,35 @@ class LiveClassService {
 
   async deleteLiveClass(id: string): Promise<void> {
     if (!id) return;
-    this.addDeletedClassId(id);
 
-    // 1. Remove immediately from local state and notify listeners
+    // 1. Delete from Authoritative Backend Database (EC2) first
+    const headers = await this.getAuthHeadersAsync();
+    const res = await fetch(`${this.getApiUrl()}/live-classroom/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers,
+    });
+
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => null);
+      throw new Error(errJson?.error || `Backend failed to delete live class (${res.statusText})`);
+    }
+
+    // 2. Only after backend DB confirms deletion, update local state
+    this.addDeletedClassId(id);
     const current = this.getLiveClassesSync();
     const updated = current.filter((c) => c.id !== id && c.classId !== id);
     this.saveClasses(updated);
 
-    // 2. Delete from Firestore directly
+    // 3. Delete from Firestore asynchronously
     try {
       if (db) {
-        await deleteDoc(doc(db, 'liveClasses', id)).catch(() => {});
+        deleteDoc(doc(db, 'liveClasses', id)).catch(() => {});
       }
     } catch (e) {
       console.warn('Firestore deleteLiveClass notice:', e);
     }
 
-    // 3. Delete from Backend API
-    try {
-      const headers = await this.getAuthHeaders();
-      await Promise.allSettled([
-        fetch(`${this.getApiUrl()}/live-classes/${encodeURIComponent(id)}`, {
-          method: 'DELETE',
-          headers,
-        }),
-        fetch(`${this.getApiUrl()}/live-classroom/${encodeURIComponent(id)}`, {
-          method: 'DELETE',
-          headers,
-        }),
-      ]);
-    } catch (e) {
-      console.warn('Backend deleteLiveClass notice:', e);
-    }
-
-    // 4. Also notify via socket if connected
+    // 4. Real-time broadcast deletion via Socket.IO
     try {
       import('@/services/socketService').then(({ socketService }) => {
         socketService.getSocket()?.emit('liveClass:delete', { liveClassId: id, classId: id });

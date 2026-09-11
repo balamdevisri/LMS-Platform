@@ -154,7 +154,8 @@ export const AdminLiveClassList: React.FC = () => {
         toast.warning(`⚠️ "${targetClass.title}" has been cancelled.`);
       } else if (type === 'delete') {
         await liveClassService.deleteLiveClass(targetId);
-        toast.success(`🗑️ "${targetClass.title}" was deleted.`);
+        setClasses((prev) => prev.filter((c) => (c.id || c.classId) !== targetId));
+        toast.success(`🗑️ "${targetClass.title}" was permanently deleted.`);
       }
       loadClasses();
       setActionModal(null);
@@ -534,6 +535,15 @@ export const AdminLiveClassList: React.FC = () => {
                           >
                             <Edit className="w-3.5 h-3.5" />
                           </button>
+                          {isAdmin && (
+                            <button
+                              onClick={() => setActionModal({ type: 'delete', targetClass: c })}
+                              className="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/50 text-slate-400 hover:text-rose-600 transition-colors"
+                              title="Delete Class"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -563,21 +573,35 @@ export const AdminLiveClassList: React.FC = () => {
               </div>
               <div>
                 <h3 className="font-heading font-extrabold text-base text-slate-900 dark:text-zinc-100 capitalize">
-                  {actionModal.type} Live Class
+                  {actionModal.type === 'delete' && (actionModal.targetClass.status || '').toUpperCase() === 'LIVE'
+                    ? 'Force Delete Live Session'
+                    : `${actionModal.type} Live Class`}
                 </h3>
                 <p className="text-xs text-slate-500">{actionModal.targetClass.title}</p>
               </div>
             </div>
 
-            <p className="text-xs text-slate-600 dark:text-zinc-300 leading-relaxed">
-              {actionModal.type === 'start'
-                ? 'Are you sure you want to start this live stream? The session will become visible as LIVE to all enrolled students.'
-                : actionModal.type === 'end'
-                ? 'Are you sure you want to end this live class? Students will see the session ended state and attendance will be closed.'
-                : actionModal.type === 'cancel'
-                ? 'Are you sure you want to cancel this scheduled live class?'
-                : 'Are you sure you want to permanently delete this live class? This action cannot be undone.'}
-            </p>
+            {actionModal.type === 'delete' && (actionModal.targetClass.status || '').toUpperCase() === 'LIVE' ? (
+              <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-rose-300 text-xs space-y-1.5">
+                <span className="font-extrabold flex items-center gap-1.5 text-rose-800 dark:text-rose-200">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                  CRITICAL: Class is currently LIVE!
+                </span>
+                <p className="leading-relaxed text-[11px] text-rose-700 dark:text-rose-300">
+                  Deleting this class will immediately terminate the session, broadcast an end signal to cleanly disconnect all connected learners, and permanently delete all records from the database.
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-600 dark:text-zinc-300 leading-relaxed">
+                {actionModal.type === 'start'
+                  ? 'Are you sure you want to start this live stream? The session will become visible as LIVE to all enrolled students.'
+                  : actionModal.type === 'end'
+                  ? 'Are you sure you want to end this live class? Students will see the session ended state and attendance will be closed.'
+                  : actionModal.type === 'cancel'
+                  ? 'Are you sure you want to cancel this scheduled live class?'
+                  : 'Are you sure you want to permanently delete this live class from the database? This action cannot be undone.'}
+              </p>
+            )}
 
             <div className="flex items-center justify-end gap-2.5 pt-2">
               <button

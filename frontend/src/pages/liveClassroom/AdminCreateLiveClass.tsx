@@ -6,8 +6,10 @@ import {
   Save,
   CheckCircle2,
   Radio,
+  Clock,
   Sparkles,
   Send,
+  Loader2,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCourses } from '@/contexts/CourseContext';
@@ -59,12 +61,17 @@ export const AdminCreateLiveClass: React.FC = () => {
   const [youtubeInput, setYoutubeInput] = useState<string>('');
 
   // Schedule
+  const [scheduleType, setScheduleType] = useState<'instant' | 'later'>('instant');
   const [scheduledDate, setScheduledDate] = useState<string>(
     new Date().toISOString().split('T')[0]
   );
-  const [scheduledTime, setScheduledTime] = useState<string>('10:00');
+  const [scheduledTime, setScheduledTime] = useState<string>(() => {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() + 15);
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  });
   const [duration, setDuration] = useState<number>(90);
-  const [status, setStatus] = useState<string>('SCHEDULED');
+  const [status, setStatus] = useState<string>('LIVE');
 
   // Metadata
   const [tags, setTags] = useState<string>('React, Live Classroom, Interactive');
@@ -78,6 +85,7 @@ export const AdminCreateLiveClass: React.FC = () => {
 
   const [loading, setLoading] = useState<boolean>(isEditing);
   const [submitting, setSubmitting] = useState<boolean>(false);
+  const [isPublishing, setIsPublishing] = useState<boolean>(false);
   const [previewVideoId, setPreviewVideoId] = useState<string | null>(null);
   const [instructorsList, setInstructorsList] = useState<InstructorUser[]>([]);
 
@@ -212,7 +220,9 @@ export const AdminCreateLiveClass: React.FC = () => {
         setYoutubeInput(existing.youtubeVideoId || '');
 
         setDuration(existing.duration || 90);
-        setStatus((existing.status || 'SCHEDULED').toUpperCase());
+        const normStatus = (existing.status || 'SCHEDULED').toUpperCase();
+        setStatus(normStatus);
+        setScheduleType(normStatus === 'LIVE' ? 'instant' : 'later');
         setDifficulty((existing.difficulty as any) || 'Intermediate');
         if (existing.tags && Array.isArray(existing.tags)) {
           setTags(existing.tags.join(', '));
@@ -303,7 +313,7 @@ export const AdminCreateLiveClass: React.FC = () => {
       toast.error('Please assign an Instructor.');
       return;
     }
-    if (!scheduledDate || !scheduledTime) {
+    if (scheduleType === 'later' && (!scheduledDate || !scheduledTime)) {
       toast.error('Please set scheduled date and start time.');
       return;
     }
@@ -317,7 +327,25 @@ export const AdminCreateLiveClass: React.FC = () => {
     }
 
     const videoId = mode === 'youtube' ? (previewVideoId || youtubeInput.trim()) : '';
-    const scheduledDateTime = new Date(`${scheduledDate}T${scheduledTime}:00`).toISOString();
+    let scheduledDateTime: string;
+    let statusToUse: string;
+
+    if (scheduleType === 'instant') {
+      scheduledDateTime = new Date().toISOString();
+      statusToUse = isEditing ? status : 'LIVE';
+    } else {
+      const scheduledDateObj = new Date(`${scheduledDate}T${scheduledTime}:00`);
+      if (isNaN(scheduledDateObj.getTime())) {
+        toast.error('Please set a valid scheduled date and start time.');
+        return;
+      }
+      if (scheduledDateObj.getTime() < Date.now() - 60 * 1000) {
+        toast.error('Cannot schedule a live class in the past. Please choose a future date & time.');
+        return;
+      }
+      scheduledDateTime = scheduledDateObj.toISOString();
+      statusToUse = shouldPublish ? 'PUBLISHED' : (isEditing ? (status as any) : 'SCHEDULED');
+    }
 
     // Normalize tags
     const normalizedTags = tags
@@ -327,7 +355,6 @@ export const AdminCreateLiveClass: React.FC = () => {
       .filter((val, idx, arr) => arr.indexOf(val) === idx);
 
     const classIdToUse = id || `class_${Date.now()}`;
-    const statusToUse = shouldPublish ? 'PUBLISHED' : (isEditing ? (status as any) : 'SCHEDULED');
 
     const payload: any = {
       id: classIdToUse,
@@ -370,6 +397,9 @@ export const AdminCreateLiveClass: React.FC = () => {
     };
 
     setSubmitting(true);
+    if (shouldPublish) {
+      setIsPublishing(true);
+    }
     try {
       if (isEditing && id) {
         await liveClassService.updateLiveClass(id, payload);
@@ -381,17 +411,21 @@ export const AdminCreateLiveClass: React.FC = () => {
         } as any);
       }
 
-      if (shouldPublish || statusToUse === 'PUBLISHED') {
+      if (statusToUse === 'LIVE' || (shouldPublish && scheduleType === 'instant')) {
+        toast.success(`🚀 Live Class launched! Assigned Instructor: ${instructorName || 'Faculty'}.`);
+        navigate(`/student/live-class/${classIdToUse}`);
+      } else if (shouldPublish || statusToUse === 'PUBLISHED') {
         toast.success(`🚀 Live Class published with Assigned Instructor: ${instructorName || 'Faculty'}! Instant notifications dispatched.`);
+        navigate('/admin/live-classes');
       } else {
         toast.success(`📅 Live class scheduled with Assigned Instructor: ${instructorName || 'Faculty'}! Notifications sent.`);
+        navigate('/admin/live-classes');
       }
-
-      navigate('/admin/live-classes');
     } catch (err: any) {
-      toast.error(err?.message || 'Unable to save live class. Please try again.');
+      toast.error(err?.message || 'Unable to save live class. Please check details and try again.');
     } finally {
       setSubmitting(false);
+      setIsPublishing(false);
     }
   };
 
@@ -670,80 +704,127 @@ export const AdminCreateLiveClass: React.FC = () => {
             )}
           </div>
 
-          {/* SECTION 3 — SCHEDULE SECTION */}
+          {/* SECTION 3 — SCHEDULE & TIMING */}
           <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-zinc-800">
             <div className="border-b border-slate-100 dark:border-zinc-800/60 pb-2">
               <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-zinc-100 flex items-center gap-2">
                 <span className="flex items-center justify-center w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] font-black">3</span>
-                Schedule & Status
+                Schedule & Timing
               </h3>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-              {/* Schedule Date */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-extrabold text-slate-800 dark:text-zinc-200 uppercase tracking-wider block">
-                  Scheduled Date <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={scheduledDate}
-                  onChange={(e) => setScheduledDate(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-900 dark:text-zinc-100 text-xs font-medium focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+            {/* Timing Option: Start Now vs Schedule for Later */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setScheduleType('instant');
+                  setStatus('LIVE');
+                }}
+                className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                  scheduleType === 'instant'
+                    ? 'border-rose-500 bg-rose-50/60 dark:bg-rose-950/30 ring-2 ring-rose-500/20'
+                    : 'border-slate-200 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-700 bg-slate-50/50 dark:bg-zinc-800/40'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Radio className="w-4 h-4 text-rose-600 animate-pulse" />
+                    <span className="text-xs font-extrabold text-slate-900 dark:text-zinc-100">
+                      Start Live Class Now (Instant)
+                    </span>
+                  </div>
+                  {scheduleType === 'instant' && <CheckCircle2 className="w-4 h-4 text-rose-600" />}
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-1.5 leading-relaxed">
+                  Go live immediately. Students can enter the live classroom as soon as this is saved.
+                </p>
+              </button>
 
-              {/* Start Time */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-extrabold text-slate-800 dark:text-zinc-200 uppercase tracking-wider block">
-                  Start Time <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="time"
-                  value={scheduledTime}
-                  onChange={(e) => setScheduledTime(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-900 dark:text-zinc-100 text-xs font-medium focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              {/* Estimated Duration */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-extrabold text-slate-800 dark:text-zinc-200 uppercase tracking-wider block">
-                  Duration (Minutes) <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  min={15}
-                  max={300}
-                  step={5}
-                  value={duration}
-                  onChange={(e) => setDuration(Number(e.target.value))}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-900 dark:text-zinc-100 text-xs font-medium focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              {/* Class Status (controlled server-side state) */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-extrabold text-slate-800 dark:text-zinc-200 uppercase tracking-wider block">
-                  Class Status
-                </label>
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                  disabled={!isEditing}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-900 dark:text-zinc-100 text-xs font-bold focus:outline-hidden focus:ring-2 focus:ring-blue-500 disabled:opacity-80"
-                >
-                  <option value="SCHEDULED">SCHEDULED (Upcoming)</option>
-                  {isEditing && (
-                    <>
-                      <option value="LIVE">LIVE (In Progress)</option>
-                      <option value="ENDED">COMPLETED</option>
-                      <option value="CANCELLED">CANCELLED</option>
-                    </>
-                  )}
-                </select>
-              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setScheduleType('later');
+                  setStatus('SCHEDULED');
+                }}
+                className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                  scheduleType === 'later'
+                    ? 'border-blue-500 bg-blue-50/60 dark:bg-blue-950/30 ring-2 ring-blue-500/20'
+                    : 'border-slate-200 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-700 bg-slate-50/50 dark:bg-zinc-800/40'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-blue-600" />
+                    <span className="text-xs font-extrabold text-slate-900 dark:text-zinc-100">
+                      Schedule for Later (Future Date)
+                    </span>
+                  </div>
+                  {scheduleType === 'later' && <CheckCircle2 className="w-4 h-4 text-blue-600" />}
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-1.5 leading-relaxed">
+                  Pick a future date & time. The student dashboard displays scheduled time until the session begins.
+                </p>
+              </button>
             </div>
+
+            {/* Dynamic Inputs Based on Timing Selection */}
+            {scheduleType === 'instant' ? (
+              <div className="p-3.5 rounded-2xl bg-rose-50/70 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/50 flex items-center gap-3">
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping shrink-0" />
+                <div className="text-xs">
+                  <span className="font-extrabold text-rose-900 dark:text-rose-200">Instant Broadcast Status: LIVE</span>
+                  <p className="text-[11px] text-rose-700 dark:text-rose-300/80 mt-0.5">
+                    Live session starts immediately. Duration is set to {duration} minutes.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-1">
+                {/* Schedule Date */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-extrabold text-slate-800 dark:text-zinc-200 uppercase tracking-wider block">
+                    Scheduled Date <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    min={new Date().toISOString().split('T')[0]}
+                    value={scheduledDate}
+                    onChange={(e) => setScheduledDate(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-900 dark:text-zinc-100 text-xs font-medium focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Start Time */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-extrabold text-slate-800 dark:text-zinc-200 uppercase tracking-wider block">
+                    Start Time <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="time"
+                    value={scheduledTime}
+                    onChange={(e) => setScheduledTime(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-900 dark:text-zinc-100 text-xs font-medium focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Estimated Duration */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-extrabold text-slate-800 dark:text-zinc-200 uppercase tracking-wider block">
+                    Duration (Minutes) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min={15}
+                    max={300}
+                    step={5}
+                    value={duration}
+                    onChange={(e) => setDuration(Number(e.target.value))}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-900 dark:text-zinc-100 text-xs font-medium focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* SECTION 4 — ADDITIONAL METADATA */}
@@ -992,8 +1073,17 @@ export const AdminCreateLiveClass: React.FC = () => {
               disabled={submitting}
               className="px-5 py-2.5 rounded-xl bg-slate-200 dark:bg-zinc-700 hover:bg-slate-300 text-slate-800 dark:text-zinc-200 font-bold text-xs transition-all inline-flex items-center gap-2 cursor-pointer disabled:opacity-60"
             >
-              <Save className="w-4 h-4" />
-              <span>{submitting ? 'Saving...' : isEditing ? 'Save Changes' : 'Save Draft'}</span>
+              {submitting && !isPublishing ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-slate-700 dark:text-zinc-300" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  <span>{isEditing ? 'Save Changes' : 'Save Draft'}</span>
+                </>
+              )}
             </button>
             <button
               type="button"
@@ -1001,8 +1091,26 @@ export const AdminCreateLiveClass: React.FC = () => {
               onClick={(e) => handleSubmit(e, true)}
               className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs shadow-lg shadow-emerald-600/25 transition-all inline-flex items-center gap-2 cursor-pointer disabled:opacity-60"
             >
-              <Send className="w-4 h-4" />
-              <span>Publish Live Class & Notify Students</span>
+              {isPublishing ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                  <span>{scheduleType === 'instant' ? 'Launching Live Session...' : 'Publishing & Notifying...'}</span>
+                </>
+              ) : (
+                <>
+                  {scheduleType === 'instant' ? (
+                    <>
+                      <Radio className="w-4 h-4 text-white animate-pulse" />
+                      <span>Launch & Go Live Now</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4" />
+                      <span>Publish Live Class & Notify Students</span>
+                    </>
+                  )}
+                </>
+              )}
             </button>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { Mic, MicOff, Monitor, User, ShieldCheck, Hand, Maximize2, Minimize2, Pin, VolumeX } from 'lucide-react';
+import { Mic, MicOff, Monitor, User, ShieldCheck, Hand, Maximize2, Minimize2, Pin, VolumeX, Volume2 } from 'lucide-react';
 import type { MediaParticipant } from '@/services/liveMedia/mediaTypes';
 
 interface VideoTileProps {
@@ -23,6 +23,7 @@ export const VideoTile: React.FC<VideoTileProps> = ({
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const [isAudioBlocked, setIsAudioBlocked] = useState(false);
 
   useEffect(() => {
     if (videoRef.current && participant.stream) {
@@ -34,8 +35,34 @@ export const VideoTile: React.FC<VideoTileProps> = ({
   useEffect(() => {
     if (!isLocal && audioRef.current && participant.stream) {
       audioRef.current.srcObject = participant.stream;
-      audioRef.current.play().catch(() => {});
+      const playPromise = audioRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => setIsAudioBlocked(false))
+          .catch((err) => {
+            console.warn('[VideoTile] Remote audio play blocked by browser autoplay policy:', err?.name);
+            setIsAudioBlocked(true);
+          });
+      }
     }
+  }, [participant.stream, isLocal]);
+
+  // Window-level unlock: user's first click or keystroke automatically unlocks audio
+  useEffect(() => {
+    if (isLocal) return;
+    const unlockAudio = () => {
+      if (audioRef.current && participant.stream) {
+        audioRef.current.play().then(() => {
+          setIsAudioBlocked(false);
+        }).catch(() => {});
+      }
+    };
+    window.addEventListener('click', unlockAudio, { once: true });
+    window.addEventListener('keydown', unlockAudio, { once: true });
+    return () => {
+      window.removeEventListener('click', unlockAudio);
+      window.removeEventListener('keydown', unlockAudio);
+    };
   }, [participant.stream, isLocal]);
 
   const isInstructor = participant.role === 'instructor' || participant.role === 'mentor';
@@ -57,6 +84,23 @@ export const VideoTile: React.FC<VideoTileProps> = ({
     >
       {/* Remote Audio Stream (Persists regardless of camera toggle) */}
       {!isLocal && <audio ref={audioRef} autoPlay playsInline />}
+
+      {/* Browser Autoplay Blocked Alert Badge */}
+      {isAudioBlocked && !isLocal && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (audioRef.current) {
+              audioRef.current.play().then(() => setIsAudioBlocked(false)).catch(() => {});
+            }
+          }}
+          className="absolute top-12 z-20 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-2xl cursor-pointer animate-bounce"
+          title="Click to enable sound"
+        >
+          <Volume2 className="w-4 h-4" />
+          <span>Click to Enable Audio</span>
+        </button>
+      )}
 
       {/* Actual Live Video Track */}
       {participant.isVideoOn && participant.stream ? (
@@ -279,13 +323,18 @@ export const VideoGrid: React.FC<VideoGridProps> = ({
   // Subordinated grid participants
   const secondaryParticipants = useMemo(() => {
     if (!heroParticipant) return participants;
-    return participants.filter((p) => p.userId !== heroParticipant.userId);
-  }, [participants, heroParticipant]);
+    const base = participants.filter((p) => p.userId !== heroParticipant.userId);
+    // For students: suppress idle student tiles (camera off & not speaking) to eliminate visual clutter and save bandwidth
+    if (!isInstructor) {
+      return base.filter((p) => p.isVideoOn || p.isSpeaking || p.role === 'instructor' || p.role === 'mentor');
+    }
+    return base;
+  }, [participants, heroParticipant, isInstructor]);
 
   // CASE 1: SCREEN SHARE IS ACTIVE (Highest Display Priority)
   if (activeScreenStream) {
     return (
-      <div className="w-full h-full flex flex-col xl:flex-row gap-4 p-4 overflow-hidden">
+      <div className="w-full h-full flex flex-col xl:flex-row gap-4 p-4 overflow-hidden relative">
         {/* Main Screen Share Hero Area */}
         <div className="flex-1 relative bg-slate-950 rounded-3xl overflow-hidden border border-slate-800 shadow-2xl flex items-center justify-center min-h-[320px]">
           <video
@@ -301,23 +350,35 @@ export const VideoGrid: React.FC<VideoGridProps> = ({
           </div>
         </div>
 
-        {/* Participant Filmstrip alongside */}
-        <div className="w-full xl:w-80 shrink-0 flex xl:flex-col gap-3 overflow-x-auto xl:overflow-y-auto max-h-full no-scrollbar">
-          {participants.map((p) => (
-            <div key={p.userId} className="shrink-0 w-64 xl:w-full">
+        {/* Participant Filmstrip alongside: FULL for Instructor; for Students, screen share is exclusive with optional floating instructor cam */}
+        {isInstructor ? (
+          <div className="w-full xl:w-80 shrink-0 flex xl:flex-col gap-3 overflow-x-auto xl:overflow-y-auto max-h-full no-scrollbar">
+            {participants.map((p) => (
+              <div key={p.userId} className="shrink-0 w-64 xl:w-full">
+                <VideoTile
+                  participant={p}
+                  isLocal={p.userId === localUserId}
+                  isSpotlighted={spotlightedUserId === p.userId}
+                  canPin={isInstructor}
+                  onTogglePin={onPinParticipant ? () => onPinParticipant(p.isPinned ? null : p.userId) : undefined}
+                  onSpotlight={() =>
+                    setSpotlightedUserId((prev) => (prev === p.userId ? null : p.userId))
+                  }
+                />
+              </div>
+            ))}
+          </div>
+        ) : (
+          /* Student View: Clean screen-share only; show small PIP only if instructor camera is actively on */
+          instructor && instructor.isVideoOn && (
+            <div className="absolute bottom-6 right-6 w-48 sm:w-56 aspect-video z-20 shadow-2xl rounded-2xl overflow-hidden border border-sky-400/50">
               <VideoTile
-                participant={p}
-                isLocal={p.userId === localUserId}
-                isSpotlighted={spotlightedUserId === p.userId}
-                canPin={isInstructor}
-                onTogglePin={onPinParticipant ? () => onPinParticipant(p.isPinned ? null : p.userId) : undefined}
-                onSpotlight={() =>
-                  setSpotlightedUserId((prev) => (prev === p.userId ? null : p.userId))
-                }
+                participant={instructor}
+                isHero={false}
               />
             </div>
-          ))}
-        </div>
+          )
+        )}
       </div>
     );
   }

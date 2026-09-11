@@ -39,6 +39,7 @@ export interface ActiveScreenShareState {
 export interface ModerationRecord {
   mutedByInstructor: boolean;
   micPermission: 'prompt' | 'granted' | 'denied';
+  chatPermission?: 'granted' | 'denied';
   updatedAt: string;
 }
 
@@ -70,9 +71,18 @@ export const getRoomPinned = (classId: string): string | null => {
   return activeRoomPinned.get(classId) || null;
 };
 
-export const getModerationRecord = (classId: string, userId: string): ModerationRecord => {
+export const getModerationRecord = (classId: string, userId: string, role?: string): ModerationRecord => {
   const roomMod = activeRoomModeration.get(classId);
-  return roomMod?.get(userId) || { mutedByInstructor: false, micPermission: 'prompt', updatedAt: new Date().toISOString() };
+  if (roomMod && roomMod.has(userId)) {
+    return roomMod.get(userId)!;
+  }
+  const isStudent = (role || '').toLowerCase() === 'student';
+  return {
+    mutedByInstructor: isStudent,
+    micPermission: isStudent ? 'denied' : 'granted',
+    chatPermission: isStudent ? 'denied' : 'granted',
+    updatedAt: new Date().toISOString(),
+  };
 };
 
 export const getClassroomSettings = (classId: string): ClassroomInteractionSettings => {
@@ -106,6 +116,17 @@ export const getRoomParticipants = (classId: string): ParticipantInfo[] => {
     }
   }
   return list;
+};
+
+export const isInstructorActiveInRoom = (classId: string): boolean => {
+  const roomMap = activeRoomPresences.get(classId);
+  if (!roomMap || roomMap.size === 0) return false;
+  for (const p of roomMap.values()) {
+    if (p.role === 'instructor' || p.role === 'admin' || p.role === 'mentor') {
+      return true;
+    }
+  }
+  return false;
 };
 
 export const registerLiveClassHandlers = (io: SocketServer, socket: AuthenticatedSocket) => {
@@ -298,7 +319,20 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
         }
       }
 
-      const modRecord = getModerationRecord(liveClassId, userUid);
+      if (!activeRoomModeration.has(liveClassId)) {
+        activeRoomModeration.set(liveClassId, new Map());
+      }
+      const roomMod = activeRoomModeration.get(liveClassId)!;
+      if (!roomMod.has(userUid)) {
+        const isStudent = userRole === 'student';
+        roomMod.set(userUid, {
+          mutedByInstructor: isStudent,
+          micPermission: isStudent ? 'denied' : 'granted',
+          chatPermission: isStudent ? 'denied' : 'granted',
+          updatedAt: new Date().toISOString(),
+        });
+      }
+      const modRecord = roomMod.get(userUid)!;
       const isPinned = getRoomPinned(liveClassId) === userUid;
       const currentScreenShare = getRoomScreenShare(liveClassId);
       const isScreenSharing = currentScreenShare?.userId === userUid;
@@ -325,19 +359,26 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
       const currentRoster = getRoomParticipants(liveClassId);
       const activeCount = currentRoster.length;
 
-      const formattedParticipants = currentRoster.map((p) => ({
-        userId: p.userId,
-        name: p.name,
-        role: p.role,
-        isAudioOn: p.isAudioOn ?? false,
-        isVideoOn: p.isVideoOn ?? false,
-        isScreenSharing: p.isScreenSharing ?? false,
-        isSpeaking: p.isSpeaking ?? false,
-        audioLevel: p.audioLevel ?? 0,
-        isMutedByInstructor: p.isMutedByInstructor ?? false,
-        micPermission: p.micPermission ?? 'prompt',
-        isPinned: p.isPinned ?? false,
-      }));
+      const formattedParticipants = currentRoster.map((p) => {
+        const pMod = getModerationRecord(liveClassId, p.userId, p.role);
+        return {
+          userId: p.userId,
+          name: p.name,
+          role: p.role,
+          isAudioOn: p.isAudioOn ?? false,
+          isVideoOn: p.isVideoOn ?? false,
+          isScreenSharing: p.isScreenSharing ?? false,
+          isSpeaking: p.isSpeaking ?? false,
+          audioLevel: p.audioLevel ?? 0,
+          isMutedByInstructor: pMod.mutedByInstructor,
+          micPermission: pMod.micPermission,
+          chatPermission: pMod.chatPermission,
+          isPinned: p.isPinned ?? false,
+        };
+      });
+
+      // Check whether instructor is actively connected to socket room
+      const isInstructorOnline = isInstructorActiveInRoom(liveClassId);
 
       // Respond to joiner with full authoritative state snapshot
       const successPayload = {
@@ -345,17 +386,60 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
         liveClassId,
         roomName,
         status: normClassStatus || 'SCHEDULED',
+        isInstructorOnline,
         onlineCount: activeCount,
         participants: formattedParticipants,
         settings: classroomSettings,
         activeSpeaker: getRoomActiveSpeaker(liveClassId),
         screenShare: currentScreenShare,
         pinnedUserId: getRoomPinned(liveClassId),
+        moderation: modRecord,
       };
       socket.emit('liveClass:joined', successPayload);
       if (callback) callback(successPayload);
 
-      logger.info(`[LiveClass][JOIN_SUCCESS] classId=${liveClassId} userUid=${userUid} room=${roomName} participantCount=${activeCount}`);
+      logger.info(`[LiveClass][JOIN_SUCCESS] classId=${liveClassId} userUid=${userUid} room=${roomName} isInstructorOnline=${isInstructorOnline} participantCount=${activeCount}`);
+
+      // If joining participant is instructor/admin, notify all waiting students to auto-transition
+      if (participant.role === 'instructor' || participant.role === 'admin' || participant.role === 'mentor') {
+        logger.info(`[LiveClass][INSTRUCTOR_ONLINE] classId=${liveClassId} instructor=${participant.name}`);
+        io.to(roomName).emit('liveClass:instructor_joined', {
+          liveClassId,
+          instructorId: participant.userId,
+          name: participant.name,
+          role: participant.role,
+          timestamp: new Date().toISOString(),
+        });
+        io.to(roomName).emit('instructor:connected', {
+          liveClassId,
+          instructorId: participant.userId,
+          name: participant.name,
+          role: participant.role,
+        });
+
+        // Automatically transition scheduled class to LIVE upon instructor presence
+        if (normClassStatus === 'SCHEDULED') {
+          (async () => {
+            try {
+              await liveClassroomService.startLiveClass(liveClassId);
+              logger.info(`[LiveClass][AUTO_TRANSITION_LIVE] classId=${liveClassId} transitioned to LIVE on instructor connection`);
+              const startPayload = {
+                liveClassId,
+                status: 'LIVE',
+                startedAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                updatedBy: participant.name,
+              };
+              io.to(roomName).emit('liveClass:status', startPayload);
+              io.to(roomName).emit('live_class_started', startPayload);
+              io.emit('liveClass:status', startPayload);
+              io.emit('live_class_started', startPayload);
+            } catch (autoErr: any) {
+              logger.warn(`[LiveClass][AUTO_START_NOTICE] ${autoErr?.message || autoErr}`);
+            }
+          })();
+        }
+      }
 
       // Broadcast presence updates to entire room
       io.to(roomName).emit('liveClass:presence', {
@@ -439,6 +523,23 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
           name: leftParticipant.name,
           role: leftParticipant.role,
         });
+
+        if (leftParticipant.role === 'instructor' || leftParticipant.role === 'admin' || leftParticipant.role === 'mentor') {
+          const remainingInstructor = isInstructorActiveInRoom(liveClassId);
+          if (!remainingInstructor) {
+            logger.info(`[LiveClass][INSTRUCTOR_OFFLINE] classId=${liveClassId} instructor=${leftParticipant.name}`);
+            io.to(roomName).emit('liveClass:instructor_left', {
+              liveClassId,
+              instructorId: leftParticipant.userId,
+              name: leftParticipant.name,
+              timestamp: new Date().toISOString(),
+            });
+            io.to(roomName).emit('instructor:disconnected', {
+              liveClassId,
+              instructorId: leftParticipant.userId,
+            });
+          }
+        }
       }
     }
 
@@ -544,11 +645,15 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
         }
       })();
     } else if (normStatus === 'ENDED' || normStatus === 'COMPLETED') {
-      io.to(roomName).emit('live_class_ended', {
+      const endPayload = {
         liveClassId,
+        classId: liveClassId,
         status: normStatus,
         endedAt: new Date().toISOString(),
-      });
+      };
+      io.to(roomName).emit('live_class_ended', endPayload);
+      io.to(roomName).emit('session:ended', endPayload);
+      io.to(roomName).emit('liveClass:ended', endPayload);
       io.emit('liveClass:deleted', { liveClassId });
       io.emit('live_class_deleted', { liveClassId });
       try {
@@ -781,6 +886,19 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
       mutedByInstructor: true,
     });
     io.to(roomName).emit('student_muted', { userId: data.userId, isMuted: true });
+    // Real-time audio track revocation at socket layer
+    io.to(roomName).emit('webrtc_track_change', {
+      userId: data.userId,
+      isAudioOn: false,
+      isVideoOn: false,
+      isScreenSharing: false,
+    });
+    const currentSpeaker = activeRoomSpeakers.get(classId);
+    if (currentSpeaker && currentSpeaker.userId === data.userId) {
+      activeRoomSpeakers.set(classId, null);
+      io.to(roomName).emit('liveClass:speaker:changed', null);
+      io.to(roomName).emit('liveClass:speaker:stopped', { userId: data.userId });
+    }
   });
 
   socket.on('mute_student', (data: { classId: string; liveClassId?: string; userId: string; isMuted: boolean }) => {
@@ -819,6 +937,20 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
       mutedBy: user.name,
       mutedByInstructor: data.isMuted,
     });
+    if (data.isMuted) {
+      io.to(roomName).emit('webrtc_track_change', {
+        userId: data.userId,
+        isAudioOn: false,
+        isVideoOn: false,
+        isScreenSharing: false,
+      });
+      const currentSpeaker = activeRoomSpeakers.get(classId);
+      if (currentSpeaker && currentSpeaker.userId === data.userId) {
+        activeRoomSpeakers.set(classId, null);
+        io.to(roomName).emit('liveClass:speaker:changed', null);
+        io.to(roomName).emit('liveClass:speaker:stopped', { userId: data.userId });
+      }
+    }
   });
 
   socket.on('liveClass:moderation:muteAll', (data: { classId: string; liveClassId?: string }) => {
@@ -918,6 +1050,54 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
     io.to(roomName).emit('liveClass:moderation:micAllowed', {
       userId: data.userId,
       allowedBy: user.name,
+    });
+  });
+
+  socket.on('liveClass:moderation:allowChat', (data: { classId: string; liveClassId?: string; userId: string }) => {
+    const user = socket.user;
+    if (!user || (user.role !== 'admin' && user.role !== 'instructor' && user.role !== 'mentor')) {
+      return;
+    }
+    const classId = data.liveClassId || data.classId;
+    if (!classId || !data.userId) return;
+    const roomName = `live-class:${classId}`;
+
+    if (!activeRoomModeration.has(classId)) activeRoomModeration.set(classId, new Map());
+    const existing = activeRoomModeration.get(classId)!.get(data.userId) || { mutedByInstructor: false, micPermission: 'denied', updatedAt: new Date().toISOString() };
+    activeRoomModeration.get(classId)!.set(data.userId, {
+      ...existing,
+      chatPermission: 'granted',
+      updatedAt: new Date().toISOString(),
+    });
+
+    logger.info(`[SOCKET] Instructor ${user.name} allowed chat for student ${data.userId}`);
+    io.to(roomName).emit('liveClass:moderation:chatAllowed', {
+      userId: data.userId,
+      allowedBy: user.name,
+    });
+  });
+
+  socket.on('liveClass:moderation:muteChat', (data: { classId: string; liveClassId?: string; userId: string }) => {
+    const user = socket.user;
+    if (!user || (user.role !== 'admin' && user.role !== 'instructor' && user.role !== 'mentor')) {
+      return;
+    }
+    const classId = data.liveClassId || data.classId;
+    if (!classId || !data.userId) return;
+    const roomName = `live-class:${classId}`;
+
+    if (!activeRoomModeration.has(classId)) activeRoomModeration.set(classId, new Map());
+    const existing = activeRoomModeration.get(classId)!.get(data.userId) || { mutedByInstructor: false, micPermission: 'denied', updatedAt: new Date().toISOString() };
+    activeRoomModeration.get(classId)!.set(data.userId, {
+      ...existing,
+      chatPermission: 'denied',
+      updatedAt: new Date().toISOString(),
+    });
+
+    logger.info(`[SOCKET] Instructor ${user.name} muted chat for student ${data.userId}`);
+    io.to(roomName).emit('liveClass:moderation:chatMuted', {
+      userId: data.userId,
+      mutedBy: user.name,
     });
   });
 
@@ -1243,7 +1423,30 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
   socket.on('webrtc_track_change', (data: { classId: string; liveClassId?: string; userId?: string; isAudioOn: boolean; isVideoOn: boolean; isScreenSharing: boolean }) => {
     const user = socket.user;
     const classId = data.liveClassId || data.classId;
+    const userUid = (user?.uid || user?.id || data?.userId || '').toString();
+    if (!classId || !userUid) return;
     const roomName = `live-class:${classId}`;
+    const userRole = (user?.role || '').toLowerCase();
+
+    // Server-Authoritative Microphone Permission Gate for Students
+    if (userRole === 'student' && data.isAudioOn) {
+      const settings = getClassroomSettings(classId);
+      const modRecord = getModerationRecord(classId, userUid, 'student');
+      const isMicAllowed = (Boolean(settings?.studentMic?.enabled) && !modRecord.mutedByInstructor) || modRecord.micPermission === 'granted';
+
+      if (!isMicAllowed) {
+        logger.warn(`[LiveClass][MIC_UNAUTHORIZED] Student ${user?.name || userUid} attempted unmute without permission in ${classId}`);
+        socket.emit('liveClass:moderation:muted', { userId: userUid, mutedByInstructor: true });
+        socket.emit('student_muted', { userId: userUid, isMuted: true });
+        socket.emit('webrtc_track_change', {
+          userId: userUid,
+          isAudioOn: false,
+          isVideoOn: data.isVideoOn,
+          isScreenSharing: data.isScreenSharing,
+        });
+        return;
+      }
+    }
 
     const roomMap = activeRoomPresences.get(classId);
     const participant = roomMap?.get(socket.id);
@@ -1254,7 +1457,7 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
     }
 
     socket.to(roomName).emit('webrtc_track_change', {
-      userId: user?.uid || user?.id || data.userId,
+      userId: userUid,
       isAudioOn: data.isAudioOn,
       isVideoOn: data.isVideoOn,
       isScreenSharing: data.isScreenSharing,
@@ -1430,8 +1633,74 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
             name: leftParticipant.name,
             role: leftParticipant.role,
           });
+
+          if (leftParticipant.role === 'instructor' || leftParticipant.role === 'admin' || leftParticipant.role === 'mentor') {
+            const remainingInstructor = isInstructorActiveInRoom(classId);
+            if (!remainingInstructor) {
+              logger.info(`[LiveClass][INSTRUCTOR_DISCONNECT] classId=${classId} instructor=${leftParticipant.name}`);
+              io.to(roomName).emit('liveClass:instructor_left', {
+                liveClassId: classId,
+                instructorId: leftParticipant.userId,
+                name: leftParticipant.name,
+                timestamp: new Date().toISOString(),
+              });
+              io.to(roomName).emit('instructor:disconnected', {
+                liveClassId: classId,
+                instructorId: leftParticipant.userId,
+              });
+            }
+          }
         }
       }
     });
   });
+};
+
+let schedulerRunning = false;
+
+/**
+ * Background scheduler that periodically scans for scheduled classes whose
+ * scheduled start time has arrived, and automatically transitions them to LIVE.
+ */
+export const initLiveClassScheduler = (io: any) => {
+  if (schedulerRunning || !io) return;
+  schedulerRunning = true;
+
+  logger.info('[LiveClassScheduler] Background auto-transition scheduler initialized (30s interval).');
+
+  setInterval(async () => {
+    try {
+      const allClasses = await liveClassroomService.getAllLiveClasses();
+      const now = Date.now();
+
+      for (const cls of allClasses) {
+        const status = (cls.status || '').toUpperCase();
+        if (status === 'SCHEDULED') {
+          const scheduleCandidate = cls.scheduledAt || cls.startTime;
+          if (scheduleCandidate) {
+            const scheduledMs = new Date(scheduleCandidate).getTime();
+            if (!isNaN(scheduledMs) && scheduledMs <= now) {
+              const classId = cls.id || cls.classId;
+              logger.info(`[SCHEDULER_AUTO_TRANSITION] Class ${classId} reached scheduled time ${scheduleCandidate}. Transitioning to LIVE.`);
+              await liveClassroomService.startLiveClass(classId);
+              const roomName = `live-class:${classId}`;
+              const startPayload = {
+                liveClassId: classId,
+                status: 'LIVE',
+                startedAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                updatedBy: 'System Auto-Scheduler',
+              };
+              io.to(roomName).emit('liveClass:status', startPayload);
+              io.to(roomName).emit('live_class_started', startPayload);
+              io.emit('liveClass:status', startPayload);
+              io.emit('live_class_started', startPayload);
+            }
+          }
+        }
+      }
+    } catch (err: any) {
+      logger.warn(`[LiveClassScheduler] Poll notice: ${err?.message || err}`);
+    }
+  }, 30000);
 };

@@ -657,19 +657,38 @@ export const LiveClassroomDashboard: React.FC = () => {
                           </button>
                         </div>
                       </>
-                    ) : (
-                      <button
-                        onClick={() => handleOpenEnterConfirm(c)}
-                        className={`w-full py-3.5 px-4 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg transition-all ${
-                          isLiveNow
-                            ? 'bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white shadow-rose-600/40 animate-pulse'
-                            : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 dark:from-cyan-600 dark:to-blue-600 text-white shadow-blue-600/30'
-                        }`}
-                      >
-                        <Play className="w-4 h-4 fill-current" />
-                        <span>{isLiveNow ? '🔴 JOIN LIVE STREAM NOW' : 'ENTER CLASSROOM (WAITING ROOM)'}</span>
-                      </button>
-                    )}
+                    ) : (() => {
+                      const scheduledMs = new Date(c.startTime || c.scheduledAt || 0).getTime();
+                      const isNearScheduled = !isNaN(scheduledMs) && Date.now() >= (scheduledMs - 15 * 60 * 1000);
+                      const canJoin = isLiveNow || isNearScheduled;
+
+                      if (!canJoin) {
+                        return (
+                          <button
+                            disabled
+                            className="w-full py-3.5 px-4 rounded-2xl font-bold text-xs bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 cursor-not-allowed flex items-center justify-center gap-2 opacity-90"
+                            title="Room entry unlocks 15 minutes before the scheduled start time or when the instructor connects"
+                          >
+                            <Clock className="w-4 h-4 text-amber-500 shrink-0" />
+                            <span>Starts at {dt.time} ({dt.date})</span>
+                          </button>
+                        );
+                      }
+
+                      return (
+                        <button
+                          onClick={() => handleOpenEnterConfirm(c)}
+                          className={`w-full py-3.5 px-4 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg transition-all ${
+                            isLiveNow
+                              ? 'bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white shadow-rose-600/40 animate-pulse'
+                              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 dark:from-cyan-600 dark:to-blue-600 text-white shadow-blue-600/30'
+                          }`}
+                        >
+                          <Play className="w-4 h-4 fill-current" />
+                          <span>{isLiveNow ? '🔴 JOIN LIVE STREAM NOW' : 'ENTER CLASSROOM (WAITING ROOM)'}</span>
+                        </button>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>

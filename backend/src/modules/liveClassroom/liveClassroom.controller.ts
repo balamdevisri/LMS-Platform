@@ -110,6 +110,31 @@ export class LiveClassroomController {
 
   public async createClass(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
+      const body = req.body || {};
+      const isLive = String(body.status || '').toUpperCase() === 'LIVE';
+
+      if (!isLive) {
+        const scheduleCandidate = body.scheduledAt || body.startTime;
+        if (scheduleCandidate) {
+          const parsedDate = new Date(scheduleCandidate);
+          if (isNaN(parsedDate.getTime())) {
+            res.status(400).json({
+              success: false,
+              error: 'Invalid scheduled date/time provided. Must be a valid ISO date/time format.',
+            });
+            return;
+          }
+          // Reject past dates (allow 2 minutes of grace for network/clock drift)
+          if (parsedDate.getTime() < Date.now() - 2 * 60 * 1000) {
+            res.status(400).json({
+              success: false,
+              error: 'Cannot schedule a live class in the past. Please select a future date and time.',
+            });
+            return;
+          }
+        }
+      }
+
       const liveClass = await liveClassroomService.createLiveClass(req.body);
       logger.info(`[LIVE_CLASS_CREATED] ID: ${liveClass.id} | Title: ${liveClass.title} | Course: ${liveClass.courseId}`);
 
@@ -146,9 +171,33 @@ export class LiveClassroomController {
   public async deleteClass(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const classId = (req.params.classId || req.params.id) as string;
+      if (!classId) {
+        res.status(400).json({ success: false, error: 'classId is required.' });
+        return;
+      }
+
+      const existingClass = await liveClassroomService.getLiveClassById(classId).catch(() => null);
+      const liveNS = getLiveNamespace();
+
+      // If class is currently LIVE, broadcast session:ended & liveClass:ended so all students are cleanly kicked out
+      if (existingClass && String(existingClass.status).toUpperCase() === 'LIVE' && liveNS) {
+        const roomName = `live-class:${classId}`;
+        const endPayload = {
+          liveClassId: classId,
+          classId,
+          status: 'ENDED',
+          endedAt: new Date().toISOString(),
+          reason: 'Class session was terminated by administrator deletion',
+        };
+        logger.warn(`[LIVE_CLASS_DELETED_LIVE] Broadcasting session:ended for active session: ${classId}`);
+        liveNS.to(roomName).emit('session:ended', endPayload);
+        liveNS.to(roomName).emit('liveClass:ended', endPayload);
+        liveNS.to(roomName).emit('live_class_ended', endPayload);
+        liveNS.to(roomName).emit('liveClass:status', endPayload);
+      }
+
       const result = await liveClassroomService.deleteLiveClass(classId);
 
-      const liveNS = getLiveNamespace();
       if (liveNS) {
         liveNS.emit('liveClass:deleted', { liveClassId: classId, classId });
         liveNS.emit('live_class_deleted', { liveClassId: classId, classId });
@@ -252,15 +301,19 @@ export class LiveClassroomController {
           updatedAt: new Date().toISOString(),
           updatedBy: user?.name || user?.email || 'Instructor',
         });
-        liveNS.to(roomName).emit('live_class_ended', {
+        const endPayload = {
           liveClassId: classId,
+          classId,
           status: 'ENDED',
-          endedAt: liveClass?.endedAt,
-        });
+          endedAt: liveClass?.endedAt || new Date().toISOString(),
+        };
+        liveNS.to(roomName).emit('live_class_ended', endPayload);
+        liveNS.to(roomName).emit('session:ended', endPayload);
+        liveNS.to(roomName).emit('liveClass:ended', endPayload);
         liveNS.emit('liveClass:status', {
           liveClassId: classId,
           status: 'ENDED',
-          endedAt: liveClass?.endedAt,
+          endedAt: liveClass?.endedAt || new Date().toISOString(),
         });
         liveNS.emit('liveClass:deleted', { liveClassId: classId, classId });
         liveNS.emit('live_class_deleted', { liveClassId: classId, classId });

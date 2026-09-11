@@ -37,9 +37,10 @@ interface LiveChatWidgetProps {
 }
 
 export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId, currentUser }) => {
+  const isInstructor = currentUser.role === 'instructor' || (currentUser.role as string) === 'admin';
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(!isInstructor);
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   
   // Typing indicators
@@ -47,7 +48,6 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
   const typingTimeoutRef = useRef<any>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const isInstructor = currentUser.role === 'instructor' || (currentUser.role as string) === 'admin';
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -130,17 +130,30 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
 
     const handleIncomingMessage = (msg: ChatMessage) => {
       if (!msg) return;
-      const msgKey = msg.id || msg._id?.toString();
+      const msgKey = msg.id || (msg as any)._id?.toString();
       setMessages((prev) => {
-        if (msgKey && prev.some((m) => (m.id || m._id?.toString()) === msgKey)) {
+        // 1. Direct match by message ID
+        if (msgKey && prev.some((m) => (m.id || (m as any)._id?.toString()) === msgKey)) {
           return prev;
+        }
+        // 2. Catch optimistic render matching: same author & text within 6 seconds
+        const matchIndex = prev.findIndex((m) => {
+          const sameUser = m.userId === msg.userId;
+          const sameText = (m.message || '').trim() === (msg.message || '').trim();
+          const timeDiff = Math.abs(new Date(m.createdAt).getTime() - new Date(msg.createdAt).getTime());
+          return sameUser && sameText && (isNaN(timeDiff) || timeDiff < 6000);
+        });
+        if (matchIndex !== -1) {
+          // Replace optimistic item with authoritative message
+          const copy = [...prev];
+          copy[matchIndex] = msg;
+          return copy;
         }
         return [...prev, msg];
       });
     };
 
-    // Listen for new messages (support both legacy and new event names)
-    socket.on('chat_received', handleIncomingMessage);
+    // Strictly listen to single canonical chat:message event
     socket.on('chat:message', handleIncomingMessage);
 
     // Listen for pinned messages update
@@ -179,7 +192,7 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
     });
 
     // Listen for room-wide chat mute
-    socket.on('room_chat_muted', (data: { isMuted: boolean; updatedBy?: string }) => {
+    const handleRoomChatMuted = (data: { isMuted: boolean; updatedBy?: string }) => {
       if (!isInstructor) {
         setIsMuted(data.isMuted);
         if (data.isMuted) {
@@ -188,10 +201,43 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
           toast.success('💬 Live chat has been enabled by the instructor.');
         }
       }
-    });
+    };
+    socket.on('room_chat_muted', handleRoomChatMuted);
+
+    // Sync authoritative join state
+    const handleJoined = (data: any) => {
+      if (!isInstructor && data?.moderation) {
+        if (data.moderation.chatPermission === 'granted') {
+          setIsMuted(false);
+        } else if (data.moderation.chatPermission === 'denied' || !data.settings?.chat?.enabled) {
+          setIsMuted(true);
+        }
+      }
+    };
+    socket.on('liveClass:joined', handleJoined);
+
+    // Listen for explicit individual chat permission grants/revocations
+    const handleChatAllowed = (data: { userId: string }) => {
+      if (data.userId === currentUser.uid) {
+        setIsMuted(false);
+        toast.success('💬 Instructor granted you permission to chat.');
+      }
+    };
+    socket.on('liveClass:moderation:chatAllowed', handleChatAllowed);
+
+    const handleChatMuted = (data: { userId: string }) => {
+      if (data.userId === currentUser.uid) {
+        setIsMuted(true);
+        toast.warning('🔒 Your chat has been locked by the instructor.');
+      }
+    };
+    socket.on('liveClass:moderation:chatMuted', handleChatMuted);
 
     // Listen for server-side chat rejection or rate limiting
     const handleChatError = (errData: { error?: string; message?: string }) => {
+      if (errData?.error === 'CHAT_LOCKED' || errData?.error === 'CHAT_DISABLED') {
+        setIsMuted(true);
+      }
       if (errData?.message) {
         toast.error(errData.message);
       }
@@ -199,12 +245,14 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
     socket.on('chat:error', handleChatError);
 
     return () => {
-      socket.off('chat_received', handleIncomingMessage);
       socket.off('chat:message', handleIncomingMessage);
       socket.off('chat_pinned');
       socket.off('typing_received');
       socket.off('student_muted');
-      socket.off('room_chat_muted');
+      socket.off('room_chat_muted', handleRoomChatMuted);
+      socket.off('liveClass:joined', handleJoined);
+      socket.off('liveClass:moderation:chatAllowed', handleChatAllowed);
+      socket.off('liveClass:moderation:chatMuted', handleChatMuted);
       socket.off('chat:error', handleChatError);
     };
   }, [socket, currentUser.uid, isInstructor]);
@@ -239,11 +287,13 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
     setInputMessage('');
     setReplyTo(null);
 
-    // 2. Transmit through Socket.IO if connected
+    // 2. Transmit through Socket.IO strictly via canonical chat:send
     if (socket && socket.connected) {
-      socket.emit('send_chat', payload);
       socket.emit('chat:send', {
+        clientMessageId: msgId,
+        id: msgId,
         liveClassId: classId,
+        classId,
         message: payload.message,
         messageType: type,
         replyToId: payload.replyToId,

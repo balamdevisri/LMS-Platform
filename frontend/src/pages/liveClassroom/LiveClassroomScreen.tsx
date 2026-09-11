@@ -69,6 +69,7 @@ export const LiveClassroomScreen: React.FC = () => {
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'reconnecting' | 'disconnected' | 'idle'>('idle');
   const [classEnded, setClassEnded] = useState(false);
   const [classEndedReason, setClassEndedReason] = useState<'ENDED' | 'CANCELLED'>('ENDED');
+  const [isInstructorOnline, setIsInstructorOnline] = useState<boolean>(false);
 
   // Pre-flight Start Class Action State
   const [isStartingClass, setIsStartingClass] = useState(false);
@@ -81,6 +82,7 @@ export const LiveClassroomScreen: React.FC = () => {
   // Hardware States
   const [micOn, setMicOn] = useState(false);
   const [camOn, setCamOn] = useState(false);
+  const [isMicLocked, setIsMicLocked] = useState(!isInstructor);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [isChatMuted, setIsChatMuted] = useState(false);
@@ -332,6 +334,9 @@ export const LiveClassroomScreen: React.FC = () => {
                   setClassEnded(false);
                 }
               }
+              if (res.isInstructorOnline !== undefined) {
+                setIsInstructorOnline(Boolean(res.isInstructorOnline));
+              }
               if (res.onlineCount !== undefined) {
                 setOnlineCount(Math.max(1, res.onlineCount));
               }
@@ -370,6 +375,9 @@ export const LiveClassroomScreen: React.FC = () => {
             if (upperStatus === 'LIVE') {
               setClassEnded(false);
             }
+          }
+          if (res?.isInstructorOnline !== undefined) {
+            setIsInstructorOnline(Boolean(res.isInstructorOnline));
           }
           if (res?.onlineCount !== undefined) {
             setOnlineCount(Math.max(1, res.onlineCount));
@@ -495,18 +503,43 @@ export const LiveClassroomScreen: React.FC = () => {
           setUnmuteRequest({ instructorName: data.instructorName || 'Instructor' });
         });
 
+        socketInstance.on('liveClass:joined', (data: any) => {
+          if (!isInstructor && data?.moderation) {
+            const isGranted = data.moderation.micPermission === 'granted';
+            setIsMicLocked(!isGranted);
+          }
+        });
+
+        socketInstance.on('liveClass:moderation:micAllowed', (data: { userId: string }) => {
+          const myId = user?.uid || userProfile?.uid;
+          if (data.userId === myId) {
+            setIsMicLocked(false);
+            toast.success('🎙️ The instructor granted you permission to unmute!');
+          }
+        });
+
         socketInstance.on('liveClass:moderation:muteAll', () => {
           if (!isInstructor) {
-            toast.warning('🔇 All student microphones have been muted by the instructor.');
+            toast.warning('🔇 All student microphones have been muted and locked by the instructor.');
             setMicOn(false);
+            setIsMicLocked(true);
+            if (mediaClientRef.current) {
+              mediaClientRef.current.muteMicrophone().catch(() => {});
+            }
           }
         });
 
         socketInstance.on('liveClass:moderation:muted', (data: { userId: string }) => {
           const myId = user?.uid || userProfile?.uid;
           if (data.userId === myId) {
-            toast.warning('🔇 Your microphone was muted by the instructor.');
+            toast.warning('🔇 Your microphone is locked by the instructor.');
             setMicOn(false);
+            if (!isInstructor) {
+              setIsMicLocked(true);
+            }
+            if (mediaClientRef.current) {
+              mediaClientRef.current.muteMicrophone().catch(() => {});
+            }
           }
         });
 
@@ -524,6 +557,7 @@ export const LiveClassroomScreen: React.FC = () => {
               mediaClientRef.current.muteMicrophone().catch(() => {});
             }
             setMicOn(false);
+            setIsMicLocked(true);
             toast.info('🔇 Instructor has muted all student microphones.');
           }
         });
@@ -540,6 +574,61 @@ export const LiveClassroomScreen: React.FC = () => {
           toast.info(data.isOpen ? '🎨 Interactive Whiteboard opened by instructor.' : '🎨 Whiteboard closed.');
         });
 
+        // Instructor Connection Presence Listeners
+        socketInstance.on('liveClass:instructor_joined', () => {
+          setIsInstructorOnline(true);
+          toast.success('👨‍🏫 Instructor has joined the classroom.');
+        });
+
+        socketInstance.on('instructor:connected', () => {
+          setIsInstructorOnline(true);
+        });
+
+        socketInstance.on('liveClass:instructor_left', () => {
+          setIsInstructorOnline(false);
+          toast.info('Instructor stepped out momentarily.');
+        });
+
+        socketInstance.on('instructor:disconnected', () => {
+          setIsInstructorOnline(false);
+        });
+
+        // Uniform Teardown and Auto-End Function
+        const handleTeardownAndEnd = (reason: 'ENDED' | 'CANCELLED' = 'ENDED') => {
+          setClassEndedReason(reason);
+          setClassEnded(true);
+          setLiveClassData((prev) => (prev ? { ...prev, status: reason === 'CANCELLED' ? 'CANCELLED' as any : 'Completed' } : null));
+
+          // 1. Completely teardown student-side WebRTC media connections (peer connections, streams, tracks)
+          try {
+            if (mediaClientRef.current) {
+              mediaClientRef.current.cleanup().catch(() => {});
+            }
+          } catch {}
+
+          // 2. Stop local tracks & reset UI toggles
+          setMicOn(false);
+          setCamOn(false);
+          setIsScreenSharing(false);
+
+          // 3. Leave signaling room
+          if (classId) {
+            socketService.leaveLiveClass(classId);
+          }
+
+          // 4. Show user confirmation
+          toast.info(reason === 'CANCELLED' ? '❌ Live class has been cancelled.' : '🎓 Class has ended. Returning to dashboard...', {
+            duration: 3500,
+          });
+
+          // 5. Force-transition students out of classroom view automatically after brief delay
+          if (!isInstructor) {
+            setTimeout(() => {
+              navigate('/dashboard/live-classroom');
+            }, 2500);
+          }
+        };
+
         // Live Class Status Changes
         socketInstance.on('liveClass:status', (data: { liveClassId: string; status: string }) => {
           const s = (data.status || '').toUpperCase();
@@ -548,11 +637,7 @@ export const LiveClassroomScreen: React.FC = () => {
             setClassEnded(false);
             toast.success('🔴 CLASS IS NOW LIVE! Session started.');
           } else if (s === 'ENDED' || s === 'COMPLETED' || s === 'CANCELLED') {
-            setClassEndedReason(s === 'CANCELLED' ? 'CANCELLED' : 'ENDED');
-            setClassEnded(true);
-            setLiveClassData((prev) => (prev ? { ...prev, status: s as any } : null));
-            if (classId) socketService.leaveLiveClass(classId);
-            toast.info(s === 'CANCELLED' ? '❌ This live class has been cancelled.' : '🎓 The live class session has ended.');
+            handleTeardownAndEnd(s === 'CANCELLED' ? 'CANCELLED' : 'ENDED');
           }
         });
 
@@ -563,16 +648,20 @@ export const LiveClassroomScreen: React.FC = () => {
         });
 
         socketInstance.on('live_class_ended', () => {
-          setClassEndedReason('ENDED');
-          setClassEnded(true);
-          setLiveClassData((prev) => (prev ? { ...prev, status: 'Completed' } : null));
-          if (classId) socketService.leaveLiveClass(classId);
-          toast.info('🎓 The live class session has concluded.');
+          handleTeardownAndEnd('ENDED');
+        });
+
+        socketInstance.on('session:ended', () => {
+          handleTeardownAndEnd('ENDED');
+        });
+
+        socketInstance.on('liveClass:ended', () => {
+          handleTeardownAndEnd('ENDED');
         });
 
         socketInstance.on('kicked', (data: { message?: string }) => {
           toast.error(data?.message || 'You have been removed from the classroom.');
-          navigate('/dashboard/live-classroom');
+          handleTeardownAndEnd('ENDED');
         });
 
       } catch (err) {
@@ -622,9 +711,15 @@ export const LiveClassroomScreen: React.FC = () => {
         socketInstance.off('announcement_created');
         socketInstance.off('lock_toggled');
         socketInstance.off('whiteboard_toggled');
+        socketInstance.off('liveClass:instructor_joined');
+        socketInstance.off('instructor:connected');
+        socketInstance.off('liveClass:instructor_left');
+        socketInstance.off('instructor:disconnected');
         socketInstance.off('liveClass:status');
         socketInstance.off('live_class_started');
         socketInstance.off('live_class_ended');
+        socketInstance.off('session:ended');
+        socketInstance.off('liveClass:ended');
         socketInstance.off('liveClass:joined');
         socketInstance.off('liveClass:error');
         socketInstance.off('kicked');
@@ -725,6 +820,10 @@ export const LiveClassroomScreen: React.FC = () => {
 
   // Hardware Controls
   const handleToggleMic = async () => {
+    if (!isInstructor && isMicLocked) {
+      toast.warning("Microphone is locked by the instructor. Use 'Raise Hand' to request to speak.");
+      return;
+    }
     if (mediaClientRef.current) {
       const enabled = await mediaClientRef.current.toggleMicrophone();
       setMicOn(enabled);
@@ -824,8 +923,10 @@ export const LiveClassroomScreen: React.FC = () => {
       liveClassId: classId,
       studentId,
     });
+    // Auto-allow mic when instructor acknowledges raised hand
+    socket.emit('liveClass:moderation:allowMic', { classId, userId: studentId });
     setRaisedHands((prev) => prev.filter((h) => h.userId !== studentId));
-    toast.success('Acknowledged student hand raise.');
+    toast.success('Acknowledged student & granted microphone permission.');
   };
 
   // Broadcast Announcement
@@ -875,7 +976,25 @@ export const LiveClassroomScreen: React.FC = () => {
     if (!socket || !isInstructor) return;
     mediaClientRef.current?.muteParticipant(targetUserId);
     socket.emit('mute_student', { classId, userId: targetUserId, isMuted: true });
-    toast.info('Muted participant microphone.');
+    socket.emit('liveClass:moderation:mute', { classId, userId: targetUserId });
+    toast.info('Muted and locked participant microphone.');
+  };
+
+  const handleAllowMicParticipant = (targetUserId: string) => {
+    if (!socket || !isInstructor) return;
+    socket.emit('liveClass:moderation:allowMic', { classId, userId: targetUserId });
+    toast.success('Granted participant microphone permission.');
+  };
+
+  const handleToggleChatParticipant = (targetUserId: string, allow: boolean) => {
+    if (!socket || !isInstructor) return;
+    if (allow) {
+      socket.emit('liveClass:moderation:allowChat', { classId, userId: targetUserId });
+      toast.success('Granted student chat permission.');
+    } else {
+      socket.emit('liveClass:moderation:muteChat', { classId, userId: targetUserId });
+      toast.info('Locked student chat.');
+    }
   };
 
   const handleKickParticipant = (targetUserId: string) => {
@@ -951,11 +1070,11 @@ export const LiveClassroomScreen: React.FC = () => {
     );
   }
 
-  // 4. SCHEDULED State — Instructor Pre-Flight vs Student Standby Room
-  if (normStatus === 'SCHEDULED') {
+  // 4. Standby / Waiting Room (Scheduled OR Student Waiting for Instructor to Join)
+  if (normStatus === 'SCHEDULED' || (!isInstructor && !isInstructorOnline)) {
     return (
       <div className="min-h-screen bg-slate-950 text-white font-['Sora'] flex flex-col justify-between">
-        {/* Scheduled Top Bar */}
+        {/* Scheduled / Waiting Room Top Bar */}
         <header className="bg-slate-900 border-b border-slate-800 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
@@ -970,9 +1089,13 @@ export const LiveClassroomScreen: React.FC = () => {
               <p className="text-xs text-slate-400">{liveClassData?.courseName}</p>
             </div>
           </div>
-          <span className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
+          <span className={`px-3 py-1 rounded-full border font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 ${
+            normStatus === 'LIVE'
+              ? 'bg-sky-500/10 border-sky-500/30 text-sky-400'
+              : 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+          }`}>
             <Clock className="w-3.5 h-3.5" />
-            <span>SCHEDULED</span>
+            <span>{normStatus === 'LIVE' ? 'WAITING ROOM' : 'SCHEDULED'}</span>
           </span>
         </header>
 
@@ -1086,19 +1209,31 @@ export const LiveClassroomScreen: React.FC = () => {
                 <div className="p-6 rounded-2xl bg-slate-950/60 border border-slate-800 text-center space-y-4">
                   <div className="flex items-center justify-center gap-2 text-sky-400 font-bold text-sm">
                     <span className="w-2.5 h-2.5 rounded-full bg-sky-400 animate-ping" />
-                    <span>Waiting for assigned instructor to start the live class...</span>
+                    <span>
+                      {normStatus === 'LIVE'
+                        ? 'Waiting for instructor to join...'
+                        : 'Waiting for assigned instructor to start the live class...'}
+                    </span>
                   </div>
-                  <p className="text-xs text-slate-400 max-w-md mx-auto">
-                    Instructor <strong className="text-white">{liveClassData?.instructorName || 'Lead Mentor'}</strong> has not commenced the broadcast yet. This screen will automatically launch into the live classroom the instant the instructor starts the session.
+                  <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
+                    {normStatus === 'LIVE'
+                      ? `The live session is active. Instructor ${liveClassData?.instructorName || 'Lead Mentor'} is connecting. You are currently in the waiting room and will automatically enter the classroom as soon as the instructor connects.`
+                      : `Instructor ${liveClassData?.instructorName || 'Lead Mentor'} has not commenced the broadcast yet. This screen will automatically launch into the live classroom the instant the instructor starts the session.`}
                   </p>
-                  <button
-                    type="button"
-                    onClick={() => setIsDeviceSettingsOpen(true)}
-                    className="py-2.5 px-4 mx-auto rounded-xl bg-slate-900 border border-slate-700 text-slate-300 hover:text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all"
-                  >
-                    <Settings className="w-3.5 h-3.5 text-sky-400" />
-                    <span>Test Audio & Video Preview</span>
-                  </button>
+                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs font-semibold">
+                    <Users className="w-3.5 h-3.5" />
+                    <span>In Queue • {onlineCount} connected</span>
+                  </div>
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setIsDeviceSettingsOpen(true)}
+                      className="py-2.5 px-4 mx-auto rounded-xl bg-slate-900 border border-slate-700 text-slate-300 hover:text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all"
+                    >
+                      <Settings className="w-3.5 h-3.5 text-sky-400" />
+                      <span>Test Audio & Video Preview</span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -1393,12 +1528,26 @@ export const LiveClassroomScreen: React.FC = () => {
             <div className="flex items-center gap-2">
               <button
                 onClick={handleToggleMic}
-                className={`p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                  micOn ? 'bg-sky-500/20 border-sky-400 text-sky-300' : 'bg-rose-500/20 border-rose-500 text-rose-400'
+                disabled={!isInstructor && isMicLocked}
+                className={`p-2.5 rounded-xl border text-xs font-bold transition-all relative ${
+                  micOn
+                    ? 'bg-sky-500/20 border-sky-400 text-sky-300 cursor-pointer'
+                    : !isInstructor && isMicLocked
+                    ? 'bg-slate-800/80 border-slate-700 text-slate-500 cursor-not-allowed opacity-75'
+                    : 'bg-rose-500/20 border-rose-500 text-rose-400 cursor-pointer'
                 }`}
-                title={micOn ? 'Mute Microphone' : 'Unmute Microphone'}
+                title={
+                  !isInstructor && isMicLocked
+                    ? 'Microphone locked by instructor (Raise Hand to speak)'
+                    : micOn
+                    ? 'Mute Microphone'
+                    : 'Unmute Microphone'
+                }
               >
                 {micOn ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
+                {!isInstructor && isMicLocked && (
+                  <Lock className="w-2.5 h-2.5 absolute -top-1 -right-1 text-amber-400 bg-slate-900 rounded-full p-0.5 border border-slate-700" />
+                )}
               </button>
 
               <button
@@ -1805,15 +1954,51 @@ export const LiveClassroomScreen: React.FC = () => {
                             {isInstructor && p.role !== 'instructor' && p.role !== 'admin' && (
                               <div className="flex items-center gap-1">
                                 <button
-                                  onClick={() => handleMuteParticipant(p.userId)}
-                                  className="p-1 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 cursor-pointer"
-                                  title="Mute Student"
+                                  onClick={() =>
+                                    p.micPermission === 'granted' && !p.isMutedByInstructor
+                                      ? handleMuteParticipant(p.userId)
+                                      : handleAllowMicParticipant(p.userId)
+                                  }
+                                  className={`p-1.5 rounded-lg cursor-pointer transition-all ${
+                                    p.micPermission === 'granted' && !p.isMutedByInstructor
+                                      ? 'bg-emerald-500/20 text-emerald-400 hover:bg-rose-500/20 hover:text-rose-400'
+                                      : 'bg-slate-800 text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10'
+                                  }`}
+                                  title={
+                                    p.micPermission === 'granted' && !p.isMutedByInstructor
+                                      ? 'Mute & Lock Student Mic'
+                                      : 'Allow Student Mic'
+                                  }
                                 >
-                                  <VolumeX className="w-3.5 h-3.5" />
+                                  {p.micPermission === 'granted' && !p.isMutedByInstructor ? (
+                                    <Mic className="w-3.5 h-3.5" />
+                                  ) : (
+                                    <MicOff className="w-3.5 h-3.5" />
+                                  )}
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handleToggleChatParticipant(
+                                      p.userId,
+                                      p.chatPermission === 'denied'
+                                    )
+                                  }
+                                  className={`p-1.5 rounded-lg cursor-pointer transition-all ${
+                                    p.chatPermission === 'granted'
+                                      ? 'bg-sky-500/20 text-sky-400 hover:bg-rose-500/20 hover:text-rose-400'
+                                      : 'bg-slate-800 text-slate-400 hover:text-sky-400 hover:bg-sky-500/10'
+                                  }`}
+                                  title={p.chatPermission === 'granted' ? 'Mute Student Chat' : 'Allow Student Chat'}
+                                >
+                                  {p.chatPermission === 'granted' ? (
+                                    <MessageSquare className="w-3.5 h-3.5" />
+                                  ) : (
+                                    <MessageSquareOff className="w-3.5 h-3.5" />
+                                  )}
                                 </button>
                                 <button
                                   onClick={() => handleKickParticipant(p.userId)}
-                                  className="p-1 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 cursor-pointer"
+                                  className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 cursor-pointer"
                                   title="Remove from Classroom"
                                 >
                                   <UserX className="w-3.5 h-3.5" />

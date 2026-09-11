@@ -9,6 +9,7 @@ import {
   ArrowRight,
   CheckCircle2,
   Bell,
+  Clock,
 } from 'lucide-react';
 import { liveClassService, normalizeLiveClassStatus, isMockLiveClass, type LiveClass } from '@/services/liveClassService';
 import { webNotificationService } from '@/services/webNotificationService';
@@ -93,6 +94,24 @@ export const StudentLiveClassroomSection: React.FC = () => {
     const secs = Math.floor((diff % (1000 * 60)) / 1000);
 
     return { days, hours, mins, secs, isPast: false };
+  };
+
+  const formatScheduledTime = (isoString?: string) => {
+    if (!isoString) return 'Scheduled Soon';
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return 'Scheduled Soon';
+    const timeStr = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    const today = new Date();
+    if (d.toDateString() === today.toDateString()) {
+      return `Starts at ${timeStr}`;
+    }
+    const tomorrow = new Date();
+    tomorrow.setDate(today.getDate() + 1);
+    if (d.toDateString() === tomorrow.toDateString()) {
+      return `Starts Tomorrow, ${timeStr}`;
+    }
+    const dateStr = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    return `Starts ${dateStr}, ${timeStr}`;
   };
 
   const handleJoinLive = (c: LiveClass) => {
@@ -373,33 +392,47 @@ export const StudentLiveClassroomSection: React.FC = () => {
                       </a>
                     )}
 
-                    <button
-                      onClick={() => handleJoinLive(c)}
-                      className={`flex-1 py-2 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm ${
-                        isLiveNow
-                          ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/30 animate-pulse'
-                          : isCompleted
-                          ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                          : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-600/20'
-                      }`}
-                    >
-                      {isLiveNow ? (
-                        <>
-                          <Play className="w-3.5 h-3.5 fill-current text-white" />
-                          <span>JOIN LIVE NOW</span>
-                        </>
-                      ) : isCompleted ? (
-                        <>
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
-                          <span>View Post-Class & Replay</span>
-                        </>
-                      ) : (
-                        <>
-                          <Video className="w-3.5 h-3.5 text-white" />
-                          <span>Enter Live Classroom</span>
-                        </>
-                      )}
-                    </button>
+                    {isLiveNow ? (
+                      <button
+                        onClick={() => handleJoinLive(c)}
+                        className="flex-1 py-2 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/30 animate-pulse"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-current text-white" />
+                        <span>JOIN LIVE NOW</span>
+                      </button>
+                    ) : isCompleted ? (
+                      <button
+                        onClick={() => handleJoinLive(c)}
+                        className="flex-1 py-2 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
+                        <span>View Post-Class & Replay</span>
+                      </button>
+                    ) : (() => {
+                        const scheduledMs = new Date(c.startTime || c.scheduledAt || 0).getTime();
+                        const isNearScheduled = !isNaN(scheduledMs) && nowMs >= (scheduledMs - 15 * 60 * 1000);
+                        if (!isNearScheduled) {
+                          return (
+                            <button
+                              disabled
+                              className="flex-1 py-2 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 border border-slate-200 dark:border-zinc-700 cursor-not-allowed opacity-90"
+                              title="Live classroom unlocks 15 minutes before the scheduled time or when the instructor connects"
+                            >
+                              <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                              <span className="truncate">{formatScheduledTime(c.startTime || c.scheduledAt)}</span>
+                            </button>
+                          );
+                        }
+                        return (
+                          <button
+                            onClick={() => handleJoinLive(c)}
+                            className="flex-1 py-2 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-600/20"
+                          >
+                            <Video className="w-3.5 h-3.5 text-white" />
+                            <span>Enter Live Classroom</span>
+                          </button>
+                        );
+                      })()}
                   </div>
 
                 </div>

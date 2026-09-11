@@ -1,6 +1,6 @@
 import { Server as SocketServer, Socket } from 'socket.io';
 import { socketAuthMiddleware, AuthenticatedSocket } from './socket.auth';
-import { registerLiveClassHandlers } from './liveClass.socket';
+import { registerLiveClassHandlers, initLiveClassScheduler } from './liveClass.socket';
 import { registerChatHandlers } from './chat.socket';
 import { registerQnaHandlers } from './qna.socket';
 import { registerHandHandlers } from './hand.socket';
@@ -25,6 +25,9 @@ export const setupSocketServer = (io: SocketServer) => {
 
   // Attach Handshake Authentication Middleware
   liveNS.use(socketAuthMiddleware);
+
+  // Initialize live class background auto-transition scheduler
+  initLiveClassScheduler(liveNS);
 
   liveNS.on('connection', (socket: Socket) => {
     const authSocket = socket as AuthenticatedSocket;
