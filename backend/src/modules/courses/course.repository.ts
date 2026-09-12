@@ -1,6 +1,7 @@
 import { db } from '../../firebase';
 import { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import { ICourse, CreateCourseDTO, UpdateCourseDTO, CourseFilterOptions, CoursePaginationResult } from '../../types/course';
+import { ApiError } from '../../utils/ApiError';
 
 interface CacheEntry<T> {
   data: T;
@@ -170,29 +171,33 @@ export class CourseRepository {
     }
 
     // Concurrency Check: optimistic locking
-    if (existing && typeof expectedVersion === 'number' && typeof existing.version === 'number') {
-      if (existing.version !== expectedVersion) {
-        console.warn(`[COURSE_CONFLICT] courseId="${docId}", currentVersion=${existing.version}, expectedVersion=${expectedVersion}, userId="${userId}"`);
+    const targetExpectedVersion = expectedVersion ?? updates.expectedRevision;
+    if (existing && typeof targetExpectedVersion === 'number' && typeof (existing.version ?? existing.revision) === 'number') {
+      const currVersion = existing.version ?? existing.revision ?? 1;
+      if (currVersion !== targetExpectedVersion) {
+        console.warn(`[COURSE_CONFLICT] courseId="${docId}", currentVersion=${currVersion}, expectedVersion=${targetExpectedVersion}, userId="${userId}"`);
         const conflictErr: any = new Error(
-          `Course was modified by another session (current version: ${existing.version}, attempted version: ${expectedVersion}). Please reload latest version before saving.`
+          `Course was modified by another session (current version: ${currVersion}, attempted version: ${targetExpectedVersion}). Please reload latest version before saving.`
         );
         conflictErr.status = 409;
         conflictErr.code = 409;
-        conflictErr.currentVersion = existing.version;
+        conflictErr.currentVersion = currVersion;
         throw conflictErr;
       }
     }
 
     const docRef = this.collection.doc(docId);
     const now = new Date().toISOString();
-    const nextVersion = existing ? ((existing.version || 1) + 1) : 1;
+    const nextVersion = existing ? (((existing.version || existing.revision) || 1) + 1) : 1;
 
     const updatedData: Partial<ICourse> = {
       ...updates,
       version: nextVersion,
+      revision: nextVersion,
       updatedBy: userId || existing?.updatedBy || 'admin',
       updatedAt: now,
     };
+    delete (updatedData as any).expectedRevision;
 
     if (updates.title && !updates.slug) {
       updatedData.slug = this.generateSlug(updates.title);
@@ -205,6 +210,7 @@ export class CourseRepository {
         rating: 5.0,
         ratingCount: 0,
         version: 1,
+        revision: 1,
         isDeleted: false,
         createdBy: userId || 'admin',
         createdAt: now,
@@ -259,7 +265,9 @@ export class CourseRepository {
     }
 
     const page = Math.max(1, Number(options.page) || 1);
-    const limit = Math.max(1, Math.min(100, Number(options.limit) || 10));
+    const limit = options.limit !== undefined && options.limit !== null
+      ? Math.max(1, Math.min(100, Number(options.limit)))
+      : 100;
 
     const snapshot = await this.collection.get();
     let courses: ICourse[] = snapshot.docs

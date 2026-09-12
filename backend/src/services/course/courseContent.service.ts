@@ -1,6 +1,7 @@
 import { db } from '../../firebase';
 import { CourseModuleDoc, CourseLessonDoc, CourseContentSummary, LessonQueryOptions } from '../../types/courseContent.types';
 import { fromDocument, toDocument } from '../../utils/firestore';
+import { ApiError } from '../../utils/ApiError';
 
 interface CacheEntry<T> {
   data: T;
@@ -61,35 +62,74 @@ export class CourseContentService {
       for (const doc of snapshot.docs) {
         const raw = fromDocument<any>(doc);
         const idx = raw.orderIndex ?? raw.order ?? 1;
-        let lessons = raw.lessons;
-        if (!lessons || !Array.isArray(lessons) || lessons.length === 0) {
-          try {
-            const lessonsSnap = await db
-              .collection('courses')
-              .doc(courseId)
-              .collection('modules')
-              .doc(doc.id)
-              .collection('lessons')
-              .get();
-            if (lessonsSnap && !lessonsSnap.empty) {
-              lessons = lessonsSnap.docs.map(lDoc => {
-                const lRaw = fromDocument<any>(lDoc);
-                const lIdx = lRaw.orderIndex ?? lRaw.order ?? 1;
-                return {
-                  ...lRaw,
-                  orderIndex: lIdx,
-                  order: lIdx,
-                };
-              });
-              lessons.sort((a: any, b: any) => (a.orderIndex ?? a.order ?? 0) - (b.orderIndex ?? b.order ?? 0));
-            }
-          } catch (e) {}
+        let lessons: any[] = [];
+
+        // 1. Authoritative: Fetch from subcollection courses/{courseId}/modules/{moduleId}/lessons
+        try {
+          const lessonsSnap = await db
+            .collection('courses')
+            .doc(courseId)
+            .collection('modules')
+            .doc(doc.id)
+            .collection('lessons')
+            .get();
+          if (lessonsSnap && !lessonsSnap.empty) {
+            lessons = lessonsSnap.docs.map((lDoc) => {
+              const lRaw = fromDocument<any>(lDoc);
+              const lIdx = lRaw.orderIndex ?? lRaw.order ?? 1;
+              return {
+                ...lRaw,
+                orderIndex: lIdx,
+                order: lIdx,
+              };
+            });
+            lessons.sort((a: any, b: any) => (a.orderIndex ?? a.order ?? 0) - (b.orderIndex ?? b.order ?? 0));
+          }
+        } catch (e) {}
+
+        // 2. Fallback to raw.lessons only if subcollection is empty
+        if (lessons.length === 0 && Array.isArray(raw.lessons) && raw.lessons.length > 0) {
+          lessons = raw.lessons;
         }
+
+        // 3. Format topics and learningUnits for compatibility with full-featured LMS editors and viewers
+        let topics = raw.topics;
+        if ((!topics || !Array.isArray(topics) || topics.length === 0) && lessons.length > 0) {
+          topics = [
+            {
+              id: `${doc.id}-topic-1`,
+              title: `${raw.title || 'Module'} Units`,
+              description: raw.description || '',
+              estimatedDuration: raw.duration || '30 mins',
+              learningUnits: lessons.map((l) => ({
+                id: l.id,
+                title: l.title,
+                description: l.description || '',
+                duration: l.duration || '15 mins',
+                type: l.type ? (l.type.charAt(0).toUpperCase() + l.type.slice(1)) : 'Reading',
+                readingContent: l.readingContent || l.content || l.notes || '',
+                content: l.content || l.readingContent || l.notes || '',
+                conceptTheory: l.conceptTheory || l.readingContent || l.content || '',
+                videoUrl: l.videoUrl || l.video?.videoUrl || '',
+                quizQuestions: l.quizQuestions || (l.quiz ? l.quiz.questions : []),
+                assignmentInstructions: l.assignmentInstructions || (l.assignment ? l.assignment.instructions : ''),
+                practiceLabChallenge: l.practiceLabChallenge || l.practical || null,
+                resources: l.resources || [],
+                revision: l.revision,
+                orderIndex: l.orderIndex ?? l.order,
+                order: l.order ?? l.orderIndex,
+              })),
+            },
+          ];
+        }
+
         modules.push({
           ...raw,
           orderIndex: idx,
           order: idx,
+          revision: raw.revision ?? 1,
           lessons: lessons || [],
+          topics: topics || raw.topics || [],
         });
       }
 
@@ -135,6 +175,7 @@ export class CourseContentService {
           ...raw,
           orderIndex: idx,
           order: idx,
+          revision: raw.revision ?? 1,
         };
         if (!includeContent) {
           // Remove heavy content payload for lightweight summary
@@ -180,6 +221,7 @@ export class CourseContentService {
             ...raw,
             orderIndex: idx,
             order: idx,
+            revision: raw.revision ?? 1,
           };
           this.setCache(cacheKey, lesson);
           return lesson;
@@ -229,56 +271,125 @@ export class CourseContentService {
   }
 
   /**
-   * Creates or updates a module document in Firestore.
+   * Creates or updates a module document in Firestore with optimistic concurrency check.
    * Canonical write target: courses/{courseId}/modules/{moduleId}
    */
-  async saveModule(courseId: string, moduleDoc: CourseModuleDoc): Promise<void> {
+  async saveModule(courseId: string, moduleDoc: CourseModuleDoc): Promise<CourseModuleDoc> {
     const orderIndex = moduleDoc.orderIndex ?? moduleDoc.order ?? 1;
+    const docRef = db.collection('courses').doc(courseId).collection('modules').doc(moduleDoc.id);
+
+    const existingSnap = await docRef.get();
+    let currentRevision = 0;
+    if (existingSnap.exists) {
+      const data = existingSnap.data() || {};
+      currentRevision = typeof data.revision === 'number' ? data.revision : 1;
+    }
+
+    if (moduleDoc.expectedRevision !== undefined && existingSnap.exists) {
+      if (currentRevision !== moduleDoc.expectedRevision) {
+        throw new ApiError(
+          409,
+          `Conflict: Module "${moduleDoc.id}" was modified by another session. Current revision is ${currentRevision}, but expected ${moduleDoc.expectedRevision}.`
+        );
+      }
+    }
+
+    const nextRevision = currentRevision + 1;
+    const now = new Date().toISOString();
+
     const cleanDoc = toDocument({
       ...moduleDoc,
       courseId,
       orderIndex,
       order: orderIndex,
-      updatedAt: new Date(),
+      revision: nextRevision,
+      lastSavedAt: now,
+      updatedAt: now,
     });
+    delete (cleanDoc as any).expectedRevision;
 
     // Primary Canonical Subcollection: courses/{courseId}/modules/{moduleId}
-    await db.collection('courses').doc(courseId).collection('modules').doc(moduleDoc.id).set(cleanDoc, { merge: true });
+    await docRef.set(cleanDoc, { merge: true });
 
     this.invalidateCache(`modules:${courseId}`);
     await this.syncCourseStats(courseId);
+
+    return {
+      ...moduleDoc,
+      courseId,
+      orderIndex,
+      order: orderIndex,
+      revision: nextRevision,
+      lastSavedAt: now,
+      updatedAt: now,
+    };
   }
 
   /**
-   * Creates or updates a lesson document in Firestore with atomic parent stats sync.
+   * Creates or updates a lesson document in Firestore with optimistic concurrency check and atomic parent stats sync.
    * Canonical write target: courses/{courseId}/modules/{moduleId}/lessons/{lessonId}
    */
-  async saveLesson(courseId: string, moduleId: string, lessonDoc: CourseLessonDoc): Promise<void> {
+  async saveLesson(courseId: string, moduleId: string, lessonDoc: CourseLessonDoc): Promise<CourseLessonDoc> {
     const orderIndex = lessonDoc.orderIndex ?? lessonDoc.order ?? 1;
+    const docRef = db
+      .collection('courses')
+      .doc(courseId)
+      .collection('modules')
+      .doc(moduleId)
+      .collection('lessons')
+      .doc(lessonDoc.id);
+
+    const existingSnap = await docRef.get();
+    let currentRevision = 0;
+    if (existingSnap.exists) {
+      const data = existingSnap.data() || {};
+      currentRevision = typeof data.revision === 'number' ? data.revision : 1;
+    }
+
+    if (lessonDoc.expectedRevision !== undefined && existingSnap.exists) {
+      if (currentRevision !== lessonDoc.expectedRevision) {
+        throw new ApiError(
+          409,
+          `Conflict: Lesson "${lessonDoc.id}" was modified by another session. Current revision is ${currentRevision}, but expected ${lessonDoc.expectedRevision}.`
+        );
+      }
+    }
+
+    const nextRevision = currentRevision + 1;
+    const now = new Date().toISOString();
+
     const cleanDoc = toDocument({
       ...lessonDoc,
       courseId,
       moduleId,
       orderIndex,
       order: orderIndex,
-      updatedAt: new Date(),
+      revision: nextRevision,
+      lastSavedAt: now,
+      updatedAt: now,
     });
+    delete (cleanDoc as any).expectedRevision;
 
     // Primary Canonical Subcollection: courses/{courseId}/modules/{moduleId}/lessons/{lessonId}
-    await db
-      .collection('courses')
-      .doc(courseId)
-      .collection('modules')
-      .doc(moduleId)
-      .collection('lessons')
-      .doc(lessonDoc.id)
-      .set(cleanDoc, { merge: true });
+    await docRef.set(cleanDoc, { merge: true });
 
     this.invalidateCache(`lessons:${courseId}:${moduleId}`);
     this.invalidateCache(`lesson:${courseId}:${moduleId}:${lessonDoc.id}`);
+    this.invalidateCache(`modules:${courseId}`);
 
     // Synchronize parent course metadata
     await this.syncCourseStats(courseId);
+
+    return {
+      ...lessonDoc,
+      courseId,
+      moduleId,
+      orderIndex,
+      order: orderIndex,
+      revision: nextRevision,
+      lastSavedAt: now,
+      updatedAt: now,
+    };
   }
 
   /**
@@ -357,6 +468,7 @@ export class CourseContentService {
 
         this.invalidateCache(`lesson:${courseId}:${moduleId}:${lessonId}`);
         this.invalidateCache(`lessons:${courseId}:${moduleId}`);
+        this.invalidateCache(`modules:${courseId}`);
 
         await this.syncCourseStats(courseId);
       }

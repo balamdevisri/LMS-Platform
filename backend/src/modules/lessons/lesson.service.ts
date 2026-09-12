@@ -10,9 +10,9 @@ export class LessonService {
   }
 
   /**
-   * Creates or updates a lesson document.
+   * Creates or updates a lesson document with optimistic concurrency checking.
    */
-  async saveLesson(courseId: string, moduleId: string, lessonDoc: CourseLessonDoc): Promise<void> {
+  async saveLesson(courseId: string, moduleId: string, lessonDoc: CourseLessonDoc): Promise<CourseLessonDoc> {
     return courseContentService.saveLesson(courseId, moduleId, lessonDoc);
   }
 

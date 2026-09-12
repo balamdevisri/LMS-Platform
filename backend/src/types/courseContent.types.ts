@@ -15,6 +15,7 @@ export interface CourseLessonDoc {
   duration: string;
   type: LessonType;
   readingTime?: string;
+  readingContent?: string;
   content?: string;
   videoUrl?: string;
   published?: boolean;
@@ -30,6 +31,9 @@ export interface CourseLessonDoc {
     url: string;
     size?: string;
   }[];
+  revision?: number;
+  expectedRevision?: number;
+  lastSavedAt?: string | Date;
   createdAt?: string | Date;
   updatedAt?: string | Date;
 }
@@ -50,6 +54,9 @@ export interface CourseModuleDoc {
   themeColor?: string | null;
   themeIcon?: string | null;
   topics?: CourseTopic[];
+  revision?: number;
+  expectedRevision?: number;
+  lastSavedAt?: string | Date;
   createdAt?: string | Date;
   updatedAt?: string | Date;
 }

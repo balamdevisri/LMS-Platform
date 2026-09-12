@@ -23,7 +23,7 @@ export class CourseController {
       sortBy: typeof sortBy === 'string' ? (sortBy as any) : undefined,
       sortOrder: typeof sortOrder === 'string' ? (sortOrder as any) : undefined,
       page: page ? Number(page) : 1,
-      limit: limit ? Number(limit) : 10,
+      limit: limit ? Number(limit) : 100,
     });
 
     res.json(formatResponse(true, result, 'Courses retrieved successfully'));

@@ -129,12 +129,16 @@ export const AdminContentStudio: React.FC = () => {
   const { courseId } = useParams<{ courseId?: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { courses, updateCourse } = useCourses();
+  const { courses, updateCourse, getCourseModules } = useCourses();
 
   // Selected Course ID
   const [selectedCourseId, setSelectedCourseId] = useState<string | number>(
     courseId || searchParams.get('courseId') || (courses[0]?.id ? String(courses[0].id) : '')
   );
+
+  // Hydration state for curriculum protection
+  const [isHydrated, setIsHydrated] = useState<boolean>(false);
+  const [isLoadingModules, setIsLoadingModules] = useState<boolean>(false);
 
   // Active state selections
   const [selectedLesson, setSelectedLesson] = useState<LearningUnitItem | null>(null);
@@ -205,14 +209,51 @@ export const AdminContentStudio: React.FC = () => {
     }
   }, [courseId, courses, selectedCourseId]);
 
+  // Hydrate full curriculum from backend subcollections on active course selection
+  useEffect(() => {
+    if (!activeCourse?.id) return;
+    setIsLoadingModules(true);
+    setIsHydrated(false);
+
+    getCourseModules(activeCourse.id, true)
+      .then((mods) => {
+        setIsHydrated(true);
+        setIsLoadingModules(false);
+        if (mods && mods.length > 0) {
+          const allExpanded: Record<string, boolean> = {};
+          mods.forEach((m) => {
+            allExpanded[m.id] = true;
+          });
+          setExpandedModules(allExpanded);
+
+          if (!selectedLesson) {
+            const firstMod = mods[0];
+            const firstTopic = firstMod?.topics?.[0];
+            const firstUnit = firstTopic?.learningUnits?.[0];
+            if (firstUnit && firstMod && firstTopic) {
+              setSelectedLesson(firstUnit);
+              setActiveModuleId(firstMod.id);
+              setActiveTopicId(firstTopic.id);
+              setLastSavedTimestamp(firstUnit.lastSavedAt || null);
+            }
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn('[AdminContentStudio] getCourseModules notice:', err);
+        setIsHydrated(true);
+        setIsLoadingModules(false);
+      });
+  }, [activeCourse?.id, getCourseModules]);
+
   // Expand all modules by default on load
   useEffect(() => {
-    if (activeCourse?.modules) {
+    if (activeCourse?.modules && activeCourse.modules.length > 0) {
       const allExpanded: Record<string, boolean> = {};
       activeCourse.modules.forEach(m => {
         allExpanded[m.id] = true;
       });
-      setExpandedModules(allExpanded);
+      setExpandedModules(prev => ({ ...allExpanded, ...prev }));
 
       // Auto-select first lesson if none selected
       if (!selectedLesson) {
@@ -707,9 +748,24 @@ export const AdminContentStudio: React.FC = () => {
   // Add new module
   const addModuleNode = async () => {
     if (!activeCourse) return;
+    if (isLoadingModules || !isHydrated) {
+      toast.error('Curriculum is still loading. Please wait before adding a module.');
+      return;
+    }
+
+    let baseModules = activeCourse.modules || [];
+    if (baseModules.length === 0 && ((activeCourse as any).totalModules > 0 || (activeCourse as any).modulesCount > 0)) {
+      const fetched = await getCourseModules(activeCourse.id, true);
+      if (fetched && fetched.length > 0) {
+        baseModules = fetched;
+      }
+    }
+
     const newModId = `mod_${Date.now()}`;
     const newTopicId = `top_${Date.now()}`;
     const firstLessonId = `lesson_${Date.now()}`;
+    const nextModNumber = baseModules.length + 1;
+
     const firstLesson: LearningUnitItem = {
       id: firstLessonId,
       title: 'Module Introduction & Notes',
@@ -724,7 +780,7 @@ export const AdminContentStudio: React.FC = () => {
 
     const newMod: ModuleItem = {
       id: newModId,
-      title: `Module ${(activeCourse.modules?.length || 0) + 1}: New Curriculum Module`,
+      title: `Module ${nextModNumber}: New Curriculum Module`,
       description: 'Module overview and topics.',
       duration: '3 Hours',
       topics: [
@@ -738,8 +794,11 @@ export const AdminContentStudio: React.FC = () => {
       ]
     };
 
-    const updated = [...(activeCourse.modules || []), newMod];
-    await updateCourse(activeCourse.id, { modules: updated });
+    const updated = [...baseModules, newMod];
+    await updateCourse(activeCourse.id, {
+      modules: updated,
+      expectedRevision: (activeCourse as any).revision ?? (activeCourse as any).version,
+    });
     await courseService.saveLessonContent(String(activeCourse.id), newModId, firstLesson);
 
     setSelectedLesson(firstLesson);

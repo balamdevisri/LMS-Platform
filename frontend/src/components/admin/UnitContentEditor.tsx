@@ -452,12 +452,15 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
       assignmentInstructions: type === 'Assignment' ? assignmentInstructions.trim() : undefined,
       notes: notes.trim(),
       isDraft,
+      revision: unit.revision,
+      expectedRevision: unit.revision,
       lastSavedAt: new Date().toISOString(),
     };
 
     console.log('[UNIT-EDITOR-TRACE] 1. UnitContentEditor handleSave called:', {
       unitId: unit.id,
       title: updatedUnit.title,
+      revision: unit.revision,
       readingContentSnippet: (updatedUnit.conceptTheory || updatedUnit.readingContent || '').slice(0, 60),
       isDraft,
     });
@@ -470,8 +473,12 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
       lastLoadedUnitIdRef.current = updatedUnit.id;
       toast.success(isDraft ? 'Unit saved as draft.' : 'Unit published successfully!');
     } catch (err: any) {
-      console.error(err);
-      toast.error('Failed to save unit content.');
+      console.error('[UnitContentEditor] Save error:', err);
+      if (err?.isConflict || err?.statusCode === 409 || err?.message?.includes('Conflict')) {
+        toast.error('⚠️ Revision Conflict: This lesson was modified in another session. Please reload to review latest changes.', { duration: 8000 });
+      } else {
+        toast.error(err?.message || 'Failed to save unit content.');
+      }
     } finally {
       setIsSaving(false);
     }

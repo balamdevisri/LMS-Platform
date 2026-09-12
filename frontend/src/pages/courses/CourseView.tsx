@@ -1,6 +1,6 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useParams, useSearchParams, useNavigate, useLocation } from 'react-router-dom';
-import { useCourses, loadStaticCourseModules } from '@/contexts/CourseContext';
+import { useCourses } from '@/contexts/CourseContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { courseService } from '@/services/courseService';
 import { toast } from 'sonner';
@@ -39,7 +39,7 @@ const mapCourseModulesToPlayerModules = (modules?: any[]): any[] => {
   if (!modules) return [];
   return modules.map((m) => {
     let lessonsList: any[] = [];
-    if (m.lessons && Array.isArray(m.lessons)) {
+    if (m.lessons && Array.isArray(m.lessons) && m.lessons.length > 0) {
       lessonsList = m.lessons;
     } else if (m.topics && Array.isArray(m.topics)) {
       m.topics.forEach((t: any) => {
@@ -51,7 +51,18 @@ const mapCourseModulesToPlayerModules = (modules?: any[]): any[] => {
       });
     }
 
-    const enrichedLessons = lessonsList.map((l: any) => {
+    // Deduplicate lessons by ID
+    const seenLessonIds = new Set<string>();
+    const uniqueLessonsList: any[] = [];
+    lessonsList.forEach((l: any) => {
+      const lId = String(l.id || `lesson-${Date.now()}-${Math.random()}`);
+      if (!seenLessonIds.has(lId)) {
+        seenLessonIds.add(lId);
+        uniqueLessonsList.push(l);
+      }
+    });
+
+    const enrichedLessons = uniqueLessonsList.map((l: any) => {
       const lId = l.id || `lesson-${Date.now()}-${Math.random()}`;
       const lTitle = l.title || 'Untitled Lesson';
       const lContent = l.readingContent || l.content || l.description || 'Welcome to this lesson.';
@@ -123,38 +134,20 @@ export const CourseView: React.FC = () => {
 
     if (dynamicCourse.modules && dynamicCourse.modules.length > 0) {
       setCourseModules(dynamicCourse.modules);
-      return;
+    } else {
+      setIsLoadingModules(true);
     }
 
-    setIsLoadingModules(true);
     const courseTarget = String(dynamicCourse.id || idOrSlug);
 
-    getCourseModules(courseTarget)
+    getCourseModules(courseTarget, true)
       .then((mods) => {
-        if (isMounted) {
-          if (mods && mods.length > 0) {
-            setCourseModules(mods);
-          } else {
-            loadStaticCourseModules(courseTarget)
-              .then((staticMods) => {
-                if (isMounted && staticMods && staticMods.length > 0) {
-                  setCourseModules(staticMods);
-                }
-              })
-              .catch(() => {});
-          }
+        if (isMounted && mods && mods.length > 0) {
+          setCourseModules(mods);
         }
       })
-      .catch(() => {
-        if (isMounted) {
-          loadStaticCourseModules(courseTarget)
-            .then((staticMods) => {
-              if (isMounted && staticMods && staticMods.length > 0) {
-                setCourseModules(staticMods);
-              }
-            })
-            .catch(() => {});
-        }
+      .catch((err) => {
+        console.warn('Failed to load course modules:', err);
       })
       .finally(() => {
         if (isMounted) {

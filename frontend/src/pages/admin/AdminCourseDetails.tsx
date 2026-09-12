@@ -26,9 +26,9 @@ import {
 import { toast } from 'sonner';
 import { AssignmentPortal } from '@/components/courses/AssignmentPortal';
 import { UnitContentEditor } from '@/components/admin/UnitContentEditor';
+import { courseService } from '@/services/courseService';
 import {
   useCourses,
-  loadStaticCourseModules,
   type ModuleItem,
   type TopicItem,
   type LearningUnitItem,
@@ -156,34 +156,37 @@ export const AdminCourseDetails: React.FC = () => {
   // Drag and Drop State for Learning Units
   const [draggedUnit, setDraggedUnit] = useState<{ moduleId: string; topicId: string; index: number } | null>(null);
 
+  // Hydration state for curriculum protection
+  const [isHydrated, setIsHydrated] = useState<boolean>(false);
+  const [isLoadingModules, setIsLoadingModules] = useState<boolean>(false);
+
   // Sync state with Course Context
   useEffect(() => {
-    if (course?.modules && course.modules.length > 0) {
-      console.log('[STATIC-FALLBACK]', {
-        courseId: course.id,
-        modulesLength: course.modules.length,
-        reason: 'loaded_from_course_context',
-        loadedStatic: false,
-      });
-      setModules(course.modules);
-    } else if (course?.id) {
-      getCourseModules(course.id).then((mods) => {
-        if (mods && mods.length > 0) {
-          console.log('[STATIC-FALLBACK]', {
-            courseId: course.id,
-            modulesLength: mods.length,
-            reason: 'loaded_via_getCourseModules',
-            loadedStatic: false,
-          });
-          setModules(mods);
-        } else {
-          setModules([]);
-        }
-      }).catch(() => setModules([]));
-    } else {
+    if (!course?.id) {
       setModules([]);
+      setIsHydrated(false);
+      return;
     }
-  }, [course, getCourseModules]);
+
+    if (course?.modules && course.modules.length > 0) {
+      setModules(course.modules);
+    }
+
+    setIsLoadingModules(true);
+    setIsHydrated(false);
+    getCourseModules(course.id, true)
+      .then((mods) => {
+        if (mods && mods.length > 0) {
+          setModules(mods);
+        }
+        setIsHydrated(true);
+        setIsLoadingModules(false);
+      })
+      .catch(() => {
+        setIsHydrated(true);
+        setIsLoadingModules(false);
+      });
+  }, [course?.id, getCourseModules]);
 
   const startQuizSimulation = () => {
     setQuizSelectedAnswers({});
@@ -575,11 +578,24 @@ export const AdminCourseDetails: React.FC = () => {
 
   // ================= MODULE OPERATIONS =================
 
-  const handleAddModule = (e: React.FormEvent) => {
+  const handleAddModule = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim()) {
       toast.error('Module title is required.');
       return;
+    }
+
+    if (isLoadingModules || !isHydrated) {
+      toast.error('Curriculum is still loading. Please wait before adding a module.');
+      return;
+    }
+
+    let baseModules = modules;
+    if (baseModules.length === 0 && ((course as any).totalModules > 0 || (course as any).modulesCount > 0)) {
+      const fetched = await getCourseModules(course.id, true);
+      if (fetched && fetched.length > 0) {
+        baseModules = fetched;
+      }
     }
 
     const newModule: ModuleItem = {
@@ -590,8 +606,11 @@ export const AdminCourseDetails: React.FC = () => {
       topics: [],
     };
 
-    const updated = [...modules, newModule];
-    updateCourse(course.id, { modules: updated });
+    const updated = [...baseModules, newModule];
+    await updateCourse(course.id, {
+      modules: updated,
+      expectedRevision: (course as any)?.revision ?? (course as any)?.version,
+    });
     
     setExpandedIds({ [newModule.id]: true });
 
@@ -2377,7 +2396,7 @@ export const AdminCourseDetails: React.FC = () => {
           setActiveUnit(null);
         }}
         onSave={async (updatedUnit, isDraft) => {
-          if (!drawerModuleId || !drawerTopicId) return;
+          if (!drawerModuleId || !drawerTopicId || !course?.id) return;
           const finalUnit = {
             ...updatedUnit,
             isDraft: isDraft ?? false,
@@ -2385,19 +2404,37 @@ export const AdminCourseDetails: React.FC = () => {
           console.log('[ADMIN-DETAILS-TRACE] 2. AdminCourseDetails onSave called:', {
             unitId: finalUnit.id,
             title: finalUnit.title,
-            readingContentSnippet: (finalUnit.conceptTheory || finalUnit.readingContent || '').slice(0, 60),
             moduleId: drawerModuleId,
             topicId: drawerTopicId,
+            revision: finalUnit.revision,
             isDraft,
           });
 
+          // 1. Authoritative direct save to canonical database subcollection
+          const savedResult = await courseService.saveLessonContent(String(course.id), drawerModuleId, {
+            ...finalUnit,
+            id: finalUnit.id,
+            courseId: String(course.id),
+            moduleId: drawerModuleId,
+            content: finalUnit.readingContent || finalUnit.conceptTheory || '',
+            readingContent: finalUnit.readingContent || finalUnit.conceptTheory || '',
+            expectedRevision: finalUnit.expectedRevision ?? activeUnit?.revision,
+          });
+
+          const confirmedUnit = {
+            ...finalUnit,
+            revision: savedResult?.revision ?? (finalUnit.revision || 1) + 1,
+            lastSavedAt: savedResult?.lastSavedAt || new Date().toISOString(),
+          };
+
+          // 2. Synchronize local modules state
           const updated = modules.map((m) => {
             if (m.id === drawerModuleId) {
               const nextTopics = m.topics.map((t) => {
                 if (t.id === drawerTopicId) {
                   return {
                     ...t,
-                    learningUnits: t.learningUnits.map((u) => (u.id === finalUnit.id ? finalUnit : u)),
+                    learningUnits: t.learningUnits.map((u) => (u.id === confirmedUnit.id ? confirmedUnit : u)),
                   };
                 }
                 return t;
@@ -2406,13 +2443,12 @@ export const AdminCourseDetails: React.FC = () => {
             }
             return m;
           });
+
           setModules(updated);
-          if (course?.id) {
-            await updateCourse(course.id, { modules: updated });
-          }
+          await updateCourse(course.id, { modules: updated });
           setDrawerOpen(false);
           setActiveUnit(null);
-          toast.success(`Unit "${finalUnit.title}" ${isDraft ? 'saved as draft' : 'published'} successfully!`);
+          toast.success(`Unit "${confirmedUnit.title}" ${isDraft ? 'saved as draft' : 'published'} successfully!`);
         }}
         onDelete={handleDeleteUnitDrawer}
       />

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { useCourses, loadStaticCourseModules } from '@/contexts/CourseContext';
+import { useCourses } from '@/contexts/CourseContext';
 import type { ModuleItem, LearningUnitItem } from '@/contexts/CourseContext';
 import {
   Folder,
@@ -60,11 +60,13 @@ function formatDate(dateVal?: string | number | Date): string {
 }
 
 export const AdminContentManagement: React.FC = () => {
-  const { courses, updateCourse } = useCourses();
+  const { courses, updateCourse, getCourseModules } = useCourses();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Active state selections
   const [selectedCourseId, setSelectedCourseId] = useState<string | number>('');
+  const [isHydrated, setIsHydrated] = useState<boolean>(false);
+  const [isLoadingModules, setIsLoadingModules] = useState<boolean>(false);
   const [selectedLesson, setSelectedLesson] = useState<LearningUnitItem | null>(null);
   const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
   const [activeTopicId, setActiveTopicId] = useState<string | null>(null);
@@ -138,6 +140,31 @@ export const AdminContentManagement: React.FC = () => {
   // Find active course record
   const activeCourse = courses.find(c => String(c.id) === String(selectedCourseId)) || courses[0];
 
+  // Hydrate full curriculum from backend subcollections on active course selection
+  useEffect(() => {
+    if (!activeCourse?.id) return;
+    setIsLoadingModules(true);
+    setIsHydrated(false);
+
+    getCourseModules(activeCourse.id, true)
+      .then((mods) => {
+        setIsHydrated(true);
+        setIsLoadingModules(false);
+        if (mods && mods.length > 0) {
+          const allExpanded: Record<string, boolean> = {};
+          mods.forEach((m) => {
+            allExpanded[m.id] = true;
+          });
+          setExpandedModules(allExpanded);
+        }
+      })
+      .catch((err) => {
+        console.warn('[AdminContentManagement] getCourseModules notice:', err);
+        setIsHydrated(true);
+        setIsLoadingModules(false);
+      });
+  }, [activeCourse?.id, getCourseModules]);
+
   // Sync URL search params with active course
   useEffect(() => {
     const qCourseId = searchParams.get('courseId');
@@ -153,16 +180,7 @@ export const AdminContentManagement: React.FC = () => {
     }
   }, [courses, searchParams]);
 
-  // Dynamic fallback module loader for courses that have empty modules
-  useEffect(() => {
-    if (activeCourse && (!activeCourse.modules || activeCourse.modules.length === 0)) {
-      loadStaticCourseModules(activeCourse.id).then((mods) => {
-        if (mods && mods.length > 0) {
-          updateCourse(activeCourse.id, { modules: mods });
-        }
-      }).catch(() => {});
-    }
-  }, [activeCourse?.id]);
+
 
   // Automatically expand all modules on course change
   useEffect(() => {
@@ -669,13 +687,28 @@ export const AdminContentManagement: React.FC = () => {
   };
 
   // Add new module
-  const addModuleNode = () => {
+  const addModuleNode = async () => {
     if (!activeCourse) return;
+    if (isLoadingModules || !isHydrated) {
+      toast.error('Curriculum is still loading. Please wait before adding a module.');
+      return;
+    }
+
+    let baseModules = activeCourse.modules || [];
+    if (baseModules.length === 0 && ((activeCourse as any).totalModules > 0 || (activeCourse as any).modulesCount > 0)) {
+      const fetched = await getCourseModules(activeCourse.id, true);
+      if (fetched && fetched.length > 0) {
+        baseModules = fetched;
+      }
+    }
+
     const newModId = `mod_${Date.now()}`;
     const newTopicId = `top_${Date.now()}`;
+    const nextModNumber = baseModules.length + 1;
+
     const newMod: ModuleItem = {
       id: newModId,
-      title: `Module ${(activeCourse.modules?.length || 0) + 1}: New Curriculum Module`,
+      title: `Module ${nextModNumber}: New Curriculum Module`,
       description: 'Module overview and topics.',
       duration: '3 Hours',
       topics: [
@@ -700,8 +733,11 @@ export const AdminContentManagement: React.FC = () => {
         }
       ]
     };
-    const updated = [...(activeCourse.modules || []), newMod];
-    updateCourse(activeCourse.id, { modules: updated });
+    const updated = [...baseModules, newMod];
+    await updateCourse(activeCourse.id, {
+      modules: updated,
+      expectedRevision: (activeCourse as any).revision ?? (activeCourse as any).version,
+    });
     toast.success('Added new Module.');
   };
 
