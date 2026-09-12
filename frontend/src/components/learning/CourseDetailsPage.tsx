@@ -19,6 +19,8 @@ import {
   GraduationCap,
   Radio,
   Video,
+  Tag,
+  CreditCard,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { liveClassService, type LiveClass, normalizeLiveClassStatus } from '@/services/liveClassService';
@@ -40,6 +42,7 @@ export interface CourseDetailsProps {
     thumbnail: string;
     introText: string[];
     outcomes: string[];
+    price?: number;
     modules: Array<{
       id: string | number;
       title: string;
@@ -294,13 +297,36 @@ export const CourseDetailsPage: React.FC<CourseDetailsProps> = ({
                   className="w-10 h-10 rounded-full object-cover border border-[#E5E7EB] dark:border-[#25324A]"
                 />
                 <div>
-                  <div className="text-xs text-[#64748B] dark:text-[#94A3B8]">{instructorRole}</div>
-                  <div className="text-sm font-semibold text-[#111827] dark:text-white flex items-center gap-1.5">
+                  <h4 className="text-xs font-semibold text-[#111827] dark:text-white">
                     {instructorName}
-                    <ShieldCheck className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
-                  </div>
+                  </h4>
+                  <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8]">
+                    {instructorRole}
+                  </p>
                 </div>
               </div>
+
+              {/* Progress Indicator if Enrolled */}
+              {isEnrolled && (
+                <div className="p-4 rounded-2xl bg-white dark:bg-[#111827] border border-[#E5E7EB] dark:border-[#25324A] shadow-xs space-y-2.5 max-w-xl">
+                  <div className="flex items-center justify-between text-xs font-semibold">
+                    <span className="text-[#111827] dark:text-white flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#3B82F6]" />
+                      Course Track Progress
+                    </span>
+                    <span className="text-[#2563EB] dark:text-[#3B82F6] font-mono">
+                      {progressPercent}% Completed ({completedCount}/{totalLessonsCount} Lessons)
+                    </span>
+                  </div>
+                  <div className="w-full bg-[#E5E7EB] dark:bg-[#25324A] h-2 rounded-full overflow-hidden">
+                    <div
+                      className="bg-linear-to-r from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-500 h-2 rounded-full transition-all duration-500 ease-out"
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
             </div>
 
             {/* Right Summary Card (Desktop) */}
@@ -315,6 +341,16 @@ export const CourseDetailsPage: React.FC<CourseDetailsProps> = ({
                 </div>
 
                 <div className="space-y-3 text-xs">
+                  {isPaid && (
+                    <div className="flex items-center justify-between py-2 border-b border-[#E5E7EB] dark:border-[#25324A] bg-blue-50/50 dark:bg-blue-950/20 px-3 rounded-xl -mx-1">
+                      <span className="text-[#2563EB] dark:text-[#3B82F6] font-bold flex items-center gap-1.5">
+                        <Tag className="w-3.5 h-3.5" /> Course Track Fee
+                      </span>
+                      <span className="font-extrabold text-base text-[#111827] dark:text-white font-mono">
+                        ₹{coursePrice}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between py-1.5 border-b border-[#E5E7EB] dark:border-[#25324A]">
                     <span className="text-[#64748B] dark:text-[#94A3B8] flex items-center gap-1.5">
                       <BookOpen className="w-3.5 h-3.5" /> Total Lessons
@@ -349,6 +385,15 @@ export const CourseDetailsPage: React.FC<CourseDetailsProps> = ({
                     >
                       <PlayCircle className="w-4 h-4" />
                       <span>{progressPercent > 0 ? 'Continue Learning' : 'Start Learning'}</span>
+                      <ArrowRight className="w-4 h-4 ml-auto" />
+                    </button>
+                  ) : isPaid ? (
+                    <button
+                      onClick={onEnroll || onStartLearning}
+                      className="w-full py-3.5 px-4 rounded-xl bg-linear-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/35 cursor-pointer active:scale-[0.99]"
+                    >
+                      <CreditCard className="w-4 h-4" />
+                      <span>Enroll Now • ₹{coursePrice}</span>
                       <ArrowRight className="w-4 h-4 ml-auto" />
                     </button>
                   ) : (
@@ -725,10 +770,10 @@ export const CourseDetailsPage: React.FC<CourseDetailsProps> = ({
                                     </span>
                                   )}
                                   <button
-                                    onClick={onStartLearning}
+                                    onClick={isEnrolled ? onStartLearning : (onEnroll || onStartLearning)}
                                     className="px-2.5 py-1 rounded-md text-xs font-semibold text-[#2563EB] dark:text-[#3B82F6] hover:bg-blue-50 dark:hover:bg-blue-950/60 transition-colors cursor-pointer"
                                   >
-                                    {isDone ? 'Review' : 'Start'} →
+                                    {isDone ? 'Review' : isEnrolled ? 'Start' : isPaid ? 'Enroll' : 'Start'} →
                                   </button>
                                 </div>
                               </div>

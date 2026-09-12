@@ -180,12 +180,13 @@ export class CouponService {
     let discountAmount = 0;
     if (coupon.discountType === 'percentage') {
       const rawDiscount = (basePrice * coupon.discountValue) / 100;
-      discountAmount =
+      const maxCap =
         coupon.maxDiscountAmount !== null && coupon.maxDiscountAmount !== undefined
-          ? Math.min(coupon.maxDiscountAmount, rawDiscount)
-          : rawDiscount;
+          ? Number(coupon.maxDiscountAmount)
+          : 0;
+      discountAmount = maxCap > 0 ? Math.min(maxCap, rawDiscount) : rawDiscount;
     } else if (coupon.discountType === 'fixed') {
-      discountAmount = Math.min(basePrice, coupon.discountValue);
+      discountAmount = Math.min(basePrice, Number(coupon.discountValue));
     }
 
     // Rounding & Floor safety (paise precision)

@@ -166,9 +166,28 @@ interface CourseContextType {
   updateCourse: (id: number | string, updates: Partial<CourseItem>) => Promise<void>;
 }
 
+const DEFAULT_COURSE_PRICES: Record<string, number> = {
+  'c-programming-course-id': 199,
+  'c-programming': 199,
+  'git-github-mastery': 199,
+  'linux-systems-administration-mastery': 399,
+  'course_linux_101': 399,
+  'dbms-beginner-to-advanced': 299,
+  'database-management-system': 299,
+  'kubernetes-complete-course': 499,
+  'kubernetes-complete-course-beginner-to-advanced': 499,
+  'react-js-complete-course': 299,
+  'python-through-oops': 299,
+  'python-through-oops-course-id': 299,
+  'java-through-oops': 299,
+  'web-development': 299,
+  'web-development-fundamentals': 299,
+};
+
 export const normalizeContextCourse = (c: any): CourseItem => {
   const id = String(c.id || c.courseId || `course_${Date.now()}`);
   const title = c.title || 'Untitled Course';
+  const slug = c.slug || id;
   const statusVal: 'Published' | 'Draft' =
     c.status && String(c.status).toLowerCase() === 'published' ? 'Published' : 'Draft';
   const instructorName =
@@ -176,10 +195,19 @@ export const normalizeContextCourse = (c: any): CourseItem => {
       ? (c.instructor.name || 'Kaizen Q Team')
       : (c.instructor || 'Kaizen Q Team');
 
+  const rawPrice = typeof c.price === 'number' ? c.price : undefined;
+  const defaultPrice =
+    DEFAULT_COURSE_PRICES[id] ??
+    DEFAULT_COURSE_PRICES[slug] ??
+    DEFAULT_COURSE_PRICES[String(slug).toLowerCase()] ??
+    DEFAULT_COURSE_PRICES[String(id).toLowerCase()] ??
+    0;
+  const price = rawPrice !== undefined ? rawPrice : defaultPrice;
+
   return {
     id,
     title,
-    slug: c.slug || id,
+    slug,
     subtitle: c.subtitle || title,
     instructor: instructorName,
     role: c.role || (typeof c.instructor === 'object' ? c.instructor?.role : undefined) || 'Senior Technical Instructor',
@@ -193,6 +221,7 @@ export const normalizeContextCourse = (c: any): CourseItem => {
     badge: c.badge || (c.featured ? 'Featured Track' : undefined),
     tracks: c.tracks || `${c.modules?.length || 0} Modules`,
     status: statusVal,
+    price,
     thumbnail: c.thumbnail || c.thumbnailUrl || c.banner || '/assets/images/linux_course_thumbnail.webp',
     thumbnailUrl: c.thumbnailUrl || c.thumbnail,
     thumbnailPublicId: c.thumbnailPublicId,

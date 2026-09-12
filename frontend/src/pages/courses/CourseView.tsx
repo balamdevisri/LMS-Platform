@@ -164,7 +164,7 @@ export const CourseView: React.FC = () => {
     return targetCourseId ? courseService.isCourseEnrolled(targetCourseId, userId) : false;
   });
 
-  const [isLearningMode, setIsLearningMode] = useState(() => searchParams.get('mode') === 'learn');
+  const [isLearningMode, setIsLearningMode] = useState(() => searchParams.get('mode') === 'learn' && isEnrolled);
   const [checkoutModalOpen, setCheckoutModalOpen] = useState<boolean>(false);
   const [confirmModalOpen, setConfirmModalOpen] = useState<boolean>(false);
   const [confirmActionType, setConfirmActionType] = useState<CourseActionType>('enroll');
@@ -189,8 +189,12 @@ export const CourseView: React.FC = () => {
     if (targetCourseId) {
       const enrolled = courseService.isCourseEnrolled(targetCourseId, userId);
       setIsEnrolled(enrolled);
+      if (!enrolled && searchParams.get('mode') === 'learn') {
+        setIsLearningMode(false);
+        setSearchParams({}, { replace: true });
+      }
     }
-  }, [targetCourseId, userId]);
+  }, [targetCourseId, userId, searchParams, setSearchParams]);
 
   const handleEnrollClick = () => {
     if (!user) {
@@ -225,6 +229,16 @@ export const CourseView: React.FC = () => {
       navigate('/auth/login', { state: { from: location } });
       return;
     }
+    if (!isEnrolled) {
+      const currentPrice = Number((dynamicCourse as any)?.price ?? 0);
+      if (currentPrice > 0) {
+        setCheckoutModalOpen(true);
+        return;
+      }
+      setConfirmActionType('enroll');
+      setConfirmModalOpen(true);
+      return;
+    }
     setConfirmActionType('enter');
     setConfirmModalOpen(true);
   };
@@ -235,9 +249,6 @@ export const CourseView: React.FC = () => {
       handleEnrollSuccess();
       toast.success(`🎉 Enrolled successfully in "${dynamicCourse?.title || 'this course'}"! All modules unlocked.`);
     } else if (confirmActionType === 'enter') {
-      if (!isEnrolled) {
-        handleEnrollSuccess();
-      }
       setIsLearningMode(true);
       setSearchParams({ mode: 'learn' });
       window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
@@ -439,6 +450,8 @@ export const CourseView: React.FC = () => {
     ? dynamicCourse.modules
     : [];
 
+  const coursePrice = typeof (dynamicCourse as any)?.price === 'number' ? (dynamicCourse as any).price : 0;
+
   const activeCourseData = {
     ...dynamicCourse,
     id: dynamicCourse.id,
@@ -458,10 +471,11 @@ export const CourseView: React.FC = () => {
     thumbnail: dynamicCourse.thumbnail || '/assets/images/linux_course_thumbnail.webp',
     introText: meta.introText,
     outcomes: meta.outcomes,
+    price: coursePrice,
     modules: mapCourseModulesToPlayerModules(effectiveModules)
   };
 
-  if (isLearningMode) {
+  if (isLearningMode && isEnrolled) {
     return (
       <CourseLearningLayout
         courseTitle={activeCourseData.title}
@@ -502,11 +516,15 @@ export const CourseView: React.FC = () => {
           {
             id: targetCourseId,
             title: activeCourseData.title,
-            price: (dynamicCourse as any)?.price ?? 0,
+            price: coursePrice,
           },
         ]}
-        totalPrice={(dynamicCourse as any)?.price ?? 0}
-        onSuccess={() => handleEnrollSuccess()}
+        totalPrice={coursePrice}
+        onSuccess={() => {
+          handleEnrollSuccess();
+          setIsLearningMode(true);
+          setSearchParams({ mode: 'learn' });
+        }}
       />
 
       <CourseActionConfirmModal
