@@ -797,7 +797,7 @@ export const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
                       <Award className="w-4 h-4 text-amber-500" /> Learning Objectives
                     </h5>
                     <ul className="list-disc pl-4 text-[11px] text-slate-600 dark:text-zinc-400 space-y-1 leading-relaxed">
-                      {summary.learningObjectives.map((obj, i) => <li key={i}>{obj}</li>)}
+                      {(Array.isArray(summary?.learningObjectives) ? summary.learningObjectives : []).map((obj, i) => <li key={i}>{obj}</li>)}
                     </ul>
                   </div>
                 )}
@@ -808,7 +808,7 @@ export const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({
                       <Lightbulb className="w-4 h-4 text-emerald-500" /> Core Key Concepts
                     </h5>
                     <ul className="list-disc pl-4 text-[11px] text-slate-600 dark:text-zinc-400 space-y-1.5 leading-relaxed">
-                      {summary.keyConcepts.map((conc, i) => <li key={i}>{conc}</li>)}
+                      {(Array.isArray(summary?.keyConcepts) ? summary.keyConcepts : []).map((conc, i) => <li key={i}>{conc}</li>)}
                     </ul>
                   </div>
                 )}

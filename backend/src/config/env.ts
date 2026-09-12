@@ -27,6 +27,8 @@ const envSchema = z.object({
 
   // Stripe Payments
   STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_PUBLISHABLE_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
 
   // Optional MongoDB for caching/live classroom
   MONGODB_URI: z.string().optional(),

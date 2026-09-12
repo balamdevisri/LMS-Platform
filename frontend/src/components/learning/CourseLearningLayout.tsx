@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspens
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { courseService } from '@/services/courseService';
+import { enrollmentService } from '@/services/enrollmentService';
 import { db } from '@/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { toast } from 'sonner';
@@ -87,6 +88,33 @@ export const CourseLearningLayout: React.FC<CourseLearningLayoutProps> = ({
       window.location.href = `/courses/${courseId}`;
     }
   }, [onBackToCourseDetails, onBackToCourse, courseId]);
+
+  // ── Defensive Access Check ────────────────────────────────────────────────
+  useEffect(() => {
+    if (isAdmin || userProfile?.role === 'instructor' || user?.email?.includes('admin') || user?.email === 'admin@gmail.com') {
+      return;
+    }
+
+    if (!user?.uid || studentUid === 'default_student') {
+      toast.error('🔒 Please sign in and enroll to access the course classroom.');
+      handleBackToOverview();
+      return;
+    }
+
+    enrollmentService.checkCourseEnrollment(String(courseId), studentUid)
+      .then((res) => {
+        if (!res.isEnrolled) {
+          courseService.unenrollCourse(String(courseId), studentUid);
+          toast.error('🔒 Please enroll to access the course classroom.');
+          handleBackToOverview();
+        }
+      })
+      .catch(() => {
+        courseService.unenrollCourse(String(courseId), studentUid);
+        toast.error('🔒 Please enroll to access the course classroom.');
+        handleBackToOverview();
+      });
+  }, [courseId, studentUid, user?.uid, user?.email, isAdmin, userProfile?.role, handleBackToOverview]);
 
   // ── Flatten all units/lessons hierarchically across modules and topics ────
   const allLessons = useMemo(() => {

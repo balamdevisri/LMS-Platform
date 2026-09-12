@@ -166,12 +166,14 @@ interface CourseContextType {
   updateCourse: (id: number | string, updates: Partial<CourseItem>) => Promise<void>;
 }
 
-const DEFAULT_COURSE_PRICES: Record<string, number> = {
+export const DEFAULT_COURSE_PRICES: Record<string, number> = {
   'c-programming-course-id': 199,
   'c-programming': 199,
   'git-github-mastery': 199,
+  'git-github-mastery-course-id': 199,
   'linux-systems-administration-mastery': 399,
   'course_linux_101': 399,
+  '1': 399,
   'dbms-beginner-to-advanced': 299,
   'database-management-system': 299,
   'kubernetes-complete-course': 499,
@@ -180,8 +182,10 @@ const DEFAULT_COURSE_PRICES: Record<string, number> = {
   'python-through-oops': 299,
   'python-through-oops-course-id': 299,
   'java-through-oops': 299,
+  'java-through-oops-course-id': 299,
   'web-development': 299,
   'web-development-fundamentals': 299,
+  'prompt-engineering': 199,
 };
 
 export const normalizeContextCourse = (c: any): CourseItem => {
@@ -195,14 +199,18 @@ export const normalizeContextCourse = (c: any): CourseItem => {
       ? (c.instructor.name || 'Kaizen Q Team')
       : (c.instructor || 'Kaizen Q Team');
 
-  const rawPrice = typeof c.price === 'number' ? c.price : undefined;
   const defaultPrice =
     DEFAULT_COURSE_PRICES[id] ??
     DEFAULT_COURSE_PRICES[slug] ??
-    DEFAULT_COURSE_PRICES[String(slug).toLowerCase()] ??
-    DEFAULT_COURSE_PRICES[String(id).toLowerCase()] ??
+    DEFAULT_COURSE_PRICES[String(slug).toLowerCase().trim()] ??
+    DEFAULT_COURSE_PRICES[String(id).toLowerCase().trim()] ??
     0;
-  const price = rawPrice !== undefined ? rawPrice : defaultPrice;
+
+  const rawPrice = typeof c.price === 'number' ? c.price : undefined;
+  // If price is explicitly > 0 in database/object, use it; otherwise fallback to defaultPrice if catalog defines it
+  const price = (rawPrice !== undefined && rawPrice > 0)
+    ? rawPrice
+    : (defaultPrice > 0 ? defaultPrice : (rawPrice !== undefined ? rawPrice : 0));
 
   return {
     id,

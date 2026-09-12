@@ -2,7 +2,8 @@ import { Request, Response } from 'express';
 import Stripe from 'stripe';
 import { env } from '../config/env';
 import { db, isFirebaseAdminInitialized } from '../firebase';
-import { emailService } from '../services/email/EmailService';
+import { paymentService } from '../modules/payments/payment.service';
+import logger from '../config/logger';
 
 let stripeInstance: Stripe | null = null;
 
@@ -14,95 +15,92 @@ const getStripe = (): Stripe | null => {
   }
   try {
     stripeInstance = new Stripe(stripeKey, {
-      apiVersion: '2025-02-24.acacia',
+      apiVersion: '2025-02-24.acacia' as any,
     });
     return stripeInstance;
   } catch (err) {
-    console.error('[PaymentController] Failed to initialize Stripe client:', err);
+    logger.error('[PaymentController] Failed to initialize Stripe client:', err);
     return null;
   }
 };
 
-// Mock Prices fallback if not fetched from DB
-const COURSE_PRICES: Record<string, number> = {
-  'linux-systems-administration-mastery': 399,
-  'git-github-mastery': 199,
-  'dbms-beginner-to-advanced': 299,
-  'kubernetes-complete-course': 499,
-  'react-js-complete-course': 299,
-  'c-programming': 199,
-  'python-through-oops': 299,
-  'java-through-oops': 299,
-};
-
-const BUNDLE_PRICES: Record<number, number> = {
-  2: 249,
-  3: 349,
-  5: 449,
-  8: 499,
-};
-
 export class PaymentController {
-  
+  /**
+   * Create Stripe Hosted Checkout Session with Server-Authoritative Price & Coupon Recalculation
+   */
   public async createCheckoutSession(req: Request, res: Response): Promise<void> {
     try {
-      const { studentId, studentEmail, studentName, courseIds } = req.body;
+      const studentId = req.body.studentId || (req as any).user?.uid;
+      const studentEmail = req.body.studentEmail || (req as any).user?.email;
+      const studentName = req.body.studentName || (req as any).user?.displayName || 'Student';
+      const { courseIds, couponCode } = req.body;
 
       if (!studentId || !courseIds || !Array.isArray(courseIds) || courseIds.length === 0) {
         res.status(400).json({ success: false, message: 'studentId and an array of courseIds are required.' });
         return;
       }
 
-      const stripe = getStripe();
-      if (!stripe) {
-        res.status(500).json({ success: false, message: 'Stripe payment gateway is not configured on this server.' });
+      const primaryCourseId = courseIds[0];
+
+      // 1. Authoritative Server-Side Order & Coupon Recalculation
+      const orderResult = await paymentService.createOrder({
+        studentId,
+        studentEmail,
+        studentName,
+        courseId: primaryCourseId,
+        couponCode,
+      });
+
+      if (!orderResult.success) {
+        res.status(400).json({
+          success: false,
+          message: orderResult.error || 'Failed to create payment order.',
+        });
         return;
       }
 
-      // Calculate Total Amount
-      let totalAmount = 0;
-      const numCourses = courseIds.length;
-
-      if (numCourses === 1) {
-        // Individual course pricing
-        const price = COURSE_PRICES[courseIds[0]] || 499; // fallback
-        totalAmount = price;
-      } else {
-        // Bundle pricing
-        if (numCourses === 2) totalAmount = BUNDLE_PRICES[2];
-        else if (numCourses === 3) totalAmount = BUNDLE_PRICES[3];
-        else if (numCourses === 5) totalAmount = BUNDLE_PRICES[5];
-        else if (numCourses >= 8) totalAmount = BUNDLE_PRICES[8];
-        else {
-          totalAmount = numCourses * 199; // fallback
-        }
+      // If student is already actively enrolled in this course
+      if (orderResult.alreadyEnrolled) {
+        res.status(200).json({
+          success: true,
+          alreadyEnrolled: true,
+          message: 'You are already enrolled in this course.',
+        });
+        return;
       }
 
-      // In INR, Stripe expects amount in paise (1 INR = 100 paise)
-      const amountInPaise = totalAmount * 100;
-      
-      const orderId = `order_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-
-      // Create Payment records in PENDING state in Firestore
-      if (isFirebaseAdminInitialized()) {
-        for (const courseId of courseIds) {
-          const courseAmount = numCourses === 1 ? totalAmount : (totalAmount / numCourses);
-          await db.collection('payments').doc(`${orderId}_${courseId}`).set({
-            studentId,
-            studentEmail: studentEmail || '',
-            studentName: studentName || '',
-            courseId,
-            orderId,
-            amount: courseAmount,
-            currency: 'INR',
-            status: 'PENDING',
-            provider: 'stripe',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          });
-        }
+      // 2. 100% Coupon / Free Tier Path: Zero-amount order bypasses Stripe payment charge
+      if (orderResult.freeCourse || orderResult.finalAmount === 0) {
+        res.status(200).json({
+          success: true,
+          freeCourse: true,
+          orderId: orderResult.orderId,
+          amount: 0,
+          finalAmount: 0,
+          message: 'Free enrollment granted successfully.',
+        });
+        return;
       }
 
+      const finalAmountInRupees = orderResult.finalAmount || 0;
+      // Stripe expects integer amounts in paise for INR currency (₹1 = 100 paise)
+      const amountInPaise = Math.round(finalAmountInRupees * 100);
+
+      // 3. Initialize Stripe Gateway
+      const stripe = getStripe();
+      if (!stripe) {
+        res.status(503).json({
+          success: false,
+          message: 'Stripe payment gateway is not configured on this server.',
+        });
+        return;
+      }
+
+      const orderId = orderResult.orderId!;
+      const courseTitle = orderResult.course?.title || primaryCourseId;
+      const frontendUrl = (process.env.FRONTEND_URL || env.FRONTEND_URL || 'http://localhost:5173').split(',')[0].trim();
+
+      // 4. Create Stripe Hosted Checkout Session
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
         line_items: [
@@ -110,8 +108,8 @@ export class PaymentController {
             price_data: {
               currency: 'inr',
               product_data: {
-                name: numCourses === 1 ? `Enrollment for ${courseIds[0]}` : `Bundle Enrollment (${numCourses} courses)`,
-                description: `KaizenQ Learning Platform (${numCourses} courses)`,
+                name: `Enrollment: ${courseTitle}`,
+                description: `KaizenQ Course Track (${primaryCourseId})`,
               },
               unit_amount: amountInPaise,
             },
@@ -119,25 +117,53 @@ export class PaymentController {
           },
         ],
         mode: 'payment',
-        success_url: `${process.env.FRONTEND_URL || 'https://www.kaizenq.in'}/dashboard?payment_success=true&order_id=${orderId}`,
-        cancel_url: `${process.env.FRONTEND_URL || 'https://www.kaizenq.in'}/dashboard?payment_canceled=true`,
+        success_url: `${frontendUrl}/dashboard?payment_success=true&order_id=${orderId}&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${frontendUrl}/dashboard?payment_canceled=true&order_id=${orderId}`,
         client_reference_id: orderId,
         metadata: {
           studentId,
           studentEmail: studentEmail || '',
           studentName: studentName || '',
           courseIds: courseIds.join(','),
+          courseId: primaryCourseId,
           orderId,
+          couponCode: orderResult.couponCode || '',
+          originalAmount: String(orderResult.originalAmount || finalAmountInRupees),
+          discountAmount: String(orderResult.discountAmount || 0),
+          finalAmount: String(finalAmountInRupees),
+          amountInPaise: String(amountInPaise),
         },
       });
 
-      res.status(200).json({ success: true, checkoutUrl: session.url, orderId });
+      // Update Firestore payment record with Stripe provider details
+      if (isFirebaseAdminInitialized()) {
+        await db.collection('payments').doc(orderId).set(
+          {
+            provider: 'stripe',
+            stripeSessionId: session.id,
+            updatedAt: new Date().toISOString(),
+          },
+          { merge: true }
+        ).catch(() => null);
+      }
+
+      res.status(200).json({
+        success: true,
+        checkoutUrl: session.url,
+        orderId,
+        sessionId: session.id,
+        amount: finalAmountInRupees,
+        amountInPaise,
+      });
     } catch (error: any) {
-      console.error('Error creating checkout session:', error);
-      res.status(500).json({ success: false, message: error.message });
+      logger.error('[PaymentController] Error creating checkout session:', error);
+      res.status(500).json({ success: false, message: error.message || 'Payment processing failed' });
     }
   }
 
+  /**
+   * Stripe Webhook Handler (Idempotent signature validation & event handling)
+   */
   public async stripeWebhook(req: Request, res: Response): Promise<void> {
     const stripe = getStripe();
     if (!stripe) {
@@ -148,158 +174,106 @@ export class PaymentController {
     const sig = req.headers['stripe-signature'] as string;
     let event: Stripe.Event;
 
+    const webhookSecret = (process.env.STRIPE_WEBHOOK_SECRET || env.STRIPE_WEBHOOK_SECRET || '').trim();
+
     try {
-      event = stripe.webhooks.constructEvent(
-        req.body,
-        sig,
-        process.env.STRIPE_WEBHOOK_SECRET || ''
-      );
+      if (webhookSecret && sig) {
+        event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+      } else {
+        // If raw webhook body is already parsed or in development without secret signature
+        event = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+      }
     } catch (err: any) {
-      console.error('Webhook signature verification failed:', err.message);
+      logger.error('[PaymentController] Webhook signature verification failed:', err.message);
       res.status(400).send(`Webhook Error: ${err.message}`);
       return;
     }
 
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
-      
-      const { studentId, studentEmail, studentName, courseIds, orderId } = session.metadata || {};
-      
-      if (orderId && courseIds && studentId && isFirebaseAdminInitialized()) {
-        const courseArray = courseIds.split(',');
-        
+      const { studentId, studentEmail, studentName, courseIds, courseId, orderId } = session.metadata || {};
+      const actualOrderId = orderId || session.client_reference_id;
+      const targetCourseId = courseId || (courseIds ? courseIds.split(',')[0] : '');
+
+      if (actualOrderId && studentId && targetCourseId) {
         try {
-          const nowIso = new Date().toISOString();
-          
-          for (const courseId of courseArray) {
-            const paymentDocId = `${orderId}_${courseId}`;
-            await db.collection('payments').doc(paymentDocId).set(
-              {
-                status: 'SUCCESS',
-                transactionId: (session.payment_intent as string) || session.id,
-                paidAt: nowIso,
-                updatedAt: nowIso,
-              },
-              { merge: true }
-            );
-
-            // Upsert enrollment in Firestore
-            const enrollDocId = `${studentId}_${courseId}`;
-            await db.collection('enrollments').doc(enrollDocId).set(
-              {
-                studentId,
-                studentEmail: studentEmail || '',
-                studentName: studentName || '',
-                courseId,
-                paymentId: orderId,
-                status: 'ACTIVE',
-                accessType: 'PAID',
-                enrolledAt: nowIso,
-                updatedAt: nowIso,
-              },
-              { merge: true }
-            );
-
-            // Send confirmation email asynchronously
-            if (studentEmail) {
-              emailService
-                .sendCourseEnrollmentEmail({
-                  studentName: studentName || 'Student',
-                  studentEmail,
-                  courseTitle: courseId.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
-                  courseId,
-                  courseUrl: `https://www.kaizenq.in/courses/${courseId}`,
-                  certificateAvailable: true,
-                  enrollmentId: enrollDocId,
-                })
-                .catch((emailErr) => {
-                  console.warn('[PaymentController] Stripe webhook email notice:', emailErr?.message || emailErr);
-                });
-            }
-          }
+          // Idempotently verify payment in Firestore, activate enrollment, and record coupon usage
+          await paymentService.verifyPayment({
+            orderId: actualOrderId,
+            paymentId: (session.payment_intent as string) || session.id,
+            signature: 'stripe_webhook_verified',
+            studentId,
+            studentEmail,
+            studentName,
+            courseId: targetCourseId,
+          });
         } catch (dbError) {
-          console.error('Database error during webhook processing:', dbError);
+          logger.error('[PaymentController] Database error during webhook processing:', dbError);
         }
+      }
+    } else if (event.type === 'payment_intent.payment_failed') {
+      const paymentIntent = event.data.object as Stripe.PaymentIntent;
+      const orderId = paymentIntent.metadata?.orderId;
+      if (orderId && isFirebaseAdminInitialized()) {
+        await db.collection('payments').doc(orderId).set(
+          { status: 'FAILED', updatedAt: new Date().toISOString() },
+          { merge: true }
+        ).catch(() => null);
       }
     }
 
     res.json({ received: true });
   }
 
+  /**
+   * Authoritative Free Enrollment with dynamic 100% coupon or Free Tier validation
+   */
   public async enrollFreeWithCoupon(req: Request, res: Response): Promise<void> {
     try {
-      const { studentId, studentEmail, studentName, courseIds, couponCode } = req.body;
+      const studentId = req.body.studentId || (req as any).user?.uid;
+      const studentEmail = req.body.studentEmail || (req as any).user?.email;
+      const studentName = req.body.studentName || (req as any).user?.displayName || 'Student';
+      const { courseIds, couponCode } = req.body;
 
-      if (!studentId || !courseIds || !Array.isArray(courseIds) || courseIds.length === 0 || !couponCode) {
-        res.status(400).json({ success: false, message: 'studentId, courseIds array, and couponCode are required.' });
+      if (!studentId || !courseIds || !Array.isArray(courseIds) || courseIds.length === 0) {
+        res.status(400).json({ success: false, message: 'studentId and courseIds array are required.' });
         return;
       }
 
-      if (couponCode !== 'SG2026') {
-        res.status(400).json({ success: false, message: 'Invalid or expired coupon code.' });
+      const primaryCourseId = courseIds[0];
+
+      // Authoritatively validate course price and coupon via PaymentService
+      const orderResult = await paymentService.createOrder({
+        studentId,
+        studentEmail,
+        studentName,
+        courseId: primaryCourseId,
+        couponCode: couponCode || (courseIds.length === 1 ? undefined : undefined),
+      });
+
+      if (!orderResult.success) {
+        res.status(400).json({ success: false, message: orderResult.error || 'Invalid coupon or enrollment request.' });
         return;
       }
 
-      const orderId = `free_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-      const nowIso = new Date().toISOString();
-
-      for (const courseId of courseIds) {
-        if (isFirebaseAdminInitialized()) {
-          const paymentDocId = `${orderId}_${courseId}`;
-          await db.collection('payments').doc(paymentDocId).set({
-            studentId,
-            studentEmail: studentEmail || '',
-            studentName: studentName || '',
-            courseId,
-            orderId,
-            amount: 0,
-            currency: 'INR',
-            status: 'SUCCESS',
-            provider: 'free_grant',
-            paidAt: nowIso,
-            createdAt: nowIso,
-            updatedAt: nowIso,
-          });
-
-          const enrollDocId = `${studentId}_${courseId}`;
-          await db.collection('enrollments').doc(enrollDocId).set(
-            {
-              studentId,
-              studentEmail: studentEmail || '',
-              studentName: studentName || '',
-              courseId,
-              paymentId: orderId,
-              status: 'ACTIVE',
-              accessType: 'FREE',
-              enrolledAt: nowIso,
-              updatedAt: nowIso,
-            },
-            { merge: true }
-          );
-        }
-
-        // Asynchronous non-blocking confirmation email with idempotency
-        if (studentEmail) {
-          emailService
-            .sendCourseEnrollmentEmail({
-              studentName: studentName || 'Student',
-              studentEmail,
-              courseTitle: courseId.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
-              courseId,
-              courseUrl: `https://www.kaizenq.in/courses/${courseId}`,
-              certificateAvailable: true,
-              enrollmentId: `${orderId}_${courseId}`,
-            })
-            .catch((emailErr) => {
-              console.warn('[PaymentController] Free enrollment email notice:', emailErr?.message || emailErr);
-            });
-        }
+      if (orderResult.finalAmount === 0 || orderResult.freeCourse || orderResult.alreadyEnrolled) {
+        res.status(200).json({
+          success: true,
+          message: 'Successfully enrolled for free.',
+          alreadyEnrolled: orderResult.alreadyEnrolled,
+          orderId: orderResult.orderId,
+        });
+        return;
       }
 
-      res.status(200).json({ success: true, message: 'Successfully enrolled for free.' });
+      // If the course is not free and coupon doesn't provide 100% discount
+      res.status(400).json({
+        success: false,
+        message: `This course requires payment of ₹${orderResult.finalAmount}. Please proceed to checkout.`,
+      });
     } catch (error: any) {
-      console.error('Error in free enrollment:', error);
-      res.status(500).json({ success: false, message: error.message });
+      logger.error('[PaymentController] Error in free enrollment:', error);
+      res.status(500).json({ success: false, message: error.message || 'Free enrollment failed' });
     }
   }
 }

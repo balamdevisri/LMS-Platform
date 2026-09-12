@@ -1,4 +1,4 @@
-const API_BASE = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000').replace(/\/$/, '');
+import { API_BASE_URL } from '@/config/api';
 
 export interface EnrollmentRecord {
   id: string;
@@ -22,7 +22,7 @@ export class EnrollmentService {
       if (token) headers['Authorization'] = `Bearer ${token}`;
       if (studentId) headers['x-user-id'] = studentId;
 
-      const res = await fetch(`${API_BASE}/api/enrollments/my-courses`, { headers });
+      const res = await fetch(`${API_BASE_URL}/enrollments/my-courses`, { headers });
       const data = await res.json();
       if (data.success && Array.isArray(data.enrollments)) {
         return data.enrollments;
@@ -47,7 +47,7 @@ export class EnrollmentService {
       if (token) headers['Authorization'] = `Bearer ${token}`;
       if (studentId) headers['x-user-id'] = studentId;
 
-      const res = await fetch(`${API_BASE}/api/enrollments/${courseId}`, { headers });
+      const res = await fetch(`${API_BASE_URL}/enrollments/${courseId}`, { headers });
       const data = await res.json();
       return {
         isEnrolled: Boolean(data.success && data.isEnrolled),
@@ -71,7 +71,7 @@ export class EnrollmentService {
       if (token) headers['Authorization'] = `Bearer ${token}`;
       if (studentId) headers['x-user-id'] = studentId;
 
-      const res = await fetch(`${API_BASE}/api/enrollments/${courseId}/access`, { headers });
+      const res = await fetch(`${API_BASE_URL}/enrollments/${courseId}/access`, { headers });
       const data = await res.json();
       return {
         hasAccess: Boolean(data.success && data.hasAccess),

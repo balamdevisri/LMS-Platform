@@ -3,6 +3,28 @@ import { normalizeCourseData, auditCourseData } from './courseNormalizer';
 export type { ICourse };
 import { API_BASE_URL } from '../config/api';
 
+export const DEFAULT_COURSE_PRICES: Record<string, number> = {
+  'c-programming-course-id': 199,
+  'c-programming': 199,
+  'git-github-mastery': 199,
+  'git-github-mastery-course-id': 199,
+  'linux-systems-administration-mastery': 399,
+  'course_linux_101': 399,
+  '1': 399,
+  'dbms-beginner-to-advanced': 299,
+  'database-management-system': 299,
+  'kubernetes-complete-course': 499,
+  'kubernetes-complete-course-beginner-to-advanced': 499,
+  'react-js-complete-course': 299,
+  'python-through-oops': 299,
+  'python-through-oops-course-id': 299,
+  'java-through-oops': 299,
+  'java-through-oops-course-id': 299,
+  'web-development': 299,
+  'web-development-fundamentals': 299,
+  'prompt-engineering': 199,
+};
+
 // On-demand loader for Firebase Firestore to prevent bundling 580KB Firebase into landing page
 let _fsModule: any = null;
 const getFS = async () => {
@@ -29,7 +51,7 @@ const DEFAULT_COURSES: ICourse[] = [
     level: 'all_levels',
     duration: '32 hrs',
     language: 'English',
-    price: 0,
+    price: 399,
     instructor: {
       id: 'inst_kaizenq',
       name: 'KaizenQ Systems Team',
@@ -97,7 +119,7 @@ const DEFAULT_COURSES: ICourse[] = [
     level: 'all_levels',
     duration: '20 Hours',
     language: 'English',
-    price: 0,
+    price: 199,
     instructor: {
       id: 'inst_kaizen',
       name: 'Kaizen Q Team',
@@ -152,7 +174,7 @@ const DEFAULT_COURSES: ICourse[] = [
     level: 'all_levels',
     duration: '25 Hours',
     language: 'English',
-    price: 0,
+    price: 299,
     instructor: {
       id: 'inst_kaizen',
       name: 'Kaizen-Q Academy',
@@ -198,7 +220,7 @@ const DEFAULT_COURSES: ICourse[] = [
     level: 'all_levels',
     duration: '30 Hours',
     language: 'English',
-    price: 0,
+    price: 499,
     instructor: {
       id: 'inst_kaizen',
       name: 'Kaizen-Q Academy',
@@ -246,7 +268,7 @@ const DEFAULT_COURSES: ICourse[] = [
     level: 'all_levels',
     duration: '24 Hours',
     language: 'English',
-    price: 0,
+    price: 299,
     instructor: {
       id: 'inst_kaizenq',
       name: 'KaizenQ Systems Team',
@@ -303,7 +325,7 @@ const DEFAULT_COURSES: ICourse[] = [
     level: 'all_levels',
     duration: '35 Hours',
     language: 'English',
-    price: 0,
+    price: 199,
     instructor: {
       id: 'inst_kaizen',
       name: 'Kaizen Q Team',
@@ -358,7 +380,7 @@ const DEFAULT_COURSES: ICourse[] = [
     level: 'all_levels',
     duration: '35 Hours',
     language: 'English',
-    price: 0,
+    price: 299,
     instructor: {
       id: 'inst_kaizen',
       name: 'Kaizen Q Team',
@@ -413,7 +435,7 @@ const DEFAULT_COURSES: ICourse[] = [
     level: 'all_levels',
     duration: '35 Hours',
     language: 'English',
-    price: 0,
+    price: 299,
     instructor: {
       id: 'inst_kaizen',
       name: 'Kaizen Q Team',
@@ -627,7 +649,7 @@ const DEFAULT_COURSES: ICourse[] = [
     level: 'beginner',
     duration: '30 Hours',
     language: 'English',
-    price: 0,
+    price: 299,
     instructor: {
       id: 'inst_kaizen',
       name: 'Kaizen Q Team',
@@ -829,7 +851,20 @@ function normalizeCourseToICourse(c: any): ICourse {
     }
   }
 
+  const id = String(c.id || c.courseId || '');
   const slug = c.slug || c.title?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || `course-${c.id}`;
+
+  const defaultPrice =
+    (DEFAULT_COURSE_PRICES as any)[id] ??
+    (DEFAULT_COURSE_PRICES as any)[slug] ??
+    (DEFAULT_COURSE_PRICES as any)[String(slug).toLowerCase().trim()] ??
+    (DEFAULT_COURSE_PRICES as any)[String(id).toLowerCase().trim()] ??
+    0;
+
+  const rawPrice = typeof c.price === 'number' ? c.price : undefined;
+  const price = (rawPrice !== undefined && rawPrice > 0)
+    ? rawPrice
+    : (defaultPrice > 0 ? defaultPrice : (rawPrice !== undefined ? rawPrice : 0));
 
   return {
     id: String(c.id),
@@ -843,7 +878,7 @@ function normalizeCourseToICourse(c: any): ICourse {
     level: normalizedLevel,
     duration: c.duration || '20 hrs',
     language: c.language || 'English',
-    price: typeof c.price === 'number' ? c.price : 0,
+    price,
     instructor: instructorObj,
     skills: Array.isArray(c.skills) ? c.skills : [],
     prerequisites: Array.isArray(c.prerequisites) ? c.prerequisites : [],
@@ -1647,12 +1682,55 @@ class CourseService {
     return this.createCourse(dto);
   }
 
-  // --- Dynamic Enrollment & Completion Methods ---
-
-  isCourseEnrolled(courseId: string, userId = 'default_student'): boolean {
+  isCourseEnrolled(courseId: string, userId?: string): boolean {
+    if (!userId || userId === 'default_student') {
+      return false;
+    }
     const all = this.getStoredEnrollments();
     const userRecords = all[userId] || [];
-    return userRecords.some((r) => r.courseId === courseId);
+    const target = String(courseId || '').toLowerCase().trim();
+    if (!target) return false;
+
+    return userRecords.some((r) => {
+      const rId = String(r.courseId || '').toLowerCase().trim();
+      return (
+        rId === target ||
+        (rId === 'c-programming' && target === 'c-programming-course-id') ||
+        (rId === 'c-programming-course-id' && target === 'c-programming') ||
+        (rId === 'linux-systems-administration-mastery' && (target === 'course_linux_101' || target === '1')) ||
+        (target === 'linux-systems-administration-mastery' && (rId === 'course_linux_101' || rId === '1')) ||
+        (rId === 'kubernetes-complete-course' && target === 'kubernetes-complete-course-beginner-to-advanced') ||
+        (rId === 'kubernetes-complete-course-beginner-to-advanced' && target === 'kubernetes-complete-course') ||
+        (rId === 'git-github-mastery' && target === 'git-github-mastery-course-id') ||
+        (rId === 'git-github-mastery-course-id' && target === 'git-github-mastery')
+      );
+    });
+  }
+
+  unenrollCourse(courseId: string, userId?: string): void {
+    if (!userId || userId === 'default_student') return;
+    const all = this.getStoredEnrollments();
+    const userRecords = all[userId] || [];
+    const target = String(courseId || '').toLowerCase().trim();
+    if (!target || userRecords.length === 0) return;
+
+    all[userId] = userRecords.filter((r) => {
+      const rId = String(r.courseId || '').toLowerCase().trim();
+      const matches = (
+        rId === target ||
+        (rId === 'c-programming' && target === 'c-programming-course-id') ||
+        (rId === 'c-programming-course-id' && target === 'c-programming') ||
+        (rId === 'linux-systems-administration-mastery' && (target === 'course_linux_101' || target === '1')) ||
+        (target === 'linux-systems-administration-mastery' && (rId === 'course_linux_101' || rId === '1')) ||
+        (rId === 'kubernetes-complete-course' && target === 'kubernetes-complete-course-beginner-to-advanced') ||
+        (rId === 'kubernetes-complete-course-beginner-to-advanced' && target === 'kubernetes-complete-course') ||
+        (rId === 'git-github-mastery' && target === 'git-github-mastery-course-id') ||
+        (rId === 'git-github-mastery-course-id' && target === 'git-github-mastery')
+      );
+      return !matches;
+    });
+
+    this.saveStoredEnrollments(all);
   }
 
   async enrollCourse(

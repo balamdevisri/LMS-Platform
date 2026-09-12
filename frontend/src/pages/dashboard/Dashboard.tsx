@@ -378,8 +378,14 @@ export const Dashboard: React.FC = () => {
     // Set last active lesson in local storage so workspace loads it
     localStorage.setItem(`shaivika_last_active_${course.id}`, String(lesson.id));
     
-    // Navigate directly to course workspace mode
-    navigate(`/dashboard/course/${(course as any).slug || course.id}?mode=learn`);
+    const coursePrice = typeof (course as any)?.price === 'number' ? (course as any).price : 0;
+    const isEnrolled = courseService.isCourseEnrolled(String(course.id), activeUserId);
+    
+    if (coursePrice > 0 && !isEnrolled && userProfile?.role !== 'admin' && userProfile?.role !== 'instructor') {
+      navigate(`/dashboard/course/${(course as any).slug || course.id}`);
+    } else {
+      navigate(`/dashboard/course/${(course as any).slug || course.id}?mode=learn`);
+    }
   };
 
   const handleClaimDailyReward = () => {

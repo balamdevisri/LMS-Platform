@@ -1,4 +1,4 @@
-const API_BASE = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000').replace(/\/$/, '');
+import { API_BASE_URL } from '@/config/api';
 
 export interface CouponItem {
   id: string;
@@ -96,7 +96,7 @@ class CouponService {
         headers['x-user-id'] = userId;
       }
 
-      const res = await fetch(`${API_BASE}/api/coupons/validate`, {
+      const res = await fetch(`${API_BASE_URL}/coupons/validate`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -135,7 +135,7 @@ class CouponService {
       if (params.isActive !== undefined) query.append('isActive', String(params.isActive));
       if (params.includeArchived) query.append('includeArchived', 'true');
 
-      const res = await fetch(`${API_BASE}/api/coupons?${query.toString()}`, { headers });
+      const res = await fetch(`${API_BASE_URL}/coupons?${query.toString()}`, { headers });
       const data = await res.json();
 
       if (data.success && data.data) {
@@ -163,7 +163,7 @@ class CouponService {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch(`${API_BASE}/api/coupons`, {
+      const res = await fetch(`${API_BASE_URL}/coupons`, {
         method: 'POST',
         headers,
         body: JSON.stringify(payload),
@@ -188,7 +188,7 @@ class CouponService {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch(`${API_BASE}/api/coupons/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/coupons/${id}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify(payload),
@@ -216,7 +216,7 @@ class CouponService {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch(`${API_BASE}/api/coupons/${id}/toggle`, {
+      const res = await fetch(`${API_BASE_URL}/coupons/${id}/toggle`, {
         method: 'PATCH',
         headers,
         body: JSON.stringify({ isActive }),
@@ -236,7 +236,7 @@ class CouponService {
       const headers: Record<string, string> = {};
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch(`${API_BASE}/api/coupons/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/coupons/${id}`, {
         method: 'DELETE',
         headers,
       });
@@ -259,7 +259,7 @@ class CouponService {
       const headers: Record<string, string> = {};
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch(`${API_BASE}/api/coupons/${id}/usages?limit=${limit}`, { headers });
+      const res = await fetch(`${API_BASE_URL}/coupons/${id}/usages?limit=${limit}`, { headers });
       const data = await res.json();
       if (data.success && data.data) {
         return { success: true, data: data.data };

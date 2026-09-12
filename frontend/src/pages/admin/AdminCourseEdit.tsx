@@ -11,6 +11,7 @@ import { LoadingSkeleton } from '../../components/courses/LoadingSkeleton';
 import { CloudinaryUploadZone } from '../../components/admin/CloudinaryUploadZone';
 import { aiAutofillService } from '@/services/aiAutofillService';
 import { MarkdownContent } from '@/components/learning/MarkdownContent';
+import { normalizeStringList } from '@/components/learning/LessonContentPanel';
 import { AdminQuizManager } from '@/components/admin/AdminQuizManager';
 import { MermaidDiagram } from '@/components/learning/MermaidDiagram';
 import { ContentBlockArranger } from '@/components/admin/ContentBlockArranger';
@@ -299,9 +300,9 @@ export const AdminCourseEdit: React.FC = () => {
             setUnitType(firstUnit.type || 'Reading');
             setLessonMarkdown(firstUnit.readingContent || firstUnit.conceptTheory || '');
             setLessonDescription(firstUnit.description || '');
-            setLearningObjectives(firstUnit.learningObjectives || []);
-            setKeyPoints(firstUnit.keyPoints || []);
-            setUnitResources(firstUnit.resources || firstUnit.resourceLinks || []);
+            setLearningObjectives(normalizeStringList(firstUnit.learningObjectives, []));
+            setKeyPoints(normalizeStringList(firstUnit.keyPoints, []));
+            setUnitResources(Array.isArray(firstUnit.resources) ? firstUnit.resources : (Array.isArray(firstUnit.resourceLinks) ? firstUnit.resourceLinks : []));
           }
 
           setIsDirty(false);
@@ -509,9 +510,9 @@ export const AdminCourseEdit: React.FC = () => {
     setUnitType(unit.type || 'Reading');
     setLessonMarkdown(unit.readingContent || unit.conceptTheory || '');
     setLessonDescription(unit.description || '');
-    setLearningObjectives(unit.learningObjectives || []);
-    setKeyPoints(unit.keyPoints || []);
-    setUnitResources(unit.resources || unit.resourceLinks || []);
+    setLearningObjectives(normalizeStringList(unit.learningObjectives, []));
+    setKeyPoints(normalizeStringList(unit.keyPoints, []));
+    setUnitResources(Array.isArray(unit.resources) ? unit.resources : (Array.isArray(unit.resourceLinks) ? unit.resourceLinks : []));
   };
 
   const handleAddModule = () => {

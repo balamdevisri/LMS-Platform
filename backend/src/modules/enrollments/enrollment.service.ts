@@ -33,23 +33,37 @@ export class EnrollmentService {
     if (!studentId || !courseId || !isFirebaseAdminInitialized()) return null;
 
     try {
-      const enrollDocId = `${studentId}_${courseId}`;
-      const docRef = await db.collection('enrollments').doc(enrollDocId).get();
-      if (docRef.exists) {
-        return { id: docRef.id, ...docRef.data() } as IEnrollment;
+      const possibleIds = [courseId];
+      if (courseId === 'c-programming') possibleIds.push('c-programming-course-id');
+      if (courseId === 'c-programming-course-id') possibleIds.push('c-programming');
+      if (courseId === 'linux-systems-administration-mastery') possibleIds.push('course_linux_101', '1');
+      if (courseId === 'course_linux_101' || courseId === '1') possibleIds.push('linux-systems-administration-mastery');
+      if (courseId === 'kubernetes-complete-course') possibleIds.push('kubernetes-complete-course-beginner-to-advanced');
+      if (courseId === 'kubernetes-complete-course-beginner-to-advanced') possibleIds.push('kubernetes-complete-course');
+      if (courseId === 'git-github-mastery') possibleIds.push('git-github-mastery-course-id');
+      if (courseId === 'git-github-mastery-course-id') possibleIds.push('git-github-mastery');
+
+      for (const cId of possibleIds) {
+        const enrollDocId = `${studentId}_${cId}`;
+        const docRef = await db.collection('enrollments').doc(enrollDocId).get();
+        if (docRef.exists) {
+          return { id: docRef.id, ...docRef.data() } as IEnrollment;
+        }
       }
 
       // Secondary query in case document ID is formatted differently
-      const snap = await db
-        .collection('enrollments')
-        .where('studentId', '==', studentId)
-        .where('courseId', '==', courseId)
-        .limit(1)
-        .get();
+      for (const cId of possibleIds) {
+        const snap = await db
+          .collection('enrollments')
+          .where('studentId', '==', studentId)
+          .where('courseId', '==', cId)
+          .limit(1)
+          .get();
 
-      if (!snap.empty) {
-        const doc: QueryDocumentSnapshot = snap.docs[0];
-        return { id: doc.id, ...doc.data() } as IEnrollment;
+        if (!snap.empty) {
+          const doc: QueryDocumentSnapshot = snap.docs[0];
+          return { id: doc.id, ...doc.data() } as IEnrollment;
+        }
       }
     } catch (err) {
       logger.warn('[EnrollmentService] Firestore getEnrollment notice:', err);
@@ -97,7 +111,7 @@ export class EnrollmentService {
       studentName: studentName || 'Student',
       courseId,
       courseTitle: courseTitle || courseId,
-      paymentId: paymentId || undefined,
+      paymentId: paymentId || null as any,
       status: 'ACTIVE',
       accessType,
       enrolledAt: new Date().toISOString(),

@@ -77,32 +77,215 @@ interface LessonContentPanelProps {
   topicImageUrl?: string | null;
   themeColor?: string | null;
   themeIcon?: string | null;
-  learningObjectives?: string[];
-  codeExamples?: Array<{
-    title?: string;
-    language: string;
-    code: string;
-    explanation?: string;
-  }>;
-  keyPoints?: string[];
-  practiceQuestions?: Array<{
-    question: string;
-    answer?: string;
-    explanation?: string;
-    difficulty?: string;
-  }>;
-  resourceLinks?: Array<{
-    title: string;
-    url: string;
-    type?: string;
-    description?: string;
-  }>;
+  learningObjectives?: any;
+  codeExamples?: any;
+  keyPoints?: any;
+  practiceQuestions?: any;
+  resourceLinks?: any;
+}
+
+/** Safely normalizes string arrays or formatted text/objects into clean string arrays */
+export function normalizeStringList(val: any, fallback: string[] = []): string[] {
+  if (val === null || val === undefined) return fallback;
+
+  if (Array.isArray(val)) {
+    const flattened: string[] = [];
+    for (const item of val) {
+      if (typeof item === 'string') {
+        const trimmed = item.trim();
+        if (trimmed) {
+          if (trimmed.includes('\n') || trimmed.includes('•') || trimmed.includes('●')) {
+            const splitItems = trimmed
+              .split(/\r?\n|•|●/)
+              .map((s) => s.trim().replace(/^[-•*●0-9.]+\s*/, '').trim())
+              .filter(Boolean);
+            flattened.push(...splitItems);
+          } else {
+            const cleaned = trimmed.replace(/^[-•*●0-9.]+\s*/, '').trim();
+            flattened.push(cleaned || trimmed);
+          }
+        }
+      } else if (typeof item === 'object' && item !== null) {
+        const text = item.text || item.title || item.name || item.value || item.objective || item.point;
+        if (typeof text === 'string' && text.trim()) {
+          flattened.push(text.trim());
+        }
+      } else if (item !== null && item !== undefined) {
+        const s = String(item).trim();
+        if (s) flattened.push(s);
+      }
+    }
+    return flattened.length > 0 ? flattened : fallback;
+  }
+
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (!trimmed) return fallback;
+
+    // Check if it's a JSON string
+    if ((trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        return normalizeStringList(parsed, fallback);
+      } catch {}
+    }
+
+    // Split on newlines, bullets, or semicolons if multiple items
+    if (trimmed.includes('\n') || trimmed.includes('•') || trimmed.includes('●') || trimmed.includes(';')) {
+      const parts = trimmed
+        .split(/\r?\n|•|●|;/)
+        .map((s) => s.trim().replace(/^[-•*●0-9.]+\s*/, '').trim())
+        .filter((s) => s.length > 0);
+      return parts.length > 0 ? parts : [trimmed];
+    }
+
+    return [trimmed];
+  }
+
+  if (typeof val === 'object') {
+    const values = Object.values(val);
+    if (values.length > 0) {
+      return normalizeStringList(values, fallback);
+    }
+  }
+
+  return fallback;
+}
+
+/** Safely normalizes code example objects */
+export function normalizeCodeExamples(val: any): Array<{
+  title?: string;
+  language: string;
+  code: string;
+  explanation?: string;
+}> {
+  if (!val) return [];
+  let list: any[] = [];
+  if (Array.isArray(val)) {
+    list = val;
+  } else if (typeof val === 'object') {
+    list = Object.values(val);
+  } else if (typeof val === 'string' && val.trim().startsWith('[')) {
+    try {
+      const parsed = JSON.parse(val);
+      if (Array.isArray(parsed)) list = parsed;
+    } catch {}
+  }
+
+  return list
+    .map((item) => {
+      if (!item) return null;
+      if (typeof item === 'string') {
+        const trimmed = item.trim();
+        if (!trimmed) return null;
+        return {
+          title: 'Code Example',
+          language: 'bash',
+          code: trimmed,
+        };
+      }
+      const code = typeof item.code === 'string' ? item.code : (typeof item.snippet === 'string' ? item.snippet : (typeof item.text === 'string' ? item.text : ''));
+      if (!code || !code.trim()) return null;
+      return {
+        title: typeof item.title === 'string' && item.title.trim() ? item.title.trim() : undefined,
+        language: typeof item.language === 'string' && item.language.trim() ? item.language.trim() : (typeof item.lang === 'string' && item.lang.trim() ? item.lang.trim() : 'code'),
+        code: code.trim(),
+        explanation: typeof item.explanation === 'string' && item.explanation.trim() ? item.explanation.trim() : (typeof item.desc === 'string' && item.desc.trim() ? item.desc.trim() : undefined),
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null);
+}
+
+/** Safely normalizes practice question items */
+export function normalizePracticeQuestions(val: any): Array<{
+  question: string;
+  answer?: string;
+  explanation?: string;
+  difficulty?: string;
+}> {
+  if (!val) return [];
+  let list: any[] = [];
+  if (Array.isArray(val)) {
+    list = val;
+  } else if (typeof val === 'object') {
+    list = Object.values(val);
+  } else if (typeof val === 'string' && val.trim().startsWith('[')) {
+    try {
+      const parsed = JSON.parse(val);
+      if (Array.isArray(parsed)) list = parsed;
+    } catch {}
+  }
+
+  return list
+    .map((item) => {
+      if (!item) return null;
+      if (typeof item === 'string') {
+        const trimmed = item.trim();
+        if (!trimmed) return null;
+        return {
+          question: trimmed,
+        };
+      }
+      const question = typeof item.question === 'string' ? item.question : (typeof item.q === 'string' ? item.q : (typeof item.prompt === 'string' ? item.prompt : ''));
+      if (!question || !question.trim()) return null;
+      return {
+        question: question.trim(),
+        answer: typeof item.answer === 'string' && item.answer.trim() ? item.answer.trim() : (typeof item.solution === 'string' && item.solution.trim() ? item.solution.trim() : (typeof item.a === 'string' && item.a.trim() ? item.a.trim() : undefined)),
+        explanation: typeof item.explanation === 'string' && item.explanation.trim() ? item.explanation.trim() : (typeof item.desc === 'string' && item.desc.trim() ? item.desc.trim() : undefined),
+        difficulty: typeof item.difficulty === 'string' && item.difficulty.trim() ? item.difficulty.trim() : undefined,
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null);
+}
+
+/** Safely normalizes resource links */
+export function normalizeResourceLinks(val: any): Array<{
+  title: string;
+  url: string;
+  type?: string;
+  description?: string;
+}> {
+  if (!val) return [];
+  let list: any[] = [];
+  if (Array.isArray(val)) {
+    list = val;
+  } else if (typeof val === 'object') {
+    list = Object.values(val);
+  } else if (typeof val === 'string' && val.trim().startsWith('[')) {
+    try {
+      const parsed = JSON.parse(val);
+      if (Array.isArray(parsed)) list = parsed;
+    } catch {}
+  }
+
+  return list
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null;
+      const title = typeof item.title === 'string' ? item.title.trim() : (typeof item.name === 'string' ? item.name.trim() : '');
+      const url = typeof item.url === 'string' ? item.url.trim() : (typeof item.link === 'string' ? item.link.trim() : '');
+      if (!title || !url) return null;
+      const u = url.toLowerCase();
+      if (u.startsWith('javascript:') || u.startsWith('data:') || u.startsWith('file:') || u.startsWith('vbscript:')) {
+        return null;
+      }
+      if (!u.startsWith('https://') && !u.startsWith('http://') && !u.startsWith('/')) {
+        return null;
+      }
+      return {
+        title,
+        url,
+        type: typeof item.type === 'string' ? item.type : (item.category ? String(item.category).toLowerCase() : 'link'),
+        description: typeof item.description === 'string' && item.description.trim() ? item.description.trim() : undefined,
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null);
 }
 
 /** Estimate reading time from content */
-function estimateReadingTime(content: string): string {
+function estimateReadingTime(content: any): string {
   if (!content) return '1 min read';
-  const cleaned = content
+  const str = typeof content === 'string' ? content : String(content);
+  const cleaned = str
     .replace(/```[\s\S]*?```/g, '')
     .replace(/!\[.*?\]\(.*?\)/g, '')
     .replace(/[#*`!\[\]()>-]/g, ' ');
@@ -150,30 +333,23 @@ export const LessonContentPanel: React.FC<LessonContentPanelProps> = ({
   const [openSolutions, setOpenSolutions] = useState<Record<number, boolean>>({});
 
   const validObjectives = useMemo(() => {
-    return (learningObjectives || []).map((o) => o.trim()).filter((o) => o.length > 0);
+    return normalizeStringList(learningObjectives);
   }, [learningObjectives]);
 
   const validCodeExamples = useMemo(() => {
-    return (codeExamples || []).filter((ce) => ce.code && ce.code.trim().length > 0);
+    return normalizeCodeExamples(codeExamples);
   }, [codeExamples]);
 
   const validKeyPoints = useMemo(() => {
-    return (keyPoints || []).map((kp) => kp.trim()).filter((kp) => kp.length > 0);
+    return normalizeStringList(keyPoints);
   }, [keyPoints]);
 
   const validPracticeQuestions = useMemo(() => {
-    return (practiceQuestions || []).filter((pq) => pq.question && pq.question.trim().length > 0);
+    return normalizePracticeQuestions(practiceQuestions);
   }, [practiceQuestions]);
 
   const validResourceLinks = useMemo(() => {
-    return (resourceLinks || []).filter((r) => {
-      if (!r.title || !r.title.trim() || !r.url || !r.url.trim()) return false;
-      const u = r.url.trim().toLowerCase();
-      if (u.startsWith('javascript:') || u.startsWith('data:') || u.startsWith('file:') || u.startsWith('vbscript:')) {
-        return false;
-      }
-      return u.startsWith('https://') || u.startsWith('http://') || u.startsWith('/');
-    });
+    return normalizeResourceLinks(resourceLinks);
   }, [resourceLinks]);
 
   const toggleSolution = (idx: number) => {

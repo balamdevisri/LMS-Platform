@@ -90,7 +90,8 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
 
   const processedContent = useMemo(() => {
     if (!content) return '';
-    let text = content
+    const rawText = typeof content === 'string' ? content : String(content || '');
+    let text = rawText
       .replace(/\r/g, '')
       .replace(/[\u200B-\u200D\uFEFF]/g, '');
 

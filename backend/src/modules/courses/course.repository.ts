@@ -10,7 +10,7 @@ interface CacheEntry<T> {
 
 export class CourseRepository {
   private collectionName = 'courses';
-  private readonly CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes bounded TTL
+  private readonly CACHE_TTL_MS = 30 * 1000; // 30 seconds bounded TTL
   private readonly MAX_CACHE_ENTRIES = 100; // Safe bounded memory limit (<1MB RAM)
 
   private catalogCache = new Map<string, CacheEntry<CoursePaginationResult>>();
@@ -72,6 +72,42 @@ export class CourseRepository {
     const description = rawData.description || rawData.fullDescription || rawData.shortDescription || rawData.overview || '';
     const shortDescription = rawData.shortDescription || description.slice(0, 160) || 'Comprehensive technical learning track.';
 
+    const CANONICAL_PRICES: Record<string, number> = {
+      'course_linux_101': 399,
+      'linux-systems-administration-mastery': 399,
+      '1': 399,
+      'c-programming-course-id': 199,
+      'c-programming': 199,
+      'git-github-mastery': 199,
+      'git-github-mastery-course-id': 199,
+      'database-management-system': 299,
+      'dbms-beginner-to-advanced': 299,
+      'kubernetes-complete-course-beginner-to-advanced': 499,
+      'kubernetes-complete-course': 499,
+      'react-js-complete-course': 299,
+      'python-through-oops-course-id': 299,
+      'python-through-oops': 299,
+      'java-through-oops-course-id': 299,
+      'java-through-oops': 299,
+      'web-development-fundamentals': 299,
+      'web-development': 299,
+      'prompt-engineering': 199,
+    };
+
+    const id = String(rawData.id || rawData.courseId || '');
+    const slug = String(rawData.slug || '');
+    const fallbackPrice =
+      CANONICAL_PRICES[id] ??
+      CANONICAL_PRICES[slug] ??
+      CANONICAL_PRICES[slug.toLowerCase().trim()] ??
+      CANONICAL_PRICES[id.toLowerCase().trim()] ??
+      0;
+
+    const rawPrice = typeof rawData.price === 'number' ? rawData.price : undefined;
+    const price = (rawPrice !== undefined && rawPrice > 0)
+      ? rawPrice
+      : (fallbackPrice > 0 ? fallbackPrice : (rawPrice !== undefined ? rawPrice : 0));
+
     return {
       ...rawData,
       title,
@@ -79,7 +115,7 @@ export class CourseRepository {
       banner: rawData.banner || thumbnail,
       description: description || title,
       shortDescription,
-      price: typeof rawData.price === 'number' ? rawData.price : 0,
+      price,
       skills: Array.isArray(rawData.skills) ? rawData.skills : [],
       prerequisites: Array.isArray(rawData.prerequisites) ? rawData.prerequisites : [],
       learningOutcomes: Array.isArray(rawData.learningOutcomes) ? rawData.learningOutcomes : [],

@@ -963,7 +963,7 @@ export const PracticeLab: React.FC<PracticeLabProps> = ({
             <div className="space-y-2">
               <h4 className="font-heading font-extrabold text-[11px] text-white uppercase tracking-wider">Objectives</h4>
               <ul className="list-disc pl-4 space-y-1 text-slate-400">
-                {activeChallenge.learningObjectives.map((o, idx) => (
+                {(Array.isArray(activeChallenge?.learningObjectives) ? activeChallenge.learningObjectives : []).map((o, idx) => (
                   <li key={idx}>{o}</li>
                 ))}
               </ul>

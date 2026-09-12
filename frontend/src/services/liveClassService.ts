@@ -1516,20 +1516,9 @@ class LiveClassService {
     return { success: true, message: 'Answer recorded.' };
   }
 
-  private async getAuthHeaders(): Promise<Record<string, string>> {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    try {
-      if (auth.currentUser) {
-        const token = await auth.currentUser.getIdToken();
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-    } catch (e) {}
-    return headers;
-  }
-
   async recordJoinAttendance(classId: string, userMeta: { uid: string; name?: string; email?: string }): Promise<void> {
     try {
-      const headers = await this.getAuthHeaders();
+      const headers = await this.getAuthHeadersAsync();
       await fetch(`${this.getApiUrl()}/live-classes/${encodeURIComponent(classId)}/join`, {
         method: 'POST',
         headers,
@@ -1544,7 +1533,7 @@ class LiveClassService {
 
   async recordLeaveAttendance(classId: string, userId: string): Promise<void> {
     try {
-      const headers = await this.getAuthHeaders();
+      const headers = await this.getAuthHeadersAsync();
       await fetch(`${this.getApiUrl()}/live-classes/${encodeURIComponent(classId)}/leave`, {
         method: 'POST',
         headers,
@@ -1555,7 +1544,7 @@ class LiveClassService {
 
   async getAttendanceReport(classId: string): Promise<AttendanceReportItem[]> {
     try {
-      const headers = await this.getAuthHeaders();
+      const headers = await this.getAuthHeadersAsync();
       const res = await fetch(`${this.getApiUrl()}/live-classes/${encodeURIComponent(classId)}/attendance`, {
         headers,
       });
@@ -1564,12 +1553,11 @@ class LiveClassService {
         if (data?.success && Array.isArray(data?.data)) return data.data;
       }
     } catch (e) {}
-    return [];
   }
 
   async getMyAttendance(classId: string): Promise<AttendanceReportItem | null> {
     try {
-      const headers = await this.getAuthHeaders();
+      const headers = await this.getAuthHeadersAsync();
       const res = await fetch(`${this.getApiUrl()}/live-classes/${encodeURIComponent(classId)}/attendance/me`, {
         headers,
       });
@@ -1578,12 +1566,11 @@ class LiveClassService {
         if (data?.success && data?.data) return data.data;
       }
     } catch (e) {}
-    return null;
   }
 
   async getLiveClassAnalytics(classId: string): Promise<LiveClassAnalytics | null> {
     try {
-      const headers = await this.getAuthHeaders();
+      const headers = await this.getAuthHeadersAsync();
       const res = await fetch(`${this.getApiUrl()}/live-classes/${encodeURIComponent(classId)}/analytics`, {
         headers,
       });
@@ -1592,12 +1579,11 @@ class LiveClassService {
         if (data?.success && data?.data) return data.data;
       }
     } catch (e) {}
-    return null;
   }
 
   async getLiveClassRecording(classId: string): Promise<LiveClassRecording | null> {
     try {
-      const headers = await this.getAuthHeaders();
+      const headers = await this.getAuthHeadersAsync();
       const res = await fetch(`${this.getApiUrl()}/live-classes/${encodeURIComponent(classId)}/recording`, {
         headers,
       });
@@ -1606,7 +1592,6 @@ class LiveClassService {
         if (data?.success && data?.data) return data.data;
       }
     } catch (e) {}
-    return null;
   }
 
   async updateLiveClassRecording(
@@ -1614,7 +1599,7 @@ class LiveClassService {
     data: { recordingUrl?: string; recordingStatus?: 'NOT_AVAILABLE' | 'RECORDING' | 'PROCESSING' | 'READY' | 'FAILED'; recordingDuration?: number }
   ): Promise<any> {
     try {
-      const headers = await this.getAuthHeaders();
+      const headers = await this.getAuthHeadersAsync();
       const res = await fetch(`${this.getApiUrl()}/live-classes/${encodeURIComponent(classId)}/recording`, {
         method: 'PUT',
         headers,

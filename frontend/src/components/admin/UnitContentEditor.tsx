@@ -29,6 +29,7 @@ import {
   type QuizQuestion
 } from '@/contexts/CourseContext';
 import { MarkdownContent } from '../learning/MarkdownContent';
+import { normalizeStringList } from '../learning/LessonContentPanel';
 
 interface UnitContentEditorProps {
   isOpen: boolean;
@@ -77,12 +78,10 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
   const [duration, setDuration] = useState(unit.duration || '15 mins');
   const [type, setType] = useState<LearningUnitType>(unit.type || 'Reading');
   const [videoUrl, setVideoUrl] = useState(unit.videoUrl || '');
-  
+
   // Structured sections state
   const [objectives, setObjectives] = useState<string[]>(() => {
-    return unit.learningObjectives && unit.learningObjectives.length > 0
-      ? unit.learningObjectives
-      : [''];
+    return normalizeStringList(unit.learningObjectives, ['']);
   });
 
   const [conceptTheory, setConceptTheory] = useState<string>(() => {
@@ -90,31 +89,29 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
   });
 
   const [codeExamples, setCodeExamples] = useState<CodeExampleItem[]>(() => {
-    return unit.codeExamples && unit.codeExamples.length > 0
+    return Array.isArray(unit.codeExamples) && unit.codeExamples.length > 0
       ? unit.codeExamples
       : [];
   });
 
   const [keyPoints, setKeyPoints] = useState<string[]>(() => {
-    return unit.keyPoints && unit.keyPoints.length > 0
-      ? unit.keyPoints
-      : [];
+    return normalizeStringList(unit.keyPoints, []);
   });
 
   const [practiceQuestions, setPracticeQuestions] = useState<PracticeQuestionItem[]>(() => {
-    return unit.practiceQuestions && unit.practiceQuestions.length > 0
+    return Array.isArray(unit.practiceQuestions) && unit.practiceQuestions.length > 0
       ? unit.practiceQuestions
       : [];
   });
 
   const [resourceLinks, setResourceLinks] = useState<ResourceLinkItem[]>(() => {
-    return unit.resourceLinks && unit.resourceLinks.length > 0
+    return Array.isArray(unit.resourceLinks) && unit.resourceLinks.length > 0
       ? unit.resourceLinks
       : [];
   });
 
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>(() => {
-    return unit.quizQuestions && unit.quizQuestions.length > 0
+    return Array.isArray(unit.quizQuestions) && unit.quizQuestions.length > 0
       ? unit.quizQuestions
       : [];
   });
@@ -162,13 +159,13 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
       setDuration(unit.duration || '15 mins');
       setType(unit.type || 'Reading');
       setVideoUrl(unit.videoUrl || '');
-      setObjectives(unit.learningObjectives && unit.learningObjectives.length > 0 ? unit.learningObjectives : ['']);
+      setObjectives(normalizeStringList(unit.learningObjectives, ['']));
       setConceptTheory(unit.conceptTheory || unit.readingContent || '');
-      setCodeExamples(unit.codeExamples || []);
-      setKeyPoints(unit.keyPoints || []);
-      setPracticeQuestions(unit.practiceQuestions || []);
-      setResourceLinks(unit.resourceLinks || []);
-      setQuizQuestions(unit.quizQuestions || []);
+      setCodeExamples(Array.isArray(unit.codeExamples) ? unit.codeExamples : []);
+      setKeyPoints(normalizeStringList(unit.keyPoints, []));
+      setPracticeQuestions(Array.isArray(unit.practiceQuestions) ? unit.practiceQuestions : []);
+      setResourceLinks(Array.isArray(unit.resourceLinks) ? unit.resourceLinks : []);
+      setQuizQuestions(Array.isArray(unit.quizQuestions) ? unit.quizQuestions : []);
       setAssignmentInstructions(unit.assignmentInstructions || '');
       setNotes(unit.notes || '');
       setActiveTab('editor');
@@ -183,13 +180,13 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
       setDuration(unit.duration || '15 mins');
       setType(unit.type || 'Reading');
       setVideoUrl(unit.videoUrl || '');
-      setObjectives(unit.learningObjectives && unit.learningObjectives.length > 0 ? unit.learningObjectives : ['']);
+      setObjectives(normalizeStringList(unit.learningObjectives, ['']));
       setConceptTheory(unit.conceptTheory || unit.readingContent || '');
-      setCodeExamples(unit.codeExamples || []);
-      setKeyPoints(unit.keyPoints || []);
-      setPracticeQuestions(unit.practiceQuestions || []);
-      setResourceLinks(unit.resourceLinks || []);
-      setQuizQuestions(unit.quizQuestions || []);
+      setCodeExamples(Array.isArray(unit.codeExamples) ? unit.codeExamples : []);
+      setKeyPoints(normalizeStringList(unit.keyPoints, []));
+      setPracticeQuestions(Array.isArray(unit.practiceQuestions) ? unit.practiceQuestions : []);
+      setResourceLinks(Array.isArray(unit.resourceLinks) ? unit.resourceLinks : []);
+      setQuizQuestions(Array.isArray(unit.quizQuestions) ? unit.quizQuestions : []);
       setAssignmentInstructions(unit.assignmentInstructions || '');
       setNotes(unit.notes || '');
     } else {
@@ -494,10 +491,11 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
     }
   };
 
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 md:p-6 animate-in fade-in duration-200 font-sans">
       <div className="bg-white dark:bg-[#111827] w-full max-w-5xl h-[92vh] max-h-[950px] rounded-2xl border border-[#E5E7EB] dark:border-[#25324A] shadow-2xl flex flex-col overflow-hidden text-[#111827] dark:text-[#F8FAFC]">
-        
+
         {/* ── Header ───────────────────────────────────────────────────── */}
         <div className="px-6 py-4 border-b border-[#E5E7EB] dark:border-[#25324A] bg-[#F8FAFC] dark:bg-[#0B1120] flex items-center justify-between gap-4 shrink-0">
           <div className="min-w-0 flex-1">
@@ -528,11 +526,10 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveTab('editor')}
-                className={`px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors cursor-pointer ${
-                  activeTab === 'editor'
+                className={`px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors cursor-pointer ${activeTab === 'editor'
                     ? 'bg-white dark:bg-[#111827] text-[#2563EB] dark:text-[#3B82F6] font-semibold shadow-xs'
                     : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-white'
-                }`}
+                  }`}
               >
                 <Edit3 className="w-3.5 h-3.5" />
                 <span>Editor</span>
@@ -540,11 +537,10 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveTab('preview')}
-                className={`px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors cursor-pointer ${
-                  activeTab === 'preview'
+                className={`px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors cursor-pointer ${activeTab === 'preview'
                     ? 'bg-white dark:bg-[#111827] text-[#2563EB] dark:text-[#3B82F6] font-semibold shadow-xs'
                     : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#111827] dark:hover:text-white'
-                }`}
+                  }`}
               >
                 <Eye className="w-3.5 h-3.5" />
                 <span>Student Preview</span>
@@ -583,11 +579,11 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
 
         {/* ── Body ─────────────────────────────────────────────────────── */}
         <div className="flex-1 overflow-y-auto p-6 space-y-8">
-          
+
           {/* TAB 1: STRUCTURED EDITOR */}
           {activeTab === 'editor' && (
             <div className="max-w-4xl mx-auto space-y-8">
-              
+
               {/* Section 1: Basic Metadata */}
               <section className="p-5 rounded-xl bg-[#F8FAFC] dark:bg-[#0B1120] border border-[#E5E7EB] dark:border-[#25324A] space-y-4">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8] flex items-center gap-2">
@@ -1236,7 +1232,7 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
           {/* TAB 2: LIVE STUDENT PREVIEW */}
           {activeTab === 'preview' && (
             <div className="max-w-[52rem] mx-auto space-y-8 py-4">
-              
+
               {/* Header meta row */}
               <div className="flex items-center gap-3">
                 <span className="text-xs font-medium text-[#64748B] dark:text-[#94A3B8]">
@@ -1286,7 +1282,7 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
                     <HelpCircle className="w-5 h-5 text-[#0284C7] dark:text-[#38BDF8]" />
                     <span>Practice Exercises</span>
                   </h3>
-                  
+
                   <div className="space-y-3">
                     {practiceQuestions.map((pq, idx) => {
                       const isOpen = !!previewPracticeOpen[idx];
@@ -1345,9 +1341,9 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
                       const resType = res.type || 'link';
                       const badgeLabel =
                         resType === 'pdf' ? 'PDF Document' :
-                        resType === 'video' ? 'Video Tutorial' :
-                        resType === 'github' ? 'GitHub Repository' :
-                        resType === 'download' ? 'Downloadable Asset' : 'External Documentation';
+                          resType === 'video' ? 'Video Tutorial' :
+                            resType === 'github' ? 'GitHub Repository' :
+                              resType === 'download' ? 'Downloadable Asset' : 'External Documentation';
 
                       return (
                         <a

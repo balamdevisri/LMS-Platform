@@ -894,7 +894,7 @@ export const CourseDetailsPage: React.FC<CourseDetailsProps> = ({
 
       {/* ── Sleek Professional AI Assistant Floating Button ─────────────── */}
       <button
-        onClick={onStartLearning}
+        onClick={isEnrolled || !isPaid ? onStartLearning : (onEnroll || onStartLearning)}
         className="fixed bottom-5 right-5 z-40 px-3.5 py-2.5 rounded-full bg-[#111827] dark:bg-[#172033] hover:bg-[#1F2937] dark:hover:bg-[#1E293B] text-white border border-[#E5E7EB]/20 dark:border-[#25324A] shadow-lg flex items-center gap-2 transition-all duration-200 cursor-pointer active:scale-95 text-xs font-medium"
         title="Open Course Learning Workspace"
       >

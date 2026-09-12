@@ -96,7 +96,17 @@ const createDbMock = (): Firestore => {
 };
 
 export const isFirebaseAdminInitialized = (): boolean => getApps().length > 0 && hasValidCredentials;
-export const db = isFirebaseAdminInitialized() ? getFirestore() : (createDbMock() as Firestore);
+
+const getInitializedFirestore = (): Firestore => {
+  if (!isFirebaseAdminInitialized()) return createDbMock() as Firestore;
+  const fs = getFirestore();
+  try {
+    fs.settings({ ignoreUndefinedProperties: true });
+  } catch (_) {}
+  return fs;
+};
+
+export const db: Firestore = getInitializedFirestore();
 export const adminAuth = isFirebaseAdminInitialized()
   ? getAuth(getApps().find(app => app.name === 'authApp') || getApps()[0])
   : ({} as Auth);

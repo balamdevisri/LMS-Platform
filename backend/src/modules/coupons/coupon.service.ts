@@ -54,11 +54,19 @@ export class CouponService {
     // 1. Fetch Coupon from Firestore (single-field query, no composite index needed)
     let coupon: ICoupon | null = null;
     if (isFirebaseAdminInitialized()) {
-      const snap = await db
+      let snap = await db
         .collection(this.COUPONS_COLLECTION)
         .where('normalizedCode', '==', normalized)
         .limit(1)
         .get();
+
+      if (snap.empty) {
+        snap = await db
+          .collection(this.COUPONS_COLLECTION)
+          .where('code', '==', normalized)
+          .limit(1)
+          .get();
+      }
 
       if (!snap.empty) {
         const docData = snap.docs[0].data();
@@ -87,7 +95,10 @@ export class CouponService {
 
     // 3. Time bounds validation (Server Time)
     const now = new Date();
-    if (coupon.startsAt && new Date(coupon.startsAt) > now) {
+    const startTime = coupon.startsAt || (coupon as any).validFrom;
+    const expiryTime = coupon.expiresAt || (coupon as any).validUntil;
+
+    if (startTime && new Date(startTime) > now) {
       return {
         valid: false,
         code: 'NOT_YET_ACTIVE',
@@ -95,7 +106,7 @@ export class CouponService {
       };
     }
 
-    if (coupon.expiresAt && new Date(coupon.expiresAt) < now) {
+    if (expiryTime && new Date(expiryTime) < now) {
       return {
         valid: false,
         code: 'EXPIRED',
@@ -104,10 +115,29 @@ export class CouponService {
     }
 
     // 4. Course Applicability Check
+    const possibleIds = [courseId, String(courseId).toLowerCase().trim()];
+    if (courseId === 'c-programming') possibleIds.push('c-programming-course-id');
+    if (courseId === 'c-programming-course-id') possibleIds.push('c-programming');
+    if (courseId === 'linux-systems-administration-mastery') possibleIds.push('course_linux_101', '1');
+    if (courseId === 'course_linux_101' || courseId === '1') possibleIds.push('linux-systems-administration-mastery');
+    if (courseId === 'kubernetes-complete-course') possibleIds.push('kubernetes-complete-course-beginner-to-advanced');
+    if (courseId === 'kubernetes-complete-course-beginner-to-advanced') possibleIds.push('kubernetes-complete-course');
+    if (courseId === 'git-github-mastery') possibleIds.push('git-github-mastery-course-id');
+    if (courseId === 'git-github-mastery-course-id') possibleIds.push('git-github-mastery');
+
+    const applicableCourses = coupon.applicableCourseIds || (coupon as any).applicableCourses;
     if (
-      Array.isArray(coupon.applicableCourseIds) &&
-      coupon.applicableCourseIds.length > 0 &&
-      !coupon.applicableCourseIds.includes(courseId)
+      Array.isArray(applicableCourses) &&
+      applicableCourses.length > 0 &&
+      !applicableCourses.some(
+        (id) =>
+          !id ||
+          id === 'ALL_COURSES' ||
+          id === '*' ||
+          id === 'all' ||
+          possibleIds.includes(id) ||
+          possibleIds.includes(String(id).toLowerCase().trim())
+      )
     ) {
       return {
         valid: false,

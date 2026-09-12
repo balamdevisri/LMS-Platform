@@ -31,6 +31,7 @@ export class PaymentService {
     discountAmount?: number;
     couponApplied?: boolean;
     couponCode?: string;
+    couponId?: string;
     currency?: string;
     course?: { id: string; title: string; price: number };
     paymentId?: string;
@@ -179,6 +180,7 @@ export class PaymentService {
         discountAmount,
         couponApplied: Boolean(discountAmount > 0),
         couponCode: appliedCouponInfo?.couponCode,
+        couponId: appliedCouponInfo?.couponId,
       };
     }
 
@@ -233,6 +235,7 @@ export class PaymentService {
       discountAmount,
       couponApplied: Boolean(discountAmount > 0),
       couponCode: appliedCouponInfo?.couponCode,
+      couponId: appliedCouponInfo?.couponId,
       currency: 'INR',
       course: {
         id: courseId,
