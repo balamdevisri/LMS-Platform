@@ -135,7 +135,7 @@ export const CoursesList: React.FC = () => {
       list = applyQuickFilter(list, quickFilter);
 
       // 7. Paginate
-      const limit = 6;
+      const limit = 12;
       const total = list.length;
       const totalPagesCalc = Math.ceil(total / limit) || 1;
       const paginated = list.slice((page - 1) * limit, page * limit);

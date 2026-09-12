@@ -1156,16 +1156,16 @@ class CourseService {
     this.saveStoredEnrollments(enrollments);
   }
 
-  async getCourses(options: CourseFilterOptions = {}): Promise<CoursePaginationResult> {
+  async getCourses(options: CourseFilterOptions = {}, forceRefresh = false): Promise<CoursePaginationResult> {
     const cacheKey = JSON.stringify(options);
     const cached = this.getCoursesCache.get(cacheKey);
     const now = Date.now();
-    if (cached && cached.expiry > now) {
+    if (!forceRefresh && cached && cached.expiry > now) {
       return cached.data;
     }
 
     const fetchAndCache = async (): Promise<CoursePaginationResult> => {
-      // Try API first
+      // 1. Authoritative Backend REST API Query
       try {
         const params = new URLSearchParams();
         if (options.search) params.append('search', options.search);
@@ -1181,15 +1181,26 @@ class CourseService {
         if (res.ok) {
           const json = await res.json();
           if (json.success && json.data) {
-            json.data.courses = (json.data.courses || [])
+            const rawList = Array.isArray(json.data.courses) ? json.data.courses : (Array.isArray(json.data) ? json.data : []);
+            const courses = rawList
               .map((c: any) => this.normalizeCourseToICourse(c))
-              .filter((c: any) => !isRemovedMockCourse(c));
-            return json.data;
+              .filter((c: any) => !isRemovedMockCourse(c) && c.isDeleted !== true);
+
+            const result: CoursePaginationResult = {
+              courses,
+              total: json.data.total ?? courses.length,
+              page: json.data.page ?? (options.page || 1),
+              limit: json.data.limit ?? (options.limit || 10),
+              totalPages: json.data.totalPages ?? Math.ceil(courses.length / (options.limit || 10)),
+            };
+            return result;
           }
         }
-      } catch (err) {}
+      } catch (err) {
+        console.warn('[CourseService] Backend API /courses request error:', err);
+      }
 
-      // Try Firestore directly if available (Primary Cloud Storage)
+      // 2. Direct Firestore fallback only if backend API is completely unreachable
       let firestoreLoaded: ICourse[] = [];
       try {
         const { db, collection, getDocs } = await getFS();
@@ -1203,47 +1214,12 @@ class CourseService {
               firestoreLoaded.push(item);
             }
           });
-          if (firestoreLoaded.length > 0) {
-            localStorage.setItem('shaivika_courses_data', JSON.stringify(firestoreLoaded));
-          }
         }
       } catch (err) {
-        console.warn('Firestore fetch in getCourses notice:', err);
+        console.warn('[CourseService] Direct Firestore fallback in getCourses notice:', err);
       }
 
-      let list: ICourse[] = [];
-      if (firestoreLoaded.length > 0) {
-        list = firestoreLoaded.filter((c) => !isRemovedMockCourse(c) && c.isDeleted !== true);
-      } else {
-        list = this.getStoredCourses().filter((c) => !isRemovedMockCourse(c) && c.isDeleted !== true);
-      }
-
-      if (options.status && options.status !== 'all') {
-        list = list.filter((c) => c.status === options.status);
-      }
-      if (options.category && options.category !== 'All') {
-        const selectedCat = options.category.toLowerCase();
-        list = list.filter((c) => {
-          const courseCat = c.category.toLowerCase();
-          return courseCat === selectedCat ||
-                 (selectedCat.includes('development') && courseCat.includes('development')) ||
-                 (selectedCat.includes('linux') && courseCat.includes('linux')) ||
-                 (selectedCat.includes('sys') && courseCat.includes('sys'));
-        });
-      }
-      if (options.level && options.level !== 'all') {
-        list = list.filter((c) => c.level === options.level || c.level === 'all_levels');
-      }
-      if (options.search) {
-        const term = options.search.toLowerCase();
-        list = list.filter(
-          (c) =>
-            c.title.toLowerCase().includes(term) ||
-            c.shortDescription.toLowerCase().includes(term) ||
-            c.category.toLowerCase().includes(term) ||
-            c.skills.some((s) => s.toLowerCase().includes(term))
-        );
-      }
+      const list = firestoreLoaded.filter((c) => !isRemovedMockCourse(c) && c.isDeleted !== true);
 
       const page = options.page || 1;
       const limit = options.limit || 10;
@@ -1261,17 +1237,35 @@ class CourseService {
     };
 
     const result = await fetchAndCache();
-    this.getCoursesCache.set(cacheKey, { data: result, expiry: Date.now() + 300000 }); // 5 minutes bounded client cache
+    this.getCoursesCache.set(cacheKey, { data: result, expiry: Date.now() + 60000 }); // 1 min cache
     return result;
   }
 
-  async getCourseBySlugOrId(idOrSlug: string): Promise<ICourse | null> {
+  async getCourseBySlugOrId(idOrSlug: string, forceRefresh = false): Promise<ICourse | null> {
+    if (!idOrSlug) return null;
     const cached = this.courseDetailsCache.get(idOrSlug);
-    if (cached && cached.expiry > Date.now()) {
+    if (!forceRefresh && cached && cached.expiry > Date.now()) {
       return cached.data;
     }
 
-    // 1. Instant Fast-Path: Query Firebase Firestore (hits multi-tab IndexedDB cache in 0-5ms!)
+    // 1. Authoritative Backend REST API
+    try {
+      const res = await fetch(`${API_BASE_URL}/courses/${encodeURIComponent(idOrSlug)}`, {
+        headers: getAuthHeaders(),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data) {
+          const normalized = this.normalizeCourseToICourse(json.data);
+          this.courseDetailsCache.set(idOrSlug, { data: normalized, expiry: Date.now() + 60000 });
+          return normalized;
+        }
+      }
+    } catch (e) {
+      console.warn('[CourseService] Backend getCourseBySlugOrId notice:', e);
+    }
+
+    // 2. Direct Firestore fallback only if backend API unreachable
     try {
       const { db, doc, getDoc, collection, query, where, getDocs } = await getFS();
       if (db) {
@@ -1279,7 +1273,7 @@ class CourseService {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const course = this.normalizeCourseToICourse({ id: docSnap.id, ...docSnap.data() });
-          this.courseDetailsCache.set(idOrSlug, { data: course, expiry: Date.now() + 300000 });
+          this.courseDetailsCache.set(idOrSlug, { data: course, expiry: Date.now() + 60000 });
           return course;
         }
 
@@ -1288,55 +1282,40 @@ class CourseService {
         if (!querySnap.empty) {
           const snap = querySnap.docs[0];
           const course = this.normalizeCourseToICourse({ id: snap.id, ...snap.data() });
-          this.courseDetailsCache.set(idOrSlug, { data: course, expiry: Date.now() + 300000 });
+          this.courseDetailsCache.set(idOrSlug, { data: course, expiry: Date.now() + 60000 });
           return course;
         }
       }
     } catch (err) {
-      console.warn('[CourseService] Direct Firestore fetch in getCourseBySlugOrId notice:', err);
+      console.warn('[CourseService] Direct Firestore fetch fallback in getCourseBySlugOrId notice:', err);
     }
-
-    // 2. Fast-Path: Local stored defaults (0ms memory/localStorage)
-    const list = this.getStoredCourses();
-    const found = list.find((c) => c.id === idOrSlug || c.slug === idOrSlug) || null;
-    if (found) {
-      this.courseDetailsCache.set(idOrSlug, { data: found, expiry: Date.now() + 300000 });
-      return found;
-    }
-
-    // 3. Fallback: Backend REST API
-    try {
-      const res = await fetch(`${API_BASE_URL}/courses/${idOrSlug}`, {
-        headers: getAuthHeaders(),
-      });
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success && json.data) {
-          const normalized = this.normalizeCourseToICourse(json.data);
-          this.courseDetailsCache.set(idOrSlug, { data: normalized, expiry: Date.now() + 300000 });
-          return normalized;
-        }
-      }
-    } catch (e) {}
 
     return null;
   }
 
-  async getCourseModules(courseId: string): Promise<any[]> {
-    // 1. Instant Fast-Path: Query Firebase Firestore (hits multi-tab IndexedDB cache in 0-5ms!)
+  async getCourseModules(courseId: string, forceRefresh = false): Promise<any[]> {
+    if (!courseId) return [];
+
+    // 1. Authoritative: Fetch from Backend REST API
+    try {
+      const res = await fetch(`${API_BASE_URL}/courses/${encodeURIComponent(courseId)}/modules`, {
+        headers: getAuthHeaders(),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          return json.data;
+        }
+      }
+    } catch (err) {
+      console.warn(`[CourseService] Backend modules fetch notice for ${courseId}:`, err);
+    }
+
+    // 2. Direct Firestore fallback only if backend API unreachable
     try {
       const { db, doc, getDoc, collection, getDocs } = await getFS();
       if (db) {
-        const docRef = doc(db, 'courses', courseId);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          if (Array.isArray(data.modules) && data.modules.length > 0) {
-            return data.modules;
-          }
-        }
-
-        // Subcollection check: courses/{courseId}/modules
+        // Subcollection query: courses/{courseId}/modules
         const modsSnap = await getDocs(collection(db, 'courses', courseId, 'modules'));
         if (!modsSnap.empty) {
           const modulesList: any[] = [];
@@ -1355,24 +1334,18 @@ class CourseService {
           modulesList.sort((a: any, b: any) => (a.orderIndex ?? a.order ?? 0) - (b.orderIndex ?? b.order ?? 0));
           return modulesList;
         }
-      }
-    } catch (err) {
-      console.warn(`[CourseService] Direct Firestore getCourseModules notice for ${courseId}:`, err);
-    }
 
-    // 2. Secondary fallback: Backend API
-    try {
-      const res = await fetch(`${API_BASE_URL}/courses/${encodeURIComponent(courseId)}/modules`, {
-        headers: getAuthHeaders(),
-      });
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
-          return json.data;
+        const docRef = doc(db, 'courses', courseId);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (Array.isArray(data.modules) && data.modules.length > 0) {
+            return data.modules;
+          }
         }
       }
     } catch (err) {
-      console.warn(`[CourseService] Backend modules fetch notice for ${courseId}:`, err);
+      console.warn(`[CourseService] Direct Firestore fallback getCourseModules notice for ${courseId}:`, err);
     }
 
     return [];
@@ -1508,6 +1481,20 @@ class CourseService {
       updatedAt: now,
     };
 
+    // Anti-overwrite guard: prevent empty or unhydrated placeholder modules from replacing existing curriculum
+    if (updates.modules !== undefined) {
+      const existingModCount = existing?.modules?.length || 0;
+      if (existingModCount > 0 && Array.isArray(updates.modules) && updates.modules.length === 0) {
+        throw new Error(`Cannot save empty module state: existing course content (${existingModCount} modules) would be overwritten.`);
+      }
+      if (existingModCount > 1 && Array.isArray(updates.modules) && updates.modules.length === 1) {
+        const single = updates.modules[0];
+        if (single?.title?.toLowerCase()?.includes('new curriculum module') || (String(single?.id).startsWith('mod_') && (!single?.topics || single?.topics?.length === 0))) {
+          throw new Error(`Cannot save unhydrated placeholder module state: existing course content (${existingModCount} modules) would be overwritten.`);
+        }
+      }
+    }
+
     // 1. Direct write to Cloud Firestore (Authoritative)
     let firestoreSuccess = false;
     try {
@@ -1525,13 +1512,14 @@ class CourseService {
     let backendUpdated: ICourse | null = null;
     try {
       const token = localStorage.getItem('shaivika_auth_token') || localStorage.getItem('token');
+      const expectedRev = (updates as any).expectedRevision ?? (updates as any).version ?? existing?.version;
       const res = await fetch(`${API_BASE_URL}/courses/${encodeURIComponent(targetCourseId)}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ ...updates, version: existing?.version }),
+        body: JSON.stringify({ ...updates, version: expectedRev }),
       });
 
       if (res.status === 409) {

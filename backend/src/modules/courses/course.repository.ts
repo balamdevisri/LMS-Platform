@@ -265,7 +265,9 @@ export class CourseRepository {
     }
 
     const page = Math.max(1, Number(options.page) || 1);
-    const limit = Math.max(1, Math.min(100, Number(options.limit) || 10));
+    const limit = options.limit !== undefined && options.limit !== null
+      ? Math.max(1, Math.min(100, Number(options.limit)))
+      : 100;
 
     const snapshot = await this.collection.get();
     let courses: ICourse[] = snapshot.docs

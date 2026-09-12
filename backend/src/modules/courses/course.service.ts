@@ -1,6 +1,7 @@
 import { CourseRepository } from './course.repository';
 import { ICourse, CreateCourseDTO, UpdateCourseDTO, CourseFilterOptions, CoursePaginationResult } from '../../types/course';
 import { CreateCourseSchema, UpdateCourseSchema } from '../../validators/course.validator';
+import { ApiError } from '../../utils/ApiError';
 
 export class CourseService {
   private repository: CourseRepository;
@@ -47,12 +48,7 @@ export class CourseService {
     expectedVersion?: number,
     userId?: string
   ): Promise<ICourse | null> {
-    const reqSampleUnit = (updates as any).modules?.[0]?.topics?.[0]?.learningUnits?.[0];
-    console.log(`[BACKEND-PUT-TRACE] 5. Backend PUT received: id="${id}", targetUnitId="${reqSampleUnit?.id}", readingContentSnippet="${reqSampleUnit?.readingContent?.slice(0, 100)}"`);
-    
     const validated = UpdateCourseSchema.parse(updates);
-    const valSampleUnit = (validated as any).modules?.[0]?.topics?.[0]?.learningUnits?.[0];
-    console.log(`[BACKEND-PUT-TRACE] 6. AFTER Zod validation: targetUnitId="${valSampleUnit?.id}", readingContentSnippet="${valSampleUnit?.readingContent?.slice(0, 100)}"`);
 
     let existing = await this.repository.findById(id);
     let docId = id;
@@ -81,12 +77,39 @@ export class CourseService {
       return newCourse;
     }
 
-    console.log(`[BACKEND-PUT-TRACE] 7. BEFORE Firestore update: target docId="${docId}", expectedVersion=${expectedVersion}`);
-    const updated = await this.repository.update(docId, validated as UpdateCourseDTO, expectedVersion, userId);
+    // STEP 10: Anti-Overwrite Guard for populated courses
+    if ((updates as any).modules !== undefined) {
+      const incomingModules = (updates as any).modules;
+      const { courseContentService } = await import('../../services/course/courseContent.service');
+      const existingSubModules = await courseContentService.getCourseModules(docId);
+      const existingModulesCount = Math.max(existingSubModules.length, (existing.modules?.length || 0));
 
-    const readBack = await this.repository.findById(docId);
-    const readBackUnit = readBack?.modules?.[0]?.topics?.[0]?.learningUnits?.[0];
-    console.log(`[BACKEND-PUT-TRACE] 8. AFTER Firestore update: docId="${docId}", targetUnitId="${readBackUnit?.id}", readingContent="${readBackUnit?.readingContent}"`);
+      if (existingModulesCount > 0) {
+        if (!Array.isArray(incomingModules) || incomingModules.length === 0) {
+          throw new ApiError(
+            400,
+            `Cannot save empty module state: existing course content (${existingModulesCount} modules) would be overwritten.`
+          );
+        }
+
+        // Guard against unhydrated editor saving a single placeholder module over a multi-module course
+        if (incomingModules.length === 1 && existingModulesCount > 1) {
+          const singleMod = incomingModules[0];
+          const isPlaceholder =
+            (singleMod.title && /New Curriculum Module/i.test(singleMod.title)) ||
+            (singleMod.id && String(singleMod.id).startsWith('mod_') && (!singleMod.topics || singleMod.topics.length === 0 || singleMod.topics[0]?.learningUnits?.length === 0));
+          if (isPlaceholder) {
+            throw new ApiError(
+              400,
+              `Cannot save unhydrated placeholder module state: existing course content (${existingModulesCount} modules) would be overwritten.`
+            );
+          }
+        }
+      }
+    }
+
+    const targetExpectedVersion = expectedVersion ?? (updates as any).expectedRevision ?? (updates as any).revision ?? (updates as any).version;
+    const updated = await this.repository.update(docId, validated as UpdateCourseDTO, targetExpectedVersion, userId);
     return updated;
   }
 
@@ -139,22 +162,28 @@ export class CourseService {
 
   async getCourseModules(courseIdOrSlug: string) {
     let resolvedId = courseIdOrSlug;
+    let courseDoc: ICourse | null = null;
     try {
-      const course = (await this.getCourseById(courseIdOrSlug)) || (await this.getCourseBySlug(courseIdOrSlug));
-      if (course) {
-        if (course.modules && Array.isArray(course.modules) && course.modules.length > 0) {
-          console.log(`[BACKEND-GET-MODULES-TRACE] Returning ${course.modules.length} modules directly from course doc "${course.id}"`);
-          return course.modules;
-        }
-        if (course.id) {
-          resolvedId = String(course.id);
-        }
+      courseDoc = (await this.getCourseById(courseIdOrSlug)) || (await this.getCourseBySlug(courseIdOrSlug));
+      if (courseDoc && courseDoc.id) {
+        resolvedId = String(courseDoc.id);
       }
     } catch (e) {}
 
     const { courseContentService } = await import('../../services/course/courseContent.service');
+    // 1. Authoritative: Fetch from canonical subcollections courses/{courseId}/modules and nested lessons
     const subModules = await courseContentService.getCourseModules(resolvedId);
-    if (subModules && subModules.length > 0) return subModules;
+    if (subModules && subModules.length > 0) {
+      console.log(`[BACKEND-GET-MODULES-TRACE] Returning ${subModules.length} canonical modules from subcollections for "${resolvedId}"`);
+      return subModules;
+    }
+
+    // 2. Fallback: Only if canonical subcollections are empty, use embedded modules from root course document
+    if (courseDoc && courseDoc.modules && Array.isArray(courseDoc.modules) && courseDoc.modules.length > 0) {
+      console.log(`[BACKEND-GET-MODULES-TRACE] Returning ${courseDoc.modules.length} embedded modules from root course doc "${courseDoc.id}"`);
+      return courseDoc.modules;
+    }
+
     return [];
   }
 

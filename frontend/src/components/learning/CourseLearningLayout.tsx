@@ -91,13 +91,22 @@ export const CourseLearningLayout: React.FC<CourseLearningLayoutProps> = ({
   // ── Flatten all units/lessons hierarchically across modules and topics ────
   const allLessons = useMemo(() => {
     const units: Array<any> = [];
+    const seenUnitIds = new Set<string>();
+
+    const addUnit = (item: any) => {
+      const uId = String(item.id);
+      if (seenUnitIds.has(uId)) return;
+      seenUnitIds.add(uId);
+      units.push(item);
+    };
+
     (modules || []).forEach((mod: any) => {
       if (mod.topics && mod.topics.length > 0) {
         mod.topics.forEach((top: any) => {
           if (top.learningUnits && top.learningUnits.length > 0) {
             top.learningUnits.forEach((u: any) => {
               if (!u.isDraft || isAdmin) {
-                units.push({
+                addUnit({
                   ...u,
                   id: u.id,
                   title: u.title,
@@ -123,7 +132,7 @@ export const CourseLearningLayout: React.FC<CourseLearningLayoutProps> = ({
       } else if (mod.lessons && mod.lessons.length > 0) {
         mod.lessons.forEach((l: any) => {
           if (!l.isDraft || isAdmin) {
-            units.push({
+            addUnit({
               ...l,
               id: l.id,
               title: l.title,

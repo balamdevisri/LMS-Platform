@@ -15,6 +15,7 @@ export interface CourseLessonDoc {
   duration: string;
   type: LessonType;
   readingTime?: string;
+  readingContent?: string;
   content?: string;
   videoUrl?: string;
   published?: boolean;
