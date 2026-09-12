@@ -92,6 +92,7 @@ const LiveClassPage = lazyLoad(() => import('@/pages/liveClass/LiveClassPage'), 
 const AdminLiveClassList = lazyLoad(() => import('@/pages/liveClassroom/AdminLiveClassList'), 'AdminLiveClassList');
 const AdminCreateLiveClass = lazyLoad(() => import('@/pages/liveClassroom/AdminCreateLiveClass'), 'AdminCreateLiveClass');
 const AdminLiveControlCenter = lazyLoad(() => import('@/pages/liveClassroom/AdminLiveControlCenter'), 'AdminLiveControlCenter');
+const AdminCoupons = lazyLoad(() => import('@/pages/admin/AdminCoupons'), 'AdminCoupons');
 
 // ─── Simple placeholder pages for coming-soon admin sections ─────────────────
 const PlaceholderPage = ({ title, subtitle }: { title: string; subtitle: string }) => (
@@ -237,6 +238,7 @@ const router = createBrowserRouter([
     ),
     children: [
       { path: 'dashboard', element: <AdminDashboard /> },
+      { path: 'coupons', element: <AdminCoupons /> },
       { path: 'live-classroom/control-panel', element: <AdminLiveClassroom /> },
       { path: 'live-control-panel', element: <AdminLiveClassroom /> },
       { path: 'live-classroom/studio', element: <LiveClassroomDashboard /> },

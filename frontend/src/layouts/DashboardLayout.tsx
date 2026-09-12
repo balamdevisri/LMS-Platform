@@ -25,6 +25,7 @@ import {
   Video,
   Sparkles,
   Globe,
+  Tag,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { BrandLogo } from '@/components/common/BrandLogo';
@@ -140,6 +141,7 @@ export const DashboardLayout: React.FC = () => {
         { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
         { name: 'Course Catalog', href: '/admin/courses', icon: BookOpen },
         { name: 'Course Content', href: '/admin/course-content', icon: FileText },
+        { name: 'Coupons & Discounts', href: '/admin/coupons', icon: Tag },
         {
           name: 'Live Classes',
           href: '/admin/live-classes',

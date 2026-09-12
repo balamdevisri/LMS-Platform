@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { IPayment, PaymentStatus } from '../../types/payment.types';
 import { enrollmentService } from '../enrollments/enrollment.service';
 import { CourseService } from '../../services/course/CourseService';
+import { couponService } from '../coupons/coupon.service';
 import { db, isFirebaseAdminInitialized } from '../../firebase';
 import { env } from '../../config/env';
 import logger from '../../config/logger';
@@ -11,26 +12,32 @@ const PAYMENT_SECRET_KEY = env.JWT_SECRET || 'shaivika_payment_hmac_secret_2026'
 
 export class PaymentService {
   /**
-   * 1. Create Payment Order in Firestore
+   * 1. Create Payment Order in Firestore (Server-Side Price & Coupon Authoritative Calculation)
    */
   public async createOrder(data: {
     studentId: string;
     studentEmail?: string;
     studentName?: string;
     courseId: string;
+    couponCode?: string;
   }): Promise<{
     success: boolean;
     alreadyEnrolled?: boolean;
     freeCourse?: boolean;
     orderId?: string;
     amount?: number;
+    finalAmount?: number;
+    originalAmount?: number;
+    discountAmount?: number;
+    couponApplied?: boolean;
+    couponCode?: string;
     currency?: string;
     course?: { id: string; title: string; price: number };
     paymentId?: string;
     enrollment?: any;
     error?: string;
   }> {
-    const { studentId, studentEmail, studentName, courseId } = data;
+    const { studentId, studentEmail, studentName, courseId, couponCode } = data;
 
     if (!studentId || !courseId) {
       return { success: false, error: 'Student ID and Course ID are required' };
@@ -63,31 +70,119 @@ export class PaymentService {
     }
 
     const courseTitle = course?.title || 'Full Stack Program';
-    const coursePrice = typeof course?.price === 'number' ? course.price : 999; // Default verified price in INR
+    const coursePrice = typeof course?.price === 'number' ? course.price : 999; // Base verified price in INR
 
-    // 3. If Course is Free (Price === 0), grant instant free enrollment
-    if (coursePrice === 0) {
+    // 3. Process Coupon if provided
+    let discountAmount = 0;
+    let finalAmount = coursePrice;
+    let appliedCouponInfo: any = null;
+
+    if (couponCode && couponCode.trim()) {
+      const couponValidation = await couponService.validateCoupon({
+        couponCode,
+        courseId,
+        userId: studentId,
+        coursePrice,
+      });
+
+      if (!couponValidation.valid) {
+        return {
+          success: false,
+          error: couponValidation.message || 'Invalid coupon code provided',
+        };
+      }
+
+      discountAmount = couponValidation.discountAmount || 0;
+      finalAmount = couponValidation.finalAmount !== undefined
+        ? couponValidation.finalAmount
+        : Math.max(0, coursePrice - discountAmount);
+      appliedCouponInfo = couponValidation;
+    }
+
+    const orderId = `kq_ord_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+
+    // 4. If Course or final price is Free (Price === 0), grant instant enrollment & record coupon usage
+    if (finalAmount === 0) {
       const freeEnroll = await enrollmentService.createEnrollment({
         studentId,
         studentEmail,
         studentName,
         courseId,
-        accessType: 'FREE',
+        accessType: discountAmount > 0 ? 'PAID' : 'FREE',
         courseTitle,
+        paymentId: orderId,
       });
+
+      // Atomically record coupon usage for 100% discount free grants
+      if (appliedCouponInfo?.couponId) {
+        await couponService.recordCouponUsage({
+          couponId: appliedCouponInfo.couponId,
+          couponCode: appliedCouponInfo.couponCode || couponCode || '',
+          userId: studentId,
+          userEmail: studentEmail,
+          userName: studentName,
+          courseId,
+          courseTitle,
+          orderId,
+          discountType: appliedCouponInfo.discountType || 'percentage',
+          discountValue: appliedCouponInfo.discountValue || 100,
+          discountAmount,
+          originalAmount: coursePrice,
+          finalAmount: 0,
+        });
+      }
+
+      // Record completed zero-amount payment in Firestore
+      if (isFirebaseAdminInitialized()) {
+        const freePaymentRecord: IPayment = {
+          id: orderId,
+          studentId,
+          studentEmail: studentEmail || '',
+          studentName: studentName || 'Student',
+          courseId,
+          courseTitle,
+          orderId,
+          amount: 0,
+          originalAmount: coursePrice,
+          discountAmount,
+          finalAmount: 0,
+          couponId: appliedCouponInfo?.couponId,
+          couponCode: appliedCouponInfo?.couponCode,
+          discountType: appliedCouponInfo?.discountType,
+          discountValue: appliedCouponInfo?.discountValue,
+          couponSnapshot: appliedCouponInfo || undefined,
+          currency: 'INR',
+          status: 'SUCCESS',
+          provider: 'free_grant',
+          paidAt: new Date().toISOString(),
+          metadata: {
+            courseId,
+            courseTitle,
+            studentId,
+            couponCode,
+            discountAmount,
+          },
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        await db.collection('payments').doc(orderId).set(freePaymentRecord).catch(() => null);
+      }
 
       return {
         success: true,
         freeCourse: true,
         alreadyEnrolled: freeEnroll.alreadyEnrolled,
         enrollment: freeEnroll.enrollment,
+        amount: 0,
+        finalAmount: 0,
+        originalAmount: coursePrice,
+        discountAmount,
+        couponApplied: Boolean(discountAmount > 0),
+        couponCode: appliedCouponInfo?.couponCode,
       };
     }
 
-    // 4. Generate Unique Secure Order ID
-    const orderId = `kq_ord_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
-
-    // 5. Create Pending Payment Record in Firestore
+    // 5. Create Pending Payment Record in Firestore with Immutable Coupon Snapshot
     const paymentRecord: IPayment = {
       id: orderId,
       studentId,
@@ -96,7 +191,15 @@ export class PaymentService {
       courseId,
       courseTitle,
       orderId,
-      amount: coursePrice,
+      amount: finalAmount,
+      originalAmount: coursePrice,
+      discountAmount,
+      finalAmount,
+      couponId: appliedCouponInfo?.couponId,
+      couponCode: appliedCouponInfo?.couponCode,
+      discountType: appliedCouponInfo?.discountType,
+      discountValue: appliedCouponInfo?.discountValue,
+      couponSnapshot: appliedCouponInfo || undefined,
       currency: 'INR',
       status: 'PENDING',
       provider: 'shaivika_pay',
@@ -104,6 +207,9 @@ export class PaymentService {
         courseId,
         courseTitle,
         studentId,
+        couponCode: appliedCouponInfo?.couponCode,
+        discountAmount,
+        originalPrice: coursePrice,
       },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -121,19 +227,24 @@ export class PaymentService {
       success: true,
       alreadyEnrolled: false,
       orderId,
-      amount: coursePrice,
+      amount: finalAmount,
+      finalAmount,
+      originalAmount: coursePrice,
+      discountAmount,
+      couponApplied: Boolean(discountAmount > 0),
+      couponCode: appliedCouponInfo?.couponCode,
       currency: 'INR',
       course: {
         id: courseId,
         title: courseTitle,
-        price: coursePrice,
+        price: finalAmount,
       },
       paymentId: orderId,
     };
   }
 
   /**
-   * 2. Verify Payment Server-Side via Firestore
+   * 2. Verify Payment Server-Side via Firestore & Atomically Record Coupon Usage
    */
   public async verifyPayment(data: {
     orderId: string;
@@ -241,6 +352,29 @@ export class PaymentService {
       accessType: 'PAID',
       courseTitle: payment.courseTitle,
     });
+
+    // 6. Atomically Record Coupon Usage in Firestore (with idempotency guard)
+    if (payment.couponId) {
+      try {
+        await couponService.recordCouponUsage({
+          couponId: payment.couponId,
+          couponCode: payment.couponCode || '',
+          userId: payment.studentId,
+          userEmail: payment.studentEmail,
+          userName: payment.studentName,
+          courseId: finalCourseId,
+          courseTitle: payment.courseTitle,
+          orderId,
+          discountType: payment.discountType || 'fixed',
+          discountValue: payment.discountValue || 0,
+          discountAmount: payment.discountAmount || 0,
+          originalAmount: payment.originalAmount || payment.amount,
+          finalAmount: payment.finalAmount ?? payment.amount,
+        });
+      } catch (usageErr) {
+        logger.warn('[PaymentService] Error recording coupon usage on payment verification:', usageErr);
+      }
+    }
 
     return {
       success: true,

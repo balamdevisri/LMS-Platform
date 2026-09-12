@@ -12,9 +12,15 @@ export interface PaymentOrderResponse {
     title: string;
     price: number;
   };
+  couponApplied?: boolean;
+  couponCode?: string;
+  discountAmount?: number;
+  originalAmount?: number;
+  finalAmount?: number;
   paymentId?: string;
   enrollment?: any;
   error?: string;
+  message?: string;
 }
 
 export interface PaymentVerifyResponse {
@@ -27,7 +33,7 @@ export interface PaymentVerifyResponse {
 
 export class PaymentService {
   /**
-   * 1. Request backend to create a verified payment order
+   * 1. Request backend to create a verified payment order (authoritative coupon recalculation)
    */
   async createPaymentOrder(
     courseId: string,
@@ -36,7 +42,8 @@ export class PaymentService {
       email?: string;
       name?: string;
     },
-    token?: string
+    token?: string,
+    couponCode?: string
   ): Promise<PaymentOrderResponse> {
     try {
       const headers: Record<string, string> = {
@@ -57,6 +64,7 @@ export class PaymentService {
           studentId: studentInfo.uid,
           studentEmail: studentInfo.email,
           studentName: studentInfo.name,
+          couponCode: couponCode ? couponCode.trim().toUpperCase() : undefined,
         }),
       });
 

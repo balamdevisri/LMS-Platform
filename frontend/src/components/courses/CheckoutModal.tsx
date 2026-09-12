@@ -17,6 +17,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { API_BASE_URL } from '@/config/api';
 import { courseService } from '@/services/courseService';
+import { couponService } from '@/services/couponService';
 import { toast } from 'sonner';
 
 interface CheckoutModalProps {
@@ -80,8 +81,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const primaryCourse = courses[0];
   const courseTitle = primaryCourse?.title || 'Selected Course Track';
 
-  // Handle Coupon Application
-  const handleApplyCoupon = () => {
+  // Handle Coupon Application (Authoritative Server Validation)
+  const handleApplyCoupon = async () => {
     const trimmed = couponCode.trim().toUpperCase();
     if (!trimmed) return;
 
@@ -89,36 +90,44 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     setCouponError('');
     setErrorMessage('');
 
-    setTimeout(() => {
-      if (trimmed === 'SG2026' || trimmed === 'KAIZEN100' || trimmed === 'FREE100') {
-        setAppliedCoupon({
-          code: trimmed,
-          discountPercent: 100,
-          discountAmount: rawPrice,
-        });
-        toast.success(`🎉 Coupon "${trimmed}" applied! 100% discount granted.`);
-      } else if (trimmed === 'PROMO50' || trimmed === 'KAIZEN50') {
-        const discount = Math.round(rawPrice * 0.5);
-        setAppliedCoupon({
-          code: trimmed,
-          discountPercent: 50,
-          discountAmount: discount,
-        });
-        toast.success(`Coupon "${trimmed}" applied! 50% discount granted.`);
-      } else if (trimmed === 'KAIZEN20') {
-        const discount = Math.round(rawPrice * 0.2);
-        setAppliedCoupon({
-          code: trimmed,
-          discountPercent: 20,
-          discountAmount: discount,
-        });
-        toast.success(`Coupon "${trimmed}" applied! 20% discount granted.`);
-      } else {
-        setCouponError('Invalid or expired coupon code. Try SG2026 for 100% off.');
-        setAppliedCoupon(null);
-      }
+    try {
+      const token = user ? await user.getIdToken().catch(() => undefined) : undefined;
+      const result = await couponService.validateCoupon(
+        {
+          couponCode: trimmed,
+          courseId: primaryCourse?.id || '',
+          coursePrice: rawPrice,
+        },
+        token,
+        user?.uid
+      );
+
       setIsApplyingCoupon(false);
-    }, 400);
+
+      if (!result.valid) {
+        setCouponError(result.message || result.error || 'Invalid or expired coupon code.');
+        setAppliedCoupon(null);
+        return;
+      }
+
+      const discountAmt = typeof result.discountAmount === 'number' ? result.discountAmount : 0;
+      const discountPct =
+        result.discountType === 'percentage'
+          ? (result.discountValue ?? Math.round((discountAmt / (rawPrice || 1)) * 100))
+          : Math.round((discountAmt / (rawPrice || 1)) * 100);
+
+      setAppliedCoupon({
+        code: trimmed,
+        discountPercent: discountPct,
+        discountAmount: discountAmt,
+      });
+
+      toast.success(`🎉 Coupon "${trimmed}" applied! Saved ₹${discountAmt}`);
+    } catch (err: any) {
+      setIsApplyingCoupon(false);
+      setCouponError(err.message || 'Failed to validate coupon code.');
+      setAppliedCoupon(null);
+    }
   };
 
   const handleRemoveCoupon = () => {

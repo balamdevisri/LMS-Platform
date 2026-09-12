@@ -16,6 +16,14 @@ export interface IPayment {
   transactionId?: string;
   amount: number;
   currency: string;
+  originalAmount?: number;
+  discountAmount?: number;
+  finalAmount?: number;
+  couponId?: string;
+  couponCode?: string;
+  discountType?: 'percentage' | 'fixed';
+  discountValue?: number;
+  couponSnapshot?: Record<string, any>;
   status: PaymentStatus;
   provider: PaymentProvider;
   signature?: string;

@@ -9,7 +9,7 @@ export class PaymentController {
       const studentId = req.user?.uid || (req.body.studentId as string);
       const studentEmail = req.user?.email || (req.body.studentEmail as string);
       const studentName = (req.body.studentName as string) || 'Student';
-      const { courseId } = req.body;
+      const { courseId, couponCode } = req.body;
 
       if (!studentId) {
         res.status(401).json({ success: false, error: 'Unauthorized: Student authentication required' });
@@ -26,6 +26,7 @@ export class PaymentController {
         studentEmail,
         studentName,
         courseId,
+        couponCode,
       });
 
       if (!result.success) {
