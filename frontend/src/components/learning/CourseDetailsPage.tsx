@@ -157,6 +157,9 @@ export const CourseDetailsPage: React.FC<CourseDetailsProps> = ({
     ? Math.min(100, Math.round((completedCount / totalLessonsCount) * 100))
     : 0;
 
+  const coursePrice = typeof (course as any)?.price === 'number' ? (course as any).price : 0;
+  const isPaid = coursePrice > 0;
+
   const skills = [
     'Structured Program Architecture',
     'Memory Management & Pointers',
@@ -260,50 +263,27 @@ export const CourseDetailsPage: React.FC<CourseDetailsProps> = ({
                   <span>•</span>
                   <span>{course.duration}</span>
                 </span>
+                {isPaid && (
+                  <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
+                    <Tag className="w-3 h-3" /> ₹{coursePrice}
+                  </span>
+                )}
+                {isEnrolled && (
+                  <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Enrolled
+                  </span>
+                )}
               </div>
 
               <div className="space-y-2">
                 <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-[#111827] dark:text-white leading-[1.15]">
                   {course.title}
                 </h1>
-                <p className="text-base sm:text-lg text-[#64748B] dark:text-[#94A3B8] leading-relaxed max-w-3xl">
-                  {course.subtitle || introParagraphs[0]}
-                </p>
-              </div>
-
-              {/* Course Progress Row (Single Clean Component) */}
-              <div className="p-4 rounded-xl bg-[#F8FAFC] dark:bg-[#172033] border border-[#E5E7EB] dark:border-[#25324A] space-y-2.5 max-w-xl">
-                <div className="flex items-center justify-between text-xs font-semibold">
-                  <span className="text-[#111827] dark:text-[#F8FAFC]">Course Progress</span>
-                  <span className="text-[#2563EB] dark:text-[#3B82F6] font-mono">{progressPercent}%</span>
-                </div>
-                <div className="w-full h-2 rounded-full bg-[#E5E7EB] dark:bg-[#25324A] overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-[#2563EB] dark:bg-[#3B82F6] transition-all duration-500"
-                    style={{ width: `${progressPercent}%` }}
-                  />
-                </div>
-                <div className="flex items-center justify-between text-[11px] text-[#64748B] dark:text-[#94A3B8]">
-                  <span>{completedCount} of {totalLessonsCount} lessons completed</span>
-                  <span>{totalLessonsCount - completedCount} remaining</span>
-                </div>
-              </div>
-
-              {/* Instructor snippet */}
-              <div className="flex items-center gap-3 pt-1">
-                <img
-                  src={instructorAvatar}
-                  alt={instructorName}
-                  className="w-10 h-10 rounded-full object-cover border border-[#E5E7EB] dark:border-[#25324A]"
-                />
-                <div>
-                  <h4 className="text-xs font-semibold text-[#111827] dark:text-white">
-                    {instructorName}
-                  </h4>
-                  <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8]">
-                    {instructorRole}
+                {course.subtitle && (
+                  <p className="text-base sm:text-lg text-[#64748B] dark:text-[#94A3B8] leading-relaxed max-w-3xl">
+                    {course.subtitle || introParagraphs[0]}
                   </p>
-                </div>
+                )}
               </div>
 
               {/* Progress Indicator if Enrolled */}
@@ -324,8 +304,29 @@ export const CourseDetailsPage: React.FC<CourseDetailsProps> = ({
                       style={{ width: `${progressPercent}%` }}
                     />
                   </div>
+                  <div className="flex items-center justify-between text-[11px] text-[#64748B] dark:text-[#94A3B8]">
+                    <span>{completedCount} of {totalLessonsCount} lessons completed</span>
+                    <span>{totalLessonsCount - completedCount} remaining</span>
+                  </div>
                 </div>
               )}
+
+              {/* Instructor snippet */}
+              <div className="flex items-center gap-3 pt-1">
+                <img
+                  src={instructorAvatar}
+                  alt={instructorName}
+                  className="w-10 h-10 rounded-full object-cover border border-[#E5E7EB] dark:border-[#25324A]"
+                />
+                <div>
+                  <h4 className="text-xs font-semibold text-[#111827] dark:text-white">
+                    {instructorName}
+                  </h4>
+                  <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8]">
+                    {instructorRole}
+                  </p>
+                </div>
+              </div>
 
             </div>
 
