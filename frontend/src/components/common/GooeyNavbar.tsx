@@ -18,7 +18,8 @@ import {
   UserCheck,
   GraduationCap,
   BarChart3,
-  FileText
+  FileText,
+  Tag
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -52,6 +53,7 @@ export const GooeyNavbar: React.FC<GooeyNavbarProps> = ({
       return [
         { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
         { name: 'Courses', href: '/admin/courses', icon: BookOpen },
+        { name: 'Coupons', href: '/admin/coupons', icon: Tag },
         { name: 'Content', href: '/admin/course-content', icon: FileText },
         { name: 'Live Classes', href: '/admin/live-classes', icon: Video },
         { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
@@ -64,6 +66,7 @@ export const GooeyNavbar: React.FC<GooeyNavbarProps> = ({
       return [
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
         { name: 'Courses', href: '/admin/courses', icon: BookOpen },
+        { name: 'Coupons', href: '/admin/coupons', icon: Tag },
         { name: 'Live Classes', href: '/admin/live-classes', icon: Video },
         { name: 'Students', href: '/admin/students', icon: UserCheck },
         { name: 'Analytics', href: '/admin/live-classroom/mentor-analytics', icon: BarChart3 },
