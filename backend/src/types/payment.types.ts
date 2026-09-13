@@ -27,6 +27,9 @@ export interface IPayment {
   status: PaymentStatus;
   provider: PaymentProvider;
   signature?: string;
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
+  razorpaySignature?: string;
   paidAt?: Date | string;
   metadata?: Record<string, any>;
   createdAt?: Date | string;

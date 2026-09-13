@@ -5,7 +5,10 @@ export interface PaymentOrderResponse {
   alreadyEnrolled?: boolean;
   freeCourse?: boolean;
   orderId?: string;
+  razorpayOrderId?: string;
+  keyId?: string;
   amount?: number;
+  amountInPaise?: number;
   currency?: string;
   course?: {
     id: string;
