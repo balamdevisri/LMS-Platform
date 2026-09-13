@@ -34,6 +34,25 @@ interface AppliedCoupon {
   discountAmount: number;
 }
 
+// Helper to load Razorpay Standard Checkout SDK dynamically
+const loadRazorpayScript = (): Promise<boolean> => {
+  return new Promise((resolve) => {
+    if (typeof window !== 'undefined' && (window as any).Razorpay) {
+      resolve(true);
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => {
+      console.error('[CheckoutModal] Failed to load Razorpay SDK');
+      resolve(false);
+    };
+    document.body.appendChild(script);
+  });
+};
+
 export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   isOpen,
   onClose,
@@ -64,6 +83,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       setErrorMessage('');
       setIsSuccess(false);
       setSuccessMessage('');
+      // Preload Razorpay Checkout script
+      loadRazorpayScript();
     }
   }, [isOpen, totalPrice]);
 
@@ -136,7 +157,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     setCouponError('');
   };
 
-  // Handle Free Enrollment Flow (Direct Firestore enrollment, No Stripe)
+  // Handle Free Enrollment Flow (Direct Firestore enrollment, No Razorpay Order)
   const handleFreeEnrollment = async () => {
     if (!user) {
       toast.warning('Please sign in to confirm your course enrollment.');
@@ -163,7 +184,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         });
       }
 
-      // 2. Notify backend endpoint for server-side persistence & confirmation email
+      // 2. Notify backend endpoint for server-side persistence & confirmation
       try {
         await fetch(`${API_BASE_URL}/payments/enroll-free`, {
           method: 'POST',
@@ -205,8 +226,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }
   };
 
-  // Handle Paid Stripe Checkout Flow
-  const handleStripeCheckout = async () => {
+  // Handle Paid Razorpay Checkout Flow
+  const handleRazorpayCheckout = async () => {
     if (!user) {
       toast.warning('Please sign in to proceed to checkout.');
       navigate('/auth/login');
@@ -215,7 +236,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }
 
     if (effectivePrice <= 0) {
-      // Safety guard: If price is 0, switch to free enrollment instead of Stripe charge attempt
+      // Safety guard: If price is 0, switch to free enrollment instead of Razorpay charge attempt
       handleFreeEnrollment();
       return;
     }
@@ -224,12 +245,20 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     setErrorMessage('');
 
     try {
+      const scriptReady = await loadRazorpayScript();
+      if (!scriptReady) {
+        setErrorMessage('Failed to load Razorpay payment gateway. Please check your network and try again.');
+        setIsLoading(false);
+        return;
+      }
+
       const studentId = user.uid;
       const studentEmail = user.email || '';
       const studentName = user.displayName || user.email?.split('@')[0] || 'Student';
       const courseIds = courses.map((c) => c.id);
 
-      const response = await fetch(`${API_BASE_URL}/payments/create-checkout-session`, {
+      // 1. Authoritative Server Order Creation (Server computes verified price & coupon)
+      const response = await fetch(`${API_BASE_URL}/payments/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -237,28 +266,135 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           studentEmail,
           studentName,
           courseIds,
-          amount: effectivePrice,
+          courseId: primaryCourse?.id,
           couponCode: appliedCoupon?.code,
         }),
       });
 
       const data = await response.json();
 
-      if (data.success && data.checkoutUrl) {
-        // Redirect to Stripe checkout page
-        window.location.href = data.checkoutUrl;
-      } else if (data.freeCourse || data.amount === 0) {
-        // Backend indicated 0 price
-        await handleFreeEnrollment();
-      } else {
-        setErrorMessage(
-          data.message || 'Payment session could not be created. Please check your network and try again.'
-        );
+      if (data.alreadyEnrolled) {
+        toast.info('You are already enrolled in this course.');
+        onClose();
+        if (primaryCourse?.id) {
+          navigate(`/courses/${primaryCourse.id}?mode=learn`);
+        }
+        return;
       }
+
+      if (data.freeCourse || data.amount === 0 || data.finalAmount === 0) {
+        await handleFreeEnrollment();
+        return;
+      }
+
+      if (!data.success || (!data.orderId && !data.razorpayOrderId)) {
+        setErrorMessage(
+          data.message || data.error || 'Payment order could not be created. Please check your network and try again.'
+        );
+        setIsLoading(false);
+        return;
+      }
+
+      // 2. Open Razorpay Standard Checkout Modal
+      const orderIdForCheckout = data.razorpayOrderId || data.orderId;
+      const keyId = data.keyId || (import.meta as any).env?.VITE_RAZORPAY_KEY_ID || 'rzp_test_placeholder';
+      const finalAmountInPaise = data.amountInPaise || Math.round((data.amount || effectivePrice) * 100);
+
+      const options = {
+        key: keyId,
+        amount: finalAmountInPaise,
+        currency: data.currency || 'INR',
+        name: 'KaizenQ',
+        description: `Enrollment: ${courseTitle}`,
+        image: 'https://res.cloudinary.com/kggovcsf/image/upload/f_auto,q_auto/v1787058675/Kaizen_Q_Symbol_Logo1.png',
+        order_id: orderIdForCheckout,
+        prefill: {
+          name: studentName,
+          email: studentEmail,
+        },
+        theme: {
+          color: '#0284c7',
+        },
+        handler: async function (paymentResponse: {
+          razorpay_payment_id: string;
+          razorpay_order_id: string;
+          razorpay_signature: string;
+        }) {
+          setIsLoading(true);
+          try {
+            // 3. Server-side Cryptographic Signature Verification
+            const verifyRes = await fetch(`${API_BASE_URL}/payments/verify`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                orderId: data.orderId,
+                razorpay_order_id: paymentResponse.razorpay_order_id,
+                razorpay_payment_id: paymentResponse.razorpay_payment_id,
+                razorpay_signature: paymentResponse.razorpay_signature,
+                studentId,
+                studentEmail,
+                studentName,
+                courseId: primaryCourse?.id,
+              }),
+            });
+
+            const verifyData = await verifyRes.json();
+
+            if (verifyData.success) {
+              // Direct enroll in client state as well
+              for (const c of courses) {
+                await courseService.enrollCourse(c.id, studentId, {
+                  email: studentEmail,
+                  name: studentName,
+                  courseTitle: c.title,
+                });
+              }
+
+              setIsSuccess(true);
+              setSuccessMessage(`Enrolled successfully in "${courseTitle}"!`);
+              toast.success(`🎉 Payment verified and enrolled in "${courseTitle}"!`);
+
+              if (onSuccess) {
+                onSuccess(courseIds);
+              }
+
+              setTimeout(() => {
+                onClose();
+                if (courses.length === 1 && primaryCourse?.id) {
+                  navigate(`/courses/${primaryCourse.id}?mode=learn`);
+                } else {
+                  navigate('/dashboard?enrolled=true');
+                }
+              }, 1200);
+            } else {
+              setErrorMessage(
+                verifyData.error || verifyData.message || 'Payment verification failed on the server.'
+              );
+            }
+          } catch (verifyErr: any) {
+            console.error('[CheckoutModal] Payment verification error:', verifyErr);
+            setErrorMessage('Failed to verify payment with server. Please contact support.');
+          } finally {
+            setIsLoading(false);
+          }
+        },
+        modal: {
+          ondismiss: function () {
+            setIsLoading(false);
+          },
+        },
+      };
+
+      const razorpayInstance = new (window as any).Razorpay(options);
+      razorpayInstance.on('payment.failed', function (failedResponse: any) {
+        setIsLoading(false);
+        setErrorMessage(failedResponse.error?.description || 'Payment was unsuccessful. Please try again.');
+      });
+
+      razorpayInstance.open();
     } catch (err: any) {
-      console.error('[CheckoutModal] Stripe checkout error:', err);
+      console.error('[CheckoutModal] Razorpay checkout error:', err);
       setErrorMessage('Payment connection failed — please check your internet connection and try again.');
-    } finally {
       setIsLoading(false);
     }
   };
@@ -293,7 +429,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           </div>
         ) : isFree ? (
           /* ========================================================================= */
-          /* 1. FREE ENROLLMENT MODAL (NO STRIPE / NO PAYMENT GATEWAY)                 */
+          /* 1. FREE ENROLLMENT MODAL (NO RAZORPAY ORDER REQUIRED)                     */
           /* ========================================================================= */
           <>
             {/* Header */}
@@ -403,7 +539,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           </>
         ) : (
           /* ========================================================================= */
-          /* 2. PAID SECURE CHECKOUT FLOW (STRIPE PAYMENT WITH ORDER SUMMARY & COUPON)  */
+          /* 2. PAID SECURE CHECKOUT FLOW (RAZORPAY PAYMENT WITH ORDER SUMMARY & COUPON)*/
           /* ========================================================================= */
           <>
             {/* Header */}
@@ -534,26 +670,26 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             {/* Footer Actions */}
             <div className="p-6 pt-2 pb-6 border-t border-slate-800/80 bg-slate-950/40 space-y-3">
               <button
-                onClick={handleStripeCheckout}
+                onClick={handleRazorpayCheckout}
                 disabled={isLoading}
                 className="w-full py-3.5 px-6 rounded-2xl bg-linear-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-xs tracking-wide shadow-lg shadow-blue-600/20 hover:shadow-blue-600/35 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Processing with Stripe...</span>
+                    <span>Processing with Razorpay...</span>
                   </>
                 ) : (
                   <>
                     <CreditCard className="w-4 h-4" />
-                    <span>Pay with Stripe (₹{effectivePrice})</span>
+                    <span>Pay with Razorpay (₹{effectivePrice})</span>
                   </>
                 )}
               </button>
 
               <p className="text-center text-[10px] text-slate-500 flex items-center justify-center gap-1.5 font-medium">
                 <Lock className="w-3 h-3 text-slate-400" />
-                <span>Payments are securely processed by Stripe</span>
+                <span>Payments are securely processed by Razorpay</span>
               </p>
             </div>
           </>

@@ -1,24 +1,24 @@
 /**
- * Live HTTP Payment Endpoint Verification Script
+ * Live HTTP Razorpay Payment Endpoint Verification Script
  * Tests the running backend server at http://localhost:5000
  */
 
 async function testLiveEndpoints() {
-  console.log('Testing live HTTP endpoints against http://localhost:5000...\n');
+  console.log('Testing live HTTP Razorpay endpoints against http://localhost:5000...\n');
   const backendUrl = 'http://localhost:5000/api/payments';
 
-  // 1. Test POST /create-checkout-session with TEST50 on Linux course
-  console.log('1. Testing POST /api/payments/create-checkout-session with TEST50 (₹199.50)...');
+  // 1. Test POST /create-order with TEST50 on Linux course
+  console.log('1. Testing POST /api/payments/create-order with TEST50 (₹199.50)...');
   const studentUid = `http_test_stu_${Date.now()}`;
   try {
-    const res = await fetch(`${backendUrl}/create-checkout-session`, {
+    const res = await fetch(`${backendUrl}/create-order`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         studentId: studentUid,
         studentEmail: `http_${Date.now()}@test.com`,
         studentName: 'HTTP Test Student',
-        courseIds: ['course_linux_101'],
+        courseId: 'course_linux_101',
         amount: 1, // Manipulated frontend price to test tamper protection!
         couponCode: 'TEST50',
       }),
@@ -28,13 +28,11 @@ async function testLiveEndpoints() {
     console.log('Status code:', res.status);
     console.log('Response body:', JSON.stringify(data, null, 2));
 
-    if (res.status === 503) {
-      console.log('✅ Correct: 503 returned when STRIPE_SECRET_KEY is not configured on server.');
-      console.log('   Message:', data.message);
-    } else if (res.status === 200 && data.success) {
-      console.log('✅ Correct: 200 returned with checkout session url & calculated amount.');
+    if (res.status === 200 && data.success) {
+      console.log('✅ Correct: 200 returned with Razorpay order details & calculated paise amount.');
       console.log('   Final amount (INR):', data.amount);
       console.log('   Amount in paise:', data.amountInPaise);
+      console.log('   Razorpay Order ID:', data.razorpayOrderId || data.orderId);
     }
   } catch (e: any) {
     console.error('HTTP test error:', e.message);
@@ -86,8 +84,8 @@ async function testLiveEndpoints() {
     const data = await res.json();
     console.log('Status code:', res.status);
     console.log('Response body:', JSON.stringify(data, null, 2));
-    if (data.finalAmount === 199.5 && data.originalAmount === 399) {
-      console.log('✅ Correct: Backend authoritatively computed ₹199.50 and ignored tampered ₹1!');
+    if (data.amount === 199.5 && data.amountInPaise === 19950) {
+      console.log('✅ Correct: Backend authoritatively computed ₹199.50 (19950 paise) and ignored tampered ₹1!');
     }
   } catch (e: any) {
     console.error('HTTP tamper test error:', e.message);

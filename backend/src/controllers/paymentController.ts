@@ -1,46 +1,30 @@
 import { Request, Response } from 'express';
-import Stripe from 'stripe';
 import { env } from '../config/env';
 import { db, isFirebaseAdminInitialized } from '../firebase';
-import { paymentService } from '../modules/payments/payment.service';
+import { paymentService, getRazorpay } from '../modules/payments/payment.service';
 import logger from '../config/logger';
-
-let stripeInstance: Stripe | null = null;
-
-const getStripe = (): Stripe | null => {
-  if (stripeInstance) return stripeInstance;
-  const stripeKey = (process.env.STRIPE_SECRET_KEY || env.STRIPE_SECRET_KEY || '').trim();
-  if (!stripeKey) {
-    return null;
-  }
-  try {
-    stripeInstance = new Stripe(stripeKey, {
-      apiVersion: '2025-02-24.acacia' as any,
-    });
-    return stripeInstance;
-  } catch (err) {
-    logger.error('[PaymentController] Failed to initialize Stripe client:', err);
-    return null;
-  }
-};
 
 export class PaymentController {
   /**
-   * Create Stripe Hosted Checkout Session with Server-Authoritative Price & Coupon Recalculation
+   * 1. Create Razorpay Payment Order with Server-Authoritative Price & Coupon Recalculation
    */
   public async createCheckoutSession(req: Request, res: Response): Promise<void> {
     try {
       const studentId = req.body.studentId || (req as any).user?.uid;
       const studentEmail = req.body.studentEmail || (req as any).user?.email;
       const studentName = req.body.studentName || (req as any).user?.displayName || 'Student';
-      const { courseIds, couponCode } = req.body;
+      const { courseIds, courseId, couponCode } = req.body;
 
-      if (!studentId || !courseIds || !Array.isArray(courseIds) || courseIds.length === 0) {
-        res.status(400).json({ success: false, message: 'studentId and an array of courseIds are required.' });
+      const targetCourseIds = Array.isArray(courseIds) && courseIds.length > 0
+        ? courseIds
+        : (courseId ? [courseId] : []);
+
+      if (!studentId || targetCourseIds.length === 0) {
+        res.status(400).json({ success: false, message: 'studentId and courseIds are required.' });
         return;
       }
 
-      const primaryCourseId = courseIds[0];
+      const primaryCourseId = targetCourseIds[0];
 
       // 1. Authoritative Server-Side Order & Coupon Recalculation
       const orderResult = await paymentService.createOrder({
@@ -69,13 +53,14 @@ export class PaymentController {
         return;
       }
 
-      // 2. 100% Coupon / Free Tier Path: Zero-amount order bypasses Stripe payment charge
+      // 2. 100% Coupon / Free Tier Path: Zero-amount order bypasses Razorpay payment gateway
       if (orderResult.freeCourse || orderResult.finalAmount === 0) {
         res.status(200).json({
           success: true,
           freeCourse: true,
           orderId: orderResult.orderId,
           amount: 0,
+          amountInPaise: 0,
           finalAmount: 0,
           message: 'Free enrollment granted successfully.',
         });
@@ -83,164 +68,135 @@ export class PaymentController {
       }
 
       const finalAmountInRupees = orderResult.finalAmount || 0;
-      // Stripe expects integer amounts in paise for INR currency (₹1 = 100 paise)
-      const amountInPaise = Math.round(finalAmountInRupees * 100);
-
-      // 3. Initialize Stripe Gateway
-      const stripe = getStripe();
-      if (!stripe) {
-        res.status(503).json({
-          success: false,
-          message: 'Stripe payment gateway is not configured on this server.',
-        });
-        return;
-      }
-
-      const orderId = orderResult.orderId!;
-      const courseTitle = orderResult.course?.title || primaryCourseId;
-      const frontendUrl = (process.env.FRONTEND_URL || env.FRONTEND_URL || 'http://localhost:5173').split(',')[0].trim();
-
-      // 4. Create Stripe Hosted Checkout Session
-      const session = await stripe.checkout.sessions.create({
-        payment_method_types: ['card'],
-        line_items: [
-          {
-            price_data: {
-              currency: 'inr',
-              product_data: {
-                name: `Enrollment: ${courseTitle}`,
-                description: `KaizenQ Course Track (${primaryCourseId})`,
-              },
-              unit_amount: amountInPaise,
-            },
-            quantity: 1,
-          },
-        ],
-        mode: 'payment',
-        success_url: `${frontendUrl}/dashboard?payment_success=true&order_id=${orderId}&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${frontendUrl}/dashboard?payment_canceled=true&order_id=${orderId}`,
-        client_reference_id: orderId,
-        metadata: {
-          studentId,
-          studentEmail: studentEmail || '',
-          studentName: studentName || '',
-          courseIds: courseIds.join(','),
-          courseId: primaryCourseId,
-          orderId,
-          couponCode: orderResult.couponCode || '',
-          originalAmount: String(orderResult.originalAmount || finalAmountInRupees),
-          discountAmount: String(orderResult.discountAmount || 0),
-          finalAmount: String(finalAmountInRupees),
-          amountInPaise: String(amountInPaise),
-        },
-      });
-
-      // Update Firestore payment record with Stripe provider details
-      if (isFirebaseAdminInitialized()) {
-        await db.collection('payments').doc(orderId).set(
-          {
-            provider: 'stripe',
-            stripeSessionId: session.id,
-            updatedAt: new Date().toISOString(),
-          },
-          { merge: true }
-        ).catch(() => null);
-      }
+      const amountInPaise = orderResult.amountInPaise || Math.round(finalAmountInRupees * 100);
+      const publicRazorpayKeyId = (process.env.RAZORPAY_KEY_ID || env.RAZORPAY_KEY_ID || '').trim();
 
       res.status(200).json({
         success: true,
-        checkoutUrl: session.url,
-        orderId,
-        sessionId: session.id,
+        orderId: orderResult.orderId,
+        razorpayOrderId: orderResult.razorpayOrderId,
+        keyId: publicRazorpayKeyId,
         amount: finalAmountInRupees,
         amountInPaise,
+        currency: 'INR',
+        course: orderResult.course,
       });
     } catch (error: any) {
-      logger.error('[PaymentController] Error creating checkout session:', error);
-      res.status(500).json({ success: false, message: error.message || 'Payment processing failed' });
+      logger.error('[PaymentController] Error creating Razorpay checkout session:', error);
+      res.status(500).json({ success: false, message: error.message || 'Payment order processing failed' });
     }
   }
 
   /**
-   * Stripe Webhook Handler (Idempotent signature validation & event handling)
+   * 2. Verify Razorpay Payment Server-Side
    */
-  public async stripeWebhook(req: Request, res: Response): Promise<void> {
-    const stripe = getStripe();
-    if (!stripe) {
-      res.status(500).send('Stripe is not configured');
-      return;
-    }
-
-    const sig = req.headers['stripe-signature'] as string;
-    let event: Stripe.Event;
-
-    const webhookSecret = (process.env.STRIPE_WEBHOOK_SECRET || env.STRIPE_WEBHOOK_SECRET || '').trim();
-
+  public async verifyPayment(req: Request, res: Response): Promise<void> {
     try {
-      if (webhookSecret && sig) {
-        event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
-      } else {
-        // If raw webhook body is already parsed or in development without secret signature
-        event = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+      const studentId = req.body.studentId || (req as any).user?.uid;
+      const studentEmail = req.body.studentEmail || (req as any).user?.email;
+      const studentName = (req.body.studentName as string) || 'Student';
+      const {
+        orderId,
+        razorpay_order_id,
+        razorpay_payment_id,
+        razorpay_signature,
+        paymentId,
+        signature,
+        courseId,
+      } = req.body;
+
+      if (!studentId) {
+        res.status(401).json({ success: false, error: 'Unauthorized: Student authentication required' });
+        return;
       }
-    } catch (err: any) {
-      logger.error('[PaymentController] Webhook signature verification failed:', err.message);
-      res.status(400).send(`Webhook Error: ${err.message}`);
-      return;
+
+      const effectiveOrderId = orderId || razorpay_order_id;
+      if (!effectiveOrderId) {
+        res.status(400).json({ success: false, error: 'orderId or razorpay_order_id is required' });
+        return;
+      }
+
+      const result = await paymentService.verifyPayment({
+        orderId: effectiveOrderId,
+        razorpay_order_id,
+        razorpay_payment_id,
+        razorpay_signature,
+        paymentId,
+        signature,
+        studentId,
+        studentEmail,
+        studentName,
+        courseId,
+      });
+
+      if (!result.success) {
+        res.status(400).json(result);
+        return;
+      }
+
+      res.json(result);
+    } catch (error: any) {
+      logger.error('[PaymentController] Error verifying Razorpay payment:', error);
+      res.status(500).json({ success: false, error: error.message || 'Payment verification failed' });
     }
+  }
 
-    if (event.type === 'checkout.session.completed') {
-      const session = event.data.object as Stripe.Checkout.Session;
-      const { studentId, studentEmail, studentName, courseIds, courseId, orderId } = session.metadata || {};
-      const actualOrderId = orderId || session.client_reference_id;
-      const targetCourseId = courseId || (courseIds ? courseIds.split(',')[0] : '');
+  /**
+   * 3. Razorpay Webhook Handler (Idempotent signature validation & event handling)
+   */
+  public async razorpayWebhook(req: Request, res: Response): Promise<void> {
+    try {
+      const rawSig = req.headers['x-razorpay-signature'] || req.headers['x-signature'] || req.headers['stripe-signature'];
+      const signature = Array.isArray(rawSig) ? rawSig[0] : (rawSig as string | undefined);
+      
+      const rawBody = typeof req.body === 'string'
+        ? req.body
+        : (req.body instanceof Buffer ? req.body.toString('utf8') : JSON.stringify(req.body));
 
-      if (actualOrderId && studentId && targetCourseId) {
+      let parsedEvent = req.body;
+      if (typeof req.body === 'string' || req.body instanceof Buffer) {
         try {
-          // Idempotently verify payment in Firestore, activate enrollment, and record coupon usage
-          await paymentService.verifyPayment({
-            orderId: actualOrderId,
-            paymentId: (session.payment_intent as string) || session.id,
-            signature: 'stripe_webhook_verified',
-            studentId,
-            studentEmail,
-            studentName,
-            courseId: targetCourseId,
-          });
-        } catch (dbError) {
-          logger.error('[PaymentController] Database error during webhook processing:', dbError);
+          parsedEvent = JSON.parse(req.body.toString());
+        } catch (e) {
+          parsedEvent = {};
         }
       }
-    } else if (event.type === 'payment_intent.payment_failed') {
-      const paymentIntent = event.data.object as Stripe.PaymentIntent;
-      const orderId = paymentIntent.metadata?.orderId;
-      if (orderId && isFirebaseAdminInitialized()) {
-        await db.collection('payments').doc(orderId).set(
-          { status: 'FAILED', updatedAt: new Date().toISOString() },
-          { merge: true }
-        ).catch(() => null);
-      }
-    }
 
-    res.json({ received: true });
+      const result = await paymentService.handleWebhook(parsedEvent, signature, rawBody);
+      res.status(result.success ? 200 : 400).json(result);
+    } catch (err: any) {
+      logger.error('[PaymentController] Razorpay webhook processing error:', err);
+      res.status(500).json({ success: false, message: err.message || 'Webhook processing failed' });
+    }
   }
 
   /**
-   * Authoritative Free Enrollment with dynamic 100% coupon or Free Tier validation
+   * Legacy alias for webhook endpoint
+   */
+  public async stripeWebhook(req: Request, res: Response): Promise<void> {
+    return this.razorpayWebhook(req, res);
+  }
+
+  /**
+   * 4. Authoritative Free Enrollment with dynamic 100% coupon or Free Tier validation
    */
   public async enrollFreeWithCoupon(req: Request, res: Response): Promise<void> {
     try {
       const studentId = req.body.studentId || (req as any).user?.uid;
       const studentEmail = req.body.studentEmail || (req as any).user?.email;
       const studentName = req.body.studentName || (req as any).user?.displayName || 'Student';
-      const { courseIds, couponCode } = req.body;
+      const { courseIds, courseId, couponCode } = req.body;
 
-      if (!studentId || !courseIds || !Array.isArray(courseIds) || courseIds.length === 0) {
-        res.status(400).json({ success: false, message: 'studentId and courseIds array are required.' });
+      const targetCourseIds = Array.isArray(courseIds) && courseIds.length > 0
+        ? courseIds
+        : (courseId ? [courseId] : []);
+
+      if (!studentId || targetCourseIds.length === 0) {
+        res.status(400).json({ success: false, message: 'studentId and courseIds are required.' });
         return;
       }
 
-      const primaryCourseId = courseIds[0];
+      const primaryCourseId = targetCourseIds[0];
 
       // Authoritatively validate course price and coupon via PaymentService
       const orderResult = await paymentService.createOrder({
@@ -248,7 +204,7 @@ export class PaymentController {
         studentEmail,
         studentName,
         courseId: primaryCourseId,
-        couponCode: couponCode || (courseIds.length === 1 ? undefined : undefined),
+        couponCode,
       });
 
       if (!orderResult.success) {
@@ -277,3 +233,5 @@ export class PaymentController {
     }
   }
 }
+
+export const paymentController = new PaymentController();
