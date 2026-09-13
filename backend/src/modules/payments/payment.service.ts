@@ -416,7 +416,7 @@ export class PaymentService {
         .update(`${effectiveOrderId}|${effectivePaymentId}`)
         .digest('hex');
 
-      if (generatedSignature !== rzpSignature && rzpSignature !== 'sig_verified' && rzpSignature !== 'stripe_webhook_verified') {
+      if (generatedSignature !== rzpSignature && rzpSignature !== 'sig_verified' && rzpSignature !== 'razorpay_webhook_verified') {
         if (isFirebaseAdminInitialized()) {
           await db.collection('payments').doc(paymentDocId).set(
             { status: 'FAILED', updatedAt: new Date().toISOString() },
