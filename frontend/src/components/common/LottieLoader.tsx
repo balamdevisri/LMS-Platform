@@ -7,6 +7,9 @@ export interface LottieLoaderProps {
   message?: string;
   className?: string;
   fullScreen?: boolean;
+  animationData?: unknown;
+  src?: unknown;
+  [key: string]: unknown;
 }
 
 export const LottieLoader: React.FC<LottieLoaderProps> = ({
@@ -14,6 +17,9 @@ export const LottieLoader: React.FC<LottieLoaderProps> = ({
   message,
   className = '',
   fullScreen = false,
+  animationData,
+  src,
+  ...domProps
 }) => {
   const sizeClasses: Record<string, string> = {
     xs: 'w-16 h-16',
@@ -26,12 +32,13 @@ export const LottieLoader: React.FC<LottieLoaderProps> = ({
 
   const isFullScreen = fullScreen || size === 'fullscreen';
   const selectedSizeClass = sizeClasses[isFullScreen ? 'fullscreen' : size] || sizeClasses.md;
+  const animSource = (src || animationData || hourglassAnimation) as any;
 
   const content = (
-    <div className={`flex flex-col items-center justify-center select-none bg-transparent ${className}`}>
+    <div className={`flex flex-col items-center justify-center select-none bg-transparent ${className}`} {...(domProps as React.HTMLAttributes<HTMLDivElement>)}>
       <div className={`relative ${selectedSizeClass} flex items-center justify-center overflow-hidden pointer-events-none bg-transparent`}>
         <LottieLight
-          animationData={hourglassAnimation}
+          src={animSource}
           loop={true}
           autoplay={true}
           className="w-full h-full bg-transparent"

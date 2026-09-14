@@ -164,11 +164,9 @@ export const BlueSmokeTheme: React.FC<BlueSmokeThemeProps> = ({ className = '', 
             <motion.path
               d="M0,50 Q25,30 50,50 T100,50 L100,100 L0,100 Z"
               animate={{
-                d: [
-                  "M0,50 Q25,30 50,50 T100,50 L100,100 L0,100 Z",
-                  "M0,50 Q25,70 50,40 T100,50 L100,100 L0,100 Z",
-                  "M0,50 Q25,30 50,50 T100,50 L100,100 L0,100 Z"
-                ]
+                scaleY: [1, 1.15, 0.95, 1],
+                scaleX: [1, 1.05, 0.98, 1],
+                y: [0, 5, -5, 0]
               }}
               transition={{
                 duration: 20,
@@ -182,11 +180,9 @@ export const BlueSmokeTheme: React.FC<BlueSmokeThemeProps> = ({ className = '', 
             <motion.path
               d="M0,60 Q35,40 70,60 T100,60 L100,100 L0,100 Z"
               animate={{
-                d: [
-                  "M0,60 Q35,40 70,60 T100,60 L100,100 L0,100 Z",
-                  "M0,60 Q35,70 60,50 T100,60 L100,100 L0,100 Z",
-                  "M0,60 Q35,40 70,60 T100,60 L100,100 L0,100 Z"
-                ]
+                scaleY: [1, 0.9, 1.1, 1],
+                scaleX: [1, 0.98, 1.05, 1],
+                y: [0, -6, 4, 0]
               }}
               transition={{
                 duration: 25,
