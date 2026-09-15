@@ -48,8 +48,7 @@ import { InteractiveWhiteboard } from '@/components/liveClassroom/InteractiveWhi
 import { LiveClassConfirmModal } from '@/components/liveClassroom/LiveClassConfirmModal';
 import { KaizenQClassroom } from '@/components/live-class/KaizenQClassroom';
 import { DeviceSettingsModal } from '@/components/live-class/DeviceSettingsModal';
-import type { MediaClient } from '@/services/liveMedia/mediaClient';
-import type { MediaConnectionState } from '@/services/liveMedia/mediaTypes';
+import type { MediaConnectionState, IMediaClient } from '@/services/liveMedia/mediaTypes';
 import { LiveQuestionsWidget } from '@/components/liveClassroom/LiveQuestionsWidget';
 import { LiveAnnouncementBanner } from '@/components/liveClass/LiveAnnouncementBanner';
 import type { AnnouncementItem } from '@/hooks/useLiveClassSocket';
@@ -175,7 +174,7 @@ export const LiveClassroomScreen: React.FC = () => {
   const [recordingUrlInput, setRecordingUrlInput] = useState('');
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
 
-  const mediaClientRef = useRef<MediaClient | null>(null);
+  const mediaClientRef = useRef<IMediaClient | null>(null);
   const hasJoinedRef = useRef<string | null>(null);
   const [isDeviceSettingsOpen, setIsDeviceSettingsOpen] = useState(false);
   const [mediaConnectionState, setMediaConnectionState] = useState<MediaConnectionState>('idle');
@@ -234,8 +233,8 @@ export const LiveClassroomScreen: React.FC = () => {
           moduleTitle: 'Module 1: Real-Time Systems & Media Streams',
           lessonId: 'les_1',
           lessonTitle: 'Lesson 1.1: Live Media Architecture & WebRTC',
-          instructorId: userProfile?.uid || 'instructor_lead',
-          instructorName: userProfile?.role === 'instructor' ? (userProfile.name || 'Faculty Instructor') : 'Assigned Instructor',
+          instructorId: userProfile?.role === 'instructor' ? userProfile.uid : 'instructor_lead',
+          instructorName: userProfile?.role === 'instructor' ? (userProfile.name || userProfile.fullName || 'Faculty Instructor') : 'Assigned Instructor',
           instructorAvatar: userProfile?.photoURL || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
           meetingProvider: 'kaizenq',
           meetingRoomId: `kaizenq-room-${classId}`,
@@ -506,6 +505,25 @@ export const LiveClassroomScreen: React.FC = () => {
           });
         });
 
+        // Real-Time Audience Poll Listeners (Phase 12)
+        const handleIncomingPoll = (poll: any) => {
+          if (!poll) return;
+          const questionText = poll.question || 'New audience poll';
+          toast.info(`📊 Poll from instructor: "${questionText}"`, {
+            duration: 9000,
+            action: {
+              label: 'Vote Now',
+              onClick: () => setIsPollModalOpen(true),
+            },
+          });
+          if (!isInstructor) {
+            setIsPollModalOpen(true);
+          }
+        };
+
+        socketInstance.on('poll:start', handleIncomingPoll);
+        socketInstance.on('poll_published', handleIncomingPoll);
+
         // Lock & Whiteboard Listeners
         socketInstance.on('lock_toggled', (data: { locked: boolean }) => {
           setIsLocked(data.locked);
@@ -727,6 +745,8 @@ export const LiveClassroomScreen: React.FC = () => {
         socketInstance.off('hand:acknowledge');
         socketInstance.off('announcement:receive');
         socketInstance.off('announcement_created');
+        socketInstance.off('poll:start');
+        socketInstance.off('poll_published');
         socketInstance.off('lock_toggled');
         socketInstance.off('whiteboard_toggled');
         socketInstance.off('liveClass:instructor_joined');

@@ -267,4 +267,45 @@ export const registerPollHandlers = (io: SocketServer, socket: AuthenticatedSock
       }
     }
   );
+
+  // 6. Fetch Active Poll on Join / Reconnect / Mount
+  socket.on(
+    'poll:get_active',
+    (data: { liveClassId?: string; classId?: string }, callback?: (res: any) => void) => {
+      const classId = data?.liveClassId || data?.classId || '';
+      const activePoll = activePollsMap.get(classId);
+      const user = socket.user;
+      const userId = user?.uid || user?.id || '';
+
+      if (activePoll && activePoll.status === 'ACTIVE') {
+        const hasVoted = activePoll.votedUserIds.has(userId);
+        const pollPayload = {
+          id: activePoll.id,
+          _id: activePoll.id,
+          classId: activePoll.liveClassId,
+          liveClassId: activePoll.liveClassId,
+          question: activePoll.question,
+          options: activePoll.options.map((o) => ({ id: o.id, optionIndex: o.optionIndex, text: o.text, votes: o.votes })),
+          durationSeconds: activePoll.durationSeconds,
+          status: 'ACTIVE',
+          createdAt: activePoll.createdAt,
+          hasVoted,
+        };
+
+        const res = { success: true, poll: pollPayload };
+        socket.emit('poll:active', res);
+        if (callback) callback(res);
+      } else {
+        const res = { success: true, poll: null };
+        socket.emit('poll:active', res);
+        if (callback) callback(res);
+      }
+    }
+  );
 };
+
+export const getActivePoll = (liveClassId: string): PollItem | null => {
+  const poll = activePollsMap.get(liveClassId);
+  return poll && poll.status === 'ACTIVE' ? poll : null;
+};
+

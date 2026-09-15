@@ -116,8 +116,11 @@ export const registerChatHandlers = (io: SocketServer, socket: AuthenticatedSock
         const cleanMessage = sanitizeContent(rawMessage);
         const roomName = `live-class:${liveClassId}`;
 
-        // Save in Database
+        const finalMsgId = data.clientMessageId || data.id || `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+        // Save in Database with deterministic message ID (matches client optimistic ID)
         const savedMessage = await liveClassroomService.saveChatMessage({
+          id: finalMsgId,
           classId: liveClassId,
           userId: user.uid || user.id,
           userName: user.name || 'User',
@@ -125,8 +128,6 @@ export const registerChatHandlers = (io: SocketServer, socket: AuthenticatedSock
           message: cleanMessage,
           createdAt: new Date().toISOString(),
         });
-
-        const finalMsgId = data.clientMessageId || data.id || (savedMessage as any).id || `msg_${Date.now()}`;
         const chatPayload = {
           id: finalMsgId,
           liveClassId,

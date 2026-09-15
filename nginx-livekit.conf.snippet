@@ -1,0 +1,58 @@
+# ==============================================================================
+# PHASE 2 DRAFT — NGINX REVERSE PROXY CONFIGURATION FOR LIVEKIT SFU
+# ==============================================================================
+# IMPORTANT:
+# - DO NOT apply this configuration immediately to production Nginx.
+# - This draft is prepared for the EC2 deployment phase when the LiveKit
+#   Docker container is launched.
+# - It preserves all existing routes: /api/, /socket.io/, /health, and frontend assets.
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# OPTION 1: Subpath Routing (wss://kaizenq.in/livekit/)
+# Add this location block inside your existing HTTPS (443) server block:
+# ------------------------------------------------------------------------------
+#
+# location /livekit/ {
+#     proxy_pass http://127.0.0.1:7880/;
+#     proxy_http_version 1.1;
+#     proxy_set_header Upgrade $http_upgrade;
+#     proxy_set_header Connection "upgrade";
+#     proxy_set_header Host $host;
+#     proxy_set_header X-Real-IP $remote_addr;
+#     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+#     proxy_set_header X-Forwarded-Proto $scheme;
+#     proxy_read_timeout 86400s;
+#     proxy_send_timeout 86400s;
+#     proxy_buffering off;
+# }
+
+# ------------------------------------------------------------------------------
+# OPTION 2: Dedicated Subdomain (wss://livekit.kaizenq.in) [RECOMMENDED]
+# Dedicated subdomain isolates WebRTC signaling from the primary domain.
+# ------------------------------------------------------------------------------
+#
+# server {
+#     listen 443 ssl http2;
+#     listen [::]:443 ssl http2;
+#     server_name livekit.kaizenq.in;
+#
+#     ssl_certificate /etc/letsencrypt/live/kaizenq.in/fullchain.pem;
+#     ssl_certificate_key /etc/letsencrypt/live/kaizenq.in/privkey.pem;
+#     include /etc/letsencrypt/options-ssl-nginx.conf;
+#     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+#
+#     location / {
+#         proxy_pass http://127.0.0.1:7880;
+#         proxy_http_version 1.1;
+#         proxy_set_header Upgrade $http_upgrade;
+#         proxy_set_header Connection "upgrade";
+#         proxy_set_header Host $host;
+#         proxy_set_header X-Real-IP $remote_addr;
+#         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+#         proxy_set_header X-Forwarded-Proto $scheme;
+#         proxy_read_timeout 86400s;
+#         proxy_send_timeout 86400s;
+#         proxy_buffering off;
+#     }
+# }

@@ -1,0 +1,41 @@
+# ==============================================================================
+# KAIZENQ LIVEKIT SFU DOCKER COMPOSE CONFIGURATION (PHASE 2)
+# ==============================================================================
+# LiveKit runs as an independent container alongside existing Node/Express & Nginx.
+# It directly terminates WebRTC UDP media and does NOT proxy through Express.
+#
+# Credentials:
+# Passed dynamically from .env via LIVEKIT_API_KEY and LIVEKIT_API_SECRET.
+# Never hardcoded.
+#
+# Usage:
+#   docker compose -f docker-compose.livekit.yml config   # Validate syntax
+#   docker compose -f docker-compose.livekit.yml up -d     # Start daemon
+# ==============================================================================
+
+services:
+  livekit:
+    image: livekit/livekit-server:v1.8
+    container_name: kaizenq-livekit-server
+    restart: unless-stopped
+    command: --config /etc/livekit.yaml
+    environment:
+      # Key format: "<api_key>: <api_secret>"
+      - LIVEKIT_KEYS=${LIVEKIT_API_KEY}: ${LIVEKIT_API_SECRET}
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml:ro
+    ports:
+      # LiveKit Signaling & Health (HTTP / WebSocket)
+      - "7880:7880"
+      # LiveKit RTC TCP Fallback / ICE-over-TCP
+      - "7881:7881"
+      # LiveKit WebRTC Media UDP Port Range
+      - "50000-50200:50000-50200/udp"
+    # Note for Linux / AWS EC2 production deployment:
+    # If host networking is preferred to reduce Docker NAT overhead on high-throughput UDP:
+    # network_mode: "host"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
