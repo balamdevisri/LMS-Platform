@@ -29,6 +29,9 @@ export interface MediaParticipant {
   videoTrack?: MediaStreamTrack;
   screenTrack?: MediaStreamTrack;
   stream?: MediaStream;
+  videoLiveKitTrack?: any;
+  screenLiveKitTrack?: any;
+  micAllowedByInstructor?: boolean;
   /** Incremented each time a track is added/removed — forces React re-renders despite stream mutation */
   streamVersion?: number;
 }
@@ -73,5 +76,36 @@ export interface AvailableMediaDevices {
   audioInputs: MediaDeviceInfo[];
   videoInputs: MediaDeviceInfo[];
   audioOutputs: MediaDeviceInfo[];
+}
+
+export interface IMediaClient {
+  connect(): Promise<void>;
+  disconnect(): void;
+  cleanup(): Promise<void>;
+  getParticipants(): MediaParticipant[];
+  getLocalStream(): MediaStream;
+  getLocalScreenStream(): MediaStream | null;
+  getConnectionState(): MediaConnectionState;
+  getIsAudioEnabled(): boolean;
+  getIsVideoEnabled(): boolean;
+  getIsScreenSharing(): boolean;
+  toggleMicrophone(): Promise<boolean>;
+  muteMicrophone(): Promise<void>;
+  toggleCamera(): Promise<boolean>;
+  startScreenShare(): Promise<MediaStream | null>;
+  stopScreenShare(): Promise<void>;
+  getAvailableDevices(): Promise<AvailableMediaDevices>;
+  switchCamera(deviceId: string): Promise<boolean>;
+  switchMicrophone(deviceId: string): Promise<boolean>;
+  muteParticipant(userId: string): void;
+  askToUnmuteParticipant(userId: string): void;
+  allowParticipantMic(userId: string): void;
+  muteAllStudents(): void;
+  pinParticipant(userId: string | null): void;
+  getPinnedUserId(): string | null;
+  getIsMutedByInstructor(): boolean;
+  kickParticipant(userId: string): void;
+  startAudio?(): Promise<void>;
+  on(event: string, listener: (data: any) => void): () => void;
 }
 

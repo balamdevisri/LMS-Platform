@@ -136,14 +136,23 @@ export const VideoTile: React.FC<VideoTileProps> = ({
 
   useEffect(() => {
     const el = videoRef.current;
-    const vTracks = participant.stream?.getVideoTracks().length ?? 0;
-    const vTrackState = participant.stream?.getVideoTracks()[0]?.readyState ?? 'none';
-    console.log(
-      `[LIVE_DEBUG][REMOTE_VIDEO] userId=${participant.userId} isVideoOn=${participant.isVideoOn} isScreenSharing=${participant.isScreenSharing} videoTracks=${vTracks} videoTrackReadyState=${vTrackState} streamVersion=${participant.streamVersion || 0}`
-    );
+    if (!el || !shouldRenderVideo) return;
 
-    if (el && participant.stream && shouldRenderVideo) {
-      el.srcObject = participant.stream;
+    if (participant.videoLiveKitTrack && typeof participant.videoLiveKitTrack.attach === 'function') {
+      try {
+        participant.videoLiveKitTrack.attach(el);
+      } catch (err) {
+        console.warn(`[LIVE_DEBUG][REMOTE_VIDEO] LiveKit track.attach notice:`, err);
+      }
+      return () => {
+        try {
+          participant.videoLiveKitTrack?.detach(el);
+        } catch (_) {}
+      };
+    } else if (participant.stream) {
+      if (el.srcObject !== participant.stream) {
+        el.srcObject = participant.stream;
+      }
       el.play()
         .then(() => {
           console.log(`[LIVE_DEBUG][REMOTE_VIDEO] SUCCESS remoteUserId=${participant.userId}`);
@@ -152,7 +161,7 @@ export const VideoTile: React.FC<VideoTileProps> = ({
           console.error(`[LIVE_DEBUG][REMOTE_VIDEO] ERROR remoteUserId=${participant.userId} errorName=${err?.name} errorMessage=${err?.message}`, err);
         });
     }
-  }, [participant.stream, participant.isVideoOn, participant.isScreenSharing, participant.streamVersion, shouldRenderVideo, isHero]);
+  }, [participant.stream, participant.videoLiveKitTrack, participant.isVideoOn, participant.isScreenSharing, participant.streamVersion, shouldRenderVideo, isHero]);
 
   const isInstructorRole =
     participant.role === 'instructor' ||
@@ -358,11 +367,27 @@ export const CompactParticipantTile: React.FC<CompactParticipantTileProps> = ({
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    if (videoRef.current && participant.stream && participant.isVideoOn) {
-      videoRef.current.srcObject = participant.stream;
+    const el = videoRef.current;
+    if (!el || !participant.isVideoOn) return;
+
+    if (participant.videoLiveKitTrack && typeof participant.videoLiveKitTrack.attach === 'function') {
+      try {
+        participant.videoLiveKitTrack.attach(el);
+      } catch (err) {
+        console.warn(`[CompactParticipantTile] LiveKit track.attach notice:`, err);
+      }
+      return () => {
+        try {
+          participant.videoLiveKitTrack?.detach(el);
+        } catch (_) {}
+      };
+    } else if (participant.stream) {
+      if (videoRef.current.srcObject !== participant.stream) {
+        videoRef.current.srcObject = participant.stream;
+      }
       videoRef.current.play().catch(() => {});
     }
-  }, [participant.stream, participant.isVideoOn, participant.streamVersion]);
+  }, [participant.stream, participant.videoLiveKitTrack, participant.isVideoOn, participant.streamVersion]);
 
   const isInstructorRole =
     participant.role === 'instructor' ||
@@ -574,6 +599,7 @@ export const VideoGrid: React.FC<VideoGridProps> = ({
 
   const activeScreenStream =
     screenShareStream ||
+    (activeSharer?.screenTrack ? new MediaStream([activeSharer.screenTrack]) : null) ||
     (isInstructorScreenSharing && activeSharer?.stream) ||
     participants.find((p) => p.isScreenSharing && p.stream)?.stream ||
     null;
@@ -589,29 +615,51 @@ export const VideoGrid: React.FC<VideoGridProps> = ({
     );
 
     if (el && activeScreenStream) {
-      el.srcObject = activeScreenStream;
-      el.muted = true;
-      console.log(
-        `[LIVE_DEBUG][REMOTE_VIDEO] [SCREEN_VIEWPORT] remoteUserId=${sharerId} streamId=${activeScreenStream.id} videoTrackCount=${vTracks} paused=${el.paused} readyState=${el.readyState} videoWidth=${el.videoWidth} videoHeight=${el.videoHeight}`
-      );
-      el.play()
-        .then(() => {
-          console.log(`[LIVE_DEBUG][REMOTE_VIDEO] [SCREEN_VIEWPORT] SUCCESS remoteUserId=${sharerId}`);
-        })
-        .catch((err) => {
-          console.error(`[LIVE_DEBUG][REMOTE_VIDEO] [SCREEN_VIEWPORT] ERROR remoteUserId=${sharerId} errorName=${err?.name} errorMessage=${err?.message}`, err);
-        });
+      if (activeSharer?.screenLiveKitTrack && typeof activeSharer.screenLiveKitTrack.attach === 'function') {
+        try {
+          activeSharer.screenLiveKitTrack.attach(el);
+        } catch (err) {
+          console.warn(`[LIVE_DEBUG][SCREEN_REMOTE] LiveKit screen track.attach notice:`, err);
+        }
+        return () => {
+          try {
+            activeSharer.screenLiveKitTrack?.detach(el);
+          } catch (_) {}
+        };
+      } else {
+        if (el.srcObject !== activeScreenStream) {
+          el.srcObject = activeScreenStream;
+        }
+        el.muted = true;
+        console.log(
+          `[LIVE_DEBUG][REMOTE_VIDEO] [SCREEN_VIEWPORT] remoteUserId=${sharerId} streamId=${activeScreenStream.id} videoTrackCount=${vTracks} paused=${el.paused} readyState=${el.readyState} videoWidth=${el.videoWidth} videoHeight=${el.videoHeight}`
+        );
+        el.play()
+          .then(() => {
+            console.log(`[LIVE_DEBUG][REMOTE_VIDEO] [SCREEN_VIEWPORT] SUCCESS remoteUserId=${sharerId}`);
+          })
+          .catch((err) => {
+            console.error(`[LIVE_DEBUG][REMOTE_VIDEO] [SCREEN_VIEWPORT] ERROR remoteUserId=${sharerId} errorName=${err?.name} errorMessage=${err?.message}`, err);
+          });
+      }
     }
-  }, [activeScreenStream, activeSharer?.userId, activeSharer?.streamVersion, instructor?.streamVersion]);
+  }, [activeScreenStream, activeSharer?.screenLiveKitTrack, activeSharer?.userId, activeSharer?.screenTrack, activeSharer?.streamVersion, instructor?.streamVersion]);
 
   // PIP video binding for instructor camera during screen share
   useEffect(() => {
-    if (pipVideoRef.current && instructor?.stream && instructor?.isVideoOn) {
-      pipVideoRef.current.srcObject = instructor.stream;
-      pipVideoRef.current.muted = true;
-      pipVideoRef.current.play().catch(() => {});
+    if (pipVideoRef.current && instructor && instructor.isVideoOn) {
+      const pipStream = instructor.videoTrack
+        ? new MediaStream([instructor.videoTrack])
+        : instructor.stream;
+      if (pipStream) {
+        if (pipVideoRef.current.srcObject !== pipStream) {
+          pipVideoRef.current.srcObject = pipStream;
+        }
+        pipVideoRef.current.muted = true;
+        pipVideoRef.current.play().catch(() => {});
+      }
     }
-  }, [activeScreenStream, instructor?.stream, instructor?.isVideoOn, instructor?.streamVersion]);
+  }, [activeScreenStream, instructor?.stream, instructor?.videoTrack, instructor?.isVideoOn, instructor?.streamVersion]);
 
   // Priority participants for moderation / spotlighting
   const pinnedParticipant = participants.find((p) => p.isPinned);

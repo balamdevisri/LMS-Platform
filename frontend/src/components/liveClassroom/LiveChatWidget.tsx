@@ -102,8 +102,24 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
               }));
               setMessages((prev) => {
                 const map = new Map<string, ChatMessage>();
-                prev.forEach((m) => map.set(m.id || m._id?.toString() || '', m));
-                fsMessages.forEach((m) => map.set(m.id || m._id?.toString() || '', m));
+                // Match and replace optimistic messages
+                prev.forEach((m) => {
+                  const key = m.id || m._id?.toString() || '';
+                  if (key) map.set(key, m);
+                });
+                fsMessages.forEach((fsMsg) => {
+                  const fsKey = fsMsg.id || fsMsg._id?.toString() || '';
+                  // Check if any existing optimistic message matches same author + text
+                  for (const [existingKey, existingMsg] of map.entries()) {
+                    const sameUser = existingMsg.userId === fsMsg.userId;
+                    const sameText = (existingMsg.message || '').trim() === (fsMsg.message || '').trim();
+                    const timeDiff = Math.abs(new Date(existingMsg.createdAt).getTime() - new Date(fsMsg.createdAt).getTime());
+                    if (existingKey !== fsKey && sameUser && sameText && (isNaN(timeDiff) || timeDiff < 8000)) {
+                      map.delete(existingKey);
+                    }
+                  }
+                  if (fsKey) map.set(fsKey, fsMsg);
+                });
                 return Array.from(map.values()).sort(
                   (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
                 );
@@ -314,15 +330,17 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
       }
     }
 
-    // 4. Send to backend REST API fallback
-    try {
-      const apiBaseUrl = API_BASE_URL;
-      fetch(`${apiBaseUrl}/live-classroom/${classId}/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      }).catch(() => {});
-    } catch {}
+    // 4. Send to backend REST API fallback strictly when socket is disconnected
+    if (!socket || !socket.connected) {
+      try {
+        const apiBaseUrl = API_BASE_URL;
+        fetch(`${apiBaseUrl}/live-classroom/${classId}/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }).catch(() => {});
+      } catch {}
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {

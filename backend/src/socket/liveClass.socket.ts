@@ -4,6 +4,88 @@ import { liveClassroomService } from '../modules/liveClassroom/liveClassroom.ser
 import { notificationService } from '../modules/notifications/notification.service';
 import logger from '../config/logger';
 import { ClassroomInteractionSettings, DEFAULT_CLASSROOM_SETTINGS } from '../validators/liveClassroomSettings';
+import { RoomServiceClient, TrackSource } from 'livekit-server-sdk';
+import { env } from '../config/env';
+import { db } from '../firebase';
+
+let livekitRoomService: RoomServiceClient | null = null;
+export const getLiveKitRoomService = (): RoomServiceClient | null => {
+  if (livekitRoomService) return livekitRoomService;
+  const apiKey = env.LIVEKIT_API_KEY;
+  const apiSecret = env.LIVEKIT_API_SECRET;
+  const host = env.LIVEKIT_HOST;
+  if (apiKey && apiSecret && host) {
+    try {
+      livekitRoomService = new RoomServiceClient(host, apiKey, apiSecret);
+    } catch (e: any) {
+      logger.warn(`[LiveKit SFU] RoomServiceClient init notice: ${e?.message}`);
+    }
+  }
+  return livekitRoomService;
+};
+
+export const updateLiveKitStudentMicPermission = async (
+  classId: string,
+  userId: string,
+  allowed: boolean
+) => {
+  const svc = getLiveKitRoomService();
+  if (!svc) return;
+
+  const roomName = `class_${classId}`;
+  const identity = `user_${userId}`;
+
+  try {
+    if (allowed) {
+      await svc.updateParticipant(roomName, identity, {
+        permission: {
+          canPublish: true,
+          canPublishSources: [TrackSource.MICROPHONE],
+          canSubscribe: true,
+          canPublishData: true,
+        },
+      });
+      logger.info(`[LiveKit SFU] Granted microphone publish permission to ${identity} in ${roomName}`);
+    } else {
+      await svc.updateParticipant(roomName, identity, {
+        permission: {
+          canPublish: false,
+          canPublishSources: [],
+          canSubscribe: true,
+          canPublishData: true,
+        },
+      });
+      // Mute any currently published audio track
+      try {
+        const participantInfo = await svc.getParticipant(roomName, identity);
+        if (participantInfo && participantInfo.tracks) {
+          for (const t of participantInfo.tracks) {
+            if (t.source === TrackSource.MICROPHONE && t.sid) {
+              await svc.mutePublishedTrack(roomName, identity, t.sid, true);
+              logger.info(`[LiveKit SFU] Muted published microphone track ${t.sid} for ${identity} in ${roomName}`);
+            }
+          }
+        }
+      } catch (trackErr: any) {
+        // Track may not be present
+      }
+      logger.info(`[LiveKit SFU] Revoked microphone publish permission from ${identity} in ${roomName}`);
+    }
+  } catch (err: any) {
+    logger.warn(`[LiveKit SFU] Notice updating participant ${identity} in ${roomName}: ${err?.message || err}`);
+  }
+};
+
+export const persistStudentMicPermission = (classId: string, userId: string, allowed: boolean) => {
+  if (db && typeof db.collection === 'function' && process.env.NODE_ENV !== 'test') {
+    db.collection('liveClasses')
+      .doc(classId)
+      .collection('participants')
+      .doc(userId)
+      .set({ micAllowed: allowed, updatedAt: new Date().toISOString() }, { merge: true })
+      .catch((err) => logger.warn(`[Firestore] Student mic permission persist notice: ${err?.message}`));
+  }
+};
 
 export interface ParticipantInfo {
   socketId: string;
@@ -879,6 +961,10 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
       }
     }
 
+    // Server-Authoritative LiveKit SFU Participant Permission Revocation & Firestore persistence
+    persistStudentMicPermission(classId, data.userId, false);
+    updateLiveKitStudentMicPermission(classId, data.userId, false).catch(() => {});
+
     logger.info(`[SOCKET] Instructor ${user.name} muted student ${data.userId} in room ${roomName}`);
     io.to(roomName).emit('liveClass:moderation:muted', {
       userId: data.userId,
@@ -930,6 +1016,9 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
       }
     }
 
+    persistStudentMicPermission(classId, data.userId, !data.isMuted);
+    updateLiveKitStudentMicPermission(classId, data.userId, !data.isMuted).catch(() => {});
+
     logger.info(`[SOCKET] Instructor ${user.name} set mute to ${data.isMuted} for student ${data.userId} in ${roomName}`);
     io.to(roomName).emit('student_muted', { userId: data.userId, isMuted: data.isMuted });
     io.to(roomName).emit('liveClass:moderation:muted', {
@@ -978,6 +1067,8 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
             micPermission: 'denied',
             updatedAt: new Date().toISOString(),
           });
+          persistStudentMicPermission(classId, p.userId, false);
+          updateLiveKitStudentMicPermission(classId, p.userId, false).catch(() => {});
         }
       }
     }
@@ -1011,6 +1102,8 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
             micPermission: 'denied',
             updatedAt: new Date().toISOString(),
           });
+          persistStudentMicPermission(classId, p.userId, false);
+          updateLiveKitStudentMicPermission(classId, p.userId, false).catch(() => {});
         }
       }
     }
@@ -1046,11 +1139,16 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
       }
     }
 
+    // Server-Authoritative LiveKit SFU Participant Permission Update & Firestore persistence
+    persistStudentMicPermission(classId, data.userId, true);
+    updateLiveKitStudentMicPermission(classId, data.userId, true).catch(() => {});
+
     logger.info(`[SOCKET] Instructor ${user.name} allowed mic for student ${data.userId}`);
     io.to(roomName).emit('liveClass:moderation:micAllowed', {
       userId: data.userId,
       allowedBy: user.name,
     });
+    io.to(roomName).emit('student_muted', { userId: data.userId, isMuted: false });
   });
 
   socket.on('liveClass:moderation:allowChat', (data: { classId: string; liveClassId?: string; userId: string }) => {
@@ -1134,6 +1232,9 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
         }
       }
     }
+
+    persistStudentMicPermission(classId, data.userId, true);
+    updateLiveKitStudentMicPermission(classId, data.userId, true).catch(() => {});
   });
 
   socket.on('toggle_chat_mute', async (data: { classId: string; liveClassId?: string; isMuted: boolean }) => {

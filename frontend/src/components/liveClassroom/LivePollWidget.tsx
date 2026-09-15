@@ -29,30 +29,93 @@ export const LivePollWidget: React.FC<LivePollWidgetProps> = ({ socket, classId,
   useEffect(() => {
     if (!socket) return;
 
-    // Listen for new poll publication
-    socket.on('poll_published', (poll: { id: string; question: string; options: string[] }) => {
-      setActivePoll(poll);
-      setVotedOption(null);
-      
-      // Initialize zero votes
-      setVotes(poll.options.map((opt, idx) => ({
-        optionIndex: idx,
-        optionText: opt,
-        votesCount: 0
-      })));
-      toast.success('New poll published by instructor!');
-    });
+    // 1. Fetch currently active poll on mount or socket connection
+    socket.emit('poll:get_active', { classId, liveClassId: classId });
 
-    // Listen for vote updates
-    socket.on('poll_update', (data: PollOption[]) => {
-      setVotes(data);
-    });
+    const handleActivePoll = (res: any) => {
+      if (res?.success && res.poll) {
+        const poll = res.poll;
+        const opts = Array.isArray(poll.options)
+          ? poll.options.map((o: any) => (typeof o === 'string' ? o : o.text || ''))
+          : [];
+        setActivePoll({
+          id: poll.id,
+          question: poll.question,
+          options: opts,
+        });
+        if (poll.hasVoted) {
+          setVotedOption(0);
+        }
+        if (Array.isArray(poll.options)) {
+          setVotes(
+            poll.options.map((o: any, idx: number) => ({
+              optionIndex: o.optionIndex !== undefined ? o.optionIndex : idx,
+              optionText: typeof o === 'string' ? o : o.text,
+              votesCount: o.votes || 0,
+            }))
+          );
+        }
+      }
+    };
+    socket.on('poll:active', handleActivePoll);
+
+    // 2. Listen for new poll publication (both legacy and modern format)
+    const handlePollPublished = (poll: { id: string; question: string; options: any[] }) => {
+      if (!poll) return;
+      const opts = Array.isArray(poll.options)
+        ? poll.options.map((o) => (typeof o === 'string' ? o : o.text || ''))
+        : [];
+      setActivePoll({
+        id: poll.id,
+        question: poll.question,
+        options: opts,
+      });
+      setVotedOption(null);
+      setVotes(
+        opts.map((opt, idx) => ({
+          optionIndex: idx,
+          optionText: opt,
+          votesCount: 0,
+        }))
+      );
+      toast.success('New poll published by instructor!');
+    };
+
+    socket.on('poll_published', handlePollPublished);
+    socket.on('poll:start', handlePollPublished);
+
+    // 3. Listen for vote updates
+    const handlePollUpdate = (data: any) => {
+      if (Array.isArray(data)) {
+        setVotes(data);
+      } else if (data?.options && Array.isArray(data.options)) {
+        setVotes(
+          data.options.map((o: any, idx: number) => ({
+            optionIndex: o.optionIndex !== undefined ? o.optionIndex : idx,
+            optionText: typeof o === 'string' ? o : o.text,
+            votesCount: o.votes || 0,
+          }))
+        );
+      }
+    };
+    socket.on('poll_update', handlePollUpdate);
+    socket.on('poll:update', handlePollUpdate);
+
+    // 4. Listen for poll ended
+    const handlePollEnd = () => {
+      toast.info('The active poll has ended.');
+    };
+    socket.on('poll:end', handlePollEnd);
 
     return () => {
-      socket.off('poll_published');
-      socket.off('poll_update');
+      socket.off('poll:active', handleActivePoll);
+      socket.off('poll_published', handlePollPublished);
+      socket.off('poll:start', handlePollPublished);
+      socket.off('poll_update', handlePollUpdate);
+      socket.off('poll:update', handlePollUpdate);
+      socket.off('poll:end', handlePollEnd);
     };
-  }, [socket]);
+  }, [socket, classId]);
 
   const handleAddOption = () => {
     if (options.length >= 5) return;

@@ -71,6 +71,11 @@ const envSchema = z.object({
   DEVELOPER_ACCESS_PASSCODE: z.string().default('googlemanoj'),
   DEVELOPER_SESSION_TTL: z.string().default('8h'),
   DEVELOPER_SESSION_SECRET: z.string().default('kz_dev_session_sign_secret_2026'),
+
+  // LiveKit SFU Infrastructure
+  LIVEKIT_API_KEY: z.string().optional(),
+  LIVEKIT_API_SECRET: z.string().optional(),
+  LIVEKIT_HOST: z.string().optional(),
 });
 
 export const env = envSchema.parse(process.env);

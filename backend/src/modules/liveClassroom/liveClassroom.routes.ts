@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import { liveClassroomController } from './liveClassroom.controller';
-import { extractOptionalUser } from '../../middleware/auth.middleware';
+import { extractOptionalUser, verifyFirebaseToken } from '../../middleware/auth.middleware';
 
 const router = Router();
 
 // --- 1. LIVE CLASS CORE CRUD & MANAGEMENT ---
 router.get('/', extractOptionalUser as any, (req, res, next) => liveClassroomController.getAllClasses(req, res, next));
+router.get('/:classId/media-token', verifyFirebaseToken as any, (req, res, next) => liveClassroomController.getMediaToken(req, res, next));
 router.get('/:classId', extractOptionalUser as any, (req, res, next) => liveClassroomController.getClassById(req, res, next));
 router.post('/', (req, res, next) => liveClassroomController.createClass(req, res, next));
 router.patch('/:classId', (req, res, next) => liveClassroomController.updateClass(req, res, next));

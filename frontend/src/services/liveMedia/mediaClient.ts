@@ -5,7 +5,8 @@ import type {
   MediaConnectionState, 
   MediaParticipant, 
   MediaRole,
-  AvailableMediaDevices
+  AvailableMediaDevices,
+  IMediaClient
 } from './mediaTypes';
 import { AudioActivityDetector, getOptimizedAudioConstraints } from './audioActivityDetector';
 
@@ -19,7 +20,7 @@ const DEFAULT_ICE_SERVERS: RTCIceServer[] = [
   { urls: 'stun:stun4.l.google.com:19302' },
 ];
 
-export class MediaClient {
+export class MediaClient implements IMediaClient {
   private config: MediaClientConfig;
   private socket: Socket | null = null;
   private peerConnections: Map<string, RTCPeerConnection> = new Map();

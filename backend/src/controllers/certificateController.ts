@@ -436,8 +436,15 @@ export class CertificateController {
         return res.status(400).json({ success: false, error: 'Missing studentEmail parameter' });
       }
 
+      if (!req.user || !authEmail) {
+        return res.status(401).json({
+          success: false,
+          error: 'Unauthorized: Authentication required to access certificates by email.',
+        });
+      }
+
       // Ownership authorization check (if authenticated user email differs from requested email and is not admin)
-      if (req.user && authEmail && authEmail !== studentEmail && !isAdmin) {
+      if (authEmail !== studentEmail && !isAdmin) {
         return res.status(403).json({
           success: false,
           error: 'Forbidden: You cannot access certificate history for another email.',
@@ -448,8 +455,16 @@ export class CertificateController {
         return res.status(200).json({ success: true, data: [] });
       }
 
+      let certs: any[] = [];
       const snap = await db.collection('certificates').where('studentEmail', '==', studentEmail).get();
-      const certs = snap.docs.map((doc) => doc.data());
+      certs = snap.docs.map((doc) => doc.data());
+
+      // If empty and raw email differs from lowercase, also check raw email
+      const rawEmail = String(req.params.studentEmail || '').trim();
+      if (certs.length === 0 && rawEmail && rawEmail !== studentEmail) {
+        const rawSnap = await db.collection('certificates').where('studentEmail', '==', rawEmail).get();
+        certs = rawSnap.docs.map((doc) => doc.data());
+      }
 
       return res.status(200).json({ success: true, data: certs });
     } catch (err: any) {

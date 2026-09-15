@@ -1,7 +1,6 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { roomManager } from '@/services/liveMedia/roomManager';
-import type { MediaClient } from '@/services/liveMedia/mediaClient';
-import type { MediaParticipant, MediaRole, MediaConnectionState } from '@/services/liveMedia/mediaTypes';
+import React, { useEffect, useRef, useState } from 'react';
+import { roomManager, getActiveMediaEngine } from '@/services/liveMedia/roomManager';
+import type { IMediaClient, MediaParticipant, MediaConnectionState, MediaRole } from '@/services/liveMedia/mediaTypes';
 import { VideoGrid } from './VideoGrid';
 import { Loader2, ShieldAlert, WifiOff, Volume2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -19,6 +18,12 @@ const RemoteAudioPlayer: React.FC<RemoteAudioPlayerProps> = ({
 }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
 
+  // LiveKit SFU manages dedicated persistent audio elements in document.body via track.attach().
+  // Skip duplicate audio mounting to prevent browser echo or audio routing conflicts.
+  if (getActiveMediaEngine() === 'sfu') {
+    return null;
+  }
+
   // This effect re-runs whenever participant.stream reference changes (streamVersion bump)
   // OR when audioTrack/isAudioOn changes, ensuring audio is always attached and played.
   useEffect(() => {
@@ -32,7 +37,9 @@ const RemoteAudioPlayer: React.FC<RemoteAudioPlayerProps> = ({
     // Explicitly set audio parameters (audio must NEVER be muted or display:none)
     el.muted = false;
     el.volume = 1.0;
-    el.srcObject = stream;
+    if (el.srcObject !== stream) {
+      el.srcObject = stream;
+    }
 
     console.log(
       `[LIVE_DEBUG][REMOTE_AUDIO] userId=${participant.userId} hasStream=${Boolean(participant.stream)} audioTracks=${audioTrackCount} audioTrackReadyState=${firstAudioTrack?.readyState || 'none'} muted=${el.muted} volume=${el.volume} paused=${el.paused} srcObjectTracks=${stream.getTracks().length}`
@@ -119,7 +126,7 @@ export interface KaizenQClassroomProps {
   unreadChatCount?: number;
   unreadQuestionCount?: number;
   onLeaveOrEndClass: () => void;
-  onClientReady?: (client: MediaClient) => void;
+  onClientReady?: (client: IMediaClient) => void;
   onMediaConnectionStateChange?: (state: MediaConnectionState) => void;
 }
 
@@ -136,7 +143,7 @@ export const KaizenQClassroom: React.FC<KaizenQClassroomProps> = ({
   onClientReady,
   onMediaConnectionStateChange,
 }) => {
-  const [client, setClient] = useState<MediaClient | null>(null);
+  const [client, setClient] = useState<IMediaClient | null>(null);
   const [participants, setParticipants] = useState<MediaParticipant[]>([]);
   const [connectionState, setConnectionState] = useState<MediaConnectionState>('idle');
   const [isAutoplayBlocked, setIsAutoplayBlocked] = useState(false);
@@ -179,7 +186,7 @@ export const KaizenQClassroom: React.FC<KaizenQClassroomProps> = ({
   });
 
   useEffect(() => {
-    let activeClient: MediaClient | null = null;
+    let activeClient: IMediaClient | null = null;
 
     const initRoom = async () => {
       try {
@@ -238,6 +245,14 @@ export const KaizenQClassroom: React.FC<KaizenQClassroomProps> = ({
           toast.error(data.message);
         });
 
+        activeClient.on('audioAutoplayBlocked', () => {
+          setIsAutoplayBlocked(true);
+        });
+
+        activeClient.on('audioAutoplayResumed', () => {
+          setIsAutoplayBlocked(false);
+        });
+
         activeClient.on('kicked', () => {
           toast.error('You have been removed from the live session.');
           propsRef.current.onLeaveOrEndClass();
@@ -257,6 +272,9 @@ export const KaizenQClassroom: React.FC<KaizenQClassroomProps> = ({
   }, [classId, userId]);
 
   const handleManualUnlockAudio = () => {
+    if (client?.startAudio) {
+      client.startAudio().catch(() => {});
+    }
     const audioElements = document.querySelectorAll<HTMLAudioElement>('audio');
     audioElements.forEach((el) => {
       el.play().catch(() => {});
