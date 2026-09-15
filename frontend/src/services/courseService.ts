@@ -38,7 +38,7 @@ const getFS = async () => {
   return _fsModule;
 };
 
-const DEFAULT_COURSES: ICourse[] = [
+export const DEFAULT_COURSES: ICourse[] = [
   {
     id: 'course_linux_101',
     title: 'Linux Systems & Administration Mastery',
@@ -243,14 +243,22 @@ const DEFAULT_COURSES: ICourse[] = [
     tags: ['kubernetes', 'k8s', 'devops', 'docker', 'containers', 'helm'],
     enrollmentCount: 0,
     rating: 5.0,
-    ratingCount: 100,
     syllabus: [
-      { id: 'k8s-mod-1', title: 'Module 1 — Kubernetes Basics', description: 'Learn container orchestration fundamentals, Kubernetes architecture components, YAML objects, cluster setup using Minikube, and basic kubectl operations.', duration: '5 Hours', lessonsCount: 7 },
-      { id: 'k8s-mod-2', title: 'Module 2 — Pods & Deployments', description: 'Master pod life cycles, labels/selectors, deployments, scaling, rolling updates, cron jobs, and health check probes.', duration: '6 Hours', lessonsCount: 8 },
-      { id: 'k8s-mod-3', title: 'Module 3 — Networking & Services', description: 'Learn pod-to-pod networking, service abstractions (ClusterIP, NodePort, LoadBalancer), DNS routing, Ingress config, and Network Policies.', duration: '5 Hours', lessonsCount: 7 },
-      { id: 'k8s-mod-4', title: 'Module 4 — Configuration & Storage', description: 'Learn ConfigMaps, Secrets, persistent volumes (PV, PVC), storage classes, dynamic provisioning, and resource requests/limits.', duration: '6 Hours', lessonsCount: 8 },
-      { id: 'k8s-mod-5', title: 'Module 5 — Security & Administration', description: 'Master ServiceAccounts, Role-Based Access Control (RBAC), security contexts, scheduling nodes (Selector, Taints, Tolerations, Affinity), and troubleshooting failed deployments.', duration: '6 Hours', lessonsCount: 8 },
-      { id: 'k8s-mod-6', title: 'Module 6 — Production & DevOps', description: 'Learn production guidelines, Horizontal Pod Autoscaler (HPA), Helm package management, CI/CD pipelines, managed cloud engines, and deploy a full-stack project.', duration: '6 Hours', lessonsCount: 8 }
+      { id: 'k8s-mod-1', title: 'Module 1: Introduction to Kubernetes', description: 'Learn container orchestration fundamentals, why Kubernetes is used, Docker vs Kubernetes, and high-level concepts.', duration: '2.5 Hours', lessonsCount: 1 },
+      { id: 'k8s-mod-2', title: 'Module 2: Kubernetes Architecture', description: 'Deep dive into Kubernetes architecture, Master (Control Plane) and Worker Node components: API Server, etcd, Kubelet, and Kube-proxy.', duration: '3 Hours', lessonsCount: 1 },
+      { id: 'k8s-mod-3', title: 'Module 3: Installing Kubernetes', description: 'Learn how to set up local cluster environments using Minikube, install kubectl, and verify cluster communication.', duration: '2 Hours', lessonsCount: 1 },
+      { id: 'k8s-mod-4', title: 'Module 4: Pods – The Smallest Unit', description: 'Learn Pod concepts, manifests in YAML, multi-container pods, pod lifecycle, logs, and port-forwarding.', duration: '4 Hours', lessonsCount: 1 },
+      { id: 'k8s-mod-5', title: 'Module 5: Kubernetes Services & Networking', description: 'Exposing applications using Services: ClusterIP, NodePort, LoadBalancer, and Ingress routing rules.', duration: '4 Hours', lessonsCount: 1 },
+      { id: 'k8s-mod-6', title: 'Module 6: Kubernetes Storage', description: 'Understand Volumes, PersistentVolumes (PV), PersistentVolumeClaims (PVC), and StorageClasses.', duration: '3 Hours', lessonsCount: 1 },
+      { id: 'k8s-mod-7', title: 'Module 7: Configuration Management', description: 'Inject configurations using ConfigMaps, Secrets, Environment Variables, and Volume Mounts.', duration: '3 Hours', lessonsCount: 1 },
+      { id: 'k8s-mod-8', title: 'Module 8: Advanced Workloads', description: 'Manage production workloads: ReplicaSets, Deployments, Rolling Updates, Rollbacks, DaemonSets, StatefulSets, and Jobs.', duration: '4 Hours', lessonsCount: 1 },
+      { id: 'k8s-mod-9', title: 'Module 9: Kubernetes Security', description: 'Secure applications using ServiceAccounts, Role-Based Access Control (RBAC), and SecurityContexts.', duration: '3.5 Hours', lessonsCount: 1 },
+      { id: 'k8s-mod-10', title: 'Module 10: Monitoring & Logging', description: 'Observe application performance using Prometheus, Grafana, and gather container metrics and logs.', duration: '2.5 Hours', lessonsCount: 1 },
+      { id: 'k8s-mod-11', title: 'Module 11: Helm – Kubernetes Package Manager', description: 'Introduction to Helm, installing Helm charts, creating templates, and managing releases.', duration: '3 Hours', lessonsCount: 1 },
+      { id: 'k8s-mod-12', title: 'Module 12: CI/CD with Kubernetes', description: 'Implement automated CI/CD pipelines deploying to Kubernetes clusters using GitHub Actions and GitOps workflows.', duration: '4 Hours', lessonsCount: 1 },
+      { id: 'k8s-mod-13', title: 'Module 13: Troubleshooting Kubernetes', description: 'Debug common issues: Pending Pods, ImagePullBackOff, CrashLoopBackOff, and Node NotReady states.', duration: '3.5 Hours', lessonsCount: 1 },
+      { id: 'k8s-mod-14', title: 'Module 14: Real-World Kubernetes Cases', description: 'Deploy full-stack applications, manage multi-environment clusters, scale deployments, and apply best practices.', duration: '4.5 Hours', lessonsCount: 1 },
+      { id: 'k8s-mod-15', title: 'Module 15: Interview Preparation & Cheat Sheet', description: 'Theory revision, scenario questions, best practices, and kubectl cheat sheet reference.', duration: '3 Hours', lessonsCount: 1 }
     ],
     modules: [],
     createdAt: new Date('2026-08-08').toISOString(),
@@ -753,23 +761,23 @@ function normalizeCourseToICourse(c: any): ICourse {
   }
 
   let syllabusArray: any[] = [];
-  if (c.modules && Array.isArray(c.modules)) {
+  if (c.modules && Array.isArray(c.modules) && c.modules.length > 0) {
     syllabusArray = c.modules.map((m: any) => ({
       id: m.id,
       title: m.title,
       description: m.description || '',
-      lessonsCount: m.topics ? m.topics.reduce((acc: number, t: any) => acc + (t.learningUnits ? t.learningUnits.length : 0), 0) : 0,
+      lessonsCount: m.topics ? m.topics.reduce((acc: number, t: any) => acc + (t.learningUnits ? t.learningUnits.length : (t.units ? t.units.length : 0)), 0) : (m.lessons ? m.lessons.length : 1),
       duration: m.duration || '4 hours'
     }));
-  } else if (Array.isArray(c.syllabus)) {
+  } else if (Array.isArray(c.syllabus) && c.syllabus.length > 0) {
     syllabusArray = c.syllabus.map((item: any, idx: number) => {
       if (typeof item === 'string') {
         return {
           id: `m${idx + 1}`,
           title: item,
           description: '',
-          lessonsCount: 4,
-          duration: '8 Hours',
+          lessonsCount: 1,
+          duration: '3 Hours',
         };
       }
       return item;

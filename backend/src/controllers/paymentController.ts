@@ -142,11 +142,11 @@ export class PaymentController {
   }
 
   /**
-   * 3. Razorpay Webhook Handler (Idempotent signature validation & event handling)
+    * 3. Razorpay Webhook Handler (Idempotent signature validation & event handling)
    */
   public async razorpayWebhook(req: Request, res: Response): Promise<void> {
     try {
-      const rawSig = req.headers['x-razorpay-signature'] || req.headers['x-signature'] || req.headers['stripe-signature'];
+      const rawSig = req.headers['x-razorpay-signature'] || req.headers['x-signature'];
       const signature = Array.isArray(rawSig) ? rawSig[0] : (rawSig as string | undefined);
       
       const rawBody = typeof req.body === 'string'
@@ -168,13 +168,6 @@ export class PaymentController {
       logger.error('[PaymentController] Razorpay webhook processing error:', err);
       res.status(500).json({ success: false, message: err.message || 'Webhook processing failed' });
     }
-  }
-
-  /**
-   * Legacy alias for webhook endpoint
-   */
-  public async stripeWebhook(req: Request, res: Response): Promise<void> {
-    return this.razorpayWebhook(req, res);
   }
 
   /**

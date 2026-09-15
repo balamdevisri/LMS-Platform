@@ -3,7 +3,7 @@
  */
 
 export type PaymentStatus = 'PENDING' | 'SUCCESS' | 'FAILED' | 'REFUNDED' | 'CANCELLED';
-export type PaymentProvider = 'razorpay' | 'stripe' | 'shaivika_pay' | 'free_grant';
+export type PaymentProvider = 'razorpay' | 'shaivika_pay' | 'free_grant';
 
 export interface IPayment {
   id?: string;

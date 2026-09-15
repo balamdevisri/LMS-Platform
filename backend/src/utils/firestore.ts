@@ -34,9 +34,31 @@ export const fromFirestoreDateTime = (timestamp: any): Date => {
   return new Date();
 };
 
+const sanitizeValue = (val: any): any => {
+  if (val === undefined) return undefined;
+  if (val instanceof Date) return toFirestoreDateTime(val);
+  if (val instanceof FieldValue) return val;
+  if (Array.isArray(val)) {
+    return val
+      .filter((item) => item !== undefined)
+      .map((item) => sanitizeValue(item));
+  }
+  if (val !== null && typeof val === 'object') {
+    const obj: Record<string, any> = {};
+    for (const k of Object.keys(val)) {
+      const sanitized = sanitizeValue(val[k]);
+      if (sanitized !== undefined) {
+        obj[k] = sanitized;
+      }
+    }
+    return obj;
+  }
+  return val;
+};
+
 /**
  * Translates a typescript object to a document structure safe for saving in Firestore.
- * Removes 'id' and converts native Date objects to Firestore Timestamps.
+ * Removes top-level 'id' and converts native Date objects to Firestore Timestamps.
  */
 export const toDocument = <T extends Record<string, any>>(data: T): Record<string, any> => {
   if (!data) return {};
@@ -54,16 +76,11 @@ export const toDocument = <T extends Record<string, any>>(data: T): Record<strin
 
   for (const key of Object.keys(doc)) {
     const val = doc[key];
-    if (val instanceof Date) {
-      doc[key] = toFirestoreDateTime(val);
-    } else if (val === undefined) {
-      // Remove undefined values since Firestore rejects them
+    const sanitized = sanitizeValue(val);
+    if (sanitized === undefined) {
       delete doc[key];
-    } else if (val !== null && typeof val === 'object') {
-      // Handle nested objects recursively (e.g. instructor)
-      if (!(val instanceof FieldValue)) {
-        doc[key] = toDocument(val);
-      }
+    } else {
+      doc[key] = sanitized;
     }
   }
 
