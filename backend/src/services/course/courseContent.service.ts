@@ -97,8 +97,8 @@ export class CourseContentService {
         if ((!topics || !Array.isArray(topics) || topics.length === 0) && lessons.length > 0) {
           topics = [
             {
-              id: `${doc.id}-topic-1`,
-              title: `${raw.title || 'Module'} Units`,
+              id: raw.id ? raw.id.replace('mod-', 'topic-').replace('-mod', '-topic') : `${doc.id}-topic-1`,
+              title: `${raw.title || 'Module'} - Complete Notes`,
               description: raw.description || '',
               estimatedDuration: raw.duration || '30 mins',
               learningUnits: lessons.map((l) => ({
