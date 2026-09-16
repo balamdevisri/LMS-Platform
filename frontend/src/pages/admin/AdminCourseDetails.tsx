@@ -168,8 +168,37 @@ export const AdminCourseDetails: React.FC = () => {
       return;
     }
 
+    const normalizeAdminModules = (rawMods: any[]) => {
+      return (rawMods || []).filter(Boolean).map((m: any) => {
+        let topics = Array.isArray(m.topics) ? m.topics.filter(Boolean) : [];
+        if (topics.length === 0 && m.lessons && Array.isArray(m.lessons) && m.lessons.length > 0) {
+          topics = [
+            {
+              id: `${m.id}-direct-lessons`,
+              title: `${m.title || 'Module'} Units`,
+              description: m.description || '',
+              estimatedDuration: m.duration || '1 Hour',
+              learningUnits: m.lessons.filter(Boolean).map((l: any, lIdx: number) => ({
+                ...l,
+                id: l.id || `unit-${m.id}-${lIdx + 1}`,
+                title: l.title || `Lesson ${lIdx + 1}`,
+                description: l.description || '',
+                duration: l.duration || '15 mins',
+                type: l.type || 'Reading',
+                readingContent: l.readingContent || l.content || l.conceptTheory || '',
+              })),
+            },
+          ];
+        }
+        return {
+          ...m,
+          topics,
+        };
+      });
+    };
+
     if (course?.modules && course.modules.length > 0) {
-      setModules(course.modules);
+      setModules(normalizeAdminModules(course.modules));
     }
 
     setIsLoadingModules(true);
@@ -177,7 +206,7 @@ export const AdminCourseDetails: React.FC = () => {
     getCourseModules(course.id, true)
       .then((mods) => {
         if (mods && mods.length > 0) {
-          setModules(mods);
+          setModules(normalizeAdminModules(mods));
         }
         setIsHydrated(true);
         setIsLoadingModules(false);
@@ -295,28 +324,33 @@ export const AdminCourseDetails: React.FC = () => {
   let completedLearningHours = 0;
   let completedUnitsCount = 0;
 
-  modules.forEach((m) => {
-    totalTopics += m.topics.length;
-    m.topics.forEach((t) => {
-      totalUnitsCount += t.learningUnits.length;
-      t.learningUnits.forEach((u) => {
-        // Increment asset breakdown
+  modules.forEach((m: any) => {
+    if (!m) return;
+    const rawTopics = Array.isArray(m.topics) ? m.topics : [];
+    const directLessons = Array.isArray(m.lessons) ? m.lessons : [];
+
+    totalTopics += rawTopics.length || (directLessons.length > 0 ? 1 : 0);
+
+    // Process nested topics
+    rawTopics.forEach((t: any) => {
+      if (!t) return;
+      const units = Array.isArray(t.learningUnits) ? t.learningUnits : (Array.isArray(t.units) ? t.units : (Array.isArray(t.lessons) ? t.lessons : []));
+      totalUnitsCount += units.length;
+      units.forEach((u: any) => {
+        if (!u) return;
         if (u.type === 'Video') totalVideos++;
         else if (u.type === 'Reading') totalReadings++;
         else if (u.type === 'Quiz') totalQuizzes++;
         else if (u.type === 'Assignment') totalAssignments++;
 
-        // Add duration contribution
         const durationHours = parseDurationToHours(u.duration);
         totalLearningHours += durationHours;
 
-        // Check if content resources are successfully populated (Auditing Completeness)
         if (u.type === 'Video' && u.videoUrl) populatedUnitsCount++;
-        else if (u.type === 'Reading' && u.readingContent) populatedUnitsCount++;
+        else if (u.type === 'Reading' && (u.readingContent || u.content || u.conceptTheory)) populatedUnitsCount++;
         else if (u.type === 'Quiz' && u.quizQuestions && u.quizQuestions.length > 0) populatedUnitsCount++;
         else if (u.type === 'Assignment' && u.assignmentInstructions) populatedUnitsCount++;
 
-        // Student progress checking
         const isCompleted = !!completedUnitIds[u.id];
         if (isCompleted) {
           completedUnitsCount++;
@@ -328,6 +362,36 @@ export const AdminCourseDetails: React.FC = () => {
         }
       });
     });
+
+    // Process direct module lessons if no nested topics
+    if (rawTopics.length === 0 && directLessons.length > 0) {
+      totalUnitsCount += directLessons.length;
+      directLessons.forEach((u: any) => {
+        if (!u) return;
+        if (u.type === 'Video') totalVideos++;
+        else if (u.type === 'Reading' || !u.type) totalReadings++;
+        else if (u.type === 'Quiz') totalQuizzes++;
+        else if (u.type === 'Assignment') totalAssignments++;
+
+        const durationHours = parseDurationToHours(u.duration);
+        totalLearningHours += durationHours;
+
+        if (u.type === 'Video' && u.videoUrl) populatedUnitsCount++;
+        else if ((u.type === 'Reading' || !u.type) && (u.readingContent || u.content || u.conceptTheory)) populatedUnitsCount++;
+        else if (u.type === 'Quiz' && u.quizQuestions && u.quizQuestions.length > 0) populatedUnitsCount++;
+        else if (u.type === 'Assignment' && u.assignmentInstructions) populatedUnitsCount++;
+
+        const isCompleted = !!completedUnitIds[u.id];
+        if (isCompleted) {
+          completedUnitsCount++;
+          completedLearningHours += durationHours;
+          if (u.type === 'Video') completedVideosCount++;
+          else if (u.type === 'Reading' || !u.type) completedReadingsCount++;
+          else if (u.type === 'Quiz') completedQuizzesCount++;
+          else if (u.type === 'Assignment') completedAssignmentsCount++;
+        }
+      });
+    }
   });
 
   const completionPercentage = totalUnitsCount > 0 ? Math.round((populatedUnitsCount / totalUnitsCount) * 100) : 0;
@@ -610,7 +674,7 @@ export const AdminCourseDetails: React.FC = () => {
     await updateCourse(course.id, {
       modules: updated,
       expectedRevision: (course as any)?.revision ?? (course as any)?.version,
-    });
+    } as any);
     
     setExpandedIds({ [newModule.id]: true });
 

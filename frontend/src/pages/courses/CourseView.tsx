@@ -38,17 +38,19 @@ const CourseLearningLayout = lazyComponent(() => import('@/components/learning/C
 const CheckoutModal = lazyComponent(() => import('@/components/courses/CheckoutModal'), 'CheckoutModal');
 
 const mapCourseModulesToPlayerModules = (modules?: any[]): any[] => {
-  if (!modules) return [];
-  return modules.map((m) => {
+  if (!modules || !Array.isArray(modules)) return [];
+  return modules.filter(Boolean).map((m) => {
     let lessonsList: any[] = [];
     if (m.lessons && Array.isArray(m.lessons) && m.lessons.length > 0) {
-      lessonsList = m.lessons;
+      lessonsList = m.lessons.filter(Boolean);
     } else if (m.topics && Array.isArray(m.topics)) {
-      m.topics.forEach((t: any) => {
+      m.topics.filter(Boolean).forEach((t: any) => {
         if (t.learningUnits && Array.isArray(t.learningUnits)) {
-          t.learningUnits.forEach((u: any) => {
-            lessonsList.push(u);
-          });
+          lessonsList.push(...t.learningUnits.filter(Boolean));
+        } else if (t.units && Array.isArray(t.units)) {
+          lessonsList.push(...t.units.filter(Boolean));
+        } else if (t.lessons && Array.isArray(t.lessons)) {
+          lessonsList.push(...t.lessons.filter(Boolean));
         }
       });
     }
@@ -57,6 +59,7 @@ const mapCourseModulesToPlayerModules = (modules?: any[]): any[] => {
     const seenLessonIds = new Set<string>();
     const uniqueLessonsList: any[] = [];
     lessonsList.forEach((l: any) => {
+      if (!l) return;
       const lId = String(l.id || `lesson-${Date.now()}-${Math.random()}`);
       if (!seenLessonIds.has(lId)) {
         seenLessonIds.add(lId);
@@ -64,13 +67,13 @@ const mapCourseModulesToPlayerModules = (modules?: any[]): any[] => {
       }
     });
 
-    const enrichedLessons = uniqueLessonsList.map((l: any) => {
-      const lId = l.id || `lesson-${Date.now()}-${Math.random()}`;
-      const lTitle = l.title || 'Untitled Lesson';
-      const lContent = l.readingContent || l.content || l.description || 'Welcome to this lesson.';
+    const enrichedLessons = uniqueLessonsList.map((l: any, lIdx: number) => {
+      const lId = l.id || `lesson-${m.id || 'mod'}-${lIdx + 1}`;
+      const lTitle = l.title || `Lesson ${lIdx + 1}`;
+      const lContent = l.conceptTheory || l.readingContent || l.content || l.description || 'Welcome to this lesson.';
       const lDuration = l.duration || '15 mins';
-      const lType = l.type?.toLowerCase() || 'reading';
-      const lResources = l.resources || [];
+      const lType = l.type ? String(l.type).toLowerCase() : 'reading';
+      const lResources = l.resources || l.resourceLinks || [];
       const lQuiz = l.quiz || (l.quizQuestions ? {
         difficulty: l.quizDifficulty || 'Medium',
         passingScore: l.quizPassingScore || 70,
@@ -82,7 +85,7 @@ const mapCourseModulesToPlayerModules = (modules?: any[]): any[] => {
         ...l,
         id: lId,
         title: lTitle,
-        content: typeof lContent === 'string' ? lContent : JSON.stringify(lContent),
+        content: typeof lContent === 'string' ? lContent : (typeof lContent === 'object' ? JSON.stringify(lContent) : String(lContent || '')),
         duration: lDuration,
         type: lType,
         resources: lResources,
@@ -91,8 +94,8 @@ const mapCourseModulesToPlayerModules = (modules?: any[]): any[] => {
     });
 
     return {
-      id: m.id,
-      title: m.title,
+      id: m.id || `module-${Date.now()}`,
+      title: m.title || 'Course Module',
       duration: m.duration || '4 hours',
       lessons: enrichedLessons,
     };
@@ -130,14 +133,22 @@ export const CourseView: React.FC = () => {
     (user?.email && (user.email.includes('admin') || user.email === 'admin@gmail.com'))
   );
 
+  // Track loaded modules specifically tied to current targetCourseId
   const [courseModules, setCourseModules] = useState<any[]>(() => {
     return dynamicCourse?.modules && dynamicCourse.modules.length > 0 ? dynamicCourse.modules : [];
   });
+  const [loadedCourseId, setLoadedCourseId] = useState<string>(targetCourseId);
   const [isLoadingModules, setIsLoadingModules] = useState<boolean>(false);
 
   useEffect(() => {
     let isMounted = true;
-    if (!dynamicCourse) return;
+    if (!dynamicCourse || !targetCourseId) return;
+
+    // Reset module state if navigating to a different course
+    if (loadedCourseId !== targetCourseId) {
+      setLoadedCourseId(targetCourseId);
+      setCourseModules(dynamicCourse.modules && dynamicCourse.modules.length > 0 ? dynamicCourse.modules : []);
+    }
 
     if (dynamicCourse.modules && dynamicCourse.modules.length > 0) {
       setCourseModules(dynamicCourse.modules);
@@ -145,7 +156,7 @@ export const CourseView: React.FC = () => {
       setIsLoadingModules(true);
     }
 
-    const courseTarget = String(dynamicCourse.id || idOrSlug);
+    const courseTarget = targetCourseId;
 
     getCourseModules(courseTarget, true)
       .then((mods) => {
@@ -165,7 +176,7 @@ export const CourseView: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [dynamicCourse?.id, idOrSlug, getCourseModules]);
+  }, [targetCourseId, loadedCourseId, dynamicCourse, getCourseModules]);
 
   const [isEnrolled, setIsEnrolled] = useState<boolean>(() => {
     if (isAdminOrInstructor) return true;

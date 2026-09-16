@@ -122,33 +122,35 @@ export const CourseLearningLayout: React.FC<CourseLearningLayoutProps> = ({
     const seenUnitIds = new Set<string>();
 
     const addUnit = (item: any) => {
-      const uId = String(item.id);
+      if (!item) return;
+      const uId = String(item.id || `unit-${units.length + 1}`);
       if (seenUnitIds.has(uId)) return;
       seenUnitIds.add(uId);
       units.push(item);
     };
 
-    (modules || []).forEach((mod: any) => {
-      if (mod.topics && mod.topics.length > 0) {
-        mod.topics.forEach((top: any) => {
-          if (top.learningUnits && top.learningUnits.length > 0) {
-            top.learningUnits.forEach((u: any) => {
+    (modules || []).filter(Boolean).forEach((mod: any) => {
+      if (mod.topics && Array.isArray(mod.topics) && mod.topics.length > 0) {
+        mod.topics.filter(Boolean).forEach((top: any) => {
+          const rawUnits = top.learningUnits || top.units || top.lessons;
+          if (rawUnits && Array.isArray(rawUnits) && rawUnits.length > 0) {
+            rawUnits.filter(Boolean).forEach((u: any) => {
               if (!u.isDraft || isAdmin) {
                 addUnit({
                   ...u,
                   id: u.id,
-                  title: u.title,
-                  description: u.description,
+                  title: u.title || 'Untitled Unit',
+                  description: u.description || '',
                   topicTitle: top.title,
                   topicId: top.id,
                   moduleTitle: mod.title,
                   moduleId: mod.id,
                   learningObjectives: u.learningObjectives,
-                  conceptTheory: u.conceptTheory || u.readingContent || u.content,
+                  conceptTheory: u.conceptTheory || u.readingContent || u.content || u.description || '',
                   codeExamples: u.codeExamples,
                   keyPoints: u.keyPoints,
                   practiceQuestions: u.practiceQuestions,
-                  resourceLinks: u.resourceLinks,
+                  resourceLinks: u.resourceLinks || u.resources,
                   topicImageUrl: u.topicImageUrl || top.topicImageUrl || mod.topicImageUrl || null,
                   themeColor: u.themeColor || top.themeColor || mod.themeColor || null,
                   themeIcon: u.themeIcon || top.themeIcon || mod.themeIcon || null,
@@ -157,22 +159,22 @@ export const CourseLearningLayout: React.FC<CourseLearningLayoutProps> = ({
             });
           }
         });
-      } else if (mod.lessons && mod.lessons.length > 0) {
-        mod.lessons.forEach((l: any) => {
+      } else if (mod.lessons && Array.isArray(mod.lessons) && mod.lessons.length > 0) {
+        mod.lessons.filter(Boolean).forEach((l: any) => {
           if (!l.isDraft || isAdmin) {
             addUnit({
               ...l,
               id: l.id,
-              title: l.title,
-              description: l.description,
+              title: l.title || 'Untitled Lesson',
+              description: l.description || '',
               moduleTitle: mod.title,
               moduleId: mod.id,
               learningObjectives: l.learningObjectives,
-              conceptTheory: l.conceptTheory || l.readingContent || l.content,
+              conceptTheory: l.conceptTheory || l.readingContent || l.content || l.description || '',
               codeExamples: l.codeExamples,
               keyPoints: l.keyPoints,
               practiceQuestions: l.practiceQuestions,
-              resourceLinks: l.resourceLinks,
+              resourceLinks: l.resourceLinks || l.resources,
               topicImageUrl: l.topicImageUrl || mod.topicImageUrl || null,
               themeColor: l.themeColor || mod.themeColor || null,
               themeIcon: l.themeIcon || mod.themeIcon || null,

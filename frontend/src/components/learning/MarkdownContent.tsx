@@ -30,6 +30,47 @@ const SimulatorFallback: React.FC<{ label?: string }> = ({ label = 'practice sim
   </div>
 );
 
+/** Isolated block error boundary for practice widgets and diagrams */
+class BlockErrorBoundary extends React.Component<
+  { children: React.ReactNode; rawCode?: string; language?: string },
+  { hasError: boolean }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    console.warn('[MarkdownContent Practice Widget Fallback]:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      if (this.props.rawCode) {
+        return (
+          <div className="my-6 rounded-2xl overflow-hidden border border-slate-700/60 dark:border-slate-800 bg-[#0A0E1A] shadow-xl relative group">
+            <div className="flex items-center justify-between px-4 py-2.5 bg-[#0F172A] border-b border-slate-800/80">
+              <span className="text-xs font-mono font-bold text-[#38BDF8] uppercase tracking-wider">
+                {this.props.language || 'code'}
+              </span>
+              <CopyButton code={this.props.rawCode} />
+            </div>
+            <pre className="p-4 sm:p-5 overflow-x-auto bg-[#0A0E1A] text-sm font-mono leading-relaxed text-slate-100">
+              <code>{this.props.rawCode}</code>
+            </pre>
+          </div>
+        );
+      }
+      return null;
+    }
+    return this.props.children;
+  }
+}
+
 interface MarkdownContentProps {
   content: string;
   isNightMode?: boolean;
@@ -254,12 +295,14 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
             // ── Interactive Diagram & Flowcharts: Mermaid.js ─────────────
             if (language === 'mermaid' || language === 'flowchart' || language === 'sequence' || language === 'mindmap' || language === 'diagram') {
               return (
-                <Suspense fallback={<SimulatorFallback label="interactive diagram" />}>
-                  <MermaidDiagram
-                    chart={rawCode}
-                    isNightMode={isNightMode}
-                  />
-                </Suspense>
+                <BlockErrorBoundary rawCode={rawCode} language="mermaid">
+                  <Suspense fallback={<SimulatorFallback label="interactive diagram" />}>
+                    <MermaidDiagram
+                      chart={rawCode}
+                      isNightMode={isNightMode}
+                    />
+                  </Suspense>
+                </BlockErrorBoundary>
               );
             }
 
@@ -297,15 +340,17 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
               }
 
               return (
-                <Suspense fallback={<SimulatorFallback label="SQL playground" />}>
-                  <SqlPlayground
-                    title={customTitle}
-                    description={customDescription}
-                    initialSchema={schema || undefined}
-                    initialQuery={query || undefined}
-                    isNightMode={isNightMode}
-                  />
-                </Suspense>
+                <BlockErrorBoundary rawCode={rawCode} language="sql">
+                  <Suspense fallback={<SimulatorFallback label="SQL playground" />}>
+                    <SqlPlayground
+                      title={customTitle}
+                      description={customDescription}
+                      initialSchema={schema || undefined}
+                      initialQuery={query || undefined}
+                      isNightMode={isNightMode}
+                    />
+                  </Suspense>
+                </BlockErrorBoundary>
               );
             }
 
@@ -319,12 +364,14 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
               if (scenarioMatch) scenario = scenarioMatch[1].trim();
 
               return (
-                <Suspense fallback={<SimulatorFallback label="Linux terminal" />}>
-                  <LinuxTerminalSimulator
-                    title={title}
-                    initialScenario={scenario || undefined}
-                  />
-                </Suspense>
+                <BlockErrorBoundary rawCode={rawCode} language="bash">
+                  <Suspense fallback={<SimulatorFallback label="Linux terminal" />}>
+                    <LinuxTerminalSimulator
+                      title={title}
+                      initialScenario={scenario || undefined}
+                    />
+                  </Suspense>
+                </BlockErrorBoundary>
               );
             }
 
@@ -335,9 +382,11 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
               const title = titleMatch ? titleMatch[1].trim() : 'Interactive Git Sandbox';
 
               return (
-                <Suspense fallback={<SimulatorFallback label="Git sandbox" />}>
-                  <GitSandboxSimulator title={title} />
-                </Suspense>
+                <BlockErrorBoundary rawCode={rawCode} language="bash">
+                  <Suspense fallback={<SimulatorFallback label="Git sandbox" />}>
+                    <GitSandboxSimulator title={title} />
+                  </Suspense>
+                </BlockErrorBoundary>
               );
             }
 
@@ -358,30 +407,36 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
                 'python';
 
               return (
-                <Suspense fallback={<SimulatorFallback label="code editor" />}>
-                  <CodeEditorRunner
-                    language={detectedLang}
-                    initialCode={text || undefined}
-                  />
-                </Suspense>
+                <BlockErrorBoundary rawCode={rawCode} language={detectedLang}>
+                  <Suspense fallback={<SimulatorFallback label="code editor" />}>
+                    <CodeEditorRunner
+                      language={detectedLang}
+                      initialCode={text || undefined}
+                    />
+                  </Suspense>
+                </BlockErrorBoundary>
               );
             }
 
             // ── Interactive Practice: Web & React Live Playground ─────────
             if (language === 'practice-web' || language === 'practice-react' || language === 'web-playground') {
               return (
-                <Suspense fallback={<SimulatorFallback label="React playground" />}>
-                  <WebReactPlayground initialHtml={rawCode.trim() || undefined} />
-                </Suspense>
+                <BlockErrorBoundary rawCode={rawCode} language="jsx">
+                  <Suspense fallback={<SimulatorFallback label="React playground" />}>
+                    <WebReactPlayground initialHtml={rawCode.trim() || undefined} />
+                  </Suspense>
+                </BlockErrorBoundary>
               );
             }
 
             // ── Interactive Practice: Kubernetes Simulator ────────────────
             if (language === 'practice-k8s' || language === 'practice-kubernetes' || language === 'k8s-sim') {
               return (
-                <Suspense fallback={<SimulatorFallback label="Kubernetes simulator" />}>
-                  <KubernetesSimulator />
-                </Suspense>
+                <BlockErrorBoundary rawCode={rawCode} language="yaml">
+                  <Suspense fallback={<SimulatorFallback label="Kubernetes simulator" />}>
+                    <KubernetesSimulator />
+                  </Suspense>
+                </BlockErrorBoundary>
               );
             }
 
