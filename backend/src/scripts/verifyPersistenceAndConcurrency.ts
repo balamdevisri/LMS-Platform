@@ -21,7 +21,7 @@ async function runVerification() {
 
   const courseId = 'kubernetes-complete-course-beginner-to-advanced';
   const moduleId = 'k8s-mod-1';
-  const lessonId = 'k8s-lesson-1-1';
+  const lessonId = 'k8s-unit-1-1';
 
   // 1. Fetch the lesson from Firestore via courseContentService
   console.log(`[Step 1] Fetching canonical Kubernetes lesson ${courseId} / ${moduleId} / ${lessonId}...`);

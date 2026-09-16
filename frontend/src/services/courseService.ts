@@ -905,34 +905,67 @@ function normalizeCourseToICourse(c: any): ICourse {
   };
 }
 
+const CANONICAL_COURSE_IDS = new Set([
+  'c-programming-course-id',
+  'c-programming',
+  'course_linux_101',
+  'linux-systems-administration-mastery',
+  'data-structures-and-algorithms',
+  'database-management-system',
+  'dbms-beginner-to-advanced',
+  'git-github-mastery',
+  'git-github-mastery-course-id',
+  'java-through-oops-course-id',
+  'java-through-oops',
+  'javascript-mastery',
+  'javascript',
+  'kubernetes-complete-course-beginner-to-advanced',
+  'kubernetes-complete-course',
+  'nodejs-backend-development',
+  'nodejs',
+  'python-through-oops-course-id',
+  'python-through-oops',
+  'react-js-complete-course',
+  'web-development-fundamentals',
+  'web-development'
+]);
+
 const isRemovedMockCourse = (c: any): boolean => {
   if (!c) return true;
   const id = String(c.id || '').toLowerCase();
   const slug = String(c.slug || '').toLowerCase();
   const title = String(c.title || c.name || '').toLowerCase();
-  const desc = String(c.description || c.shortDescription || '').toLowerCase();
 
-  const removedSlugs = [
-    'react-from-zero-to-hero',
-    'nodejs-backend-development',
-    'node-js-backend-development',
-    'ai-fundamentals',
-    'prompt-engineering',
-    'python-programming',
-    'docker-kubernetes',
-    'linux-essentials',
+  // Explicitly protect all canonical courses
+  if (CANONICAL_COURSE_IDS.has(id) || CANONICAL_COURSE_IDS.has(slug)) return false;
+
+  const removedIds = [
+    '5km8arpoxsxwwh9rv10a',
+    'bhwapykpeomfgix9i7bs',
+    'ehlvc9v4fltzgqn8pmun',
+    'lroh8uy83ipsdbwcnt0x',
+    'rgccswnxvbxp6ozyj1ca',
+    'sad7povfypghix8yu0kf',
+    'tefmkyytrokoyshnaaax',
+    'wvwuw4g790fpgizorsgz',
+    'pcpsy9xhdouqslnnl0ka',
+    'grrklkyoybmzf8grlydr',
+    'hsmrd2bmu6hql8wzt2q1',
+    'tdkyifwuabhnekcshzxpr',
+    'gm7xthfy9s00jetjpilf',
+    'vqevk2bvepsk5ksecup',
+    'ycy651t3jrhkxjedgkt',
     'course_ai_llm_202',
     'course_devops_303'
   ];
 
-  if (removedSlugs.includes(slug) || removedSlugs.includes(id)) return true;
+  if (removedIds.includes(id)) return true;
   if (title.includes('untitled')) return true;
-  if (title.includes('react') && title.includes('zero')) return true;
-  if (title.includes('node.js') || title.includes('nodejs') || title.includes('backend development')) return true;
-  if (title.includes('ai fundamentals') || desc.includes('gateway to the world of artificial intelligence')) return true;
-  if (title.includes('prompt engineering')) return true;
-  if (title.includes('python programming') && !id.includes('user')) return true;
-  if (title.includes('docker') && title.includes('kubernetes')) return true;
+  if (title.includes('react from zero to hero') || slug === 'react-from-zero-to-hero') return true;
+  if (title === 'linux essentials' || slug === 'linux-essentials') return true;
+  if (title === 'prompt engineering' || slug === 'prompt-engineering') return true;
+  if (title === 'ai fundamentals' || slug === 'ai-fundamentals') return true;
+  if (title === 'docker & kubernetes' || slug === 'docker-kubernetes') return true;
 
   return false;
 };

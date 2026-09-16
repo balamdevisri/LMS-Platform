@@ -2,9 +2,18 @@ import { db } from '../firebase';
 import { CourseModuleDoc, CourseLessonDoc } from '../types/courseContent.types';
 import { toDocument } from '../utils/firestore';
 
+import fs from 'fs';
+import path from 'path';
+
 async function reconcileKubernetes() {
   const courseId = 'kubernetes-complete-course-beginner-to-advanced';
   console.log(`Starting canonical reconciliation for course "${courseId}"...`);
+
+  const contentJsonPath = path.resolve(__dirname, '../../../kubernetes_lms_content.json');
+  let rawJsonContent: any = { modules: [] };
+  if (fs.existsSync(contentJsonPath)) {
+    rawJsonContent = JSON.parse(fs.readFileSync(contentJsonPath, 'utf8'));
+  }
 
   const courseDocRef = db.collection('courses').doc(courseId);
   const courseSnap = await courseDocRef.get();
@@ -19,56 +28,77 @@ async function reconcileKubernetes() {
     throw new Error(`Expected 15 modules in root document, but found ${rawModules.length}`);
   }
 
-  // 1. Prepare normalized root modules with explicit order and orderIndex
+  // 1. Prepare normalized root modules with 1 Topic & 1 Complete Notes Unit matching Linux/React pattern
   const normalizedRootModules: any[] = rawModules.map((mod, idx) => {
     const modOrder = idx + 1;
-    const normalizedTopics = (mod.topics || []).map((top: any, tIdx: number) => {
-      const topOrder = tIdx + 1;
-      const normalizedUnits = (top.learningUnits || top.units || []).map((u: any, uIdx: number) => {
-        const uOrder = uIdx + 1;
-        const readingContent = u.readingContent || u.content || u.conceptTheory || '';
-        return {
-          ...u,
-          id: u.id || `k8s-unit-${modOrder}-${uOrder}`,
-          title: u.title,
-          description: u.description || '',
-          duration: u.duration || '25 mins',
-          type: u.type ? (u.type.charAt(0).toUpperCase() + u.type.slice(1).toLowerCase()) : 'Reading',
-          readingContent,
-          content: readingContent,
-          conceptTheory: readingContent,
-          order: uOrder,
-          orderIndex: uOrder,
-          learningObjectives: Array.isArray(u.learningObjectives) ? u.learningObjectives : [u.title],
-          codeExamples: Array.isArray(u.codeExamples) ? u.codeExamples : [],
-          keyPoints: Array.isArray(u.keyPoints) ? u.keyPoints : [],
-          practiceQuestions: Array.isArray(u.practiceQuestions) ? u.practiceQuestions : [],
-          resourceLinks: Array.isArray(u.resourceLinks) ? u.resourceLinks : [],
-          resources: Array.isArray(u.resources) ? u.resources : [],
-        };
-      });
+    const jsonMod = rawJsonContent.modules?.find((m: any) => m.module_number === modOrder);
+    
+    // Find existing content or use jsonMod content
+    const existingUnit = mod.topics?.[0]?.learningUnits?.[0] || {};
+    const fullNotes = (jsonMod?.content && jsonMod.content.length > 500)
+      ? jsonMod.content
+      : (existingUnit.readingContent || existingUnit.content || mod.description || '');
 
-      return {
-        ...top,
-        id: top.id || `k8s-topic-${modOrder}`,
-        title: top.title,
-        description: top.description || '',
-        estimatedDuration: top.estimatedDuration || '120 mins',
-        order: topOrder,
-        orderIndex: topOrder,
-        learningUnits: normalizedUnits,
-      };
-    });
+    const unitId = `k8s-unit-${modOrder}-1`;
+    const topicId = `k8s-topic-${modOrder}`;
+    const cleanTitle = mod.title.replace(/\s+Units$/, '');
+
+    const unit = {
+      id: unitId,
+      title: `${cleanTitle} - Complete Notes`,
+      description: `${cleanTitle} Complete Notes.`,
+      duration: mod.duration || '2.5 Hours',
+      type: 'Reading',
+      readingContent: fullNotes,
+      content: fullNotes,
+      conceptTheory: fullNotes,
+      order: 1,
+      orderIndex: 1,
+      learningObjectives: Array.isArray(existingUnit.learningObjectives) && existingUnit.learningObjectives.length > 0
+        ? existingUnit.learningObjectives
+        : [`Master core concepts of ${cleanTitle}`],
+      codeExamples: Array.isArray(existingUnit.codeExamples) ? existingUnit.codeExamples : [],
+      keyPoints: Array.isArray(existingUnit.keyPoints) ? existingUnit.keyPoints : [],
+      practiceQuestions: Array.isArray(existingUnit.practiceQuestions) ? existingUnit.practiceQuestions : [],
+      resourceLinks: Array.isArray(existingUnit.resourceLinks) ? existingUnit.resourceLinks : [],
+      resources: [
+        {
+          id: `res-${unitId}-notes`,
+          name: `${cleanTitle} - Study Notes.pdf`,
+          description: 'Comprehensive study guide and configuration snippets.',
+          category: 'PDF',
+          fileSize: '1.4 MB',
+          downloadPermission: true,
+        },
+        {
+          id: `res-${unitId}-cheatsheet`,
+          name: 'Kubernetes Kubectl Cheat Sheet.pdf',
+          description: 'Quick reference sheet for daily kubectl commands.',
+          category: 'PDF',
+          fileSize: '520 KB',
+          downloadPermission: true,
+        }
+      ],
+    };
+
+    const topic = {
+      id: topicId,
+      title: `${cleanTitle} - Complete Notes`,
+      description: `${cleanTitle} Complete Notes.`,
+      estimatedDuration: mod.duration || '2.5 Hours',
+      order: 1,
+      orderIndex: 1,
+      learningUnits: [unit],
+    };
 
     return {
-      ...mod,
-      id: mod.id || `k8s-mod-${modOrder}`,
+      id: `k8s-mod-${modOrder}`,
       order: modOrder,
       orderIndex: modOrder,
-      title: mod.title,
+      title: cleanTitle,
       description: mod.description || '',
-      duration: mod.duration || '3 Hours',
-      topics: normalizedTopics,
+      duration: mod.duration || '2.5 Hours',
+      topics: [topic],
     };
   });
 
