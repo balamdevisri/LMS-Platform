@@ -1,5 +1,5 @@
 import type { ICourse, CreateCourseDTO, UpdateCourseDTO, CourseFilterOptions, CoursePaginationResult, CourseLevel, CourseStatus, IVideoProgress } from '../../../shared/types/course';
-import { normalizeCourseData, auditCourseData } from './courseNormalizer';
+import { normalizeCourseData, auditCourseData, normalizeModuleItem } from './courseNormalizer';
 export type { ICourse };
 import { API_BASE_URL } from '../config/api';
 
@@ -899,7 +899,7 @@ function normalizeCourseToICourse(c: any): ICourse {
     rating: typeof c.rating === 'number' ? c.rating : 5.0,
     ratingCount: typeof c.ratingCount === 'number' ? c.ratingCount : (typeof c.reviews === 'number' ? c.reviews : 1),
     syllabus: syllabusArray,
-    modules: c.modules || [],
+    modules: (Array.isArray(c.modules) ? c.modules : []).filter(Boolean).map((m: any, idx: number) => normalizeModuleItem(m, `m${idx + 1}`)),
     createdAt: c.createdAt || new Date().toISOString(),
     updatedAt: c.updatedAt || new Date().toISOString(),
   };
@@ -1380,7 +1380,7 @@ class CourseService {
       if (res.ok) {
         const json = await res.json();
         if (json.success && Array.isArray(json.data) && json.data.length > 0) {
-          return json.data;
+          return json.data.filter(Boolean).map((m: any, idx: number) => normalizeModuleItem(m, `m${idx + 1}`));
         }
       }
     } catch (err) {
@@ -1405,7 +1405,7 @@ class CourseService {
                 (mData as any).lessons = lessons;
               }
             } catch (e) {}
-            modulesList.push(mData);
+            modulesList.push(normalizeModuleItem(mData, mDoc.id));
           }
           modulesList.sort((a: any, b: any) => (a.orderIndex ?? a.order ?? 0) - (b.orderIndex ?? b.order ?? 0));
           return modulesList;
@@ -1416,7 +1416,7 @@ class CourseService {
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (Array.isArray(data.modules) && data.modules.length > 0) {
-            return data.modules;
+            return data.modules.filter(Boolean).map((m: any, idx: number) => normalizeModuleItem(m, `m${idx + 1}`));
           }
         }
       }

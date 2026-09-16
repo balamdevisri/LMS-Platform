@@ -434,3 +434,125 @@ export function normalizeCourseData(rawCourse: any): ICourse {
     updatedAt: rawCourse.updatedAt || new Date().toISOString(),
   };
 }
+
+export function normalizeLearningUnitItem(u: any, fallbackId = 'unit-1'): any {
+  if (!u) {
+    return {
+      id: fallbackId,
+      title: 'Learning Unit',
+      description: '',
+      duration: '15 mins',
+      type: 'Reading',
+      readingContent: '',
+      conceptTheory: '',
+      quizQuestions: [],
+      resourceLinks: [],
+    };
+  }
+
+  const rawType = String(u.type || 'Reading');
+  let type = 'Reading';
+  const lowerType = rawType.toLowerCase();
+  if (lowerType.includes('video')) type = 'Video';
+  else if (lowerType.includes('quiz')) type = 'Quiz';
+  else if (lowerType.includes('assign')) type = 'Assignment';
+  else type = 'Reading';
+
+  const content = u.readingContent || u.conceptTheory || u.content || u.notes || '';
+
+  return {
+    ...u,
+    id: String(u.id || fallbackId),
+    title: u.title || 'Learning Unit',
+    description: u.description || '',
+    duration: u.duration || '15 mins',
+    type,
+    readingContent: content,
+    conceptTheory: u.conceptTheory || content,
+    videoUrl: u.videoUrl || u.video?.videoUrl || '',
+    quizQuestions: Array.isArray(u.quizQuestions) ? u.quizQuestions : (u.quiz?.questions && Array.isArray(u.quiz.questions) ? u.quiz.questions : []),
+    quizDifficulty: u.quizDifficulty || 'Medium',
+    quizPassingScore: typeof u.quizPassingScore === 'number' ? u.quizPassingScore : 70,
+    quizTimer: typeof u.quizTimer === 'number' ? u.quizTimer : 10,
+    assignmentInstructions: u.assignmentInstructions || (u.assignment?.instructions || ''),
+    resourceLinks: Array.isArray(u.resourceLinks) ? u.resourceLinks : (Array.isArray(u.resources) ? u.resources : []),
+    isDraft: Boolean(u.isDraft),
+    revision: typeof u.revision === 'number' ? u.revision : 1,
+  };
+}
+
+export function normalizeTopicItem(t: any, fallbackId = 'topic-1'): any {
+  if (!t) {
+    return {
+      id: fallbackId,
+      title: 'Topic',
+      description: '',
+      estimatedDuration: '45 mins',
+      learningUnits: [],
+    };
+  }
+
+  const rawUnits = Array.isArray(t.learningUnits)
+    ? t.learningUnits
+    : (Array.isArray(t.units)
+    ? t.units
+    : (Array.isArray(t.lessons) ? t.lessons : []));
+
+  const learningUnits = rawUnits.filter(Boolean).map((u: any, uIdx: number) =>
+    normalizeLearningUnitItem(u, `${fallbackId}-u${uIdx + 1}`)
+  );
+
+  return {
+    ...t,
+    id: String(t.id || fallbackId),
+    title: t.title || 'Topic',
+    description: t.description || '',
+    estimatedDuration: t.estimatedDuration || t.duration || '45 mins',
+    learningUnits,
+  };
+}
+
+export function normalizeModuleItem(m: any, fallbackId = 'mod-1'): any {
+  if (!m) {
+    return {
+      id: fallbackId,
+      title: 'Module',
+      description: '',
+      duration: '4 hours',
+      topics: [],
+    };
+  }
+
+  const modId = String(m.id || fallbackId);
+  let rawTopics = Array.isArray(m.topics) ? m.topics.filter(Boolean) : [];
+  const rawLessons = Array.isArray(m.lessons) ? m.lessons.filter(Boolean) : [];
+
+  // If no topics exist but direct lessons exist, wrap lessons into a structured topic
+  if (rawTopics.length === 0 && rawLessons.length > 0) {
+    rawTopics = [
+      {
+        id: `${modId}-topic-1`,
+        title: `${m.title || 'Module'} Units`,
+        description: m.description || '',
+        estimatedDuration: m.duration || '1 Hour',
+        learningUnits: rawLessons.map((l: any, lIdx: number) =>
+          normalizeLearningUnitItem(l, `${modId}-unit-${lIdx + 1}`)
+        ),
+      },
+    ];
+  }
+
+  const topics = rawTopics.map((t: any, tIdx: number) =>
+    normalizeTopicItem(t, `${modId}-t${tIdx + 1}`)
+  );
+
+  return {
+    ...m,
+    id: modId,
+    title: m.title || 'Module',
+    description: m.description || '',
+    duration: m.duration || '4 hours',
+    topics,
+  };
+}
+

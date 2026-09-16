@@ -188,6 +188,127 @@ export const DEFAULT_COURSE_PRICES: Record<string, number> = {
   'prompt-engineering': 199,
 };
 
+export const normalizeLearningUnitItem = (u: any, fallbackId = 'unit-1'): LearningUnitItem => {
+  if (!u) {
+    return {
+      id: fallbackId,
+      title: 'Learning Unit',
+      description: '',
+      duration: '15 mins',
+      type: 'Reading',
+      readingContent: '',
+      conceptTheory: '',
+      quizQuestions: [],
+      resourceLinks: [],
+    };
+  }
+
+  const rawType = String(u.type || 'Reading');
+  let type: LearningUnitType = 'Reading';
+  const lowerType = rawType.toLowerCase();
+  if (lowerType.includes('video')) type = 'Video';
+  else if (lowerType.includes('quiz')) type = 'Quiz';
+  else if (lowerType.includes('assign')) type = 'Assignment';
+  else type = 'Reading';
+
+  const content = u.readingContent || u.conceptTheory || u.content || u.notes || '';
+
+  return {
+    ...u,
+    id: String(u.id || fallbackId),
+    title: u.title || 'Learning Unit',
+    description: u.description || '',
+    duration: u.duration || '15 mins',
+    type,
+    readingContent: content,
+    conceptTheory: u.conceptTheory || content,
+    videoUrl: u.videoUrl || u.video?.videoUrl || '',
+    quizQuestions: Array.isArray(u.quizQuestions) ? u.quizQuestions : (u.quiz?.questions && Array.isArray(u.quiz.questions) ? u.quiz.questions : []),
+    quizDifficulty: u.quizDifficulty || 'Medium',
+    quizPassingScore: typeof u.quizPassingScore === 'number' ? u.quizPassingScore : 70,
+    quizTimer: typeof u.quizTimer === 'number' ? u.quizTimer : 10,
+    assignmentInstructions: u.assignmentInstructions || (u.assignment?.instructions || ''),
+    resourceLinks: Array.isArray(u.resourceLinks) ? u.resourceLinks : (Array.isArray(u.resources) ? u.resources : []),
+    isDraft: Boolean(u.isDraft),
+    revision: typeof u.revision === 'number' ? u.revision : 1,
+  };
+};
+
+export const normalizeTopicItem = (t: any, fallbackId = 'topic-1'): TopicItem => {
+  if (!t) {
+    return {
+      id: fallbackId,
+      title: 'Topic',
+      description: '',
+      estimatedDuration: '45 mins',
+      learningUnits: [],
+    };
+  }
+
+  const rawUnits = Array.isArray(t.learningUnits)
+    ? t.learningUnits
+    : (Array.isArray(t.units)
+    ? t.units
+    : (Array.isArray(t.lessons) ? t.lessons : []));
+
+  const learningUnits = rawUnits.filter(Boolean).map((u: any, uIdx: number) =>
+    normalizeLearningUnitItem(u, `${fallbackId}-u${uIdx + 1}`)
+  );
+
+  return {
+    ...t,
+    id: String(t.id || fallbackId),
+    title: t.title || 'Topic',
+    description: t.description || '',
+    estimatedDuration: t.estimatedDuration || t.duration || '45 mins',
+    learningUnits,
+  };
+};
+
+export const normalizeModuleItem = (m: any, fallbackId = 'mod-1'): ModuleItem => {
+  if (!m) {
+    return {
+      id: fallbackId,
+      title: 'Module',
+      description: '',
+      duration: '4 hours',
+      topics: [],
+    };
+  }
+
+  const modId = String(m.id || fallbackId);
+  let rawTopics = Array.isArray(m.topics) ? m.topics.filter(Boolean) : [];
+  const rawLessons = Array.isArray(m.lessons) ? m.lessons.filter(Boolean) : [];
+
+  // If no topics exist but direct lessons exist, wrap lessons into a structured topic
+  if (rawTopics.length === 0 && rawLessons.length > 0) {
+    rawTopics = [
+      {
+        id: `${modId}-topic-1`,
+        title: `${m.title || 'Module'} Units`,
+        description: m.description || '',
+        estimatedDuration: m.duration || '1 Hour',
+        learningUnits: rawLessons.map((l: any, lIdx: number) =>
+          normalizeLearningUnitItem(l, `${modId}-unit-${lIdx + 1}`)
+        ),
+      },
+    ];
+  }
+
+  const topics = rawTopics.map((t: any, tIdx: number) =>
+    normalizeTopicItem(t, `${modId}-t${tIdx + 1}`)
+  );
+
+  return {
+    ...m,
+    id: modId,
+    title: m.title || 'Module',
+    description: m.description || '',
+    duration: m.duration || '4 hours',
+    topics,
+  };
+};
+
 export const normalizeContextCourse = (c: any): CourseItem => {
   const id = String(c.id || c.courseId || `course_${Date.now()}`);
   const title = c.title || 'Untitled Course';
@@ -212,6 +333,11 @@ export const normalizeContextCourse = (c: any): CourseItem => {
     ? rawPrice
     : (defaultPrice > 0 ? defaultPrice : (rawPrice !== undefined ? rawPrice : 0));
 
+  const rawModules = Array.isArray(c.modules) ? c.modules : [];
+  const normalizedModules = rawModules.filter(Boolean).map((m: any, idx: number) =>
+    normalizeModuleItem(m, `m${idx + 1}`)
+  );
+
   return {
     id,
     title,
@@ -227,7 +353,7 @@ export const normalizeContextCourse = (c: any): CourseItem => {
     category: c.category || 'General',
     level: c.level || 'All Levels',
     badge: c.badge || (c.featured ? 'Featured Track' : undefined),
-    tracks: c.tracks || `${c.modules?.length || 0} Modules`,
+    tracks: c.tracks || `${normalizedModules.length || 0} Modules`,
     status: statusVal,
     price,
     thumbnail: c.thumbnail || c.thumbnailUrl || c.banner || '/assets/images/linux_course_thumbnail.webp',
@@ -245,7 +371,7 @@ export const normalizeContextCourse = (c: any): CourseItem => {
     createdAt: c.createdAt || new Date().toISOString(),
     created: c.created || c.createdAt,
     syllabus: Array.isArray(c.syllabus) ? c.syllabus : [],
-    modules: Array.isArray(c.modules) ? c.modules : [],
+    modules: normalizedModules,
   };
 };
 
@@ -283,7 +409,18 @@ export const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
 const CourseContext = createContext<CourseContextType | undefined>(undefined);
 
 export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [courses, setCourses] = useState<CourseItem[]>([]);
+  const [courses, setCourses] = useState<CourseItem[]>(() => {
+    try {
+      const stored = localStorage.getItem('shaivika_courses_data');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return sanitizeCourseList(parsed);
+        }
+      }
+    } catch (e) {}
+    return [];
+  });
 
   const refreshCourses = useCallback(async (forceRefresh = false) => {
     try {
@@ -440,17 +577,20 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     try {
       const apiMods = await courseService.getCourseModules(targetId, forceRefresh);
       if (apiMods && apiMods.length > 0) {
+        const normalizedMods = apiMods.filter(Boolean).map((m: any, idx: number) =>
+          normalizeModuleItem(m, `m${idx + 1}`)
+        );
         setCourses((prev) =>
           prev.map((c) => {
             const cId = String(c.id).toLowerCase().trim();
             const cSlug = String((c as any).slug || '').toLowerCase().trim();
             if (cId === target || cSlug === target || cId === targetId.toLowerCase().trim()) {
-              return { ...c, modules: apiMods };
+              return { ...c, modules: normalizedMods };
             }
             return c;
           })
         );
-        return apiMods;
+        return normalizedMods;
       }
     } catch (e) {
       console.warn(`[CourseContext] Error loading modules for ${target}:`, e);

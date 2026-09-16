@@ -290,13 +290,14 @@ export const CourseLearningLayout: React.FC<CourseLearningLayoutProps> = ({
       if (!isValidCurrent) {
         const lastActive = localStorage.getItem(`shaivika_last_active_${courseId}`);
         if (lastActive && allLessons.some((l) => String(l.id) === String(lastActive))) {
-          setSelectedLessonId(lastActive);
+          setSelectedLessonId((prev) => (String(prev) === String(lastActive) ? prev : lastActive));
         } else {
           const saved = localStorage.getItem(`shaivika_completed_${courseId}`);
           let completedIds: (string | number)[] = [];
           try { completedIds = saved ? JSON.parse(saved) : []; } catch {}
           const firstUncompleted = allLessons.find((l) => !completedIds.includes(l.id));
-          setSelectedLessonId(firstUncompleted ? firstUncompleted.id : allLessons[0].id);
+          const targetId = firstUncompleted ? firstUncompleted.id : allLessons[0].id;
+          setSelectedLessonId((prev) => (String(prev) === String(targetId) ? prev : targetId));
         }
       }
     }
@@ -310,11 +311,8 @@ export const CourseLearningLayout: React.FC<CourseLearningLayoutProps> = ({
 
   useEffect(() => {
     const current = allLessons.find((l) => String(l.id) === String(selectedLessonId)) as any;
-    if (current?.type === 'Quiz' || current?.type === 'quiz' || current?.isQuiz) {
-      setActiveViewMode('quiz');
-    } else {
-      setActiveViewMode('content');
-    }
+    const targetMode = (current?.type === 'Quiz' || current?.type === 'quiz' || current?.isQuiz) ? 'quiz' : 'content';
+    setActiveViewMode((prev) => (prev === targetMode ? prev : targetMode));
   }, [selectedLessonId, allLessons]);
 
   // ── AI Tutor state ─────────────────────────────────────────────────────
@@ -485,7 +483,7 @@ export const CourseLearningLayout: React.FC<CourseLearningLayoutProps> = ({
     } catch (err) {
       console.error('Failed to save completion state', err);
     }
-  }, [completedLessonIds, courseId, allLessons, studentUid]);
+  }, [completedLessonIds, courseId, allLessons.length, studentUid]);
 
   // ── Lock body scroll ───────────────────────────────────────────────────
   useEffect(() => {
