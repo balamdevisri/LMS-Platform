@@ -1,316 +1,1460 @@
-import type { ModuleItem, LearningUnitItem } from '../contexts/CourseContext';
-
-const createLesson = (
-  id: string,
-  title: string,
-  desc: string,
-  duration: string,
-  type: 'Video' | 'Reading' | 'Assignment' | 'Quiz',
-  readingContent: string,
-  codeExamples?: Array<{ title: string; language: string; code: string; explanation?: string }>,
-  keyPoints?: string[],
-  practiceQuestions?: Array<{ question: string; answer: string; explanation?: string; difficulty?: 'Easy' | 'Medium' | 'Hard' }>,
-  resourceLinks?: Array<{ title: string; url: string; description?: string }>
-): LearningUnitItem => ({
-  id,
-  title,
-  description: desc,
-  duration,
-  type,
-  readingContent,
-  practiceLabChallenge: undefined,
-  codeExamples,
-  keyPoints,
-  practiceQuestions: practiceQuestions?.map((pq, idx) => ({ id: `pq-${id}-${idx}`, ...pq })),
-  resourceLinks: resourceLinks?.map((rl, idx) => ({ id: `res-${id}-${idx}`, ...rl })),
-  resources: [
-    {
-      id: `res-${id}-pdf-notes`,
-      name: 'DBMS Complete Notes.pdf',
-      description: 'Database Management Systems & SQL Complete Notes.',
-      category: 'PDF',
-      fileSize: '4.9 MB',
-      downloadPermission: true,
-      url: '/dbms-complete-notes.pdf'
-    }
-  ]
-});
-
-const dbmsSyllabusNotes: Record<number, string> = {
-  1: `# Module 1: Introduction to DBMS & Relational Model
-
-## Overview
-A Database Management System (DBMS) is enterprise software designed to store, manage, query, and secure electronic data. Relational Database Management Systems (RDBMS) model data into two-dimensional tables (relations) comprising rows (tuples) and columns (attributes).
-
-## Learning Objectives
-- Differentiate between Raw Data, Information, Metadata, and Database Schemas.
-- Understand the limitations of File Systems (Data Redundancy, Inconsistency, Lack of Concurrency).
-- Master 3-Tier ANSI-SPARC DBMS Architecture (Physical, Conceptual, External Views).
-
-## Key Characteristics of RDBMS
-- **Tabular Structure**: Data is modeled strictly as tuples (records) within relations (tables).
-- **Schema-Enforced Integrity**: Primary keys, Foreign keys, Unique, and Check constraints.
-- **Declarative Querying**: SQL allows developers to specify *what* data to retrieve rather than *how*.
-`,
-
-  2: `# Module 2: SQL Fundamentals & Data Definition Language (DDL)
-
-## Overview
-Data Definition Language (DDL) defines, alters, and drops schema objects. Understanding data types, primary keys, and foreign keys forms the backbone of any relational database.
-
-## Learning Objectives
-- Master \`CREATE TABLE\`, \`ALTER TABLE\`, \`DROP TABLE\`, and \`TRUNCATE TABLE\`.
-- Implement constraints: \`PRIMARY KEY\`, \`FOREIGN KEY\`, \`NOT NULL\`, \`UNIQUE\`, and \`CHECK\`.
-- Configure Cascade rules: \`ON DELETE CASCADE\` and \`ON UPDATE CASCADE\`.
-
-## Example: Production Student Table
-\`\`\`sql
-CREATE TABLE students (
-    student_id VARCHAR(36) PRIMARY KEY,
-    full_name VARCHAR(100) NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    xp_points INT DEFAULT 0 CHECK (xp_points >= 0),
-    enrolled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-\`\`\`
-`,
-
-  3: `# Module 3: Data Manipulation Language (DML) & Basic Queries
-
-## Overview
-Data Manipulation Language (DML) allows inserting, updating, deleting, and querying records. 
-
-## Learning Objectives
-- Master \`INSERT INTO\`, \`UPDATE\`, and \`DELETE FROM\`.
-- Execute targeted \`SELECT\` queries with \`WHERE\`, \`ORDER BY\`, \`LIMIT\`, and \`OFFSET\`.
-- Utilize Pattern Matching with \`LIKE\` and SQL Wildcards (\`%\`, \`_\`).
-- Perform Aggregations with \`COUNT()\`, \`SUM()\`, \`AVG()\`, \`MIN()\`, \`MAX()\`, and \`GROUP BY\`.
-
-## Example: Querying Top Students
-\`\`\`sql
-SELECT full_name, email, xp_points
-FROM students
-WHERE xp_points > 250
-ORDER BY xp_points DESC
-LIMIT 10;
-\`\`\`
-`,
-
-  4: `# Module 4: Relational JOINs & Subqueries
-
-## Overview
-Relational power comes from linking normalized tables together through foreign keys and querying them efficiently using JOIN operations.
-
-## Learning Objectives
-- Master JOIN types:
-  - **INNER JOIN**: Returns records matching in both tables.
-  - **LEFT (OUTER) JOIN**: Returns all left table records and matched right records.
-  - **RIGHT (OUTER) JOIN**: Returns all right table records and matched left records.
-  - **FULL (OUTER) JOIN**: Returns all records when there is a match in either table.
-  - **CROSS JOIN**: Cartesian product of two tables.
-- Write correlated and non-correlated Subqueries.
-
-## Example: Student Course Enrollments Query
-\`\`\`sql
-SELECT 
-    s.full_name,
-    c.title AS course_title,
-    e.progress_percentage
-FROM students s
-LEFT JOIN course_enrollments e ON s.student_id = e.student_id
-LEFT JOIN courses c ON e.course_id = c.id
-WHERE s.xp_points >= 100;
-\`\`\`
-`,
-
-  5: `# Module 5: Database Normalization (1NF, 2NF, 3NF, BCNF)
-
-## Overview
-Normalization is the systematic formal process of decomposing tables to eliminate update, insertion, and deletion anomalies while minimizing data redundancy.
-
-## Learning Objectives
-- Identify Functional Dependencies ($X \\to Y$).
-- **First Normal Form (1NF)**: Atomic attributes, no repeating groups, unique primary key.
-- **Second Normal Form (2NF)**: In 1NF and no partial dependencies (every non-prime attribute is fully functionally dependent on the candidate key).
-- **Third Normal Form (3NF)**: In 2NF and no transitive dependencies ($A \\to B$ and $B \\to C$).
-- **Boyce-Codd Normal Form (BCNF)**: For every functional dependency $X \\to Y$, $X$ must be a super key.
-
-> 💡 **Tip:** 3NF is the universal industry sweet-spot for OLTP applications balancing normalization cleanliness with query performance.
-`,
-
-  6: `# Module 6: Transactions, ACID Properties & Concurrency
-
-## Overview
-A Transaction is a logical unit of database processing consisting of one or more SQL operations executed as an indivisible atomic block.
-
-## Learning Objectives
-- Master the ACID Properties:
-  - **Atomicity**: All operations succeed or all are rolled back (\`COMMIT\` / \`ROLLBACK\`).
-  - **Consistency**: The database transitions from one valid state to another satisfying all integrity constraints.
-  - **Isolation**: Concurrent transactions execute without interfering with one another.
-  - **Durability**: Committed data persists across crashes and power losses (Write-Ahead Logging).
-- Understand Concurrency Anomalies: Dirty Reads, Non-Repeatable Reads, and Phantom Reads.
-- Master ANSI Transaction Isolation Levels: \`READ UNCOMMITTED\`, \`READ COMMITTED\`, \`REPEATABLE READ\`, and \`SERIALIZABLE\`.
-
-## Example: ACID Transaction Block
-\`\`\`sql
-BEGIN TRANSACTION;
-
--- Deduct balance from student wallet
-UPDATE user_wallets 
-SET balance = balance - 49.99 
-WHERE user_id = 'user_123' AND balance >= 49.99;
-
--- Record course enrollment
-INSERT INTO enrollments (user_id, course_id, enrolled_at)
-VALUES ('user_123', 'c-programming-course-id', CURRENT_TIMESTAMP);
-
-COMMIT;
-\`\`\`
-`
-};
+import type { ModuleItem } from '../contexts/CourseContext';
 
 export const dbmsCourseModules: ModuleItem[] = [
   {
-    id: 'dbms-mod-1',
-    title: 'Module 1: Introduction to DBMS & Relational Model',
-    description: 'DBMS fundamentals, 3-tier architecture, and relational concepts.',
-    duration: '4 Hours',
-    topics: [
+    "duration": "4 Hours",
+    "courseId": "database-management-system",
+    "order": 1,
+    "orderIndex": 1,
+    "description": "DBMS fundamentals, 3-tier architecture, and relational concepts.",
+    "id": "dbms-mod-1",
+    "title": "Module 1: Introduction to DBMS & Relational Model",
+    "updatedAt": "2026-09-01T06:50:37.901Z",
+    "revision": 1,
+    "lessons": [
       {
-        id: 'dbms-top-1',
-        title: 'Data, DBMS & Relational Architecture',
-        description: 'Data vs information, metadata, file systems vs DBMS, and ANSI-SPARC architecture.',
-        estimatedDuration: '45 mins',
-        learningUnits: [
-          createLesson(
-            'dbms-unit-1-notes',
-            'Module 1 - Complete Notes',
-            'DBMS Architecture & Relational Data Model.',
-            '45 mins',
-            'Reading',
-            dbmsSyllabusNotes[1]
-          )
+        "duration": "15 mins",
+        "moduleId": "dbms-mod-1",
+        "title": "1.1 What is Data?",
+        "type": "reading",
+        "courseId": "database-management-system",
+        "content": "## 1.1 What is Data?\n### What is Data?\nData is a collection of raw, unorganized facts, figures, symbols, or observations that can be processed to produce meaningful information. In computing, data is represented in binary format and structured in databases.",
+        "order": 1,
+        "orderIndex": 1,
+        "updatedAt": "2026-08-26T16:26:21.716Z",
+        "id": "dbms-les-101",
+        "revision": 1,
+        "readingContent": "## 1.1 What is Data?\n### What is Data?\nData is a collection of raw, unorganized facts, figures, symbols, or observations that can be processed to produce meaningful information. In computing, data is represented in binary format and structured in databases."
+      },
+      {
+        "estimatedReadMinutes": 2,
+        "moduleTitle": "Module 1: Introduction to DBMS & Relational Model",
+        "title": "Module 1 - Complete Notes",
+        "type": "Reading",
+        "content": "# Module 1: Introduction to DBMS & Relational Model\n## Overview\nA Database Management System (DBMS) is enterprise software designed to store, manage, query, and secure electronic data. Relational Database Management Systems (RDBMS) model data into two-dimensional tables (relations) comprising rows (tuples) and columns (attributes).\n\n## Learning Objectives\n- Differentiate between Raw Data, Information, Metadata, and Database Schemas.\n- Understand the limitations of File Systems (Data Redundancy, Inconsistency, Lack of Concurrency).\n- Master 3-Tier ANSI-SPARC DBMS Architecture (Physical, Conceptual, External Views).\n## Architecture: 3-Tier ANSI/SPARC Framework\n```text\n┌─────────────────────────────────────────────────────────────┐\n│                       External Level                        │\n│            View 1 (Student)        View 2 (Instructor)      │\n└──────────────────────────────┬──────────────────────────────┘\n                               │ (External/Conceptual Mapping)\n┌──────────────────────────────▼──────────────────────────────┐\n│                      Conceptual Level                       │\n│             Logical Schema (Entities, Relationships)        │\n└──────────────────────────────┬──────────────────────────────┘\n                               │ (Conceptual/Internal Mapping)\n┌──────────────────────────────▼──────────────────────────────┐\n│                       Internal Level                        │\n│               Physical Storage (B-Trees, Blocks)            │\n└─────────────────────────────────────────────────────────────┘\n```\n> 💡 **Tip:** Logical Data Independence allows changing the conceptual schema (adding columns/tables) without altering the user views or external application code.",
+        "duration": "45 mins",
+        "createdAt": "2026-09-01T06:50:37.901Z",
+        "orderIndex": 1,
+        "id": "dbms-unit-1-notes",
+        "moduleId": "dbms-mod-1",
+        "courseId": "database-management-system",
+        "order": 1,
+        "updatedAt": "2026-09-01T06:50:37.901Z",
+        "revision": 1,
+        "readingContent": "# Module 1: Introduction to DBMS & Relational Model\n## Overview\nA Database Management System (DBMS) is enterprise software designed to store, manage, query, and secure electronic data. Relational Database Management Systems (RDBMS) model data into two-dimensional tables (relations) comprising rows (tuples) and columns (attributes).\n\n## Learning Objectives\n- Differentiate between Raw Data, Information, Metadata, and Database Schemas.\n- Understand the limitations of File Systems (Data Redundancy, Inconsistency, Lack of Concurrency).\n- Master 3-Tier ANSI-SPARC DBMS Architecture (Physical, Conceptual, External Views).\n## Architecture: 3-Tier ANSI/SPARC Framework\n```text\n┌─────────────────────────────────────────────────────────────┐\n│                       External Level                        │\n│            View 1 (Student)        View 2 (Instructor)      │\n└──────────────────────────────┬──────────────────────────────┘\n                               │ (External/Conceptual Mapping)\n┌──────────────────────────────▼──────────────────────────────┐\n│                      Conceptual Level                       │\n│             Logical Schema (Entities, Relationships)        │\n└──────────────────────────────┬──────────────────────────────┘\n                               │ (Conceptual/Internal Mapping)\n┌──────────────────────────────▼──────────────────────────────┐\n│                       Internal Level                        │\n│               Physical Storage (B-Trees, Blocks)            │\n└─────────────────────────────────────────────────────────────┘\n```\n> 💡 **Tip:** Logical Data Independence allows changing the conceptual schema (adding columns/tables) without altering the user views or external application code."
+      },
+      {
+        "duration": "20 mins",
+        "moduleId": "dbms-mod-1",
+        "title": "1.2 What is Database?",
+        "type": "video",
+        "courseId": "database-management-system",
+        "content": "## 1.2 What is Database?\n### What is a Database?\nA database is an organized collection of structured data stored electronically in a computer system. Databases are controlled by a Database Management System (DBMS).",
+        "order": 2,
+        "orderIndex": 2,
+        "updatedAt": "2026-08-26T16:26:22.420Z",
+        "id": "dbms-les-102",
+        "revision": 1,
+        "readingContent": "## 1.2 What is Database?\n### What is a Database?\nA database is an organized collection of structured data stored electronically in a computer system. Databases are controlled by a Database Management System (DBMS)."
+      },
+      {
+        "duration": "25 mins",
+        "moduleId": "dbms-mod-1",
+        "title": "1.3 DBMS Introduction",
+        "type": "reading",
+        "courseId": "database-management-system",
+        "content": "## 1.3 DBMS Introduction\n### Introduction to DBMS\nA Database Management System (DBMS) is software that manages databases, allowing users to store, retrieve, update, and organize information efficiently while ensuring data integrity.",
+        "order": 3,
+        "orderIndex": 3,
+        "updatedAt": "2026-08-26T16:26:23.106Z",
+        "id": "dbms-les-103",
+        "revision": 1,
+        "readingContent": "## 1.3 DBMS Introduction\n### Introduction to DBMS\nA Database Management System (DBMS) is software that manages databases, allowing users to store, retrieve, update, and organize information efficiently while ensuring data integrity."
+      },
+      {
+        "duration": "20 mins",
+        "moduleId": "dbms-mod-1",
+        "title": "1.4 Database vs File System",
+        "type": "video",
+        "courseId": "database-management-system",
+        "content": "## 1.4 Database vs File System\n### Database vs File System\nUnlike traditional file systems, a DBMS handles data redundancy, concurrency control, security, data integrity, and complex queries seamlessly.",
+        "order": 4,
+        "orderIndex": 4,
+        "updatedAt": "2026-08-26T16:26:23.819Z",
+        "id": "dbms-les-104",
+        "revision": 1,
+        "readingContent": "## 1.4 Database vs File System\n### Database vs File System\nUnlike traditional file systems, a DBMS handles data redundancy, concurrency control, security, data integrity, and complex queries seamlessly."
+      },
+      {
+        "duration": "15 mins",
+        "moduleId": "dbms-mod-1",
+        "title": "1.5 Advantages of DBMS",
+        "type": "reading",
+        "courseId": "database-management-system",
+        "content": "## 1.5 Advantages of DBMS\n## Advantages of DBMS\nKey benefits include: minimized data redundancy, data sharing, data consistency, transactional safety, secure access, and backup & recovery services.",
+        "order": 5,
+        "orderIndex": 5,
+        "updatedAt": "2026-08-26T16:26:24.498Z",
+        "id": "dbms-les-105",
+        "revision": 1,
+        "readingContent": "## 1.5 Advantages of DBMS\n## Advantages of DBMS\nKey benefits include: minimized data redundancy, data sharing, data consistency, transactional safety, secure access, and backup & recovery services."
+      },
+      {
+        "duration": "15 mins",
+        "moduleId": "dbms-mod-1",
+        "title": "1.6 Types of Databases",
+        "type": "reading",
+        "courseId": "database-management-system",
+        "content": "## 1.6 Types of Databases\n### Types of Databases\nDatabases are categorized into Relational (RDBMS), NoSQL (Key-Value, Document, Graph), Distributed, Cloud, and Object-Oriented databases.",
+        "order": 6,
+        "orderIndex": 6,
+        "updatedAt": "2026-08-26T16:26:25.186Z",
+        "id": "dbms-les-106",
+        "revision": 1,
+        "readingContent": "## 1.6 Types of Databases\n### Types of Databases\nDatabases are categorized into Relational (RDBMS), NoSQL (Key-Value, Document, Graph), Distributed, Cloud, and Object-Oriented databases."
+      }
+    ],
+    "topics": [
+      {
+        "id": "dbms-mod-1-topic-1",
+        "title": "Module 1: Introduction to DBMS & Relational Model Units",
+        "description": "DBMS fundamentals, 3-tier architecture, and relational concepts.",
+        "estimatedDuration": "4 Hours",
+        "learningUnits": [
+          {
+            "id": "dbms-les-101",
+            "title": "1.1 What is Data?",
+            "description": "",
+            "duration": "15 mins",
+            "type": "Reading",
+            "readingContent": "### What is Data?\nData is a collection of raw, unorganized facts, figures, symbols, or observations that can be processed to produce meaningful information. In computing, data is represented in binary format and structured in databases.",
+            "content": "### What is Data?\nData is a collection of raw, unorganized facts, figures, symbols, or observations that can be processed to produce meaningful information. In computing, data is represented in binary format and structured in databases.",
+            "conceptTheory": "### What is Data?\nData is a collection of raw, unorganized facts, figures, symbols, or observations that can be processed to produce meaningful information. In computing, data is represented in binary format and structured in databases.",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 1,
+            "order": 1
+          },
+          {
+            "id": "dbms-unit-1-notes",
+            "title": "Module 1 - Complete Notes",
+            "description": "",
+            "duration": "45 mins",
+            "type": "Reading",
+            "readingContent": "# Module 1: Introduction to DBMS & Relational Model\n\n## Overview\nA Database Management System (DBMS) is enterprise software designed to store, manage, query, and secure electronic data. Relational Database Management Systems (RDBMS) model data into two-dimensional tables (relations) comprising rows (tuples) and columns (attributes).\n\n## Learning Objectives\n- Differentiate between Raw Data, Information, Metadata, and Database Schemas.\n- Understand the limitations of File Systems (Data Redundancy, Inconsistency, Lack of Concurrency).\n- Master 3-Tier ANSI-SPARC DBMS Architecture (Physical, Conceptual, External Views).\n\n## Architecture: 3-Tier ANSI/SPARC Framework\n```text\n┌─────────────────────────────────────────────────────────────┐\n│                       External Level                        │\n│            View 1 (Student)        View 2 (Instructor)      │\n└──────────────────────────────┬──────────────────────────────┘\n                               │ (External/Conceptual Mapping)\n┌──────────────────────────────▼──────────────────────────────┐\n│                      Conceptual Level                       │\n│             Logical Schema (Entities, Relationships)        │\n└──────────────────────────────┬──────────────────────────────┘\n                               │ (Conceptual/Internal Mapping)\n┌──────────────────────────────▼──────────────────────────────┐\n│                       Internal Level                        │\n│               Physical Storage (B-Trees, Blocks)            │\n└─────────────────────────────────────────────────────────────┘\n```\n\n> 💡 **Tip:** Logical Data Independence allows changing the conceptual schema (adding columns/tables) without altering the user views or external application code.\n",
+            "content": "# Module 1: Introduction to DBMS & Relational Model\n\n## Overview\nA Database Management System (DBMS) is enterprise software designed to store, manage, query, and secure electronic data. Relational Database Management Systems (RDBMS) model data into two-dimensional tables (relations) comprising rows (tuples) and columns (attributes).\n\n## Learning Objectives\n- Differentiate between Raw Data, Information, Metadata, and Database Schemas.\n- Understand the limitations of File Systems (Data Redundancy, Inconsistency, Lack of Concurrency).\n- Master 3-Tier ANSI-SPARC DBMS Architecture (Physical, Conceptual, External Views).\n\n## Architecture: 3-Tier ANSI/SPARC Framework\n```text\n┌─────────────────────────────────────────────────────────────┐\n│                       External Level                        │\n│            View 1 (Student)        View 2 (Instructor)      │\n└──────────────────────────────┬──────────────────────────────┘\n                               │ (External/Conceptual Mapping)\n┌──────────────────────────────▼──────────────────────────────┐\n│                      Conceptual Level                       │\n│             Logical Schema (Entities, Relationships)        │\n└──────────────────────────────┬──────────────────────────────┘\n                               │ (Conceptual/Internal Mapping)\n┌──────────────────────────────▼──────────────────────────────┐\n│                       Internal Level                        │\n│               Physical Storage (B-Trees, Blocks)            │\n└─────────────────────────────────────────────────────────────┘\n```\n\n> 💡 **Tip:** Logical Data Independence allows changing the conceptual schema (adding columns/tables) without altering the user views or external application code.\n",
+            "conceptTheory": "# Module 1: Introduction to DBMS & Relational Model\n\n## Overview\nA Database Management System (DBMS) is enterprise software designed to store, manage, query, and secure electronic data. Relational Database Management Systems (RDBMS) model data into two-dimensional tables (relations) comprising rows (tuples) and columns (attributes).\n\n## Learning Objectives\n- Differentiate between Raw Data, Information, Metadata, and Database Schemas.\n- Understand the limitations of File Systems (Data Redundancy, Inconsistency, Lack of Concurrency).\n- Master 3-Tier ANSI-SPARC DBMS Architecture (Physical, Conceptual, External Views).\n\n## Architecture: 3-Tier ANSI/SPARC Framework\n```text\n┌─────────────────────────────────────────────────────────────┐\n│                       External Level                        │\n│            View 1 (Student)        View 2 (Instructor)      │\n└──────────────────────────────┬──────────────────────────────┘\n                               │ (External/Conceptual Mapping)\n┌──────────────────────────────▼──────────────────────────────┐\n│                      Conceptual Level                       │\n│             Logical Schema (Entities, Relationships)        │\n└──────────────────────────────┬──────────────────────────────┘\n                               │ (Conceptual/Internal Mapping)\n┌──────────────────────────────▼──────────────────────────────┐\n│                       Internal Level                        │\n│               Physical Storage (B-Trees, Blocks)            │\n└─────────────────────────────────────────────────────────────┘\n```\n\n> 💡 **Tip:** Logical Data Independence allows changing the conceptual schema (adding columns/tables) without altering the user views or external application code.\n",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 1,
+            "order": 1
+          },
+          {
+            "id": "dbms-les-102",
+            "title": "1.2 What is Database?",
+            "description": "",
+            "duration": "20 mins",
+            "type": "Video",
+            "readingContent": "### What is a Database?\nA database is an organized collection of structured data stored electronically in a computer system. Databases are controlled by a Database Management System (DBMS).",
+            "content": "### What is a Database?\nA database is an organized collection of structured data stored electronically in a computer system. Databases are controlled by a Database Management System (DBMS).",
+            "conceptTheory": "### What is a Database?\nA database is an organized collection of structured data stored electronically in a computer system. Databases are controlled by a Database Management System (DBMS).",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 2,
+            "order": 2
+          },
+          {
+            "id": "dbms-les-103",
+            "title": "1.3 DBMS Introduction",
+            "description": "",
+            "duration": "25 mins",
+            "type": "Reading",
+            "readingContent": "### Introduction to DBMS\nA Database Management System (DBMS) is software that manages databases, allowing users to store, retrieve, update, and organize information efficiently while ensuring data integrity.",
+            "content": "### Introduction to DBMS\nA Database Management System (DBMS) is software that manages databases, allowing users to store, retrieve, update, and organize information efficiently while ensuring data integrity.",
+            "conceptTheory": "### Introduction to DBMS\nA Database Management System (DBMS) is software that manages databases, allowing users to store, retrieve, update, and organize information efficiently while ensuring data integrity.",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 3,
+            "order": 3
+          },
+          {
+            "id": "dbms-les-104",
+            "title": "1.4 Database vs File System",
+            "description": "",
+            "duration": "20 mins",
+            "type": "Video",
+            "readingContent": "### Database vs File System\nUnlike traditional file systems, a DBMS handles data redundancy, concurrency control, security, data integrity, and complex queries seamlessly.",
+            "content": "### Database vs File System\nUnlike traditional file systems, a DBMS handles data redundancy, concurrency control, security, data integrity, and complex queries seamlessly.",
+            "conceptTheory": "### Database vs File System\nUnlike traditional file systems, a DBMS handles data redundancy, concurrency control, security, data integrity, and complex queries seamlessly.",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 4,
+            "order": 4
+          },
+          {
+            "id": "dbms-les-105",
+            "title": "1.5 Advantages of DBMS",
+            "description": "",
+            "duration": "15 mins",
+            "type": "Reading",
+            "readingContent": "### Advantages of DBMS\nKey benefits include: minimized data redundancy, data sharing, data consistency, transactional safety, secure access, and backup & recovery services.",
+            "content": "### Advantages of DBMS\nKey benefits include: minimized data redundancy, data sharing, data consistency, transactional safety, secure access, and backup & recovery services.",
+            "conceptTheory": "### Advantages of DBMS\nKey benefits include: minimized data redundancy, data sharing, data consistency, transactional safety, secure access, and backup & recovery services.",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 5,
+            "order": 5
+          },
+          {
+            "id": "dbms-les-106",
+            "title": "1.6 Types of Databases",
+            "description": "",
+            "duration": "15 mins",
+            "type": "Reading",
+            "readingContent": "### Types of Databases\nDatabases are categorized into Relational (RDBMS), NoSQL (Key-Value, Document, Graph), Distributed, Cloud, and Object-Oriented databases.",
+            "content": "### Types of Databases\nDatabases are categorized into Relational (RDBMS), NoSQL (Key-Value, Document, Graph), Distributed, Cloud, and Object-Oriented databases.",
+            "conceptTheory": "### Types of Databases\nDatabases are categorized into Relational (RDBMS), NoSQL (Key-Value, Document, Graph), Distributed, Cloud, and Object-Oriented databases.",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 6,
+            "order": 6
+          }
         ]
       }
     ]
   },
   {
-    id: 'dbms-mod-2',
-    title: 'Module 2: SQL Fundamentals & Data Definition Language',
-    description: 'DDL commands, CREATE, ALTER, DROP, constraints, and data types.',
-    duration: '4 Hours',
-    topics: [
+    "duration": "4 Hours",
+    "courseId": "database-management-system",
+    "order": 2,
+    "orderIndex": 2,
+    "description": "DDL commands, CREATE, ALTER, DROP, constraints, and data types.",
+    "id": "dbms-mod-2",
+    "title": "Module 2: SQL Fundamentals & Data Definition Language",
+    "updatedAt": "2026-09-01T06:50:37.901Z",
+    "revision": 1,
+    "lessons": [
       {
-        id: 'dbms-top-2',
-        title: 'DDL & Schema Constraints',
-        description: 'Creating tables, foreign keys, cascade deletes, and constraints.',
-        estimatedDuration: '45 mins',
-        learningUnits: [
-          createLesson(
-            'dbms-unit-2-notes',
-            'Module 2 - Complete Notes',
-            'SQL DDL & Relational Schema Constraints.',
-            '45 mins',
-            'Reading',
-            dbmsSyllabusNotes[2]
-          )
+        "duration": "15 mins",
+        "moduleId": "dbms-mod-2",
+        "title": "2.1 Tables, Rows & Columns",
+        "type": "reading",
+        "courseId": "database-management-system",
+        "content": "## 2.1 Tables, Rows & Columns\n### Tables, Rows & Columns\nIn a relational database, data is organized into tables (relations), where columns represent attributes and rows (tuples) represent individual data records.",
+        "order": 1,
+        "orderIndex": 1,
+        "updatedAt": "2026-08-26T16:26:26.557Z",
+        "id": "dbms-les-201",
+        "revision": 1,
+        "readingContent": "## 2.1 Tables, Rows & Columns\n### Tables, Rows & Columns\nIn a relational database, data is organized into tables (relations), where columns represent attributes and rows (tuples) represent individual data records."
+      },
+      {
+        "estimatedReadMinutes": 2,
+        "moduleTitle": "Module 2: SQL Fundamentals & Data Definition Language",
+        "title": "Module 2 - Complete Notes",
+        "type": "Reading",
+        "content": "# Module 2: SQL Fundamentals & Data Definition Language (DDL)\n## Overview\nStructured Query Language (SQL) is the standardized declarative domain-specific language for interacting with relational databases.\n\n## Learning Objectives\n- Master Data Definition Language commands: `CREATE TABLE`, `ALTER TABLE`, `DROP TABLE`, `TRUNCATE TABLE`.\n- Enforce Integrity Constraints: `PRIMARY KEY`, `FOREIGN KEY`, `UNIQUE`, `NOT NULL`, and `CHECK`.\n- Understand SQL data types (`INT`, `VARCHAR`, `BOOLEAN`, `TIMESTAMP`, `DECIMAL`).\n## Example: Relational Schema Definition\n```sql\nCREATE TABLE students (\n  student_id SERIAL PRIMARY KEY,\n  full_name VARCHAR(100) NOT NULL,\n  email VARCHAR(255) UNIQUE NOT NULL,\n  enrollment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n  xp_points INT DEFAULT 0 CHECK (xp_points >= 0)\n);\n\nCREATE TABLE course_enrollments (\n  enrollment_id SERIAL PRIMARY KEY,\n  student_id INT REFERENCES students(student_id) ON DELETE CASCADE,\n  course_id VARCHAR(64) NOT NULL,\n  completed BOOLEAN DEFAULT FALSE,\n  enrolled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n```\n> 📌 **Note:** `ON DELETE CASCADE` ensures child records in `course_enrollments` are automatically pruned when the referenced parent student is deleted.",
+        "duration": "45 mins",
+        "createdAt": "2026-09-01T06:50:37.901Z",
+        "orderIndex": 1,
+        "id": "dbms-unit-2-notes",
+        "moduleId": "dbms-mod-2",
+        "courseId": "database-management-system",
+        "order": 1,
+        "updatedAt": "2026-09-01T06:50:37.901Z",
+        "revision": 1,
+        "readingContent": "# Module 2: SQL Fundamentals & Data Definition Language (DDL)\n## Overview\nStructured Query Language (SQL) is the standardized declarative domain-specific language for interacting with relational databases.\n\n## Learning Objectives\n- Master Data Definition Language commands: `CREATE TABLE`, `ALTER TABLE`, `DROP TABLE`, `TRUNCATE TABLE`.\n- Enforce Integrity Constraints: `PRIMARY KEY`, `FOREIGN KEY`, `UNIQUE`, `NOT NULL`, and `CHECK`.\n- Understand SQL data types (`INT`, `VARCHAR`, `BOOLEAN`, `TIMESTAMP`, `DECIMAL`).\n## Example: Relational Schema Definition\n```sql\nCREATE TABLE students (\n  student_id SERIAL PRIMARY KEY,\n  full_name VARCHAR(100) NOT NULL,\n  email VARCHAR(255) UNIQUE NOT NULL,\n  enrollment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n  xp_points INT DEFAULT 0 CHECK (xp_points >= 0)\n);\n\nCREATE TABLE course_enrollments (\n  enrollment_id SERIAL PRIMARY KEY,\n  student_id INT REFERENCES students(student_id) ON DELETE CASCADE,\n  course_id VARCHAR(64) NOT NULL,\n  completed BOOLEAN DEFAULT FALSE,\n  enrolled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n```\n> 📌 **Note:** `ON DELETE CASCADE` ensures child records in `course_enrollments` are automatically pruned when the referenced parent student is deleted."
+      },
+      {
+        "duration": "25 mins",
+        "moduleId": "dbms-mod-2",
+        "title": "2.2 Keys",
+        "type": "video",
+        "courseId": "database-management-system",
+        "content": "## 2.2 Keys\n### Keys in Relational Databases\nKeys uniquely identify rows in a table. Types include Primary Keys, Foreign Keys, Super Keys, Candidate Keys, and Composite Keys.",
+        "order": 2,
+        "orderIndex": 2,
+        "updatedAt": "2026-08-26T16:26:27.224Z",
+        "id": "dbms-les-202",
+        "revision": 1,
+        "readingContent": "## 2.2 Keys\n### Keys in Relational Databases\nKeys uniquely identify rows in a table. Types include Primary Keys, Foreign Keys, Super Keys, Candidate Keys, and Composite Keys."
+      },
+      {
+        "duration": "20 mins",
+        "moduleId": "dbms-mod-2",
+        "title": "2.3 Constraints",
+        "type": "reading",
+        "courseId": "database-management-system",
+        "content": "## 2.3 Constraints\n### Integrity Constraints\nConstraints enforce database rules. Examples include: NOT NULL, UNIQUE, PRIMARY KEY, FOREIGN KEY, CHECK, and DEFAULT.",
+        "order": 3,
+        "orderIndex": 3,
+        "updatedAt": "2026-08-26T16:26:27.897Z",
+        "id": "dbms-les-203",
+        "revision": 1,
+        "readingContent": "## 2.3 Constraints\n### Integrity Constraints\nConstraints enforce database rules. Examples include: NOT NULL, UNIQUE, PRIMARY KEY, FOREIGN KEY, CHECK, and DEFAULT."
+      },
+      {
+        "duration": "20 mins",
+        "moduleId": "dbms-mod-2",
+        "title": "2.4 ER Model",
+        "type": "video",
+        "courseId": "database-management-system",
+        "content": "## 2.4 ER Model\n### Entity-Relationship Model\nThe ER Model describes database structures using Entities, Attributes, and Relationships, serving as the blueprint for relational designs.",
+        "order": 4,
+        "orderIndex": 4,
+        "updatedAt": "2026-08-26T16:26:28.564Z",
+        "id": "dbms-les-204",
+        "revision": 1,
+        "readingContent": "## 2.4 ER Model\n### Entity-Relationship Model\nThe ER Model describes database structures using Entities, Attributes, and Relationships, serving as the blueprint for relational designs."
+      },
+      {
+        "duration": "20 mins",
+        "moduleId": "dbms-mod-2",
+        "title": "2.5 ER Diagram",
+        "type": "reading",
+        "courseId": "database-management-system",
+        "content": "## 2.5 ER Diagram\n### Entity-Relationship Diagrams\nER diagrams visually represent entity relationships, detailing attributes, primary keys, and cardinality (1:1, 1:N, N:M).",
+        "order": 5,
+        "orderIndex": 5,
+        "updatedAt": "2026-08-26T16:26:29.295Z",
+        "id": "dbms-les-205",
+        "revision": 1,
+        "readingContent": "## 2.5 ER Diagram\n### Entity-Relationship Diagrams\nER diagrams visually represent entity relationships, detailing attributes, primary keys, and cardinality (1:1, 1:N, N:M)."
+      }
+    ],
+    "topics": [
+      {
+        "id": "dbms-mod-2-topic-1",
+        "title": "Module 2: SQL Fundamentals & Data Definition Language Units",
+        "description": "DDL commands, CREATE, ALTER, DROP, constraints, and data types.",
+        "estimatedDuration": "4 Hours",
+        "learningUnits": [
+          {
+            "id": "dbms-les-201",
+            "title": "2.1 Tables, Rows & Columns",
+            "description": "",
+            "duration": "15 mins",
+            "type": "Reading",
+            "readingContent": "### Tables, Rows & Columns\nIn a relational database, data is organized into tables (relations), where columns represent attributes and rows (tuples) represent individual data records.",
+            "content": "### Tables, Rows & Columns\nIn a relational database, data is organized into tables (relations), where columns represent attributes and rows (tuples) represent individual data records.",
+            "conceptTheory": "### Tables, Rows & Columns\nIn a relational database, data is organized into tables (relations), where columns represent attributes and rows (tuples) represent individual data records.",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 1,
+            "order": 1
+          },
+          {
+            "id": "dbms-unit-2-notes",
+            "title": "Module 2 - Complete Notes",
+            "description": "",
+            "duration": "45 mins",
+            "type": "Reading",
+            "readingContent": "# Module 2: SQL Fundamentals & Data Definition Language (DDL)\n\n## Overview\nStructured Query Language (SQL) is the standardized declarative domain-specific language for interacting with relational databases.\n\n## Learning Objectives\n- Master Data Definition Language commands: `CREATE TABLE`, `ALTER TABLE`, `DROP TABLE`, `TRUNCATE TABLE`.\n- Enforce Integrity Constraints: `PRIMARY KEY`, `FOREIGN KEY`, `UNIQUE`, `NOT NULL`, and `CHECK`.\n- Understand SQL data types (`INT`, `VARCHAR`, `BOOLEAN`, `TIMESTAMP`, `DECIMAL`).\n\n## Example: Relational Schema Definition\n```sql\nCREATE TABLE students (\n  student_id SERIAL PRIMARY KEY,\n  full_name VARCHAR(100) NOT NULL,\n  email VARCHAR(255) UNIQUE NOT NULL,\n  enrollment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n  xp_points INT DEFAULT 0 CHECK (xp_points >= 0)\n);\n\nCREATE TABLE course_enrollments (\n  enrollment_id SERIAL PRIMARY KEY,\n  student_id INT REFERENCES students(student_id) ON DELETE CASCADE,\n  course_id VARCHAR(64) NOT NULL,\n  completed BOOLEAN DEFAULT FALSE,\n  enrolled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n```\n\n> 📌 **Note:** `ON DELETE CASCADE` ensures child records in `course_enrollments` are automatically pruned when the referenced parent student is deleted.\n",
+            "content": "# Module 2: SQL Fundamentals & Data Definition Language (DDL)\n\n## Overview\nStructured Query Language (SQL) is the standardized declarative domain-specific language for interacting with relational databases.\n\n## Learning Objectives\n- Master Data Definition Language commands: `CREATE TABLE`, `ALTER TABLE`, `DROP TABLE`, `TRUNCATE TABLE`.\n- Enforce Integrity Constraints: `PRIMARY KEY`, `FOREIGN KEY`, `UNIQUE`, `NOT NULL`, and `CHECK`.\n- Understand SQL data types (`INT`, `VARCHAR`, `BOOLEAN`, `TIMESTAMP`, `DECIMAL`).\n\n## Example: Relational Schema Definition\n```sql\nCREATE TABLE students (\n  student_id SERIAL PRIMARY KEY,\n  full_name VARCHAR(100) NOT NULL,\n  email VARCHAR(255) UNIQUE NOT NULL,\n  enrollment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n  xp_points INT DEFAULT 0 CHECK (xp_points >= 0)\n);\n\nCREATE TABLE course_enrollments (\n  enrollment_id SERIAL PRIMARY KEY,\n  student_id INT REFERENCES students(student_id) ON DELETE CASCADE,\n  course_id VARCHAR(64) NOT NULL,\n  completed BOOLEAN DEFAULT FALSE,\n  enrolled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n```\n\n> 📌 **Note:** `ON DELETE CASCADE` ensures child records in `course_enrollments` are automatically pruned when the referenced parent student is deleted.\n",
+            "conceptTheory": "# Module 2: SQL Fundamentals & Data Definition Language (DDL)\n\n## Overview\nStructured Query Language (SQL) is the standardized declarative domain-specific language for interacting with relational databases.\n\n## Learning Objectives\n- Master Data Definition Language commands: `CREATE TABLE`, `ALTER TABLE`, `DROP TABLE`, `TRUNCATE TABLE`.\n- Enforce Integrity Constraints: `PRIMARY KEY`, `FOREIGN KEY`, `UNIQUE`, `NOT NULL`, and `CHECK`.\n- Understand SQL data types (`INT`, `VARCHAR`, `BOOLEAN`, `TIMESTAMP`, `DECIMAL`).\n\n## Example: Relational Schema Definition\n```sql\nCREATE TABLE students (\n  student_id SERIAL PRIMARY KEY,\n  full_name VARCHAR(100) NOT NULL,\n  email VARCHAR(255) UNIQUE NOT NULL,\n  enrollment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n  xp_points INT DEFAULT 0 CHECK (xp_points >= 0)\n);\n\nCREATE TABLE course_enrollments (\n  enrollment_id SERIAL PRIMARY KEY,\n  student_id INT REFERENCES students(student_id) ON DELETE CASCADE,\n  course_id VARCHAR(64) NOT NULL,\n  completed BOOLEAN DEFAULT FALSE,\n  enrolled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n```\n\n> 📌 **Note:** `ON DELETE CASCADE` ensures child records in `course_enrollments` are automatically pruned when the referenced parent student is deleted.\n",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 1,
+            "order": 1
+          },
+          {
+            "id": "dbms-les-202",
+            "title": "2.2 Keys",
+            "description": "",
+            "duration": "25 mins",
+            "type": "Video",
+            "readingContent": "### Keys in Relational Databases\nKeys uniquely identify rows in a table. Types include Primary Keys, Foreign Keys, Super Keys, Candidate Keys, and Composite Keys.",
+            "content": "### Keys in Relational Databases\nKeys uniquely identify rows in a table. Types include Primary Keys, Foreign Keys, Super Keys, Candidate Keys, and Composite Keys.",
+            "conceptTheory": "### Keys in Relational Databases\nKeys uniquely identify rows in a table. Types include Primary Keys, Foreign Keys, Super Keys, Candidate Keys, and Composite Keys.",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 2,
+            "order": 2
+          },
+          {
+            "id": "dbms-les-203",
+            "title": "2.3 Constraints",
+            "description": "",
+            "duration": "20 mins",
+            "type": "Reading",
+            "readingContent": "### Integrity Constraints\nConstraints enforce database rules. Examples include: NOT NULL, UNIQUE, PRIMARY KEY, FOREIGN KEY, CHECK, and DEFAULT.",
+            "content": "### Integrity Constraints\nConstraints enforce database rules. Examples include: NOT NULL, UNIQUE, PRIMARY KEY, FOREIGN KEY, CHECK, and DEFAULT.",
+            "conceptTheory": "### Integrity Constraints\nConstraints enforce database rules. Examples include: NOT NULL, UNIQUE, PRIMARY KEY, FOREIGN KEY, CHECK, and DEFAULT.",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 3,
+            "order": 3
+          },
+          {
+            "id": "dbms-les-204",
+            "title": "2.4 ER Model",
+            "description": "",
+            "duration": "20 mins",
+            "type": "Video",
+            "readingContent": "### Entity-Relationship Model\nThe ER Model describes database structures using Entities, Attributes, and Relationships, serving as the blueprint for relational designs.",
+            "content": "### Entity-Relationship Model\nThe ER Model describes database structures using Entities, Attributes, and Relationships, serving as the blueprint for relational designs.",
+            "conceptTheory": "### Entity-Relationship Model\nThe ER Model describes database structures using Entities, Attributes, and Relationships, serving as the blueprint for relational designs.",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 4,
+            "order": 4
+          },
+          {
+            "id": "dbms-les-205",
+            "title": "2.5 ER Diagram",
+            "description": "",
+            "duration": "20 mins",
+            "type": "Reading",
+            "readingContent": "### Entity-Relationship Diagrams\nER diagrams visually represent entity relationships, detailing attributes, primary keys, and cardinality (1:1, 1:N, N:M).",
+            "content": "### Entity-Relationship Diagrams\nER diagrams visually represent entity relationships, detailing attributes, primary keys, and cardinality (1:1, 1:N, N:M).",
+            "conceptTheory": "### Entity-Relationship Diagrams\nER diagrams visually represent entity relationships, detailing attributes, primary keys, and cardinality (1:1, 1:N, N:M).",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 5,
+            "order": 5
+          }
         ]
       }
     ]
   },
   {
-    id: 'dbms-mod-3',
-    title: 'Module 3: Data Manipulation Language & Basic Queries',
-    description: 'INSERT, UPDATE, DELETE, filtering, aggregation, and grouping.',
-    duration: '4 Hours',
-    topics: [
+    "duration": "4 Hours",
+    "courseId": "database-management-system",
+    "order": 3,
+    "orderIndex": 3,
+    "description": "DML CRUD operations, WHERE clauses, GROUP BY, and HAVING.",
+    "id": "dbms-mod-3",
+    "title": "Module 3: Data Manipulation Language & Aggregation",
+    "updatedAt": "2026-09-01T06:50:37.901Z",
+    "revision": 1,
+    "lessons": [
       {
-        id: 'dbms-top-3',
-        title: 'DML, WHERE & Aggregations',
-        description: 'CRUD operations, aggregate functions, and GROUP BY / HAVING.',
-        estimatedDuration: '45 mins',
-        learningUnits: [
-          createLesson(
-            'dbms-unit-3-notes',
-            'Module 3 - Complete Notes',
-            'SQL DML, Filtering, Aggregations & Grouping.',
-            '45 mins',
-            'Reading',
-            dbmsSyllabusNotes[3]
-          )
+        "duration": "15 mins",
+        "moduleId": "dbms-mod-3",
+        "title": "3.1 SQL Introduction",
+        "type": "reading",
+        "courseId": "database-management-system",
+        "content": "## 3.1 SQL Introduction\n### SQL Introduction\nStructured Query Language (SQL) is the standard language to manage and query relational databases, divided into DDL, DML, DCL, and TCL.",
+        "order": 1,
+        "orderIndex": 1,
+        "updatedAt": "2026-08-26T16:26:30.638Z",
+        "id": "dbms-les-301",
+        "revision": 1,
+        "readingContent": "## 3.1 SQL Introduction\n### SQL Introduction\nStructured Query Language (SQL) is the standard language to manage and query relational databases, divided into DDL, DML, DCL, and TCL."
+      },
+      {
+        "estimatedReadMinutes": 2,
+        "moduleTitle": "Module 3: Data Manipulation Language & Aggregation",
+        "title": "Module 3 - Complete Notes",
+        "type": "Reading",
+        "content": "# Module 3: Data Manipulation Language (DML) & Complex Queries\n## Overview\nData Manipulation Language (DML) queries allow applications to retrieve, filter, sort, aggregate, and update stored records.\n\n## Learning Objectives\n- Execute CRUD operations: `INSERT INTO`, `SELECT`, `UPDATE`, and `DELETE`.\n- Filter with `WHERE`, `LIKE`, `IN`, `BETWEEN`, `IS NULL`, and Logical Operators (`AND`, `OR`, `NOT`).\n- Aggregate data using `COUNT()`, `SUM()`, `AVG()`, `MIN()`, `MAX()`, paired with `GROUP BY` and `HAVING`.\n## Example: Aggregation & Grouping\n```sql\n-- Find courses with more than 5 enrolled students\nSELECT \n  course_id,\n  COUNT(student_id) AS total_enrolled,\n  AVG(xp_points) AS average_student_xp\nFROM course_enrollments e\nJOIN students s ON e.student_id = s.student_id\nGROUP BY course_id\nHAVING COUNT(student_id) > 5\nORDER BY total_enrolled DESC;\n```\n> 💡 **Tip:** Use `WHERE` to filter individual rows *before* aggregation, and use `HAVING` to filter grouped aggregates *after* grouping.",
+        "duration": "45 mins",
+        "createdAt": "2026-09-01T06:50:37.901Z",
+        "orderIndex": 1,
+        "id": "dbms-unit-3-notes",
+        "moduleId": "dbms-mod-3",
+        "courseId": "database-management-system",
+        "order": 1,
+        "updatedAt": "2026-09-01T06:50:37.901Z",
+        "revision": 1,
+        "readingContent": "# Module 3: Data Manipulation Language (DML) & Complex Queries\n## Overview\nData Manipulation Language (DML) queries allow applications to retrieve, filter, sort, aggregate, and update stored records.\n\n## Learning Objectives\n- Execute CRUD operations: `INSERT INTO`, `SELECT`, `UPDATE`, and `DELETE`.\n- Filter with `WHERE`, `LIKE`, `IN`, `BETWEEN`, `IS NULL`, and Logical Operators (`AND`, `OR`, `NOT`).\n- Aggregate data using `COUNT()`, `SUM()`, `AVG()`, `MIN()`, `MAX()`, paired with `GROUP BY` and `HAVING`.\n## Example: Aggregation & Grouping\n```sql\n-- Find courses with more than 5 enrolled students\nSELECT \n  course_id,\n  COUNT(student_id) AS total_enrolled,\n  AVG(xp_points) AS average_student_xp\nFROM course_enrollments e\nJOIN students s ON e.student_id = s.student_id\nGROUP BY course_id\nHAVING COUNT(student_id) > 5\nORDER BY total_enrolled DESC;\n```\n> 💡 **Tip:** Use `WHERE` to filter individual rows *before* aggregation, and use `HAVING` to filter grouped aggregates *after* grouping."
+      },
+      {
+        "duration": "20 mins",
+        "moduleId": "dbms-mod-3",
+        "title": "3.2 CREATE",
+        "type": "video",
+        "courseId": "database-management-system",
+        "content": "## 3.2 CREATE\n### CREATE Statement\nThe DDL CREATE statement builds databases, tables, indexes, or views: `CREATE TABLE users (id INT, name VARCHAR(100));`",
+        "order": 2,
+        "orderIndex": 2,
+        "updatedAt": "2026-08-26T16:26:31.324Z",
+        "id": "dbms-les-302",
+        "revision": 1,
+        "readingContent": "## 3.2 CREATE\n### CREATE Statement\nThe DDL CREATE statement builds databases, tables, indexes, or views: `CREATE TABLE users (id INT, name VARCHAR(100));`"
+      },
+      {
+        "duration": "15 mins",
+        "moduleId": "dbms-mod-3",
+        "title": "3.3 INSERT",
+        "type": "video",
+        "courseId": "database-management-system",
+        "content": "## 3.3 INSERT\n### INSERT Statement\nInserts new records into a table: `INSERT INTO users (id, name) VALUES (1, \"Alice\");`",
+        "order": 3,
+        "orderIndex": 3,
+        "updatedAt": "2026-08-26T16:26:31.978Z",
+        "id": "dbms-les-303",
+        "revision": 1,
+        "readingContent": "## 3.3 INSERT\n### INSERT Statement\nInserts new records into a table: `INSERT INTO users (id, name) VALUES (1, \"Alice\");`"
+      },
+      {
+        "duration": "25 mins",
+        "moduleId": "dbms-mod-3",
+        "title": "3.4 SELECT",
+        "type": "video",
+        "courseId": "database-management-system",
+        "content": "## 3.4 SELECT\n### SELECT Statement\nRetrieves columns from a table: `SELECT * FROM users;`",
+        "order": 4,
+        "orderIndex": 4,
+        "updatedAt": "2026-08-26T16:26:32.657Z",
+        "id": "dbms-les-304",
+        "revision": 1,
+        "readingContent": "## 3.4 SELECT\n### SELECT Statement\nRetrieves columns from a table: `SELECT * FROM users;`"
+      },
+      {
+        "duration": "15 mins",
+        "moduleId": "dbms-mod-3",
+        "title": "3.5 UPDATE",
+        "type": "video",
+        "courseId": "database-management-system",
+        "content": "## 3.5 UPDATE\n### UPDATE Statement\nModifies existing records matching a condition: `UPDATE users SET name = \"Bob\" WHERE id = 1;`",
+        "order": 5,
+        "orderIndex": 5,
+        "updatedAt": "2026-08-26T16:26:33.329Z",
+        "id": "dbms-les-305",
+        "revision": 1,
+        "readingContent": "## 3.5 UPDATE\n### UPDATE Statement\nModifies existing records matching a condition: `UPDATE users SET name = \"Bob\" WHERE id = 1;`"
+      },
+      {
+        "duration": "15 mins",
+        "moduleId": "dbms-mod-3",
+        "title": "3.6 DELETE",
+        "type": "video",
+        "courseId": "database-management-system",
+        "content": "## 3.6 DELETE\n### DELETE Statement\nRemoves records matching a condition: `DELETE FROM users WHERE id = 1;`",
+        "order": 6,
+        "orderIndex": 6,
+        "updatedAt": "2026-08-26T16:26:34.088Z",
+        "id": "dbms-les-306",
+        "revision": 1,
+        "readingContent": "## 3.6 DELETE\n### DELETE Statement\nRemoves records matching a condition: `DELETE FROM users WHERE id = 1;`"
+      },
+      {
+        "duration": "15 mins",
+        "moduleId": "dbms-mod-3",
+        "title": "3.7 WHERE",
+        "type": "video",
+        "courseId": "database-management-system",
+        "content": "## 3.7 WHERE\n### WHERE Clause\nFilters records conditionally: `SELECT * FROM users WHERE id > 5;`",
+        "order": 7,
+        "orderIndex": 7,
+        "updatedAt": "2026-08-26T16:26:34.782Z",
+        "id": "dbms-les-307",
+        "revision": 1,
+        "readingContent": "## 3.7 WHERE\n### WHERE Clause\nFilters records conditionally: `SELECT * FROM users WHERE id > 5;`"
+      },
+      {
+        "duration": "15 mins",
+        "moduleId": "dbms-mod-3",
+        "title": "3.8 ORDER BY",
+        "type": "video",
+        "courseId": "database-management-system",
+        "content": "## 3.8 ORDER BY\n### ORDER BY Clause\nSorts results ascending or descending: `SELECT * FROM users ORDER BY name DESC;`",
+        "order": 8,
+        "orderIndex": 8,
+        "updatedAt": "2026-08-26T16:26:35.451Z",
+        "id": "dbms-les-308",
+        "revision": 1,
+        "readingContent": "## 3.8 ORDER BY\n### ORDER BY Clause\nSorts results ascending or descending: `SELECT * FROM users ORDER BY name DESC;`"
+      }
+    ],
+    "topics": [
+      {
+        "id": "dbms-mod-3-topic-1",
+        "title": "Module 3: Data Manipulation Language & Aggregation Units",
+        "description": "DML CRUD operations, WHERE clauses, GROUP BY, and HAVING.",
+        "estimatedDuration": "4 Hours",
+        "learningUnits": [
+          {
+            "id": "dbms-les-301",
+            "title": "3.1 SQL Introduction",
+            "description": "",
+            "duration": "15 mins",
+            "type": "Reading",
+            "readingContent": "### SQL Introduction\nStructured Query Language (SQL) is the standard language to manage and query relational databases, divided into DDL, DML, DCL, and TCL.",
+            "content": "### SQL Introduction\nStructured Query Language (SQL) is the standard language to manage and query relational databases, divided into DDL, DML, DCL, and TCL.",
+            "conceptTheory": "### SQL Introduction\nStructured Query Language (SQL) is the standard language to manage and query relational databases, divided into DDL, DML, DCL, and TCL.",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 1,
+            "order": 1
+          },
+          {
+            "id": "dbms-unit-3-notes",
+            "title": "Module 3 - Complete Notes",
+            "description": "",
+            "duration": "45 mins",
+            "type": "Reading",
+            "readingContent": "# Module 3: Data Manipulation Language (DML) & Complex Queries\n\n## Overview\nData Manipulation Language (DML) queries allow applications to retrieve, filter, sort, aggregate, and update stored records.\n\n## Learning Objectives\n- Execute CRUD operations: `INSERT INTO`, `SELECT`, `UPDATE`, and `DELETE`.\n- Filter with `WHERE`, `LIKE`, `IN`, `BETWEEN`, `IS NULL`, and Logical Operators (`AND`, `OR`, `NOT`).\n- Aggregate data using `COUNT()`, `SUM()`, `AVG()`, `MIN()`, `MAX()`, paired with `GROUP BY` and `HAVING`.\n\n## Example: Aggregation & Grouping\n```sql\n-- Find courses with more than 5 enrolled students\nSELECT \n  course_id,\n  COUNT(student_id) AS total_enrolled,\n  AVG(xp_points) AS average_student_xp\nFROM course_enrollments e\nJOIN students s ON e.student_id = s.student_id\nGROUP BY course_id\nHAVING COUNT(student_id) > 5\nORDER BY total_enrolled DESC;\n```\n\n> 💡 **Tip:** Use `WHERE` to filter individual rows *before* aggregation, and use `HAVING` to filter grouped aggregates *after* grouping.\n",
+            "content": "# Module 3: Data Manipulation Language (DML) & Complex Queries\n\n## Overview\nData Manipulation Language (DML) queries allow applications to retrieve, filter, sort, aggregate, and update stored records.\n\n## Learning Objectives\n- Execute CRUD operations: `INSERT INTO`, `SELECT`, `UPDATE`, and `DELETE`.\n- Filter with `WHERE`, `LIKE`, `IN`, `BETWEEN`, `IS NULL`, and Logical Operators (`AND`, `OR`, `NOT`).\n- Aggregate data using `COUNT()`, `SUM()`, `AVG()`, `MIN()`, `MAX()`, paired with `GROUP BY` and `HAVING`.\n\n## Example: Aggregation & Grouping\n```sql\n-- Find courses with more than 5 enrolled students\nSELECT \n  course_id,\n  COUNT(student_id) AS total_enrolled,\n  AVG(xp_points) AS average_student_xp\nFROM course_enrollments e\nJOIN students s ON e.student_id = s.student_id\nGROUP BY course_id\nHAVING COUNT(student_id) > 5\nORDER BY total_enrolled DESC;\n```\n\n> 💡 **Tip:** Use `WHERE` to filter individual rows *before* aggregation, and use `HAVING` to filter grouped aggregates *after* grouping.\n",
+            "conceptTheory": "# Module 3: Data Manipulation Language (DML) & Complex Queries\n\n## Overview\nData Manipulation Language (DML) queries allow applications to retrieve, filter, sort, aggregate, and update stored records.\n\n## Learning Objectives\n- Execute CRUD operations: `INSERT INTO`, `SELECT`, `UPDATE`, and `DELETE`.\n- Filter with `WHERE`, `LIKE`, `IN`, `BETWEEN`, `IS NULL`, and Logical Operators (`AND`, `OR`, `NOT`).\n- Aggregate data using `COUNT()`, `SUM()`, `AVG()`, `MIN()`, `MAX()`, paired with `GROUP BY` and `HAVING`.\n\n## Example: Aggregation & Grouping\n```sql\n-- Find courses with more than 5 enrolled students\nSELECT \n  course_id,\n  COUNT(student_id) AS total_enrolled,\n  AVG(xp_points) AS average_student_xp\nFROM course_enrollments e\nJOIN students s ON e.student_id = s.student_id\nGROUP BY course_id\nHAVING COUNT(student_id) > 5\nORDER BY total_enrolled DESC;\n```\n\n> 💡 **Tip:** Use `WHERE` to filter individual rows *before* aggregation, and use `HAVING` to filter grouped aggregates *after* grouping.\n",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 1,
+            "order": 1
+          },
+          {
+            "id": "dbms-les-302",
+            "title": "3.2 CREATE",
+            "description": "",
+            "duration": "20 mins",
+            "type": "Video",
+            "readingContent": "### CREATE Statement\nThe DDL CREATE statement builds databases, tables, indexes, or views: `CREATE TABLE users (id INT, name VARCHAR(100));`",
+            "content": "### CREATE Statement\nThe DDL CREATE statement builds databases, tables, indexes, or views: `CREATE TABLE users (id INT, name VARCHAR(100));`",
+            "conceptTheory": "### CREATE Statement\nThe DDL CREATE statement builds databases, tables, indexes, or views: `CREATE TABLE users (id INT, name VARCHAR(100));`",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 2,
+            "order": 2
+          },
+          {
+            "id": "dbms-les-303",
+            "title": "3.3 INSERT",
+            "description": "",
+            "duration": "15 mins",
+            "type": "Video",
+            "readingContent": "### INSERT Statement\nInserts new records into a table: `INSERT INTO users (id, name) VALUES (1, \"Alice\");`",
+            "content": "### INSERT Statement\nInserts new records into a table: `INSERT INTO users (id, name) VALUES (1, \"Alice\");`",
+            "conceptTheory": "### INSERT Statement\nInserts new records into a table: `INSERT INTO users (id, name) VALUES (1, \"Alice\");`",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 3,
+            "order": 3
+          },
+          {
+            "id": "dbms-les-304",
+            "title": "3.4 SELECT",
+            "description": "",
+            "duration": "25 mins",
+            "type": "Video",
+            "readingContent": "### SELECT Statement\nRetrieves columns from a table: `SELECT * FROM users;`",
+            "content": "### SELECT Statement\nRetrieves columns from a table: `SELECT * FROM users;`",
+            "conceptTheory": "### SELECT Statement\nRetrieves columns from a table: `SELECT * FROM users;`",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 4,
+            "order": 4
+          },
+          {
+            "id": "dbms-les-305",
+            "title": "3.5 UPDATE",
+            "description": "",
+            "duration": "15 mins",
+            "type": "Video",
+            "readingContent": "### UPDATE Statement\nModifies existing records matching a condition: `UPDATE users SET name = \"Bob\" WHERE id = 1;`",
+            "content": "### UPDATE Statement\nModifies existing records matching a condition: `UPDATE users SET name = \"Bob\" WHERE id = 1;`",
+            "conceptTheory": "### UPDATE Statement\nModifies existing records matching a condition: `UPDATE users SET name = \"Bob\" WHERE id = 1;`",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 5,
+            "order": 5
+          },
+          {
+            "id": "dbms-les-306",
+            "title": "3.6 DELETE",
+            "description": "",
+            "duration": "15 mins",
+            "type": "Video",
+            "readingContent": "### DELETE Statement\nRemoves records matching a condition: `DELETE FROM users WHERE id = 1;`",
+            "content": "### DELETE Statement\nRemoves records matching a condition: `DELETE FROM users WHERE id = 1;`",
+            "conceptTheory": "### DELETE Statement\nRemoves records matching a condition: `DELETE FROM users WHERE id = 1;`",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 6,
+            "order": 6
+          },
+          {
+            "id": "dbms-les-307",
+            "title": "3.7 WHERE",
+            "description": "",
+            "duration": "15 mins",
+            "type": "Video",
+            "readingContent": "### WHERE Clause\nFilters records conditionally: `SELECT * FROM users WHERE id > 5;`",
+            "content": "### WHERE Clause\nFilters records conditionally: `SELECT * FROM users WHERE id > 5;`",
+            "conceptTheory": "### WHERE Clause\nFilters records conditionally: `SELECT * FROM users WHERE id > 5;`",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 7,
+            "order": 7
+          },
+          {
+            "id": "dbms-les-308",
+            "title": "3.8 ORDER BY",
+            "description": "",
+            "duration": "15 mins",
+            "type": "Video",
+            "readingContent": "### ORDER BY Clause\nSorts results ascending or descending: `SELECT * FROM users ORDER BY name DESC;`",
+            "content": "### ORDER BY Clause\nSorts results ascending or descending: `SELECT * FROM users ORDER BY name DESC;`",
+            "conceptTheory": "### ORDER BY Clause\nSorts results ascending or descending: `SELECT * FROM users ORDER BY name DESC;`",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 8,
+            "order": 8
+          }
         ]
       }
     ]
   },
   {
-    id: 'dbms-mod-4',
-    title: 'Module 4: Relational JOINs & Complex Subqueries',
-    description: 'INNER, LEFT, RIGHT, FULL OUTER joins, nested and correlated subqueries.',
-    duration: '5 Hours',
-    topics: [
+    "courseId": "database-management-system",
+    "order": 4,
+    "orderIndex": 4,
+    "duration": "5 Hours",
+    "description": "Inner joins, outer joins, nested subqueries, and union operations.",
+    "id": "dbms-mod-4",
+    "title": "Module 4: SQL Joins, Subqueries & Set Operations",
+    "updatedAt": "2026-09-01T06:50:37.901Z",
+    "revision": 1,
+    "lessons": [
       {
-        id: 'dbms-top-4',
-        title: 'SQL JOINs & Subquery Patterns',
-        description: 'Joining multiple tables, subqueries, and set operations.',
-        estimatedDuration: '50 mins',
-        learningUnits: [
-          createLesson(
-            'dbms-unit-4-notes',
-            'Module 4 - Complete Notes',
-            'Relational JOINs, Outer Joins & Subqueries.',
-            '50 mins',
-            'Reading',
-            dbmsSyllabusNotes[4]
-          )
+        "duration": "15 mins",
+        "moduleId": "dbms-mod-4",
+        "title": "4.1 GROUP BY",
+        "type": "video",
+        "courseId": "database-management-system",
+        "content": "## 4.1 GROUP BY\n### GROUP BY Clause\nGroups rows sharing identical values: `SELECT category, COUNT(*) FROM products GROUP BY category;`",
+        "order": 1,
+        "orderIndex": 1,
+        "updatedAt": "2026-08-26T16:26:36.805Z",
+        "id": "dbms-les-401",
+        "revision": 1,
+        "readingContent": "## 4.1 GROUP BY\n### GROUP BY Clause\nGroups rows sharing identical values: `SELECT category, COUNT(*) FROM products GROUP BY category;`"
+      },
+      {
+        "estimatedReadMinutes": 2,
+        "moduleTitle": "Module 4: SQL Joins, Subqueries & Set Operations",
+        "title": "Module 4 - Complete Notes",
+        "type": "Reading",
+        "content": "# Module 4: SQL Joins, Subqueries & Set Operations\n## Overview\nRelational power derives from joining disparate normalized tables together at query time via primary-foreign key relationships.\n\n## Learning Objectives\n- Master all Join types: `INNER JOIN`, `LEFT (OUTER) JOIN`, `RIGHT (OUTER) JOIN`, `FULL (OUTER) JOIN`, and `CROSS JOIN`.\n- Write correlated and non-correlated Subqueries in `SELECT`, `FROM`, and `WHERE` clauses.\n- Perform Set Operations: `UNION`, `UNION ALL`, `INTERSECT`, and `EXCEPT`.\n## Example: Complex Multi-Table Join\n```sql\nSELECT \n  s.student_id,\n  s.full_name,\n  s.email,\n  c.title AS course_title,\n  e.completed\nFROM students s\nLEFT JOIN course_enrollments e ON s.student_id = e.student_id\nLEFT JOIN courses c ON e.course_id = c.id\nWHERE s.xp_points >= 100;\n```",
+        "duration": "45 mins",
+        "createdAt": "2026-09-01T06:50:37.901Z",
+        "orderIndex": 1,
+        "id": "dbms-unit-4-notes",
+        "moduleId": "dbms-mod-4",
+        "courseId": "database-management-system",
+        "order": 1,
+        "updatedAt": "2026-09-01T06:50:37.901Z",
+        "revision": 1,
+        "readingContent": "# Module 4: SQL Joins, Subqueries & Set Operations\n## Overview\nRelational power derives from joining disparate normalized tables together at query time via primary-foreign key relationships.\n\n## Learning Objectives\n- Master all Join types: `INNER JOIN`, `LEFT (OUTER) JOIN`, `RIGHT (OUTER) JOIN`, `FULL (OUTER) JOIN`, and `CROSS JOIN`.\n- Write correlated and non-correlated Subqueries in `SELECT`, `FROM`, and `WHERE` clauses.\n- Perform Set Operations: `UNION`, `UNION ALL`, `INTERSECT`, and `EXCEPT`.\n## Example: Complex Multi-Table Join\n```sql\nSELECT \n  s.student_id,\n  s.full_name,\n  s.email,\n  c.title AS course_title,\n  e.completed\nFROM students s\nLEFT JOIN course_enrollments e ON s.student_id = e.student_id\nLEFT JOIN courses c ON e.course_id = c.id\nWHERE s.xp_points >= 100;\n```"
+      },
+      {
+        "duration": "15 mins",
+        "moduleId": "dbms-mod-4",
+        "title": "4.2 HAVING",
+        "type": "video",
+        "courseId": "database-management-system",
+        "content": "## 4.2 HAVING\n### HAVING Clause\nFilters group results (unlike WHERE which filters rows): `SELECT category FROM products GROUP BY category HAVING COUNT(*) > 5;`",
+        "order": 2,
+        "orderIndex": 2,
+        "updatedAt": "2026-08-26T16:26:37.480Z",
+        "id": "dbms-les-402",
+        "revision": 1,
+        "readingContent": "## 4.2 HAVING\n### HAVING Clause\nFilters group results (unlike WHERE which filters rows): `SELECT category FROM products GROUP BY category HAVING COUNT(*) > 5;`"
+      },
+      {
+        "duration": "30 mins",
+        "moduleId": "dbms-mod-4",
+        "title": "4.3 JOINS",
+        "type": "video",
+        "courseId": "database-management-system",
+        "content": "## 4.3 JOINS\n### SQL JOINS\nCombines columns from multiple tables. Types: INNER JOIN, LEFT JOIN, RIGHT JOIN, FULL OUTER JOIN.",
+        "order": 3,
+        "orderIndex": 3,
+        "updatedAt": "2026-08-26T16:26:38.146Z",
+        "id": "dbms-les-403",
+        "revision": 1,
+        "readingContent": "## 4.3 JOINS\n### SQL JOINS\nCombines columns from multiple tables. Types: INNER JOIN, LEFT JOIN, RIGHT JOIN, FULL OUTER JOIN."
+      },
+      {
+        "duration": "15 mins",
+        "moduleId": "dbms-mod-4",
+        "title": "4.4 UNION",
+        "type": "video",
+        "courseId": "database-management-system",
+        "content": "## 4.4 UNION\n### UNION Operator\nCombines query results into one distinct list: `SELECT id FROM customers UNION SELECT id FROM employees;`",
+        "order": 4,
+        "orderIndex": 4,
+        "updatedAt": "2026-08-26T16:26:38.821Z",
+        "id": "dbms-les-404",
+        "revision": 1,
+        "readingContent": "## 4.4 UNION\n### UNION Operator\nCombines query results into one distinct list: `SELECT id FROM customers UNION SELECT id FROM employees;`"
+      },
+      {
+        "duration": "20 mins",
+        "moduleId": "dbms-mod-4",
+        "title": "4.5 Subqueries",
+        "type": "video",
+        "courseId": "database-management-system",
+        "content": "## 4.5 Subqueries\n### Subqueries\nQueries nested inside other queries: `SELECT * FROM products WHERE price > (SELECT AVG(price) FROM products);`",
+        "order": 5,
+        "orderIndex": 5,
+        "updatedAt": "2026-08-26T16:26:39.489Z",
+        "id": "dbms-les-405",
+        "revision": 1,
+        "readingContent": "## 4.5 Subqueries\n### Subqueries\nQueries nested inside other queries: `SELECT * FROM products WHERE price > (SELECT AVG(price) FROM products);`"
+      },
+      {
+        "duration": "15 mins",
+        "moduleId": "dbms-mod-4",
+        "title": "4.6 Views",
+        "type": "video",
+        "courseId": "database-management-system",
+        "content": "## 4.6 Views\n### Database Views\nA virtual table built from a SELECT statement: `CREATE VIEW active_users AS SELECT * FROM users WHERE active = true;`",
+        "order": 6,
+        "orderIndex": 6,
+        "updatedAt": "2026-08-26T16:26:40.157Z",
+        "id": "dbms-les-406",
+        "revision": 1,
+        "readingContent": "## 4.6 Views\n### Database Views\nA virtual table built from a SELECT statement: `CREATE VIEW active_users AS SELECT * FROM users WHERE active = true;`"
+      },
+      {
+        "duration": "20 mins",
+        "moduleId": "dbms-mod-4",
+        "title": "4.7 Indexes",
+        "type": "video",
+        "courseId": "database-management-system",
+        "content": "## 4.7 Indexes\n### Indexes\nStructures that speed up query execution: `CREATE INDEX idx_name ON users(name);`",
+        "order": 7,
+        "orderIndex": 7,
+        "updatedAt": "2026-08-26T16:26:41.160Z",
+        "id": "dbms-les-407",
+        "revision": 1,
+        "readingContent": "## 4.7 Indexes\n### Indexes\nStructures that speed up query execution: `CREATE INDEX idx_name ON users(name);`"
+      }
+    ],
+    "topics": [
+      {
+        "id": "dbms-mod-4-topic-1",
+        "title": "Module 4: SQL Joins, Subqueries & Set Operations Units",
+        "description": "Inner joins, outer joins, nested subqueries, and union operations.",
+        "estimatedDuration": "5 Hours",
+        "learningUnits": [
+          {
+            "id": "dbms-les-401",
+            "title": "4.1 GROUP BY",
+            "description": "",
+            "duration": "15 mins",
+            "type": "Video",
+            "readingContent": "### GROUP BY Clause\nGroups rows sharing identical values: `SELECT category, COUNT(*) FROM products GROUP BY category;`",
+            "content": "### GROUP BY Clause\nGroups rows sharing identical values: `SELECT category, COUNT(*) FROM products GROUP BY category;`",
+            "conceptTheory": "### GROUP BY Clause\nGroups rows sharing identical values: `SELECT category, COUNT(*) FROM products GROUP BY category;`",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 1,
+            "order": 1
+          },
+          {
+            "id": "dbms-unit-4-notes",
+            "title": "Module 4 - Complete Notes",
+            "description": "",
+            "duration": "45 mins",
+            "type": "Reading",
+            "readingContent": "# Module 4: SQL Joins, Subqueries & Set Operations\n\n## Overview\nRelational power derives from joining disparate normalized tables together at query time via primary-foreign key relationships.\n\n## Learning Objectives\n- Master all Join types: `INNER JOIN`, `LEFT (OUTER) JOIN`, `RIGHT (OUTER) JOIN`, `FULL (OUTER) JOIN`, and `CROSS JOIN`.\n- Write correlated and non-correlated Subqueries in `SELECT`, `FROM`, and `WHERE` clauses.\n- Perform Set Operations: `UNION`, `UNION ALL`, `INTERSECT`, and `EXCEPT`.\n\n## Example: Complex Multi-Table Join\n```sql\nSELECT \n  s.student_id,\n  s.full_name,\n  s.email,\n  c.title AS course_title,\n  e.completed\nFROM students s\nLEFT JOIN course_enrollments e ON s.student_id = e.student_id\nLEFT JOIN courses c ON e.course_id = c.id\nWHERE s.xp_points >= 100;\n```\n",
+            "content": "# Module 4: SQL Joins, Subqueries & Set Operations\n\n## Overview\nRelational power derives from joining disparate normalized tables together at query time via primary-foreign key relationships.\n\n## Learning Objectives\n- Master all Join types: `INNER JOIN`, `LEFT (OUTER) JOIN`, `RIGHT (OUTER) JOIN`, `FULL (OUTER) JOIN`, and `CROSS JOIN`.\n- Write correlated and non-correlated Subqueries in `SELECT`, `FROM`, and `WHERE` clauses.\n- Perform Set Operations: `UNION`, `UNION ALL`, `INTERSECT`, and `EXCEPT`.\n\n## Example: Complex Multi-Table Join\n```sql\nSELECT \n  s.student_id,\n  s.full_name,\n  s.email,\n  c.title AS course_title,\n  e.completed\nFROM students s\nLEFT JOIN course_enrollments e ON s.student_id = e.student_id\nLEFT JOIN courses c ON e.course_id = c.id\nWHERE s.xp_points >= 100;\n```\n",
+            "conceptTheory": "# Module 4: SQL Joins, Subqueries & Set Operations\n\n## Overview\nRelational power derives from joining disparate normalized tables together at query time via primary-foreign key relationships.\n\n## Learning Objectives\n- Master all Join types: `INNER JOIN`, `LEFT (OUTER) JOIN`, `RIGHT (OUTER) JOIN`, `FULL (OUTER) JOIN`, and `CROSS JOIN`.\n- Write correlated and non-correlated Subqueries in `SELECT`, `FROM`, and `WHERE` clauses.\n- Perform Set Operations: `UNION`, `UNION ALL`, `INTERSECT`, and `EXCEPT`.\n\n## Example: Complex Multi-Table Join\n```sql\nSELECT \n  s.student_id,\n  s.full_name,\n  s.email,\n  c.title AS course_title,\n  e.completed\nFROM students s\nLEFT JOIN course_enrollments e ON s.student_id = e.student_id\nLEFT JOIN courses c ON e.course_id = c.id\nWHERE s.xp_points >= 100;\n```\n",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 1,
+            "order": 1
+          },
+          {
+            "id": "dbms-les-402",
+            "title": "4.2 HAVING",
+            "description": "",
+            "duration": "15 mins",
+            "type": "Video",
+            "readingContent": "### HAVING Clause\nFilters group results (unlike WHERE which filters rows): `SELECT category FROM products GROUP BY category HAVING COUNT(*) > 5;`",
+            "content": "### HAVING Clause\nFilters group results (unlike WHERE which filters rows): `SELECT category FROM products GROUP BY category HAVING COUNT(*) > 5;`",
+            "conceptTheory": "### HAVING Clause\nFilters group results (unlike WHERE which filters rows): `SELECT category FROM products GROUP BY category HAVING COUNT(*) > 5;`",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 2,
+            "order": 2
+          },
+          {
+            "id": "dbms-les-403",
+            "title": "4.3 JOINS",
+            "description": "",
+            "duration": "30 mins",
+            "type": "Video",
+            "readingContent": "### SQL JOINS\nCombines columns from multiple tables. Types: INNER JOIN, LEFT JOIN, RIGHT JOIN, FULL OUTER JOIN.",
+            "content": "### SQL JOINS\nCombines columns from multiple tables. Types: INNER JOIN, LEFT JOIN, RIGHT JOIN, FULL OUTER JOIN.",
+            "conceptTheory": "### SQL JOINS\nCombines columns from multiple tables. Types: INNER JOIN, LEFT JOIN, RIGHT JOIN, FULL OUTER JOIN.",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 3,
+            "order": 3
+          },
+          {
+            "id": "dbms-les-404",
+            "title": "4.4 UNION",
+            "description": "",
+            "duration": "15 mins",
+            "type": "Video",
+            "readingContent": "### UNION Operator\nCombines query results into one distinct list: `SELECT id FROM customers UNION SELECT id FROM employees;`",
+            "content": "### UNION Operator\nCombines query results into one distinct list: `SELECT id FROM customers UNION SELECT id FROM employees;`",
+            "conceptTheory": "### UNION Operator\nCombines query results into one distinct list: `SELECT id FROM customers UNION SELECT id FROM employees;`",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 4,
+            "order": 4
+          },
+          {
+            "id": "dbms-les-405",
+            "title": "4.5 Subqueries",
+            "description": "",
+            "duration": "20 mins",
+            "type": "Video",
+            "readingContent": "### Subqueries\nQueries nested inside other queries: `SELECT * FROM products WHERE price > (SELECT AVG(price) FROM products);`",
+            "content": "### Subqueries\nQueries nested inside other queries: `SELECT * FROM products WHERE price > (SELECT AVG(price) FROM products);`",
+            "conceptTheory": "### Subqueries\nQueries nested inside other queries: `SELECT * FROM products WHERE price > (SELECT AVG(price) FROM products);`",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 5,
+            "order": 5
+          },
+          {
+            "id": "dbms-les-406",
+            "title": "4.6 Views",
+            "description": "",
+            "duration": "15 mins",
+            "type": "Video",
+            "readingContent": "### Database Views\nA virtual table built from a SELECT statement: `CREATE VIEW active_users AS SELECT * FROM users WHERE active = true;`",
+            "content": "### Database Views\nA virtual table built from a SELECT statement: `CREATE VIEW active_users AS SELECT * FROM users WHERE active = true;`",
+            "conceptTheory": "### Database Views\nA virtual table built from a SELECT statement: `CREATE VIEW active_users AS SELECT * FROM users WHERE active = true;`",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 6,
+            "order": 6
+          },
+          {
+            "id": "dbms-les-407",
+            "title": "4.7 Indexes",
+            "description": "",
+            "duration": "20 mins",
+            "type": "Video",
+            "readingContent": "### Indexes\nStructures that speed up query execution: `CREATE INDEX idx_name ON users(name);`",
+            "content": "### Indexes\nStructures that speed up query execution: `CREATE INDEX idx_name ON users(name);`",
+            "conceptTheory": "### Indexes\nStructures that speed up query execution: `CREATE INDEX idx_name ON users(name);`",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 7,
+            "order": 7
+          }
         ]
       }
     ]
   },
   {
-    id: 'dbms-mod-5',
-    title: 'Module 5: Database Normalization (1NF, 2NF, 3NF, BCNF)',
-    description: 'Functional dependencies, decomposing anomalies, and normal forms.',
-    duration: '5 Hours',
-    topics: [
+    "courseId": "database-management-system",
+    "order": 5,
+    "orderIndex": 5,
+    "duration": "4 Hours",
+    "description": "Functional dependencies, 1NF, 2NF, 3NF, and BCNF normalization.",
+    "id": "dbms-mod-5",
+    "title": "Module 5: Database Normalization",
+    "updatedAt": "2026-09-01T06:50:37.901Z",
+    "revision": 1,
+    "lessons": [
       {
-        id: 'dbms-top-5',
-        title: 'Normalization Principles & Normal Forms',
-        description: '1NF, 2NF, 3NF, BCNF decomposition and dependency preservation.',
-        estimatedDuration: '50 mins',
-        learningUnits: [
-          createLesson(
-            'dbms-unit-5-notes',
-            'Module 5 - Complete Notes',
-            'Database Normalization & Functional Dependencies.',
-            '50 mins',
-            'Reading',
-            dbmsSyllabusNotes[5]
-          )
+        "duration": "20 mins",
+        "moduleId": "dbms-mod-5",
+        "title": "5.1 Functional Dependency",
+        "type": "reading",
+        "courseId": "database-management-system",
+        "content": "## 5.1 Functional Dependency\n### Functional Dependency\nOccurs when one attribute uniquely determines another attribute. Denoted as X -> Y, where X is determinant.",
+        "order": 1,
+        "orderIndex": 1,
+        "updatedAt": "2026-08-26T16:26:42.512Z",
+        "id": "dbms-les-501",
+        "revision": 1,
+        "readingContent": "## 5.1 Functional Dependency\n### Functional Dependency\nOccurs when one attribute uniquely determines another attribute. Denoted as X -> Y, where X is determinant."
+      },
+      {
+        "estimatedReadMinutes": 2,
+        "moduleTitle": "Module 5: Database Normalization",
+        "title": "Module 5 - Complete Notes",
+        "type": "Reading",
+        "content": "# Module 5: Database Normalization (1NF, 2NF, 3NF, BCNF)\n## Overview\nNormalization is the systematic formal process of decomposing tables to eliminate update, insertion, and deletion anomalies while minimizing data redundancy.\n\n## Learning Objectives\n- Identify Functional Dependencies ($X \to Y$).\n- **First Normal Form (1NF)**: Atomic attributes, no repeating groups, unique primary key.\n- **Second Normal Form (2NF)**: In 1NF and no partial dependencies (every non-prime attribute is fully functionally dependent on the candidate key).\n- **Third Normal Form (3NF)**: In 2NF and no transitive dependencies ($A \to B$ and $B \to C$).\n- **Boyce-Codd Normal Form (BCNF)**: For every functional dependency $X \to Y$, $X$ must be a super key.\n> 💡 **Tip:** 3NF is the universal industry sweet-spot for OLTP (Online Transaction Processing) applications balancing normalization cleanliness with query performance.",
+        "duration": "45 mins",
+        "createdAt": "2026-09-01T06:50:37.901Z",
+        "orderIndex": 1,
+        "id": "dbms-unit-5-notes",
+        "moduleId": "dbms-mod-5",
+        "courseId": "database-management-system",
+        "order": 1,
+        "updatedAt": "2026-09-01T06:50:37.901Z",
+        "revision": 1,
+        "readingContent": "# Module 5: Database Normalization (1NF, 2NF, 3NF, BCNF)\n## Overview\nNormalization is the systematic formal process of decomposing tables to eliminate update, insertion, and deletion anomalies while minimizing data redundancy.\n\n## Learning Objectives\n- Identify Functional Dependencies ($X \to Y$).\n- **First Normal Form (1NF)**: Atomic attributes, no repeating groups, unique primary key.\n- **Second Normal Form (2NF)**: In 1NF and no partial dependencies (every non-prime attribute is fully functionally dependent on the candidate key).\n- **Third Normal Form (3NF)**: In 2NF and no transitive dependencies ($A \to B$ and $B \to C$).\n- **Boyce-Codd Normal Form (BCNF)**: For every functional dependency $X \to Y$, $X$ must be a super key.\n> 💡 **Tip:** 3NF is the universal industry sweet-spot for OLTP (Online Transaction Processing) applications balancing normalization cleanliness with query performance."
+      },
+      {
+        "duration": "30 mins",
+        "moduleId": "dbms-mod-5",
+        "title": "5.2 Normalization",
+        "type": "video",
+        "courseId": "database-management-system",
+        "content": "## 5.2 Normalization\n### Database Normalization\nProcess to structure database schemas to eliminate insertion, update, and deletion anomalies. Forms: 1NF, 2NF, 3NF, BCNF.",
+        "order": 2,
+        "orderIndex": 2,
+        "updatedAt": "2026-08-26T16:26:43.170Z",
+        "id": "dbms-les-502",
+        "revision": 1,
+        "readingContent": "## 5.2 Normalization\n### Database Normalization\nProcess to structure database schemas to eliminate insertion, update, and deletion anomalies. Forms: 1NF, 2NF, 3NF, BCNF."
+      },
+      {
+        "duration": "15 mins",
+        "moduleId": "dbms-mod-5",
+        "title": "5.3 Transactions",
+        "type": "video",
+        "courseId": "database-management-system",
+        "content": "## 5.3 Transactions\n### Transactions\nExecutions of SQL statements treated as a single logical unit of work (all-or-nothing execution).",
+        "order": 3,
+        "orderIndex": 3,
+        "updatedAt": "2026-08-26T16:26:43.830Z",
+        "id": "dbms-les-503",
+        "revision": 1,
+        "readingContent": "## 5.3 Transactions\n### Transactions\nExecutions of SQL statements treated as a single logical unit of work (all-or-nothing execution)."
+      },
+      {
+        "duration": "20 mins",
+        "moduleId": "dbms-mod-5",
+        "title": "5.4 ACID Properties",
+        "type": "reading",
+        "courseId": "database-management-system",
+        "content": "## 5.4 ACID Properties\n### ACID Properties\nEnsures transactional safety:\n- **Atomicity:** Complete success or total rollback.\n- **Consistency:** Moves database from one valid state to another.\n- **Isolation:** Concurrent transactions do not interfere.\n- **Durability:** Committed changes persist even during power loss.",
+        "order": 4,
+        "orderIndex": 4,
+        "updatedAt": "2026-08-26T16:26:44.517Z",
+        "id": "dbms-les-504",
+        "revision": 1,
+        "readingContent": "## 5.4 ACID Properties\n### ACID Properties\nEnsures transactional safety:\n- **Atomicity:** Complete success or total rollback.\n- **Consistency:** Moves database from one valid state to another.\n- **Isolation:** Concurrent transactions do not interfere.\n- **Durability:** Committed changes persist even during power loss."
+      },
+      {
+        "duration": "25 mins",
+        "moduleId": "dbms-mod-5",
+        "title": "5.5 Concurrency Control",
+        "type": "reading",
+        "courseId": "database-management-system",
+        "content": "## 5.5 Concurrency Control\n### Concurrency Control\nManages concurrent transaction conflicts using Locking protocols (shared/exclusive) and timestamp ordering.",
+        "order": 5,
+        "orderIndex": 5,
+        "updatedAt": "2026-08-26T16:26:45.340Z",
+        "id": "dbms-les-505",
+        "revision": 1,
+        "readingContent": "## 5.5 Concurrency Control\n### Concurrency Control\nManages concurrent transaction conflicts using Locking protocols (shared/exclusive) and timestamp ordering."
+      },
+      {
+        "duration": "20 mins",
+        "moduleId": "dbms-mod-5",
+        "title": "5.6 Database Security",
+        "type": "reading",
+        "courseId": "database-management-system",
+        "content": "## 5.6 Database Security\n### Database Security\nProtects data using access control privileges (GRANT/REVOKE), database encryption, and SQL injection prevention.",
+        "order": 6,
+        "orderIndex": 6,
+        "updatedAt": "2026-08-26T16:26:45.994Z",
+        "id": "dbms-les-506",
+        "revision": 1,
+        "readingContent": "## 5.6 Database Security\n### Database Security\nProtects data using access control privileges (GRANT/REVOKE), database encryption, and SQL injection prevention."
+      }
+    ],
+    "topics": [
+      {
+        "id": "dbms-mod-5-topic-1",
+        "title": "Module 5: Database Normalization Units",
+        "description": "Functional dependencies, 1NF, 2NF, 3NF, and BCNF normalization.",
+        "estimatedDuration": "4 Hours",
+        "learningUnits": [
+          {
+            "id": "dbms-les-501",
+            "title": "5.1 Functional Dependency",
+            "description": "",
+            "duration": "20 mins",
+            "type": "Reading",
+            "readingContent": "### Functional Dependency\nOccurs when one attribute uniquely determines another attribute. Denoted as X -> Y, where X is determinant.",
+            "content": "### Functional Dependency\nOccurs when one attribute uniquely determines another attribute. Denoted as X -> Y, where X is determinant.",
+            "conceptTheory": "### Functional Dependency\nOccurs when one attribute uniquely determines another attribute. Denoted as X -> Y, where X is determinant.",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 1,
+            "order": 1
+          },
+          {
+            "id": "dbms-unit-5-notes",
+            "title": "Module 5 - Complete Notes",
+            "description": "",
+            "duration": "45 mins",
+            "type": "Reading",
+            "readingContent": "# Module 5: Database Normalization (1NF, 2NF, 3NF, BCNF)\n\n## Overview\nNormalization is the systematic formal process of decomposing tables to eliminate update, insertion, and deletion anomalies while minimizing data redundancy.\n\n## Learning Objectives\n- Identify Functional Dependencies ($X \to Y$).\n- **First Normal Form (1NF)**: Atomic attributes, no repeating groups, unique primary key.\n- **Second Normal Form (2NF)**: In 1NF and no partial dependencies (every non-prime attribute is fully functionally dependent on the candidate key).\n- **Third Normal Form (3NF)**: In 2NF and no transitive dependencies ($A \to B$ and $B \to C$).\n- **Boyce-Codd Normal Form (BCNF)**: For every functional dependency $X \to Y$, $X$ must be a super key.\n\n> 💡 **Tip:** 3NF is the universal industry sweet-spot for OLTP (Online Transaction Processing) applications balancing normalization cleanliness with query performance.\n",
+            "content": "# Module 5: Database Normalization (1NF, 2NF, 3NF, BCNF)\n\n## Overview\nNormalization is the systematic formal process of decomposing tables to eliminate update, insertion, and deletion anomalies while minimizing data redundancy.\n\n## Learning Objectives\n- Identify Functional Dependencies ($X \to Y$).\n- **First Normal Form (1NF)**: Atomic attributes, no repeating groups, unique primary key.\n- **Second Normal Form (2NF)**: In 1NF and no partial dependencies (every non-prime attribute is fully functionally dependent on the candidate key).\n- **Third Normal Form (3NF)**: In 2NF and no transitive dependencies ($A \to B$ and $B \to C$).\n- **Boyce-Codd Normal Form (BCNF)**: For every functional dependency $X \to Y$, $X$ must be a super key.\n\n> 💡 **Tip:** 3NF is the universal industry sweet-spot for OLTP (Online Transaction Processing) applications balancing normalization cleanliness with query performance.\n",
+            "conceptTheory": "# Module 5: Database Normalization (1NF, 2NF, 3NF, BCNF)\n\n## Overview\nNormalization is the systematic formal process of decomposing tables to eliminate update, insertion, and deletion anomalies while minimizing data redundancy.\n\n## Learning Objectives\n- Identify Functional Dependencies ($X \to Y$).\n- **First Normal Form (1NF)**: Atomic attributes, no repeating groups, unique primary key.\n- **Second Normal Form (2NF)**: In 1NF and no partial dependencies (every non-prime attribute is fully functionally dependent on the candidate key).\n- **Third Normal Form (3NF)**: In 2NF and no transitive dependencies ($A \to B$ and $B \to C$).\n- **Boyce-Codd Normal Form (BCNF)**: For every functional dependency $X \to Y$, $X$ must be a super key.\n\n> 💡 **Tip:** 3NF is the universal industry sweet-spot for OLTP (Online Transaction Processing) applications balancing normalization cleanliness with query performance.\n",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 1,
+            "order": 1
+          },
+          {
+            "id": "dbms-les-502",
+            "title": "5.2 Normalization",
+            "description": "",
+            "duration": "30 mins",
+            "type": "Video",
+            "readingContent": "### Database Normalization\nProcess to structure database schemas to eliminate insertion, update, and deletion anomalies. Forms: 1NF, 2NF, 3NF, BCNF.",
+            "content": "### Database Normalization\nProcess to structure database schemas to eliminate insertion, update, and deletion anomalies. Forms: 1NF, 2NF, 3NF, BCNF.",
+            "conceptTheory": "### Database Normalization\nProcess to structure database schemas to eliminate insertion, update, and deletion anomalies. Forms: 1NF, 2NF, 3NF, BCNF.",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 2,
+            "order": 2
+          },
+          {
+            "id": "dbms-les-503",
+            "title": "5.3 Transactions",
+            "description": "",
+            "duration": "15 mins",
+            "type": "Video",
+            "readingContent": "### Transactions\nExecutions of SQL statements treated as a single logical unit of work (all-or-nothing execution).",
+            "content": "### Transactions\nExecutions of SQL statements treated as a single logical unit of work (all-or-nothing execution).",
+            "conceptTheory": "### Transactions\nExecutions of SQL statements treated as a single logical unit of work (all-or-nothing execution).",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 3,
+            "order": 3
+          },
+          {
+            "id": "dbms-les-504",
+            "title": "5.4 ACID Properties",
+            "description": "",
+            "duration": "20 mins",
+            "type": "Reading",
+            "readingContent": "### ACID Properties\nEnsures transactional safety:\n- **Atomicity:** Complete success or total rollback.\n- **Consistency:** Moves database from one valid state to another.\n- **Isolation:** Concurrent transactions do not interfere.\n- **Durability:** Committed changes persist even during power loss.",
+            "content": "### ACID Properties\nEnsures transactional safety:\n- **Atomicity:** Complete success or total rollback.\n- **Consistency:** Moves database from one valid state to another.\n- **Isolation:** Concurrent transactions do not interfere.\n- **Durability:** Committed changes persist even during power loss.",
+            "conceptTheory": "### ACID Properties\nEnsures transactional safety:\n- **Atomicity:** Complete success or total rollback.\n- **Consistency:** Moves database from one valid state to another.\n- **Isolation:** Concurrent transactions do not interfere.\n- **Durability:** Committed changes persist even during power loss.",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 4,
+            "order": 4
+          },
+          {
+            "id": "dbms-les-505",
+            "title": "5.5 Concurrency Control",
+            "description": "",
+            "duration": "25 mins",
+            "type": "Reading",
+            "readingContent": "### Concurrency Control\nManages concurrent transaction conflicts using Locking protocols (shared/exclusive) and timestamp ordering.",
+            "content": "### Concurrency Control\nManages concurrent transaction conflicts using Locking protocols (shared/exclusive) and timestamp ordering.",
+            "conceptTheory": "### Concurrency Control\nManages concurrent transaction conflicts using Locking protocols (shared/exclusive) and timestamp ordering.",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 5,
+            "order": 5
+          },
+          {
+            "id": "dbms-les-506",
+            "title": "5.6 Database Security",
+            "description": "",
+            "duration": "20 mins",
+            "type": "Reading",
+            "readingContent": "### Database Security\nProtects data using access control privileges (GRANT/REVOKE), database encryption, and SQL injection prevention.",
+            "content": "### Database Security\nProtects data using access control privileges (GRANT/REVOKE), database encryption, and SQL injection prevention.",
+            "conceptTheory": "### Database Security\nProtects data using access control privileges (GRANT/REVOKE), database encryption, and SQL injection prevention.",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 6,
+            "order": 6
+          }
         ]
       }
     ]
   },
   {
-    id: 'dbms-mod-6',
-    title: 'Module 6: Transactions, ACID & Concurrency Control',
-    description: 'ACID transactions, locking protocols, deadlocks, and isolation levels.',
-    duration: '4 Hours',
-    topics: [
+    "duration": "4 Hours",
+    "courseId": "database-management-system",
+    "order": 6,
+    "orderIndex": 6,
+    "description": "Transactions, ACID rules, serializability, and lock management.",
+    "id": "dbms-mod-6",
+    "title": "Module 6: Transactions, ACID Properties & Concurrency",
+    "updatedAt": "2026-09-01T06:50:37.901Z",
+    "revision": 1,
+    "lessons": [
       {
-        id: 'dbms-top-6',
-        title: 'Transactions & ACID Guarantees',
-        description: 'Transaction isolation levels, WAL logs, and concurrency control.',
-        estimatedDuration: '45 mins',
-        learningUnits: [
-          createLesson(
-            'dbms-unit-6-notes',
-            'Module 6 - Complete Notes',
-            'Database Transactions, ACID & Concurrency.',
-            '45 mins',
-            'Reading',
-            dbmsSyllabusNotes[6]
-          )
+        "duration": "20 mins",
+        "moduleId": "dbms-mod-6",
+        "title": "6.1 Student Management System",
+        "type": "reading",
+        "courseId": "database-management-system",
+        "content": "## 6.1 Student Management System\n### Student Management Schema\nDesign a database schema to track student details, class enrollments, and academic grades.",
+        "order": 1,
+        "orderIndex": 1,
+        "updatedAt": "2026-08-26T16:26:47.331Z",
+        "id": "dbms-les-601",
+        "revision": 1,
+        "readingContent": "## 6.1 Student Management System\n### Student Management Schema\nDesign a database schema to track student details, class enrollments, and academic grades."
+      },
+      {
+        "estimatedReadMinutes": 2,
+        "moduleTitle": "Module 6: Transactions, ACID Properties & Concurrency",
+        "title": "Module 6 - Complete Notes",
+        "type": "Reading",
+        "content": "# Module 6: Transactions, ACID Properties & Concurrency\n## Overview\nA Transaction is a logical unit of database processing consisting of one or more SQL operations executed as an indivisible atomic block.\n\n## Learning Objectives\n- Master the ACID Properties:\n- **Atomicity**: All operations succeed or all are rolled back (`COMMIT` / `ROLLBACK`).\n- **Consistency**: The database transitions from one valid state to another satisfying all integrity constraints.\n- **Isolation**: Concurrent transactions execute without interfering with one another.\n- **Durability**: Committed data persists across crashes and power losses (Write-Ahead Logging).\n- Understand Concurrency Anomalies: Dirty Reads, Non-Repeatable Reads, and Phantom Reads.\n- Master ANSI Transaction Isolation Levels: `READ UNCOMMITTED`, `READ COMMITTED`, `REPEATABLE READ`, and `SERIALIZABLE`.\n## Example: ACID Transaction Block\n```sql\nBEGIN TRANSACTION;\n\n-- Deduct balance from student wallet\nUPDATE user_wallets \nSET balance = balance - 49.99 \nWHERE user_id = 'user_123' AND balance >= 49.99;\n\n-- Record course enrollment\nINSERT INTO enrollments (user_id, course_id, enrolled_at)\nVALUES ('user_123', 'c-programming-course-id', CURRENT_TIMESTAMP);\n\nCOMMIT;\n```",
+        "duration": "45 mins",
+        "createdAt": "2026-09-01T06:50:37.901Z",
+        "orderIndex": 1,
+        "id": "dbms-unit-6-notes",
+        "moduleId": "dbms-mod-6",
+        "courseId": "database-management-system",
+        "order": 1,
+        "updatedAt": "2026-09-01T06:50:37.901Z",
+        "revision": 1,
+        "readingContent": "# Module 6: Transactions, ACID Properties & Concurrency\n## Overview\nA Transaction is a logical unit of database processing consisting of one or more SQL operations executed as an indivisible atomic block.\n\n## Learning Objectives\n- Master the ACID Properties:\n- **Atomicity**: All operations succeed or all are rolled back (`COMMIT` / `ROLLBACK`).\n- **Consistency**: The database transitions from one valid state to another satisfying all integrity constraints.\n- **Isolation**: Concurrent transactions execute without interfering with one another.\n- **Durability**: Committed data persists across crashes and power losses (Write-Ahead Logging).\n- Understand Concurrency Anomalies: Dirty Reads, Non-Repeatable Reads, and Phantom Reads.\n- Master ANSI Transaction Isolation Levels: `READ UNCOMMITTED`, `READ COMMITTED`, `REPEATABLE READ`, and `SERIALIZABLE`.\n## Example: ACID Transaction Block\n```sql\nBEGIN TRANSACTION;\n\n-- Deduct balance from student wallet\nUPDATE user_wallets \nSET balance = balance - 49.99 \nWHERE user_id = 'user_123' AND balance >= 49.99;\n\n-- Record course enrollment\nINSERT INTO enrollments (user_id, course_id, enrolled_at)\nVALUES ('user_123', 'c-programming-course-id', CURRENT_TIMESTAMP);\n\nCOMMIT;\n```"
+      },
+      {
+        "duration": "20 mins",
+        "moduleId": "dbms-mod-6",
+        "title": "6.2 Library Management System",
+        "type": "reading",
+        "courseId": "database-management-system",
+        "content": "## 6.2 Library Management System\n### Library Management Schema\nDesign a database schema to track book catalog databases, author relationships, member details, and borrow transactions.",
+        "order": 2,
+        "orderIndex": 2,
+        "updatedAt": "2026-08-26T16:26:48.015Z",
+        "id": "dbms-les-602",
+        "revision": 1,
+        "readingContent": "## 6.2 Library Management System\n### Library Management Schema\nDesign a database schema to track book catalog databases, author relationships, member details, and borrow transactions."
+      },
+      {
+        "duration": "30 mins",
+        "moduleId": "dbms-mod-6",
+        "title": "6.3 E-Commerce Database",
+        "type": "reading",
+        "courseId": "database-management-system",
+        "content": "## 6.3 E-Commerce Database\n### E-Commerce Schema\nDesign a comprehensive database model tracking users, product catalogs, customer shopping carts, checkout orders, and payments.",
+        "order": 3,
+        "orderIndex": 3,
+        "updatedAt": "2026-08-26T16:26:48.703Z",
+        "id": "dbms-les-603",
+        "revision": 1,
+        "readingContent": "## 6.3 E-Commerce Database\n### E-Commerce Schema\nDesign a comprehensive database model tracking users, product catalogs, customer shopping carts, checkout orders, and payments."
+      },
+      {
+        "duration": "40 mins",
+        "moduleId": "dbms-mod-6",
+        "title": "6.4 SQL Mini Project",
+        "type": "reading",
+        "courseId": "database-management-system",
+        "content": "## 6.4 SQL Mini Project\n### Capstone Mini SQL Project\nCreate the E-commerce schema locally, run sample tables, populate them with test records, and execute complex nested query reports.",
+        "order": 4,
+        "orderIndex": 4,
+        "updatedAt": "2026-08-26T16:26:49.420Z",
+        "id": "dbms-les-604",
+        "revision": 1,
+        "readingContent": "## 6.4 SQL Mini Project\n### Capstone Mini SQL Project\nCreate the E-commerce schema locally, run sample tables, populate them with test records, and execute complex nested query reports."
+      }
+    ],
+    "topics": [
+      {
+        "id": "dbms-mod-6-topic-1",
+        "title": "Module 6: Transactions, ACID Properties & Concurrency Units",
+        "description": "Transactions, ACID rules, serializability, and lock management.",
+        "estimatedDuration": "4 Hours",
+        "learningUnits": [
+          {
+            "id": "dbms-les-601",
+            "title": "6.1 Student Management System",
+            "description": "",
+            "duration": "20 mins",
+            "type": "Reading",
+            "readingContent": "### Student Management Schema\nDesign a database schema to track student details, class enrollments, and academic grades.",
+            "content": "### Student Management Schema\nDesign a database schema to track student details, class enrollments, and academic grades.",
+            "conceptTheory": "### Student Management Schema\nDesign a database schema to track student details, class enrollments, and academic grades.",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 1,
+            "order": 1
+          },
+          {
+            "id": "dbms-unit-6-notes",
+            "title": "Module 6 - Complete Notes",
+            "description": "",
+            "duration": "45 mins",
+            "type": "Reading",
+            "readingContent": "# Module 6: Transactions, ACID Properties & Concurrency\n\n## Overview\nA Transaction is a logical unit of database processing consisting of one or more SQL operations executed as an indivisible atomic block.\n\n## Learning Objectives\n- Master the ACID Properties:\n  - **Atomicity**: All operations succeed or all are rolled back (`COMMIT` / `ROLLBACK`).\n  - **Consistency**: The database transitions from one valid state to another satisfying all integrity constraints.\n  - **Isolation**: Concurrent transactions execute without interfering with one another.\n  - **Durability**: Committed data persists across crashes and power losses (Write-Ahead Logging).\n- Understand Concurrency Anomalies: Dirty Reads, Non-Repeatable Reads, and Phantom Reads.\n- Master ANSI Transaction Isolation Levels: `READ UNCOMMITTED`, `READ COMMITTED`, `REPEATABLE READ`, and `SERIALIZABLE`.\n\n## Example: ACID Transaction Block\n```sql\nBEGIN TRANSACTION;\n\n-- Deduct balance from student wallet\nUPDATE user_wallets \nSET balance = balance - 49.99 \nWHERE user_id = 'user_123' AND balance >= 49.99;\n\n-- Record course enrollment\nINSERT INTO enrollments (user_id, course_id, enrolled_at)\nVALUES ('user_123', 'c-programming-course-id', CURRENT_TIMESTAMP);\n\nCOMMIT;\n```\n",
+            "content": "# Module 6: Transactions, ACID Properties & Concurrency\n\n## Overview\nA Transaction is a logical unit of database processing consisting of one or more SQL operations executed as an indivisible atomic block.\n\n## Learning Objectives\n- Master the ACID Properties:\n  - **Atomicity**: All operations succeed or all are rolled back (`COMMIT` / `ROLLBACK`).\n  - **Consistency**: The database transitions from one valid state to another satisfying all integrity constraints.\n  - **Isolation**: Concurrent transactions execute without interfering with one another.\n  - **Durability**: Committed data persists across crashes and power losses (Write-Ahead Logging).\n- Understand Concurrency Anomalies: Dirty Reads, Non-Repeatable Reads, and Phantom Reads.\n- Master ANSI Transaction Isolation Levels: `READ UNCOMMITTED`, `READ COMMITTED`, `REPEATABLE READ`, and `SERIALIZABLE`.\n\n## Example: ACID Transaction Block\n```sql\nBEGIN TRANSACTION;\n\n-- Deduct balance from student wallet\nUPDATE user_wallets \nSET balance = balance - 49.99 \nWHERE user_id = 'user_123' AND balance >= 49.99;\n\n-- Record course enrollment\nINSERT INTO enrollments (user_id, course_id, enrolled_at)\nVALUES ('user_123', 'c-programming-course-id', CURRENT_TIMESTAMP);\n\nCOMMIT;\n```\n",
+            "conceptTheory": "# Module 6: Transactions, ACID Properties & Concurrency\n\n## Overview\nA Transaction is a logical unit of database processing consisting of one or more SQL operations executed as an indivisible atomic block.\n\n## Learning Objectives\n- Master the ACID Properties:\n  - **Atomicity**: All operations succeed or all are rolled back (`COMMIT` / `ROLLBACK`).\n  - **Consistency**: The database transitions from one valid state to another satisfying all integrity constraints.\n  - **Isolation**: Concurrent transactions execute without interfering with one another.\n  - **Durability**: Committed data persists across crashes and power losses (Write-Ahead Logging).\n- Understand Concurrency Anomalies: Dirty Reads, Non-Repeatable Reads, and Phantom Reads.\n- Master ANSI Transaction Isolation Levels: `READ UNCOMMITTED`, `READ COMMITTED`, `REPEATABLE READ`, and `SERIALIZABLE`.\n\n## Example: ACID Transaction Block\n```sql\nBEGIN TRANSACTION;\n\n-- Deduct balance from student wallet\nUPDATE user_wallets \nSET balance = balance - 49.99 \nWHERE user_id = 'user_123' AND balance >= 49.99;\n\n-- Record course enrollment\nINSERT INTO enrollments (user_id, course_id, enrolled_at)\nVALUES ('user_123', 'c-programming-course-id', CURRENT_TIMESTAMP);\n\nCOMMIT;\n```\n",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 1,
+            "order": 1
+          },
+          {
+            "id": "dbms-les-602",
+            "title": "6.2 Library Management System",
+            "description": "",
+            "duration": "20 mins",
+            "type": "Reading",
+            "readingContent": "### Library Management Schema\nDesign a database schema to track book catalog databases, author relationships, member details, and borrow transactions.",
+            "content": "### Library Management Schema\nDesign a database schema to track book catalog databases, author relationships, member details, and borrow transactions.",
+            "conceptTheory": "### Library Management Schema\nDesign a database schema to track book catalog databases, author relationships, member details, and borrow transactions.",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 2,
+            "order": 2
+          },
+          {
+            "id": "dbms-les-603",
+            "title": "6.3 E-Commerce Database",
+            "description": "",
+            "duration": "30 mins",
+            "type": "Reading",
+            "readingContent": "### E-Commerce Schema\nDesign a comprehensive database model tracking users, product catalogs, customer shopping carts, checkout orders, and payments.",
+            "content": "### E-Commerce Schema\nDesign a comprehensive database model tracking users, product catalogs, customer shopping carts, checkout orders, and payments.",
+            "conceptTheory": "### E-Commerce Schema\nDesign a comprehensive database model tracking users, product catalogs, customer shopping carts, checkout orders, and payments.",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 3,
+            "order": 3
+          },
+          {
+            "id": "dbms-les-604",
+            "title": "6.4 SQL Mini Project",
+            "description": "",
+            "duration": "40 mins",
+            "type": "Reading",
+            "readingContent": "### Capstone Mini SQL Project\nCreate the E-commerce schema locally, run sample tables, populate them with test records, and execute complex nested query reports.",
+            "content": "### Capstone Mini SQL Project\nCreate the E-commerce schema locally, run sample tables, populate them with test records, and execute complex nested query reports.",
+            "conceptTheory": "### Capstone Mini SQL Project\nCreate the E-commerce schema locally, run sample tables, populate them with test records, and execute complex nested query reports.",
+            "videoUrl": "",
+            "quizQuestions": [],
+            "assignmentInstructions": "",
+            "practiceLabChallenge": null,
+            "resources": [],
+            "orderIndex": 4,
+            "order": 4
+          }
         ]
       }
     ]
