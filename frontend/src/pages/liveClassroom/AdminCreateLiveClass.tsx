@@ -125,11 +125,20 @@ export const AdminCreateLiveClass: React.FC = () => {
     const selected = lmsCourses.find((c) => String(c.id) === courseId);
     if (!selected || !selected.modules) return [];
     const mod = selected.modules.find((m: any) => String(m.id || m.moduleId || '') === moduleId);
-    if (!mod || !mod.topics) return [];
-    return mod.topics.map((t: any) => ({
-      id: String(t.id || t.topicId || ''),
-      title: t.title || t.topicTitle || '',
-    }));
+    if (!mod) return [];
+    if (mod.topics && Array.isArray(mod.topics) && mod.topics.length > 0) {
+      return mod.topics.map((t: any) => ({
+        id: String(t.id || t.topicId || ''),
+        title: t.title || t.topicTitle || '',
+      }));
+    }
+    if (mod.lessons && Array.isArray(mod.lessons)) {
+      return mod.lessons.map((l: any) => ({
+        id: String(l.id || ''),
+        title: l.title || '',
+      }));
+    }
+    return [];
   }, [courseId, moduleId, lmsCourses]);
 
   // Compute dynamic, deduplicated instructors
@@ -286,7 +295,7 @@ export const AdminCreateLiveClass: React.FC = () => {
 
   const handleTopicChange = (selectedTopicId: string) => {
     setTopicId(selectedTopicId);
-    const found = topicOptions.find((t) => t.id === selectedTopicId);
+    const found = topicOptions.find((t: { id: string; title: string }) => t.id === selectedTopicId);
     if (found) setTopicTitle(found.title);
   };
 
@@ -551,7 +560,7 @@ export const AdminCreateLiveClass: React.FC = () => {
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-900 dark:text-zinc-100 text-xs font-medium focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">— All Topics —</option>
-                    {topicOptions.map((t) => (
+                    {topicOptions.map((t: { id: string; title: string }) => (
                       <option key={t.id} value={t.id}>{t.title}</option>
                     ))}
                   </select>

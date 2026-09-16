@@ -7,6 +7,7 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { DeveloperGate } from '@/components/auth/DeveloperGate';
 
 import { LottieLoader } from '@/components/common/LottieLoader';
+import { RouteErrorBoundary } from '@/components/common/RouteErrorBoundary';
 
 // Helper to lazy load named exports and wrap them in a Suspense boundary
 const lazyLoad = (importFn: () => Promise<any>, name: string) => {
@@ -126,6 +127,7 @@ const router = createBrowserRouter([
         <PublicLayout />
       </DeveloperGate>
     ),
+    errorElement: <RouteErrorBoundary />,
     children: [
       { index: true, element: <LandingPage /> },
       { path: 'courses', element: <CoursesList /> },
@@ -145,10 +147,12 @@ const router = createBrowserRouter([
         <PublicPortfolio />
       </DeveloperGate>
     ),
+    errorElement: <RouteErrorBoundary />,
   },
   {
     path: '/auth',
     element: <AuthLayout />,
+    errorElement: <RouteErrorBoundary />,
     children: [
       { path: 'login', element: <Login /> },
       { path: 'register', element: <Register /> },
@@ -177,6 +181,7 @@ const router = createBrowserRouter([
         <DashboardLayout />
       </ProtectedRoute>
     ),
+    errorElement: <RouteErrorBoundary />,
     children: [
       { path: 'profile', element: <Profile /> },
     ],
@@ -189,6 +194,7 @@ const router = createBrowserRouter([
         <DashboardLayout />
       </StudentRoute>
     ),
+    errorElement: <RouteErrorBoundary />,
     children: [
       { path: 'dashboard', element: <Dashboard /> },
       { path: 'dashboard/leaderboard', element: <LeaderboardPage /> },
@@ -208,6 +214,7 @@ const router = createBrowserRouter([
         <DashboardLayout />
       </AdminRoute>
     ),
+    errorElement: <RouteErrorBoundary />,
     children: [
       { index: true, element: <Navigate to="/admin/dashboard" replace /> },
       { path: 'dashboard', element: <AdminDashboard /> },
@@ -253,6 +260,7 @@ const router = createBrowserRouter([
         <AdminContentStudio />
       </AdminRoute>
     ),
+    errorElement: <RouteErrorBoundary />,
   },
   {
     path: '/admin/content/:courseId?',

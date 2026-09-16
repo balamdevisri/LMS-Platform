@@ -616,11 +616,12 @@ export const AdminContentStudio: React.FC = () => {
     let movingUnit: LearningUnitItem | null = null;
 
     updated.forEach(m => {
-      m.topics.forEach(t => {
-        const uIdx = t.learningUnits.findIndex(u => u.id === draggedLessonInfo.lessonId);
+      (m.topics || []).forEach(t => {
+        const units = t.learningUnits || [];
+        const uIdx = units.findIndex(u => u.id === draggedLessonInfo.lessonId);
         if (uIdx !== -1) {
-          movingUnit = t.learningUnits[uIdx];
-          t.learningUnits.splice(uIdx, 1);
+          movingUnit = units[uIdx];
+          units.splice(uIdx, 1);
         }
       });
     });
@@ -631,17 +632,18 @@ export const AdminContentStudio: React.FC = () => {
 
     updated.forEach(m => {
       if (m.id === targetModId) {
-        m.topics.forEach(t => {
+        (m.topics || []).forEach(t => {
           if (t.id === targetTopId) {
-            const targetIdx = t.learningUnits.findIndex(u => u.id === targetLessonId);
+            const units = t.learningUnits || [];
+            const targetIdx = units.findIndex(u => u.id === targetLessonId);
             if (targetIdx !== -1) {
-              t.learningUnits.splice(targetIdx, 0, movingUnit!);
+              units.splice(targetIdx, 0, movingUnit!);
             } else {
-              t.learningUnits.push(movingUnit!);
+              units.push(movingUnit!);
             }
 
             // Re-sequence
-            t.learningUnits = t.learningUnits.map((u, i) => {
+            t.learningUnits = units.map((u, i) => {
               const seq = i + 1;
               batchUpdates.push({ lessonId: u.id, moduleId: m.id, order: seq, orderIndex: seq });
               return { ...u, order: seq, orderIndex: seq };
@@ -868,9 +870,17 @@ export const AdminContentStudio: React.FC = () => {
   // Course Stats
   const courseStats = useMemo(() => {
     const totalModules = activeCourse?.modules?.length || 0;
-    const allUnits = activeCourse?.modules?.flatMap(m => m.topics?.flatMap(t => t.learningUnits)) || [];
+    const allUnits = (activeCourse?.modules || []).flatMap((m: any) => {
+      if (m.topics && Array.isArray(m.topics) && m.topics.length > 0) {
+        return m.topics.flatMap((t: any) => t.learningUnits || t.units || t.lessons || []);
+      }
+      if (m.lessons && Array.isArray(m.lessons)) {
+        return m.lessons;
+      }
+      return [];
+    });
     const totalLessons = allUnits.length;
-    const totalReadMinutes = allUnits.reduce((acc, u) => acc + calculateEstimatedReadMinutes(u.readingContent), 0);
+    const totalReadMinutes = allUnits.reduce((acc, u) => acc + calculateEstimatedReadMinutes(u.readingContent || u.content), 0);
     return { totalModules, totalLessons, totalReadMinutes };
   }, [activeCourse]);
 

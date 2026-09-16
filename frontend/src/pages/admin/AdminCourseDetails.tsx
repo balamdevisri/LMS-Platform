@@ -29,6 +29,7 @@ import { UnitContentEditor } from '@/components/admin/UnitContentEditor';
 import { courseService } from '@/services/courseService';
 import {
   useCourses,
+  normalizeModuleItem,
   type ModuleItem,
   type TopicItem,
   type LearningUnitItem,
@@ -102,9 +103,9 @@ export const AdminCourseDetails: React.FC = () => {
     // Always include Linux assignment 1.1.3 for testing
     list.push({ id: '1.1.3', title: '1.3 Practical Core Assignment: concentric Linux layers' });
     
-    course?.modules?.forEach((m) => {
-      m.topics?.forEach((t) => {
-        t.learningUnits?.forEach((u) => {
+    (course?.modules || []).forEach((m) => {
+      (m.topics || []).forEach((t) => {
+        (t.learningUnits || []).forEach((u) => {
           if (u.type === 'Assignment') {
             list.push({ id: String(u.id), title: u.title });
           }
@@ -132,8 +133,6 @@ export const AdminCourseDetails: React.FC = () => {
       return {};
     }
   });
-
-
 
   // Certificate Generation Modals and States
   const [certificateModalOpen, setCertificateModalOpen] = useState(false);
@@ -168,8 +167,14 @@ export const AdminCourseDetails: React.FC = () => {
       return;
     }
 
+    const normalizeAdminModules = (rawMods: any[]): ModuleItem[] => {
+      return (rawMods || []).filter(Boolean).map((m: any, idx: number) =>
+        normalizeModuleItem(m, m.id || `m${idx + 1}`)
+      );
+    };
+
     if (course?.modules && course.modules.length > 0) {
-      setModules(course.modules);
+      setModules(normalizeAdminModules(course.modules));
     }
 
     setIsLoadingModules(true);
@@ -177,7 +182,7 @@ export const AdminCourseDetails: React.FC = () => {
     getCourseModules(course.id, true)
       .then((mods) => {
         if (mods && mods.length > 0) {
-          setModules(mods);
+          setModules(normalizeAdminModules(mods));
         }
         setIsHydrated(true);
         setIsLoadingModules(false);
@@ -295,28 +300,33 @@ export const AdminCourseDetails: React.FC = () => {
   let completedLearningHours = 0;
   let completedUnitsCount = 0;
 
-  modules.forEach((m) => {
-    totalTopics += m.topics.length;
-    m.topics.forEach((t) => {
-      totalUnitsCount += t.learningUnits.length;
-      t.learningUnits.forEach((u) => {
-        // Increment asset breakdown
+  modules.forEach((m: any) => {
+    if (!m) return;
+    const rawTopics = Array.isArray(m.topics) ? m.topics : [];
+    const directLessons = Array.isArray(m.lessons) ? m.lessons : [];
+
+    totalTopics += rawTopics.length || (directLessons.length > 0 ? 1 : 0);
+
+    // Process nested topics
+    rawTopics.forEach((t: any) => {
+      if (!t) return;
+      const units = Array.isArray(t.learningUnits) ? t.learningUnits : (Array.isArray(t.units) ? t.units : (Array.isArray(t.lessons) ? t.lessons : []));
+      totalUnitsCount += units.length;
+      units.forEach((u: any) => {
+        if (!u) return;
         if (u.type === 'Video') totalVideos++;
         else if (u.type === 'Reading') totalReadings++;
         else if (u.type === 'Quiz') totalQuizzes++;
         else if (u.type === 'Assignment') totalAssignments++;
 
-        // Add duration contribution
         const durationHours = parseDurationToHours(u.duration);
         totalLearningHours += durationHours;
 
-        // Check if content resources are successfully populated (Auditing Completeness)
         if (u.type === 'Video' && u.videoUrl) populatedUnitsCount++;
-        else if (u.type === 'Reading' && u.readingContent) populatedUnitsCount++;
+        else if (u.type === 'Reading' && (u.readingContent || u.content || u.conceptTheory)) populatedUnitsCount++;
         else if (u.type === 'Quiz' && u.quizQuestions && u.quizQuestions.length > 0) populatedUnitsCount++;
         else if (u.type === 'Assignment' && u.assignmentInstructions) populatedUnitsCount++;
 
-        // Student progress checking
         const isCompleted = !!completedUnitIds[u.id];
         if (isCompleted) {
           completedUnitsCount++;
@@ -328,6 +338,36 @@ export const AdminCourseDetails: React.FC = () => {
         }
       });
     });
+
+    // Process direct module lessons if no nested topics
+    if (rawTopics.length === 0 && directLessons.length > 0) {
+      totalUnitsCount += directLessons.length;
+      directLessons.forEach((u: any) => {
+        if (!u) return;
+        if (u.type === 'Video') totalVideos++;
+        else if (u.type === 'Reading' || !u.type) totalReadings++;
+        else if (u.type === 'Quiz') totalQuizzes++;
+        else if (u.type === 'Assignment') totalAssignments++;
+
+        const durationHours = parseDurationToHours(u.duration);
+        totalLearningHours += durationHours;
+
+        if (u.type === 'Video' && u.videoUrl) populatedUnitsCount++;
+        else if ((u.type === 'Reading' || !u.type) && (u.readingContent || u.content || u.conceptTheory)) populatedUnitsCount++;
+        else if (u.type === 'Quiz' && u.quizQuestions && u.quizQuestions.length > 0) populatedUnitsCount++;
+        else if (u.type === 'Assignment' && u.assignmentInstructions) populatedUnitsCount++;
+
+        const isCompleted = !!completedUnitIds[u.id];
+        if (isCompleted) {
+          completedUnitsCount++;
+          completedLearningHours += durationHours;
+          if (u.type === 'Video') completedVideosCount++;
+          else if (u.type === 'Reading' || !u.type) completedReadingsCount++;
+          else if (u.type === 'Quiz') completedQuizzesCount++;
+          else if (u.type === 'Assignment') completedAssignmentsCount++;
+        }
+      });
+    }
   });
 
   const completionPercentage = totalUnitsCount > 0 ? Math.round((populatedUnitsCount / totalUnitsCount) * 100) : 0;
@@ -610,7 +650,7 @@ export const AdminCourseDetails: React.FC = () => {
     await updateCourse(course.id, {
       modules: updated,
       expectedRevision: (course as any)?.revision ?? (course as any)?.version,
-    });
+    } as any);
     
     setExpandedIds({ [newModule.id]: true });
 
@@ -690,7 +730,7 @@ export const AdminCourseDetails: React.FC = () => {
       if (m.id === activeModuleIdForTopic) {
         return {
           ...m,
-          topics: [...m.topics, newTopic],
+          topics: [...(m.topics || []), newTopic],
         };
       }
       return m;
@@ -721,7 +761,7 @@ export const AdminCourseDetails: React.FC = () => {
 
     const updated = modules.map((m) => {
       if (m.id === activeModuleIdForTopic) {
-        const nextTopics = m.topics.map((t) =>
+        const nextTopics = (m.topics || []).map((t) =>
           t.id === editingTopic.id
             ? {
                 ...t,
@@ -749,7 +789,7 @@ export const AdminCourseDetails: React.FC = () => {
         if (m.id === moduleId) {
           return {
             ...m,
-            topics: m.topics.filter((t) => t.id !== topicId),
+            topics: (m.topics || []).filter((t) => t.id !== topicId),
           };
         }
         return m;
@@ -776,11 +816,11 @@ export const AdminCourseDetails: React.FC = () => {
     if (window.confirm(`Are you sure you want to delete unit "${activeUnit.title}"?`)) {
       const updated = modules.map((m) => {
         if (m.id === drawerModuleId) {
-          const nextTopics = m.topics.map((t) => {
+          const nextTopics = (m.topics || []).map((t) => {
             if (t.id === drawerTopicId) {
               return {
                 ...t,
-                learningUnits: t.learningUnits.filter((u) => u.id !== activeUnit.id),
+                learningUnits: (t.learningUnits || []).filter((u) => u.id !== activeUnit.id),
               };
             }
             return t;
@@ -843,11 +883,11 @@ export const AdminCourseDetails: React.FC = () => {
 
     const updated = modules.map((m) => {
       if (m.id === activeModuleIdForUnit) {
-        const nextTopics = m.topics.map((t) => {
+        const nextTopics = (m.topics || []).map((t) => {
           if (t.id === activeTopicIdForUnit) {
             return {
               ...t,
-              learningUnits: [...t.learningUnits, newUnit],
+              learningUnits: [...(t.learningUnits || []), newUnit],
             };
           }
           return t;
@@ -870,11 +910,11 @@ export const AdminCourseDetails: React.FC = () => {
     if (window.confirm(`Are you sure you want to delete unit "${title}"?`)) {
       const updated = modules.map((m) => {
         if (m.id === moduleId) {
-          const nextTopics = m.topics.map((t) => {
+          const nextTopics = (m.topics || []).map((t) => {
             if (t.id === topicId) {
               return {
                 ...t,
-                learningUnits: t.learningUnits.filter((u) => u.id !== unitId),
+                learningUnits: (t.learningUnits || []).filter((u) => u.id !== unitId),
               };
             }
             return t;
@@ -949,7 +989,7 @@ export const AdminCourseDetails: React.FC = () => {
 
     const updated = modules.map((m) => {
       if (m.id === targetModuleId) {
-        const reorderedTopics = [...m.topics];
+        const reorderedTopics = [...(m.topics || [])];
         const [removed] = reorderedTopics.splice(draggedTopic.index, 1);
         reorderedTopics.splice(targetTopicIndex, 0, removed);
         return { ...m, topics: reorderedTopics };
@@ -992,9 +1032,9 @@ export const AdminCourseDetails: React.FC = () => {
 
     const updated = modules.map((m) => {
       if (m.id === targetModuleId) {
-        const nextTopics = m.topics.map((t) => {
+        const nextTopics = (m.topics || []).map((t) => {
           if (t.id === targetTopicId) {
-            const reorderedUnits = [...t.learningUnits];
+            const reorderedUnits = [...(t.learningUnits || [])];
             const [removed] = reorderedUnits.splice(draggedUnit.index, 1);
             reorderedUnits.splice(targetUnitIndex, 0, removed);
             return { ...t, learningUnits: reorderedUnits };
@@ -1500,7 +1540,7 @@ export const AdminCourseDetails: React.FC = () => {
                                 {module.duration}
                               </span>
                               <span className="text-[10px] font-semibold text-sky-700 dark:text-cyan-400 bg-sky-50 dark:bg-slate-800 px-2 py-0.5 rounded border border-sky-100 dark:border-slate-700 font-mono">
-                                {module.topics.length} {module.topics.length === 1 ? 'Topic' : 'Topics'}
+                                {(module.topics || []).length} {(module.topics || []).length === 1 ? 'Topic' : 'Topics'}
                               </span>
                             </div>
                           </div>
@@ -1570,11 +1610,11 @@ export const AdminCourseDetails: React.FC = () => {
                               )}
                             </div>
 
-                            {module.topics.length === 0 ? (
+                            {(module.topics || []).length === 0 ? (
                               <p className="text-xs text-slate-400 dark:text-slate-500 italic py-2">No topics added to this module yet.</p>
                             ) : (
                               <div className="space-y-3">
-                                {module.topics.map((topic, topicIdx) => {
+                                {(module.topics || []).map((topic, topicIdx) => {
                                   const isTopicExpanded = !!expandedTopicIds[topic.id];
                                   return (
                                     <div
@@ -1616,7 +1656,7 @@ export const AdminCourseDetails: React.FC = () => {
                                                 {topic.estimatedDuration || '45 mins'}
                                               </span>
                                               <span className="text-[9px] font-bold text-sky-700 dark:text-cyan-400 bg-sky-100/50 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-sky-100 dark:border-slate-700 font-mono shrink-0">
-                                                {topic.learningUnits ? topic.learningUnits.length : 0} {(!topic.learningUnits || topic.learningUnits.length === 1) ? 'Unit' : 'Units'}
+                                                {(topic.learningUnits || []).length} {(!topic.learningUnits || topic.learningUnits.length === 1) ? 'Unit' : 'Units'}
                                               </span>
                                             </div>
                                           </div>
@@ -1687,11 +1727,11 @@ export const AdminCourseDetails: React.FC = () => {
                                               )}
                                             </div>
 
-                                            {!topic.learningUnits || topic.learningUnits.length === 0 ? (
+                                            {(!topic.learningUnits || topic.learningUnits.length === 0) ? (
                                               <p className="text-xs text-slate-400 dark:text-slate-500 italic py-1">No learning units defined for this topic.</p>
                                             ) : (
                                               <div className="space-y-2">
-                                                {topic.learningUnits.map((unit, unitIdx) => (
+                                                {(topic.learningUnits || []).map((unit, unitIdx) => (
                                                   <div
                                                     key={unit.id}
                                                     onDragOver={handleUnitDragOver}
@@ -2390,7 +2430,7 @@ export const AdminCourseDetails: React.FC = () => {
         isOpen={drawerOpen}
         unit={activeUnit}
         moduleTitle={modules.find((m) => m.id === drawerModuleId)?.title}
-        topicTitle={modules.find((m) => m.id === drawerModuleId)?.topics.find((t) => t.id === drawerTopicId)?.title}
+        topicTitle={modules.find((m) => m.id === drawerModuleId)?.topics?.find((t) => t.id === drawerTopicId)?.title}
         onClose={() => {
           setDrawerOpen(false);
           setActiveUnit(null);
@@ -2430,11 +2470,11 @@ export const AdminCourseDetails: React.FC = () => {
           // 2. Synchronize local modules state
           const updated = modules.map((m) => {
             if (m.id === drawerModuleId) {
-              const nextTopics = m.topics.map((t) => {
+              const nextTopics = (m.topics || []).map((t) => {
                 if (t.id === drawerTopicId) {
                   return {
                     ...t,
-                    learningUnits: t.learningUnits.map((u) => (u.id === confirmedUnit.id ? confirmedUnit : u)),
+                    learningUnits: (t.learningUnits || []).map((u) => (u.id === confirmedUnit.id ? confirmedUnit : u)),
                   };
                 }
                 return t;

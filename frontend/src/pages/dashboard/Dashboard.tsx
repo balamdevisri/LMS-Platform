@@ -1061,11 +1061,12 @@ export const Dashboard: React.FC = () => {
     courseId: string | number;
   }[] = [];
   courses.forEach((c) => {
-    c.modules?.forEach((m) => {
-      m.topics.forEach((t) => {
-        t.learningUnits.forEach((u) => {
+    (c.modules || []).forEach((m: any) => {
+      // Direct lessons
+      if (m.lessons && Array.isArray(m.lessons)) {
+        m.lessons.forEach((u: any) => {
+          if (!u) return;
           if (u.type === 'Assignment') {
-            // Load if not completed
             let completedIds: Record<string, boolean> = {};
             try {
               const stored = localStorage.getItem(`lms_completed_units_${c.id}`);
@@ -1080,7 +1081,32 @@ export const Dashboard: React.FC = () => {
             }
           }
         });
-      });
+      }
+      // Nested topics
+      if (m.topics && Array.isArray(m.topics)) {
+        m.topics.forEach((t: any) => {
+          const rawUnits = t.learningUnits || t.units || t.lessons;
+          if (rawUnits && Array.isArray(rawUnits)) {
+            rawUnits.forEach((u: any) => {
+              if (!u) return;
+              if (u.type === 'Assignment') {
+                let completedIds: Record<string, boolean> = {};
+                try {
+                  const stored = localStorage.getItem(`lms_completed_units_${c.id}`);
+                  if (stored) completedIds = JSON.parse(stored);
+                } catch {}
+                if (!completedIds[u.id]) {
+                  upcomingAssignments.push({
+                    unit: u,
+                    courseTitle: c.title,
+                    courseId: c.id
+                  });
+                }
+              }
+            });
+          }
+        });
+      }
     });
   });
 
@@ -1091,9 +1117,11 @@ export const Dashboard: React.FC = () => {
     scoreData: { score: number; total: number; percentage: number; date: string };
   }[] = [];
   courses.forEach((c) => {
-    c.modules?.forEach((m) => {
-      m.topics.forEach((t) => {
-        t.learningUnits.forEach((u) => {
+    (c.modules || []).forEach((m: any) => {
+      // Direct lessons
+      if (m.lessons && Array.isArray(m.lessons)) {
+        m.lessons.forEach((u: any) => {
+          if (!u) return;
           if (u.type === 'Quiz') {
             try {
               const stored = localStorage.getItem(`lms_quiz_score_${u.id}`);
@@ -1107,7 +1135,30 @@ export const Dashboard: React.FC = () => {
             } catch {}
           }
         });
-      });
+      }
+      // Nested topics
+      if (m.topics && Array.isArray(m.topics)) {
+        m.topics.forEach((t: any) => {
+          const rawUnits = t.learningUnits || t.units || t.lessons;
+          if (rawUnits && Array.isArray(rawUnits)) {
+            rawUnits.forEach((u: any) => {
+              if (!u) return;
+              if (u.type === 'Quiz') {
+                try {
+                  const stored = localStorage.getItem(`lms_quiz_score_${u.id}`);
+                  if (stored) {
+                    gradedQuizzes.push({
+                      unit: u,
+                      courseTitle: c.title,
+                      scoreData: JSON.parse(stored)
+                    });
+                  }
+                } catch {}
+              }
+            });
+          }
+        });
+      }
     });
   });
 
