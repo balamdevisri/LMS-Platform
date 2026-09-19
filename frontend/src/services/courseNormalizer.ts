@@ -173,199 +173,7 @@ export function normalizeCourseData(rawCourse: any): ICourse {
 
   // Format Modules & Lessons
   const rawModules = rawCourse.modules || [];
-  const normalizedModules: IModuleItem[] = rawModules.map((m: any, mIdx: number) => {
-    const moduleId = String(m.id || m.moduleId || `m_${courseId}_${mIdx + 1}`);
-    const moduleOrder = m.order !== undefined ? Number(m.order) : mIdx + 1;
-
-    let rawLessonsList: any[] = [];
-    if (Array.isArray(m.lessons) && m.lessons.length > 0) {
-      rawLessonsList = m.lessons;
-    } else if (Array.isArray(m.topics) && m.topics.length > 0) {
-      // Flatten legacy topics -> learningUnits into clean lessons
-      m.topics.forEach((t: any, tIdx: number) => {
-        const units = t.learningUnits || [];
-        units.forEach((u: any, uIdx: number) => {
-          rawLessonsList.push({
-            id: u.id || `unit_${mIdx + 1}_${tIdx + 1}_${uIdx + 1}`,
-            title: `${t.title ? t.title + ': ' : ''}${u.title}`,
-            description: u.description || t.description || 'Lesson topic walk-through.',
-            duration: u.duration || t.estimatedDuration || '30 mins',
-            type: u.type === 'Reading' ? 'reading' : u.type === 'Video' ? 'video' : u.type === 'Quiz' ? 'quiz' : u.type === 'Assignment' ? 'assignment' : 'reading',
-            videoUrl: u.videoUrl,
-            notes: u.readingContent || u.content,
-            resources: u.resources,
-            quizQuestions: u.quizQuestions,
-            assignmentInstructions: u.assignmentInstructions,
-            practiceLabChallenge: u.practiceLabChallenge,
-          });
-        });
-      });
-    }
-
-    if (rawLessonsList.length === 0) {
-      rawLessonsList = [
-        {
-          id: `l_${moduleId}_1`,
-          title: `Lesson 1: Introduction to ${m.title || 'Module'}`,
-          description: 'Fundamental principles and key concepts walkthrough.',
-          duration: '25 mins',
-          type: 'reading',
-          notes: `# Lesson Overview\n\nWelcome to ${m.title}. This lesson covers core architectural foundations.`,
-        },
-      ];
-    }
-
-    const normalizedLessons: ILessonItem[] = rawLessonsList.map((l: any, lIdx: number) => {
-      const lessonId = String(l.id || l.lessonId || `l_${moduleId}_${lIdx + 1}`);
-      const lessonOrder = l.order !== undefined ? Number(l.order) : lIdx + 1;
-      const lessonType: LessonType = (l.type || 'video').toLowerCase() as LessonType;
-
-      // Format Video metadata if present
-      let video: IVideoItem | null = null;
-      if (l.videoUrl || l.video || lessonType === 'video') {
-        const vUrl = l.videoUrl || l.video?.videoUrl || 'https://www.w3schools.com/html/mov_bbb.mp4';
-        video = {
-          videoId: l.video?.videoId || `v_${lessonId}`,
-          lessonId,
-          courseId,
-          moduleId,
-          title: l.video?.title || l.title || 'Interactive Lesson Video',
-          description: l.video?.description || l.description || '',
-          videoUrl: vUrl,
-          thumbnailUrl: l.video?.thumbnailUrl || rawCourse.thumbnail || '',
-          duration: l.video?.duration || l.duration || '15:00',
-          provider: l.video?.provider || detectVideoProvider(vUrl),
-          order: 1,
-          isPreview: l.video?.isPreview ?? false,
-          isPublished: l.video?.isPublished ?? true,
-        };
-      }
-
-      // Format Resources
-      const rawResources = l.resources || [];
-      const resources: IResourceItem[] = rawResources.map((r: any, rIdx: number) => ({
-        resourceId: String(r.id || r.resourceId || `res_${lessonId}_${rIdx + 1}`),
-        lessonId,
-        courseId,
-        moduleId,
-        title: r.title || `Resource ${rIdx + 1}`,
-        description: r.description || '',
-        type: r.type || 'pdf',
-        url: r.url || '#',
-        order: r.order !== undefined ? Number(r.order) : rIdx + 1,
-        downloadable: r.downloadable !== undefined ? Boolean(r.downloadable) : true,
-      }));
-
-      // Format Practical / Lab
-      let practical: IPracticalLabItem | null = null;
-      if (l.practical || l.practiceLabChallenge || l.commands || lessonType === 'lab') {
-        const rawLab = l.practical || l.practiceLabChallenge || {};
-        practical = {
-          objective: rawLab.objective || l.description || `Master practical lab tasks for ${l.title}.`,
-          requirements: parsePointWiseList(rawLab.requirements, ['Terminal sandbox access', 'Completed prerequisite reading']),
-          steps: parsePointWiseList(rawLab.steps || rawLab.instructions, [
-            '1. Open the interactive command-line sandbox.',
-            '2. Execute the required setup commands.',
-            '3. Verify configuration output and test correctness.',
-          ]),
-          commands: rawLab.commands || l.commands || [{ command: 'help', description: 'Display available sandbox options' }],
-          expectedOutput: rawLab.expectedOutput || 'Command executed successfully with zero exit errors.',
-          expectedResult: rawLab.expectedResult || 'System state updated as intended.',
-          troubleshooting: parsePointWiseList(rawLab.troubleshooting, ['Check command syntax and permission flags.']),
-          bestPractices: parsePointWiseList(rawLab.bestPractices, ['Always test scripts in isolated environments before deployment.']),
-        };
-      }
-
-      // Format Quiz
-      let quiz: IQuizItem | null = null;
-      if (l.quiz || l.quizQuestions || lessonType === 'quiz') {
-        const rawQ = l.quiz || {};
-        const qList = rawQ.questions || l.quizQuestions || [];
-        quiz = {
-          quizId: rawQ.quizId || `quiz_${lessonId}`,
-          lessonId,
-          title: rawQ.title || `Quiz: ${l.title}`,
-          description: rawQ.description || 'Test your knowledge on this lesson.',
-          questions: qList.map((qItem: any, qIdx: number) => ({
-            questionId: qItem.id || qItem.questionId || `q_${lessonId}_${qIdx + 1}`,
-            questionNumber: qIdx + 1,
-            question: qItem.questionText || qItem.question || `Question ${qIdx + 1}`,
-            type: qItem.type || 'mcq',
-            options: qItem.options || ['Option A', 'Option B', 'Option C', 'Option D'],
-            correctAnswer: qItem.correctAnswerIndex !== undefined ? qItem.correctAnswerIndex : qItem.correctAnswer || 0,
-            explanation: qItem.explanation || 'Review lesson notes for detailed breakdown.',
-            points: qItem.marks || qItem.points || 10,
-            difficulty: qItem.difficulty || 'medium',
-          })),
-          totalPoints: rawQ.totalPoints || qList.length * 10 || 20,
-          passingScore: rawQ.passingScore || 70,
-          timeLimit: rawQ.timeLimit || 15,
-          attemptLimit: rawQ.attemptLimit || 3,
-        };
-      }
-
-      // Format Assignment
-      let assignment: IAssignmentItem | null = null;
-      if (l.assignment || l.assignmentInstructions || lessonType === 'assignment') {
-        const rawA = l.assignment || {};
-        assignment = {
-          assignmentId: rawA.assignmentId || `assign_${lessonId}`,
-          lessonId,
-          title: rawA.title || `Assignment: ${l.title}`,
-          description: rawA.description || l.description || 'Complete the hands-on project assignment.',
-          objective: rawA.objective || 'Apply course principles to solve a real-world scenario.',
-          instructions: parsePointWiseList(rawA.instructions || l.assignmentInstructions, [
-            '1. Carefully read the scenario specification and requirement checklist.',
-            '2. Create your solution files in your workspace.',
-            '3. Test your code thoroughly and commit your work.',
-            '4. Submit your completed repository link or code file.',
-          ]),
-          requirements: parsePointWiseList(rawA.requirements, ['Clean code structure', 'Includes documentation notes']),
-          submissionType: rawA.submissionType || 'text',
-          deadline: rawA.deadline || l.assignmentDeadline || '7 days after lesson unlock',
-          points: rawA.points || l.assignmentMaxMarks || 100,
-          rubric: rawA.rubric || l.assignmentRubric || 'Graded on correctness (50%), code quality (30%), and documentation (20%).',
-          resources: rawA.resources || [],
-        };
-      }
-
-      return {
-        lessonId,
-        courseId,
-        moduleId,
-        title: l.title || `Lesson ${lIdx + 1}`,
-        description: l.description || '',
-        order: lessonOrder,
-        type: lessonType,
-        duration: l.duration || '20 mins',
-        learningObjectives: parsePointWiseList(l.learningObjectives || l.objectives, [
-          `Understand key concepts of ${l.title || 'lesson'}`,
-        ]),
-        video,
-        notes: l.notes || l.readingContent || l.content || null,
-        resources,
-        practical,
-        quiz,
-        quizId: quiz ? quiz.quizId : null,
-        assignment,
-        assignmentId: assignment ? assignment.assignmentId : null,
-        isPublished: l.isPublished !== undefined ? Boolean(l.isPublished) : true,
-      };
-    });
-
-    return {
-      moduleId,
-      courseId,
-      title: m.title || `Module ${mIdx + 1}`,
-      description: m.description || '',
-      order: moduleOrder,
-      estimatedDuration: m.duration || m.estimatedDuration || '4 Hours',
-      learningObjectives: parsePointWiseList(m.learningObjectives, [
-        `Master module concepts and practical implementations for ${m.title || 'module'}.`,
-      ]),
-      lessons: normalizedLessons,
-    };
-  });
+  const normalizedModules: IModuleItem[] = normalizeCourseModulesForDisplay(rawModules);
 
   // Calculate difficulty
   let difficulty: 'Beginner' | 'Intermediate' | 'Advanced' = 'Intermediate';
@@ -433,6 +241,72 @@ export function normalizeCourseData(rawCourse: any): ICourse {
     createdAt: rawCourse.createdAt || new Date().toISOString(),
     updatedAt: rawCourse.updatedAt || new Date().toISOString(),
   };
+}
+
+export function getPresentationLessonTitle(
+  rawTitle?: string | null,
+  moduleTitleOrIndex?: string | number,
+  moduleIndexOrTotal?: number,
+  totalLessons?: number
+): string {
+  const trimmed = (rawTitle || '').trim();
+
+  let moduleTitle = '';
+  let moduleIndex = 0;
+  let totalLessonsInModule = 1;
+
+  if (typeof moduleTitleOrIndex === 'number') {
+    // Called as: getPresentationLessonTitle(rawTitle, moduleNumber (1-based), totalLessons)
+    moduleIndex = moduleTitleOrIndex >= 1 ? moduleTitleOrIndex - 1 : moduleTitleOrIndex;
+    totalLessonsInModule = typeof moduleIndexOrTotal === 'number' ? moduleIndexOrTotal : 1;
+  } else if (typeof moduleTitleOrIndex === 'string') {
+    moduleTitle = moduleTitleOrIndex;
+    moduleIndex = typeof moduleIndexOrTotal === 'number' ? moduleIndexOrTotal : 0;
+    totalLessonsInModule = typeof totalLessons === 'number' ? totalLessons : 1;
+  } else if (typeof moduleIndexOrTotal === 'number') {
+    moduleIndex = moduleIndexOrTotal;
+    totalLessonsInModule = typeof totalLessons === 'number' ? totalLessons : 1;
+  }
+
+  // If there are multiple genuine lessons, keep the genuine lesson title unless empty
+  if (totalLessonsInModule > 1) {
+    if (!trimmed) {
+      return `Lesson ${moduleIndex + 1}`;
+    }
+    return trimmed;
+  }
+
+  // If there is exactly 1 lesson in this module:
+  // Check if the title is generic / wrapper-like:
+  const lower = trimmed.toLowerCase();
+  const isGeneric =
+    !trimmed ||
+    lower === 'learning unit' ||
+    lower === 'core lesson' ||
+    lower === 'notes' ||
+    lower === 'complete notes' ||
+    lower.startsWith('unit ') ||
+    lower.startsWith('lesson ') ||
+    lower.includes('complete notes') ||
+    lower.endsWith(' units') ||
+    lower === 'k8' ||
+    (lower.startsWith('module ') && lower.endsWith(' units'));
+
+  // Extract module number from module title (e.g. "Module 1: Intro", "Module 02 — ...") or use moduleIndex + 1
+  let modNum = moduleIndex + 1;
+  if (typeof moduleTitle === 'string' && moduleTitle.trim()) {
+    const modMatch = moduleTitle.match(/module\s*(\d+)/i);
+    if (modMatch && modMatch[1]) {
+      modNum = parseInt(modMatch[1], 10);
+    }
+  }
+
+  if (isGeneric) {
+    return `Module ${modNum} - Complete Notes`;
+  }
+
+  // If it's already a meaningful title (e.g. "Linux File Permissions", "1.1 Introduction to Kubernetes"), keep it!
+  return trimmed;
 }
 
 export function normalizeLearningUnitItem(u: any, fallbackId = 'unit-1'): any {
@@ -512,47 +386,186 @@ export function normalizeTopicItem(t: any, fallbackId = 'topic-1'): any {
   };
 }
 
+/**
+ * Standardize course modules and lessons for display across Admin and Student UI.
+ * Hierarchy: Course -> Module -> Lessons
+ */
+export function normalizeCourseModulesForDisplay(rawModules: any[]): any[] {
+  if (!Array.isArray(rawModules)) return [];
+
+  const deduplicatedModules: any[] = [];
+  const seenModuleIds = new Set<string>();
+
+  rawModules.filter(Boolean).forEach((m, idx) => {
+    const mId = String(m.id || m.moduleId || `m_${idx + 1}`);
+    if (!seenModuleIds.has(mId)) {
+      seenModuleIds.add(mId);
+      deduplicatedModules.push(m);
+    }
+  });
+
+  // Sort modules by orderIndex/order
+  deduplicatedModules.sort((a, b) => {
+    const aOrder = a.orderIndex !== undefined ? Number(a.orderIndex) : (a.order !== undefined ? Number(a.order) : 0);
+    const bOrder = b.orderIndex !== undefined ? Number(b.orderIndex) : (b.order !== undefined ? Number(b.order) : 0);
+    return aOrder - bOrder;
+  });
+
+  return deduplicatedModules.map((m: any, mIdx: number) => {
+    const moduleId = String(m.id || m.moduleId || `m_${mIdx + 1}`);
+    const moduleTitle = m.title || `Module ${mIdx + 1}`;
+    const moduleOrder = m.orderIndex !== undefined ? Number(m.orderIndex) : (m.order !== undefined ? Number(m.order) : mIdx + 1);
+    const moduleDuration = m.duration || m.estimatedDuration || '4 Hours';
+    const moduleDesc = m.description || '';
+
+    // Extract raw lessons list:
+    // 1. Prefer direct lessons array
+    // 2. Otherwise flatten topics -> learningUnits / units / lessons
+    let rawLessonsList: any[] = [];
+    if (Array.isArray(m.lessons) && m.lessons.length > 0) {
+      rawLessonsList = m.lessons.filter(Boolean);
+    } else if (Array.isArray(m.topics) && m.topics.length > 0) {
+      m.topics.filter(Boolean).forEach((t: any) => {
+        const units = Array.isArray(t.learningUnits)
+          ? t.learningUnits
+          : (Array.isArray(t.units)
+          ? t.units
+          : (Array.isArray(t.lessons) ? t.lessons : []));
+        units.filter(Boolean).forEach((u: any) => {
+          rawLessonsList.push(u);
+        });
+      });
+    }
+
+    // Deduplicate lessons by canonical lesson ID
+    const seenLessonIds = new Set<string>();
+    const uniqueRawLessons: any[] = [];
+    rawLessonsList.forEach((l: any, lIdx: number) => {
+      if (!l) return;
+      const lId = String(l.id || l.lessonId || `unit_${moduleId}_${lIdx + 1}`);
+      if (!seenLessonIds.has(lId)) {
+        seenLessonIds.add(lId);
+        uniqueRawLessons.push(l);
+      }
+    });
+
+    // Sort lessons by orderIndex / order
+    uniqueRawLessons.sort((a, b) => {
+      const aOrder = a.orderIndex !== undefined ? Number(a.orderIndex) : (a.order !== undefined ? Number(a.order) : 0);
+      const bOrder = b.orderIndex !== undefined ? Number(b.orderIndex) : (b.order !== undefined ? Number(b.order) : 0);
+      return aOrder - bOrder;
+    });
+
+    const totalLessons = uniqueRawLessons.length;
+
+    const normalizedLessons: any[] = uniqueRawLessons.map((l: any, lIdx: number) => {
+      const lessonId = String(l.id || l.lessonId || `unit_${moduleId}_${lIdx + 1}`);
+      const lessonOrder = l.orderIndex !== undefined ? Number(l.orderIndex) : (l.order !== undefined ? Number(l.order) : lIdx + 1);
+
+      const rawType = String(l.type || 'Reading');
+      let type: 'Reading' | 'Video' | 'Quiz' | 'Assignment' = 'Reading';
+      const lowerType = rawType.toLowerCase();
+      if (lowerType.includes('video')) type = 'Video';
+      else if (lowerType.includes('quiz')) type = 'Quiz';
+      else if (lowerType.includes('assign')) type = 'Assignment';
+      else type = 'Reading';
+
+      const content = l.readingContent || l.conceptTheory || l.content || l.notes || '';
+      const presentationTitle = getPresentationLessonTitle(l.title, moduleTitle, mIdx, totalLessons);
+
+      return {
+        ...l,
+        id: lessonId,
+        lessonId,
+        moduleId,
+        title: presentationTitle,
+        canonicalTitle: l.title || presentationTitle,
+        description: l.description || '',
+        order: lessonOrder,
+        orderIndex: lessonOrder,
+        duration: l.duration || '20 mins',
+        type,
+        readingContent: content,
+        conceptTheory: l.conceptTheory || content,
+        content: l.content || content,
+        notes: l.notes || content,
+        videoUrl: l.videoUrl || l.video?.videoUrl || '',
+        quizQuestions: Array.isArray(l.quizQuestions) ? l.quizQuestions : (l.quiz?.questions && Array.isArray(l.quiz.questions) ? l.quiz.questions : []),
+        quizDifficulty: l.quizDifficulty || l.quiz?.difficulty || 'Medium',
+        quizPassingScore: typeof l.quizPassingScore === 'number' ? l.quizPassingScore : (typeof l.quiz?.passingScore === 'number' ? l.quiz.passingScore : 70),
+        quizTimer: typeof l.quizTimer === 'number' ? l.quizTimer : (typeof l.quiz?.timeLimit === 'number' ? l.quiz.timeLimit : 10),
+        assignmentInstructions: l.assignmentInstructions || (l.assignment?.instructions ? (Array.isArray(l.assignment.instructions) ? l.assignment.instructions.join('\n') : l.assignment.instructions) : ''),
+        practiceLabChallenge: l.practiceLabChallenge || l.practical || null,
+        resources: Array.isArray(l.resources) ? l.resources : (Array.isArray(l.resourceLinks) ? l.resourceLinks : []),
+        resourceLinks: Array.isArray(l.resourceLinks) ? l.resourceLinks : (Array.isArray(l.resources) ? l.resources : []),
+        learningObjectives: Array.isArray(l.learningObjectives) ? l.learningObjectives : [],
+        keyPoints: Array.isArray(l.keyPoints) ? l.keyPoints : [],
+        isDraft: Boolean(l.isDraft),
+        isPublished: l.isPublished !== undefined ? Boolean(l.isPublished) : !l.isDraft,
+        revision: typeof l.revision === 'number' ? l.revision : 1,
+        expectedRevision: typeof l.expectedRevision === 'number' ? l.expectedRevision : (typeof l.revision === 'number' ? l.revision : 1),
+        lastSavedAt: l.lastSavedAt || new Date().toISOString(),
+        topicImageUrl: l.topicImageUrl || null,
+        topicImagePublicId: l.topicImagePublicId || null,
+        themeColor: l.themeColor || null,
+        themeIcon: l.themeIcon || null,
+      };
+    });
+
+    return {
+      ...m,
+      id: moduleId,
+      moduleId,
+      title: moduleTitle,
+      description: moduleDesc,
+      duration: moduleDuration,
+      estimatedDuration: moduleDuration,
+      order: moduleOrder,
+      orderIndex: moduleOrder,
+      revision: typeof m.revision === 'number' ? m.revision : 1,
+      lessons: normalizedLessons,
+      topics: [
+        {
+          id: `${moduleId}-t1`,
+          title: moduleTitle,
+          description: moduleDesc,
+          estimatedDuration: moduleDuration,
+          learningUnits: normalizedLessons,
+        },
+      ],
+    };
+  });
+}
+
 export function normalizeModuleItem(m: any, fallbackId = 'mod-1'): any {
   if (!m) {
     return {
       id: fallbackId,
+      moduleId: fallbackId,
       title: 'Module',
       description: '',
       duration: '4 hours',
+      estimatedDuration: '4 hours',
+      order: 1,
+      orderIndex: 1,
+      lessons: [],
       topics: [],
     };
   }
 
-  const modId = String(m.id || fallbackId);
-  let rawTopics = Array.isArray(m.topics) ? m.topics.filter(Boolean) : [];
-  const rawLessons = Array.isArray(m.lessons) ? m.lessons.filter(Boolean) : [];
-
-  // If no topics exist but direct lessons exist, wrap lessons into a structured topic
-  if (rawTopics.length === 0 && rawLessons.length > 0) {
-    rawTopics = [
-      {
-        id: `${modId}-topic-1`,
-        title: `${m.title || 'Module'} Units`,
-        description: m.description || '',
-        estimatedDuration: m.duration || '1 Hour',
-        learningUnits: rawLessons.map((l: any, lIdx: number) =>
-          normalizeLearningUnitItem(l, `${modId}-unit-${lIdx + 1}`)
-        ),
-      },
-    ];
-  }
-
-  const topics = rawTopics.map((t: any, tIdx: number) =>
-    normalizeTopicItem(t, `${modId}-t${tIdx + 1}`)
-  );
-
-  return {
+  const normalized = normalizeCourseModulesForDisplay([m]);
+  return normalized[0] || {
     ...m,
-    id: modId,
+    id: String(m.id || fallbackId),
+    moduleId: String(m.id || fallbackId),
     title: m.title || 'Module',
     description: m.description || '',
     duration: m.duration || '4 hours',
-    topics,
+    estimatedDuration: m.duration || '4 hours',
+    order: m.orderIndex ?? m.order ?? 1,
+    orderIndex: m.orderIndex ?? m.order ?? 1,
+    lessons: [],
+    topics: [],
   };
 }
 

@@ -11,7 +11,16 @@ router.get('/:id', controller.getCourseByIdOrSlug);
 router.get('/:id/modules', controller.getCourseModules);
 router.get('/:id/modules/:moduleId/lessons', controller.getModuleLessons);
 
-// Admin-only endpoints
+// Admin-only module management endpoints
+router.post('/:id/modules', verifyFirebaseToken, requireRole('admin'), controller.saveModule);
+router.put('/:id/modules/:moduleId', verifyFirebaseToken, requireRole('admin'), controller.saveModule);
+router.delete('/:id/modules/:moduleId', verifyFirebaseToken, requireRole('admin'), controller.deleteModule);
+
+// Admin-only revision & audit trail endpoints
+router.get('/:id/revisions', verifyFirebaseToken, requireRole('admin'), controller.getCourseRevisions);
+router.post('/:id/revisions/:auditId/restore', verifyFirebaseToken, requireRole('admin'), controller.restoreCourseRevision);
+
+// Admin-only course management endpoints
 router.post('/', verifyFirebaseToken, requireRole('admin'), controller.createCourse);
 router.put('/:id', verifyFirebaseToken, requireRole('admin'), controller.updateCourse);
 router.delete('/:id', verifyFirebaseToken, requireRole('admin'), controller.deleteCourse);
