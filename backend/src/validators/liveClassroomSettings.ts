@@ -10,7 +10,7 @@ export type LiveClassLifecycleStatus =
   | 'ENDED'
   | 'ARCHIVED';
 
-export type ChatInteractionMode = 'everyone' | 'instructor_only' | 'moderators_only' | 'disabled';
+export type ChatInteractionMode = 'everyone' | 'selected_students' | 'instructor_only' | 'moderators_only' | 'disabled';
 export type QaInteractionMode = 'everyone' | 'moderators_only' | 'disabled';
 export type AnnouncementPriority = 'INFO' | 'IMPORTANT' | 'URGENT';
 export type TargetAudienceType = 'all' | 'enrolled_students' | 'selected_batch' | 'selected_section' | 'selected_students';

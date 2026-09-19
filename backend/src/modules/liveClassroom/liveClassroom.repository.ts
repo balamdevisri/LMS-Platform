@@ -676,7 +676,12 @@ export class LiveClassroomRepository {
     }
 
     const existing = memoryDb.chat.get(data.classId) || [];
-    existing.push(payload);
+    const index = existing.findIndex((m) => m.id === msgId);
+    if (index >= 0) {
+      existing[index] = payload;
+    } else {
+      existing.push(payload);
+    }
     memoryDb.chat.set(data.classId, existing);
     return payload;
   }
@@ -686,7 +691,10 @@ export class LiveClassroomRepository {
       try {
         const snap = await db.collection('liveClasses').doc(classId).collection('chat').orderBy('createdAt', 'asc').get();
         if (!snap.empty) {
-          return snap.docs.map((d: QueryDocumentSnapshot) => d.data() as IChatMessageData);
+          return snap.docs.map((d: QueryDocumentSnapshot) => ({
+            id: d.id,
+            ...(d.data() as any),
+          }));
         }
       } catch (err) {
         logger.error('[REPO] Failed to fetch chat messages from Firestore:', err);

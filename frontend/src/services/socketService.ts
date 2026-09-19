@@ -5,15 +5,26 @@ import { webNotificationService } from './webNotificationService';
 import { notificationService } from './notificationService';
 import type { ClassroomInteractionSettings } from '@/types/liveClassroomSettings';
 
-const getSocketUrl = (): string => {
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-    return window.location.origin;
+export const getSocketUrl = (): string => {
+  const isLocalhost =
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1' ||
+      window.location.hostname.endsWith('.local'));
+
+  if (isLocalhost) {
+    const rawEnv = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_BACKEND_URL;
+    if (rawEnv && (rawEnv.includes('localhost') || rawEnv.includes('127.0.0.1'))) {
+      return rawEnv.replace(/\/api\/?$/, '');
+    }
+    return 'http://localhost:5000';
   }
+
   const envUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL;
   if (envUrl) {
     return envUrl.replace(/\/api\/?$/, '');
   }
-  return 'http://localhost:5000';
+  return typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5000';
 };
 
 export type ConnectionStatus = 'connected' | 'reconnecting' | 'disconnected' | 'idle';
@@ -23,6 +34,7 @@ type StatusListener = (status: ConnectionStatus) => void;
 class SocketService {
   private socket: Socket | null = null;
   private currentLiveClassId: string | null = null;
+  private currentAuth: { uid?: string; userId?: string; name?: string; role?: string; email?: string } | null = null;
   private connectionStatus: ConnectionStatus = 'idle';
   private statusListeners: Set<StatusListener> = new Set();
 
@@ -84,13 +96,23 @@ class SocketService {
       '';
     const targetUserId = userInfo?.uid || 'student_guest';
     const targetRole = userInfo?.role || 'student';
+    this.currentAuth = {
+      uid: targetUserId,
+      userId: targetUserId,
+      name: userInfo?.name || 'Student',
+      role: targetRole,
+      email: userInfo?.email || '',
+    };
 
     if (this.socket && this.socket.connected) {
       const currentAuth = (this.socket as any).auth || {};
       const tokenChanged = Boolean(authToken && currentAuth.token !== authToken);
       const userChanged = Boolean(userInfo?.uid && currentAuth.userId !== targetUserId);
-      const roleChanged = Boolean(userInfo?.role && currentAuth.role !== targetRole);
-      if (!tokenChanged && !userChanged && !roleChanged) {
+      if (!tokenChanged && !userChanged) {
+        currentAuth.role = targetRole;
+        currentAuth.name = userInfo?.name || currentAuth.name;
+        currentAuth.email = userInfo?.email || currentAuth.email;
+        (this.socket as any).auth = currentAuth;
         return this.socket;
       }
       this.socket.disconnect();
@@ -101,6 +123,7 @@ class SocketService {
     }
 
     const socketUrl = `${getSocketUrl()}/live-classroom`;
+    console.log(`[Live Classroom] Initializing Socket.IO connection to: ${socketUrl} | Role: ${targetRole}`);
 
     this.socket = io(socketUrl, {
       autoConnect: true,
@@ -121,22 +144,27 @@ class SocketService {
 
     // Connection lifecycle — drives the connection status indicator in the UI
     this.socket.on('connect', () => {
+      console.log('[Live Classroom] Socket connected:', this.socket?.id);
       this.emitStatus('connected');
     });
 
-    this.socket.on('disconnect', () => {
+    this.socket.on('disconnect', (reason) => {
+      console.log('[Live Classroom] Socket disconnected:', reason);
       this.emitStatus('disconnected');
     });
 
-    this.socket.on('connect_error', () => {
+    this.socket.on('connect_error', (err) => {
+      console.warn('[Live Classroom] Socket connection error:', err?.message || err);
       this.emitStatus('disconnected');
     });
 
-    this.socket.io.on('reconnect_attempt', () => {
+    this.socket.io.on('reconnect_attempt', (attempt) => {
+      console.log(`[Live Classroom] Socket reconnect attempt #${attempt}`);
       this.emitStatus('reconnecting');
     });
 
     this.socket.io.on('reconnect', () => {
+      console.log('[Live Classroom] Socket reconnected:', this.socket?.id);
       this.emitStatus('connected');
       // Automatically rejoin live classroom upon reconnect only
       if (this.currentLiveClassId && this.socket) {

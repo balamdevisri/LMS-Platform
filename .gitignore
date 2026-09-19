@@ -122,3 +122,6 @@ LMS-Platform/
 
 # IDE Snapshots & Audit Logs
 .animoria/
+
+# Scratch and temporary verification scripts
+scratch/

@@ -29,6 +29,7 @@ export interface MediaParticipant {
   videoTrack?: MediaStreamTrack;
   screenTrack?: MediaStreamTrack;
   stream?: MediaStream;
+  screenStream?: MediaStream;
   videoLiveKitTrack?: any;
   screenLiveKitTrack?: any;
   micAllowedByInstructor?: boolean;

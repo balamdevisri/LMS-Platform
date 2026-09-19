@@ -169,8 +169,31 @@ export const registerQuizHandlers = (io: SocketServer, socket: AuthenticatedSock
         timeTakenSeconds: speedSeconds,
       });
 
-      // Update real-time speed leaderboard
       const responses = Array.from(activeQuiz.submissions.values());
+      const totalAnswered = responses.length;
+      const correctCount = responses.filter((r) => r.isCorrect).length;
+      const wrongCount = totalAnswered - correctCount;
+      const accuracyPercent = totalAnswered > 0 ? Math.round((correctCount / totalAnswered) * 100) : 0;
+      const avgTime = totalAnswered > 0 ? Math.round(responses.reduce((acc, r) => acc + r.timeTakenSeconds, 0) / totalAnswered) : 0;
+
+      io.to(roomName).emit('quiz:accuracy_update', {
+        quizId: activeQuiz.id,
+        totalAnswered,
+        correct: correctCount,
+        wrong: wrongCount,
+        accuracyPercent,
+        avgTime,
+        studentResults: responses.map((r) => ({
+          studentId: r.studentId,
+          studentName: r.studentName,
+          answer: r.answer,
+          isCorrect: r.isCorrect,
+          score: r.score,
+          timeTakenSeconds: r.timeTakenSeconds,
+        })),
+      });
+
+      // Update real-time speed leaderboard
       const leaderboard = responses
         .sort((a, b) => {
           if (b.score !== a.score) return (b.score || 0) - (a.score || 0);
@@ -333,4 +356,114 @@ export const registerQuizHandlers = (io: SocketServer, socket: AuthenticatedSock
     const classId = data.liveClassId || data.classId || '';
     finishQuiz(classId, data?.quizId, callback);
   });
+
+  // 6. Hydrate Active Quiz on Join / Reconnect / Mount
+  socket.on(
+    'quiz:get_active',
+    (data: { liveClassId?: string; classId?: string }, callback?: (res: any) => void) => {
+      const classId = data?.liveClassId || data?.classId || '';
+      const activeQuiz = activeQuizzesMap.get(classId);
+      const user = socket.user;
+      const userId = user?.uid || user?.id || '';
+      const isInstructor = user?.role === 'admin' || user?.role === 'instructor' || user?.role === 'mentor';
+
+      if (activeQuiz && activeQuiz.status === 'ACTIVE') {
+        const userSubmission = activeQuiz.submissions.get(userId);
+        const hasSubmitted = Boolean(userSubmission);
+
+        const quizPayload: any = {
+          id: activeQuiz.id,
+          _id: activeQuiz.id,
+          classId: activeQuiz.liveClassId,
+          liveClassId: activeQuiz.liveClassId,
+          title: activeQuiz.title,
+          question: activeQuiz.question,
+          options: activeQuiz.options,
+          marks: activeQuiz.marks,
+          timerSeconds: activeQuiz.timerSeconds,
+          status: 'ACTIVE',
+          createdAt: activeQuiz.createdAt,
+          hasSubmitted,
+          userAnswer: userSubmission?.answer,
+        };
+
+        if (isInstructor) {
+          const list = Array.from(activeQuiz.submissions.values());
+          const totalAnswered = list.length;
+          const correct = list.filter((s) => s.isCorrect).length;
+          const wrong = totalAnswered - correct;
+          const accuracyPercent = totalAnswered > 0 ? Math.round((correct / totalAnswered) * 100) : 0;
+          const avgTime = totalAnswered > 0 ? Math.round(list.reduce((acc, s) => acc + s.timeTakenSeconds, 0) / totalAnswered) : 0;
+
+          quizPayload.correctAnswer = activeQuiz.correctAnswer;
+          quizPayload.stats = {
+            totalAnswered,
+            correct,
+            wrong,
+            accuracyPercent,
+            avgTime,
+            studentResults: list.map((r) => ({
+              studentId: r.studentId,
+              studentName: r.studentName,
+              answer: r.answer,
+              isCorrect: r.isCorrect,
+              score: r.score,
+              timeTakenSeconds: r.timeTakenSeconds,
+            })),
+          };
+        }
+
+        const res = { success: true, quiz: quizPayload };
+        socket.emit('quiz:active', res);
+        if (callback) callback(res);
+      } else {
+        const res = { success: true, quiz: null };
+        socket.emit('quiz:active', res);
+        if (callback) callback(res);
+      }
+    }
+  );
+
+  // 7. Reveal Correct Answers
+  socket.on(
+    'quiz:reveal',
+    (data: { liveClassId?: string; classId?: string; quizId?: string }, callback?: (res: any) => void) => {
+      try {
+        const user = socket.user;
+        if (!user || (user.role !== 'admin' && user.role !== 'instructor' && user.role !== 'mentor')) {
+          if (callback) callback({ success: false, error: 'INVALID_PERMISSION' });
+          return;
+        }
+        const classId = data.liveClassId || data.classId || '';
+        const activeQuiz = activeQuizzesMap.get(classId);
+        if (!activeQuiz) {
+          if (callback) callback({ success: false, error: 'QUIZ_NOT_FOUND' });
+          return;
+        }
+
+        const roomName = `live-class:${classId}`;
+        const list = Array.from(activeQuiz.submissions.values());
+        const totalSubmissions = list.length;
+        const correctCount = list.filter((s) => s.isCorrect).length;
+        const accuracyPercentage = totalSubmissions > 0 ? Math.round((correctCount / totalSubmissions) * 100) : 0;
+
+        const revealPayload = {
+          quizId: activeQuiz.id,
+          liveClassId: classId,
+          correctAnswer: activeQuiz.correctAnswer,
+          totalSubmissions,
+          correctCount,
+          accuracyPercentage,
+          status: 'REVEALED',
+        };
+
+        io.to(roomName).emit('quiz:revealed', revealPayload);
+        io.to(roomName).emit('quiz_revealed', revealPayload);
+
+        if (callback) callback({ success: true });
+      } catch (err: any) {
+        if (callback) callback({ success: false, error: err.message });
+      }
+    }
+  );
 };

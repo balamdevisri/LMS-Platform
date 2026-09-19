@@ -153,6 +153,23 @@ export const getRoomPinned = (classId: string): string | null => {
   return activeRoomPinned.get(classId) || null;
 };
 
+export interface InteractionSession {
+  classId: string;
+  instructorId: string;
+  instructorName: string;
+  studentId: string;
+  studentName: string;
+  status: 'invited' | 'accepted' | 'declined' | 'active' | 'ended';
+  startedAt?: string;
+  endedAt?: string;
+}
+
+const activeRoomInteractions = new Map<string, InteractionSession | null>();
+
+export const getRoomInteraction = (classId: string): InteractionSession | null => {
+  return activeRoomInteractions.get(classId) || null;
+};
+
 export const getModerationRecord = (classId: string, userId: string, role?: string): ModerationRecord => {
   const roomMod = activeRoomModeration.get(classId);
   if (roomMod && roomMod.has(userId)) {
@@ -162,7 +179,7 @@ export const getModerationRecord = (classId: string, userId: string, role?: stri
   return {
     mutedByInstructor: isStudent,
     micPermission: isStudent ? 'denied' : 'granted',
-    chatPermission: isStudent ? 'denied' : 'granted',
+    chatPermission: 'granted',
     updatedAt: new Date().toISOString(),
   };
 };
@@ -410,7 +427,7 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
         roomMod.set(userUid, {
           mutedByInstructor: isStudent,
           micPermission: isStudent ? 'denied' : 'granted',
-          chatPermission: isStudent ? 'denied' : 'granted',
+          chatPermission: 'granted',
           updatedAt: new Date().toISOString(),
         });
       }
@@ -476,6 +493,7 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
         screenShare: currentScreenShare,
         pinnedUserId: getRoomPinned(liveClassId),
         moderation: modRecord,
+        interactionSession: getRoomInteraction(liveClassId),
       };
       socket.emit('liveClass:joined', successPayload);
       if (callback) callback(successPayload);
@@ -530,6 +548,7 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
         activeSpeaker: getRoomActiveSpeaker(liveClassId),
         screenShare: currentScreenShare,
         pinnedUserId: getRoomPinned(liveClassId),
+        interactionSession: getRoomInteraction(liveClassId),
       });
 
       io.to(roomName).emit('participants_update', {
@@ -1235,6 +1254,263 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
 
     persistStudentMicPermission(classId, data.userId, true);
     updateLiveKitStudentMicPermission(classId, data.userId, true).catch(() => {});
+  });
+
+  // ============================================================================
+  // 1-TO-1 INSTRUCTOR-STUDENT INTERACTION PROTOCOL (PHASE 3)
+  // ============================================================================
+  socket.on(
+    'liveClass:interaction:invite',
+    (data: { classId: string; liveClassId?: string; studentId: string; studentName?: string }) => {
+      const user = socket.user;
+      if (!user || (user.role !== 'admin' && user.role !== 'instructor' && user.role !== 'mentor')) {
+        return;
+      }
+      const classId = data.liveClassId || data.classId;
+      if (!classId || !data.studentId) return;
+      const roomName = `live-class:${classId}`;
+
+      const session: InteractionSession = {
+        classId,
+        instructorId: user.uid || user.id,
+        instructorName: user.name || 'Instructor',
+        studentId: data.studentId,
+        studentName: data.studentName || 'Student',
+        status: 'invited',
+        startedAt: new Date().toISOString(),
+      };
+      activeRoomInteractions.set(classId, session);
+
+      logger.info(`[INTERACTION_SESSION] Instructor ${user.name} invited student ${data.studentId} in ${roomName}`);
+
+      // Notify target student directly via socket
+      const roomMap = activeRoomPresences.get(classId);
+      if (roomMap) {
+        for (const [sId, p] of roomMap.entries()) {
+          if (p.userId === data.studentId) {
+            const targetSocket = io.sockets.sockets?.get(sId);
+            if (targetSocket) {
+              targetSocket.emit('liveClass:interaction:invited', {
+                classId,
+                instructorId: user.uid || user.id,
+                instructorName: user.name || 'Instructor',
+                studentId: data.studentId,
+                timestamp: new Date().toISOString(),
+              });
+            }
+          }
+        }
+      }
+
+      // Broadcast session update to room
+      io.to(roomName).emit('liveClass:interaction:state', {
+        classId,
+        session,
+      });
+    }
+  );
+
+  socket.on(
+    'liveClass:interaction:respond',
+    async (data: { classId: string; liveClassId?: string; accepted: boolean }) => {
+      const user = socket.user;
+      const classId = data.liveClassId || data.classId;
+      if (!user || !classId) return;
+      const roomName = `live-class:${classId}`;
+      const session = activeRoomInteractions.get(classId);
+
+      if (!session || session.studentId !== (user.uid || user.id)) {
+        return;
+      }
+
+      if (data.accepted) {
+        session.status = 'active';
+        activeRoomInteractions.set(classId, session);
+
+        // Allow student mic on LiveKit SFU & Firestore
+        persistStudentMicPermission(classId, session.studentId, true);
+        await updateLiveKitStudentMicPermission(classId, session.studentId, true);
+
+        // Update in-memory moderation
+        if (!activeRoomModeration.has(classId)) activeRoomModeration.set(classId, new Map());
+        activeRoomModeration.get(classId)!.set(session.studentId, {
+          mutedByInstructor: false,
+          micPermission: 'granted',
+          updatedAt: new Date().toISOString(),
+        });
+
+        const roomMap = activeRoomPresences.get(classId);
+        if (roomMap) {
+          for (const p of roomMap.values()) {
+            if (p.userId === session.studentId) {
+              p.isMutedByInstructor = false;
+              p.micPermission = 'granted';
+            }
+          }
+        }
+
+        logger.info(`[INTERACTION_SESSION] Student ${session.studentName} accepted interaction in ${roomName}`);
+        io.to(roomName).emit('liveClass:interaction:active', {
+          classId,
+          session,
+        });
+        io.to(roomName).emit('liveClass:moderation:micAllowed', {
+          userId: session.studentId,
+          allowedBy: session.instructorName,
+        });
+        io.to(roomName).emit('student_muted', { userId: session.studentId, isMuted: false });
+      } else {
+        session.status = 'declined';
+        activeRoomInteractions.set(classId, null);
+        logger.info(`[INTERACTION_SESSION] Student ${session.studentName} declined interaction in ${roomName}`);
+        io.to(roomName).emit('liveClass:interaction:declined', {
+          classId,
+          studentId: session.studentId,
+          studentName: session.studentName,
+        });
+      }
+      io.to(roomName).emit('liveClass:interaction:state', {
+        classId,
+        session: activeRoomInteractions.get(classId),
+      });
+    }
+  );
+
+  socket.on(
+    'liveClass:interaction:end',
+    async (data: { classId: string; liveClassId?: string; studentId?: string }) => {
+      const user = socket.user;
+      if (!user || (user.role !== 'admin' && user.role !== 'instructor' && user.role !== 'mentor')) {
+        return;
+      }
+      const classId = data.liveClassId || data.classId;
+      if (!classId) return;
+      const roomName = `live-class:${classId}`;
+      const session = activeRoomInteractions.get(classId);
+
+      const targetStudentId = data.studentId || session?.studentId;
+      if (targetStudentId) {
+        // Revoke student mic on LiveKit SFU & Firestore
+        persistStudentMicPermission(classId, targetStudentId, false);
+        await updateLiveKitStudentMicPermission(classId, targetStudentId, false);
+
+        if (!activeRoomModeration.has(classId)) activeRoomModeration.set(classId, new Map());
+        activeRoomModeration.get(classId)!.set(targetStudentId, {
+          mutedByInstructor: true,
+          micPermission: 'denied',
+          updatedAt: new Date().toISOString(),
+        });
+
+        const roomMap = activeRoomPresences.get(classId);
+        if (roomMap) {
+          for (const p of roomMap.values()) {
+            if (p.userId === targetStudentId) {
+              p.isMutedByInstructor = true;
+              p.micPermission = 'denied';
+            }
+          }
+        }
+
+        io.to(roomName).emit('liveClass:moderation:muted', {
+          userId: targetStudentId,
+          mutedByInstructor: true,
+          reason: 'Interaction ended',
+        });
+        io.to(roomName).emit('student_muted', { userId: targetStudentId, isMuted: true });
+      }
+
+      activeRoomInteractions.set(classId, null);
+      logger.info(`[INTERACTION_SESSION] Interaction ended in ${roomName}`);
+      io.to(roomName).emit('liveClass:interaction:ended', {
+        classId,
+        studentId: targetStudentId,
+      });
+      io.to(roomName).emit('liveClass:interaction:state', {
+        classId,
+        session: null,
+      });
+    }
+  );
+
+  // Bulk student mic lock & revoke controls
+  socket.on('liveClass:moderation:lockMics', async (data: { classId: string; liveClassId?: string }) => {
+    const user = socket.user;
+    if (!user || (user.role !== 'admin' && user.role !== 'instructor' && user.role !== 'mentor')) return;
+    const classId = data.liveClassId || data.classId;
+    if (!classId) return;
+    const roomName = `live-class:${classId}`;
+
+    setClassroomSettings(classId, {
+      studentMic: { enabled: false },
+    });
+
+    const roomMap = activeRoomPresences.get(classId);
+    if (roomMap) {
+      for (const p of roomMap.values()) {
+        if (p.role === 'student') {
+          p.isMutedByInstructor = true;
+          p.micPermission = 'denied';
+          persistStudentMicPermission(classId, p.userId, false);
+          updateLiveKitStudentMicPermission(classId, p.userId, false).catch(() => {});
+        }
+      }
+    }
+
+    logger.info(`[MIC_PERMISSION] Locked all student mics in ${roomName}`);
+    io.to(roomName).emit('liveClass:moderation:micsLocked', { classId, lockedBy: user.name });
+    io.to(roomName).emit('mute_all_students', { classId, mutedBy: user.name });
+  });
+
+  socket.on('liveClass:moderation:revokeAll', async (data: { classId: string; liveClassId?: string }) => {
+    const user = socket.user;
+    if (!user || (user.role !== 'admin' && user.role !== 'instructor' && user.role !== 'mentor')) return;
+    const classId = data.liveClassId || data.classId;
+    if (!classId) return;
+    const roomName = `live-class:${classId}`;
+
+    const roomMap = activeRoomPresences.get(classId);
+    if (roomMap) {
+      for (const p of roomMap.values()) {
+        if (p.role === 'student') {
+          p.isMutedByInstructor = true;
+          p.micPermission = 'denied';
+          persistStudentMicPermission(classId, p.userId, false);
+          updateLiveKitStudentMicPermission(classId, p.userId, false).catch(() => {});
+        }
+      }
+    }
+
+    logger.info(`[MIC_PERMISSION] Revoked all student mic permissions in ${roomName}`);
+    io.to(roomName).emit('liveClass:moderation:muteAll', { classId, mutedBy: user.name });
+    io.to(roomName).emit('mute_all_students', { classId, mutedBy: user.name });
+  });
+
+  socket.on('liveClass:chat:setMode', (data: { classId: string; liveClassId?: string; mode: 'everyone' | 'selected_students' | 'instructor_only' | 'disabled' }) => {
+    const user = socket.user;
+    if (!user || (user.role !== 'admin' && user.role !== 'instructor' && user.role !== 'mentor')) return;
+    const classId = data.liveClassId || data.classId;
+    if (!classId || !data.mode) return;
+    const roomName = `live-class:${classId}`;
+
+    const currentSettings = getClassroomSettings(classId);
+    const updated = setClassroomSettings(classId, {
+      chat: {
+        ...currentSettings.chat,
+        enabled: data.mode !== 'disabled',
+        mode: data.mode as any,
+      },
+    });
+
+    logger.info(`[CHAT_PERMISSION] Chat mode updated to ${data.mode} in ${roomName}`);
+    io.to(roomName).emit('liveClass:chat:mode', {
+      classId,
+      mode: data.mode,
+      updatedBy: user.name,
+    });
+    io.to(roomName).emit('liveClass:interaction:state', {
+      liveClassId: classId,
+      settings: updated,
+    });
   });
 
   socket.on('toggle_chat_mute', async (data: { classId: string; liveClassId?: string; isMuted: boolean }) => {

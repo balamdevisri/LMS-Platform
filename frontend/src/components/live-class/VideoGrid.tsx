@@ -11,10 +11,9 @@ import {
   Pin,
   VolumeX,
   Users,
-  Radio,
-  Video,
 } from 'lucide-react';
 import type { MediaParticipant } from '@/services/liveMedia/mediaTypes';
+import { VideoQuality } from 'livekit-client';
 
 // ============================================================================
 // ============================================================================
@@ -127,6 +126,7 @@ export const VideoTile: React.FC<VideoTileProps> = ({
   canPin = false,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const attachedTrackRef = useRef<any>(null);
 
   const shouldRenderVideo = Boolean(
     participant.isVideoOn ||
@@ -136,19 +136,32 @@ export const VideoTile: React.FC<VideoTileProps> = ({
 
   useEffect(() => {
     const el = videoRef.current;
-    if (!el || !shouldRenderVideo) return;
+    if (!el || !shouldRenderVideo) {
+      if (attachedTrackRef.current && el) {
+        try {
+          attachedTrackRef.current.detach(el);
+        } catch (_) {}
+        attachedTrackRef.current = null;
+      }
+      return;
+    }
 
     if (participant.videoLiveKitTrack && typeof participant.videoLiveKitTrack.attach === 'function') {
+      if (attachedTrackRef.current === participant.videoLiveKitTrack && el.srcObject) {
+        // Track is already attached to this element, do not detach or re-attach
+        return;
+      }
+      if (attachedTrackRef.current && attachedTrackRef.current !== participant.videoLiveKitTrack) {
+        try {
+          attachedTrackRef.current.detach(el);
+        } catch (_) {}
+      }
       try {
         participant.videoLiveKitTrack.attach(el);
+        attachedTrackRef.current = participant.videoLiveKitTrack;
       } catch (err) {
         console.warn(`[LIVE_DEBUG][REMOTE_VIDEO] LiveKit track.attach notice:`, err);
       }
-      return () => {
-        try {
-          participant.videoLiveKitTrack?.detach(el);
-        } catch (_) {}
-      };
     } else if (participant.stream) {
       if (el.srcObject !== participant.stream) {
         el.srcObject = participant.stream;
@@ -162,6 +175,18 @@ export const VideoTile: React.FC<VideoTileProps> = ({
         });
     }
   }, [participant.stream, participant.videoLiveKitTrack, participant.isVideoOn, participant.isScreenSharing, participant.streamVersion, shouldRenderVideo, isHero]);
+
+  // Clean up track on unmount
+  useEffect(() => {
+    return () => {
+      if (attachedTrackRef.current && videoRef.current) {
+        try {
+          attachedTrackRef.current.detach(videoRef.current);
+        } catch (_) {}
+        attachedTrackRef.current = null;
+      }
+    };
+  }, []);
 
   const isInstructorRole =
     participant.role === 'instructor' ||
@@ -365,22 +390,35 @@ export const CompactParticipantTile: React.FC<CompactParticipantTileProps> = ({
   isSpotlighted = false,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const attachedTrackRef = useRef<any>(null);
 
   useEffect(() => {
     const el = videoRef.current;
-    if (!el || !participant.isVideoOn) return;
+    if (!el || !participant.isVideoOn) {
+      if (attachedTrackRef.current && el) {
+        try {
+          attachedTrackRef.current.detach(el);
+        } catch (_) {}
+        attachedTrackRef.current = null;
+      }
+      return;
+    }
 
     if (participant.videoLiveKitTrack && typeof participant.videoLiveKitTrack.attach === 'function') {
+      if (attachedTrackRef.current === participant.videoLiveKitTrack && el.srcObject) {
+        return;
+      }
+      if (attachedTrackRef.current && attachedTrackRef.current !== participant.videoLiveKitTrack) {
+        try {
+          attachedTrackRef.current.detach(el);
+        } catch (_) {}
+      }
       try {
         participant.videoLiveKitTrack.attach(el);
+        attachedTrackRef.current = participant.videoLiveKitTrack;
       } catch (err) {
         console.warn(`[CompactParticipantTile] LiveKit track.attach notice:`, err);
       }
-      return () => {
-        try {
-          participant.videoLiveKitTrack?.detach(el);
-        } catch (_) {}
-      };
     } else if (participant.stream) {
       if (videoRef.current.srcObject !== participant.stream) {
         videoRef.current.srcObject = participant.stream;
@@ -388,6 +426,17 @@ export const CompactParticipantTile: React.FC<CompactParticipantTileProps> = ({
       videoRef.current.play().catch(() => {});
     }
   }, [participant.stream, participant.videoLiveKitTrack, participant.isVideoOn, participant.streamVersion]);
+
+  useEffect(() => {
+    return () => {
+      if (attachedTrackRef.current && videoRef.current) {
+        try {
+          attachedTrackRef.current.detach(videoRef.current);
+        } catch (_) {}
+        attachedTrackRef.current = null;
+      }
+    };
+  }, []);
 
   const isInstructorRole =
     participant.role === 'instructor' ||
@@ -555,6 +604,228 @@ export const CompactParticipantTile: React.FC<CompactParticipantTileProps> = ({
 };
 
 // ============================================================================
+// PIP CAMERA VIEW COMPONENT
+// Displays instructor camera in a stable picture-in-picture during screen share
+// ============================================================================
+interface PipCameraViewProps {
+  instructor: MediaParticipant;
+}
+
+export const PipCameraView: React.FC<PipCameraViewProps> = ({ instructor }) => {
+  const pipVideoRef = useRef<HTMLVideoElement>(null);
+  const attachedPipTrackRef = useRef<any>(null);
+
+  useEffect(() => {
+    const el = pipVideoRef.current;
+    if (!el) return;
+
+    if (instructor.videoLiveKitTrack && typeof instructor.videoLiveKitTrack.attach === 'function') {
+      if (attachedPipTrackRef.current === instructor.videoLiveKitTrack && el.srcObject) {
+        return;
+      }
+      if (attachedPipTrackRef.current && attachedPipTrackRef.current !== instructor.videoLiveKitTrack) {
+        try {
+          attachedPipTrackRef.current.detach(el);
+        } catch (_) {}
+      }
+      try {
+        instructor.videoLiveKitTrack.attach(el);
+        attachedPipTrackRef.current = instructor.videoLiveKitTrack;
+      } catch (err) {
+        console.warn('[PipCameraView] track.attach notice:', err);
+      }
+    } else {
+      const pipStream = instructor.videoTrack
+        ? new MediaStream([instructor.videoTrack])
+        : instructor.stream;
+      if (pipVideoRef.current && pipStream) {
+        if (pipVideoRef.current.srcObject !== pipStream) {
+          pipVideoRef.current.srcObject = pipStream;
+        }
+        pipVideoRef.current.muted = true;
+        pipVideoRef.current.play().catch(() => {});
+      }
+    }
+  }, [instructor.videoLiveKitTrack, instructor.stream, instructor.videoTrack, instructor.streamVersion, instructor.isVideoOn]);
+
+  useEffect(() => {
+    return () => {
+      if (attachedPipTrackRef.current && pipVideoRef.current) {
+        try {
+          attachedPipTrackRef.current.detach(pipVideoRef.current);
+        } catch (_) {}
+        attachedPipTrackRef.current = null;
+      }
+    };
+  }, []);
+
+  return (
+    <div className="absolute bottom-4 right-4 w-44 sm:w-56 aspect-video z-20 shadow-2xl rounded-2xl overflow-hidden border-2 border-amber-500/60 bg-slate-950">
+      <video
+        ref={pipVideoRef}
+        autoPlay
+        playsInline
+        muted={true}
+        className="w-full h-full object-cover"
+      />
+      <div className="absolute bottom-1.5 left-2 bg-slate-950/85 backdrop-blur-md px-2 py-0.5 rounded-md text-[10px] font-bold text-amber-300 border border-amber-500/30 flex items-center gap-1">
+        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+        <span className="truncate max-w-[120px]">{instructor.name}</span>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================================
+// SCREEN SHARE VIEWPORT COMPONENT
+// Dedicated, stable viewport for rendering active screen share.
+// Guards against repeated track unmounts, detaches, and layout thrashing.
+// ============================================================================
+interface ScreenShareViewportProps {
+  activeSharer?: MediaParticipant | null;
+  screenShareStream?: MediaStream | null;
+  instructor?: MediaParticipant | null;
+  instructorName?: string;
+}
+
+export const ScreenShareViewport: React.FC<ScreenShareViewportProps> = ({
+  activeSharer,
+  screenShareStream,
+  instructor,
+  instructorName,
+}) => {
+  const screenRef = useRef<HTMLVideoElement>(null);
+  const attachedTrackRef = useRef<any>(null);
+
+  const screenTrack = activeSharer?.screenLiveKitTrack;
+  const activeScreenStream =
+    screenShareStream ||
+    activeSharer?.screenStream ||
+    (activeSharer?.screenTrack ? new MediaStream([activeSharer.screenTrack]) : null) ||
+    activeSharer?.stream;
+
+  useEffect(() => {
+    const el = screenRef.current;
+    if (!el) return;
+
+    if (screenTrack && typeof screenTrack.attach === 'function') {
+      if (attachedTrackRef.current === screenTrack && el.srcObject) {
+        // Track already attached, avoid detach/re-attach cycle causing black frames
+        return;
+      }
+      if (attachedTrackRef.current && attachedTrackRef.current !== screenTrack) {
+        try {
+          attachedTrackRef.current.detach(el);
+        } catch (_) {}
+      }
+      try {
+        console.log(`[LIVEKIT_SCREEN_DEBUG] ScreenShareViewport attaching LiveKit track sid=${screenTrack.sid}`);
+        const pub = (screenTrack as any)?.publication;
+        if (pub && typeof pub.setVideoQuality === 'function') {
+          try {
+            pub.setVideoQuality(VideoQuality.HIGH);
+            console.log(`[LIVEKIT_SCREEN_DEBUG] ScreenShareViewport requested VideoQuality.HIGH for sid=${screenTrack.sid}`);
+          } catch (_) {}
+        }
+        screenTrack.attach(el);
+        attachedTrackRef.current = screenTrack;
+      } catch (err) {
+        console.warn(`[LIVEKIT_SCREEN_DEBUG] ScreenShareViewport track.attach notice:`, err);
+      }
+    } else if (activeScreenStream) {
+      if (el.srcObject !== activeScreenStream) {
+        console.log(`[LIVEKIT_SCREEN_DEBUG] ScreenShareViewport attaching activeScreenStream id=${activeScreenStream.id}`);
+        el.srcObject = activeScreenStream;
+      }
+      el.muted = true;
+      el.play().catch((err) => {
+        console.warn(`[LIVEKIT_SCREEN_DEBUG] ScreenShareViewport play notice:`, err);
+      });
+    }
+  }, [screenTrack, activeScreenStream, activeSharer?.streamVersion]);
+
+  // Diagnostic Quality Telemetry
+  // Observes actual rendered track dimensions, videoWidth, videoHeight, clientWidth, and clientHeight
+  useEffect(() => {
+    const el = screenRef.current;
+    if (!el) return;
+
+    const logQuality = () => {
+      const vWidth = el.videoWidth || 0;
+      const vHeight = el.videoHeight || 0;
+      const cWidth = el.clientWidth || 0;
+      const cHeight = el.clientHeight || 0;
+      const trackSid = screenTrack?.sid || 'unknown';
+      const dimensions = (screenTrack as any)?.dimensions || { width: vWidth, height: vHeight };
+      const codec = (screenTrack as any)?.codec || 'vp8';
+      const participantId = activeSharer?.userId || 'unknown';
+
+      if (vWidth > 0 || cWidth > 0) {
+        console.log(
+          `[LIVEKIT_SCREEN_RECEIVE] participantId=${participantId} trackSid=${trackSid} videoWidth=${vWidth} videoHeight=${vHeight} clientWidth=${cWidth} clientHeight=${cHeight}`
+        );
+        console.log(
+          `[LIVEKIT_SCREEN_QUALITY] participantId=${participantId} trackSid=${trackSid} source=ScreenShare codec=${codec} width=${vWidth} height=${vHeight} dimensions=${dimensions.width}x${dimensions.height} videoElement.clientWidth=${cWidth} videoElement.clientHeight=${cHeight}`
+        );
+      }
+    };
+
+    el.addEventListener('loadedmetadata', logQuality);
+    el.addEventListener('resize', logQuality);
+
+    logQuality();
+    const interval = setInterval(logQuality, 4000);
+
+    return () => {
+      el.removeEventListener('loadedmetadata', logQuality);
+      el.removeEventListener('resize', logQuality);
+      clearInterval(interval);
+    };
+  }, [screenTrack, activeSharer?.userId]);
+
+  // Clean up track strictly on unmount
+  useEffect(() => {
+    return () => {
+      if (attachedTrackRef.current && screenRef.current) {
+        try {
+          console.log(`[LIVEKIT_SCREEN_DEBUG] ScreenShareViewport unmounting, detaching track sid=${attachedTrackRef.current.sid}`);
+          attachedTrackRef.current.detach(screenRef.current);
+        } catch (_) {}
+        attachedTrackRef.current = null;
+      }
+    };
+  }, []);
+
+  const sharerDisplayName = activeSharer?.name || instructor?.name || instructorName || 'Lead Instructor';
+
+  return (
+    <div className="w-full h-full relative bg-slate-950 rounded-3xl overflow-hidden border border-slate-800 flex items-center justify-center min-h-[360px]">
+      <video
+        ref={screenRef}
+        autoPlay
+        playsInline
+        muted={true}
+        className="w-full h-full object-contain pointer-events-none select-none"
+        style={{ imageRendering: 'auto', minWidth: '320px', minHeight: '180px' }}
+      />
+
+      {/* Screen Share Live Header Badge */}
+      <div className="absolute top-4 left-4 bg-slate-950/85 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-amber-500/40 text-xs font-bold text-amber-300 flex items-center gap-2 shadow-xl z-10">
+        <Monitor className="w-4 h-4 text-amber-400 animate-pulse" />
+        <span>
+          Screen Share • {sharerDisplayName}
+        </span>
+      </div>
+
+      {/* Floating Picture-In-Picture for Instructor Camera (if camera actively on during screenshare) */}
+      {instructor && instructor.isVideoOn && (instructor.videoLiveKitTrack || instructor.stream) && (
+        <PipCameraView instructor={instructor} />
+      )}
+    </div>
+  );
+};
+
+// ============================================================================
 // MAIN VIDEO GRID COMPONENT
 // ============================================================================
 export interface VideoGridProps {
@@ -576,8 +847,6 @@ export const VideoGrid: React.FC<VideoGridProps> = ({
   instructorName,
   onPinParticipant,
 }) => {
-  const screenRef = useRef<HTMLVideoElement>(null);
-  const pipVideoRef = useRef<HTMLVideoElement>(null);
   const [spotlightedUserId, setSpotlightedUserId] = useState<string | null>(null);
 
   // 1. Authoritatively resolve instructor
@@ -585,81 +854,15 @@ export const VideoGrid: React.FC<VideoGridProps> = ({
     return getInstructorParticipant(participants, instructorId, localUserId, isInstructor);
   }, [participants, instructorId, localUserId, isInstructor]);
 
-  // 2. Detect active screen share stream (either passed explicitly or from any participant with active screen share)
+  // 2. Detect active screen share (from local or any remote participant)
   const activeSharer = participants.find((p) => p.isScreenSharing);
-  const isInstructorScreenSharing = Boolean(
-    (activeSharer &&
-      ((instructor && getParticipantUserId(activeSharer) === getParticipantUserId(instructor)) ||
-        getParticipantRole(activeSharer) === 'instructor' ||
-        getParticipantRole(activeSharer) === 'mentor' ||
-        (instructorId && getParticipantUserId(activeSharer) === instructorId.trim()) ||
-        (isInstructor && getParticipantUserId(activeSharer) === localUserId))) ||
-      (isInstructor && screenShareStream)
-  );
-
-  const activeScreenStream =
+  const isScreenShareActive = Boolean(
     screenShareStream ||
-    (activeSharer?.screenTrack ? new MediaStream([activeSharer.screenTrack]) : null) ||
-    (isInstructorScreenSharing && activeSharer?.stream) ||
-    participants.find((p) => p.isScreenSharing && p.stream)?.stream ||
-    null;
-
-  useEffect(() => {
-    const el = screenRef.current;
-    const sharerId = activeSharer?.userId || instructor?.userId || 'unknown';
-    const vTracks = activeScreenStream?.getVideoTracks().length ?? 0;
-    const vTrackState = activeScreenStream?.getVideoTracks()[0]?.readyState ?? 'none';
-
-    console.log(
-      `[LIVE_DEBUG][SCREEN_REMOTE] activeSharer=${activeSharer?.userId || 'none'} hasStream=${Boolean(activeScreenStream)} videoTracks=${vTracks} videoReadyState=${vTrackState}`
-    );
-
-    if (el && activeScreenStream) {
-      if (activeSharer?.screenLiveKitTrack && typeof activeSharer.screenLiveKitTrack.attach === 'function') {
-        try {
-          activeSharer.screenLiveKitTrack.attach(el);
-        } catch (err) {
-          console.warn(`[LIVE_DEBUG][SCREEN_REMOTE] LiveKit screen track.attach notice:`, err);
-        }
-        return () => {
-          try {
-            activeSharer.screenLiveKitTrack?.detach(el);
-          } catch (_) {}
-        };
-      } else {
-        if (el.srcObject !== activeScreenStream) {
-          el.srcObject = activeScreenStream;
-        }
-        el.muted = true;
-        console.log(
-          `[LIVE_DEBUG][REMOTE_VIDEO] [SCREEN_VIEWPORT] remoteUserId=${sharerId} streamId=${activeScreenStream.id} videoTrackCount=${vTracks} paused=${el.paused} readyState=${el.readyState} videoWidth=${el.videoWidth} videoHeight=${el.videoHeight}`
-        );
-        el.play()
-          .then(() => {
-            console.log(`[LIVE_DEBUG][REMOTE_VIDEO] [SCREEN_VIEWPORT] SUCCESS remoteUserId=${sharerId}`);
-          })
-          .catch((err) => {
-            console.error(`[LIVE_DEBUG][REMOTE_VIDEO] [SCREEN_VIEWPORT] ERROR remoteUserId=${sharerId} errorName=${err?.name} errorMessage=${err?.message}`, err);
-          });
-      }
-    }
-  }, [activeScreenStream, activeSharer?.screenLiveKitTrack, activeSharer?.userId, activeSharer?.screenTrack, activeSharer?.streamVersion, instructor?.streamVersion]);
-
-  // PIP video binding for instructor camera during screen share
-  useEffect(() => {
-    if (pipVideoRef.current && instructor && instructor.isVideoOn) {
-      const pipStream = instructor.videoTrack
-        ? new MediaStream([instructor.videoTrack])
-        : instructor.stream;
-      if (pipStream) {
-        if (pipVideoRef.current.srcObject !== pipStream) {
-          pipVideoRef.current.srcObject = pipStream;
-        }
-        pipVideoRef.current.muted = true;
-        pipVideoRef.current.play().catch(() => {});
-      }
-    }
-  }, [activeScreenStream, instructor?.stream, instructor?.videoTrack, instructor?.isVideoOn, instructor?.streamVersion]);
+    activeSharer?.screenLiveKitTrack ||
+    activeSharer?.screenStream ||
+    activeSharer?.screenTrack ||
+    (activeSharer && activeSharer.isScreenSharing)
+  );
 
   // Priority participants for moderation / spotlighting
   const pinnedParticipant = participants.find((p) => p.isPinned);
@@ -744,41 +947,14 @@ export const VideoGrid: React.FC<VideoGridProps> = ({
       <div className="flex-1 min-h-0 relative w-full rounded-3xl overflow-hidden shadow-2xl flex items-center justify-center">
         
         {/* CASE 1: SCREEN SHARE ACTIVE (Highest Priority) */}
-        {activeScreenStream ? (
-          <div className="w-full h-full relative bg-slate-950 rounded-3xl overflow-hidden border border-slate-800 flex items-center justify-center">
-            <video
-              ref={screenRef}
-              autoPlay
-              playsInline
-              muted={true}
-              className="w-full h-full object-contain"
-            />
-
-            {/* Screen Share Live Header Badge */}
-            <div className="absolute top-4 left-4 bg-slate-950/85 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-amber-500/40 text-xs font-bold text-amber-300 flex items-center gap-2 shadow-xl z-10">
-              <Monitor className="w-4 h-4 text-amber-400 animate-pulse" />
-              <span>
-                Screen Share • {activeSharer?.name || instructor?.name || instructorName || 'Lead Instructor'}
-              </span>
-            </div>
-
-            {/* Floating Picture-In-Picture for Instructor Camera (if camera actively on during screenshare) */}
-            {instructor && instructor.isVideoOn && instructor.stream && (
-              <div className="absolute bottom-4 right-4 w-44 sm:w-56 aspect-video z-20 shadow-2xl rounded-2xl overflow-hidden border-2 border-amber-500/60 bg-slate-950">
-                <video
-                  ref={pipVideoRef}
-                  autoPlay
-                  playsInline
-                  muted={true}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute bottom-1.5 left-2 bg-slate-950/85 backdrop-blur-md px-2 py-0.5 rounded-md text-[10px] font-bold text-amber-300 border border-amber-500/30 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                  <span className="truncate max-w-[120px]">{instructor.name}</span>
-                </div>
-              </div>
-            )}
-          </div>
+        {isScreenShareActive ? (
+          <ScreenShareViewport
+            key={`screenshare_${activeSharer?.userId || localUserId}`}
+            activeSharer={activeSharer}
+            screenShareStream={screenShareStream}
+            instructor={instructor}
+            instructorName={instructorName}
+          />
         ) : heroParticipant ? (
           /* CASE 2: INSTRUCTOR CAMERA OR AVATAR (or explicitly pinned/spotlighted user) */
           <div className="w-full h-full">

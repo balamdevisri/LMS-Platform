@@ -27,12 +27,31 @@ class AdminNotificationService {
     const firestore = db;
     if (!firestore) return;
 
-    // Listen to Auth state changes to ensure we only subscribe to Firestore when authenticated
-    const authUnsubscribe = auth?.onAuthStateChanged((user) => {
+    // Listen to Auth state changes to ensure we only subscribe to Firestore when authenticated as admin
+    const authUnsubscribe = auth?.onAuthStateChanged(async (user) => {
       if (user) {
         if (this.unsubscribeListener) return;
 
         try {
+          // Verify admin role before attaching admin-only listener to respect least-privilege Firestore rules
+          let isAdmin = false;
+          try {
+            const tokenResult = await user.getIdTokenResult();
+            isAdmin = Boolean(tokenResult?.claims?.role === 'admin' || tokenResult?.claims?.admin);
+          } catch {}
+
+          if (!isAdmin) {
+            const cachedRole = localStorage.getItem('user_role') || localStorage.getItem('shaivika_user_role');
+            if (cachedRole === 'admin') {
+              isAdmin = true;
+            }
+          }
+
+          if (!isAdmin) {
+            // Non-admin user (e.g. student or instructor) — isolate and skip admin query
+            return;
+          }
+
           const notifRef = collection(firestore, 'notifications');
           const q = query(notifRef, where('recipientRole', '==', 'admin'));
           
@@ -72,11 +91,11 @@ class AdminNotificationService {
               this.saveNotifications(merged);
             },
             (error) => {
-              console.error(`[Firestore Admin Notification Listener] Error: ${error.message}`);
+              console.warn(`[Firestore Admin Notification Listener] Notice: ${error.message}`);
             }
           );
         } catch (e: any) {
-          console.error(`[Firestore Audit] Subscription error on admin notifications: ${e.message || e}`);
+          console.warn(`[Firestore Audit] Notice on admin notifications: ${e.message || e}`);
         }
       } else {
         if (this.unsubscribeListener) {
