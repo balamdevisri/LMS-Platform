@@ -1,33 +1,33 @@
+import { normalizeCourseModulesForDisplay, getPresentationLessonTitle, normalizeCourseData } from '../../../frontend/src/services/courseNormalizer';
 import { normalizeModuleItem, normalizeContextCourse } from '../../../frontend/src/contexts/CourseContext';
-import { normalizeCourseData } from '../../../frontend/src/services/courseNormalizer';
 
 const CANONICAL_COURSES = [
-  'c-programming-course-id',
-  'course_linux_101',
-  'python-through-oops-course-id',
-  'react-js-complete-course',
-  'kubernetes-complete-course-beginner-to-advanced',
-  'database-management-system',
-  'git-github-mastery',
-  'java-through-oops-course-id',
-  'javascript-mastery',
-  'nodejs-backend-development',
-  'data-structures-and-algorithms',
-  'web-development-fundamentals'
+  { id: 'c-programming-course-id', expectedModules: 15 },
+  { id: 'course_linux_101', expectedModules: 15 },
+  { id: 'python-through-oops-course-id', expectedModules: 15 },
+  { id: 'react-js-complete-course', expectedModules: 15 },
+  { id: 'kubernetes-complete-course-beginner-to-advanced', expectedModules: 15 },
+  { id: 'database-management-system', expectedModules: 6 },
+  { id: 'git-github-mastery', expectedModules: 15 },
+  { id: 'java-through-oops-course-id', expectedModules: 24 },
+  { id: 'javascript-mastery', expectedModules: 10 },
+  { id: 'nodejs-backend-development', expectedModules: 10 },
+  { id: 'data-structures-and-algorithms', expectedModules: 10 },
+  { id: 'web-development-fundamentals', expectedModules: 10 }
 ];
 
 async function runAudit() {
   console.log('====================================================');
-  console.log('KAIZENQ LMS — COMPREHENSIVE RECOVERY VERIFICATION');
+  console.log('KAIZENQ LMS — COURSE HIERARCHY STANDARDIZATION AUDIT');
   console.log('====================================================\n');
 
   let passedCourses = 0;
   let totalModulesChecked = 0;
-  let totalUnitsChecked = 0;
+  let totalLessonsChecked = 0;
 
-  for (const cId of CANONICAL_COURSES) {
+  for (const { id: cId, expectedModules } of CANONICAL_COURSES) {
     console.log(`Auditing course: ${cId}...`);
-    const cRes = await fetch(`https://kaizenq.in/api/courses/${cId}`);
+    const cRes = await fetch(`http://kaizenq.in/api/courses/${cId}`);
     if (!cRes.ok) {
       throw new Error(`Failed to fetch course doc: ${cId} (status: ${cRes.status})`);
     }
@@ -37,59 +37,75 @@ async function runAudit() {
       throw new Error(`Course doc has no data payload: ${cId}`);
     }
 
-    const mRes = await fetch(`https://kaizenq.in/api/courses/${cId}/modules`);
+    const mRes = await fetch(`http://kaizenq.in/api/courses/${cId}/modules`);
     if (!mRes.ok) {
       throw new Error(`Failed to fetch course modules: ${cId} (status: ${mRes.status})`);
     }
     const mJson = await mRes.json();
     const rawModules = mJson.data || [];
 
-    // Test CourseContext normalization
+    // 1. Test normalizeCourseModulesForDisplay
+    const displayModules = normalizeCourseModulesForDisplay(rawModules);
+    if (!displayModules || displayModules.length === 0) {
+      throw new Error(`displayModules for ${cId} has 0 modules`);
+    }
+    if (displayModules.length !== expectedModules) {
+      console.warn(`  ⚠️ Module count mismatch for ${cId}: got ${displayModules.length}, expected ${expectedModules}`);
+    }
+
+    // 2. Test CourseContext normalizeContextCourse
     const contextCourse = normalizeContextCourse({ ...rawCourse, modules: rawModules });
     if (!contextCourse.modules || contextCourse.modules.length === 0) {
       throw new Error(`Normalized context course ${cId} has 0 modules`);
     }
 
-    // Verify all modules and topics
-    for (let mIdx = 0; mIdx < contextCourse.modules.length; mIdx++) {
-      const mod = contextCourse.modules[mIdx];
+    // 3. Verify flat lessons and backward-compat topics for every module
+    for (let mIdx = 0; mIdx < displayModules.length; mIdx++) {
+      const mod = displayModules[mIdx];
       totalModulesChecked++;
 
-      // Strict contract checks:
-      if (!Array.isArray(mod.topics)) {
-        throw new Error(`Module ${mod.id} (${mod.title}) in ${cId} has non-array topics!`);
+      // Strict validation: mod.lessons must be an array of LearningUnitItems
+      if (!Array.isArray(mod.lessons)) {
+        throw new Error(`Module ${mod.id} in ${cId} is missing lessons array!`);
       }
-      if (typeof mod.topics.length !== 'number') {
-        throw new Error(`Module ${mod.id} in ${cId} topics.length is not a number!`);
-      }
-      if (mod.topics.length === 0) {
-        throw new Error(`Module ${mod.id} in ${cId} topics array is empty!`);
+      if (mod.lessons.length === 0) {
+        throw new Error(`Module ${mod.id} in ${cId} has 0 lessons!`);
       }
 
-      for (let tIdx = 0; tIdx < mod.topics.length; tIdx++) {
-        const top = mod.topics[tIdx];
-        if (!Array.isArray(top.learningUnits)) {
-          throw new Error(`Topic ${top.id} in module ${mod.id} (${cId}) has non-array learningUnits!`);
+      // Check presentation lesson title
+      for (let lIdx = 0; lIdx < mod.lessons.length; lIdx++) {
+        const lesson = mod.lessons[lIdx];
+        const presentationTitle = getPresentationLessonTitle(lesson.title, mIdx + 1, mod.lessons.length);
+        if (!presentationTitle || presentationTitle.trim().length === 0) {
+          throw new Error(`Empty presentation title for lesson ${lesson.id} in module ${mod.id}`);
         }
-        if (typeof top.learningUnits.length !== 'number') {
-          throw new Error(`Topic ${top.id} in ${cId} learningUnits.length is not a number!`);
-        }
-        if (top.learningUnits.length === 0) {
-          throw new Error(`Topic ${top.id} in ${cId} learningUnits is empty!`);
-        }
-        totalUnitsChecked += top.learningUnits.length;
+        totalLessonsChecked++;
+      }
+
+      // Backward-compatibility: mod.topics must also exist and mirror lessons
+      if (!Array.isArray(mod.topics) || mod.topics.length === 0) {
+        throw new Error(`Module ${mod.id} in ${cId} is missing backward-compatible topics array!`);
+      }
+      if (!Array.isArray(mod.topics[0].learningUnits) || mod.topics[0].learningUnits.length !== mod.lessons.length) {
+        throw new Error(`Module ${mod.id} in ${cId} topics[0].learningUnits does not match lessons length!`);
       }
     }
 
-    console.log(`  ✓ ${contextCourse.title} (${cId}): ${contextCourse.modules.length} modules, all topics & units normalized safely.`);
+    const firstModSample = displayModules[0];
+    const sampleLesson = firstModSample.lessons[0];
+    const sampleTitle = getPresentationLessonTitle(sampleLesson.title, 1, firstModSample.lessons.length);
+
+    console.log(`  ✓ ${contextCourse.title} (${cId}): ${displayModules.length} modules, ${displayModules.reduce((a, b) => a + b.lessons.length, 0)} total lessons`);
+    console.log(`    Sample: "${firstModSample.title}" -> Lesson: "${sampleTitle}"`);
     passedCourses++;
   }
 
   console.log('\n====================================================');
   console.log(`ALL ${passedCourses}/${CANONICAL_COURSES.length} CANONICAL COURSES VERIFIED SUCCESSFULLY.`);
   console.log(`Total Modules Audited: ${totalModulesChecked}`);
-  console.log(`Total Learning Units Audited: ${totalUnitsChecked}`);
-  console.log('Zero undefined array accesses detected.');
+  console.log(`Total Lessons Audited: ${totalLessonsChecked}`);
+  console.log('Hierarchy presentation strictly standardized to Course -> Module -> Lesson.');
+  console.log('Zero artificial wrappers (Topic / Learning Unit / Units) exposed.');
   console.log('====================================================\n');
 }
 

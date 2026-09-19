@@ -5,6 +5,9 @@ import { ApiError } from '../../utils/ApiError';
 
 interface CacheEntry<T> {
   data: T;
+  version?: number;
+  revision?: number;
+  cachedAt: number;
   expiresAt: number;
 }
 
@@ -24,38 +27,79 @@ export class CourseRepository {
   }
 
   /**
-   * Helper to retrieve from bounded cache
+   * Helper to retrieve from bounded cache with revision monotonicity checking
    */
-  private getFromCache<T>(cacheMap: Map<string, CacheEntry<T>>, key: string): T | null {
+  private getFromCache<T>(cacheMap: Map<string, CacheEntry<T>>, key: string, minExpectedVersion?: number): T | null {
     const entry = cacheMap.get(key);
     if (!entry) return null;
     if (Date.now() > entry.expiresAt) {
       cacheMap.delete(key);
       return null;
     }
+    // Revision-Aware Invalidation: If cached version is older than requested minimum revision, discard immediately
+    if (typeof minExpectedVersion === 'number') {
+      const entryVer = entry.version ?? entry.revision;
+      if (typeof entryVer === 'number' && entryVer < minExpectedVersion) {
+        cacheMap.delete(key);
+        return null;
+      }
+    }
     return entry.data;
   }
 
   /**
-   * Helper to save to bounded cache with LRU eviction guard
+   * Helper to save to bounded cache with LRU eviction guard and anti-stale overwrite guard
    */
-  private setInCache<T>(cacheMap: Map<string, CacheEntry<T>>, key: string, data: T): void {
+  private setInCache<T>(cacheMap: Map<string, CacheEntry<T>>, key: string, data: T, version?: number): void {
+    const existing = cacheMap.get(key);
+    const existingVer = existing?.version ?? existing?.revision;
+    const incomingVer = version ?? (data as any)?.version ?? (data as any)?.revision;
+
+    // Rule: Cache entries must never overwrite newer database revisions
+    if (existing && typeof existingVer === 'number' && typeof incomingVer === 'number') {
+      if (incomingVer < existingVer) {
+        return;
+      }
+    }
+
     if (cacheMap.size >= this.MAX_CACHE_ENTRIES) {
       const firstKey = cacheMap.keys().next().value;
       if (firstKey) cacheMap.delete(firstKey);
     }
     cacheMap.set(key, {
       data,
+      version: incomingVer,
+      revision: incomingVer,
+      cachedAt: Date.now(),
       expiresAt: Date.now() + this.CACHE_TTL_MS,
     });
   }
 
   /**
-   * Invalidates course catalog and individual course caches on mutation
+   * Invalidates course catalog, individual course caches, and content subcollection caches on mutation
    */
-  public invalidateCache(): void {
+  public invalidateCache(courseIdOrSlug?: string): void {
     this.catalogCache.clear();
-    this.courseCache.clear();
+    if (!courseIdOrSlug) {
+      this.courseCache.clear();
+    } else {
+      for (const key of Array.from(this.courseCache.keys())) {
+        if (key.includes(courseIdOrSlug) || key.startsWith(`id:${courseIdOrSlug}`) || key.startsWith(`slug:${courseIdOrSlug}`)) {
+          this.courseCache.delete(key);
+        }
+      }
+    }
+
+    // Invalidate course content cache synchronously/asynchronously
+    import('../../services/course/courseContent.service')
+      .then(({ courseContentService }) => {
+        if (courseIdOrSlug) {
+          courseContentService.invalidateCourseCache(courseIdOrSlug);
+        } else {
+          courseContentService.invalidateCache();
+        }
+      })
+      .catch(() => {});
   }
 
   /**
@@ -155,12 +199,30 @@ export class CourseRepository {
 
     console.log(`[COURSE_CREATED] courseId="${id}", title="${newCourse.title}", version=1, userId="${userId || 'system'}", timestamp="${now}"`);
     this.invalidateCache();
+
+    // Audit log
+    import('../../services/course/courseContent.service')
+      .then(({ courseContentService }) => {
+        courseContentService.recordAuditLog({
+          courseId: id,
+          entityType: 'course',
+          action: 'create',
+          title: newCourse.title,
+          newRevision: 1,
+          adminId: userId || 'admin',
+          timestamp: now,
+          changesSummary: `Created course "${newCourse.title}" (Rev 1).`,
+          snapshot: newCourse,
+        }).catch(() => {});
+      })
+      .catch(() => {});
+
     return newCourse;
   }
 
-  async findById(id: string): Promise<ICourse | null> {
+  async findById(id: string, minExpectedVersion?: number): Promise<ICourse | null> {
     const cacheKey = `id:${id}`;
-    const cached = this.getFromCache(this.courseCache, cacheKey);
+    const cached = this.getFromCache(this.courseCache, cacheKey, minExpectedVersion);
     if (cached !== null) return cached;
 
     if (!this.collection) return null;
@@ -171,13 +233,17 @@ export class CourseRepository {
     }
 
     const course = this.normalizeCourseDoc({ ...docSnap.data(), id: docSnap.id });
-    this.setInCache(this.courseCache, cacheKey, course);
+    const version = course.version ?? course.revision ?? 1;
+    this.setInCache(this.courseCache, cacheKey, course, version);
+    if (course.slug) {
+      this.setInCache(this.courseCache, `slug:${course.slug.toLowerCase()}`, course, version);
+    }
     return course;
   }
 
-  async findBySlug(slug: string): Promise<ICourse | null> {
+  async findBySlug(slug: string, minExpectedVersion?: number): Promise<ICourse | null> {
     const cacheKey = `slug:${slug.toLowerCase()}`;
-    const cached = this.getFromCache(this.courseCache, cacheKey);
+    const cached = this.getFromCache(this.courseCache, cacheKey, minExpectedVersion);
     if (cached !== null) return cached;
 
     if (!this.collection) return null;
@@ -188,7 +254,11 @@ export class CourseRepository {
     }
 
     const course = this.normalizeCourseDoc({ ...snapshot.docs[0].data(), id: snapshot.docs[0].id });
-    this.setInCache(this.courseCache, cacheKey, course);
+    const version = course.version ?? course.revision ?? 1;
+    this.setInCache(this.courseCache, cacheKey, course, version);
+    if (course.id) {
+      this.setInCache(this.courseCache, `id:${course.id}`, course, version);
+    }
     return course;
   }
 
@@ -224,7 +294,8 @@ export class CourseRepository {
 
     const docRef = this.collection.doc(docId);
     const now = new Date().toISOString();
-    const nextVersion = existing ? (((existing.version || existing.revision) || 1) + 1) : 1;
+    const currentVersion = existing ? ((existing.version || existing.revision) || 1) : 0;
+    const nextVersion = currentVersion + 1;
 
     const updatedData: Partial<ICourse> = {
       ...updates,
@@ -255,13 +326,57 @@ export class CourseRepository {
       await docRef.set(newCourseDoc, { merge: true });
       console.log(`[COURSE_CREATED_ON_UPDATE] courseId="${docId}", version=1, userId="${userId}"`);
       this.invalidateCache();
+
+      import('../../services/course/courseContent.service')
+        .then(({ courseContentService }) => {
+          courseContentService.recordAuditLog({
+            courseId: docId,
+            entityType: 'course',
+            action: 'create',
+            title: (newCourseDoc as any).title || docId,
+            newRevision: 1,
+            adminId: userId || 'admin',
+            timestamp: now,
+            changesSummary: `Created course document "${(newCourseDoc as any).title}".`,
+            snapshot: newCourseDoc,
+          }).catch(() => {});
+        })
+        .catch(() => {});
+
       return newCourseDoc as ICourse;
     }
 
     await docRef.set(updatedData, { merge: true });
     console.log(`[COURSE_UPDATED] courseId="${docId}", newVersion=${nextVersion}, userId="${userId}", timestamp="${now}"`);
     this.invalidateCache();
-    return { ...existing, ...updatedData } as ICourse;
+
+    const finalMerged = { ...existing, ...updatedData } as ICourse;
+
+    const isPublishAction = updates.status && updates.status !== existing.status;
+    const auditAction = isPublishAction
+      ? (updates.status === 'published' ? 'publish' : 'unpublish')
+      : 'update';
+
+    import('../../services/course/courseContent.service')
+      .then(({ courseContentService }) => {
+        courseContentService.recordAuditLog({
+          courseId: docId,
+          entityType: 'course',
+          action: auditAction,
+          title: finalMerged.title,
+          previousRevision: currentVersion,
+          newRevision: nextVersion,
+          adminId: userId || 'admin',
+          timestamp: now,
+          changesSummary: isPublishAction
+            ? `Changed course status to "${updates.status}" (Rev ${currentVersion} -> ${nextVersion}).`
+            : `Updated course details (Rev ${currentVersion} -> ${nextVersion}).`,
+          snapshot: updatedData,
+        }).catch(() => {});
+      })
+      .catch(() => {});
+
+    return finalMerged;
   }
 
   async delete(id: string, userId?: string, hardDelete: boolean = false): Promise<boolean> {
@@ -275,19 +390,35 @@ export class CourseRepository {
 
     if (!existing) return false;
 
+    const now = new Date().toISOString();
     if (hardDelete) {
       await this.collection.doc(docId).delete();
       console.log(`[COURSE_HARD_DELETED] courseId="${docId}", userId="${userId}"`);
     } else {
       await this.collection.doc(docId).set({
         isDeleted: true,
-        deletedAt: new Date().toISOString(),
+        deletedAt: now,
         deletedBy: userId || 'admin',
       }, { merge: true });
       console.log(`[COURSE_SOFT_DELETED] courseId="${docId}", userId="${userId}"`);
     }
 
     this.invalidateCache();
+
+    import('../../services/course/courseContent.service')
+      .then(({ courseContentService }) => {
+        courseContentService.recordAuditLog({
+          courseId: docId,
+          entityType: 'course',
+          action: 'delete',
+          title: existing?.title || docId,
+          adminId: userId || 'admin',
+          timestamp: now,
+          changesSummary: hardDelete ? `Hard deleted course "${docId}".` : `Soft deleted course "${existing?.title}".`,
+        }).catch(() => {});
+      })
+      .catch(() => {});
+
     return true;
   }
 

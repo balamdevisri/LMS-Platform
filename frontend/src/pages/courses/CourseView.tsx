@@ -10,6 +10,7 @@ import { SEOHead } from '@/components/seo/SEOHead';
 import { CourseSchema as StructuredCourseSchema } from '@/components/seo/StructuredData';
 import { LottieLoader } from '@/components/common/LottieLoader';
 import { CourseActionConfirmModal, type CourseActionType } from '@/components/courses/CourseActionConfirmModal';
+import { getPresentationLessonTitle } from '@/services/courseNormalizer';
 
 // Lazy loader helper
 const lazyComponent = <T extends Record<string, any>, K extends keyof T>(
@@ -39,7 +40,7 @@ const CheckoutModal = lazyComponent(() => import('@/components/courses/CheckoutM
 
 const mapCourseModulesToPlayerModules = (modules?: any[]): any[] => {
   if (!modules || !Array.isArray(modules)) return [];
-  return modules.filter(Boolean).map((m) => {
+  return modules.filter(Boolean).map((m, mIdx) => {
     let lessonsList: any[] = [];
     if (m.lessons && Array.isArray(m.lessons) && m.lessons.length > 0) {
       lessonsList = m.lessons.filter(Boolean);
@@ -69,7 +70,8 @@ const mapCourseModulesToPlayerModules = (modules?: any[]): any[] => {
 
     const enrichedLessons = uniqueLessonsList.map((l: any, lIdx: number) => {
       const lId = l.id || `lesson-${m.id || 'mod'}-${lIdx + 1}`;
-      const lTitle = l.title || `Lesson ${lIdx + 1}`;
+      const rawTitle = l.title || `Lesson ${lIdx + 1}`;
+      const lTitle = getPresentationLessonTitle(rawTitle, mIdx + 1, uniqueLessonsList.length);
       const lContent = l.conceptTheory || l.readingContent || l.content || l.description || 'Welcome to this lesson.';
       const lDuration = l.duration || '15 mins';
       const lType = l.type ? String(l.type).toLowerCase() : 'reading';
@@ -102,7 +104,7 @@ const mapCourseModulesToPlayerModules = (modules?: any[]): any[] => {
   });
 };
 
-// Get course-specific introText and outcomes based on course title or id
+// Get course-specific introText and outcomes based on database data with fallback presets
 const getCourseMeta = (course: any) => {
   if (!course) {
     return {
@@ -110,169 +112,148 @@ const getCourseMeta = (course: any) => {
       outcomes: ['Master core course concepts', 'Build hands-on technical skills', 'Apply concepts to real-world scenarios']
     };
   }
+
   const titleLower = (course.title || '').toLowerCase();
   const idLower = String(course.id || '').toLowerCase();
+  let defaultIntro: string[] = ['Welcome to this technical training course track.'];
+  let defaultOutcomes: string[] = [
+    'Master core course concepts',
+    'Build hands-on technical skills',
+    'Apply concepts to real-world scenarios'
+  ];
+  let defaultSubtitle: string | undefined = undefined;
   
   if (idLower === 'course_linux_101' || idLower === '1' || titleLower.includes('linux')) {
-    return {
-      introText: [
-        `Welcome to Linux Systems Mastery! Linux is one of the world's most powerful and widely used operating systems, powering everything from web servers and cloud platforms to Android devices, supercomputers, and embedded systems.`,
-        `This course is designed for beginners who want to build a strong foundation in Linux. You will learn how Linux works, how to navigate the terminal, manage files and directories, understand permissions, and perform essential system operations using real-world commands.`,
-        `By the end of this course, you'll have the confidence to work efficiently in any Linux environment and be prepared for advanced topics such as shell scripting, DevOps, cloud computing, and cybersecurity.`,
-      ],
-      outcomes: [
-        'Master essential Linux CLI terminal navigation commands (cd, ls, pwd, find)',
-        'Understand File System Hierarchy Standard (FHS) and directory structure',
-        'Manage user accounts, groups, file permissions (chmod, chown) & umask',
-        'Monitor processes, manage background jobs & configure Systemd services',
-        'Write automated Bash shell scripts with variables, conditionals & loops',
-        'Configure SSH hardening, Linux Firewall (UFW) and basic networking tools',
-      ]
-    };
-  }
-  
-  if (idLower === 'git-github-mastery' || titleLower.includes('git') || titleLower.includes('github')) {
-    return {
-      introText: [
-        `Welcome to Git & GitHub Mastery! Version control is a foundational skill for all developers. This course will take you from Git basics to advanced pipelines.`,
-        `You will learn local repository initialization, stage-commit lifecycles, remote repository synchronization, pull requests, code reviews, rebasing, and automated pipelines using GitHub Actions.`,
-        `By the end of this course, you will have a production-ready CI/CD setup and will earn your certification.`,
-      ],
-      outcomes: [
-        'Configure Git globally and link local repositories to GitHub securely',
-        'Create and merge branches, perform Pull Requests, and do collaborative code reviews',
-        'Resolve complex merge conflicts and leverage stashing, rebasing, and cherry-picking',
-        'Write custom GitHub Actions pipelines for automated testing & Netlify/Vercel deployments',
-      ]
-    };
-  }
-  
-  if (idLower === 'database-management-system' || titleLower.includes('database') || titleLower.includes('dbms')) {
-    return {
-      introText: [
-        "Welcome to Database Management System (DBMS)! Databases are the core component of modern software systems, powering everything from small mobile apps to massive cloud services and enterprise systems.",
-        "This course is designed to take you from a complete beginner to an advanced database professional. You will learn relational database concepts, SQL fundamentals, database normalization, indexing, transaction management, and administrative best practices.",
-        "By the end of this course, you will have a solid understanding of database design, be able to write complex SQL queries, optimize database performance, and understand how to manage production databases safely."
-      ],
-      outcomes: [
-        "Master relational database concepts, schemas, tables, and constraints",
-        "Write complex SQL queries including JOINs, subqueries, aggregations, and CTEs",
-        "Understand database normalization (1NF, 2NF, 3NF) and ER diagram design",
-        "Implement database indexing, transactions (ACID properties), and concurrency control",
-        "Learn database administration basics, backup/restore procedures, and security",
-        "Optimize slow queries and understand database design patterns"
-      ]
-    };
-  }
-  
-  if (idLower === 'react-js-complete-course' || titleLower.includes('react')) {
-    return {
-      introText: [
-        "Welcome to React JS Complete Course! React is a popular and powerful open-source JavaScript library developed by Meta (Facebook) for building dynamic, fast, and reusable user interfaces.",
-        "This comprehensive course covers everything from React basics to advanced state management and routing. You will learn setting up Vite environments, JSX rules, components, props, state, event handling, routing with React Router, API fetching with Axios, and styling frameworks like Tailwind CSS.",
-        "By the end of this course, you will build 5 real-world applications and gain practical interview preparation knowledge."
-      ],
-      outcomes: [
-        "Understand Component-Based Architecture and the Virtual DOM rendering cycle",
-        "Use JSX expressions, fragments, and conditional rendering operators",
-        "Manage local state with useState and leverage useEffect for lifecycle hooks",
-        "Coordinate routing using BrowserRouter, Routes, Route, and useNavigate",
-        "Perform remote API fetches and integration using Axios",
-        "Implement global state management via the Context API and Redux Toolkit"
-      ]
-    };
-  }
-
-  if (idLower === 'c-programming' || idLower.includes('c-prog') || titleLower.includes('c programming') || titleLower === 'c') {
-    return {
-      subtitle: 'Programming Fundamentals',
-      introText: [
-        "Build a strong foundation in C programming through structured lessons, practical examples, and hands-on exercises.",
-        "Master memory management, pointers, control flow, functions, dynamic allocation, and low-level system programming essentials."
-      ],
-      outcomes: [
-        "Understand C syntax, data types, operators, and memory representation",
-        "Master control flow structures, conditional branches, and iterative loops",
-        "Implement modular programs using user-defined functions and recursion",
-        "Work with arrays, strings, multi-dimensional structures, and buffers",
-        "Understand pointer arithmetic and dynamic memory allocation (malloc/free)",
-        "Perform file I/O operations and write robust command-line applications"
-      ]
-    };
-  }
-
-  if (idLower.includes('javascript') || titleLower === 'javascript' || titleLower.includes('javascript')) {
-    return {
-      subtitle: 'Modern Web Scripting',
-      introText: [
-        "Master modern JavaScript (ES6+) from fundamental syntax and data structures to asynchronous programming and browser APIs.",
-        "Build interactive web applications and gain a comprehensive understanding of the event loop, closures, and object prototypes."
-      ],
-      outcomes: [
-        "Master core JavaScript syntax, types, operators, and functions",
-        "Understand closures, scope, prototypes, and ES6+ features",
-        "Manipulate the DOM dynamically and handle browser events",
-        "Work with Promises, async/await, and REST API integration"
-      ]
-    };
-  }
-
-  if (idLower.includes('node') || titleLower === 'node.js' || titleLower.includes('node.js') || titleLower.includes('nodejs')) {
-    return {
-      subtitle: 'Backend Development & REST APIs',
-      introText: [
-        "Build scalable backend services and RESTful APIs using Node.js, Express, and database integrations.",
-        "Master authentication with JWT, middleware architecture, database queries, and production backend patterns."
-      ],
-      outcomes: [
-        "Understand the Node.js runtime, Event Loop, and non-blocking I/O",
-        "Design and build RESTful APIs using Express.js and middleware",
-        "Implement secure authentication and authorization with JWT",
-        "Integrate SQL and NoSQL databases and deploy production backends"
-      ]
-    };
+    defaultIntro = [
+      `Welcome to Linux Systems Mastery! Linux is one of the world's most powerful and widely used operating systems, powering everything from web servers and cloud platforms to Android devices, supercomputers, and embedded systems.`,
+      `This course is designed for beginners who want to build a strong foundation in Linux. You will learn how Linux works, how to navigate the terminal, manage files and directories, understand permissions, and perform essential system operations using real-world commands.`,
+      `By the end of this course, you'll have the confidence to work efficiently in any Linux environment and be prepared for advanced topics such as shell scripting, DevOps, cloud computing, and cybersecurity.`,
+    ];
+    defaultOutcomes = [
+      'Master essential Linux CLI terminal navigation commands (cd, ls, pwd, find)',
+      'Understand File System Hierarchy Standard (FHS) and directory structure',
+      'Manage user accounts, groups, file permissions (chmod, chown) & umask',
+      'Monitor processes, manage background jobs & configure Systemd services',
+      'Write automated Bash shell scripts with variables, conditionals & loops',
+      'Configure SSH hardening, Linux Firewall (UFW) and basic networking tools',
+    ];
+  } else if (idLower === 'git-github-mastery' || titleLower.includes('git') || titleLower.includes('github')) {
+    defaultIntro = [
+      `Welcome to Git & GitHub Mastery! Version control is a foundational skill for all developers. This course will take you from Git basics to advanced pipelines.`,
+      `You will learn local repository initialization, stage-commit lifecycles, remote repository synchronization, pull requests, code reviews, rebasing, and automated pipelines using GitHub Actions.`,
+      `By the end of this course, you will have a production-ready CI/CD setup and will earn your certification.`,
+    ];
+    defaultOutcomes = [
+      'Configure Git globally and link local repositories to GitHub securely',
+      'Create and merge branches, perform Pull Requests, and do collaborative code reviews',
+      'Resolve complex merge conflicts and leverage stashing, rebasing, and cherry-picking',
+      'Write custom GitHub Actions pipelines for automated testing & Netlify/Vercel deployments',
+    ];
+  } else if (idLower === 'database-management-system' || titleLower.includes('database') || titleLower.includes('dbms')) {
+    defaultIntro = [
+      "Welcome to Database Management System (DBMS)! Databases are the core component of modern software systems, powering everything from small mobile apps to massive cloud services and enterprise systems.",
+      "This course is designed to take you from a complete beginner to an advanced database professional. You will learn relational database concepts, SQL fundamentals, database normalization, indexing, transaction management, and administrative best practices.",
+      "By the end of this course, you will have a solid understanding of database design, be able to write complex SQL queries, optimize database performance, and understand how to manage production databases safely."
+    ];
+    defaultOutcomes = [
+      "Master relational database concepts, schemas, tables, and constraints",
+      "Write complex SQL queries including JOINs, subqueries, aggregations, and CTEs",
+      "Understand database normalization (1NF, 2NF, 3NF) and ER diagram design",
+      "Implement database indexing, transactions (ACID properties), and concurrency control",
+      "Learn database administration basics, backup/restore procedures, and security",
+      "Optimize slow queries and understand database design patterns"
+    ];
+  } else if (idLower === 'react-js-complete-course' || titleLower.includes('react')) {
+    defaultIntro = [
+      "Welcome to React JS Complete Course! React is a popular and powerful open-source JavaScript library developed by Meta (Facebook) for building dynamic, fast, and reusable user interfaces.",
+      "This comprehensive course covers everything from React basics to advanced state management and routing. You will learn setting up Vite environments, JSX rules, components, props, state, event handling, routing with React Router, API fetching with Axios, and styling frameworks like Tailwind CSS.",
+      "By the end of this course, you will build 5 real-world applications and gain practical interview preparation knowledge."
+    ];
+    defaultOutcomes = [
+      "Understand Component-Based Architecture and the Virtual DOM rendering cycle",
+      "Use JSX expressions, fragments, and conditional rendering operators",
+      "Manage local state with useState and leverage useEffect for lifecycle hooks",
+      "Coordinate routing using BrowserRouter, Routes, Route, and useNavigate",
+      "Perform remote API fetches and integration using Axios",
+      "Implement global state management via the Context API and Redux Toolkit"
+    ];
+  } else if (idLower === 'c-programming' || idLower.includes('c-prog') || titleLower.includes('c programming') || titleLower === 'c') {
+    defaultSubtitle = 'Programming Fundamentals';
+    defaultIntro = [
+      "Build a strong foundation in C programming through structured lessons, practical examples, and hands-on exercises.",
+      "Master memory management, pointers, control flow, functions, dynamic allocation, and low-level system programming essentials."
+    ];
+    defaultOutcomes = [
+      "Understand C syntax, data types, operators, and memory representation",
+      "Master control flow structures, conditional branches, and iterative loops",
+      "Implement modular programs using user-defined functions and recursion",
+      "Work with arrays, strings, multi-dimensional structures, and buffers",
+      "Understand pointer arithmetic and dynamic memory allocation (malloc/free)",
+      "Perform file I/O operations and write robust command-line applications"
+    ];
+  } else if (idLower.includes('javascript') || titleLower === 'javascript' || titleLower.includes('javascript')) {
+    defaultSubtitle = 'Modern Web Scripting';
+    defaultIntro = [
+      "Master modern JavaScript (ES6+) from fundamental syntax and data structures to asynchronous programming and browser APIs.",
+      "Build interactive web applications and gain a comprehensive understanding of the event loop, closures, and object prototypes."
+    ];
+    defaultOutcomes = [
+      "Master core JavaScript syntax, types, operators, and functions",
+      "Understand closures, scope, prototypes, and ES6+ features",
+      "Manipulate the DOM dynamically and handle browser events",
+      "Work with Promises, async/await, and REST API integration"
+    ];
+  } else if (idLower.includes('node') || titleLower === 'node.js' || titleLower.includes('node.js') || titleLower.includes('nodejs')) {
+    defaultSubtitle = 'Backend Development & REST APIs';
+    defaultIntro = [
+      "Build scalable backend services and RESTful APIs using Node.js, Express, and database integrations.",
+      "Master authentication with JWT, middleware architecture, database queries, and production backend patterns."
+    ];
+    defaultOutcomes = [
+      "Understand the Node.js runtime, Event Loop, and non-blocking I/O",
+      "Design and build RESTful APIs using Express.js and middleware",
+      "Implement secure authentication and authorization with JWT",
+      "Integrate SQL and NoSQL databases and deploy production backends"
+    ];
+  } else if (idLower.includes('data-structures') || idLower.includes('dsa') || titleLower.includes('data structures') || titleLower.includes('algorithms')) {
+    defaultSubtitle = 'Problem Solving & Technical Interviews';
+    defaultIntro = [
+      "Master essential data structures and algorithms to solve complex computational problems and ace technical coding interviews.",
+      "Learn time and space complexity analysis, linear and non-linear data structures, searching, sorting, and dynamic programming."
+    ];
+    defaultOutcomes = [
+      "Analyze algorithms using Big-O time and space complexity",
+      "Implement Arrays, Linked Lists, Stacks, Queues, Trees, and Graphs",
+      "Master sorting, searching, recursion, and backtracking techniques",
+      "Apply Dynamic Programming and Greedy algorithms to complex challenges"
+    ];
+  } else if (idLower.includes('web-development') || titleLower.includes('web development')) {
+    defaultSubtitle = 'Frontend Foundations & Responsive Design';
+    defaultIntro = [
+      "Learn HTML5, CSS3, and JavaScript from scratch to build responsive, accessible, and modern web applications.",
+      "Explore Flexbox, CSS Grid, animations, web APIs, and deployment workflows for production web applications."
+    ];
+    defaultOutcomes = [
+      "Structure accessible and semantic web pages using HTML5",
+      "Style responsive user interfaces with CSS3, Flexbox, and CSS Grid",
+      "Add dynamic interactive features using modern JavaScript",
+      "Deploy real-world web projects to modern hosting platforms"
+    ];
   }
 
-  if (idLower.includes('data-structures') || idLower.includes('dsa') || titleLower.includes('data structures') || titleLower.includes('algorithms')) {
-    return {
-      subtitle: 'Problem Solving & Technical Interviews',
-      introText: [
-        "Master essential data structures and algorithms to solve complex computational problems and ace technical coding interviews.",
-        "Learn time and space complexity analysis, linear and non-linear data structures, searching, sorting, and dynamic programming."
-      ],
-      outcomes: [
-        "Analyze algorithms using Big-O time and space complexity",
-        "Implement Arrays, Linked Lists, Stacks, Queues, Trees, and Graphs",
-        "Master sorting, searching, recursion, and backtracking techniques",
-        "Apply Dynamic Programming and Greedy algorithms to complex challenges"
-      ]
-    };
-  }
+  // Authoritative Database overrides: If admin added dynamic learning outcomes or description, use those!
+  const finalOutcomes = Array.isArray(course.learningOutcomes) && course.learningOutcomes.length > 0
+    ? course.learningOutcomes
+    : (Array.isArray((course as any).outcomes) && (course as any).outcomes.length > 0 ? (course as any).outcomes : defaultOutcomes);
 
-  if (idLower.includes('web-development') || titleLower.includes('web development')) {
-    return {
-      subtitle: 'Frontend Foundations & Responsive Design',
-      introText: [
-        "Learn HTML5, CSS3, and JavaScript from scratch to build responsive, accessible, and modern web applications.",
-        "Explore Flexbox, CSS Grid, animations, web APIs, and deployment workflows for production web applications."
-      ],
-      outcomes: [
-        "Structure accessible and semantic web pages using HTML5",
-        "Style responsive user interfaces with CSS3, Flexbox, and CSS Grid",
-        "Add dynamic interactive features using modern JavaScript",
-        "Deploy real-world web projects to modern hosting platforms"
-      ]
-    };
-  }
-  
-  // Generic fallback for custom admin courses
+  const finalIntro = Array.isArray((course as any).introText) && (course as any).introText.length > 0
+    ? (course as any).introText
+    : (course.description ? [course.description] : defaultIntro);
+
   return {
-    introText: (course as any).introText || [course.description || (course as any).shortDescription || 'Welcome to this technical training course track.'],
-    outcomes: (course as any).outcomes || (course.learningOutcomes && course.learningOutcomes.length > 0 ? course.learningOutcomes : [
-      'Master core course concepts',
-      'Build hands-on technical skills',
-      'Apply concepts to real-world scenarios'
-    ])
+    subtitle: (course as any).subtitle || defaultSubtitle,
+    introText: finalIntro,
+    outcomes: finalOutcomes,
   };
 };
 

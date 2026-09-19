@@ -82,3 +82,6 @@ export function sanitizeMarkdownContent(markdownText: string | null | undefined)
   clean = clean.replace(/javascript:/gi, '');
   return clean;
 }
+
+export { serializeFirestorePayload, sanitizeLessonWritePayload } from './firestoreSerializer';
+

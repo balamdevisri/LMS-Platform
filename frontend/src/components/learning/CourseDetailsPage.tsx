@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { liveClassService, type LiveClass, normalizeLiveClassStatus } from '@/services/liveClassService';
+import { getPresentationLessonTitle } from '@/services/courseNormalizer';
 
 export interface CourseDetailsProps {
   course: {
@@ -754,7 +755,7 @@ export const CourseDetailsPage: React.FC<CourseDetailsProps> = ({
 
                                   <div className="min-w-0">
                                     <h4 className="text-xs sm:text-sm font-medium text-[#111827] dark:text-white truncate">
-                                      {lesson.title}
+                                      {getPresentationLessonTitle(lesson.title, modIdx + 1, mod.lessons.length)}
                                     </h4>
                                     {lesson.description && (
                                       <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8] truncate max-w-lg">

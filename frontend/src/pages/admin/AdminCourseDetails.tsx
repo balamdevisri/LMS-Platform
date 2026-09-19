@@ -30,8 +30,8 @@ import { courseService } from '@/services/courseService';
 import {
   useCourses,
   normalizeModuleItem,
+  getPresentationLessonTitle,
   type ModuleItem,
-  type TopicItem,
   type LearningUnitItem,
   type LearningUnitType
 } from '@/contexts/CourseContext';
@@ -50,9 +50,6 @@ export const AdminCourseDetails: React.FC = () => {
   const [modules, setModules] = useState<ModuleItem[]>([]);
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
 
-  // Track expanded Topic IDs
-  const [expandedTopicIds, setExpandedTopicIds] = useState<Record<string, boolean>>({});
-
   // Add Module Modal State
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
@@ -66,34 +63,18 @@ export const AdminCourseDetails: React.FC = () => {
   const [editDescription, setEditDescription] = useState('');
   const [editDuration, setEditDuration] = useState('');
 
-  // Add Topic Modal State
-  const [addTopicModalOpen, setAddTopicModalOpen] = useState(false);
-  const [activeModuleIdForTopic, setActiveModuleIdForTopic] = useState<string | null>(null);
-  const [newTopicTitle, setNewTopicTitle] = useState('');
-  const [newTopicDescription, setNewTopicDescription] = useState('');
-  const [newTopicEstimatedDuration, setNewTopicEstimatedDuration] = useState('45 mins');
-
-  // Edit Topic Modal State
-  const [editTopicModalOpen, setEditTopicModalOpen] = useState(false);
-  const [editingTopic, setEditingTopic] = useState<TopicItem | null>(null);
-  const [editTopicTitle, setEditTopicTitle] = useState('');
-  const [editTopicDescription, setEditTopicDescription] = useState('');
-  const [editTopicEstimatedDuration, setEditTopicEstimatedDuration] = useState('');
-
-  // Add Learning Unit Modal State
+  // Add Lesson Modal State
   const [addUnitModalOpen, setAddUnitModalOpen] = useState(false);
   const [activeModuleIdForUnit, setActiveModuleIdForUnit] = useState<string | null>(null);
-  const [activeTopicIdForUnit, setActiveTopicIdForUnit] = useState<string | null>(null);
   const [newUnitTitle, setNewUnitTitle] = useState('');
   const [newUnitDescription, setNewUnitDescription] = useState('');
   const [newUnitDuration, setNewUnitDuration] = useState('15 mins');
-  const [newUnitType, setNewUnitType] = useState<LearningUnitType>('Video');
+  const [newUnitType, setNewUnitType] = useState<LearningUnitType>('Reading');
 
   // Side Drawer Unit Editor State (replaces unit edit modals)
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeUnit, setActiveUnit] = useState<LearningUnitItem | null>(null);
   const [drawerModuleId, setDrawerModuleId] = useState<string | null>(null);
-  const [drawerTopicId, setDrawerTopicId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'edit' | 'preview' | 'grading'>('edit');
   const [selectedGradingAssignmentId, setSelectedGradingAssignmentId] = useState<string>('1.1.3');
 
@@ -609,13 +590,6 @@ export const AdminCourseDetails: React.FC = () => {
     }));
   };
 
-  // Toggle topic expansion
-  const toggleTopicExpand = (id: string) => {
-    setExpandedTopicIds((prev) => ({
-      [id]: !prev[id],
-    }));
-  };
-
   // ================= MODULE OPERATIONS =================
 
   const handleAddModule = async (e: React.FormEvent) => {
@@ -643,6 +617,7 @@ export const AdminCourseDetails: React.FC = () => {
       title: newTitle.trim(),
       description: newDescription.trim(),
       duration: newDuration.trim() || '8 hours',
+      lessons: [],
       topics: [],
     };
 
@@ -694,116 +669,17 @@ export const AdminCourseDetails: React.FC = () => {
   };
 
   const handleDeleteModule = (id: string, title: string) => {
-    if (window.confirm(`Are you sure you want to delete "${title}"? All of its topics will be removed.`)) {
+    if (window.confirm(`Are you sure you want to delete "${title}"? All of its lessons will be removed.`)) {
       const updated = modules.filter((m) => m.id !== id);
       updateCourse(course.id, { modules: updated });
       toast.success('Module deleted successfully');
     }
   };
 
-  // ================= TOPIC OPERATIONS =================
-
-  const openAddTopicModal = (moduleId: string) => {
-    setActiveModuleIdForTopic(moduleId);
-    setNewTopicTitle('');
-    setNewTopicDescription('');
-    setNewTopicEstimatedDuration('45 mins');
-    setAddTopicModalOpen(true);
-  };
-
-  const handleAddTopic = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!activeModuleIdForTopic || !newTopicTitle.trim()) {
-      toast.error('Topic title is required.');
-      return;
-    }
-
-    const newTopic: TopicItem = {
-      id: `topic-${Date.now()}`,
-      title: newTopicTitle.trim(),
-      description: newTopicDescription.trim(),
-      estimatedDuration: newTopicEstimatedDuration.trim() || '45 mins',
-      learningUnits: [],
-    };
-
-    const updated = modules.map((m) => {
-      if (m.id === activeModuleIdForTopic) {
-        return {
-          ...m,
-          topics: [...(m.topics || []), newTopic],
-        };
-      }
-      return m;
-    });
-
-    updateCourse(course.id, { modules: updated });
-    setExpandedTopicIds({ [newTopic.id]: true });
-    setAddTopicModalOpen(false);
-    setActiveModuleIdForTopic(null);
-    toast.success(`Topic "${newTopic.title}" added successfully!`);
-  };
-
-  const openEditTopicModal = (moduleId: string, topic: TopicItem) => {
-    setActiveModuleIdForTopic(moduleId);
-    setEditingTopic(topic);
-    setEditTopicTitle(topic.title);
-    setEditTopicDescription(topic.description);
-    setEditTopicEstimatedDuration(topic.estimatedDuration || '45 mins');
-    setEditTopicModalOpen(true);
-  };
-
-  const handleEditTopic = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!activeModuleIdForTopic || !editingTopic || !editTopicTitle.trim()) {
-      toast.error('Topic title is required.');
-      return;
-    }
-
-    const updated = modules.map((m) => {
-      if (m.id === activeModuleIdForTopic) {
-        const nextTopics = (m.topics || []).map((t) =>
-          t.id === editingTopic.id
-            ? {
-                ...t,
-                title: editTopicTitle.trim(),
-                description: editTopicDescription.trim(),
-                estimatedDuration: editTopicEstimatedDuration.trim() || '45 mins',
-              }
-            : t
-        );
-        return { ...m, topics: nextTopics };
-      }
-      return m;
-    });
-
-    updateCourse(course.id, { modules: updated });
-    setEditTopicModalOpen(false);
-    setEditingTopic(null);
-    setActiveModuleIdForTopic(null);
-    toast.success('Topic updated successfully!');
-  };
-
-  const handleDeleteTopic = (moduleId: string, topicId: string, title: string) => {
-    if (window.confirm(`Are you sure you want to delete topic "${title}"?`)) {
-      const updated = modules.map((m) => {
-        if (m.id === moduleId) {
-          return {
-            ...m,
-            topics: (m.topics || []).filter((t) => t.id !== topicId),
-          };
-        }
-        return m;
-      });
-      updateCourse(course.id, { modules: updated });
-      toast.success('Topic deleted successfully');
-    }
-  };
-
   // ================= SIDE DRAWER UNIT EDITOR =================
 
-  const openEditUnitDrawer = (moduleId: string, topicId: string, unit: LearningUnitItem) => {
+  const openEditUnitDrawer = (moduleId: string, unit: LearningUnitItem) => {
     setDrawerModuleId(moduleId);
-    setDrawerTopicId(topicId);
     setActiveUnit(JSON.parse(JSON.stringify(unit)));
     setActiveTab(isStudentPreviewMode ? 'preview' : 'edit');
     setQuizSelectedAnswers({});
@@ -812,20 +688,19 @@ export const AdminCourseDetails: React.FC = () => {
   };
 
   const handleDeleteUnitDrawer = () => {
-    if (!activeUnit || !drawerModuleId || !drawerTopicId) return;
-    if (window.confirm(`Are you sure you want to delete unit "${activeUnit.title}"?`)) {
+    if (!activeUnit || !drawerModuleId) return;
+    if (window.confirm(`Are you sure you want to delete lesson "${activeUnit.title}"?`)) {
       const updated = modules.map((m) => {
         if (m.id === drawerModuleId) {
-          const nextTopics = (m.topics || []).map((t) => {
-            if (t.id === drawerTopicId) {
-              return {
-                ...t,
-                learningUnits: (t.learningUnits || []).filter((u) => u.id !== activeUnit.id),
-              };
-            }
-            return t;
-          });
-          return { ...m, topics: nextTopics };
+          const nextLessons = (m.lessons || []).filter((u) => u.id !== activeUnit.id);
+          const nextTopics = [{
+            id: `${m.id}-t1`,
+            title: m.title,
+            description: m.description,
+            estimatedDuration: m.duration,
+            learningUnits: nextLessons,
+          }];
+          return { ...m, lessons: nextLessons, topics: nextTopics };
         }
         return m;
       });
@@ -833,26 +708,25 @@ export const AdminCourseDetails: React.FC = () => {
       updateCourse(course.id, { modules: updated });
       setDrawerOpen(false);
       setActiveUnit(null);
-      toast.success('Learning unit deleted successfully');
+      toast.success('Lesson deleted successfully');
     }
   };
 
-  // ================= UNIT ACCORDION OPERATIONS =================
+  // ================= LESSON OPERATIONS =================
 
-  const openAddUnitModal = (moduleId: string, topicId: string) => {
+  const openAddLessonModal = (moduleId: string) => {
     setActiveModuleIdForUnit(moduleId);
-    setActiveTopicIdForUnit(topicId);
     setNewUnitTitle('');
     setNewUnitDescription('');
     setNewUnitDuration('15 mins');
-    setNewUnitType('Video');
+    setNewUnitType('Reading');
     setAddUnitModalOpen(true);
   };
 
-  const handleAddLearningUnit = (e: React.FormEvent) => {
+  const handleAddLesson = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeModuleIdForUnit || !activeTopicIdForUnit || !newUnitTitle.trim()) {
-      toast.error('Learning unit title is required.');
+    if (!activeModuleIdForUnit || !newUnitTitle.trim()) {
+      toast.error('Lesson title is required.');
       return;
     }
 
@@ -883,16 +757,15 @@ export const AdminCourseDetails: React.FC = () => {
 
     const updated = modules.map((m) => {
       if (m.id === activeModuleIdForUnit) {
-        const nextTopics = (m.topics || []).map((t) => {
-          if (t.id === activeTopicIdForUnit) {
-            return {
-              ...t,
-              learningUnits: [...(t.learningUnits || []), newUnit],
-            };
-          }
-          return t;
-        });
-        return { ...m, topics: nextTopics };
+        const nextLessons = [...(m.lessons || []), newUnit];
+        const nextTopics = [{
+          id: `${m.id}-t1`,
+          title: m.title,
+          description: m.description,
+          estimatedDuration: m.duration,
+          learningUnits: nextLessons,
+        }];
+        return { ...m, lessons: nextLessons, topics: nextTopics };
       }
       return m;
     });
@@ -900,31 +773,29 @@ export const AdminCourseDetails: React.FC = () => {
     updateCourse(course.id, { modules: updated });
     setAddUnitModalOpen(false);
     setActiveModuleIdForUnit(null);
-    setActiveTopicIdForUnit(null);
-    toast.success(`Learning unit "${newUnit.title}" added successfully!`);
+    toast.success(`Lesson "${newUnit.title}" added successfully!`);
 
-    openEditUnitDrawer(activeModuleIdForUnit, activeTopicIdForUnit, newUnit);
+    openEditUnitDrawer(activeModuleIdForUnit, newUnit);
   };
 
-  const handleDeleteLearningUnit = (moduleId: string, topicId: string, unitId: string, title: string) => {
-    if (window.confirm(`Are you sure you want to delete unit "${title}"?`)) {
+  const handleDeleteLesson = (moduleId: string, unitId: string, title: string) => {
+    if (window.confirm(`Are you sure you want to delete lesson "${title}"?`)) {
       const updated = modules.map((m) => {
         if (m.id === moduleId) {
-          const nextTopics = (m.topics || []).map((t) => {
-            if (t.id === topicId) {
-              return {
-                ...t,
-                learningUnits: (t.learningUnits || []).filter((u) => u.id !== unitId),
-              };
-            }
-            return t;
-          });
-          return { ...m, topics: nextTopics };
+          const nextLessons = (m.lessons || []).filter((u) => u.id !== unitId);
+          const nextTopics = [{
+            id: `${m.id}-t1`,
+            title: m.title,
+            description: m.description,
+            estimatedDuration: m.duration,
+            learningUnits: nextLessons,
+          }];
+          return { ...m, lessons: nextLessons, topics: nextTopics };
         }
         return m;
       });
       updateCourse(course.id, { modules: updated });
-      toast.success('Learning unit deleted successfully');
+      toast.success('Lesson deleted successfully');
     }
   };
 
@@ -959,96 +830,56 @@ export const AdminCourseDetails: React.FC = () => {
     toast.success('Modules reordered successfully!');
   };
 
-  // --- Topic Drag/Drop ---
-  const handleTopicDragStart = (e: React.DragEvent, moduleId: string, index: number) => {
-    setDraggedTopic({ moduleId, index });
-    e.dataTransfer.effectAllowed = 'move';
-    e.currentTarget.classList.add('bg-sky-50');
-    e.stopPropagation();
-  };
+  // --- Lesson Drag/Drop ---
+  const [draggedLessonState, setDraggedLessonState] = useState<{ moduleId: string; index: number } | null>(null);
 
-  const handleTopicDragEnd = (e: React.DragEvent) => {
-    setDraggedTopic(null);
-    e.currentTarget.classList.remove('bg-sky-50');
-  };
-
-  const handleTopicDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
-  const handleTopicDrop = (e: React.DragEvent, targetModuleId: string, targetTopicIndex: number) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (!draggedTopic) return;
-    if (draggedTopic.moduleId !== targetModuleId) {
-      toast.error('Topics can only be reordered within the same module');
-      return;
-    }
-    if (draggedTopic.index === targetTopicIndex) return;
-
-    const updated = modules.map((m) => {
-      if (m.id === targetModuleId) {
-        const reorderedTopics = [...(m.topics || [])];
-        const [removed] = reorderedTopics.splice(draggedTopic.index, 1);
-        reorderedTopics.splice(targetTopicIndex, 0, removed);
-        return { ...m, topics: reorderedTopics };
-      }
-      return m;
-    });
-
-    setModules(updated);
-    updateCourse(course.id, { modules: updated });
-    toast.success('Topics reordered successfully!');
-  };
-
-  // --- Learning Unit Drag/Drop ---
-  const handleUnitDragStart = (e: React.DragEvent, moduleId: string, topicId: string, index: number) => {
-    setDraggedUnit({ moduleId, topicId, index });
+  const handleLessonDragStart = (e: React.DragEvent, moduleId: string, index: number) => {
+    setDraggedLessonState({ moduleId, index });
     e.dataTransfer.effectAllowed = 'move';
     e.currentTarget.classList.add('bg-slate-100');
     e.stopPropagation();
   };
 
-  const handleUnitDragEnd = (e: React.DragEvent) => {
-    setDraggedUnit(null);
+  const handleLessonDragEnd = (e: React.DragEvent) => {
+    setDraggedLessonState(null);
     e.currentTarget.classList.remove('bg-slate-100');
   };
 
-  const handleUnitDragOver = (e: React.DragEvent) => {
+  const handleLessonDragOver = (e: React.DragEvent) => {
     e.preventDefault();
   };
 
-  const handleUnitDrop = (e: React.DragEvent, targetModuleId: string, targetTopicId: string, targetUnitIndex: number) => {
+  const handleLessonDrop = (e: React.DragEvent, targetModuleId: string, targetLessonIndex: number) => {
     e.preventDefault();
     e.stopPropagation();
 
-    if (!draggedUnit) return;
-    if (draggedUnit.moduleId !== targetModuleId || draggedUnit.topicId !== targetTopicId) {
-      toast.error('Learning units can only be reordered within the same topic');
+    if (!draggedLessonState) return;
+    if (draggedLessonState.moduleId !== targetModuleId) {
+      toast.error('Lessons can only be reordered within the same module');
       return;
     }
-    if (draggedUnit.index === targetUnitIndex) return;
+    if (draggedLessonState.index === targetLessonIndex) return;
 
     const updated = modules.map((m) => {
       if (m.id === targetModuleId) {
-        const nextTopics = (m.topics || []).map((t) => {
-          if (t.id === targetTopicId) {
-            const reorderedUnits = [...(t.learningUnits || [])];
-            const [removed] = reorderedUnits.splice(draggedUnit.index, 1);
-            reorderedUnits.splice(targetUnitIndex, 0, removed);
-            return { ...t, learningUnits: reorderedUnits };
-          }
-          return t;
-        });
-        return { ...m, topics: nextTopics };
+        const reorderedLessons = [...(m.lessons || [])];
+        const [removed] = reorderedLessons.splice(draggedLessonState.index, 1);
+        reorderedLessons.splice(targetLessonIndex, 0, removed);
+        const nextTopics = [{
+          id: `${m.id}-t1`,
+          title: m.title,
+          description: m.description,
+          estimatedDuration: m.duration,
+          learningUnits: reorderedLessons,
+        }];
+        return { ...m, lessons: reorderedLessons, topics: nextTopics };
       }
       return m;
     });
 
     setModules(updated);
     updateCourse(course.id, { modules: updated });
-    toast.success('Learning units reordered successfully!');
+    toast.success('Lessons reordered successfully!');
   };
 
   // Reusable Unit Icon Resolver
@@ -1540,7 +1371,7 @@ export const AdminCourseDetails: React.FC = () => {
                                 {module.duration}
                               </span>
                               <span className="text-[10px] font-semibold text-sky-700 dark:text-cyan-400 bg-sky-50 dark:bg-slate-800 px-2 py-0.5 rounded border border-sky-100 dark:border-slate-700 font-mono">
-                                {(module.topics || []).length} {(module.topics || []).length === 1 ? 'Topic' : 'Topics'}
+                                {(module.lessons || []).length} {(module.lessons || []).length === 1 ? 'Lesson' : 'Lessons'}
                               </span>
                             </div>
                           </div>
@@ -1579,7 +1410,7 @@ export const AdminCourseDetails: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Module Expanded Details (Nested Accordion Transition wrapper) */}
+                      {/* Module Expanded Details (Direct Flat Lessons List) */}
                       <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
                         isExpanded ? 'max-h-[8000px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'
                       }`}>
@@ -1593,223 +1424,107 @@ export const AdminCourseDetails: React.FC = () => {
                             </p>
                           </div>
 
-                          {/* Topics List */}
+                          {/* Direct Lessons List */}
                           <div className="space-y-3">
                             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-1.5">
                               <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
-                                Topics & Lessons
+                                Lessons & Complete Notes
                               </span>
                               {!isStudentPreviewMode && (
                                 <button
-                                  onClick={() => openAddTopicModal(module.id)}
+                                  onClick={() => openAddLessonModal(module.id)}
                                   className="inline-flex items-center gap-1 text-[10px] font-bold text-sky-700 dark:text-cyan-400 hover:text-sky-800 bg-sky-50 dark:bg-slate-800 hover:bg-sky-100/80 dark:hover:bg-slate-700 border border-sky-100 dark:border-slate-700 py-1 px-2.5 rounded-lg transition-all cursor-pointer"
                                 >
                                   <Plus className="w-3 h-3" />
-                                  <span>Add Topic</span>
+                                  <span>Add Lesson</span>
                                 </button>
                               )}
                             </div>
 
-                            {(module.topics || []).length === 0 ? (
-                              <p className="text-xs text-slate-400 dark:text-slate-500 italic py-2">No topics added to this module yet.</p>
+                            {(!module.lessons || module.lessons.length === 0) ? (
+                              <p className="text-xs text-slate-400 dark:text-slate-500 italic py-2">No lessons added to this module yet.</p>
                             ) : (
-                              <div className="space-y-3">
-                                {(module.topics || []).map((topic, topicIdx) => {
-                                  const isTopicExpanded = !!expandedTopicIds[topic.id];
+                              <div className="space-y-2">
+                                {(module.lessons || []).map((lesson, lessonIdx) => {
+                                  const displayTitle = getPresentationLessonTitle(
+                                    lesson.title,
+                                    index + 1,
+                                    (module.lessons || []).length
+                                  );
                                   return (
                                     <div
-                                      key={topic.id}
-                                      onDragOver={handleTopicDragOver}
-                                      onDrop={(e) => handleTopicDrop(e, module.id, topicIdx)}
-                                      className={`rounded-2xl border transition-all duration-300 ${
-                                        isTopicExpanded
-                                          ? 'border-sky-200 dark:border-cyan-800 bg-sky-50/10 dark:bg-slate-950/60 shadow-2xs'
-                                          : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                                      }`}
+                                      key={lesson.id}
+                                      onDragOver={handleLessonDragOver}
+                                      onDrop={(e) => handleLessonDrop(e, module.id, lessonIdx)}
+                                      onClick={() => openEditUnitDrawer(module.id, lesson)}
+                                      className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 hover:border-sky-300 dark:hover:border-cyan-800 transition-all flex items-start justify-between gap-4 shadow-3xs cursor-pointer hover:bg-sky-50/20 dark:hover:bg-slate-800/40"
                                     >
-                                      {/* Topic Header Area */}
-                                      <div className="p-4 flex items-center justify-between gap-4 select-none">
-                                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                          {/* Topic Drag Handle */}
-                                          {!isStudentPreviewMode && (
-                                            <div
-                                              draggable
-                                              onDragStart={(e) => handleTopicDragStart(e, module.id, topicIdx)}
-                                              onDragEnd={handleTopicDragEnd}
-                                              className="p-1 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 cursor-grab active:cursor-grabbing transition-colors shrink-0"
-                                              title="Drag to reorder topic"
-                                            >
-                                              <GripVertical className="w-3.5 h-3.5" />
-                                            </div>
-                                          )}
-
-                                          {/* Topic Expand Trigger */}
+                                      <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                                        {/* Lesson Drag Handle */}
+                                        {!isStudentPreviewMode && (
                                           <div
-                                            onClick={() => toggleTopicExpand(topic.id)}
-                                            className="min-w-0 flex-1 cursor-pointer flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5"
+                                            draggable
+                                            onDragStart={(e) => handleLessonDragStart(e, module.id, lessonIdx)}
+                                            onDragEnd={handleLessonDragEnd}
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="p-1 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 cursor-grab active:cursor-grabbing transition-colors shrink-0 mt-0.5"
+                                            title="Drag to reorder lesson"
                                           >
-                                            <h4 className="font-heading font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate">
-                                              {topic.title}
-                                            </h4>
-                                            <div className="flex items-center gap-2 shrink-0">
-                                              <span className="text-[9px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 font-mono">
-                                                {topic.estimatedDuration || '45 mins'}
-                                              </span>
-                                              <span className="text-[9px] font-bold text-sky-700 dark:text-cyan-400 bg-sky-100/50 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-sky-100 dark:border-slate-700 font-mono shrink-0">
-                                                {(topic.learningUnits || []).length} {(!topic.learningUnits || topic.learningUnits.length === 1) ? 'Unit' : 'Units'}
-                                              </span>
-                                            </div>
+                                            <GripVertical className="w-3.5 h-3.5" />
                                           </div>
-                                        </div>
+                                        )}
 
-                                        {/* Actions */}
-                                        <div className="flex items-center gap-1 shrink-0">
-                                          {!isStudentPreviewMode && (
-                                            <>
-                                              <button
-                                                onClick={() => openEditTopicModal(module.id, topic)}
-                                                className="p-1.5 text-slate-400 hover:text-sky-600 dark:hover:text-cyan-400 rounded-lg hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                                                title="Edit Topic"
-                                              >
-                                                <Edit className="w-3.5 h-3.5" />
-                                              </button>
-                                              <button
-                                                onClick={() => handleDeleteTopic(module.id, topic.id, topic.title)}
-                                                className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                                                title="Delete Topic"
-                                              >
-                                                <Trash2 className="w-3.5 h-3.5" />
-                                              </button>
-                                            </>
-                                          )}
-                                          <button
-                                            onClick={() => toggleTopicExpand(topic.id)}
-                                            className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 rounded-lg hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                                          >
-                                            {isTopicExpanded ? (
-                                              <ChevronUp className="w-3.5 h-3.5" />
+                                        {/* Lesson Details */}
+                                        <div className="space-y-1 min-w-0 flex-1">
+                                          <div className="flex items-center gap-2 flex-wrap">
+                                            {renderUnitIcon(lesson.type)}
+                                            <h5 className="font-heading font-bold text-xs text-slate-900 dark:text-white truncate">
+                                              {displayTitle}
+                                            </h5>
+                                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full font-mono shrink-0 ${getUnitTypeBadgeStyles(lesson.type)}`}>
+                                              {lesson.type || 'Reading'}
+                                            </span>
+                                            {lesson.isDraft ? (
+                                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shrink-0">
+                                                Draft
+                                              </span>
                                             ) : (
-                                              <ChevronDown className="w-3.5 h-3.5" />
+                                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shrink-0">
+                                                Published
+                                              </span>
                                             )}
+                                            <span className="text-[9px] font-semibold text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 border dark:border-slate-700 px-1.5 py-0.5 rounded shrink-0 flex items-center gap-1 font-mono">
+                                              <Clock className="w-2.5 h-2.5 text-sky-500" />
+                                              {lesson.duration || '15 mins'}
+                                            </span>
+                                          </div>
+                                          {lesson.description && (
+                                            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+                                              {lesson.description}
+                                            </p>
+                                          )}
+                                        </div>
+                                      </div>
+
+                                      {/* Lesson Actions */}
+                                      {!isStudentPreviewMode && (
+                                        <div className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                                          <button
+                                            onClick={() => openEditUnitDrawer(module.id, lesson)}
+                                            className="p-1.5 text-slate-400 hover:text-sky-600 dark:hover:text-cyan-400 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                                            title="Edit Lesson Content"
+                                          >
+                                            <Edit className="w-3.5 h-3.5" />
+                                          </button>
+                                          <button
+                                            onClick={() => handleDeleteLesson(module.id, lesson.id, displayTitle)}
+                                            className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded transition-colors cursor-pointer"
+                                            title="Delete Lesson"
+                                          >
+                                            <Trash2 className="w-3.5 h-3.5" />
                                           </button>
                                         </div>
-                                      </div>
-
-                                      {/* Topic Expanded Details (Host to Learning Units) */}
-                                      <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
-                                        isTopicExpanded ? 'max-h-[3000px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'
-                                      }`}>
-                                        <div className="p-4 border-t border-sky-100 dark:border-slate-800 bg-white/70 dark:bg-slate-900 space-y-4 rounded-b-2xl">
-                                          {/* Description */}
-                                          <div className="space-y-1">
-                                            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
-                                              Topic Description
-                                            </span>
-                                            <p className="text-xs text-slate-600 dark:text-slate-300 font-medium leading-relaxed">
-                                              {topic.description || 'No description provided.'}
-                                            </p>
-                                          </div>
-
-                                          {/* Learning Units Section */}
-                                          <div className="space-y-3">
-                                            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-1">
-                                              <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
-                                                Learning Units
-                                              </span>
-                                              {!isStudentPreviewMode && (
-                                                <button
-                                                  onClick={() => openAddUnitModal(module.id, topic.id)}
-                                                  className="inline-flex items-center gap-1 text-[9px] font-bold text-sky-700 dark:text-cyan-400 hover:text-sky-800 bg-sky-50 dark:bg-slate-800 border border-sky-100 dark:border-slate-700 py-1 px-2.5 rounded-lg transition-colors cursor-pointer"
-                                                >
-                                                  <Plus className="w-2.5 h-2.5" />
-                                                  <span>Add Learning Unit</span>
-                                                </button>
-                                              )}
-                                            </div>
-
-                                            {(!topic.learningUnits || topic.learningUnits.length === 0) ? (
-                                              <p className="text-xs text-slate-400 dark:text-slate-500 italic py-1">No learning units defined for this topic.</p>
-                                            ) : (
-                                              <div className="space-y-2">
-                                                {(topic.learningUnits || []).map((unit, unitIdx) => (
-                                                  <div
-                                                    key={unit.id}
-                                                    onDragOver={handleUnitDragOver}
-                                                    onDrop={(e) => handleUnitDrop(e, module.id, topic.id, unitIdx)}
-                                                    onClick={() => openEditUnitDrawer(module.id, topic.id, unit)}
-                                                    className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 hover:border-sky-200 dark:hover:border-cyan-800 transition-all flex items-start justify-between gap-4 shadow-3xs cursor-pointer hover:bg-sky-50/20 dark:hover:bg-slate-800/40"
-                                                  >
-                                                    <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                                                      {/* Unit Drag Handle */}
-                                                      {!isStudentPreviewMode && (
-                                                        <div
-                                                          draggable
-                                                          onDragStart={(e) => handleUnitDragStart(e, module.id, topic.id, unitIdx)}
-                                                          onDragEnd={handleUnitDragEnd}
-                                                          onClick={(e) => e.stopPropagation()}
-                                                          className="p-1 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 cursor-grab active:cursor-grabbing transition-colors shrink-0 mt-0.5"
-                                                          title="Drag to reorder unit"
-                                                        >
-                                                          <GripVertical className="w-3.5 h-3.5" />
-                                                        </div>
-                                                      )}
-
-                                                      {/* Unit Details */}
-                                                      <div className="space-y-1 min-w-0 flex-1">
-                                                        <div className="flex items-center gap-2 flex-wrap">
-                                                          {renderUnitIcon(unit.type)}
-                                                          <h5 className="font-heading font-bold text-xs text-slate-900 dark:text-white truncate">
-                                                            {unit.title}
-                                                          </h5>
-                                                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full font-mono shrink-0 ${getUnitTypeBadgeStyles(unit.type)}`}>
-                                                            {unit.type}
-                                                          </span>
-                                                          {unit.isDraft ? (
-                                                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shrink-0">
-                                                              Draft
-                                                            </span>
-                                                          ) : (
-                                                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shrink-0">
-                                                              Published
-                                                            </span>
-                                                          )}
-                                                          <span className="text-[9px] font-semibold text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 border dark:border-slate-700 px-1.5 py-0.5 rounded shrink-0 flex items-center gap-1 font-mono">
-                                                            <Clock className="w-2.5 h-2.5 text-sky-500" />
-                                                            {unit.duration}
-                                                          </span>
-                                                        </div>
-                                                        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
-                                                          {unit.description || 'No description.'}
-                                                        </p>
-                                                      </div>
-                                                    </div>
-
-                                                    {/* Unit Actions */}
-                                                    {!isStudentPreviewMode && (
-                                                      <div className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-                                                        <button
-                                                          onClick={() => openEditUnitDrawer(module.id, topic.id, unit)}
-                                                          className="p-1.5 text-slate-400 hover:text-sky-600 dark:hover:text-cyan-400 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                                                          title="Edit Unit Drawer"
-                                                        >
-                                                          <Edit className="w-3.5 h-3.5" />
-                                                        </button>
-                                                        <button
-                                                          onClick={() => handleDeleteLearningUnit(module.id, topic.id, unit.id, unit.title)}
-                                                          className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded transition-colors cursor-pointer"
-                                                          title="Delete Unit"
-                                                        >
-                                                          <Trash2 className="w-3.5 h-3.5" />
-                                                        </button>
-                                                      </div>
-                                                    )}
-                                                  </div>
-                                                ))}
-                                              </div>
-                                            )}
-                                          </div>
-                                        </div>
-                                      </div>
+                                      )}
                                     </div>
                                   );
                                 })}
@@ -2077,176 +1792,18 @@ export const AdminCourseDetails: React.FC = () => {
         </div>
       )}
 
-      {/* Add Topic Modal */}
-      {addTopicModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-6 border border-sky-200 dark:border-slate-800 animate-in zoom-in-95 text-slate-900 dark:text-white font-['Sora']">
-            <div className="flex items-center justify-between border-b border-sky-100 dark:border-slate-800 pb-3">
-              <h3 className="font-heading font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-                <Layers className="w-5 h-5 text-sky-600 dark:text-cyan-400" /> Add Topic to Module
-              </h3>
-              <button
-                onClick={() => {
-                  setAddTopicModalOpen(false);
-                  setActiveModuleIdForTopic(null);
-                }}
-                className="text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddTopic} className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Topic Title</label>
-                <input
-                  type="text"
-                  required
-                  value={newTopicTitle}
-                  onChange={(e) => setNewTopicTitle(e.target.value)}
-                  placeholder="e.g. 1.3 Navigating Files & Directories"
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-all font-medium"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Description</label>
-                <textarea
-                  rows={3}
-                  value={newTopicDescription}
-                  onChange={(e) => setNewTopicDescription(e.target.value)}
-                  placeholder="Summarize key learning concepts, instructions, or CLI lab goals..."
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-all font-medium resize-none"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Estimated Duration</label>
-                <input
-                  type="text"
-                  required
-                  value={newTopicEstimatedDuration}
-                  onChange={(e) => setNewTopicEstimatedDuration(e.target.value)}
-                  placeholder="e.g. 45 mins, 1 hour"
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-all font-medium"
-                />
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-3 border-t border-sky-100 dark:border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAddTopicModalOpen(false);
-                    setActiveModuleIdForTopic(null);
-                  }}
-                  className="py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn-blue-primary text-xs py-2.5 px-5 font-bold flex items-center gap-1.5 cursor-pointer"
-                >
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Add Topic</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Topic Modal */}
-      {editTopicModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-6 border border-sky-200 dark:border-slate-800 animate-in zoom-in-95 text-slate-900 dark:text-white font-['Sora']">
-            <div className="flex items-center justify-between border-b border-sky-100 dark:border-slate-800 pb-3">
-              <h3 className="font-heading font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-                <Edit className="w-5 h-5 text-sky-600 dark:text-cyan-400" /> Edit Topic Details
-              </h3>
-              <button
-                onClick={() => {
-                  setEditTopicModalOpen(false);
-                  setEditingTopic(null);
-                  setActiveModuleIdForTopic(null);
-                }}
-                className="text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleEditTopic} className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Topic Title</label>
-                <input
-                  type="text"
-                  required
-                  value={editTopicTitle}
-                  onChange={(e) => setEditTopicTitle(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-all font-medium"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Description</label>
-                <textarea
-                  rows={3}
-                  value={editTopicDescription}
-                  onChange={(e) => setEditTopicDescription(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-all font-medium resize-none"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Estimated Duration</label>
-                <input
-                  type="text"
-                  required
-                  value={editTopicEstimatedDuration}
-                  onChange={(e) => setEditTopicEstimatedDuration(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-all font-medium"
-                />
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-3 border-t border-sky-100 dark:border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditTopicModalOpen(false);
-                    setEditingTopic(null);
-                    setActiveModuleIdForTopic(null);
-                  }}
-                  className="py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn-blue-primary text-xs py-2.5 px-5 font-bold flex items-center gap-1.5 cursor-pointer"
-                >
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Save Changes</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Add Learning Unit Modal */}
+      {/* Add Lesson Modal */}
       {addUnitModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-6 border border-sky-200 dark:border-slate-800 animate-in zoom-in-95 text-slate-900 dark:text-white font-['Sora']">
             <div className="flex items-center justify-between border-b border-sky-100 dark:border-slate-800 pb-3">
               <h3 className="font-heading font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-                <Layers className="w-5 h-5 text-sky-600 dark:text-cyan-400" /> Create Learning Unit
+                <Layers className="w-5 h-5 text-sky-600 dark:text-cyan-400" /> Add Lesson to Module
               </h3>
               <button
                 onClick={() => {
                   setAddUnitModalOpen(false);
                   setActiveModuleIdForUnit(null);
-                  setActiveTopicIdForUnit(null);
                 }}
                 className="text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 cursor-pointer"
               >
@@ -2254,15 +1811,15 @@ export const AdminCourseDetails: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleAddLearningUnit} className="space-y-4">
+            <form onSubmit={handleAddLesson} className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Unit Title</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Lesson Title</label>
                 <input
                   type="text"
                   required
                   value={newUnitTitle}
                   onChange={(e) => setNewUnitTitle(e.target.value)}
-                  placeholder="e.g. 1.1 Unix Shell History Overview"
+                  placeholder="e.g. Linux File Permissions & Ownership"
                   className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-all font-medium"
                 />
               </div>
@@ -2273,7 +1830,7 @@ export const AdminCourseDetails: React.FC = () => {
                   rows={3}
                   value={newUnitDescription}
                   onChange={(e) => setNewUnitDescription(e.target.value)}
-                  placeholder="Summarize the specific goal, content overview, or grading rubric of this unit..."
+                  placeholder="Summarize key learning concepts, instructions, or goals..."
                   className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-all font-medium resize-none"
                 />
               </div>
@@ -2292,14 +1849,14 @@ export const AdminCourseDetails: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Unit Type</label>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Lesson Type</label>
                   <select
                     value={newUnitType}
                     onChange={(e) => setNewUnitType(e.target.value as LearningUnitType)}
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-sky-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-all font-medium cursor-pointer"
                   >
-                    <option value="Video">Video</option>
                     <option value="Reading">Reading</option>
+                    <option value="Video">Video</option>
                     <option value="Quiz">Quiz</option>
                     <option value="Assignment">Assignment</option>
                   </select>
@@ -2312,7 +1869,6 @@ export const AdminCourseDetails: React.FC = () => {
                   onClick={() => {
                     setAddUnitModalOpen(false);
                     setActiveModuleIdForUnit(null);
-                    setActiveTopicIdForUnit(null);
                   }}
                   className="py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
                 >
@@ -2323,14 +1879,13 @@ export const AdminCourseDetails: React.FC = () => {
                   className="btn-blue-primary text-xs py-2.5 px-5 font-bold flex items-center gap-1.5 cursor-pointer"
                 >
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>Create & Configure</span>
+                  <span>Create Lesson</span>
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
-
 
       {/* Certificate Modal */}
       {certificateModalOpen && (
@@ -2411,7 +1966,7 @@ export const AdminCourseDetails: React.FC = () => {
                 onClick={() => setCertificateModalOpen(false)}
                 className="py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
               >
-                Close
+                Cancel
               </button>
               <button
                 type="button"
@@ -2430,25 +1985,17 @@ export const AdminCourseDetails: React.FC = () => {
         isOpen={drawerOpen}
         unit={activeUnit}
         moduleTitle={modules.find((m) => m.id === drawerModuleId)?.title}
-        topicTitle={modules.find((m) => m.id === drawerModuleId)?.topics?.find((t) => t.id === drawerTopicId)?.title}
+        topicTitle={modules.find((m) => m.id === drawerModuleId)?.title}
         onClose={() => {
           setDrawerOpen(false);
           setActiveUnit(null);
         }}
         onSave={async (updatedUnit, isDraft) => {
-          if (!drawerModuleId || !drawerTopicId || !course?.id) return;
+          if (!drawerModuleId || !course?.id) return;
           const finalUnit = {
             ...updatedUnit,
             isDraft: isDraft ?? false,
           };
-          console.log('[ADMIN-DETAILS-TRACE] 2. AdminCourseDetails onSave called:', {
-            unitId: finalUnit.id,
-            title: finalUnit.title,
-            moduleId: drawerModuleId,
-            topicId: drawerTopicId,
-            revision: finalUnit.revision,
-            isDraft,
-          });
 
           // 1. Authoritative direct save to canonical database subcollection
           const savedResult = await courseService.saveLessonContent(String(course.id), drawerModuleId, {
@@ -2470,16 +2017,15 @@ export const AdminCourseDetails: React.FC = () => {
           // 2. Synchronize local modules state
           const updated = modules.map((m) => {
             if (m.id === drawerModuleId) {
-              const nextTopics = (m.topics || []).map((t) => {
-                if (t.id === drawerTopicId) {
-                  return {
-                    ...t,
-                    learningUnits: (t.learningUnits || []).map((u) => (u.id === confirmedUnit.id ? confirmedUnit : u)),
-                  };
-                }
-                return t;
-              });
-              return { ...m, topics: nextTopics };
+              const nextLessons = (m.lessons || []).map((u) => (u.id === confirmedUnit.id ? confirmedUnit : u));
+              const nextTopics = [{
+                id: `${m.id}-t1`,
+                title: m.title,
+                description: m.description,
+                estimatedDuration: m.duration,
+                learningUnits: nextLessons,
+              }];
+              return { ...m, lessons: nextLessons, topics: nextTopics };
             }
             return m;
           });
@@ -2488,7 +2034,7 @@ export const AdminCourseDetails: React.FC = () => {
           await updateCourse(course.id, { modules: updated });
           setDrawerOpen(false);
           setActiveUnit(null);
-          toast.success(`Unit "${confirmedUnit.title}" ${isDraft ? 'saved as draft' : 'published'} successfully!`);
+          toast.success(`Lesson "${confirmedUnit.title}" ${isDraft ? 'saved as draft' : 'published'} successfully!`);
         }}
         onDelete={handleDeleteUnitDrawer}
       />

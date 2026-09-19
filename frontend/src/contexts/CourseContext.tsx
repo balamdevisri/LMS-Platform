@@ -1,5 +1,14 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { courseService } from '../services/courseService';
+import {
+  normalizeCourseModulesForDisplay,
+  getPresentationLessonTitle,
+  normalizeLearningUnitItem as rawNormalizeLearningUnitItem,
+  normalizeTopicItem as rawNormalizeTopicItem,
+  normalizeModuleItem as rawNormalizeModuleItem,
+} from '../services/courseNormalizer';
+
+export { normalizeCourseModulesForDisplay, getPresentationLessonTitle };
 
 /**
  * Legacy compatibility dummy - always resolves to empty array.
@@ -106,9 +115,15 @@ export interface TopicItem {
 
 export interface ModuleItem {
   id: string;
+  moduleId?: string;
   title: string;
   description: string;
   duration: string;
+  estimatedDuration?: string;
+  order?: number;
+  orderIndex?: number;
+  revision?: number;
+  lessons: LearningUnitItem[];
   topics: TopicItem[];
   topicImageUrl?: string | null;
   topicImagePublicId?: string | null;
@@ -189,124 +204,16 @@ export const DEFAULT_COURSE_PRICES: Record<string, number> = {
 };
 
 export const normalizeLearningUnitItem = (u: any, fallbackId = 'unit-1'): LearningUnitItem => {
-  if (!u) {
-    return {
-      id: fallbackId,
-      title: 'Learning Unit',
-      description: '',
-      duration: '15 mins',
-      type: 'Reading',
-      readingContent: '',
-      conceptTheory: '',
-      quizQuestions: [],
-      resourceLinks: [],
-    };
-  }
-
-  const rawType = String(u.type || 'Reading');
-  let type: LearningUnitType = 'Reading';
-  const lowerType = rawType.toLowerCase();
-  if (lowerType.includes('video')) type = 'Video';
-  else if (lowerType.includes('quiz')) type = 'Quiz';
-  else if (lowerType.includes('assign')) type = 'Assignment';
-  else type = 'Reading';
-
-  const content = u.readingContent || u.conceptTheory || u.content || u.notes || '';
-
-  return {
-    ...u,
-    id: String(u.id || fallbackId),
-    title: u.title || 'Learning Unit',
-    description: u.description || '',
-    duration: u.duration || '15 mins',
-    type,
-    readingContent: content,
-    conceptTheory: u.conceptTheory || content,
-    videoUrl: u.videoUrl || u.video?.videoUrl || '',
-    quizQuestions: Array.isArray(u.quizQuestions) ? u.quizQuestions : (u.quiz?.questions && Array.isArray(u.quiz.questions) ? u.quiz.questions : []),
-    quizDifficulty: u.quizDifficulty || 'Medium',
-    quizPassingScore: typeof u.quizPassingScore === 'number' ? u.quizPassingScore : 70,
-    quizTimer: typeof u.quizTimer === 'number' ? u.quizTimer : 10,
-    assignmentInstructions: u.assignmentInstructions || (u.assignment?.instructions || ''),
-    resourceLinks: Array.isArray(u.resourceLinks) ? u.resourceLinks : (Array.isArray(u.resources) ? u.resources : []),
-    isDraft: Boolean(u.isDraft),
-    revision: typeof u.revision === 'number' ? u.revision : 1,
-  };
+  return rawNormalizeLearningUnitItem(u, fallbackId);
 };
 
 export const normalizeTopicItem = (t: any, fallbackId = 'topic-1'): TopicItem => {
-  if (!t) {
-    return {
-      id: fallbackId,
-      title: 'Topic',
-      description: '',
-      estimatedDuration: '45 mins',
-      learningUnits: [],
-    };
-  }
-
-  const rawUnits = Array.isArray(t.learningUnits)
-    ? t.learningUnits
-    : (Array.isArray(t.units)
-    ? t.units
-    : (Array.isArray(t.lessons) ? t.lessons : []));
-
-  const learningUnits = rawUnits.filter(Boolean).map((u: any, uIdx: number) =>
-    normalizeLearningUnitItem(u, `${fallbackId}-u${uIdx + 1}`)
-  );
-
-  return {
-    ...t,
-    id: String(t.id || fallbackId),
-    title: t.title || 'Topic',
-    description: t.description || '',
-    estimatedDuration: t.estimatedDuration || t.duration || '45 mins',
-    learningUnits,
-  };
+  return rawNormalizeTopicItem(t, fallbackId);
 };
 
 export const normalizeModuleItem = (m: any, fallbackId = 'mod-1'): ModuleItem => {
-  if (!m) {
-    return {
-      id: fallbackId,
-      title: 'Module',
-      description: '',
-      duration: '4 hours',
-      topics: [],
-    };
-  }
-
-  const modId = String(m.id || fallbackId);
-  let rawTopics = Array.isArray(m.topics) ? m.topics.filter(Boolean) : [];
-  const rawLessons = Array.isArray(m.lessons) ? m.lessons.filter(Boolean) : [];
-
-  // If no topics exist but direct lessons exist, wrap lessons into a structured topic
-  if (rawTopics.length === 0 && rawLessons.length > 0) {
-    rawTopics = [
-      {
-        id: `${modId}-topic-1`,
-        title: `${m.title || 'Module'} Units`,
-        description: m.description || '',
-        estimatedDuration: m.duration || '1 Hour',
-        learningUnits: rawLessons.map((l: any, lIdx: number) =>
-          normalizeLearningUnitItem(l, `${modId}-unit-${lIdx + 1}`)
-        ),
-      },
-    ];
-  }
-
-  const topics = rawTopics.map((t: any, tIdx: number) =>
-    normalizeTopicItem(t, `${modId}-t${tIdx + 1}`)
-  );
-
-  return {
-    ...m,
-    id: modId,
-    title: m.title || 'Module',
-    description: m.description || '',
-    duration: m.duration || '4 hours',
-    topics,
-  };
+  const normalized = normalizeCourseModulesForDisplay([m || { id: fallbackId }]);
+  return normalized[0] || rawNormalizeModuleItem(m, fallbackId);
 };
 
 export const normalizeContextCourse = (c: any): CourseItem => {
@@ -334,9 +241,7 @@ export const normalizeContextCourse = (c: any): CourseItem => {
     : (defaultPrice > 0 ? defaultPrice : (rawPrice !== undefined ? rawPrice : 0));
 
   const rawModules = Array.isArray(c.modules) ? c.modules : [];
-  const normalizedModules = rawModules.filter(Boolean).map((m: any, idx: number) =>
-    normalizeModuleItem(m, `m${idx + 1}`)
-  );
+  const normalizedModules = normalizeCourseModulesForDisplay(rawModules);
 
   return {
     id,
@@ -408,6 +313,40 @@ export const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
 
 const CourseContext = createContext<CourseContextType | undefined>(undefined);
 
+const safeSetLocalStorageCourses = (coursesData: CourseItem[]) => {
+  try {
+    localStorage.setItem('shaivika_courses_data', JSON.stringify(coursesData));
+  } catch (e) {
+    try {
+      // Fallback: If full course objects exceed 5MB quota, store lightweight summary
+      const summary = coursesData.map((c) => ({
+        ...c,
+        modules: (c.modules || []).map((m) => ({
+          id: m.id,
+          moduleId: m.moduleId,
+          title: m.title,
+          duration: m.duration,
+          order: m.order,
+          orderIndex: m.orderIndex,
+          lessons: (m.lessons || []).map((l: any) => ({
+            id: l.id,
+            lessonId: l.lessonId,
+            moduleId: l.moduleId,
+            title: l.title,
+            duration: l.duration,
+            type: l.type,
+            order: l.order,
+            orderIndex: l.orderIndex,
+          })),
+        })),
+      }));
+      localStorage.setItem('shaivika_courses_data', JSON.stringify(summary));
+    } catch {
+      console.warn('[CourseContext] localStorage quota exceeded, courses retained in-memory only.');
+    }
+  }
+};
+
 export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [courses, setCourses] = useState<CourseItem[]>(() => {
     try {
@@ -422,6 +361,9 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return [];
   });
 
+  const coursesRef = React.useRef<CourseItem[]>(courses);
+  coursesRef.current = courses;
+
   const refreshCourses = useCallback(async (forceRefresh = false) => {
     try {
       const loadedResult = await courseService.getCourses({ limit: 100 }, forceRefresh);
@@ -429,7 +371,7 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (loaded && loaded.length > 0) {
         const merged = sanitizeCourseList(loaded as any);
         setCourses(merged);
-        localStorage.setItem('shaivika_courses_data', JSON.stringify(merged));
+        safeSetLocalStorageCourses(merged);
       }
     } catch (err) {
       console.warn('[CourseContext] Server courses fetch notice in refreshCourses:', err);
@@ -466,7 +408,7 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Update LocalStorage whenever courses state changes
   useEffect(() => {
     if (courses && courses.length > 0) {
-      localStorage.setItem('shaivika_courses_data', JSON.stringify(courses));
+      safeSetLocalStorageCourses(courses);
     }
   }, [courses]);
 
@@ -483,10 +425,10 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  const getCourseById = (idOrSlug: number | string): CourseItem | undefined => {
+  const getCourseById = useCallback((idOrSlug: number | string): CourseItem | undefined => {
     const target = String(idOrSlug).toLowerCase().trim();
     if (!target) return undefined;
-    return courses.find((c) => {
+    return coursesRef.current.find((c) => {
       const cId = String(c.id).toLowerCase().trim();
       const cSlug = String((c as any).slug || '').toLowerCase().trim();
       return (
@@ -498,7 +440,7 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         cSlug === target
       );
     });
-  };
+  }, []);
 
   const toggleCourseStatus = async (id: number | string) => {
     const target = getCourseById(id);
@@ -557,7 +499,7 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           }
           return c;
         });
-        localStorage.setItem('shaivika_courses_data', JSON.stringify(next));
+        safeSetLocalStorageCourses(next);
         return next;
       });
     } catch (e) {
@@ -577,9 +519,7 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     try {
       const apiMods = await courseService.getCourseModules(targetId, forceRefresh);
       if (apiMods && apiMods.length > 0) {
-        const normalizedMods = apiMods.filter(Boolean).map((m: any, idx: number) =>
-          normalizeModuleItem(m, `m${idx + 1}`)
-        );
+        const normalizedMods = normalizeCourseModulesForDisplay(apiMods);
         setCourses((prev) =>
           prev.map((c) => {
             const cId = String(c.id).toLowerCase().trim();

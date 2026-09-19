@@ -30,12 +30,12 @@ export class CourseService {
     } as CreateCourseDTO, userId);
   }
 
-  async getCourseById(id: string): Promise<ICourse | null> {
-    return this.repository.findById(id);
+  async getCourseById(id: string, minExpectedVersion?: number): Promise<ICourse | null> {
+    return this.repository.findById(id, minExpectedVersion);
   }
 
-  async getCourseBySlug(slug: string): Promise<ICourse | null> {
-    return this.repository.findBySlug(slug);
+  async getCourseBySlug(slug: string, minExpectedVersion?: number): Promise<ICourse | null> {
+    return this.repository.findBySlug(slug, minExpectedVersion);
   }
 
   async getCourses(options: CourseFilterOptions = {}): Promise<CoursePaginationResult> {
@@ -160,11 +160,11 @@ export class CourseService {
     });
   }
 
-  async getCourseModules(courseIdOrSlug: string) {
+  async getCourseModules(courseIdOrSlug: string, minExpectedRevision?: number) {
     let resolvedId = courseIdOrSlug;
     let courseDoc: ICourse | null = null;
     try {
-      courseDoc = (await this.getCourseById(courseIdOrSlug)) || (await this.getCourseBySlug(courseIdOrSlug));
+      courseDoc = (await this.getCourseById(courseIdOrSlug, minExpectedRevision)) || (await this.getCourseBySlug(courseIdOrSlug, minExpectedRevision));
       if (courseDoc && courseDoc.id) {
         resolvedId = String(courseDoc.id);
       }
@@ -172,7 +172,7 @@ export class CourseService {
 
     const { courseContentService } = await import('../../services/course/courseContent.service');
     // 1. Authoritative: Fetch from canonical subcollections courses/{courseId}/modules and nested lessons
-    const subModules = await courseContentService.getCourseModules(resolvedId);
+    const subModules = await courseContentService.getCourseModules(resolvedId, minExpectedRevision);
     if (subModules && subModules.length > 0) {
       console.log(`[BACKEND-GET-MODULES-TRACE] Returning ${subModules.length} canonical modules from subcollections for "${resolvedId}"`);
       return subModules;
@@ -187,7 +187,20 @@ export class CourseService {
     return [];
   }
 
-  async getModuleLessons(courseIdOrSlug: string, moduleId: string, options?: any) {
+  async getModuleLessons(courseIdOrSlug: string, moduleId: string, options?: any, minExpectedRevision?: number) {
+    let resolvedId = courseIdOrSlug;
+    try {
+      const course = (await this.getCourseById(courseIdOrSlug, minExpectedRevision)) || (await this.getCourseBySlug(courseIdOrSlug, minExpectedRevision));
+      if (course && course.id) {
+        resolvedId = String(course.id);
+      }
+    } catch (e) {}
+
+    const { courseContentService } = await import('../../services/course/courseContent.service');
+    return courseContentService.getModuleLessons(resolvedId, moduleId, options, minExpectedRevision);
+  }
+
+  async saveModule(courseIdOrSlug: string, moduleDoc: any, userId?: string) {
     let resolvedId = courseIdOrSlug;
     try {
       const course = (await this.getCourseById(courseIdOrSlug)) || (await this.getCourseBySlug(courseIdOrSlug));
@@ -197,7 +210,49 @@ export class CourseService {
     } catch (e) {}
 
     const { courseContentService } = await import('../../services/course/courseContent.service');
-    return courseContentService.getModuleLessons(resolvedId, moduleId, options);
+    return courseContentService.saveModule(resolvedId, {
+      ...moduleDoc,
+      updatedBy: userId || moduleDoc.updatedBy || 'admin',
+    });
+  }
+
+  async deleteModule(courseIdOrSlug: string, moduleId: string, userId?: string) {
+    let resolvedId = courseIdOrSlug;
+    try {
+      const course = (await this.getCourseById(courseIdOrSlug)) || (await this.getCourseBySlug(courseIdOrSlug));
+      if (course && course.id) {
+        resolvedId = String(course.id);
+      }
+    } catch (e) {}
+
+    const { courseContentService } = await import('../../services/course/courseContent.service');
+    return courseContentService.deleteModule(resolvedId, moduleId, userId);
+  }
+
+  async getCourseRevisions(courseIdOrSlug: string, limitCount = 50) {
+    let resolvedId = courseIdOrSlug;
+    try {
+      const course = (await this.getCourseById(courseIdOrSlug)) || (await this.getCourseBySlug(courseIdOrSlug));
+      if (course && course.id) {
+        resolvedId = String(course.id);
+      }
+    } catch (e) {}
+
+    const { courseContentService } = await import('../../services/course/courseContent.service');
+    return courseContentService.getCourseAuditLogs(resolvedId, limitCount);
+  }
+
+  async restoreCourseRevision(courseIdOrSlug: string, auditLogId: string, userId?: string) {
+    let resolvedId = courseIdOrSlug;
+    try {
+      const course = (await this.getCourseById(courseIdOrSlug)) || (await this.getCourseBySlug(courseIdOrSlug));
+      if (course && course.id) {
+        resolvedId = String(course.id);
+      }
+    } catch (e) {}
+
+    const { courseContentService } = await import('../../services/course/courseContent.service');
+    return courseContentService.restoreRevision(resolvedId, auditLogId, userId);
   }
 
   async bulkImportCourse(payload: any, adminId: string) {

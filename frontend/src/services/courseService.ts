@@ -1,5 +1,6 @@
 import type { ICourse, CreateCourseDTO, UpdateCourseDTO, CourseFilterOptions, CoursePaginationResult, CourseLevel, CourseStatus, IVideoProgress } from '../../../shared/types/course';
-import { normalizeCourseData, auditCourseData, normalizeModuleItem } from './courseNormalizer';
+import { normalizeCourseData, auditCourseData, normalizeModuleItem, normalizeCourseModulesForDisplay } from './courseNormalizer';
+import { serializeFirestorePayload } from '../utils/firestoreSerializer';
 export type { ICourse };
 import { API_BASE_URL } from '../config/api';
 
@@ -899,7 +900,7 @@ function normalizeCourseToICourse(c: any): ICourse {
     rating: typeof c.rating === 'number' ? c.rating : 5.0,
     ratingCount: typeof c.ratingCount === 'number' ? c.ratingCount : (typeof c.reviews === 'number' ? c.reviews : 1),
     syllabus: syllabusArray,
-    modules: (Array.isArray(c.modules) ? c.modules : []).filter(Boolean).map((m: any, idx: number) => normalizeModuleItem(m, `m${idx + 1}`)),
+    modules: normalizeCourseModulesForDisplay(Array.isArray(c.modules) ? c.modules : []),
     createdAt: c.createdAt || new Date().toISOString(),
     updatedAt: c.updatedAt || new Date().toISOString(),
   };
@@ -997,7 +998,7 @@ class CourseService {
   private xpClaimsKey = 'shaivika_user_xp_claims';
   private checkpointKey = 'shaivika_user_checkpoint';
   private getCoursesCache: Map<string, { data: CoursePaginationResult; expiry: number }> = new Map();
-  private courseDetailsCache: Map<string, { data: ICourse; expiry: number }> = new Map();
+  private courseDetailsCache: Map<string, { data: ICourse; expiry: number; version?: number }> = new Map();
 
   private mergeCourseModules(defModules?: any[], cachedModules?: any[]): any[] {
     if (!defModules || defModules.length === 0) return cachedModules || [];
@@ -1114,8 +1115,38 @@ class CourseService {
   }
 
   private saveStoredCourses(courses: ICourse[]): void {
-    localStorage.setItem('shaivika_courses_data', JSON.stringify(courses));
-    localStorage.setItem(this.localCacheKey, JSON.stringify(courses));
+    try {
+      localStorage.setItem('shaivika_courses_data', JSON.stringify(courses));
+      localStorage.setItem(this.localCacheKey, JSON.stringify(courses));
+    } catch (e) {
+      try {
+        const summary = courses.map((c) => ({
+          ...c,
+          modules: (c.modules || []).map((m) => ({
+            id: m.id,
+            moduleId: m.moduleId,
+            title: m.title,
+            duration: m.duration,
+            order: m.order,
+            orderIndex: m.orderIndex,
+            lessons: (m.lessons || []).map((l: any) => ({
+              id: l.id,
+              lessonId: l.lessonId,
+              moduleId: l.moduleId,
+              title: l.title,
+              duration: l.duration,
+              type: l.type,
+              order: l.order,
+              orderIndex: l.orderIndex,
+            })),
+          })),
+        }));
+        localStorage.setItem('shaivika_courses_data', JSON.stringify(summary));
+        localStorage.setItem(this.localCacheKey, JSON.stringify(summary));
+      } catch (err2) {
+        console.warn('[CourseService] localStorage quota exceeded, courses retained in-memory only:', err2);
+      }
+    }
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('shaivika_courses_updated', { detail: { courses } }));
     }
@@ -1317,11 +1348,15 @@ class CourseService {
     return result;
   }
 
-  async getCourseBySlugOrId(idOrSlug: string, forceRefresh = false): Promise<ICourse | null> {
+  async getCourseBySlugOrId(idOrSlug: string, forceRefresh = false, minExpectedVersion?: number): Promise<ICourse | null> {
     if (!idOrSlug) return null;
     const cached = this.courseDetailsCache.get(idOrSlug);
     if (!forceRefresh && cached && cached.expiry > Date.now()) {
-      return cached.data;
+      if (typeof minExpectedVersion === 'number' && typeof cached.version === 'number' && cached.version < minExpectedVersion) {
+        this.courseDetailsCache.delete(idOrSlug);
+      } else {
+        return cached.data;
+      }
     }
 
     // 1. Authoritative Backend REST API
@@ -1333,7 +1368,10 @@ class CourseService {
         const json = await res.json();
         if (json.success && json.data) {
           const normalized = this.normalizeCourseToICourse(json.data);
-          this.courseDetailsCache.set(idOrSlug, { data: normalized, expiry: Date.now() + 60000 });
+          const ver = normalized.version ?? normalized.revision;
+          this.courseDetailsCache.set(idOrSlug, { data: normalized, version: ver, expiry: Date.now() + 60000 });
+          if (normalized.id) this.courseDetailsCache.set(normalized.id, { data: normalized, version: ver, expiry: Date.now() + 60000 });
+          if (normalized.slug) this.courseDetailsCache.set(normalized.slug, { data: normalized, version: ver, expiry: Date.now() + 60000 });
           return normalized;
         }
       }
@@ -1349,7 +1387,10 @@ class CourseService {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const course = this.normalizeCourseToICourse({ id: docSnap.id, ...docSnap.data() });
-          this.courseDetailsCache.set(idOrSlug, { data: course, expiry: Date.now() + 60000 });
+          const ver = course.version ?? course.revision;
+          this.courseDetailsCache.set(idOrSlug, { data: course, version: ver, expiry: Date.now() + 60000 });
+          if (course.id) this.courseDetailsCache.set(course.id, { data: course, version: ver, expiry: Date.now() + 60000 });
+          if (course.slug) this.courseDetailsCache.set(course.slug, { data: course, version: ver, expiry: Date.now() + 60000 });
           return course;
         }
 
@@ -1358,7 +1399,10 @@ class CourseService {
         if (!querySnap.empty) {
           const snap = querySnap.docs[0];
           const course = this.normalizeCourseToICourse({ id: snap.id, ...snap.data() });
-          this.courseDetailsCache.set(idOrSlug, { data: course, expiry: Date.now() + 60000 });
+          const ver = course.version ?? course.revision;
+          this.courseDetailsCache.set(idOrSlug, { data: course, version: ver, expiry: Date.now() + 60000 });
+          if (course.id) this.courseDetailsCache.set(course.id, { data: course, version: ver, expiry: Date.now() + 60000 });
+          if (course.slug) this.courseDetailsCache.set(course.slug, { data: course, version: ver, expiry: Date.now() + 60000 });
           return course;
         }
       }
@@ -1380,7 +1424,7 @@ class CourseService {
       if (res.ok) {
         const json = await res.json();
         if (json.success && Array.isArray(json.data) && json.data.length > 0) {
-          return json.data.filter(Boolean).map((m: any, idx: number) => normalizeModuleItem(m, `m${idx + 1}`));
+          return normalizeCourseModulesForDisplay(json.data);
         }
       }
     } catch (err) {
@@ -1405,10 +1449,9 @@ class CourseService {
                 (mData as any).lessons = lessons;
               }
             } catch (e) {}
-            modulesList.push(normalizeModuleItem(mData, mDoc.id));
+            modulesList.push(mData);
           }
-          modulesList.sort((a: any, b: any) => (a.orderIndex ?? a.order ?? 0) - (b.orderIndex ?? b.order ?? 0));
-          return modulesList;
+          return normalizeCourseModulesForDisplay(modulesList);
         }
 
         const docRef = doc(db, 'courses', courseId);
@@ -1416,7 +1459,7 @@ class CourseService {
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (Array.isArray(data.modules) && data.modules.length > 0) {
-            return data.modules.filter(Boolean).map((m: any, idx: number) => normalizeModuleItem(m, `m${idx + 1}`));
+            return normalizeCourseModulesForDisplay(data.modules);
           }
         }
       }
@@ -1497,7 +1540,8 @@ class CourseService {
       };
 
       const docRef = doc(db, 'courses', id);
-      await setDoc(docRef, fallbackCreated);
+      const cleanCreated = serializeFirestorePayload(fallbackCreated);
+      await setDoc(docRef, cleanCreated);
       console.log(`[Firestore Direct] Course "${id}" persisted successfully to Firestore!`);
 
       const list = this.getStoredCourses();
@@ -1576,7 +1620,8 @@ class CourseService {
     try {
       const { db, doc, setDoc } = await getFS();
       if (db) {
-        await setDoc(doc(db, 'courses', targetCourseId), mergedCourse as any, { merge: true });
+        const cleanMerged = serializeFirestorePayload(mergedCourse);
+        await setDoc(doc(db, 'courses', targetCourseId), cleanMerged as any, { merge: true });
         firestoreSuccess = true;
         console.log(`[Firebase] Course "${targetCourseId}" successfully updated in Firestore (v${nextVersion})`);
       }
@@ -1630,7 +1675,11 @@ class CourseService {
       list.unshift(finalCourse);
     }
     this.saveStoredCourses(list);
-    this.courseDetailsCache.set(targetCourseId, { data: finalCourse, expiry: Date.now() + 300000 });
+    const finalVer = finalCourse.version ?? finalCourse.revision;
+    this.courseDetailsCache.set(targetCourseId, { data: finalCourse, version: finalVer, expiry: Date.now() + 60000 });
+    if (finalCourse.slug) {
+      this.courseDetailsCache.set(finalCourse.slug, { data: finalCourse, version: finalVer, expiry: Date.now() + 60000 });
+    }
     this.getCoursesCache.clear();
 
     if (typeof window !== 'undefined') {
@@ -2092,10 +2141,11 @@ class CourseService {
           lastSavedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
-        await setDoc(docRef, updatedPayload, { merge: true });
+        const cleanPayload = serializeFirestorePayload(updatedPayload);
+        await setDoc(docRef, cleanPayload, { merge: true });
         this.courseDetailsCache.delete(courseId);
         this.getCoursesCache.clear();
-        return updatedPayload;
+        return cleanPayload;
       }
     } catch (err) {
       console.error('[CourseService] Direct Firestore lesson save error:', err);
@@ -2187,6 +2237,82 @@ class CourseService {
     this.courseDetailsCache.delete(courseId);
     this.getCoursesCache.clear();
     return deleted;
+  }
+
+  async saveModule(courseId: string, moduleDoc: any): Promise<any> {
+    const token = localStorage.getItem('shaivika_auth_token') || localStorage.getItem('token');
+    try {
+      const res = await fetch(`${API_BASE_URL}/courses/${encodeURIComponent(courseId)}/modules`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(moduleDoc),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        this.courseDetailsCache.delete(courseId);
+        this.getCoursesCache.clear();
+        return json.data || moduleDoc;
+      }
+    } catch (e) {
+      console.warn('[CourseService] saveModule backend notice:', e);
+    }
+    return moduleDoc;
+  }
+
+  async deleteModule(moduleId: string, courseId: string): Promise<boolean> {
+    let deleted = false;
+    const token = localStorage.getItem('shaivika_auth_token') || localStorage.getItem('token');
+    try {
+      const res = await fetch(`${API_BASE_URL}/courses/${encodeURIComponent(courseId)}/modules/${encodeURIComponent(moduleId)}`, {
+        method: 'DELETE',
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      });
+      if (res.ok) {
+        deleted = true;
+      }
+    } catch (e) {
+      console.warn('[CourseService] deleteModule error:', e);
+    }
+    this.courseDetailsCache.delete(courseId);
+    this.getCoursesCache.clear();
+    return deleted;
+  }
+
+  async getCourseRevisions(courseId: string): Promise<any[]> {
+    const token = localStorage.getItem('shaivika_auth_token') || localStorage.getItem('token');
+    try {
+      const res = await fetch(`${API_BASE_URL}/courses/${encodeURIComponent(courseId)}/revisions`, {
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          return json.data;
+        }
+      }
+    } catch (err) {
+      console.warn('[CourseService] getCourseRevisions error:', err);
+    }
+    return [];
+  }
+
+  async restoreCourseRevision(courseId: string, auditId: string): Promise<any> {
+    const token = localStorage.getItem('shaivika_auth_token') || localStorage.getItem('token');
+    const res = await fetch(`${API_BASE_URL}/courses/${encodeURIComponent(courseId)}/revisions/${encodeURIComponent(auditId)}/restore`, {
+      method: 'POST',
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    });
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}));
+      throw new Error(json.message || 'Failed to restore course revision.');
+    }
+    const json = await res.json();
+    this.courseDetailsCache.delete(courseId);
+    this.getCoursesCache.clear();
+    return json.data;
   }
 }
 

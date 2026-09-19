@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom';
-import { useCourses } from '@/contexts/CourseContext';
+import { useCourses, getPresentationLessonTitle } from '@/contexts/CourseContext';
 import type { ModuleItem, LearningUnitItem } from '@/contexts/CourseContext';
 import {
   Layers,
@@ -45,7 +45,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ResourceItem } from '@/services/contentManagementService';
-import { sanitizeAdminInput, sanitizeMarkdownContent } from '@/utils/adminDataSanitizer';
+import { sanitizeAdminInput, sanitizeMarkdownContent, serializeFirestorePayload } from '@/utils/adminDataSanitizer';
 import { MarkdownContent } from '@/components/learning/MarkdownContent';
 import { aiAutofillService } from '@/services/aiAutofillService';
 import { courseService } from '@/services/courseService';
@@ -228,12 +228,12 @@ export const AdminContentStudio: React.FC = () => {
 
           if (!selectedLesson) {
             const firstMod = mods[0];
-            const firstTopic = firstMod?.topics?.[0];
-            const firstUnit = firstTopic?.learningUnits?.[0];
-            if (firstUnit && firstMod && firstTopic) {
+            const firstUnit = firstMod?.lessons?.[0] || firstMod?.topics?.[0]?.learningUnits?.[0];
+            const firstTopicId = firstMod?.topics?.[0]?.id || `${firstMod?.id}-t1`;
+            if (firstUnit && firstMod) {
               setSelectedLesson(firstUnit);
               setActiveModuleId(firstMod.id);
-              setActiveTopicId(firstTopic.id);
+              setActiveTopicId(firstTopicId);
               setLastSavedTimestamp(firstUnit.lastSavedAt || null);
             }
           }
@@ -258,12 +258,12 @@ export const AdminContentStudio: React.FC = () => {
       // Auto-select first lesson if none selected
       if (!selectedLesson) {
         const firstMod = activeCourse.modules[0];
-        const firstTopic = firstMod?.topics?.[0];
-        const firstUnit = firstTopic?.learningUnits?.[0];
-        if (firstUnit && firstMod && firstTopic) {
+        const firstUnit = firstMod?.lessons?.[0] || firstMod?.topics?.[0]?.learningUnits?.[0];
+        const firstTopicId = firstMod?.topics?.[0]?.id || `${firstMod?.id}-t1`;
+        if (firstUnit && firstMod) {
           setSelectedLesson(firstUnit);
           setActiveModuleId(firstMod.id);
-          setActiveTopicId(firstTopic.id);
+          setActiveTopicId(firstTopicId);
           setLastSavedTimestamp(firstUnit.lastSavedAt || null);
         }
       }
@@ -289,28 +289,33 @@ export const AdminContentStudio: React.FC = () => {
       setSaveErrorMessage(null);
 
       try {
-        const sanitizedLesson: LearningUnitItem = {
+        const sanitizedLesson: LearningUnitItem = serializeFirestorePayload({
           ...lessonToSave,
           title: sanitizeAdminInput(lessonToSave.title),
           description: sanitizeAdminInput(lessonToSave.description),
           readingContent: sanitizeMarkdownContent(lessonToSave.readingContent || ''),
+          videoUrl: lessonToSave.videoUrl ? sanitizeAdminInput(lessonToSave.videoUrl) : (lessonToSave.videoUrl === '' ? '' : (lessonToSave.type === 'Video' ? '' : undefined)),
           lastSavedAt: new Date().toISOString(),
           order: lessonToSave.order || 1,
           orderIndex: lessonToSave.orderIndex || lessonToSave.order || 1,
           duration: `${calculateEstimatedReadMinutes(lessonToSave.readingContent)} mins`
-        };
+        });
 
         // 1. Update In-Memory Course Tree
         const updatedModules = (activeCourse.modules || []).map(m => {
           if (m.id === modId) {
-            const nextTopics = m.topics.map(t => {
-              if (t.id === topId) {
-                const nextUnits = t.learningUnits.map(u => (u.id === lessonToSave.id ? sanitizedLesson : u));
-                return { ...t, learningUnits: nextUnits };
-              }
-              return t;
-            });
-            return { ...m, topics: nextTopics };
+            const rawLessons = m.lessons || m.topics?.flatMap(t => t.learningUnits) || [];
+            const nextLessons = rawLessons.map(u => (u.id === lessonToSave.id ? sanitizedLesson : u));
+            const nextTopics = (m.topics && m.topics.length > 0)
+              ? m.topics.map(t => {
+                  if (t.id === topId || m.topics?.length === 1) {
+                    const nextUnits = t.learningUnits.map(u => (u.id === lessonToSave.id ? sanitizedLesson : u));
+                    return { ...t, learningUnits: nextUnits };
+                  }
+                  return t;
+                })
+              : [{ id: `${m.id}-t1`, title: m.title, learningUnits: nextLessons }];
+            return { ...m, lessons: nextLessons, topics: nextTopics };
           }
           return m;
         });
@@ -605,7 +610,7 @@ export const AdminContentStudio: React.FC = () => {
     setDraggedLessonInfo({ lessonId, sourceModId, sourceTopId });
   };
 
-  const handleDropOnLesson = async (e: React.DragEvent, targetLessonId: string, targetModId: string, targetTopId: string) => {
+  const handleDropOnLesson = async (e: React.DragEvent, targetLessonId: string, targetModId: string, _targetTopId?: string) => {
     e.preventDefault();
     setDragOverLessonId(null);
     setDragOverModId(null);
@@ -615,15 +620,15 @@ export const AdminContentStudio: React.FC = () => {
     const updated = [...activeCourse.modules];
     let movingUnit: LearningUnitItem | null = null;
 
+    // Find and remove unit from source module
     updated.forEach(m => {
-      (m.topics || []).forEach(t => {
-        const units = t.learningUnits || [];
-        const uIdx = units.findIndex(u => u.id === draggedLessonInfo.lessonId);
-        if (uIdx !== -1) {
-          movingUnit = units[uIdx];
-          units.splice(uIdx, 1);
-        }
-      });
+      const units = [...(m.lessons || m.topics?.flatMap(t => t.learningUnits) || [])];
+      const uIdx = units.findIndex(u => u.id === draggedLessonInfo.lessonId);
+      if (uIdx !== -1) {
+        [movingUnit] = units.splice(uIdx, 1);
+        m.lessons = [...units];
+        m.topics = [{ id: `${m.id}-t1`, title: m.title, learningUnits: m.lessons }];
+      }
     });
 
     if (!movingUnit) return;
@@ -632,24 +637,23 @@ export const AdminContentStudio: React.FC = () => {
 
     updated.forEach(m => {
       if (m.id === targetModId) {
-        (m.topics || []).forEach(t => {
-          if (t.id === targetTopId) {
-            const units = t.learningUnits || [];
-            const targetIdx = units.findIndex(u => u.id === targetLessonId);
-            if (targetIdx !== -1) {
-              units.splice(targetIdx, 0, movingUnit!);
-            } else {
-              units.push(movingUnit!);
-            }
+        const units = [...(m.lessons || m.topics?.flatMap(t => t.learningUnits) || [])];
+        const targetIdx = units.findIndex(u => u.id === targetLessonId);
+        if (targetIdx !== -1) {
+          units.splice(targetIdx, 0, movingUnit!);
+        } else {
+          units.push(movingUnit!);
+        }
 
-            // Re-sequence
-            t.learningUnits = units.map((u, i) => {
-              const seq = i + 1;
-              batchUpdates.push({ lessonId: u.id, moduleId: m.id, order: seq, orderIndex: seq });
-              return { ...u, order: seq, orderIndex: seq };
-            });
-          }
+        // Re-sequence
+        const resequenced = units.map((u, i) => {
+          const seq = i + 1;
+          batchUpdates.push({ lessonId: u.id, moduleId: m.id, order: seq, orderIndex: seq });
+          return { ...u, order: seq, orderIndex: seq };
         });
+
+        m.lessons = resequenced;
+        m.topics = [{ id: `${m.id}-t1`, title: m.title, learningUnits: resequenced }];
       }
     });
 
@@ -668,33 +672,32 @@ export const AdminContentStudio: React.FC = () => {
   };
 
   // Move Lesson Up/Down with Batched Write
-  const moveLesson = async (mId: string, tId: string, uId: string, direction: 'up' | 'down') => {
+  const moveLesson = async (mId: string, _tId: string, uId: string, direction: 'up' | 'down') => {
     if (!activeCourse?.modules) return;
     const batchUpdates: Array<{ lessonId: string; moduleId: string; order: number; orderIndex: number }> = [];
 
     const updated = activeCourse.modules.map(m => {
       if (m.id === mId) {
-        const nextTopics = m.topics.map(t => {
-          if (t.id === tId) {
-            const idx = t.learningUnits.findIndex(u => u.id === uId);
-            if (idx === -1) return t;
-            if (direction === 'up' && idx === 0) return t;
-            if (direction === 'down' && idx === t.learningUnits.length - 1) return t;
-            const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
-            const units = [...t.learningUnits];
-            const [moved] = units.splice(idx, 1);
-            units.splice(targetIdx, 0, moved);
+        const units = [...(m.lessons || m.topics?.flatMap(t => t.learningUnits) || [])];
+        const idx = units.findIndex(u => u.id === uId);
+        if (idx === -1) return m;
+        if (direction === 'up' && idx === 0) return m;
+        if (direction === 'down' && idx === units.length - 1) return m;
+        const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+        const [moved] = units.splice(idx, 1);
+        units.splice(targetIdx, 0, moved);
 
-            const resequenced = units.map((u, i) => {
-              const seq = i + 1;
-              batchUpdates.push({ lessonId: u.id, moduleId: m.id, order: seq, orderIndex: seq });
-              return { ...u, order: seq, orderIndex: seq };
-            });
-            return { ...t, learningUnits: resequenced };
-          }
-          return t;
+        const resequenced = units.map((u, i) => {
+          const seq = i + 1;
+          batchUpdates.push({ lessonId: u.id, moduleId: m.id, order: seq, orderIndex: seq });
+          return { ...u, order: seq, orderIndex: seq };
         });
-        return { ...m, topics: nextTopics };
+
+        return {
+          ...m,
+          lessons: resequenced,
+          topics: [{ id: `${m.id}-t1`, title: m.title, learningUnits: resequenced }]
+        };
       }
       return m;
     });
@@ -705,10 +708,10 @@ export const AdminContentStudio: React.FC = () => {
   };
 
   // Add new lesson
-  const addLessonNode = async (mId: string, tId: string) => {
+  const addLessonNode = async (mId: string, tId?: string) => {
     if (!activeCourse?.modules) return;
     const targetModule = activeCourse.modules.find(m => m.id === mId);
-    const existingCount = targetModule?.topics?.flatMap(t => t.learningUnits).length || 0;
+    const existingCount = targetModule?.lessons?.length || targetModule?.topics?.flatMap(t => t.learningUnits).length || 0;
     const newLessonId = `lesson_${Date.now()}`;
     const newLesson: LearningUnitItem = {
       id: newLessonId,
@@ -722,16 +725,17 @@ export const AdminContentStudio: React.FC = () => {
       readingContent: `# New Educational Topic\n\n## 1. Overview\nProvide a clear overview of the lesson objectives here.\n\n## 2. Core Concepts\nExplain the foundational concepts in detail.\n\n\`\`\`javascript\n// Code example\nconsole.log("Welcome to KaizenQ!");\n\`\`\`\n\n> 💡 **Tip:** Add actionable advice for students.\n\n### Practice\n1. Write a test case.\n2. Run the validation pipeline.\n`
     };
 
+    const effectiveTopicId = tId || `${mId}-t1`;
+
     const updated = activeCourse.modules.map(m => {
       if (m.id === mId) {
-        const nextTopics = m.topics.map(t => {
-          if (t.id === tId) {
-            const list = [...t.learningUnits, newLesson];
-            return { ...t, learningUnits: list.map((u, idx) => ({ ...u, order: idx + 1, orderIndex: idx + 1 })) };
-          }
-          return t;
-        });
-        return { ...m, topics: nextTopics };
+        const units = [...(m.lessons || m.topics?.flatMap(t => t.learningUnits) || []), newLesson];
+        const resequenced = units.map((u, idx) => ({ ...u, order: idx + 1, orderIndex: idx + 1 }));
+        return {
+          ...m,
+          lessons: resequenced,
+          topics: [{ id: effectiveTopicId, title: m.title, learningUnits: resequenced }]
+        };
       }
       return m;
     });
@@ -741,7 +745,7 @@ export const AdminContentStudio: React.FC = () => {
 
     setSelectedLesson(newLesson);
     setActiveModuleId(mId);
-    setActiveTopicId(tId);
+    setActiveTopicId(effectiveTopicId);
     setIsDirty(false);
     setLastSavedTimestamp(newLesson.lastSavedAt || null);
     toast.success('Added new Lesson. Ready to edit!');
@@ -764,13 +768,13 @@ export const AdminContentStudio: React.FC = () => {
     }
 
     const newModId = `mod_${Date.now()}`;
-    const newTopicId = `top_${Date.now()}`;
+    const newTopicId = `${newModId}-t1`;
     const firstLessonId = `lesson_${Date.now()}`;
     const nextModNumber = baseModules.length + 1;
 
     const firstLesson: LearningUnitItem = {
       id: firstLessonId,
-      title: 'Module Introduction & Notes',
+      title: `Module ${nextModNumber} - Complete Notes`,
       description: 'Introductory notes.',
       duration: '15 mins',
       type: 'Reading',
@@ -785,10 +789,11 @@ export const AdminContentStudio: React.FC = () => {
       title: `Module ${nextModNumber}: New Curriculum Module`,
       description: 'Module overview and topics.',
       duration: '3 Hours',
+      lessons: [firstLesson],
       topics: [
         {
           id: newTopicId,
-          title: 'Topic 1: Foundations',
+          title: `Module ${nextModNumber}: New Curriculum Module`,
           description: 'Topic introduction',
           estimatedDuration: '45 mins',
           learningUnits: [firstLesson]
@@ -813,21 +818,17 @@ export const AdminContentStudio: React.FC = () => {
   // Delete Lesson Handler
   const confirmDeleteLesson = async () => {
     if (!lessonToDelete || !activeCourse || !activeCourse.modules) return;
-    const { unit, mId, tId } = lessonToDelete;
+    const { unit, mId } = lessonToDelete;
 
     const updated = activeCourse.modules.map(m => {
       if (m.id === mId) {
-        const nextTopics = m.topics.map(t => {
-          if (t.id === tId) {
-            const filtered = t.learningUnits.filter(u => u.id !== unit.id);
-            return {
-              ...t,
-              learningUnits: filtered.map((u, i) => ({ ...u, order: i + 1, orderIndex: i + 1 }))
-            };
-          }
-          return t;
-        });
-        return { ...m, topics: nextTopics };
+        const units = (m.lessons || m.topics?.flatMap(t => t.learningUnits) || []).filter(u => u.id !== unit.id);
+        const resequenced = units.map((u, i) => ({ ...u, order: i + 1, orderIndex: i + 1 }));
+        return {
+          ...m,
+          lessons: resequenced,
+          topics: [{ id: `${m.id}-t1`, title: m.title, learningUnits: resequenced }]
+        };
       }
       return m;
     });
@@ -836,11 +837,11 @@ export const AdminContentStudio: React.FC = () => {
     await courseService.deleteLessonContent(unit.id, String(activeCourse.id), mId);
 
     if (selectedLesson?.id === unit.id) {
-      const firstAvailable = updated[0]?.topics?.[0]?.learningUnits?.[0] || null;
+      const firstAvailable = updated[0]?.lessons?.[0] || updated[0]?.topics?.[0]?.learningUnits?.[0] || null;
       setSelectedLesson(firstAvailable);
-      if (firstAvailable && updated[0] && updated[0].topics[0]) {
+      if (firstAvailable && updated[0]) {
         setActiveModuleId(updated[0].id);
-        setActiveTopicId(updated[0].topics[0].id);
+        setActiveTopicId(updated[0].topics?.[0]?.id || `${updated[0].id}-t1`);
       }
     }
 
@@ -856,11 +857,11 @@ export const AdminContentStudio: React.FC = () => {
     await updateCourse(activeCourse.id, { modules: updated });
     await courseService.deleteModuleContent(moduleToDelete.id, String(activeCourse.id));
 
-    const firstAvailable = updated[0]?.topics?.[0]?.learningUnits?.[0] || null;
+    const firstAvailable = updated[0]?.lessons?.[0] || updated[0]?.topics?.[0]?.learningUnits?.[0] || null;
     setSelectedLesson(firstAvailable);
-    if (firstAvailable && updated[0] && updated[0].topics[0]) {
+    if (firstAvailable && updated[0]) {
       setActiveModuleId(updated[0].id);
-      setActiveTopicId(updated[0].topics[0].id);
+      setActiveTopicId(updated[0].topics?.[0]?.id || `${updated[0].id}-t1`);
     }
 
     setModuleToDelete(null);
@@ -1106,10 +1107,10 @@ export const AdminContentStudio: React.FC = () => {
                 </button>
               </div>
             ) : (
-              activeCourse.modules.map((module) => {
+              activeCourse.modules.map((module, modIdx) => {
                 const isModExpanded = expandedModules[module.id] !== false;
-                const allUnits = module.topics?.flatMap(t => t.learningUnits) || [];
-                const firstTopic = module.topics?.[0];
+                const allUnits = module.lessons || module.topics?.flatMap(t => t.learningUnits) || [];
+                const firstTopicId = module.topics?.[0]?.id || `${module.id}-t1`;
                 const isDragOverMod = dragOverModId === module.id;
 
                 return (
@@ -1120,7 +1121,7 @@ export const AdminContentStudio: React.FC = () => {
                       setDragOverModId(module.id);
                     }}
                     onDragLeave={() => setDragOverModId(null)}
-                    onDrop={(e) => firstTopic && handleDropOnLesson(e, firstTopic.learningUnits[0]?.id || '', module.id, firstTopic.id)}
+                    onDrop={(e) => handleDropOnLesson(e, allUnits[0]?.id || '', module.id, firstTopicId)}
                     className={`border rounded-2xl overflow-hidden transition-all ${
                       isDragOverMod ? 'border-indigo-500 bg-indigo-950/40' : 'border-slate-800/80 bg-slate-950/40'
                     }`}
@@ -1144,7 +1145,6 @@ export const AdminContentStudio: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => {
-                            const firstTopicId = module.topics?.[0]?.id || `top_${Date.now()}`;
                             addLessonNode(module.id, firstTopicId);
                           }}
                           className="p-1 hover:bg-slate-800 text-indigo-400 rounded-md cursor-pointer"
@@ -1163,94 +1163,91 @@ export const AdminContentStudio: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Lessons inside Module */}
+                    {/* Flat Lessons inside Module */}
                     {isModExpanded && (
                       <div className="p-1.5 space-y-1">
-                        {module.topics?.map(topic => (
-                          <div key={topic.id} className="space-y-1">
-                            {topic.learningUnits
-                              .filter(u => !searchQuery || u.title.toLowerCase().includes(searchQuery.toLowerCase()))
-                              .map((unit, uIdx) => {
-                                const isSelected = selectedLesson?.id === unit.id;
-                                const readMins = calculateEstimatedReadMinutes(unit.readingContent);
-                                const isDragOverThis = dragOverLessonId === unit.id;
-                                const UnitThemeIcon = getThemeIconComponent(unit.themeIcon);
-                                const presetTheme = THEME_COLOR_PRESETS.find(p => p.id === unit.themeColor);
+                        {allUnits
+                          .filter(u => !searchQuery || u.title.toLowerCase().includes(searchQuery.toLowerCase()))
+                          .map((unit, uIdx) => {
+                            const isSelected = selectedLesson?.id === unit.id;
+                            const readMins = calculateEstimatedReadMinutes(unit.readingContent);
+                            const isDragOverThis = dragOverLessonId === unit.id;
+                            const UnitThemeIcon = getThemeIconComponent(unit.themeIcon);
+                            const presetTheme = THEME_COLOR_PRESETS.find(p => p.id === unit.themeColor);
+                            const displayLessonTitle = getPresentationLessonTitle(unit.title, modIdx + 1, allUnits.length);
 
-                                return (
-                                  <div
-                                    key={unit.id}
-                                    draggable
-                                    onDragStart={(e) => handleDragStart(e, unit.id, module.id, topic.id)}
-                                    onDragOver={(e) => {
-                                      e.preventDefault();
-                                      setDragOverLessonId(unit.id);
-                                    }}
-                                    onDragLeave={() => setDragOverLessonId(null)}
-                                    onDrop={(e) => handleDropOnLesson(e, unit.id, module.id, topic.id)}
-                                    onClick={() => handleSelectLesson(unit, module.id, topic.id)}
-                                    className={`group flex items-center justify-between gap-2 p-2 rounded-xl cursor-pointer transition-all ${
-                                      isDragOverThis
-                                        ? 'border-2 border-indigo-500 bg-indigo-950'
-                                        : isSelected
-                                        ? 'bg-indigo-600 text-white shadow-md'
-                                        : 'bg-slate-900/60 text-slate-300 hover:bg-slate-800 border border-slate-800/60'
-                                    }`}
-                                  >
-                                    <div className="flex items-center gap-2 min-w-0">
-                                      <GripVertical className={`w-3.5 h-3.5 shrink-0 cursor-grab ${isSelected ? 'text-indigo-200' : 'text-slate-500'}`} />
-                                      <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded shrink-0 ${isSelected ? 'bg-indigo-700 text-indigo-100' : 'bg-slate-800 text-slate-400'}`}>
-                                        #{unit.order || uIdx + 1}
-                                      </span>
-                                      {unit.themeColor && (
-                                        <span className={`w-2 h-2 rounded-full shrink-0 ${presetTheme?.bgClass || 'bg-indigo-400'}`} title={`Theme: ${unit.themeColor}`} />
-                                      )}
-                                      {UnitThemeIcon && (
-                                        <UnitThemeIcon className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-indigo-200' : 'text-slate-400'}`} />
-                                      )}
-                                      <div className="min-w-0">
-                                        <h5 className="font-bold text-xs truncate">{unit.title}</h5>
-                                        <div className="flex items-center gap-1.5 text-[10px] opacity-75 mt-0.5">
-                                          <span>📖 ~{readMins}m</span>
-                                          {unit.topicImageUrl && <span title="Has Topic Image">🖼️</span>}
-                                        </div>
-                                      </div>
-                                    </div>
-
-                                    {/* Action Buttons */}
-                                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={e => e.stopPropagation()}>
-                                      <button
-                                        type="button"
-                                        onClick={() => moveLesson(module.id, topic.id, unit.id, 'up')}
-                                        disabled={uIdx === 0}
-                                        className={`p-1 rounded cursor-pointer ${isSelected ? 'hover:bg-indigo-700 text-indigo-100' : 'hover:bg-slate-800 text-slate-400'}`}
-                                        title="Move Up"
-                                      >
-                                        <ChevronUp className="w-3.5 h-3.5" />
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => moveLesson(module.id, topic.id, unit.id, 'down')}
-                                        disabled={uIdx === topic.learningUnits.length - 1}
-                                        className={`p-1 rounded cursor-pointer ${isSelected ? 'hover:bg-indigo-700 text-indigo-100' : 'hover:bg-slate-800 text-slate-400'}`}
-                                        title="Move Down"
-                                      >
-                                        <ChevronDown className="w-3.5 h-3.5" />
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => setLessonToDelete({ unit, mId: module.id, tId: topic.id })}
-                                        className={`p-1 rounded cursor-pointer ${isSelected ? 'hover:bg-indigo-700 text-rose-200' : 'hover:bg-slate-800 text-rose-400'}`}
-                                        title="Delete Lesson"
-                                      >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                      </button>
+                            return (
+                              <div
+                                key={unit.id}
+                                draggable
+                                onDragStart={(e) => handleDragStart(e, unit.id, module.id, firstTopicId)}
+                                onDragOver={(e) => {
+                                  e.preventDefault();
+                                  setDragOverLessonId(unit.id);
+                                }}
+                                onDragLeave={() => setDragOverLessonId(null)}
+                                onDrop={(e) => handleDropOnLesson(e, unit.id, module.id, firstTopicId)}
+                                onClick={() => handleSelectLesson(unit, module.id, firstTopicId)}
+                                className={`group flex items-center justify-between gap-2 p-2 rounded-xl cursor-pointer transition-all ${
+                                  isDragOverThis
+                                    ? 'border-2 border-indigo-500 bg-indigo-950'
+                                    : isSelected
+                                    ? 'bg-indigo-600 text-white shadow-md'
+                                    : 'bg-slate-900/60 text-slate-300 hover:bg-slate-800 border border-slate-800/60'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <GripVertical className={`w-3.5 h-3.5 shrink-0 cursor-grab ${isSelected ? 'text-indigo-200' : 'text-slate-500'}`} />
+                                  <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded shrink-0 ${isSelected ? 'bg-indigo-700 text-indigo-100' : 'bg-slate-800 text-slate-400'}`}>
+                                    #{unit.order || uIdx + 1}
+                                  </span>
+                                  {unit.themeColor && (
+                                    <span className={`w-2 h-2 rounded-full shrink-0 ${presetTheme?.bgClass || 'bg-indigo-400'}`} title={`Theme: ${unit.themeColor}`} />
+                                  )}
+                                  {UnitThemeIcon && (
+                                    <UnitThemeIcon className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-indigo-200' : 'text-slate-400'}`} />
+                                  )}
+                                  <div className="min-w-0">
+                                    <h5 className="font-bold text-xs truncate">{displayLessonTitle}</h5>
+                                    <div className="flex items-center gap-1.5 text-[10px] opacity-75 mt-0.5">
+                                      <span>📖 ~{readMins}m</span>
+                                      {unit.topicImageUrl && <span title="Has Topic Image">🖼️</span>}
                                     </div>
                                   </div>
-                                );
-                              })}
-                          </div>
-                        ))}
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={e => e.stopPropagation()}>
+                                  <button
+                                    type="button"
+                                    onClick={() => moveLesson(module.id, firstTopicId, unit.id, 'up')}
+                                    disabled={uIdx === 0}
+                                    className={`p-1 rounded cursor-pointer ${isSelected ? 'hover:bg-indigo-700 text-indigo-100' : 'hover:bg-slate-800 text-slate-400'}`}
+                                    title="Move Up"
+                                  >
+                                    <ChevronUp className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => moveLesson(module.id, firstTopicId, unit.id, 'down')}
+                                    disabled={uIdx === allUnits.length - 1}
+                                    className={`p-1 rounded cursor-pointer ${isSelected ? 'hover:bg-indigo-700 text-indigo-100' : 'hover:bg-slate-800 text-slate-400'}`}
+                                    title="Move Down"
+                                  >
+                                    <ChevronDown className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setLessonToDelete({ unit, mId: module.id, tId: firstTopicId })}
+                                    className={`p-1 rounded cursor-pointer ${isSelected ? 'hover:bg-indigo-700 text-rose-200' : 'hover:bg-slate-800 text-rose-400'}`}
+                                    title="Delete Lesson"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
                       </div>
                     )}
                   </div>

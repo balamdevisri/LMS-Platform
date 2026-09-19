@@ -28,7 +28,7 @@ import {
   LessonEditorService
 } from '@/services/contentManagementService';
 import type { ResourceItem } from '@/services/contentManagementService';
-import { sanitizeAdminInput, sanitizeMarkdownContent } from '@/utils/adminDataSanitizer';
+import { sanitizeAdminInput, sanitizeMarkdownContent, serializeFirestorePayload } from '@/utils/adminDataSanitizer';
 import { MarkdownContent } from '@/components/learning/MarkdownContent';
 import { aiAutofillService } from '@/services/aiAutofillService';
 
@@ -256,16 +256,16 @@ export const AdminContentManagement: React.FC = () => {
 
     const readMins = calculateEstimatedReadMinutes(updatedLesson.readingContent);
     const nowIso = new Date().toISOString();
-    const sanitized: LearningUnitItem = {
+    const sanitized: LearningUnitItem = serializeFirestorePayload({
       ...updatedLesson,
       title: sanitizeAdminInput(updatedLesson.title),
       description: sanitizeAdminInput(updatedLesson.description),
       duration: updatedLesson.duration || `${readMins} mins`,
       readingContent: updatedLesson.readingContent ? sanitizeMarkdownContent(updatedLesson.readingContent) : updatedLesson.readingContent,
       assignmentInstructions: updatedLesson.assignmentInstructions ? sanitizeMarkdownContent(updatedLesson.assignmentInstructions) : updatedLesson.assignmentInstructions,
-      videoUrl: sanitizeAdminInput(updatedLesson.videoUrl),
+      videoUrl: updatedLesson.videoUrl ? sanitizeAdminInput(updatedLesson.videoUrl) : (updatedLesson.videoUrl === '' ? '' : (updatedLesson.type === 'Video' ? '' : undefined)),
       lastSavedAt: nowIso,
-    };
+    });
 
     const nextModules = activeCourse.modules ? activeCourse.modules.map(m => {
       if (m.id !== activeModuleId) return m;

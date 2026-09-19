@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   BookOpen
 } from 'lucide-react';
+import { getPresentationLessonTitle } from '@/services/courseNormalizer';
 import type { ModuleData } from './ModuleAccordion';
 
 const getThemeColorClasses = (themeColor?: string | null) => {
@@ -79,9 +80,11 @@ export const CourseSidebarOutline: React.FC<CourseSidebarOutlineProps> = ({
 }) => {
   // Build a flat list grouped by module
   const groupedLessons = useMemo(() => {
-    return modules.map((mod: any) => {
+    return modules.map((mod: any, modIdx: number) => {
       const rawLessons: any[] = [];
-      if (mod.topics && mod.topics.length > 0) {
+      if (mod.lessons && mod.lessons.length > 0) {
+        mod.lessons.forEach((l: any) => rawLessons.push(l));
+      } else if (mod.topics && mod.topics.length > 0) {
         mod.topics.forEach((t: any) => {
           if (t.learningUnits && t.learningUnits.length > 0) {
             t.learningUnits.forEach((u: any) => {
@@ -89,8 +92,6 @@ export const CourseSidebarOutline: React.FC<CourseSidebarOutlineProps> = ({
             });
           }
         });
-      } else if (mod.lessons && mod.lessons.length > 0) {
-        mod.lessons.forEach((l: any) => rawLessons.push(l));
       }
 
       return {
@@ -111,9 +112,11 @@ export const CourseSidebarOutline: React.FC<CourseSidebarOutlineProps> = ({
             isUnlocked = completedLessonIds.some((id) => String(id) === String(prevLesson.id));
           }
 
+          const displayTitle = getPresentationLessonTitle(lesson.title, modIdx + 1, rawLessons.length);
+
           return {
             id: lesson.id,
-            title: lesson.title,
+            title: displayTitle,
             flatIndex: flatIdx,
             isCompleted,
             isSelected,
