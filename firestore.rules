@@ -212,7 +212,8 @@ service cloud.firestore {
         isAdmin() || 
         resource.data.recipientId == request.auth.uid || 
         resource.data.recipientRole == 'all' ||
-        resource.data.recipientRole == 'student'
+        resource.data.recipientRole == 'student' ||
+        (isInstructor() && resource.data.recipientRole == 'instructor')
       );
       allow create: if isAuthenticated();
       allow update, delete: if isAdmin();

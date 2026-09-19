@@ -112,9 +112,32 @@ export const Register: React.FC = () => {
       }
     } catch (err: any) {
       console.error('GitHub authentication error:', err);
-      if (err?.code === 'auth/account-exists-with-different-credential' || err?.message?.includes('login using your password')) {
-        toast.error('This email already exists. Please login using your password first to link your GitHub account.');
-        navigate('/auth/login');
+      if (
+        err?.code === 'auth/account-exists-with-different-credential' ||
+        err?.message?.includes('Sign in with your password first') ||
+        err?.message?.includes('login using your password') ||
+        err?.message?.includes('already has an account')
+      ) {
+        const targetEmail = err?.email || '';
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('pendingGithubLink', 'true');
+          if (targetEmail) sessionStorage.setItem('pendingGithubEmail', targetEmail);
+        }
+        toast.error('This email already has an account. Sign in with your password first, then connect GitHub.');
+        navigate('/auth/login', {
+          state: {
+            email: targetEmail,
+            pendingGithubLink: true,
+          },
+        });
+      } else if (err?.code === 'auth/popup-closed-by-user') {
+        toast.info('Sign-in cancelled: Popup window was closed.');
+      } else if (err?.code === 'auth/popup-blocked') {
+        toast.error('Sign-in popup was blocked by your browser. Please allow popups and try again.');
+      } else if (err?.code === 'auth/unauthorized-domain') {
+        toast.error('Domain is not authorized in Firebase Authentication.');
+      } else if (err?.code === 'auth/cancelled-popup-request') {
+        toast.info('Another popup request was already pending.');
       } else {
         toast.error(err?.message || 'GitHub Authentication failed.');
       }

@@ -32,24 +32,33 @@ const sanitizeContent = (text: string): string => {
     .trim();
 };
 
+// In-memory deduplication tracker: classId -> Set of recent finalMsgIds
+const processedMessageIds = new Map<string, Set<string>>();
+
 export const registerChatHandlers = (io: SocketServer, socket: AuthenticatedSocket) => {
   // 1. Send Chat Message
   socket.on(
     'chat:send',
     async (
       data: {
-        liveClassId: string;
+        liveClassId?: string;
+        classId?: string;
+        classroomId?: string;
         message: string;
         messageType?: 'normal' | 'announcement';
         replyToId?: string;
         clientMessageId?: string;
         id?: string;
+        senderId?: string;
+        senderName?: string;
+        senderRole?: string;
+        timestamp?: string;
       },
       callback?: (res: any) => void
     ) => {
       try {
         const user = socket.user;
-        const liveClassId = data?.liveClassId;
+        const liveClassId = data?.liveClassId || data?.classId || data?.classroomId;
 
         if (!user || !liveClassId) {
           const errRes = { success: false, error: 'UNAUTHORIZED_SOCKET', message: 'Authentication required' };
@@ -78,16 +87,38 @@ export const registerChatHandlers = (io: SocketServer, socket: AuthenticatedSock
         // Authoritative Interaction Settings & Moderation Check
         const settings = getClassroomSettings(liveClassId);
         const modRecord = getModerationRecord(liveClassId, user.uid || user.id, user.role);
-        const isChatAllowed =
-          user.role !== 'student' ||
-          modRecord.chatPermission === 'granted' ||
-          (Boolean(settings?.chat?.enabled) && modRecord.chatPermission !== 'denied' && !modRecord.mutedByInstructor);
 
-        if (user.role === 'student' && !isChatAllowed) {
-          const errRes = { success: false, error: 'CHAT_LOCKED', message: 'Chat is currently locked by the instructor.' };
-          socket.emit('chat:error', errRes);
-          if (callback) callback(errRes);
-          return;
+        if (user.role === 'student') {
+          const chatEnabled = settings?.chat?.enabled !== false;
+          const chatMode = settings?.chat?.mode || 'everyone';
+
+          if (!chatEnabled || chatMode === 'disabled') {
+            const errRes = { success: false, error: 'CHAT_DISABLED', message: 'Chat is currently disabled in this classroom.' };
+            socket.emit('chat:error', errRes);
+            if (callback) callback(errRes);
+            return;
+          }
+
+          if (chatMode === 'instructor_only') {
+            const errRes = { success: false, error: 'CHAT_INSTRUCTOR_ONLY', message: 'Chat is currently restricted to instructors only.' };
+            socket.emit('chat:error', errRes);
+            if (callback) callback(errRes);
+            return;
+          }
+
+          if (chatMode === 'selected_students' && modRecord.chatPermission !== 'granted') {
+            const errRes = { success: false, error: 'CHAT_PERMISSION_DENIED', message: 'Chat access has not been granted to you by the instructor.' };
+            socket.emit('chat:error', errRes);
+            if (callback) callback(errRes);
+            return;
+          }
+
+          if (modRecord.chatPermission === 'denied') {
+            const errRes = { success: false, error: 'CHAT_MUTED', message: 'Your chat access has been muted by the instructor.' };
+            socket.emit('chat:error', errRes);
+            if (callback) callback(errRes);
+            return;
+          }
         }
 
         const rawMessage = (data.message || '').trim();
@@ -115,10 +146,32 @@ export const registerChatHandlers = (io: SocketServer, socket: AuthenticatedSock
 
         const cleanMessage = sanitizeContent(rawMessage);
         const roomName = `live-class:${liveClassId}`;
-
         const finalMsgId = data.clientMessageId || data.id || `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
-        // Save in Database with deterministic message ID (matches client optimistic ID)
+        // Deduplication check: drop duplicate network retries / double-clicks
+        let roomProcessed = processedMessageIds.get(liveClassId);
+        if (!roomProcessed) {
+          roomProcessed = new Set<string>();
+          processedMessageIds.set(liveClassId, roomProcessed);
+        }
+
+        if (roomProcessed.has(finalMsgId)) {
+          logger.info(`[CHAT_DEDUP] Duplicate message ignored: id=${finalMsgId} classId=${liveClassId}`);
+          if (callback) callback({ success: true, messageId: finalMsgId, deduplicated: true });
+          return;
+        }
+        roomProcessed.add(finalMsgId);
+        if (roomProcessed.size > 500) {
+          const firstKey = roomProcessed.values().next().value;
+          if (firstKey) roomProcessed.delete(firstKey);
+        }
+
+        // Ensure sender socket is joined to the classroom room
+        if (!socket.rooms.has(roomName)) {
+          socket.join(roomName);
+        }
+
+        // Save in Database with deterministic message ID before broadcasting
         const savedMessage = await liveClassroomService.saveChatMessage({
           id: finalMsgId,
           classId: liveClassId,
@@ -128,18 +181,28 @@ export const registerChatHandlers = (io: SocketServer, socket: AuthenticatedSock
           message: cleanMessage,
           createdAt: new Date().toISOString(),
         });
+
+        const clientMsgId = data.clientMessageId || data.id || finalMsgId;
+
         const chatPayload = {
           id: finalMsgId,
+          messageId: finalMsgId,
+          clientMessageId: clientMsgId,
           liveClassId,
           classId: liveClassId,
+          classroomId: liveClassId,
           userId: user.uid || user.id,
+          senderId: user.uid || user.id,
           userName: user.name || 'User',
+          senderName: user.name || 'User',
           role: user.role,
+          senderRole: user.role,
           message: cleanMessage,
-          status: 'VISIBLE',
+          status: 'sent',
           messageType: data.messageType || 'normal',
           replyToId: data.replyToId,
-          createdAt: new Date().toISOString(),
+          createdAt: savedMessage.createdAt || new Date().toISOString(),
+          timestamp: savedMessage.createdAt || new Date().toISOString(),
         };
 
         // Broadcast to entire room strictly once on canonical chat:message event
@@ -230,8 +293,8 @@ export const registerChatHandlers = (io: SocketServer, socket: AuthenticatedSock
       if (!user) return;
 
       const settings = getClassroomSettings(liveClassId);
-      const modRecord = getModerationRecord(liveClassId, user.uid || user.id);
-      if (user.role === 'student' && (!settings.chat.enabled || modRecord.mutedByInstructor)) {
+      const modRecord = getModerationRecord(liveClassId, user.uid || user.id, user.role);
+      if (user.role === 'student' && (!settings.chat.enabled || modRecord.chatPermission === 'denied')) {
         socket.emit('chat:error', { success: false, error: 'CHAT_DISABLED', message: 'Chat is currently disabled by the instructor.' });
         return;
       }

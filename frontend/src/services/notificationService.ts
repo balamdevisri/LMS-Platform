@@ -239,7 +239,7 @@ class NotificationService {
             qUser,
             (snap) => handleSnapshot(snap, `user_${userId}_notifications`),
             (error) => {
-              console.error(`[Firestore Permission Audit] Query: recipientId==${userId} | Authenticated UID: ${userId} | Error: ${error.message}`);
+              console.warn(`[Firestore Permission Notice] Query: recipientId==${userId} | Authenticated UID: ${userId} | ${error.message}`);
             }
           );
 
@@ -247,7 +247,7 @@ class NotificationService {
             qAll,
             (snap) => handleSnapshot(snap, 'global_all_notifications'),
             (error) => {
-              console.error(`[Firestore Permission Audit] Query: recipientRole==all | Authenticated UID: ${userId} | Error: ${error.message}`);
+              console.warn(`[Firestore Permission Notice] Query: recipientRole==all | Authenticated UID: ${userId} | ${error.message}`);
             }
           );
 
@@ -255,14 +255,14 @@ class NotificationService {
             qStudent,
             (snap) => handleSnapshot(snap, 'global_student_notifications'),
             (error) => {
-              console.error(`[Firestore Permission Audit] Query: recipientRole==student | Authenticated UID: ${userId} | Error: ${error.message}`);
+              console.warn(`[Firestore Permission Notice] Query: recipientRole==student | Authenticated UID: ${userId} | ${error.message}`);
             }
           );
 
           unsubscribers.push(unsubUser, unsubAll, unsubStudent);
         }
       } catch (e: any) {
-        console.error(`[Firestore Audit] Subscription error on notifications: ${e.message || e}`);
+        console.warn(`[Firestore Audit] Subscription notice on notifications: ${e.message || e}`);
       }
     }
 

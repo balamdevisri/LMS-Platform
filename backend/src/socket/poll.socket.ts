@@ -302,6 +302,32 @@ export const registerPollHandlers = (io: SocketServer, socket: AuthenticatedSock
       }
     }
   );
+
+  // 7. Reveal Poll Answer
+  socket.on(
+    'poll:reveal',
+    (data: { liveClassId?: string; classId?: string; pollId?: string; correctOptionIndex?: number }, callback?: (res: any) => void) => {
+      try {
+        const user = socket.user;
+        if (!user || (user.role !== 'admin' && user.role !== 'instructor')) {
+          if (callback) callback({ success: false, error: 'INVALID_PERMISSION' });
+          return;
+        }
+        const classId = data.liveClassId || data.classId || '';
+        const activePoll = activePollsMap.get(classId);
+        const roomName = `live-class:${classId}`;
+
+        io.to(roomName).emit('poll:revealed', {
+          pollId: activePoll?.id || data.pollId,
+          correctOptionIndex: data.correctOptionIndex,
+        });
+
+        if (callback) callback({ success: true });
+      } catch (err: any) {
+        if (callback) callback({ success: false, error: err.message });
+      }
+    }
+  );
 };
 
 export const getActivePoll = (liveClassId: string): PollItem | null => {

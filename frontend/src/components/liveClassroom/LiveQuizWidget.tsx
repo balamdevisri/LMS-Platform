@@ -1,42 +1,74 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Socket } from 'socket.io-client';
-import { HelpCircle, Clock, Play, Sparkles, Award, Zap } from 'lucide-react';
+import {
+  HelpCircle,
+  Clock,
+  Play,
+  Award,
+  Zap,
+  CheckCircle2,
+  XCircle,
+  Eye,
+  StopCircle,
+  PlusCircle,
+  Users,
+  BarChart3,
+  TrendingUp,
+} from 'lucide-react';
 import { toast } from 'sonner';
+
+interface StudentResult {
+  studentId: string;
+  studentName: string;
+  answer: string;
+  isCorrect: boolean;
+  score: number;
+  timeTakenSeconds: number;
+}
 
 interface LiveQuizWidgetProps {
   socket: Socket | null;
   classId: string;
-  currentUser: { uid: string; name: string; role: 'instructor' | 'mentor' | 'student' };
+  currentUser: { uid: string; name: string; role: 'instructor' | 'mentor' | 'student' | 'admin' };
 }
 
 export const LiveQuizWidget: React.FC<LiveQuizWidgetProps> = ({ socket, classId, currentUser }) => {
-  const isInstructor = currentUser.role === 'instructor' || (currentUser.role as string) === 'admin';
+  const isInstructor = currentUser.role === 'instructor' || (currentUser.role as string) === 'admin' || currentUser.role === 'mentor';
 
-  // --- Instructor States ---
+  // --- Instructor Creation States ---
+  const [activeTab, setActiveTab] = useState<'create' | 'dashboard'>('create');
   const [question, setQuestion] = useState('');
-  const [qType, setQType] = useState<'mcq' | 'true_false' | 'fill_in_the_blank' | 'code_output' | 'programming' | 'multiple_correct'>('mcq');
+  const [qType, setQType] = useState<'mcq' | 'true_false' | 'code_output'>('mcq');
   const [opts, setOpts] = useState<string[]>(['', '', '', '']);
   const [correctAns, setCorrectAns] = useState('');
   const [timer, setTimer] = useState(30);
   const [marks, setMarks] = useState(10);
-  const [difficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
   const [explanation, setExplanation] = useState('');
 
-  // Live Results analytics (Instructor/Mentor view)
+  // --- Live Results & Accuracy Analytics (Instructor view) ---
   const [quizStats, setQuizStats] = useState<{
     totalAnswered: number;
     correct: number;
     wrong: number;
+    accuracyPercent: number;
     avgTime: number;
-    fastestStudent?: string;
-    fastestTime?: number;
-  }>({ totalAnswered: 0, correct: 0, wrong: 0, avgTime: 0 });
+    studentResults: StudentResult[];
+  }>({
+    totalAnswered: 0,
+    correct: 0,
+    wrong: 0,
+    accuracyPercent: 0,
+    avgTime: 0,
+    studentResults: [],
+  });
 
-  // --- Student States ---
+  // --- Active Quiz State (Shared / Student view) ---
   const [activeQuiz, setActiveQuiz] = useState<any>(null);
   const [selectedAns, setSelectedAns] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
+  const [isRevealed, setIsRevealed] = useState(false);
+  const [revealedData, setRevealedData] = useState<{ correctAnswer?: string; status?: string } | null>(null);
 
   // Time tracking for response speed
   const quizStartTimeRef = useRef<number>(0);
@@ -45,16 +77,55 @@ export const LiveQuizWidget: React.FC<LiveQuizWidgetProps> = ({ socket, classId,
   useEffect(() => {
     if (!socket) return;
 
-    // Student: Receive Broadcasted Quiz
-    socket.on('quiz_published', (quiz: any) => {
+    // 1. Hydrate active quiz on mount / reconnect
+    socket.emit('quiz:get_active', { classId, liveClassId: classId });
+
+    socket.on('quiz:active', (res: any) => {
+      if (res?.success && res.quiz) {
+        const q = res.quiz;
+        setActiveQuiz(q);
+        setTimeLeft(q.timerSeconds || 30);
+        if (q.hasSubmitted) {
+          setSubmitted(true);
+          setSelectedAns(q.userAnswer || '');
+        }
+        if (isInstructor && q.stats) {
+          setQuizStats({
+            totalAnswered: q.stats.totalAnswered || 0,
+            correct: q.stats.correct || 0,
+            wrong: q.stats.wrong || 0,
+            accuracyPercent: q.stats.accuracyPercent || 0,
+            avgTime: q.stats.avgTime || 0,
+            studentResults: q.stats.studentResults || [],
+          });
+          setActiveTab('dashboard');
+        }
+      }
+    });
+
+    // 2. Listen for new published quiz
+    const handleQuizPublished = (quiz: any) => {
       setActiveQuiz(quiz);
       setSelectedAns('');
       setSubmitted(false);
+      setIsRevealed(false);
+      setRevealedData(null);
       setTimeLeft(quiz.timerSeconds || 30);
       quizStartTimeRef.current = Date.now();
-      
-      // Toast notification
-      toast.info(`🔔 QUIZ PUBLISHED: "${quiz.question.substring(0, 30)}..."`);
+
+      toast.info(`🔔 QUIZ PUBLISHED: "${(quiz.question || '').substring(0, 35)}..."`);
+
+      if (isInstructor) {
+        setQuizStats({
+          totalAnswered: 0,
+          correct: 0,
+          wrong: 0,
+          accuracyPercent: 0,
+          avgTime: 0,
+          studentResults: [],
+        });
+        setActiveTab('dashboard');
+      }
 
       // Start circular timer
       if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
@@ -62,362 +133,525 @@ export const LiveQuizWidget: React.FC<LiveQuizWidgetProps> = ({ socket, classId,
         setTimeLeft((prev) => {
           if (prev <= 1) {
             clearInterval(countdownIntervalRef.current);
-            // Trigger auto submit
-            handleAutoSubmit(quiz.id || quiz._id?.toString());
             return 0;
           }
           return prev - 1;
         });
       }, 1000);
-    });
+    };
 
-    // Instructor: Receive response updates
-    socket.on('quiz_submission_update', (data: any) => {
-      setQuizStats((prev) => {
-        const total = prev.totalAnswered + 1;
-        const correctCount = prev.correct + (data.isCorrect ? 1 : 0);
-        const wrongCount = prev.wrong + (data.isCorrect ? 0 : 1);
-        const avg = Math.round(((prev.avgTime * prev.totalAnswered) + data.timeTakenSeconds) / total);
+    socket.on('quiz_published', handleQuizPublished);
+    socket.on('quiz:start', handleQuizPublished);
 
-        let fastest = prev.fastestStudent;
-        let fastestTime = prev.fastestTime;
-        if (!fastestTime || data.timeTakenSeconds < fastestTime) {
-          fastest = data.userName;
-          fastestTime = data.timeTakenSeconds;
-        }
-
-        return {
-          totalAnswered: total,
-          correct: correctCount,
-          wrong: wrongCount,
-          avgTime: avg,
-          fastestStudent: fastest,
-          fastestTime
-        };
+    // 3. Receive accuracy update (Instructor)
+    socket.on('quiz:accuracy_update', (data: any) => {
+      setQuizStats({
+        totalAnswered: data.totalAnswered || 0,
+        correct: data.correct || 0,
+        wrong: data.wrong || 0,
+        accuracyPercent: data.accuracyPercent || 0,
+        avgTime: data.avgTime || 0,
+        studentResults: data.studentResults || [],
       });
     });
 
+    // 4. Listen for answer reveal
+    const handleQuizRevealed = (data: any) => {
+      setIsRevealed(true);
+      setRevealedData(data);
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+      toast.success('Instructor has revealed the correct quiz answers!');
+    };
+
+    socket.on('quiz:revealed', handleQuizRevealed);
+    socket.on('quiz_revealed', handleQuizRevealed);
+
+    // 5. Listen for quiz end
+    const handleQuizEnded = (data: any) => {
+      setIsRevealed(true);
+      setRevealedData(data);
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+      toast.info('The live quiz session has ended.');
+    };
+
+    socket.on('quiz:result', handleQuizEnded);
+    socket.on('quiz_ended', handleQuizEnded);
+
     return () => {
+      socket.off('quiz:active');
       socket.off('quiz_published');
-      socket.off('quiz_submission_update');
+      socket.off('quiz:start');
+      socket.off('quiz:accuracy_update');
+      socket.off('quiz:revealed');
+      socket.off('quiz_revealed');
+      socket.off('quiz:result');
+      socket.off('quiz_ended');
       if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
     };
-  }, [socket]);
+  }, [socket, classId, isInstructor]);
 
   const handlePublishQuiz = () => {
     if (!question.trim() || !correctAns.trim() || !socket) {
-      toast.error('Please enter a question and the correct answer.');
+      toast.error('Please enter a question and designate the correct answer.');
+      return;
+    }
+
+    const filteredOptions =
+      qType === 'true_false'
+        ? ['True', 'False']
+        : opts.filter((o) => o.trim());
+
+    if (filteredOptions.length < 2) {
+      toast.error('Please provide at least two answer options.');
       return;
     }
 
     const payload = {
       classId,
+      liveClassId: classId,
       question: question.trim(),
       questionType: qType,
-      options: qType === 'mcq' || qType === 'code_output' || qType === 'multiple_correct' ? opts.filter(o => o.trim()) : [],
+      options: filteredOptions,
       correctAnswer: correctAns.trim(),
       marks,
-      negativeMarks: 0,
-      difficulty,
       timerSeconds: timer,
-      explanation: explanation.trim(),
+      title: 'Live Concept Check',
     };
 
+    socket.emit('quiz:start', payload);
     socket.emit('publish_quiz', payload);
-    
-    // Reset stats for new quiz
-    setQuizStats({ totalAnswered: 0, correct: 0, wrong: 0, avgTime: 0 });
-    toast.success('Live Quiz published to all students!');
-    
-    // Clear inputs
+
+    setQuizStats({
+      totalAnswered: 0,
+      correct: 0,
+      wrong: 0,
+      accuracyPercent: 0,
+      avgTime: 0,
+      studentResults: [],
+    });
+    setActiveTab('dashboard');
+    toast.success('Live Quiz published to all classroom participants!');
+
+    // Reset create inputs
     setQuestion('');
     setCorrectAns('');
     setExplanation('');
   };
 
-  const handleStudentSubmit = (quizId: string) => {
-    if (submitted || !socket) return;
+  const handleStudentSubmit = () => {
+    if (submitted || !selectedAns || !socket || !activeQuiz) return;
     setSubmitted(true);
     if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
 
-    const timeTaken = Math.round((Date.now() - quizStartTimeRef.current) / 1000);
+    const timeTaken = Math.max(1, Math.round((Date.now() - quizStartTimeRef.current) / 1000));
 
-    socket.emit('submit_quiz', {
+    const payload = {
       classId,
-      quizId,
+      liveClassId: classId,
+      quizId: activeQuiz.id || activeQuiz._id?.toString(),
       userId: currentUser.uid,
       userName: currentUser.name,
       answer: selectedAns,
       timeTakenSeconds: timeTaken,
-    });
-    toast.success('Quiz submission recorded!');
+    };
+
+    socket.emit('quiz:submit', payload);
+    socket.emit('submit_quiz', payload);
+    toast.success('Your answer was recorded securely on the server!');
   };
 
-  const handleAutoSubmit = (quizId: string) => {
-    setSubmitted(true);
-    if (socket) {
-      const timeTaken = timer;
-      socket.emit('submit_quiz', {
-        classId,
-        quizId,
-        userId: currentUser.uid,
-        userName: currentUser.name,
-        answer: selectedAns || '[NO_RESPONSE]',
-        timeTakenSeconds: timeTaken,
-      });
-      toast.warning('Time limit exceeded! Auto-submitted answer.');
-    }
+  const handleRevealAnswer = () => {
+    if (!socket || !activeQuiz) return;
+    socket.emit('quiz:reveal', {
+      classId,
+      liveClassId: classId,
+      quizId: activeQuiz.id || activeQuiz._id?.toString(),
+    });
+  };
+
+  const handleEndQuiz = () => {
+    if (!socket || !activeQuiz) return;
+    socket.emit('quiz:end', {
+      classId,
+      liveClassId: classId,
+      quizId: activeQuiz.id || activeQuiz._id?.toString(),
+    });
+    socket.emit('end_quiz', {
+      classId,
+      liveClassId: classId,
+      quizId: activeQuiz.id || activeQuiz._id?.toString(),
+    });
   };
 
   return (
-    <div className="bg-slate-900/60 border border-sky-500/15 p-6 rounded-2xl font-['Sora'] space-y-6">
-      
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-sky-500/10 pb-3">
-        <div className="flex items-center gap-2">
-          <HelpCircle className="w-5 h-5 text-sky-400" />
-          <h3 className="font-heading font-black text-sm text-white">Live Code & Concept Quizzes</h3>
+    <div className="bg-white border border-slate-200 rounded-2xl shadow-xs font-sans text-slate-800 p-5 space-y-5">
+      {/* Widget Header */}
+      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+            <HelpCircle className="w-4 h-4" />
+          </div>
+          <div>
+            <h3 className="font-bold text-sm text-slate-900 leading-tight">Live Concept Check & Quizzes</h3>
+            <p className="text-[11px] text-slate-500">Real-time audience evaluation & accuracy tracking</p>
+          </div>
         </div>
-        <span className="px-2.5 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 text-[10px] font-bold">
-          XP System Sync
-        </span>
+
+        {isInstructor && (
+          <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-semibold">
+            <button
+              onClick={() => setActiveTab('create')}
+              className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                activeTab === 'create'
+                  ? 'bg-white text-indigo-600 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Create
+            </button>
+            <button
+              onClick={() => setActiveTab('dashboard')}
+              className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                activeTab === 'dashboard'
+                  ? 'bg-white text-indigo-600 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Results ({quizStats.totalAnswered})
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ─── INSTRUCTOR PORTAL ─── */}
-      {isInstructor && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 bg-slate-900/40 p-4 rounded-xl border border-sky-500/5 text-xs text-slate-300">
-            
-            {/* Create Panel */}
-            <div className="space-y-3 pr-4 border-r border-sky-500/10">
-              <p className="font-bold text-sky-400 uppercase tracking-wider text-[10px] flex items-center gap-1">
-                <Play className="w-3.5 h-3.5 text-sky-400" /> Construct Live Quiz Question
-              </p>
-              
+      {isInstructor ? (
+        activeTab === 'create' ? (
+          /* Create Quiz Form */
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">Question Text</label>
+              <textarea
+                rows={2}
+                placeholder="e.g., Which data structure provides O(1) amortized lookup complexity?"
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 transition-all resize-none"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block mb-1 font-bold text-slate-400">Question Title</label>
-                <textarea
-                  rows={2}
-                  placeholder="e.g. Which command yields the system call tracing trace output in Linux?"
-                  value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700/60 rounded-xl p-2.5 text-white focus:outline-none"
-                />
+                <label className="block text-xs font-bold text-slate-700 mb-1">Question Format</label>
+                <select
+                  value={qType}
+                  onChange={(e: any) => setQType(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-hidden focus:border-indigo-500"
+                >
+                  <option value="mcq">Multiple Choice (MCQ)</option>
+                  <option value="true_false">True / False</option>
+                  <option value="code_output">Code Snippet Output</option>
+                </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block mb-1 font-bold text-slate-400">Question Type</label>
-                  <select
-                    value={qType}
-                    onChange={(e: any) => setQType(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700/60 rounded-xl p-2 text-white"
-                  >
-                    <option value="mcq">MCQ Option</option>
-                    <option value="true_false">True / False</option>
-                    <option value="fill_in_the_blank">Fill in the Blank</option>
-                    <option value="code_output">Code Output</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block mb-1 font-bold text-slate-400">Timer (seconds)</label>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Time Limit (Seconds)</label>
+                <div className="relative">
                   <input
                     type="number"
+                    min={10}
+                    max={300}
                     value={timer}
                     onChange={(e) => setTimer(Number(e.target.value))}
-                    className="w-full bg-slate-800 border border-slate-700/60 rounded-xl p-2 text-white focus:outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-hidden focus:border-indigo-500"
                   />
+                  <Clock className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-2.5" />
                 </div>
               </div>
+            </div>
 
-              {(qType === 'mcq' || qType === 'code_output') && (
-                <div className="space-y-2">
-                  <label className="block font-bold text-slate-400">Options / Alternatives</label>
-                  {opts.map((o, idx) => (
+            {qType === 'true_false' ? (
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                <span className="text-xs font-bold text-slate-700">Designate Correct Answer:</span>
+                <div className="flex gap-4 text-xs font-bold">
+                  <label className="flex items-center gap-1.5 cursor-pointer">
                     <input
-                      key={idx}
+                      type="radio"
+                      name="tf_answer"
+                      value="True"
+                      checked={correctAns === 'True'}
+                      onChange={() => setCorrectAns('True')}
+                      className="text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span>True</span>
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="tf_answer"
+                      value="False"
+                      checked={correctAns === 'False'}
+                      onChange={() => setCorrectAns('False')}
+                      className="text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span>False</span>
+                  </label>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-700">Multiple Choice Options</label>
+                {opts.map((opt, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-lg bg-slate-100 border border-slate-200 text-slate-600 font-bold text-[11px] flex items-center justify-center shrink-0">
+                      {String.fromCharCode(65 + idx)}
+                    </span>
+                    <input
                       type="text"
                       placeholder={`Option ${String.fromCharCode(65 + idx)}`}
-                      value={o}
+                      value={opt}
                       onChange={(e) => {
                         const copy = [...opts];
                         copy[idx] = e.target.value;
                         setOpts(copy);
                       }}
-                      className="w-full bg-slate-800 border border-slate-700/60 rounded-xl p-1.5 text-slate-200 focus:outline-none"
+                      className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:border-indigo-500 focus:bg-white"
                     />
-                  ))}
-                </div>
-              )}
+                    <button
+                      type="button"
+                      onClick={() => setCorrectAns(opt)}
+                      className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold cursor-pointer transition-all ${
+                        correctAns && correctAns === opt
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                      }`}
+                      title="Mark as correct answer"
+                    >
+                      {correctAns && correctAns === opt ? 'Correct' : 'Mark Correct'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
 
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block mb-1 font-bold text-slate-400">Correct Answer</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. strace or A"
-                    value={correctAns}
-                    onChange={(e) => setCorrectAns(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700/60 rounded-xl p-2 text-white focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block mb-1 font-bold text-slate-400">Marks value</label>
-                  <input
-                    type="number"
-                    value={marks}
-                    onChange={(e) => setMarks(Number(e.target.value))}
-                    className="w-full bg-slate-800 border border-slate-700/60 rounded-xl p-2 text-white focus:outline-none"
-                  />
-                </div>
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Designated Correct Answer</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Hash Map"
+                  value={correctAns}
+                  onChange={(e) => setCorrectAns(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-indigo-700 focus:outline-hidden focus:border-indigo-500"
+                />
               </div>
 
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">XP / Marks Value</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={marks}
+                  onChange={(e) => setMarks(Number(e.target.value))}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-hidden focus:border-indigo-500"
+                />
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handlePublishQuiz}
+              className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md cursor-pointer flex items-center justify-center gap-2 transition-all"
+            >
+              <Play className="w-4 h-4 fill-current" />
+              <span>Broadcast Quiz to Classroom</span>
+            </button>
+          </div>
+        ) : (
+          /* Instructor Accuracy Dashboard */
+          <div className="space-y-4">
+            {/* Metric Summary Cards */}
+            <div className="grid grid-cols-4 gap-2 text-center font-sans">
+              <div className="bg-slate-50 border border-slate-200 p-2.5 rounded-xl">
+                <span className="text-[10px] text-slate-500 font-bold block uppercase tracking-wider">Responses</span>
+                <span className="text-base font-black text-slate-900">{quizStats.totalAnswered}</span>
+              </div>
+              <div className="bg-emerald-50 border border-emerald-100 p-2.5 rounded-xl">
+                <span className="text-[10px] text-emerald-700 font-bold block uppercase tracking-wider">Correct</span>
+                <span className="text-base font-black text-emerald-700">{quizStats.correct}</span>
+              </div>
+              <div className="bg-rose-50 border border-rose-100 p-2.5 rounded-xl">
+                <span className="text-[10px] text-rose-700 font-bold block uppercase tracking-wider">Incorrect</span>
+                <span className="text-base font-black text-rose-700">{quizStats.wrong}</span>
+              </div>
+              <div className="bg-indigo-50 border border-indigo-100 p-2.5 rounded-xl">
+                <span className="text-[10px] text-indigo-700 font-bold block uppercase tracking-wider">Accuracy</span>
+                <span className="text-base font-black text-indigo-700">{quizStats.accuracyPercent}%</span>
+              </div>
+            </div>
+
+            {/* Controls */}
+            <div className="flex items-center gap-2 pt-1">
               <button
-                type="button"
-                onClick={handlePublishQuiz}
-                className="w-full py-2.5 bg-sky-500 hover:bg-sky-600 text-white font-extrabold rounded-xl shadow-lg cursor-pointer"
+                onClick={handleRevealAnswer}
+                className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
               >
-                Broadcast Quiz
+                <Eye className="w-3.5 h-3.5" />
+                <span>Reveal Correct Answer</span>
+              </button>
+              <button
+                onClick={handleEndQuiz}
+                className="py-2 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs flex items-center gap-1 cursor-pointer border border-rose-200"
+              >
+                <StopCircle className="w-3.5 h-3.5" />
+                <span>Close Quiz</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('create')}
+                className="py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1 cursor-pointer"
+              >
+                <PlusCircle className="w-3.5 h-3.5" />
+                <span>New Question</span>
               </button>
             </div>
 
-            {/* Results Analytics Panel */}
-            <div className="space-y-4 pl-0 lg:pl-4">
-              <p className="font-bold text-emerald-400 uppercase tracking-wider text-[10px] flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5 text-emerald-400" /> Real-Time Quiz Response Analytics
-              </p>
-
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="bg-slate-950/40 p-3 rounded-xl border border-sky-500/5">
-                  <span className="text-[10px] text-slate-500 block font-bold">Answered</span>
-                  <span className="text-sm font-black text-white">{quizStats.totalAnswered}</span>
-                </div>
-                <div className="bg-emerald-500/10 p-3 rounded-xl border border-emerald-500/10">
-                  <span className="text-[10px] text-emerald-400 block font-bold">Correct</span>
-                  <span className="text-sm font-black text-emerald-400">{quizStats.correct}</span>
-                </div>
-                <div className="bg-rose-500/10 p-3 rounded-xl border border-rose-500/10">
-                  <span className="text-[10px] text-rose-400 block font-bold">Wrong</span>
-                  <span className="text-sm font-black text-rose-400">{quizStats.wrong}</span>
-                </div>
+            {/* Student Accuracy Table */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Student Submissions ({quizStats.studentResults.length})</span>
+                </span>
+                <span className="text-[11px] text-slate-500 font-medium">Avg Speed: {quizStats.avgTime}s</span>
               </div>
 
-              <div className="bg-slate-950/50 p-4 rounded-xl border border-sky-500/10 space-y-2">
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-slate-400 font-bold">Average Response Speed:</span>
-                  <span className="text-white font-black">{quizStats.avgTime || 0} seconds</span>
-                </div>
-
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-slate-400 font-bold">Accuracy Score:</span>
-                  <span className="text-emerald-400 font-black">
-                    {quizStats.totalAnswered > 0 ? Math.round((quizStats.correct / quizStats.totalAnswered) * 100) : 0}%
-                  </span>
-                </div>
-
-                {quizStats.fastestStudent && (
-                  <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-sky-500/5">
-                    <span className="text-amber-400 font-bold flex items-center gap-1">
-                      <Zap className="w-3.5 h-3.5 fill-current" /> Fastest Student:
-                    </span>
-                    <span className="text-white font-black">{quizStats.fastestStudent} ({quizStats.fastestTime}s)</span>
+              <div className="max-h-48 overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100">
+                {quizStats.studentResults.length === 0 ? (
+                  <div className="p-4 text-center text-xs text-slate-400">
+                    Awaiting student submissions...
                   </div>
+                ) : (
+                  quizStats.studentResults.map((r, idx) => (
+                    <div key={idx} className="p-2.5 flex items-center justify-between text-xs hover:bg-slate-50">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-800">{r.studentName}</span>
+                        <span className="text-slate-500 text-[11px]">selected: &quot;{r.answer}&quot;</span>
+                      </div>
+                      <div className="flex items-center gap-2 font-mono text-[11px]">
+                        <span className="text-slate-400">{r.timeTakenSeconds}s</span>
+                        {r.isCorrect ? (
+                          <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold flex items-center gap-1 text-[10px]">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" /> +{r.score} XP
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 font-bold flex items-center gap-1 text-[10px]">
+                            <XCircle className="w-3 h-3 text-rose-600" /> Incorrect
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))
                 )}
               </div>
             </div>
-
           </div>
-        </div>
-      )}
-
-      {/* ─── STUDENT POPUP ─── */}
-      {!isInstructor && activeQuiz && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-900 border-2 border-sky-500/30 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-6 text-slate-100">
-            
-            {/* Countdown Overlay */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <Award className="w-5 h-5 text-amber-400" />
-                <span className="text-xs font-black uppercase text-amber-400 tracking-wider">
-                  Live Classroom Quiz Challenge
+        )
+      ) : (
+        /* ─── STUDENT VIEW ─── */
+        activeQuiz ? (
+          <div className="space-y-4">
+            {/* Question Card */}
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-100 text-indigo-700 font-bold text-[10px]">
+                  {activeQuiz.marks || 10} XP Marks
                 </span>
+                <div className="flex items-center gap-1 font-mono text-xs font-bold text-slate-600">
+                  <Clock className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>{timeLeft}s remaining</span>
+                </div>
               </div>
-              <div className="flex items-center gap-1 text-rose-400 font-bold text-xs bg-rose-500/10 px-3 py-1 rounded-full border border-rose-500/20">
-                <Clock className="w-3.5 h-3.5 animate-spin" />
-                <span>{timeLeft}s left</span>
-              </div>
-            </div>
 
-            {/* Question Text */}
-            <div className="bg-slate-950/50 p-4 rounded-2xl border border-sky-500/10">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Question ({activeQuiz.marks} Marks)</p>
-              <h4 className="font-heading font-extrabold text-sm text-white mt-1 leading-relaxed">
+              <h4 className="font-bold text-sm text-slate-900 leading-snug">
                 {activeQuiz.question}
               </h4>
             </div>
 
-            {/* Answers Form Selection */}
-            <div className="space-y-2.5">
-              {activeQuiz.options && activeQuiz.options.length > 0 ? (
+            {/* Answer Options */}
+            <div className="space-y-2">
+              {Array.isArray(activeQuiz.options) &&
                 activeQuiz.options.map((opt: string, idx: number) => {
-                  const optChar = String.fromCharCode(65 + idx);
-                  const isSelected = selectedAns === optChar;
+                  const isSelected = selectedAns === opt;
+                  const isCorrect =
+                    isRevealed &&
+                    (revealedData?.correctAnswer?.toLowerCase() === opt.toLowerCase() ||
+                      activeQuiz?.correctAnswer?.toLowerCase() === opt.toLowerCase());
+
                   return (
                     <button
                       key={idx}
-                      disabled={submitted}
-                      onClick={() => setSelectedAns(optChar)}
-                      className={`w-full text-left p-3.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-3 cursor-pointer ${
-                        isSelected
-                          ? 'border-sky-500 bg-sky-500/10 text-white'
-                          : 'border-slate-800 bg-slate-950/40 text-slate-400 hover:bg-slate-800/40'
+                      disabled={submitted || timeLeft <= 0}
+                      onClick={() => setSelectedAns(opt)}
+                      className={`w-full p-3 rounded-xl border text-left text-xs font-semibold flex items-center justify-between transition-all cursor-pointer disabled:cursor-not-allowed ${
+                        isCorrect
+                          ? 'bg-emerald-50 border-emerald-400 text-emerald-900'
+                          : isSelected
+                          ? 'bg-indigo-50 border-indigo-500 text-indigo-900 ring-1 ring-indigo-500'
+                          : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'
                       }`}
                     >
-                      <span className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-black border ${
-                        isSelected ? 'bg-sky-500 text-white border-sky-400' : 'bg-slate-800 border-slate-700 text-slate-400'
-                      }`}>
-                        {optChar}
-                      </span>
-                      <span>{opt}</span>
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          className={`w-6 h-6 rounded-lg font-bold text-xs flex items-center justify-center shrink-0 ${
+                            isSelected
+                              ? 'bg-indigo-600 text-white'
+                              : 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          {String.fromCharCode(65 + idx)}
+                        </span>
+                        <span>{opt}</span>
+                      </div>
+                      {isCorrect && (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      )}
                     </button>
                   );
-                })
-              ) : (
-                <input
-                  type="text"
-                  disabled={submitted}
-                  placeholder="Type your response here..."
-                  value={selectedAns}
-                  onChange={(e) => setSelectedAns(e.target.value)}
-                  className="w-full bg-slate-850 border border-slate-700 rounded-xl p-3 text-xs text-white focus:outline-none"
-                />
-              )}
+                })}
             </div>
 
-            {/* Submit Actions */}
-            <div className="pt-2">
+            {/* Submit Action */}
+            {!submitted ? (
               <button
-                disabled={submitted || !selectedAns}
-                onClick={() => handleStudentSubmit(activeQuiz.id || activeQuiz._id?.toString())}
-                className="w-full py-3.5 bg-linear-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white rounded-xl text-xs font-black shadow-lg shadow-sky-500/20 disabled:opacity-50 cursor-pointer"
+                type="button"
+                disabled={!selectedAns || timeLeft <= 0}
+                onClick={handleStudentSubmit}
+                className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
-                {submitted ? 'Answer Logged • Waiting for correct answer' : 'Submit Answers'}
+                Submit Answer
               </button>
-            </div>
-            
+            ) : (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-center space-y-1">
+                <span className="text-xs font-bold text-emerald-800 flex items-center justify-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  Your answer is recorded!
+                </span>
+                <p className="text-[11px] text-emerald-600 font-medium">
+                  {isRevealed
+                    ? `Correct Answer: "${revealedData?.correctAnswer || activeQuiz.correctAnswer}"`
+                    : 'Awaiting instructor answer reveal...'}
+                </p>
+              </div>
+            )}
           </div>
-        </div>
+        ) : (
+          <div className="p-8 text-center text-slate-400 space-y-2">
+            <HelpCircle className="w-8 h-8 mx-auto text-slate-300" />
+            <p className="text-xs font-medium">No live quiz is active right now.</p>
+            <p className="text-[11px] text-slate-400">Questions launched by the instructor will appear here instantly.</p>
+          </div>
+        )
       )}
-
-      {/* Static placeholder if student is viewing without active quiz */}
-      {!isInstructor && !activeQuiz && (
-        <div className="py-8 text-center text-slate-500 text-xs font-bold border border-dashed border-slate-850 rounded-xl">
-          Waiting for the mentor to publish a live class quiz...
-        </div>
-      )}
-
     </div>
   );
 };
-export default LiveQuizWidget;

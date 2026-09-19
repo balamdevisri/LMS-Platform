@@ -98,6 +98,23 @@ export const LiveClassroomScreen: React.FC = () => {
   const [activeSpeakerInfo, setActiveSpeakerInfo] = useState<{ userId: string; name?: string; role?: string } | null>(null);
   const [unmuteRequest, setUnmuteRequest] = useState<{ instructorName: string } | null>(null);
 
+  // 1-to-1 Interaction Session State
+  const [activeInteraction, setActiveInteraction] = useState<{
+    classId: string;
+    instructorId: string;
+    instructorName: string;
+    studentId: string;
+    studentName: string;
+    status: 'invited' | 'active' | 'declined' | 'ended';
+    startedAt: string;
+  } | null>(null);
+  const [interactionInviteModal, setInteractionInviteModal] = useState<{
+    classId: string;
+    instructorId: string;
+    instructorName: string;
+    studentId: string;
+  } | null>(null);
+
   // Sidebar Tabs (Strict KaizenQ design: Participants, Chat, Q&A)
   const [activeTab, setActiveTab] = useState<'participants' | 'chat' | 'questions'>('chat');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -291,7 +308,7 @@ export const LiveClassroomScreen: React.FC = () => {
 
   // 2. Realtime Socket.IO Connection & Listeners
   useEffect(() => {
-    if (!classId || (!user && !userProfile)) return;
+    if (!classId || authLoading || (!user && !userProfile)) return;
 
     let socketInstance: Socket | null = null;
     let unsubStatus: (() => void) | null = null;
@@ -325,25 +342,36 @@ export const LiveClassroomScreen: React.FC = () => {
 
         // Authoritative Room Join Handler with idempotency protection
         const performAuthoritativeJoin = () => {
-          if (!socketInstance) return;
+          const s = socketInstance || socketService.getSocket();
+          if (!s) return;
 
-          const joinKey = `${socketInstance.id || 'sock'}:${classId}:${currentUserUid}`;
+          const userRole = isInstructor ? 'instructor' : 'student';
+          console.log("[Live Classroom] Socket connected:", s.id);
+          console.log("[Live Classroom] Joining room:", classId);
+          console.log("[Live Classroom] Role:", userRole);
+
+          const joinKey = `${s.id || 'sock'}:${classId}:${currentUserUid}:${userRole}`;
           if (hasJoinedRef.current === joinKey) {
             return;
           }
           hasJoinedRef.current = joinKey;
-          (socketInstance as any)._hasJoinedLiveClass = classId;
+          (s as any)._hasJoinedLiveClass = classId;
 
           const joinPayload = {
             classId,
             liveClassId: classId,
+            classroomId: classId,
             userId: currentUserUid,
+            senderId: currentUserUid,
             name: resolvedDisplayName,
-            role: isInstructor ? 'instructor' : 'student',
+            senderName: resolvedDisplayName,
+            role: userRole,
+            senderRole: userRole,
           };
 
-          socketInstance.emit('join_class', joinPayload, (res: any) => {
+          s.emit('join_class', joinPayload, (res: any) => {
             if (res && res.success) {
+              console.log("[Live Classroom] Chat connection ready");
               if (res.status) {
                 const upperStatus = String(res.status).toUpperCase();
                 setLiveClassData((prev) => (prev ? { ...prev, status: upperStatus as any } : null));
@@ -360,6 +388,9 @@ export const LiveClassroomScreen: React.FC = () => {
               if (res.participants && Array.isArray(res.participants)) {
                 setParticipants(res.participants);
               }
+              if (res.interactionSession !== undefined) {
+                setActiveInteraction(res.interactionSession);
+              }
             } else if (res && res.error) {
               console.warn('[LiveClassroomScreen] Join error from server:', res);
               if (res.error === 'ROOM_LOCKED') {
@@ -374,15 +405,14 @@ export const LiveClassroomScreen: React.FC = () => {
 
           // Join attendance tracking for students only
           if (!isInstructor) {
-            socketInstance.emit('attendance:join', { liveClassId: classId });
+            s.emit('attendance:join', { liveClassId: classId });
           }
         };
 
         if (socketInstance.connected) {
           performAuthoritativeJoin();
-        } else {
-          socketInstance.once('connect', performAuthoritativeJoin);
         }
+        socketInstance.on('connect', performAuthoritativeJoin);
 
         // Authoritative State Snapshot on Join
         socketInstance.on('liveClass:joined', (res: any) => {
@@ -401,6 +431,9 @@ export const LiveClassroomScreen: React.FC = () => {
           }
           if (res?.participants && Array.isArray(res.participants)) {
             setParticipants(res.participants);
+          }
+          if (res?.interactionSession !== undefined) {
+            setActiveInteraction(res.interactionSession);
           }
         });
 
@@ -432,12 +465,15 @@ export const LiveClassroomScreen: React.FC = () => {
           setOnlineCount(Math.max(1, data.count));
         });
 
-        socketInstance.on('liveClass:presence', (data: { onlineCount: number; participants?: any[] }) => {
+        socketInstance.on('liveClass:presence', (data: { onlineCount: number; participants?: any[]; interactionSession?: any }) => {
           if (data.onlineCount !== undefined) {
             setOnlineCount(Math.max(1, data.onlineCount));
           }
           if (data.participants && Array.isArray(data.participants)) {
             setParticipants(data.participants);
+          }
+          if (data.interactionSession !== undefined) {
+            setActiveInteraction(data.interactionSession);
           }
         });
 
@@ -595,6 +631,66 @@ export const LiveClassroomScreen: React.FC = () => {
             setMicOn(false);
             setIsMicLocked(true);
             toast.info('🔇 Instructor has muted all student microphones.');
+          }
+        });
+
+        // 1-to-1 Interaction Session Listeners
+        socketInstance.on('liveClass:interaction:invited', (data: any) => {
+          const myId = user?.uid || userProfile?.uid;
+          if (data && data.studentId === myId) {
+            setInteractionInviteModal(data);
+            toast.info(`🎙️ ${data.instructorName || 'Instructor'} invited you to speak live!`, {
+              duration: 10000,
+            });
+          }
+        });
+
+        socketInstance.on('liveClass:interaction:active', (data: any) => {
+          if (data?.session) {
+            setActiveInteraction(data.session);
+            const myId = user?.uid || userProfile?.uid;
+            if (data.session.studentId === myId) {
+              setIsMicLocked(false);
+              toast.success(`🎙️ You are now in 1-to-1 live interaction with ${data.session.instructorName}! Your mic is unlocked.`);
+            } else if (isInstructor) {
+              toast.success(`🎙️ 1-to-1 live interaction active with ${data.session.studentName}!`);
+            }
+          }
+        });
+
+        socketInstance.on('liveClass:interaction:declined', (data: any) => {
+          if (isInstructor) {
+            toast.info(`Student ${data?.studentName || 'Student'} declined the invitation to speak.`);
+          }
+        });
+
+        socketInstance.on('liveClass:interaction:ended', (data: any) => {
+          setActiveInteraction(null);
+          const myId = user?.uid || userProfile?.uid;
+          if (data?.studentId === myId) {
+            setIsMicLocked(true);
+            setMicOn(false);
+            if (mediaClientRef.current) {
+              mediaClientRef.current.muteMicrophone().catch(() => {});
+            }
+            toast.info('🎙️ 1-to-1 interaction session ended. Microphone locked.');
+          }
+        });
+
+        socketInstance.on('liveClass:interaction:state', (data: any) => {
+          if (data && data.session !== undefined) {
+            setActiveInteraction(data.session);
+          }
+        });
+
+        socketInstance.on('liveClass:moderation:micsLocked', (data: any) => {
+          if (!isInstructor) {
+            setIsMicLocked(true);
+            setMicOn(false);
+            if (mediaClientRef.current) {
+              mediaClientRef.current.muteMicrophone().catch(() => {});
+            }
+            toast.warning(`🔇 All student microphones have been locked by ${data?.lockedBy || 'Instructor'}.`);
           }
         });
 
@@ -760,6 +856,12 @@ export const LiveClassroomScreen: React.FC = () => {
         socketInstance.off('liveClass:ended');
         socketInstance.off('liveClass:joined');
         socketInstance.off('liveClass:error');
+        socketInstance.off('liveClass:interaction:invited');
+        socketInstance.off('liveClass:interaction:active');
+        socketInstance.off('liveClass:interaction:declined');
+        socketInstance.off('liveClass:interaction:ended');
+        socketInstance.off('liveClass:interaction:state');
+        socketInstance.off('liveClass:moderation:micsLocked');
         socketInstance.off('kicked');
         delete (socketInstance as any)._hasJoinedLiveClass;
       }
@@ -1042,6 +1144,54 @@ export const LiveClassroomScreen: React.FC = () => {
     toast.info('Removed participant from classroom.');
   };
 
+  // 1-to-1 Interaction Actions
+  const handleInviteToSpeak = (studentId: string, studentName: string) => {
+    if (!socket || !isInstructor || !classId) return;
+    socket.emit('liveClass:interaction:invite', {
+      classId,
+      studentId,
+      studentName,
+    });
+    toast.info(`Sent 1-to-1 speaking invitation to ${studentName}`);
+  };
+
+  const handleRespondInteraction = (accepted: boolean) => {
+    if (!socket || !classId) return;
+    socket.emit('liveClass:interaction:respond', {
+      classId,
+      accepted,
+    });
+    setInteractionInviteModal(null);
+  };
+
+  const handleEndInteraction = () => {
+    if (!socket || !classId) return;
+    socket.emit('liveClass:interaction:end', {
+      classId,
+      studentId: activeInteraction?.studentId,
+    });
+    setActiveInteraction(null);
+    toast.info('Ended 1-to-1 interaction session.');
+  };
+
+  const handleLockAllStudentMics = () => {
+    if (!socket || !isInstructor || !classId) return;
+    socket.emit('liveClass:moderation:lockMics', { classId });
+    toast.warning('🔒 Locked all student microphones.');
+  };
+
+  const handleRevokeAllStudentMics = () => {
+    if (!socket || !isInstructor || !classId) return;
+    socket.emit('liveClass:moderation:revokeAll', { classId });
+    toast.info('Revoked all student microphone permissions.');
+  };
+
+  const handleRequestUnmuteStudent = (targetUserId: string) => {
+    if (!socket || !isInstructor || !classId) return;
+    socket.emit('liveClass:moderation:requestUnmute', { classId, userId: targetUserId });
+    toast.info('Sent unmute request to student.');
+  };
+
   // =========================================================================
   // VIEW RENDERERS
   // =========================================================================
@@ -1049,10 +1199,10 @@ export const LiveClassroomScreen: React.FC = () => {
   // 1. Loading State
   if (loading || authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white font-['Sora']">
+      <div className="min-h-screen flex items-center justify-center bg-[#F6F8FC] text-slate-900 font-['Sora']">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-10 w-10 text-sky-400 animate-spin" />
-          <p className="text-xs font-bold text-slate-400">Loading KaizenQ Live Classroom...</p>
+          <Loader2 className="h-10 w-10 text-indigo-600 animate-spin" />
+          <p className="text-xs font-bold text-slate-600">Loading KaizenQ Live Classroom...</p>
         </div>
       </div>
     );
@@ -1061,27 +1211,27 @@ export const LiveClassroomScreen: React.FC = () => {
   // 2. Access Denied State
   if (!authCheck.authorized) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white font-['Sora'] px-6">
-        <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 text-center shadow-2xl space-y-4">
-          <div className="w-16 h-16 rounded-full bg-rose-500/10 border border-rose-500/30 flex items-center justify-center mx-auto">
-            <ShieldAlert className="w-8 h-8 text-rose-400" />
+      <div className="min-h-screen bg-[#F6F8FC] flex flex-col items-center justify-center text-slate-900 font-['Sora'] px-6">
+        <div className="max-w-md w-full bg-white border border-slate-200 rounded-3xl p-8 text-center shadow-lg space-y-4">
+          <div className="w-16 h-16 rounded-full bg-rose-50 border border-rose-200 flex items-center justify-center mx-auto">
+            <ShieldAlert className="w-8 h-8 text-rose-500" />
           </div>
-          <h3 className="text-xl font-heading font-extrabold text-white">Access Denied</h3>
-          <p className="text-sm text-slate-400">
+          <h3 className="text-xl font-heading font-extrabold text-slate-900">Access Denied</h3>
+          <p className="text-sm text-slate-600">
             {authCheck.reason || 'You are not authorized to access this live class session.'}
           </p>
           <div className="pt-2">
             {authCheck.code === 'UNAUTHENTICATED' ? (
               <button
                 onClick={() => navigate('/auth/login')}
-                className="w-full py-3 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs cursor-pointer shadow-lg shadow-sky-500/20"
+                className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs cursor-pointer shadow-md shadow-indigo-600/20"
               >
                 Login to KaizenQ
               </button>
             ) : (
               <button
                 onClick={() => navigate('/dashboard/live-classroom')}
-                className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs cursor-pointer"
+                className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer"
               >
                 Return to Live Sessions Schedule
               </button>
@@ -1111,26 +1261,26 @@ export const LiveClassroomScreen: React.FC = () => {
   // 4. Standby / Waiting Room (Scheduled OR Student Waiting for Instructor to Join)
   if (normStatus === 'SCHEDULED' || (!isInstructor && !isInstructorOnline)) {
     return (
-      <div className="min-h-screen bg-slate-950 text-white font-['Sora'] flex flex-col justify-between">
+      <div className="min-h-screen bg-[#F6F8FC] text-slate-900 font-['Sora'] flex flex-col justify-between">
         {/* Scheduled / Waiting Room Top Bar */}
-        <header className="bg-slate-900 border-b border-slate-800 px-6 py-4 flex items-center justify-between">
+        <header className="bg-white border-b border-slate-200/80 px-6 py-4 flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('/dashboard/live-classroom')}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all cursor-pointer"
+              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all cursor-pointer"
               title="Return to Schedule"
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
             <div>
-              <h2 className="text-sm font-bold text-white truncate max-w-md">{liveClassData?.title}</h2>
-              <p className="text-xs text-slate-400">{liveClassData?.courseName}</p>
+              <h2 className="text-sm font-bold text-slate-900 truncate max-w-md">{liveClassData?.title}</h2>
+              <p className="text-xs text-slate-500">{liveClassData?.courseName}</p>
             </div>
           </div>
           <span className={`px-3 py-1 rounded-full border font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 ${
             normStatus === 'LIVE'
-              ? 'bg-sky-500/10 border-sky-500/30 text-sky-400'
-              : 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+              ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+              : 'bg-amber-50 border-amber-200 text-amber-800'
           }`}>
             <Clock className="w-3.5 h-3.5" />
             <span>{normStatus === 'LIVE' ? 'WAITING ROOM' : 'SCHEDULED'}</span>
@@ -1139,67 +1289,64 @@ export const LiveClassroomScreen: React.FC = () => {
 
         {/* Scheduled Main Content Card */}
         <main className="flex-1 flex items-center justify-center p-6">
-          <div className="max-w-2xl w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 sm:p-10 shadow-2xl space-y-6 relative overflow-hidden">
-            {/* Background Glow */}
-            <div className="absolute top-0 right-0 w-80 h-80 bg-sky-500/10 blur-3xl rounded-full pointer-events-none" />
-
+          <div className="max-w-2xl w-full bg-white border border-slate-200/80 rounded-3xl p-8 sm:p-10 shadow-sm space-y-6 relative overflow-hidden">
             {/* Class Details Banner */}
             <div className="space-y-3 relative z-10">
               <div className="flex items-center gap-2">
-                <span className="px-2.5 py-1 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs font-bold uppercase tracking-wider">
+                <span className="px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold uppercase tracking-wider">
                   {liveClassData?.courseName || 'Core Curriculum'}
                 </span>
                 {liveClassData?.difficulty && (
-                  <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 text-xs font-medium">
+                  <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 text-xs font-medium">
                     {liveClassData.difficulty}
                   </span>
                 )}
               </div>
 
-              <h1 className="text-2xl sm:text-3xl font-heading font-black text-white leading-tight">
+              <h1 className="text-2xl sm:text-3xl font-heading font-black text-slate-900 leading-tight">
                 {liveClassData?.title}
               </h1>
 
-              <p className="text-sm text-slate-300 leading-relaxed">
+              <p className="text-sm text-slate-600 leading-relaxed">
                 {liveClassData?.description || 'Interactive deep dive live session with practical demonstrations and real-time student interaction.'}
               </p>
             </div>
 
             {/* Metadata Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-5 rounded-2xl bg-slate-950/80 border border-slate-800 text-xs relative z-10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-5 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs relative z-10">
               <div className="flex items-center gap-3">
-                <Calendar className="w-5 h-5 text-sky-400 shrink-0" />
+                <Calendar className="w-5 h-5 text-indigo-600 shrink-0" />
                 <div>
-                  <span className="text-slate-400 font-medium">Scheduled Date & Time</span>
-                  <p className="font-bold text-white">
+                  <span className="text-slate-500 font-medium">Scheduled Date & Time</span>
+                  <p className="font-bold text-slate-900">
                     {liveClassData?.startTime ? new Date(liveClassData.startTime).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'Today, Scheduled'}
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
-                <Clock className="w-5 h-5 text-amber-400 shrink-0" />
+                <Clock className="w-5 h-5 text-amber-600 shrink-0" />
                 <div>
-                  <span className="text-slate-400 font-medium">Estimated Duration</span>
-                  <p className="font-bold text-white">{liveClassData?.duration || 90} Minutes</p>
+                  <span className="text-slate-500 font-medium">Estimated Duration</span>
+                  <p className="font-bold text-slate-900">{liveClassData?.duration || 90} Minutes</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold flex items-center justify-center shrink-0">
                   {liveClassData?.instructorName?.charAt(0) || 'I'}
                 </div>
                 <div>
-                  <span className="text-slate-400 font-medium">Assigned Instructor</span>
-                  <p className="font-bold text-white">{liveClassData?.instructorName || 'Assigned Instructor'}</p>
+                  <span className="text-slate-500 font-medium">Assigned Instructor</span>
+                  <p className="font-bold text-slate-900">{liveClassData?.instructorName || 'Assigned Instructor'}</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
-                <Users className="w-5 h-5 text-emerald-400 shrink-0" />
+                <Users className="w-5 h-5 text-emerald-600 shrink-0" />
                 <div>
-                  <span className="text-slate-400 font-medium">Class Capacity</span>
-                  <p className="font-bold text-white">{liveClassData?.maxParticipants || 100} Learners</p>
+                  <span className="text-slate-500 font-medium">Class Capacity</span>
+                  <p className="font-bold text-slate-900">{liveClassData?.maxParticipants || 100} Learners</p>
                 </div>
               </div>
             </div>
@@ -1208,23 +1355,23 @@ export const LiveClassroomScreen: React.FC = () => {
             <div className="pt-2 relative z-10">
               {isAssignedInstructor ? (
                 <div className="space-y-3 text-center sm:text-left">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold text-xs">
-                    <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold text-xs">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Designated Instructor: You are authorized to start this live session</span>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-3">
                     <button
                       type="button"
                       onClick={() => setIsDeviceSettingsOpen(true)}
-                      className="py-3.5 px-5 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all shadow-md"
+                      className="py-3.5 px-5 rounded-2xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all"
                     >
-                      <Settings className="w-4 h-4 text-sky-400" />
+                      <Settings className="w-4 h-4 text-indigo-600" />
                       <span>Check Camera & Mic</span>
                     </button>
                     <button
                       onClick={handleStartLiveClass}
                       disabled={isStartingClass}
-                      className="flex-1 py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-xl shadow-emerald-600/30 transition-all disabled:opacity-60"
+                      className="flex-1 py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-600/25 transition-all disabled:opacity-60"
                     >
                       {isStartingClass ? (
                         <>
@@ -1239,26 +1386,26 @@ export const LiveClassroomScreen: React.FC = () => {
                       )}
                     </button>
                   </div>
-                  <p className="text-[11px] text-slate-400 text-center">
+                  <p className="text-[11px] text-slate-500 text-center">
                     Clicking will transition the session to LIVE, initialize the WebRTC media mesh & Socket.IO signaling, and notify all enrolled students.
                   </p>
                 </div>
               ) : (
-                <div className="p-6 rounded-2xl bg-slate-950/60 border border-slate-800 text-center space-y-4">
-                  <div className="flex items-center justify-center gap-2 text-sky-400 font-bold text-sm">
-                    <span className="w-2.5 h-2.5 rounded-full bg-sky-400 animate-ping" />
+                <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-4">
+                  <div className="flex items-center justify-center gap-2 text-indigo-600 font-bold text-sm">
+                    <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 animate-ping" />
                     <span>
                       {normStatus === 'LIVE'
                         ? 'Waiting for instructor to join...'
                         : 'Waiting for assigned instructor to start the live class...'}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
+                  <p className="text-xs text-slate-600 max-w-md mx-auto leading-relaxed">
                     {normStatus === 'LIVE'
                       ? `The live session is active. Instructor ${liveClassData?.instructorName || 'Lead Mentor'} is connecting. You are currently in the waiting room and will automatically enter the classroom as soon as the instructor connects.`
                       : `Instructor ${liveClassData?.instructorName || 'Lead Mentor'} has not commenced the broadcast yet. This screen will automatically launch into the live classroom the instant the instructor starts the session.`}
                   </p>
-                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs font-semibold">
+                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-semibold">
                     <Users className="w-3.5 h-3.5" />
                     <span>In Queue • {onlineCount} connected</span>
                   </div>
@@ -1266,9 +1413,9 @@ export const LiveClassroomScreen: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setIsDeviceSettingsOpen(true)}
-                      className="py-2.5 px-4 mx-auto rounded-xl bg-slate-900 border border-slate-700 text-slate-300 hover:text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all"
+                      className="py-2.5 px-4 mx-auto rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all shadow-xs"
                     >
-                      <Settings className="w-3.5 h-3.5 text-sky-400" />
+                      <Settings className="w-3.5 h-3.5 text-indigo-600" />
                       <span>Test Audio & Video Preview</span>
                     </button>
                   </div>
@@ -1279,7 +1426,7 @@ export const LiveClassroomScreen: React.FC = () => {
         </main>
 
         {/* Scheduled Footer */}
-        <footer className="p-4 text-center text-xs text-slate-500 border-t border-slate-900">
+        <footer className="p-4 text-center text-xs text-slate-400 border-t border-slate-200/80">
           KaizenQ Live Classroom Infrastructure • Real-time Socket.IO signaling active
         </footer>
       </div>
@@ -1294,10 +1441,10 @@ export const LiveClassroomScreen: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-['Sora'] select-none overflow-x-hidden">
+    <div className="min-h-screen bg-[#F6F8FC] text-slate-900 flex flex-col font-['Sora'] select-none overflow-x-hidden">
       
       {/* 1. CLASSROOM TOP HEADER */}
-      <header className="bg-slate-900 border-b border-sky-500/10 px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-4 shadow-xl z-20">
+      <header className="bg-white border-b border-slate-200/80 px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-4 shadow-xs z-20">
         
         {/* Mentor Profile & Class Banner */}
         <div className="flex items-center gap-3 min-w-0">
@@ -1306,55 +1453,55 @@ export const LiveClassroomScreen: React.FC = () => {
               <img
                 src={liveClassData.instructorAvatar}
                 alt={liveClassData.instructorName || 'Instructor'}
-                className="w-10 h-10 rounded-full object-cover border-2 border-sky-400 shadow-md"
+                className="w-10 h-10 rounded-full object-cover border-2 border-indigo-500 shadow-xs"
               />
             ) : (
-              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-black text-xs flex items-center justify-center border-2 border-sky-400 shadow-md">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-black text-xs flex items-center justify-center border-2 border-indigo-500 shadow-xs">
                 {(liveClassData?.instructorName || 'M').charAt(0).toUpperCase()}
               </div>
             )}
-            <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full animate-ping" />
-            <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full" />
+            <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full animate-ping" />
+            <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />
           </div>
 
           <div className="min-w-0 space-y-0.5">
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="font-heading font-black text-sm text-white truncate max-w-sm sm:max-w-md">
+              <h2 className="font-heading font-black text-sm text-slate-900 truncate max-w-sm sm:max-w-md">
                 {liveClassData?.title}
               </h2>
-              <span className="px-2.5 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/25 text-rose-400 font-extrabold text-[10px] uppercase tracking-wider flex items-center gap-1 shrink-0">
+              <span className="px-2.5 py-0.5 rounded-full bg-rose-50 border border-rose-200 text-rose-600 font-extrabold text-[10px] uppercase tracking-wider flex items-center gap-1 shrink-0">
                 <Radio className="w-3 h-3 text-rose-500 animate-pulse" />
                 <span>LIVE</span>
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 font-medium truncate">
-              {liveClassData?.courseName} • Instructor: <strong className="text-sky-300">{liveClassData?.instructorName}</strong>
+            <p className="text-[11px] text-slate-500 font-medium truncate">
+              {liveClassData?.courseName} • Instructor: <strong className="text-indigo-600">{liveClassData?.instructorName}</strong>
             </p>
           </div>
         </div>
 
         {/* Center Live Telemetry Stats */}
-        <div className="flex items-center gap-3 text-xs font-bold text-slate-300">
-          <div className="flex items-center gap-1.5 bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 font-mono">
-            <Clock className="w-3.5 h-3.5 text-sky-400" />
+        <div className="flex items-center gap-3 text-xs font-bold text-slate-700">
+          <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 font-mono">
+            <Clock className="w-3.5 h-3.5 text-indigo-600" />
             <span>{formatTime(secondsElapsed)}</span>
           </div>
 
-          <div className="flex items-center gap-1.5 bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700">
-            <Users className="w-3.5 h-3.5 text-sky-400" />
+          <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+            <Users className="w-3.5 h-3.5 text-indigo-600" />
             <span>{onlineCount} Live Participants</span>
           </div>
 
           {isRecording && (
-            <span className="flex items-center gap-1.5 text-[10px] font-black uppercase text-red-500 bg-red-500/10 border border-red-500/20 px-2.5 py-1.5 rounded-xl animate-pulse">
-              <span className="w-2 h-2 rounded-full bg-red-500" />
+            <span className="flex items-center gap-1.5 text-[10px] font-black uppercase text-rose-600 bg-rose-50 border border-rose-200 px-2.5 py-1.5 rounded-xl animate-pulse">
+              <span className="w-2 h-2 rounded-full bg-rose-500" />
               <span>REC</span>
             </span>
           )}
 
           {isLocked && (
-            <span className="flex items-center gap-1.5 text-[10px] font-black uppercase text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2.5 py-1.5 rounded-xl shadow-xs">
-              <Lock className="w-3 h-3 text-amber-400" />
+            <span className="flex items-center gap-1.5 text-[10px] font-black uppercase text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-1.5 rounded-xl shadow-xs">
+              <Lock className="w-3 h-3 text-amber-600" />
               <span>PRIVATE / LOCKED</span>
             </span>
           )}
@@ -1365,12 +1512,12 @@ export const LiveClassroomScreen: React.FC = () => {
             <div
               className={`flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1.5 rounded-xl border transition-all ${
                 connectionStatus === 'connected'
-                  ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                  ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
                   : connectionStatus === 'reconnecting'
-                  ? 'text-amber-400 bg-amber-500/10 border-amber-500/20'
+                  ? 'text-amber-800 bg-amber-50 border-amber-200'
                   : connectionStatus === 'disconnected'
-                  ? 'text-rose-400 bg-rose-500/10 border-rose-500/20'
-                  : 'text-slate-500 bg-slate-800 border-slate-700'
+                  ? 'text-rose-700 bg-rose-50 border-rose-200'
+                  : 'text-slate-500 bg-slate-50 border-slate-200'
               }`}
             >
               <Wifi className="w-3.5 h-3.5" />
@@ -1390,14 +1537,14 @@ export const LiveClassroomScreen: React.FC = () => {
             <div
               className={`flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1.5 rounded-xl border transition-all ${
                 mediaConnectionState === 'connected'
-                  ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                  ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
                   : mediaConnectionState === 'connecting' || mediaConnectionState === 'authenticating'
-                  ? 'text-sky-400 bg-sky-500/10 border-sky-500/20'
+                  ? 'text-indigo-700 bg-indigo-50 border-indigo-200'
                   : mediaConnectionState === 'reconnecting'
-                  ? 'text-amber-400 bg-amber-500/10 border-amber-500/20'
+                  ? 'text-amber-800 bg-amber-50 border-amber-200'
                   : mediaConnectionState === 'failed'
-                  ? 'text-rose-400 bg-rose-500/10 border-rose-500/20'
-                  : 'text-slate-500 bg-slate-800 border-slate-700'
+                  ? 'text-rose-700 bg-rose-50 border-rose-200'
+                  : 'text-slate-500 bg-slate-50 border-slate-200'
               }`}
             >
               <Radio className="w-3.5 h-3.5" />
@@ -1422,7 +1569,7 @@ export const LiveClassroomScreen: React.FC = () => {
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
             className={`p-2 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-              isSidebarOpen ? 'bg-sky-500/20 border-sky-400 text-sky-300' : 'bg-slate-800 border-slate-700 text-slate-400'
+              isSidebarOpen ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200/80'
             }`}
             title="Toggle Right Panel"
           >
@@ -1432,7 +1579,7 @@ export const LiveClassroomScreen: React.FC = () => {
           {isInstructor ? (
             <button
               onClick={() => setIsEndConfirmModalOpen(true)}
-              className="py-2 px-4 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-lg shadow-rose-600/20 transition-all"
+              className="py-2 px-4 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-xs transition-all"
             >
               <LogOut className="w-4 h-4" />
               <span>End Class</span>
@@ -1440,7 +1587,7 @@ export const LiveClassroomScreen: React.FC = () => {
           ) : (
             <button
               onClick={() => setIsLeaveConfirmModalOpen(true)}
-              className="py-2 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer border border-slate-700 transition-all"
+              className="py-2 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer border border-slate-200 transition-all"
             >
               <LogOut className="w-4 h-4" />
               <span>Leave Class</span>
@@ -1456,10 +1603,44 @@ export const LiveClassroomScreen: React.FC = () => {
         <div
           className={`${
             isSidebarOpen ? 'lg:col-span-8 xl:col-span-9' : 'lg:col-span-12'
-          } bg-slate-900 border border-sky-500/10 rounded-3xl overflow-hidden flex flex-col justify-between relative shadow-2xl transition-all duration-300`}
+          } bg-white border border-slate-200/80 rounded-3xl overflow-hidden flex flex-col justify-between relative shadow-sm transition-all duration-300`}
         >
-          {/* Media Player Frame */}
-          <div className="flex-1 bg-slate-950 relative overflow-hidden flex flex-col items-center justify-center">
+          {/* Active 1-to-1 Interactive Session Spotlight Banner */}
+          {activeInteraction && activeInteraction.status === 'active' && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="m-3 mb-0 bg-gradient-to-r from-indigo-50 via-purple-50 to-emerald-50 border border-indigo-200/80 p-3.5 rounded-2xl flex items-center justify-between shadow-xs z-30"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                  <Mic className="w-4 h-4 animate-bounce" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider bg-indigo-100 text-indigo-800 border border-indigo-200 px-2 py-0.5 rounded-full">
+                      1-to-1 Spotlight Active
+                    </span>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                  </div>
+                  <p className="text-xs font-bold text-slate-900 mt-0.5">
+                    <strong className="text-indigo-600">{activeInteraction.instructorName}</strong> & <strong className="text-purple-600">{activeInteraction.studentName}</strong> are speaking live with the classroom
+                  </p>
+                </div>
+              </div>
+              {(isInstructor || activeInteraction.studentId === (user?.uid || userProfile?.uid)) && (
+                <button
+                  onClick={handleEndInteraction}
+                  className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-xs transition-all cursor-pointer shrink-0 ml-2"
+                >
+                  End Session
+                </button>
+              )}
+            </motion.div>
+          )}
+
+          {/* Media Player Frame (Contained inside clean light frame) */}
+          <div className="flex-1 bg-slate-950 relative overflow-hidden flex flex-col items-center justify-center m-2.5 rounded-2xl">
             
             {/* Floating Live Announcement Banner */}
             {announcements.length > 0 && (
@@ -1478,22 +1659,22 @@ export const LiveClassroomScreen: React.FC = () => {
                 {raisedHands.slice(-2).map((h) => (
                   <div
                     key={h.userId}
-                    className="bg-slate-900/95 backdrop-blur-md border border-amber-500/40 p-3 rounded-2xl flex items-center justify-between gap-3 shadow-xl text-xs"
+                    className="bg-white/95 backdrop-blur-md border border-amber-300 p-3 rounded-2xl flex items-center justify-between gap-3 shadow-lg text-xs"
                   >
                     <div className="flex items-center gap-2">
-                      <Hand className="w-4 h-4 text-amber-400 fill-current animate-bounce shrink-0" />
-                      <span className="font-bold text-white truncate">{h.userName} raised hand</span>
+                      <Hand className="w-4 h-4 text-amber-500 fill-current animate-bounce shrink-0" />
+                      <span className="font-bold text-slate-900 truncate">{h.userName} raised hand</span>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <button
                         onClick={() => handleAcknowledgeHand(h.userId)}
-                        className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] cursor-pointer shadow-sm"
+                        className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] cursor-pointer shadow-xs"
                       >
                         Acknowledge
                       </button>
                       <button
                         onClick={() => setRaisedHands((prev) => prev.filter((x) => x.userId !== h.userId))}
-                        className="text-slate-400 hover:text-white text-[10px] font-bold p-1 cursor-pointer"
+                        className="text-slate-400 hover:text-slate-700 text-[10px] font-bold p-1 cursor-pointer"
                       >
                         Dismiss
                       </button>
@@ -1510,7 +1691,7 @@ export const LiveClassroomScreen: React.FC = () => {
                   href={liveClassData.notesUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="px-3 py-1.5 rounded-xl bg-slate-900/80 backdrop-blur-md border border-emerald-500/30 text-emerald-400 font-bold text-xs flex items-center gap-1.5 hover:bg-slate-900 shadow-md"
+                  className="px-3 py-1.5 rounded-xl bg-white/90 backdrop-blur-md border border-emerald-300 text-emerald-700 font-bold text-xs flex items-center gap-1.5 hover:bg-white shadow-md"
                 >
                   <FileText className="w-3.5 h-3.5" />
                   <span>Notes</span>
@@ -1522,7 +1703,7 @@ export const LiveClassroomScreen: React.FC = () => {
                   href={liveClassData.recordingUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="px-3 py-1.5 rounded-xl bg-slate-900/80 backdrop-blur-md border border-purple-500/30 text-purple-400 font-bold text-xs flex items-center gap-1.5 hover:bg-slate-900 shadow-md"
+                  className="px-3 py-1.5 rounded-xl bg-white/90 backdrop-blur-md border border-purple-300 text-purple-700 font-bold text-xs flex items-center gap-1.5 hover:bg-white shadow-md"
                 >
                   <VideoIcon className="w-3.5 h-3.5" />
                   <span>Recording</span>
@@ -1532,10 +1713,10 @@ export const LiveClassroomScreen: React.FC = () => {
 
             {/* Active Speaker Floating Badge */}
             {activeSpeakerInfo && (
-              <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-slate-950/85 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-emerald-500/40 text-xs font-bold text-emerald-300 shadow-xl pointer-events-none">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
+              <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-white/90 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-emerald-300 text-xs font-bold text-emerald-800 shadow-md pointer-events-none">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
                 <span className="truncate">Active Speaker: {activeSpeakerInfo.name}</span>
-                <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-500/30 font-mono">
+                <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono">
                   {activeSpeakerInfo.role}
                 </span>
               </div>
@@ -1563,7 +1744,7 @@ export const LiveClassroomScreen: React.FC = () => {
           </div>
 
           {/* 3. DYNAMIC BOTTOM TOOLBAR CONTROLS */}
-          <footer className="bg-slate-950 border-t border-sky-500/10 px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3 z-10">
+          <footer className="bg-white border-t border-slate-200/80 px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3 z-10">
             
             {/* Left Controls: Hardware Toggles */}
             <div className="flex items-center gap-2">
@@ -1572,10 +1753,10 @@ export const LiveClassroomScreen: React.FC = () => {
                 disabled={!isInstructor && isMicLocked}
                 className={`p-2.5 rounded-xl border text-xs font-bold transition-all relative ${
                   micOn
-                    ? 'bg-sky-500/20 border-sky-400 text-sky-300 cursor-pointer'
+                    ? 'bg-indigo-50 border-indigo-200 text-indigo-600 cursor-pointer'
                     : !isInstructor && isMicLocked
-                    ? 'bg-slate-800/80 border-slate-700 text-slate-500 cursor-not-allowed opacity-75'
-                    : 'bg-rose-500/20 border-rose-500 text-rose-400 cursor-pointer'
+                    ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-75'
+                    : 'bg-rose-50 border-rose-200 text-rose-600 cursor-pointer'
                 }`}
                 title={
                   !isInstructor && isMicLocked
@@ -1587,14 +1768,14 @@ export const LiveClassroomScreen: React.FC = () => {
               >
                 {micOn ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
                 {!isInstructor && isMicLocked && (
-                  <Lock className="w-2.5 h-2.5 absolute -top-1 -right-1 text-amber-400 bg-slate-900 rounded-full p-0.5 border border-slate-700" />
+                  <Lock className="w-2.5 h-2.5 absolute -top-1 -right-1 text-amber-500 bg-white rounded-full p-0.5 border border-slate-200 shadow-xs" />
                 )}
               </button>
 
               <button
                 onClick={handleToggleCam}
                 className={`p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                  camOn ? 'bg-sky-500/20 border-sky-400 text-sky-300' : 'bg-rose-500/20 border-rose-500 text-rose-400'
+                  camOn ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-rose-50 border-rose-200 text-rose-600'
                 }`}
                 title={camOn ? 'Turn Camera Off' : 'Turn Camera On'}
               >
@@ -1604,7 +1785,7 @@ export const LiveClassroomScreen: React.FC = () => {
               <button
                 onClick={handleToggleScreenShare}
                 className={`p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                  isScreenSharing ? 'bg-indigo-500/20 border-indigo-400 text-indigo-300' : 'bg-slate-800 border-slate-700 text-slate-300'
+                  isScreenSharing ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs' : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200/80'
                 }`}
                 title="Share Screen"
               >
@@ -1614,21 +1795,21 @@ export const LiveClassroomScreen: React.FC = () => {
               <button
                 onClick={() => handleToggleWhiteboard(!isWhiteboardOpen)}
                 className={`p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                  isWhiteboardOpen ? 'bg-sky-500/20 border-sky-400 text-sky-300' : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-sky-300'
+                  isWhiteboardOpen ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-slate-100 hover:bg-slate-200/80 border-slate-200 text-slate-700'
                 }`}
                 title="Interactive Whiteboard"
               >
-                <Pencil className="w-4 h-4 text-sky-400" />
+                <Pencil className="w-4 h-4 text-indigo-600" />
                 <span className="hidden sm:inline">Whiteboard</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setIsDeviceSettingsOpen(true)}
-                className="p-2.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all cursor-pointer"
+                className="p-2.5 rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200/80 text-slate-700 text-xs font-bold transition-all cursor-pointer"
                 title="Audio & Video Device Settings"
               >
-                <Settings className="w-4 h-4 text-sky-400" />
+                <Settings className="w-4 h-4 text-indigo-600" />
               </button>
             </div>
 
@@ -1641,13 +1822,13 @@ export const LiveClassroomScreen: React.FC = () => {
                       setActiveTab('participants');
                       setIsSidebarOpen(true);
                     }}
-                    className={`px-3 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer ${
+                    className={`px-3 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
                       activeTab === 'participants' && isSidebarOpen
-                        ? 'bg-sky-500/20 border-sky-400 text-sky-300'
-                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                        : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200/80'
                     }`}
                   >
-                    <Users className="w-3.5 h-3.5 text-sky-400" />
+                    <Users className="w-3.5 h-3.5" />
                     <span>Participants ({onlineCount})</span>
                   </button>
 
@@ -1656,13 +1837,13 @@ export const LiveClassroomScreen: React.FC = () => {
                       setActiveTab('chat');
                       setIsSidebarOpen(true);
                     }}
-                    className={`px-3 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer ${
+                    className={`px-3 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
                       activeTab === 'chat' && isSidebarOpen
-                        ? 'bg-sky-500/20 border-sky-400 text-sky-300'
-                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                        : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200/80'
                     }`}
                   >
-                    <MessageSquare className="w-3.5 h-3.5 text-sky-400" />
+                    <MessageSquare className="w-3.5 h-3.5" />
                     <span>Chat</span>
                   </button>
 
@@ -1671,45 +1852,45 @@ export const LiveClassroomScreen: React.FC = () => {
                       setActiveTab('questions');
                       setIsSidebarOpen(true);
                     }}
-                    className={`px-3 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer ${
+                    className={`px-3 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
                       activeTab === 'questions' && isSidebarOpen
-                        ? 'bg-amber-500/20 border-amber-400 text-amber-300'
-                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                        : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200/80'
                     }`}
                   >
-                    <HelpCircle className="w-3.5 h-3.5 text-amber-400" />
+                    <HelpCircle className="w-3.5 h-3.5" />
                     <span>Q&A</span>
                   </button>
 
                   <button
                     onClick={() => setIsPollModalOpen(true)}
-                    className="px-3 py-2 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-300 font-bold text-xs flex items-center gap-1.5 hover:bg-blue-500/20 cursor-pointer"
+                    className="px-3 py-2 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 font-bold text-xs flex items-center gap-1.5 hover:bg-blue-100 cursor-pointer transition-all"
                   >
-                    <BarChart3 className="w-3.5 h-3.5 text-blue-400" />
+                    <BarChart3 className="w-3.5 h-3.5 text-blue-600" />
                     <span>Poll</span>
                   </button>
 
                   <button
                     onClick={() => setIsQuizModalOpen(true)}
-                    className="px-3 py-2 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-300 font-bold text-xs flex items-center gap-1.5 hover:bg-purple-500/20 cursor-pointer"
+                    className="px-3 py-2 rounded-xl bg-purple-50 border border-purple-200 text-purple-700 font-bold text-xs flex items-center gap-1.5 hover:bg-purple-100 cursor-pointer transition-all"
                   >
-                    <HelpCircle className="w-3.5 h-3.5 text-purple-400" />
+                    <HelpCircle className="w-3.5 h-3.5 text-purple-600" />
                     <span>Quiz</span>
                   </button>
 
                   <button
                     onClick={() => setIsAnnouncementModalOpen(true)}
-                    className="px-3 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 font-bold text-xs flex items-center gap-1.5 hover:bg-indigo-500/20 cursor-pointer"
+                    className="px-3 py-2 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold text-xs flex items-center gap-1.5 hover:bg-indigo-100 cursor-pointer transition-all"
                   >
-                    <Megaphone className="w-3.5 h-3.5 text-indigo-400" />
+                    <Megaphone className="w-3.5 h-3.5 text-indigo-600" />
                     <span>Announcement</span>
                   </button>
 
                   <button
                     onClick={handleOpenAttendanceRoster}
-                    className="px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-bold text-xs flex items-center gap-1.5 hover:bg-emerald-500/20 cursor-pointer"
+                    className="px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold text-xs flex items-center gap-1.5 hover:bg-emerald-100 cursor-pointer transition-all"
                   >
-                    <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Attendance</span>
                   </button>
                 </>
@@ -1720,13 +1901,13 @@ export const LiveClassroomScreen: React.FC = () => {
                       setActiveTab('chat');
                       setIsSidebarOpen(true);
                     }}
-                    className={`px-3.5 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer ${
+                    className={`px-3.5 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
                       activeTab === 'chat' && isSidebarOpen
-                        ? 'bg-sky-500/20 border-sky-400 text-sky-300'
-                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                        : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200/80'
                     }`}
                   >
-                    <MessageSquare className="w-3.5 h-3.5 text-sky-400" />
+                    <MessageSquare className="w-3.5 h-3.5" />
                     <span>Chat</span>
                   </button>
 
@@ -1735,13 +1916,13 @@ export const LiveClassroomScreen: React.FC = () => {
                       setActiveTab('questions');
                       setIsSidebarOpen(true);
                     }}
-                    className={`px-3.5 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer ${
+                    className={`px-3.5 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
                       activeTab === 'questions' && isSidebarOpen
-                        ? 'bg-amber-500/20 border-amber-400 text-amber-300'
-                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                        : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200/80'
                     }`}
                   >
-                    <HelpCircle className="w-3.5 h-3.5 text-amber-400" />
+                    <HelpCircle className="w-3.5 h-3.5" />
                     <span>Q&A</span>
                   </button>
 
@@ -1750,13 +1931,13 @@ export const LiveClassroomScreen: React.FC = () => {
                       setActiveTab('participants');
                       setIsSidebarOpen(true);
                     }}
-                    className={`px-3.5 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer ${
+                    className={`px-3.5 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
                       activeTab === 'participants' && isSidebarOpen
-                        ? 'bg-sky-500/20 border-sky-400 text-sky-300'
-                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                        : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200/80'
                     }`}
                   >
-                    <Users className="w-3.5 h-3.5 text-sky-400" />
+                    <Users className="w-3.5 h-3.5" />
                     <span>Participants ({onlineCount})</span>
                   </button>
 
@@ -1765,8 +1946,8 @@ export const LiveClassroomScreen: React.FC = () => {
                     onClick={handleToggleHandRaise}
                     className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
                       hasRaisedHand
-                        ? 'bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/30 animate-pulse'
-                        : 'bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20'
+                        ? 'bg-amber-500 text-white font-black shadow-md shadow-amber-500/20 animate-pulse'
+                        : 'bg-amber-50 border border-amber-200 text-amber-800 hover:bg-amber-100'
                     }`}
                   >
                     <Hand className="w-4 h-4 fill-current" />
@@ -1775,17 +1956,17 @@ export const LiveClassroomScreen: React.FC = () => {
 
                   <button
                     onClick={() => setIsPollModalOpen(true)}
-                    className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold border border-slate-700 flex items-center gap-1.5 cursor-pointer"
+                    className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold border border-slate-200 flex items-center gap-1.5 cursor-pointer"
                   >
-                    <BarChart3 className="w-3.5 h-3.5 text-blue-400" />
+                    <BarChart3 className="w-3.5 h-3.5 text-blue-600" />
                     <span>Vote Poll</span>
                   </button>
 
                   <button
                     onClick={() => setIsQuizModalOpen(true)}
-                    className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold border border-slate-700 flex items-center gap-1.5 cursor-pointer"
+                    className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold border border-slate-200 flex items-center gap-1.5 cursor-pointer"
                   >
-                    <HelpCircle className="w-3.5 h-3.5 text-purple-400" />
+                    <HelpCircle className="w-3.5 h-3.5 text-purple-600" />
                     <span>Take Quiz</span>
                   </button>
                 </>
@@ -1798,26 +1979,26 @@ export const LiveClassroomScreen: React.FC = () => {
                 <>
                   <button
                     onClick={() => setIsRestrictModalOpen(true)}
-                    className="px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold text-xs flex items-center gap-1.5 hover:bg-amber-500/20 cursor-pointer"
+                    className="px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 font-bold text-xs flex items-center gap-1.5 hover:bg-amber-100 cursor-pointer transition-all"
                     title="Mute All, Lock Room"
                   >
-                    <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
+                    <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
                     <span className="hidden sm:inline">Restrict</span>
                   </button>
 
                   <button
                     onClick={handleToggleLock}
                     className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                      isLocked ? 'bg-rose-500/20 border border-rose-500/30 text-rose-300' : 'bg-slate-800 border border-slate-700 text-slate-300'
+                      isLocked ? 'bg-rose-50 border border-rose-200 text-rose-700' : 'bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200/80'
                     }`}
                   >
-                    {isLocked ? <Lock className="w-3.5 h-3.5 text-rose-400" /> : <Unlock className="w-3.5 h-3.5" />}
+                    {isLocked ? <Lock className="w-3.5 h-3.5 text-rose-600" /> : <Unlock className="w-3.5 h-3.5" />}
                     <span>{isLocked ? 'Locked' : 'Lock'}</span>
                   </button>
 
                   <button
                     onClick={() => setIsEndConfirmModalOpen(true)}
-                    className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs flex items-center gap-1.5 cursor-pointer shadow-lg shadow-rose-600/20 transition-all"
+                    className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs flex items-center gap-1.5 cursor-pointer shadow-xs transition-all"
                   >
                     <LogOut className="w-3.5 h-3.5" />
                     <span>End Class</span>
@@ -1826,7 +2007,7 @@ export const LiveClassroomScreen: React.FC = () => {
               ) : (
                 <button
                   onClick={() => setIsLeaveConfirmModalOpen(true)}
-                  className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-rose-900/30 border border-slate-700 hover:border-rose-500/40 text-slate-300 hover:text-rose-300 font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all"
+                  className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-rose-50 border border-slate-200 hover:border-rose-200 text-slate-700 hover:text-rose-700 font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                   <span>Leave</span>
@@ -1840,18 +2021,18 @@ export const LiveClassroomScreen: React.FC = () => {
 
         {/* Right Side Panel: Participants / Chat / Q&A */}
         {isSidebarOpen && (
-          <div className="lg:col-span-4 xl:col-span-3 bg-slate-900 border border-sky-500/10 rounded-3xl overflow-hidden flex flex-col justify-between shadow-2xl transition-all duration-300">
+          <div className="lg:col-span-4 xl:col-span-3 bg-white border border-slate-200/80 rounded-3xl overflow-hidden flex flex-col justify-between shadow-sm transition-all duration-300">
             
             {/* Tab Selector Header */}
-            <div className="bg-slate-950/70 p-2 border-b border-sky-500/10 flex items-center gap-1">
+            <div className="bg-slate-50 p-2 border-b border-slate-200/80 flex items-center gap-1">
               {isInstructor ? (
                 <>
                   <button
                     onClick={() => setActiveTab('participants')}
                     className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
                       activeTab === 'participants'
-                        ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
-                        : 'text-slate-400 hover:text-white'
+                        ? 'bg-white text-indigo-600 shadow-xs border border-slate-200/80'
+                        : 'text-slate-500 hover:text-slate-900 hover:bg-white/60'
                     }`}
                   >
                     <Users className="w-3.5 h-3.5" />
@@ -1862,8 +2043,8 @@ export const LiveClassroomScreen: React.FC = () => {
                     onClick={() => setActiveTab('chat')}
                     className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
                       activeTab === 'chat'
-                        ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
-                        : 'text-slate-400 hover:text-white'
+                        ? 'bg-white text-indigo-600 shadow-xs border border-slate-200/80'
+                        : 'text-slate-500 hover:text-slate-900 hover:bg-white/60'
                     }`}
                   >
                     <MessageSquare className="w-3.5 h-3.5" />
@@ -1874,8 +2055,8 @@ export const LiveClassroomScreen: React.FC = () => {
                     onClick={() => setActiveTab('questions')}
                     className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
                       activeTab === 'questions'
-                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                        : 'text-slate-400 hover:text-white'
+                        ? 'bg-white text-indigo-600 shadow-xs border border-slate-200/80'
+                        : 'text-slate-500 hover:text-slate-900 hover:bg-white/60'
                     }`}
                   >
                     <HelpCircle className="w-3.5 h-3.5" />
@@ -1888,8 +2069,8 @@ export const LiveClassroomScreen: React.FC = () => {
                     onClick={() => setActiveTab('chat')}
                     className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
                       activeTab === 'chat'
-                        ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
-                        : 'text-slate-400 hover:text-white'
+                        ? 'bg-white text-indigo-600 shadow-xs border border-slate-200/80'
+                        : 'text-slate-500 hover:text-slate-900 hover:bg-white/60'
                     }`}
                   >
                     <MessageSquare className="w-3.5 h-3.5" />
@@ -1900,8 +2081,8 @@ export const LiveClassroomScreen: React.FC = () => {
                     onClick={() => setActiveTab('questions')}
                     className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
                       activeTab === 'questions'
-                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                        : 'text-slate-400 hover:text-white'
+                        ? 'bg-white text-indigo-600 shadow-xs border border-slate-200/80'
+                        : 'text-slate-500 hover:text-slate-900 hover:bg-white/60'
                     }`}
                   >
                     <HelpCircle className="w-3.5 h-3.5" />
@@ -1912,8 +2093,8 @@ export const LiveClassroomScreen: React.FC = () => {
                     onClick={() => setActiveTab('participants')}
                     className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
                       activeTab === 'participants'
-                        ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
-                        : 'text-slate-400 hover:text-white'
+                        ? 'bg-white text-indigo-600 shadow-xs border border-slate-200/80'
+                        : 'text-slate-500 hover:text-slate-900 hover:bg-white/60'
                     }`}
                   >
                     <Users className="w-3.5 h-3.5" />
@@ -1925,34 +2106,58 @@ export const LiveClassroomScreen: React.FC = () => {
 
             {/* Tab Widget Content Frame */}
             <div className="flex-1 overflow-y-auto p-4">
-              {activeTab === 'chat' && (
+              <div className={activeTab === 'chat' ? 'h-full flex flex-col' : 'hidden'}>
                 <LiveChatWidget socket={socket} classId={classId || ''} currentUser={currentUser} />
-              )}
+              </div>
               {activeTab === 'questions' && (
                 <LiveQuestionsWidget classId={classId || ''} currentUser={currentUser} />
               )}
               {activeTab === 'participants' && (
                 <div className="space-y-4 font-['Sora']">
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                    <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4 text-sky-400" />
-                      <h4 className="text-xs font-bold text-white uppercase tracking-wider">Active Classroom Roster</h4>
+                  <div className="space-y-3 pb-3 border-b border-slate-200/80">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4 text-indigo-600" />
+                        <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Active Classroom Roster</h4>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 font-mono text-[10px] font-bold">
+                        {onlineCount} Online
+                      </span>
                     </div>
-                    <span className="px-2 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-400 font-mono text-[10px] font-bold">
-                      {onlineCount} Online
-                    </span>
+
+                    {/* Instructor Bulk Student Microphone Moderation Controls */}
+                    {isInstructor && (
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          onClick={handleLockAllStudentMics}
+                          className="flex-1 py-1.5 px-2 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl text-[11px] font-bold text-slate-700 flex items-center justify-center gap-1 cursor-pointer transition-all"
+                          title="Lock all student microphones"
+                        >
+                          <Lock className="w-3 h-3 text-slate-600" />
+                          <span>Lock All Mics</span>
+                        </button>
+                        <button
+                          onClick={handleRevokeAllStudentMics}
+                          className="flex-1 py-1.5 px-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl text-[11px] font-bold text-rose-700 flex items-center justify-center gap-1 cursor-pointer transition-all"
+                          title="Revoke all student mic permissions"
+                        >
+                          <VolumeX className="w-3 h-3 text-rose-600" />
+                          <span>Revoke All</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-2 max-h-[460px] overflow-y-auto pr-1">
                     {participants.length === 0 ? (
-                      <div className="p-3 bg-slate-950 border border-slate-800 rounded-2xl flex items-center justify-between text-xs">
+                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between text-xs">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-full bg-sky-500/20 text-sky-300 font-bold flex items-center justify-center text-xs">
+                          <div className="w-7 h-7 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-xs">
                             {(resolvedDisplayName || 'U').charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <p className="font-bold text-white">{resolvedDisplayName}</p>
-                            <span className="text-[10px] text-slate-400 uppercase font-mono">
+                            <p className="font-bold text-slate-900">{resolvedDisplayName}</p>
+                            <span className="text-[10px] text-slate-500 uppercase font-mono">
                               {isInstructor ? 'Instructor (You)' : 'Student (You)'}
                             </span>
                           </div>
@@ -1963,30 +2168,38 @@ export const LiveClassroomScreen: React.FC = () => {
                       participants.map((p, idx) => (
                         <div
                           key={p.userId || idx}
-                          className="p-3 bg-slate-950 border border-slate-800/90 rounded-2xl flex items-center justify-between gap-2 text-xs"
+                          className="p-3 bg-slate-50/80 hover:bg-slate-100/80 border border-slate-200/70 rounded-2xl flex items-center justify-between gap-2 text-xs transition-colors"
                         >
                           <div className="flex items-center gap-2.5 truncate">
                             <div
                               className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
                                 p.role === 'instructor' || p.role === 'admin'
-                                  ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
-                                  : 'bg-slate-800 text-sky-400'
+                                  ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                                  : 'bg-indigo-100 text-indigo-700 border border-indigo-200'
                               }`}
                             >
                               {(p.name || 'U').charAt(0).toUpperCase()}
                             </div>
                             <div className="truncate">
-                              <p className="font-bold text-white truncate flex items-center gap-1">
+                              <p className="font-bold text-slate-900 truncate flex items-center gap-1">
                                 <span>{p.name}</span>
-                                {p.userId === userProfile?.uid && <span className="text-slate-500 text-[10px]">(You)</span>}
+                                {p.userId === userProfile?.uid && <span className="text-slate-400 text-[10px]">(You)</span>}
                               </p>
-                              <span className="text-[10px] text-slate-400 uppercase font-mono">{p.role || 'student'}</span>
+                              <span className="text-[10px] text-slate-500 uppercase font-mono">{p.role || 'student'}</span>
                             </div>
                           </div>
 
                           <div className="flex items-center gap-1.5 shrink-0">
+                            {/* Speaking in active 1-to-1 session badge */}
+                            {activeInteraction && activeInteraction.status === 'active' && activeInteraction.studentId === p.userId && (
+                              <span className="px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center gap-0.5 border border-emerald-300">
+                                <Mic className="w-3 h-3 text-emerald-600 animate-pulse" />
+                                <span>Speaking</span>
+                              </span>
+                            )}
+
                             {raisedHands.some((h) => h.userId === p.userId) && (
-                              <span className="px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-400 text-[10px] font-bold flex items-center gap-0.5 animate-pulse">
+                              <span className="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[10px] font-bold flex items-center gap-0.5 animate-pulse border border-amber-300">
                                 <Hand className="w-3 h-3 fill-current" />
                                 <span>Hand</span>
                               </span>
@@ -1994,16 +2207,34 @@ export const LiveClassroomScreen: React.FC = () => {
 
                             {isInstructor && p.role !== 'instructor' && p.role !== 'admin' && (
                               <div className="flex items-center gap-1">
+                                {/* 1-to-1 Interactive Session Invite Button */}
+                                <button
+                                  onClick={() => handleInviteToSpeak(p.userId, p.name || 'Student')}
+                                  className="p-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-200 cursor-pointer transition-all"
+                                  title="Invite to 1-to-1 Speaking Interaction"
+                                >
+                                  <Sparkles className="w-3.5 h-3.5" />
+                                </button>
+
+                                {/* Ask to Unmute Button */}
+                                <button
+                                  onClick={() => handleRequestUnmuteStudent(p.userId)}
+                                  className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 cursor-pointer transition-all"
+                                  title="Ask Student to Unmute"
+                                >
+                                  <Mic className="w-3.5 h-3.5" />
+                                </button>
+
                                 <button
                                   onClick={() =>
                                     p.micPermission === 'granted' && !p.isMutedByInstructor
                                       ? handleMuteParticipant(p.userId)
                                       : handleAllowMicParticipant(p.userId)
                                   }
-                                  className={`p-1.5 rounded-lg cursor-pointer transition-all ${
+                                  className={`p-1.5 rounded-lg cursor-pointer transition-all border ${
                                     p.micPermission === 'granted' && !p.isMutedByInstructor
-                                      ? 'bg-emerald-500/20 text-emerald-400 hover:bg-rose-500/20 hover:text-rose-400'
-                                      : 'bg-slate-800 text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10'
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200'
+                                      : 'bg-slate-100 text-slate-500 border-slate-200 hover:text-emerald-700 hover:bg-emerald-50 hover:border-emerald-200'
                                   }`}
                                   title={
                                     p.micPermission === 'granted' && !p.isMutedByInstructor
@@ -2017,6 +2248,7 @@ export const LiveClassroomScreen: React.FC = () => {
                                     <MicOff className="w-3.5 h-3.5" />
                                   )}
                                 </button>
+
                                 <button
                                   onClick={() =>
                                     handleToggleChatParticipant(
@@ -2024,10 +2256,10 @@ export const LiveClassroomScreen: React.FC = () => {
                                       p.chatPermission === 'denied'
                                     )
                                   }
-                                  className={`p-1.5 rounded-lg cursor-pointer transition-all ${
+                                  className={`p-1.5 rounded-lg cursor-pointer transition-all border ${
                                     p.chatPermission === 'granted'
-                                      ? 'bg-sky-500/20 text-sky-400 hover:bg-rose-500/20 hover:text-rose-400'
-                                      : 'bg-slate-800 text-slate-400 hover:text-sky-400 hover:bg-sky-500/10'
+                                      ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200'
+                                      : 'bg-slate-100 text-slate-500 border-slate-200 hover:text-indigo-700 hover:bg-indigo-50 hover:border-indigo-200'
                                   }`}
                                   title={p.chatPermission === 'granted' ? 'Mute Student Chat' : 'Allow Student Chat'}
                                 >
@@ -2037,9 +2269,10 @@ export const LiveClassroomScreen: React.FC = () => {
                                     <MessageSquareOff className="w-3.5 h-3.5" />
                                   )}
                                 </button>
+
                                 <button
                                   onClick={() => handleKickParticipant(p.userId)}
-                                  className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 cursor-pointer"
+                                  className="p-1.5 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 border border-slate-200 hover:border-rose-200 cursor-pointer transition-all"
                                   title="Remove from Classroom"
                                 >
                                   <UserX className="w-3.5 h-3.5" />
@@ -2068,24 +2301,22 @@ export const LiveClassroomScreen: React.FC = () => {
       {isWhiteboardOpen && (
         <InteractiveWhiteboard
           isInstructor={Boolean(isInstructor)}
-          socket={socket}
-          classId={classId || ''}
-          onClose={() => handleToggleWhiteboard(false)}
+          onClose={() => setIsWhiteboardOpen(false)}
         />
       )}
 
       {/* Broadcast Announcement Modal (Instructor) */}
       {isAnnouncementModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-indigo-500/30 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 font-['Sora'] animate-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-indigo-100 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 font-['Sora'] animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
-                <Megaphone className="w-5 h-5 text-indigo-400" />
-                <h3 className="font-heading font-black text-base text-white">Broadcast Announcement</h3>
+                <Megaphone className="w-5 h-5 text-indigo-600" />
+                <h3 className="font-heading font-black text-base text-slate-900">Broadcast Announcement</h3>
               </div>
               <button
                 onClick={() => setIsAnnouncementModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white cursor-pointer"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -2093,27 +2324,27 @@ export const LiveClassroomScreen: React.FC = () => {
 
             <form onSubmit={handleSendAnnouncement} className="space-y-4">
               <div className="space-y-1.5 text-xs">
-                <label className="text-slate-300 font-bold">Announcement Message</label>
+                <label className="text-slate-700 font-bold">Announcement Message</label>
                 <textarea
                   rows={3}
                   value={announcementText}
                   onChange={(e) => setAnnouncementText(e.target.value)}
                   placeholder="e.g., Quick 5-minute break. Next we cover virtual memory page tables."
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-white placeholder:text-slate-500 focus:outline-hidden focus:border-indigo-500 resize-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:border-indigo-500 focus:bg-white resize-none"
                   required
                 />
               </div>
 
               <div className="flex items-center justify-between text-xs pt-1">
-                <span className="text-slate-400 font-medium">Priority Level:</span>
+                <span className="text-slate-600 font-medium">Priority Level:</span>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => setAnnouncementPriority('normal')}
                     className={`px-3 py-1.5 rounded-lg font-bold text-xs cursor-pointer ${
                       announcementPriority === 'normal'
-                        ? 'bg-indigo-600 text-white shadow-md'
-                        : 'bg-slate-800 text-slate-400'
+                        ? 'bg-indigo-600 text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-600'
                     }`}
                   >
                     Normal
@@ -2123,8 +2354,8 @@ export const LiveClassroomScreen: React.FC = () => {
                     onClick={() => setAnnouncementPriority('urgent')}
                     className={`px-3 py-1.5 rounded-lg font-bold text-xs cursor-pointer ${
                       announcementPriority === 'urgent'
-                        ? 'bg-rose-600 text-white shadow-md'
-                        : 'bg-slate-800 text-slate-400'
+                        ? 'bg-rose-600 text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-600'
                     }`}
                   >
                     Urgent
@@ -2132,18 +2363,18 @@ export const LiveClassroomScreen: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsAnnouncementModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs cursor-pointer hover:bg-slate-700"
+                  className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs cursor-pointer hover:bg-slate-200"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSendingAnnouncement || !announcementText.trim()}
-                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs cursor-pointer disabled:opacity-50"
                 >
                   {isSendingAnnouncement ? 'Broadcasting...' : 'Broadcast Announcement'}
                 </button>
@@ -2155,16 +2386,16 @@ export const LiveClassroomScreen: React.FC = () => {
 
       {/* Live Poll Drawer / Modal */}
       {isPollModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-blue-500/30 rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4 font-['Sora'] animate-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-blue-100 rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4 font-['Sora'] animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-blue-400" />
-                <h3 className="font-heading font-black text-base text-white">Live Audience Poll</h3>
+                <BarChart3 className="w-5 h-5 text-blue-600" />
+                <h3 className="font-heading font-black text-base text-slate-900">Live Audience Poll</h3>
               </div>
               <button
                 onClick={() => setIsPollModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white cursor-pointer"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -2178,21 +2409,21 @@ export const LiveClassroomScreen: React.FC = () => {
 
       {/* Live Quiz Drawer / Modal */}
       {isQuizModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-purple-500/30 rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4 font-['Sora'] animate-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-purple-100 rounded-3xl p-6 max-w-xl w-full shadow-2xl space-y-4 font-['Sora'] animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
-                <HelpCircle className="w-5 h-5 text-purple-400" />
-                <h3 className="font-heading font-black text-base text-white">Live Interactive Quiz</h3>
+                <HelpCircle className="w-5 h-5 text-purple-600" />
+                <h3 className="font-heading font-black text-base text-slate-900">Live Interactive Quiz</h3>
               </div>
               <button
                 onClick={() => setIsQuizModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white cursor-pointer"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="max-h-[500px] overflow-y-auto">
+            <div className="max-h-[520px] overflow-y-auto">
               <LiveQuizWidget socket={socket} classId={classId || ''} currentUser={currentUser} />
             </div>
           </div>
@@ -2201,32 +2432,32 @@ export const LiveClassroomScreen: React.FC = () => {
 
       {/* Live Attendance Roster Drawer (Instructor) */}
       {isAttendanceOpen && (
-        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50 flex justify-end">
-          <div className="bg-slate-900 border-l border-sky-500/20 max-w-md w-full h-full p-6 shadow-2xl overflow-y-auto space-y-5 font-['Sora'] animate-in slide-in-from-right duration-300">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex justify-end">
+          <div className="bg-white border-l border-slate-200 max-w-md w-full h-full p-6 shadow-2xl overflow-y-auto space-y-5 font-['Sora'] animate-in slide-in-from-right duration-300">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
-                <FileSpreadsheet className="w-5 h-5 text-emerald-400" />
-                <h3 className="font-heading font-black text-base text-white">Live Attendance Roster</h3>
+                <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
+                <h3 className="font-heading font-black text-base text-slate-900">Live Attendance Roster</h3>
               </div>
-              <button onClick={() => setIsAttendanceOpen(false)} className="p-1 rounded-lg text-slate-400 hover:text-white cursor-pointer">
+              <button onClick={() => setIsAttendanceOpen(false)} className="p-1 rounded-lg text-slate-400 hover:text-slate-700 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-400 font-medium">{attendanceRecords.length} Student Attendance Records</p>
+            <p className="text-xs text-slate-500 font-medium">{attendanceRecords.length} Student Attendance Records</p>
 
             <div className="space-y-2">
               {attendanceRecords.length === 0 ? (
-                <p className="text-xs text-slate-500 italic">No attendance records logged yet for this session.</p>
+                <p className="text-xs text-slate-400 italic">No attendance records logged yet for this session.</p>
               ) : (
                 attendanceRecords.map((r) => (
-                  <div key={r.id} className="p-3 bg-slate-950 border border-slate-800 rounded-2xl flex items-center justify-between text-xs font-medium">
+                  <div key={r.id} className="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center justify-between text-xs font-medium">
                     <div>
-                      <p className="font-bold text-white">{r.studentName}</p>
-                      <p className="text-[10px] text-slate-400 font-mono">{r.studentEmail}</p>
-                      <span className="text-[10px] text-slate-500">Joined: {r.joinedAt}</span>
+                      <p className="font-bold text-slate-900">{r.studentName}</p>
+                      <p className="text-[10px] text-slate-500 font-mono">{r.studentEmail}</p>
+                      <span className="text-[10px] text-slate-400">Joined: {r.joinedAt}</span>
                     </div>
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold uppercase">
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold uppercase">
                       {r.status}
                     </span>
                   </div>
@@ -2239,31 +2470,31 @@ export const LiveClassroomScreen: React.FC = () => {
 
       {/* Share Lecture Notes Modal */}
       {isNotesModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-sky-500/20 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 font-['Sora'] animate-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="font-heading font-black text-base text-white">Share Lecture Notes / PDF URL</h3>
-              <button onClick={() => setIsNotesModalOpen(false)} className="p-1 rounded-lg text-slate-400 hover:text-white cursor-pointer">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 font-['Sora'] animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-heading font-black text-base text-slate-900">Share Lecture Notes / PDF URL</h3>
+              <button onClick={() => setIsNotesModalOpen(false)} className="p-1 rounded-lg text-slate-400 hover:text-slate-700 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="space-y-3 text-xs">
-              <p className="text-slate-300">Enter PDF URL or Google Drive link to attach for live participants:</p>
+              <p className="text-slate-600">Enter PDF URL or Google Drive link to attach for live participants:</p>
               <input
                 type="url"
                 value={notesUrlInput}
                 onChange={(e) => setNotesUrlInput(e.target.value)}
                 placeholder="https://kaizenq.in/notes/linux-kernel-mem.pdf"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-white focus:outline-hidden focus:border-sky-500 font-mono"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-900 focus:outline-hidden focus:border-indigo-500 focus:bg-white font-mono"
               />
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
-              <button onClick={() => setIsNotesModalOpen(false)} className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs cursor-pointer">
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <button onClick={() => setIsNotesModalOpen(false)} className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs cursor-pointer hover:bg-slate-200">
                 Cancel
               </button>
-              <button onClick={handleSaveNotes} className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shadow-md cursor-pointer">
+              <button onClick={handleSaveNotes} className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs cursor-pointer">
                 Publish Notes
               </button>
             </div>
@@ -2273,31 +2504,31 @@ export const LiveClassroomScreen: React.FC = () => {
 
       {/* Recording URL Modal */}
       {isRecordingModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-sky-500/20 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 font-['Sora'] animate-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="font-heading font-black text-base text-white">Publish Video Recording URL</h3>
-              <button onClick={() => setIsRecordingModalOpen(false)} className="p-1 rounded-lg text-slate-400 hover:text-white cursor-pointer">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 font-['Sora'] animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-heading font-black text-base text-slate-900">Publish Video Recording URL</h3>
+              <button onClick={() => setIsRecordingModalOpen(false)} className="p-1 rounded-lg text-slate-400 hover:text-slate-700 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="space-y-3 text-xs">
-              <p className="text-slate-300">Enter stream recording video link for replay access:</p>
+              <p className="text-slate-600">Enter stream recording video link for replay access:</p>
               <input
                 type="url"
                 value={recordingUrlInput}
                 onChange={(e) => setRecordingUrlInput(e.target.value)}
                 placeholder="https://meet.jit.si/recordings/session.mp4"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-white focus:outline-hidden focus:border-sky-500 font-mono"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-900 focus:outline-hidden focus:border-purple-500 focus:bg-white font-mono"
               />
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
-              <button onClick={() => setIsRecordingModalOpen(false)} className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs cursor-pointer">
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <button onClick={() => setIsRecordingModalOpen(false)} className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs cursor-pointer hover:bg-slate-200">
                 Cancel
               </button>
-              <button onClick={handleSaveRecording} className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md cursor-pointer">
+              <button onClick={handleSaveRecording} className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-xs cursor-pointer">
                 Publish Recording
               </button>
             </div>
@@ -2307,30 +2538,30 @@ export const LiveClassroomScreen: React.FC = () => {
 
       {/* Restrict Students Control Modal */}
       {isRestrictModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-amber-500/30 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-5 font-['Sora'] animate-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-5 font-['Sora'] animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
-                <ShieldAlert className="w-5 h-5 text-amber-400" />
-                <h3 className="font-heading font-black text-base text-white">Classroom Moderation & Privacy</h3>
+                <ShieldAlert className="w-5 h-5 text-amber-600" />
+                <h3 className="font-heading font-black text-base text-slate-900">Classroom Moderation & Privacy</h3>
               </div>
-              <button onClick={() => setIsRestrictModalOpen(false)} className="p-1 rounded-lg text-slate-400 hover:text-white cursor-pointer">
+              <button onClick={() => setIsRestrictModalOpen(false)} className="p-1 rounded-lg text-slate-400 hover:text-slate-700 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-400 font-medium">
+            <p className="text-xs text-slate-600 font-medium">
               Manage live classroom privacy, entry permissions, and silence student interactions in real time.
             </p>
 
             <div className="space-y-3">
               {/* Classroom Privacy / Lock */}
-              <div className="p-3.5 bg-slate-950 border border-slate-800 rounded-2xl flex items-center justify-between gap-3">
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
-                  {isLocked ? <Lock className="w-5 h-5 text-amber-400" /> : <Unlock className="w-5 h-5 text-emerald-400" />}
+                  {isLocked ? <Lock className="w-5 h-5 text-amber-600" /> : <Unlock className="w-5 h-5 text-emerald-600" />}
                   <div>
-                    <p className="text-xs font-bold text-white">Room Privacy & Lock</p>
-                    <p className="text-[10px] text-slate-400 font-medium">
+                    <p className="text-xs font-bold text-slate-900">Room Privacy & Lock</p>
+                    <p className="text-[10px] text-slate-500 font-medium">
                       {isLocked ? '🔒 Private Session (New students blocked)' : '🔓 Open Session (Anyone can join)'}
                     </p>
                   </div>
@@ -2339,8 +2570,8 @@ export const LiveClassroomScreen: React.FC = () => {
                   onClick={handleToggleLock}
                   className={`px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all ${
                     isLocked
-                      ? 'bg-slate-800 border border-slate-700 text-slate-200 hover:bg-slate-700'
-                      : 'bg-amber-500 hover:bg-amber-400 text-slate-950 font-black shadow-lg shadow-amber-500/20'
+                      ? 'bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200'
+                      : 'bg-amber-500 hover:bg-amber-600 text-white font-black shadow-xs'
                   }`}
                 >
                   {isLocked ? 'Unlock (Open)' : 'Make Private'}
@@ -2348,29 +2579,29 @@ export const LiveClassroomScreen: React.FC = () => {
               </div>
 
               {/* Mute All Microphones */}
-              <div className="p-3.5 bg-slate-950 border border-slate-800 rounded-2xl flex items-center justify-between gap-3">
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
-                  <VolumeX className="w-5 h-5 text-rose-400" />
+                  <VolumeX className="w-5 h-5 text-rose-600" />
                   <div>
-                    <p className="text-xs font-bold text-white">Mute All Student Microphones</p>
-                    <p className="text-[10px] text-slate-400 font-medium">Instantly silence all student microphones</p>
+                    <p className="text-xs font-bold text-slate-900">Mute All Student Microphones</p>
+                    <p className="text-[10px] text-slate-500 font-medium">Instantly silence all student microphones</p>
                   </div>
                 </div>
                 <button
                   onClick={handleMuteAllStudents}
-                  className="px-3.5 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold cursor-pointer shadow-lg shadow-rose-600/20 transition-all"
+                  className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold cursor-pointer shadow-xs transition-all"
                 >
                   Mute All
                 </button>
               </div>
 
               {/* Chat Moderation */}
-              <div className="p-3.5 bg-slate-950 border border-slate-800 rounded-2xl flex items-center justify-between gap-3">
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
-                  {isChatMuted ? <MessageSquareOff className="w-5 h-5 text-rose-400" /> : <MessageSquare className="w-5 h-5 text-sky-400" />}
+                  {isChatMuted ? <MessageSquareOff className="w-5 h-5 text-rose-600" /> : <MessageSquare className="w-5 h-5 text-indigo-600" />}
                   <div>
-                    <p className="text-xs font-bold text-white">Classroom Chat Moderation</p>
-                    <p className="text-[10px] text-slate-400 font-medium">
+                    <p className="text-xs font-bold text-slate-900">Classroom Chat Moderation</p>
+                    <p className="text-[10px] text-slate-500 font-medium">
                       {isChatMuted ? '🔇 Chat is currently muted for students' : '💬 Students can post in live chat'}
                     </p>
                   </div>
@@ -2379,8 +2610,8 @@ export const LiveClassroomScreen: React.FC = () => {
                   onClick={() => handleToggleChatMute(!isChatMuted)}
                   className={`px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all ${
                     isChatMuted
-                      ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20'
-                      : 'bg-rose-600/20 border border-rose-500/30 text-rose-300 hover:bg-rose-600/30'
+                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs'
+                      : 'bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100'
                   }`}
                 >
                   {isChatMuted ? 'Unmute Chat' : 'Mute Chat'}
@@ -2391,7 +2622,7 @@ export const LiveClassroomScreen: React.FC = () => {
             <div className="pt-2 flex justify-end">
               <button
                 onClick={() => setIsRestrictModalOpen(false)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold cursor-pointer"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer"
               >
                 Close Controls
               </button>
@@ -2442,14 +2673,14 @@ export const LiveClassroomScreen: React.FC = () => {
 
       {/* Ask to Unmute Interactive Modal */}
       {unmuteRequest && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-sm rounded-3xl bg-slate-900 border border-emerald-500/40 p-6 shadow-2xl text-center space-y-4 animate-in zoom-in-95 duration-200">
-            <div className="w-14 h-14 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center mx-auto text-emerald-400">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-sm rounded-3xl bg-white border border-emerald-200 p-6 shadow-2xl text-center space-y-4 animate-in zoom-in-95 duration-200 font-['Sora']">
+            <div className="w-14 h-14 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center mx-auto text-emerald-600">
               <Mic className="w-7 h-7 animate-bounce" />
             </div>
             <div>
-              <h4 className="text-base font-black text-white">Microphone Request</h4>
-              <p className="text-xs text-slate-300 mt-1">
+              <h4 className="text-base font-black text-slate-900">Microphone Request</h4>
+              <p className="text-xs text-slate-600 mt-1">
                 <strong>{unmuteRequest.instructorName}</strong> has requested you to unmute your microphone.
               </p>
             </div>
@@ -2459,15 +2690,51 @@ export const LiveClassroomScreen: React.FC = () => {
                   setUnmuteRequest(null);
                   if (!micOn) handleToggleMic();
                 }}
-                className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 cursor-pointer transition-all"
+                className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 cursor-pointer transition-all"
               >
                 Unmute Mic
               </button>
               <button
                 onClick={() => setUnmuteRequest(null)}
-                className="flex-1 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs cursor-pointer transition-all"
+                className="flex-1 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer transition-all"
               >
                 Keep Muted
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 1-to-1 Interaction Student Speaking Invitation Dialog */}
+      {interactionInviteModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white border border-indigo-100 p-6 shadow-2xl text-center space-y-4 animate-in zoom-in-95 duration-200 font-['Sora']">
+            <div className="w-16 h-16 rounded-full bg-indigo-50 border border-indigo-200 flex items-center justify-center mx-auto text-indigo-600">
+              <Mic className="w-8 h-8 animate-bounce" />
+            </div>
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold mb-2">
+                <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Interactive Discussion</span>
+              </div>
+              <h4 className="text-lg font-black text-slate-900">1-to-1 Speaking Invitation</h4>
+              <p className="text-xs text-slate-600 mt-2 leading-relaxed">
+                Instructor <strong>{interactionInviteModal.instructorName}</strong> has invited you to speak live in 1-to-1 interactive mode. Accepting will immediately unlock your microphone so you can talk with the class.
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-3 pt-3">
+              <button
+                onClick={() => handleRespondInteraction(true)}
+                className="flex-1 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-600/20 cursor-pointer transition-all flex items-center justify-center gap-1.5"
+              >
+                <Mic className="w-4 h-4" />
+                <span>Accept & Speak</span>
+              </button>
+              <button
+                onClick={() => handleRespondInteraction(false)}
+                className="flex-1 py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer transition-all"
+              >
+                Decline
               </button>
             </div>
           </div>
@@ -2479,3 +2746,4 @@ export const LiveClassroomScreen: React.FC = () => {
 };
 
 export default LiveClassroomScreen;
+

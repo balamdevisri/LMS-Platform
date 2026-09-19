@@ -8,6 +8,12 @@ import {
   LocalTrackPublication,
   TrackPublication,
   Participant,
+  ScreenSharePresets,
+  VideoQuality,
+} from 'livekit-client';
+import type {
+  ScreenShareCaptureOptions,
+  TrackPublishOptions,
 } from 'livekit-client';
 import { auth } from '@/firebase';
 import { buildApiUrl } from '@/config/api';
@@ -97,7 +103,6 @@ export class LiveKitMediaClient implements IMediaClient {
   private isMutedByInstructor = false;
   private micAllowedByInstructor = false;
   private micPermission: 'prompt' | 'granted' | 'denied' = 'prompt';
-  private requestedToUnmute = false;
   private pinnedUserId: string | null = null;
 
   // Socket listener registry for clean removal
@@ -148,9 +153,26 @@ export class LiveKitMediaClient implements IMediaClient {
       lkLog(`token received for room: ${tokenData.roomName}, host: ${tokenData.url}`);
 
       // 2. Instantiate exactly one LiveKit Room instance per classroom session
+      // Configured for high-fidelity presentation, slide clarity, and stable screen sharing
       this.room = new Room({
-        adaptiveStream: true,
+        adaptiveStream: {
+          pixelDensity: 'screen',
+          pauseVideoInBackground: false,
+        },
         dynacast: true,
+        publishDefaults: {
+          screenShareEncoding: {
+            maxBitrate: 4_500_000,
+            maxFramerate: 15,
+            priority: 'high',
+          },
+          screenShareSimulcastLayers: [
+            ScreenSharePresets.h720fps5,
+            ScreenSharePresets.h720fps15,
+          ],
+          degradationPreference: 'maintain-resolution',
+          videoCodec: 'vp8',
+        },
         audioCaptureDefaults: {
           echoCancellation: true,
           noiseSuppression: true,
@@ -210,7 +232,7 @@ export class LiveKitMediaClient implements IMediaClient {
     lkLog('disconnect called');
 
     // 1. Detach all persistent remote audio elements
-    for (const [uid, el] of this.remoteAudioElements.entries()) {
+    for (const el of this.remoteAudioElements.values()) {
       try {
         el.pause();
         el.srcObject = null;
@@ -345,7 +367,8 @@ export class LiveKitMediaClient implements IMediaClient {
         audioEl = document.createElement('audio');
         audioEl.id = `lk_remote_audio_${uid}`;
         audioEl.autoplay = true;
-        audioEl.playsInline = true;
+        audioEl.setAttribute('playsinline', 'true');
+        (audioEl as any).playsInline = true;
         audioEl.volume = 1.0;
         audioEl.muted = false;
         audioEl.setAttribute('data-user-id', uid);
@@ -477,26 +500,45 @@ export class LiveKitMediaClient implements IMediaClient {
     );
 
     room.on(RoomEvent.TrackMuted, (publication: TrackPublication, participant: Participant) => {
+      if (publication.source === Track.Source.ScreenShare) {
+        console.log(
+          `[LIVEKIT_SCREEN_DEBUG] TrackMuted: participantId=${normalizeLiveKitIdentity(participant.identity)} source=${publication.source}`
+        );
+      }
       this.handleTrackMuteState(publication, participant, true);
     });
 
     room.on(RoomEvent.TrackUnmuted, (publication: TrackPublication, participant: Participant) => {
+      if (publication.source === Track.Source.ScreenShare) {
+        console.log(
+          `[LIVEKIT_SCREEN_DEBUG] TrackUnmuted: participantId=${normalizeLiveKitIdentity(participant.identity)} source=${publication.source}`
+        );
+      }
       this.handleTrackMuteState(publication, participant, false);
     });
 
     // 4. Local Track Publications
     room.on(RoomEvent.LocalTrackPublished, (publication: LocalTrackPublication) => {
+      console.log(
+        `[LIVEKIT_SCREEN_DEBUG] LocalTrackPublished: kind=${publication.kind} source=${publication.source}`
+      );
       lkLog(`local track published: ${publication.kind} (${publication.source})`);
       this.updateLocalParticipantState();
     });
 
     room.on(RoomEvent.LocalTrackUnpublished, (publication: LocalTrackPublication) => {
+      console.log(
+        `[LIVEKIT_SCREEN_DEBUG] LocalTrackUnpublished: kind=${publication.kind} source=${publication.source}`
+      );
       lkLog(`local track unpublished: ${publication.kind} (${publication.source})`);
       this.updateLocalParticipantState();
     });
 
     // 5. Active Speakers
     room.on(RoomEvent.ActiveSpeakersChanged, (speakers: Participant[]) => {
+      console.log(
+        `[LIVEKIT_SCREEN_DEBUG] ActiveSpeakersChanged: count=${speakers.length} speakers=${speakers.map((s) => normalizeLiveKitIdentity(s.identity)).join(',')}`
+      );
       this.handleActiveSpeakersChanged(speakers);
     });
 
@@ -628,6 +670,22 @@ export class LiveKitMediaClient implements IMediaClient {
     publication: RemoteTrackPublication,
     remoteParticipant: RemoteParticipant
   ): void {
+    if (publication.source === Track.Source.ScreenShare) {
+      const uid = normalizeLiveKitIdentity(remoteParticipant.identity);
+      try {
+        publication.setVideoQuality(VideoQuality.HIGH);
+        console.log(
+          `[LIVEKIT_SCREEN_DEBUG] Subscribed to ScreenShare: requested VideoQuality.HIGH for sid=${publication.trackSid}`
+        );
+      } catch (err) {
+        console.warn('[LIVEKIT_SCREEN_DEBUG] publication.setVideoQuality notice:', err);
+      }
+      const mst = track.mediaStreamTrack;
+      const settings = mst?.getSettings?.() || {};
+      console.log(
+        `[LIVEKIT_SCREEN_RECEIVE] participantId=${uid} trackSid=${track.sid} videoWidth=${settings.width || 0} videoHeight=${settings.height || 0} isSimulcasted=${publication.isSimulcasted}`
+      );
+    }
     const participant = this.upsertRemoteParticipant(remoteParticipant);
     this.attachTrackToParticipant(participant, track, publication.source);
     this.emitParticipantsUpdate();
@@ -682,8 +740,12 @@ export class LiveKitMediaClient implements IMediaClient {
       }
       lkVideoLog(`participant=${participant.userId} track=${track.sid} isMuted=${track.isMuted}`);
     } else if (source === Track.Source.ScreenShare) {
+      console.log(
+        `[LIVEKIT_SCREEN_DEBUG] TrackSubscribed ScreenShare: participantId=${participant.userId} trackSid=${track.sid} isMuted=${track.isMuted}`
+      );
       if (participant.screenTrack?.id !== mst.id) {
         participant.screenTrack = mst;
+        participant.screenStream = new MediaStream([mst]);
         trackChanged = true;
       }
       participant.screenLiveKitTrack = track;
@@ -729,13 +791,23 @@ export class LiveKitMediaClient implements IMediaClient {
       }
       lkVideoLog(`participant=${participant.userId} track=${track.sid} detached`);
     } else if (source === Track.Source.ScreenShare) {
-      participant.isScreenSharing = false;
-      participant.screenLiveKitTrack = undefined;
-      if (participant.screenTrack?.id === mst.id) {
-        participant.screenTrack = undefined;
-        trackChanged = true;
+      console.log(
+        `[LIVEKIT_SCREEN_DEBUG] TrackUnsubscribed ScreenShare: participantId=${participant.userId} trackSid=${track.sid}`
+      );
+      // Guard against race conditions where an old track cleanup overwrites a newly subscribed track
+      if (!participant.screenLiveKitTrack || participant.screenLiveKitTrack.sid === track.sid) {
+        participant.isScreenSharing = false;
+        participant.screenLiveKitTrack = undefined;
+        if (participant.screenTrack?.id === mst.id) {
+          participant.screenTrack = undefined;
+          trackChanged = true;
+        }
+        if (participant.screenStream) {
+          participant.screenStream = undefined;
+          trackChanged = true;
+        }
+        lkScreenLog(`participant=${participant.userId} track=${track.sid} detached`);
       }
-      lkScreenLog(`participant=${participant.userId} track=${track.sid} detached`);
     }
 
     // Phase 18: streamVersion increments ONLY when actual media tracks change
@@ -849,11 +921,15 @@ export class LiveKitMediaClient implements IMediaClient {
       const mst = screenPub.track.mediaStreamTrack;
       if (local.screenTrack?.id !== mst.id) {
         local.screenTrack = mst;
+        local.screenLiveKitTrack = screenPub.track;
+        local.screenStream = this.localScreenStream || undefined;
         trackChanged = true;
       }
     } else {
       if (local.screenTrack) {
         local.screenTrack = undefined;
+        local.screenLiveKitTrack = undefined;
+        local.screenStream = undefined;
         trackChanged = true;
       }
     }
@@ -942,21 +1018,84 @@ export class LiveKitMediaClient implements IMediaClient {
     if (!this.room) return null;
 
     try {
+      console.log(
+        `[LIVEKIT_SCREEN_DEBUG] startScreenShare initiated: userId=${this.config.userId}`
+      );
       lkScreenLog(`starting screen share for userId=${this.config.userId}`);
-      // Default classroom screen share publishes VIDEO ONLY
-      await this.room.localParticipant.setScreenShareEnabled(true, { audio: false });
+      // Dedicated ScreenShare capture options:
+      // - contentHint: 'detail' for code/text/PPT
+      // - request high-quality 1080p capture resolution, preserving native/high capture resolution
+      // - do not inherit camera resolution settings
+      const captureOptions: ScreenShareCaptureOptions = {
+        audio: false,
+        contentHint: 'detail',
+        resolution: {
+          width: 1920,
+          height: 1080,
+          frameRate: 15,
+        },
+        selfBrowserSurface: 'exclude',
+        surfaceSwitching: 'include',
+        systemAudio: 'exclude',
+      };
+
+      // Dedicated ScreenShare publish options:
+      // - degradationPreference: 'maintain-resolution'
+      // - 15 fps @ 4.5 Mbps for text clarity
+      // - simulcast layers ordered LOW -> HIGH
+      const publishOptions: TrackPublishOptions = {
+        source: Track.Source.ScreenShare,
+        degradationPreference: 'maintain-resolution',
+        simulcast: true,
+        screenShareEncoding: {
+          maxBitrate: 4_500_000,
+          maxFramerate: 15,
+          priority: 'high',
+        },
+        screenShareSimulcastLayers: [
+          ScreenSharePresets.h720fps5,
+          ScreenSharePresets.h720fps15,
+        ],
+        videoCodec: 'vp8',
+      };
+
+      await this.room.localParticipant.setScreenShareEnabled(true, captureOptions, publishOptions);
 
       const pub = this.room.localParticipant.getTrackPublication(Track.Source.ScreenShare);
       if (pub && pub.track) {
         const mst = pub.track.mediaStreamTrack;
-        if (mst && 'contentHint' in mst) {
+        if (mst) {
           try {
             mst.contentHint = 'detail';
+          } catch (_) {}
+
+          const settings = mst.getSettings();
+          console.log('[LIVEKIT_SCREEN_CAPTURE]', {
+            width: settings.width,
+            height: settings.height,
+            frameRate: settings.frameRate,
+            displaySurface: (settings as any).displaySurface,
+            contentHint: (mst as any).contentHint || 'detail',
+          });
+        }
+        const trackAny = pub.track as any;
+        if (trackAny?.sender && typeof trackAny.setDegradationPreference === 'function') {
+          try {
+            trackAny.setDegradationPreference('maintain-resolution');
           } catch (_) {}
         }
 
         this.localScreenStream = new MediaStream([mst]);
         this.isScreenSharing = true;
+
+        const localP = this.participants.get(this.config.userId);
+        if (localP) {
+          localP.isScreenSharing = true;
+          localP.screenLiveKitTrack = pub.track;
+          localP.screenTrack = mst;
+          localP.screenStream = this.localScreenStream;
+          localP.streamVersion = (localP.streamVersion || 0) + 1;
+        }
 
         // Phase 9: Listen for user clicking native browser "Stop sharing" button
         mst.onended = () => {
@@ -966,11 +1105,16 @@ export class LiveKitMediaClient implements IMediaClient {
 
         this.updateLocalParticipantState();
         this.emit('localScreenStreamUpdate', this.localScreenStream);
+        this.emitParticipantsUpdate();
+        console.log(
+          `[LIVEKIT_SCREEN_DEBUG] screen share published successfully: trackSid=${pub.track.sid}`
+        );
         lkScreenLog('screen share published successfully');
         return this.localScreenStream;
       }
       return null;
     } catch (err: any) {
+      console.error('[LIVEKIT_SCREEN_DEBUG] startScreenShare error:', err);
       lkError('startScreenShare error:', err);
       this.emit('mediaError', {
         type: 'screen_share_error',
@@ -988,6 +1132,9 @@ export class LiveKitMediaClient implements IMediaClient {
     if (!this.room) return;
 
     try {
+      console.log(
+        `[LIVEKIT_SCREEN_DEBUG] stopScreenShare initiated: userId=${this.config.userId}`
+      );
       lkScreenLog('stopping screen share');
       await this.room.localParticipant.setScreenShareEnabled(false);
       if (this.localScreenStream) {
@@ -995,10 +1142,25 @@ export class LiveKitMediaClient implements IMediaClient {
         this.localScreenStream = null;
       }
       this.isScreenSharing = false;
+
+      const localP = this.participants.get(this.config.userId);
+      if (localP) {
+        localP.isScreenSharing = false;
+        localP.screenLiveKitTrack = undefined;
+        localP.screenTrack = undefined;
+        localP.screenStream = undefined;
+        localP.streamVersion = (localP.streamVersion || 0) + 1;
+      }
+
       this.updateLocalParticipantState();
       this.emit('localScreenStreamUpdate', null);
+      this.emitParticipantsUpdate();
+      console.log(
+        `[LIVEKIT_SCREEN_DEBUG] screen share stopped cleanly: userId=${this.config.userId}`
+      );
       lkScreenLog('screen share stopped cleanly');
     } catch (err) {
+      console.warn('[LIVEKIT_SCREEN_DEBUG] stopScreenShare notice:', err);
       lkWarn('stopScreenShare notice:', err);
     }
   }

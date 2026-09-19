@@ -113,6 +113,9 @@ const syncInstructor = async (profile: UserProfile) => {
   }
 };
 
+// Session in-memory cache for pending OAuth credential from account-exists-with-different-credential
+let inMemoryPendingGithubCredential: AuthCredential | null = null;
+
 interface AuthContextType {
   user: User | null;
   userProfile: UserProfile | null;
@@ -120,6 +123,7 @@ interface AuthContextType {
   signup: (name: string, email: string, password: string, role?: UserRole) => Promise<void>;
   login: (email: string, password: string, rememberMe?: boolean) => Promise<UserProfile | null>;
   signInWithGithub: (role?: UserRole) => Promise<UserProfile | null>;
+  linkGithubAccount: () => Promise<UserProfile | null>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   sendVerificationEmail: () => Promise<void>;
@@ -629,22 +633,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const currentUser = auth.currentUser || userCredential.user;
 
-      // Link pending GitHub credential if present
-      let pendingCredRaw = typeof window !== 'undefined' ? sessionStorage.getItem('pendingGithubCredential') : null;
-      if (pendingCredRaw && currentUser) {
+      // Auto-link pending GitHub credential if available in-memory from same-session conflict
+      if (inMemoryPendingGithubCredential && currentUser) {
         try {
-          const parsedObj = JSON.parse(pendingCredRaw);
-          let cred: AuthCredential | null = null;
-          if (parsedObj.accessToken) {
-            cred = GithubAuthProvider.credential(parsedObj.accessToken);
+          if (import.meta.env.DEV) {
+            console.log('🔗 [AUTH AUDIT] Auto-linking in-memory GitHub credential to authenticated UID:', currentUser.uid);
           }
-          if (cred) {
-            await linkWithCredential(currentUser, cred).catch((linkErr) => console.warn('Account linking notice:', linkErr));
+          const linkResult = await linkWithCredential(currentUser, inMemoryPendingGithubCredential);
+          inMemoryPendingGithubCredential = null;
+          if (typeof window !== 'undefined') {
             sessionStorage.removeItem('pendingGithubCredential');
             sessionStorage.removeItem('pendingGithubEmail');
+            sessionStorage.removeItem('pendingGithubLink');
           }
-        } catch (linkCatch) {
-          console.warn('Post-login linking notice:', linkCatch);
+          try {
+            await linkResult.user.reload();
+          } catch (_) {}
+
+          // Refresh and synchronize Firestore student/user profile with linked GitHub metadata
+          try {
+            const additionalInfo = getAdditionalUserInfo(linkResult as any);
+            const ghProfile = additionalInfo?.profile as Record<string, any> | undefined;
+            const ghUsername = additionalInfo?.username || ghProfile?.login || (linkResult.user as any).reloadUserInfo?.screenName;
+            const ghName = ghProfile?.name || linkResult.user.displayName;
+            await fetchUserProfile(linkResult.user, ghUsername, undefined, ghName);
+          } catch (syncErr) {
+            console.warn('Post-login profile sync notice:', syncErr);
+          }
+        } catch (linkCatch: any) {
+          console.warn('Post-login in-memory linking notice:', linkCatch?.message || linkCatch);
+          inMemoryPendingGithubCredential = null;
         }
       }
 
@@ -787,6 +805,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!auth) {
       throw new Error('Firebase Auth is not configured.');
     }
+
+    // CASE 3: If user is already authenticated with email/password and clicks "Connect GitHub" or triggers signInWithGithub
+    if (auth.currentUser && !auth.currentUser.providerData.some((p) => p.providerId === 'github.com')) {
+      if (import.meta.env.DEV) {
+        console.log('🔗 [AUTH AUDIT] User is already authenticated. Delegating directly to linkGithubAccount()...', {
+          uid: auth.currentUser.uid,
+          email: auth.currentUser.email,
+        });
+      }
+      return await linkGithubAccount();
+    }
+
     const provider = new GithubAuthProvider();
     provider.addScope('user:email');
     provider.addScope('read:user');
@@ -871,6 +901,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (error.code === 'auth/account-exists-with-different-credential') {
           const pendingCred = GithubAuthProvider.credentialFromError(error);
+          if (pendingCred) {
+            inMemoryPendingGithubCredential = pendingCred;
+          }
           const email = error.customData?.email || error.email;
           let existingMethods: string[] = [];
 
@@ -887,19 +920,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
           }
 
-          if (pendingCred) {
+          if (typeof window !== 'undefined') {
             try {
-              sessionStorage.setItem('pendingGithubCredential', JSON.stringify(pendingCred));
+              sessionStorage.setItem('pendingGithubLink', 'true');
               if (email) sessionStorage.setItem('pendingGithubEmail', email);
+              // SECURITY: Never persist OAuth credentials in sessionStorage!
+              // In-memory module storage (inMemoryPendingGithubCredential) is used safely.
+              sessionStorage.removeItem('pendingGithubCredential');
             } catch (sErr) {
               console.warn('sessionStorage notice:', sErr);
             }
           }
 
           const customErr: any = new Error(
-            existingMethods.includes('password')
-              ? `An account with email "${email}" already exists. Please login using your password first to link your GitHub account.`
-              : `An account already exists with a different sign-in credential for ${email || 'this email'}. Please sign in with your primary credential.`
+            'This email already has an account. Sign in with your password first, then connect GitHub.'
           );
           customErr.code = 'auth/account-exists-with-different-credential';
           customErr.email = email;
@@ -921,8 +955,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         if (error.code === 'auth/unauthorized-domain') {
-          const customErr: any = new Error(`Domain "${window.location.hostname}" is not authorized in Firebase Authentication. Please add it to Firebase Console -> Authentication -> Settings -> Authorized domains.`);
+          const hostname = typeof window !== 'undefined' ? window.location.hostname : 'current domain';
+          const customErr: any = new Error(`Domain "${hostname}" is not authorized in Firebase Authentication. Please add it to Firebase Console -> Authentication -> Settings -> Authorized domains.`);
           customErr.code = 'auth/unauthorized-domain';
+          throw customErr;
+        }
+
+        if (error.code === 'auth/cancelled-popup-request') {
+          const customErr: any = new Error('Another sign-in popup was opened. The previous popup request was cancelled.');
+          customErr.code = 'auth/cancelled-popup-request';
           throw customErr;
         }
 
@@ -943,6 +984,160 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (typeof window !== 'undefined') {
         sessionStorage.removeItem('kaizenq_signup_role');
       }
+    }
+  };
+
+  const linkGithubAccount = async (): Promise<UserProfile | null> => {
+    if (!auth) {
+      throw new Error('Firebase Auth is not configured.');
+    }
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      throw new Error('You must be signed in with your email and password first to link your GitHub account.');
+    }
+
+    const provider = new GithubAuthProvider();
+    provider.addScope('user:email');
+    provider.addScope('read:user');
+
+    if (import.meta.env.DEV) {
+      console.log('🔍 [AUTH AUDIT] Starting GitHub account linking...', {
+        uid: currentUser.uid,
+        email: currentUser.email,
+        currentProviders: currentUser.providerData.map(p => p.providerId),
+      });
+    }
+
+    try {
+      let linkedUser = currentUser;
+
+      // 1. If we have an in-memory credential from a previous conflict in this session, try it first
+      if (inMemoryPendingGithubCredential) {
+        try {
+          const credRes = await linkWithCredential(currentUser, inMemoryPendingGithubCredential);
+          linkedUser = credRes.user;
+          inMemoryPendingGithubCredential = null;
+        } catch (credErr: any) {
+          console.warn('linkWithCredential notice, falling back to linkWithPopup:', credErr?.message);
+          inMemoryPendingGithubCredential = null;
+          const popupRes = await linkWithPopup(currentUser, provider);
+          linkedUser = popupRes.user;
+        }
+      } else {
+        // 2. Primary modular Firebase SDK linking API: linkWithPopup
+        const popupRes = await linkWithPopup(currentUser, provider);
+        linkedUser = popupRes.user;
+      }
+
+      // Reload user so providerData reflects github.com
+      try {
+        await linkedUser.reload();
+      } catch (reloadErr) {
+        console.warn('Firebase user reload notice:', reloadErr);
+      }
+
+      const activeUser = auth.currentUser || linkedUser;
+
+      // Ensure GitHub provider is present in providerData
+      const hasGithubProvider = activeUser.providerData.some((p) => p.providerId === 'github.com');
+      if (import.meta.env.DEV) {
+        console.log('✅ [AUTH AUDIT] Account linking succeeded:', {
+          uid: activeUser.uid,
+          hasGithubProvider,
+          providerCount: activeUser.providerData.length,
+        });
+      }
+
+      // Extract GitHub username and display info
+      const ghProvider = activeUser.providerData.find((p) => p.providerId === 'github.com');
+      const additionalInfo = getAdditionalUserInfo({ user: activeUser } as any);
+      const ghProfile = additionalInfo?.profile as Record<string, any> | undefined;
+      const githubUsername =
+        additionalInfo?.username ||
+        ghProfile?.login ||
+        (activeUser as any).reloadUserInfo?.screenName ||
+        (ghProvider?.displayName && !ghProvider.displayName.includes(' ') ? ghProvider.displayName : undefined) ||
+        (activeUser.email ? activeUser.email.split('@')[0] : undefined);
+      const githubDisplayName = ghProfile?.name || ghProvider?.displayName || activeUser.displayName || githubUsername;
+
+      // Update Firestore student profile attached to the same UID
+      const currentRole = userProfile?.role || 'student';
+      const profile = await fetchUserProfile(activeUser, githubUsername, currentRole, githubDisplayName);
+
+      setUser(activeUser);
+      setUserProfile(profile);
+
+      // Cache updated profile and token
+      try {
+        const token = await activeUser.getIdToken(true);
+        localStorage.setItem('shaivika_auth_token', token);
+        localStorage.setItem('token', token);
+        if (profile) {
+          localStorage.setItem('shaivika_user', JSON.stringify(profile));
+        }
+      } catch (tokenErr) {
+        console.warn('Could not cache auth token:', tokenErr);
+      }
+
+      // Cleanup pending session flags
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('pendingGithubLink');
+        sessionStorage.removeItem('pendingGithubEmail');
+        sessionStorage.removeItem('pendingGithubCredential');
+      }
+
+      return profile;
+    } catch (error: any) {
+      if (import.meta.env.DEV) {
+        console.error('🚨 [AUTH AUDIT] linkGithubAccount error caught:', {
+          code: error.code,
+          message: error.message,
+        });
+      }
+
+      if (error.code === 'auth/provider-already-linked') {
+        // Already linked to this user; refresh and return existing profile
+        const profile = await refreshUserProfile();
+        if (typeof window !== 'undefined') {
+          sessionStorage.removeItem('pendingGithubLink');
+          sessionStorage.removeItem('pendingGithubEmail');
+          sessionStorage.removeItem('pendingGithubCredential');
+        }
+        return profile;
+      }
+
+      if (error.code === 'auth/credential-already-in-use') {
+        const customErr: any = new Error('This GitHub account is already linked to another user.');
+        customErr.code = 'auth/credential-already-in-use';
+        throw customErr;
+      }
+
+      if (error.code === 'auth/popup-closed-by-user') {
+        const customErr: any = new Error('GitHub linking was cancelled or the popup window was closed before completing authorization.');
+        customErr.code = 'auth/popup-closed-by-user';
+        throw customErr;
+      }
+
+      if (error.code === 'auth/popup-blocked') {
+        const customErr: any = new Error('The linking popup was blocked by your browser. Please allow popups for this website and try again.');
+        customErr.code = 'auth/popup-blocked';
+        throw customErr;
+      }
+
+      if (error.code === 'auth/unauthorized-domain') {
+        const hostname = typeof window !== 'undefined' ? window.location.hostname : 'current domain';
+        const customErr: any = new Error(`Domain "${hostname}" is not authorized in Firebase Authentication. Please add it to Firebase Console -> Authentication -> Settings -> Authorized domains.`);
+        customErr.code = 'auth/unauthorized-domain';
+        throw customErr;
+      }
+
+      if (error.code === 'auth/cancelled-popup-request') {
+        const customErr: any = new Error('Another linking popup was already opened. The previous popup request was cancelled.');
+        customErr.code = 'auth/cancelled-popup-request';
+        throw customErr;
+      }
+
+      throw error;
     }
   };
 
@@ -1103,6 +1298,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signup,
         login,
         signInWithGithub,
+        linkGithubAccount,
         logout,
         resetPassword,
         sendVerificationEmail,

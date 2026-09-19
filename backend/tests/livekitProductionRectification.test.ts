@@ -220,7 +220,8 @@ describe('LiveKit SFU Production Rectification Tests (15 Scenarios)', () => {
     const clientContent = fs.readFileSync(clientPath, 'utf8');
 
     expect(clientContent.includes('Track.Source.ScreenShare')).toBe(true);
-    expect(clientContent.includes('setScreenShareEnabled(true, { audio: false })')).toBe(true);
+    expect(clientContent.includes('setScreenShareEnabled(true')).toBe(true);
+    expect(clientContent.includes('audio: false')).toBe(true);
     expect(clientContent.includes("mst.contentHint = 'detail'")).toBe(true);
   });
 

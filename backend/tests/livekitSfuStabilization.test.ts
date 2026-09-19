@@ -74,7 +74,8 @@ describe('LiveKit SFU Stabilization & Production Readiness Tests', () => {
   // ============================================================================
   it('3. Screen share publishes video only (audio: false), applies contentHint detail, and does not replace camera', () => {
     const content = fs.readFileSync(livekitAdapterPath, 'utf8');
-    expect(content.includes('setScreenShareEnabled(true, { audio: false })')).toBe(true);
+    expect(content.includes('setScreenShareEnabled(true')).toBe(true);
+    expect(content.includes('audio: false')).toBe(true);
     expect(content.includes("contentHint = 'detail'")).toBe(true);
     expect(content.includes('Track.Source.ScreenShare')).toBe(true);
     expect(content.includes('Track.Source.Camera')).toBe(true);
