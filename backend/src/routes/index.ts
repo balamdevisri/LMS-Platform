@@ -21,6 +21,7 @@ import resumeRoutes from './resumeRoutes';
 import developerAccessRoutes from './developerAccess.routes';
 import uploadRoutes from '../modules/upload/upload.routes';
 import couponRoutes from '../modules/coupons/coupon.routes';
+import notificationRoutes from '../modules/notifications/notification.routes';
 import { verifyFirebaseToken, requireRole } from '../middleware/auth.middleware';
 
 const router = Router();
@@ -38,7 +39,7 @@ router.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: process.env.NODE_ENV || 'development',
-    firebaseProject: process.env.FIREBASE_PROJECT_ID || 'shaivika-ai-lms-platform',
+    firebaseProject: process.env.FIREBASE_PROJECT_ID || 'shaivika-lms-ai',
   });
 });
 
@@ -46,7 +47,7 @@ router.get('/diagnostics', (req, res) => {
   res.json({
     status: 'healthy',
     canonicalDatabase: 'Cloud Firestore',
-    firebaseProject: process.env.FIREBASE_PROJECT_ID || 'shaivika-ai-lms-platform',
+    firebaseProject: process.env.FIREBASE_PROJECT_ID || 'shaivika-lms-ai',
     environment: process.env.NODE_ENV || 'development',
     version: '2.0.0',
     timestamp: new Date().toISOString(),
@@ -76,5 +77,6 @@ router.use('/live-classroom', liveClassroomRoutes);
 router.use('/live-classes', liveClassroomRoutes);
 router.use('/portfolio', portfolioRoutes);
 router.use('/resume', resumeRoutes);
+router.use('/notifications', notificationRoutes);
 
 export default router;

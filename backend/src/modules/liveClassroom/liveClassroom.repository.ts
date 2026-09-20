@@ -854,6 +854,31 @@ export class LiveClassroomRepository {
     return updatedPoll;
   }
 
+  public async closePoll(classId: string, pollId: string): Promise<IPollData | null> {
+    let updatedPoll: IPollData | null = null;
+    if (isFirebaseAdminInitialized()) {
+      try {
+        const docRef = db.collection('liveClasses').doc(classId).collection('polls').doc(pollId);
+        await docRef.set({ status: 'closed', endedAt: new Date().toISOString() }, { merge: true });
+        const snap = await docRef.get();
+        if (snap.exists) {
+          updatedPoll = snap.data() as IPollData;
+        }
+      } catch (err) {
+        logger.error('[REPO] Failed to close poll in Firestore:', err);
+      }
+    }
+
+    const currentList = memoryDb.polls.get(classId) || [];
+    const idx = currentList.findIndex((p) => p.id === pollId);
+    if (idx >= 0) {
+      currentList[idx].status = 'closed';
+      memoryDb.polls.set(classId, currentList);
+      updatedPoll = currentList[idx];
+    }
+    return updatedPoll;
+  }
+
   public async getPolls(classId: string): Promise<IPollData[]> {
     if (isFirebaseAdminInitialized()) {
       try {

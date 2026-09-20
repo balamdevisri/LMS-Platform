@@ -796,10 +796,44 @@ export const ScreenShareViewport: React.FC<ScreenShareViewportProps> = ({
     };
   }, []);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement && document.fullscreenElement === containerRef.current));
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        if (containerRef.current?.requestFullscreen) {
+          await containerRef.current.requestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        }
+      }
+    } catch (err) {
+      console.warn('[ScreenShareViewport] Fullscreen toggle error:', err);
+    }
+  };
+
   const sharerDisplayName = activeSharer?.name || instructor?.name || instructorName || 'Lead Instructor';
 
   return (
-    <div className="w-full h-full relative bg-slate-950 rounded-3xl overflow-hidden border border-slate-800 flex items-center justify-center min-h-[360px]">
+    <div
+      ref={containerRef}
+      className={`w-full h-full relative bg-slate-950 rounded-3xl overflow-hidden border border-slate-800 flex items-center justify-center min-h-[360px] ${
+        isFullscreen ? 'rounded-none border-none' : ''
+      }`}
+    >
       <video
         ref={screenRef}
         autoPlay
@@ -815,6 +849,19 @@ export const ScreenShareViewport: React.FC<ScreenShareViewportProps> = ({
         <span>
           Screen Share • {sharerDisplayName}
         </span>
+      </div>
+
+      {/* Fullscreen Toggle Action Button */}
+      <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+        <button
+          onClick={toggleFullscreen}
+          className="p-2 rounded-xl bg-slate-900/80 hover:bg-slate-800/90 text-slate-200 hover:text-white border border-slate-700/60 backdrop-blur-md transition-all shadow-lg cursor-pointer flex items-center gap-1.5 text-xs font-medium"
+          title={isFullscreen ? 'Exit Fullscreen' : 'View Fullscreen'}
+          aria-label={isFullscreen ? 'Exit Fullscreen' : 'View Fullscreen'}
+        >
+          {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+          <span className="hidden sm:inline">{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}</span>
+        </button>
       </div>
 
       {/* Floating Picture-In-Picture for Instructor Camera (if camera actively on during screenshare) */}

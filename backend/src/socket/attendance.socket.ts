@@ -23,7 +23,7 @@ export const registerAttendanceHandlers = (io: SocketServer, socket: Authenticat
   // 1. Join Attendance — handles first join AND reconnects without duplicating records
   socket.on('attendance:join', (data: { liveClassId: string }) => {
     const user = socket.user;
-    const liveClassId = data?.liveClassId;
+    const liveClassId = data?.liveClassId || (data as any)?.classId;
     if (!user || !liveClassId) return;
 
     const studentId = user.uid || user.id;
@@ -104,12 +104,45 @@ export const registerAttendanceHandlers = (io: SocketServer, socket: Authenticat
   });
 
   // 3. Heartbeat / Presence Ping (lightweight in-memory, no DB writes)
-  socket.on('attendance:ping', (data: { liveClassId: string }) => {
+  socket.on('attendance:ping', (data: { liveClassId?: string; classId?: string }) => {
     const session = activeSessions.get(socket.id);
-    if (session && session.liveClassId === data?.liveClassId) {
+    const targetClassId = data?.liveClassId || data?.classId;
+    if (session && session.liveClassId === targetClassId) {
       socket.emit('attendance:pong', { timestamp: Date.now() });
     }
   });
+
+  // 3b. Instructor Active Attendance Roster Query
+  socket.on(
+    'attendance:roster',
+    (data: { liveClassId?: string; classId?: string }, callback?: (res: any) => void) => {
+      try {
+        const user = socket.user;
+        if (!user || (user.role !== 'admin' && user.role !== 'instructor' && user.role !== 'mentor')) {
+          if (callback) callback({ success: false, error: 'INVALID_PERMISSION' });
+          return;
+        }
+        const liveClassId = data?.liveClassId || data?.classId || '';
+        const now = Date.now();
+        const attendees: Array<{ studentId: string; studentName: string; durationMinutes: number; joinedAt: string }> = [];
+        for (const sess of activeSessions.values()) {
+          if (sess.liveClassId === liveClassId) {
+            attendees.push({
+              studentId: sess.studentId,
+              studentName: sess.studentName,
+              durationMinutes: Math.round((now - sess.joinedAt) / 60000),
+              joinedAt: new Date(sess.joinedAt).toISOString(),
+            });
+          }
+        }
+        const res = { success: true, attendees, totalActive: attendees.length };
+        socket.emit('attendance:roster', res);
+        if (callback) callback(res);
+      } catch (err: any) {
+        if (callback) callback({ success: false, error: err.message });
+      }
+    }
+  );
 
   // 4. Disconnect cleanup — handles tab close / network loss
   socket.on('disconnect', (reason) => {

@@ -43,22 +43,16 @@ if (!getApps().length) {
         clientEmail: env.FIREBASE_CLIENT_EMAIL,
         privateKey: cleanPrivateKey,
       });
-      // Initialize default app for Firestore database access (connected to shaivika-ai-lms-platform)
+      // Initialize default app for Firestore database & Auth access (connected to shaivika-lms-ai)
       initializeApp({ credential });
       hasValidCredentials = true;
-      console.log('🎉 Firebase Admin SDK initialized successfully!');
-
-      // Initialize secondary app specifically for verifying shaivika-lms-ai frontend auth tokens
-      initializeApp({
-        projectId: 'shaivika-lms-ai',
-      }, 'authApp');
-      console.log('🎉 Firebase Admin SDK authApp initialized successfully for shaivika-lms-ai!');
+      console.log('🎉 Firebase Admin SDK initialized successfully for shaivika-lms-ai!');
     } catch (err: any) {
       console.warn('⚠️ Firebase Admin Cert Initialization Notice:', err?.message || err);
     }
   } else {
     try {
-      const fallbackProjectId = env.FIREBASE_PROJECT_ID || 'shaivika-ai-lms-platform';
+      const fallbackProjectId = env.FIREBASE_PROJECT_ID || 'shaivika-lms-ai';
       initializeApp({
         projectId: fallbackProjectId,
       });

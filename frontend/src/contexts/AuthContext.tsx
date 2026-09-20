@@ -134,7 +134,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 console.log("🚀 ACTIVE AUTH PROVIDER: frontend/src/contexts/AuthContext.tsx (AuthProvider)");
-console.log("🚀 ACTIVE FIREBASE CONFIG: frontend/src/services/firebase.ts (shaivika-ai-lms-platform)");
+console.log("🚀 ACTIVE FIREBASE CONFIG: frontend/src/services/firebase.ts (shaivika-lms-ai)");
 console.log("🚀 ACTIVE FIRESTORE INSTANCE: frontend/src/firebase.ts (db)");
 console.log("🚀 ACTIVE AUTH CONTEXT: frontend/src/contexts/AuthContext.tsx (AuthContext)");
 

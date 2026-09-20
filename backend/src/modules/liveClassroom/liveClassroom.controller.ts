@@ -140,14 +140,10 @@ export class LiveClassroomController {
         const isMicExplicitlyAllowed = modRecord.micPermission === 'granted' && !modRecord.mutedByInstructor;
 
         const camEnabled = settings?.studentCamera?.enabled === true;
-        const screenEnabled = settings?.studentScreenShare?.enabled === true;
 
         if (isMicExplicitlyAllowed) allowedSources.push(TrackSource.MICROPHONE);
         if (camEnabled) allowedSources.push(TrackSource.CAMERA);
-        if (screenEnabled) {
-          allowedSources.push(TrackSource.SCREEN_SHARE);
-          allowedSources.push(TrackSource.SCREEN_SHARE_AUDIO);
-        }
+        // Phase 2: Students are strictly forbidden from screen sharing at all levels
 
         canPublish = allowedSources.length > 0;
       }
@@ -419,22 +415,28 @@ export class LiveClassroomController {
       const user = (req as any).user;
 
       // 1. Authorize: Only assigned instructor or administrator can start
-      if (user && user.uid) {
-        const isAuthorized = await liveClassroomService.verifyInstructorOwnership(
-          classId,
-          user.uid,
-          user.role,
-          user.email,
-          user.name
-        );
-        if (!isAuthorized) {
-          const liveClass = await liveClassroomService.getLiveClassById(classId);
-          res.status(403).json({
-            success: false,
-            error: `Forbidden: Only the assigned instructor (${liveClass?.instructorName || 'assigned mentor'}) or an administrator can start this live class.`,
-          });
-          return;
-        }
+      if (!user || !user.uid) {
+        res.status(401).json({
+          success: false,
+          error: 'Unauthorized: Authentication required to start a live class.',
+        });
+        return;
+      }
+
+      const isAuthorized = await liveClassroomService.verifyInstructorOwnership(
+        classId,
+        user.uid,
+        user.role,
+        user.email,
+        user.name
+      );
+      if (!isAuthorized) {
+        const liveClass = await liveClassroomService.getLiveClassById(classId);
+        res.status(403).json({
+          success: false,
+          error: `Forbidden: Only the assigned instructor (${liveClass?.instructorName || 'assigned mentor'}) or an administrator can start this live class.`,
+        });
+        return;
       }
 
       const liveClass = await liveClassroomService.startLiveClass(classId);
@@ -480,15 +482,21 @@ export class LiveClassroomController {
       const user = (req as any).user;
 
       // 1. Authorize: Only assigned instructor or administrator can end
-      if (user && user.uid) {
-        const isAuthorized = await liveClassroomService.verifyInstructorOwnership(classId, user.uid, user.role);
-        if (!isAuthorized) {
-          res.status(403).json({
-            success: false,
-            error: 'Forbidden: Only the assigned instructor or an administrator can end this live class.',
-          });
-          return;
-        }
+      if (!user || !user.uid) {
+        res.status(401).json({
+          success: false,
+          error: 'Unauthorized: Authentication required to end a live class.',
+        });
+        return;
+      }
+
+      const isAuthorized = await liveClassroomService.verifyInstructorOwnership(classId, user.uid, user.role);
+      if (!isAuthorized) {
+        res.status(403).json({
+          success: false,
+          error: 'Forbidden: Only the assigned instructor or an administrator can end this live class.',
+        });
+        return;
       }
 
       const liveClass = await liveClassroomService.endLiveClass(classId);
@@ -536,15 +544,21 @@ export class LiveClassroomController {
       const classId = (req.params.classId || req.params.id) as string;
       const user = (req as any).user;
 
-      if (user && user.uid) {
-        const isAuthorized = await liveClassroomService.verifyInstructorOwnership(classId, user.uid, user.role);
-        if (!isAuthorized) {
-          res.status(403).json({
-            success: false,
-            error: 'Forbidden: Only the assigned instructor or an administrator can cancel this live class.',
-          });
-          return;
-        }
+      if (!user || !user.uid) {
+        res.status(401).json({
+          success: false,
+          error: 'Unauthorized: Authentication required to cancel a live class.',
+        });
+        return;
+      }
+
+      const isAuthorized = await liveClassroomService.verifyInstructorOwnership(classId, user.uid, user.role);
+      if (!isAuthorized) {
+        res.status(403).json({
+          success: false,
+          error: 'Forbidden: Only the assigned instructor or an administrator can cancel this live class.',
+        });
+        return;
       }
 
       const liveClass = await liveClassroomService.cancelLiveClass(classId);

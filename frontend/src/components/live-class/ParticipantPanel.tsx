@@ -12,6 +12,10 @@ import {
   Pin,
   MessageSquare,
   AlertTriangle,
+  Video,
+  VideoOff,
+  WifiOff,
+  Check,
 } from 'lucide-react';
 import type { MediaParticipant } from '@/services/liveMedia/mediaTypes';
 
@@ -26,6 +30,7 @@ interface ParticipantPanelProps {
   onPinParticipant?: (userId: string | null) => void;
   onKickParticipant?: (userId: string) => void;
   onMuteAllStudents?: () => void;
+  onAcknowledgeHand?: (userId: string) => void;
 }
 
 export const ParticipantPanel: React.FC<ParticipantPanelProps> = ({
@@ -39,6 +44,7 @@ export const ParticipantPanel: React.FC<ParticipantPanelProps> = ({
   onPinParticipant,
   onKickParticipant,
   onMuteAllStudents,
+  onAcknowledgeHand,
 }) => {
   const [confirmMuteAll, setConfirmMuteAll] = useState(false);
 
@@ -145,6 +151,12 @@ export const ParticipantPanel: React.FC<ParticipantPanelProps> = ({
                         Speaking
                       </span>
                     )}
+                    {p.connectionState === 'reconnecting' && (
+                      <span className="text-[10px] text-amber-400 font-bold flex items-center gap-1">
+                        <WifiOff className="w-2.5 h-2.5 animate-pulse" />
+                        Reconnecting
+                      </span>
+                    )}
                     {p.isPinned && (
                       <span className="text-[10px] text-sky-400 font-bold flex items-center gap-0.5">
                         <Pin className="w-2.5 h-2.5 fill-current" />
@@ -158,10 +170,34 @@ export const ParticipantPanel: React.FC<ParticipantPanelProps> = ({
               {/* Status Badges & Instructor Action Controls */}
               <div className="flex items-center gap-1.5 shrink-0">
                 {p.isHandRaised && (
-                  <span className="p-1.5 rounded-lg bg-amber-500/20 text-amber-400 animate-pulse" title="Hand Raised">
-                    <Hand className="w-3.5 h-3.5" />
-                  </span>
+                  <div className="flex items-center gap-1">
+                    <span className="p-1.5 rounded-lg bg-amber-500/20 text-amber-400 animate-pulse" title="Hand Raised">
+                      <Hand className="w-3.5 h-3.5" />
+                    </span>
+                    {isInstructor && onAcknowledgeHand && (
+                      <button
+                        onClick={() => onAcknowledgeHand(p.userId)}
+                        className="px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] cursor-pointer flex items-center gap-1 transition-all"
+                        title="Acknowledge Hand & Allow Speak"
+                      >
+                        <Check className="w-2.5 h-2.5" />
+                        <span>Ack</span>
+                      </button>
+                    )}
+                  </div>
                 )}
+
+                {/* Camera Status Badge */}
+                <span
+                  className={`p-1.5 rounded-lg border ${
+                    p.isVideoOn
+                      ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-400'
+                      : 'bg-slate-800 border-slate-700 text-slate-500'
+                  }`}
+                  title={p.isVideoOn ? 'Camera Active' : 'Camera Off'}
+                >
+                  {p.isVideoOn ? <Video className="w-3.5 h-3.5" /> : <VideoOff className="w-3.5 h-3.5" />}
+                </span>
 
                 {/* Real Microphone Status Badge */}
                 <span

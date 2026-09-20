@@ -501,7 +501,7 @@ export class MediaClient implements IMediaClient {
         video: {
           cursor: 'always' as any,
           frameRate: { max: 30 },
-        },
+        } as any,
         audio: false, // Ensure display media does not capture tab audio or interfere with microphone track
       });
 
@@ -1332,7 +1332,7 @@ export class MediaClient implements IMediaClient {
         isVideoOn: false,
         isScreenSharing: false,
         isHandRaised: false,
-        connectionState: 'connecting',
+        connectionState: 'reconnecting',
         stream: new MediaStream(),
       };
       this.participants.set(userId, p);

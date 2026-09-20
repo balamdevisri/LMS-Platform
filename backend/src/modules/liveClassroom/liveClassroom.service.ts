@@ -522,6 +522,10 @@ export class LiveClassroomService {
     return updatedPoll;
   }
 
+  public async closePoll(classId: string, pollId: string) {
+    return liveClassroomRepository.closePoll(classId, pollId);
+  }
+
   public async getPolls(classId: string) {
     return liveClassroomRepository.getPolls(classId);
   }
