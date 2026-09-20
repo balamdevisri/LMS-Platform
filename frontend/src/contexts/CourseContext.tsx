@@ -200,7 +200,6 @@ export const DEFAULT_COURSE_PRICES: Record<string, number> = {
   'java-through-oops-course-id': 299,
   'web-development': 299,
   'web-development-fundamentals': 299,
-  'prompt-engineering': 199,
 };
 
 export const normalizeLearningUnitItem = (u: any, fallbackId = 'unit-1'): LearningUnitItem => {
@@ -298,11 +297,6 @@ export const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
     const id = String(item.id).toLowerCase();
     const slug = (item.slug || '').toLowerCase();
     const title = (item.title || '').toLowerCase();
-
-    // Ignore legacy duplicate git doc in favor of canonical git-github-mastery
-    if (id === 'git-github-mastery-course-id') {
-      return;
-    }
 
     // Ignore legacy test items
     if (title === 'linux essentials' || slug === 'linux-essentials' || id === 'linux-essentials') {

@@ -23,7 +23,6 @@ export const DEFAULT_COURSE_PRICES: Record<string, number> = {
   'java-through-oops-course-id': 299,
   'web-development': 299,
   'web-development-fundamentals': 299,
-  'prompt-engineering': 199,
 };
 
 // On-demand loader for Firebase Firestore to prevent bundling 580KB Firebase into landing page
@@ -915,6 +914,7 @@ const CANONICAL_COURSE_IDS = new Set([
   'database-management-system',
   'dbms-beginner-to-advanced',
   'git-github-mastery',
+  'git-github-mastery-course-id',
   'java-through-oops-course-id',
   'java-through-oops',
   'javascript-mastery',
@@ -928,7 +928,6 @@ const CANONICAL_COURSE_IDS = new Set([
   'react-js-complete-course',
   'web-development-fundamentals',
   'web-development',
-  'prompt-engineering',
 ]);
 
 const isRemovedMockCourse = (c: any): boolean => {
@@ -936,9 +935,6 @@ const isRemovedMockCourse = (c: any): boolean => {
   const id = String(c.id || '').toLowerCase();
   const slug = String(c.slug || '').toLowerCase();
   const title = String(c.title || c.name || '').toLowerCase();
-
-  // Deduplicate legacy duplicate git doc in favor of canonical git-github-mastery
-  if (id === 'git-github-mastery-course-id') return true;
 
   // Explicitly protect all canonical courses
   if (CANONICAL_COURSE_IDS.has(id) || CANONICAL_COURSE_IDS.has(slug)) return false;
