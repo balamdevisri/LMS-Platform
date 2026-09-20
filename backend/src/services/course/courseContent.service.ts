@@ -2,6 +2,7 @@ import { db } from '../../firebase';
 import { CourseModuleDoc, CourseLessonDoc, CourseContentSummary, LessonQueryOptions } from '../../types/courseContent.types';
 import { fromDocument, toDocument } from '../../utils/firestore';
 import { ApiError } from '../../utils/ApiError';
+import { resolveCanonicalId } from '../../modules/courses/course.repository';
 
 interface CacheEntry<T> {
   data: T;
@@ -74,12 +75,13 @@ export class CourseContentService {
   }
 
   public invalidateCourseCache(courseId: string, moduleId?: string, lessonId?: string): void {
+    const canonicalCourseId = resolveCanonicalId(courseId);
     for (const key of Array.from(this.cache.keys())) {
       if (!courseId || courseId === 'all') {
         this.cache.delete(key);
         continue;
       }
-      if (key.includes(courseId)) {
+      if (key.includes(courseId) || key.includes(canonicalCourseId)) {
         this.cache.delete(key);
         continue;
       }
@@ -99,13 +101,17 @@ export class CourseContentService {
    * Canonical path: courses/{courseId}/modules
    */
   async getCourseModules(courseId: string, minExpectedRevision?: number): Promise<CourseModuleDoc[]> {
-    const cacheKey = `modules:${courseId}`;
+    const targetCourseId = resolveCanonicalId(courseId);
+    const cacheKey = `modules:${targetCourseId}`;
     const cached = this.getFromCache<CourseModuleDoc[]>(cacheKey, minExpectedRevision);
     if (cached) return cached;
 
     try {
-      // Canonical Subcollection Query: courses/{courseId}/modules
-      const snapshot = await db.collection('courses').doc(courseId).collection('modules').get();
+      // Canonical Subcollection Query: courses/{targetCourseId}/modules
+      let snapshot = await db.collection('courses').doc(targetCourseId).collection('modules').get();
+      if ((!snapshot || snapshot.empty) && targetCourseId !== courseId) {
+        snapshot = await db.collection('courses').doc(courseId).collection('modules').get();
+      }
 
       if (!snapshot || snapshot.empty) {
         return [];
@@ -238,20 +244,31 @@ export class CourseContentService {
    * Canonical path: courses/{courseId}/modules/{moduleId}/lessons
    */
   async getModuleLessons(courseId: string, moduleId: string, options: LessonQueryOptions = {}, minExpectedRevision?: number): Promise<CourseLessonDoc[]> {
+    const targetCourseId = resolveCanonicalId(courseId);
     const includeContent = options.includeContent === true;
-    const cacheKey = `lessons:${courseId}:${moduleId}:${includeContent}`;
+    const cacheKey = `lessons:${targetCourseId}:${moduleId}:${includeContent}`;
     const cached = this.getFromCache<CourseLessonDoc[]>(cacheKey, minExpectedRevision);
     if (cached) return cached;
 
     try {
-      // Canonical Subcollection Query: courses/{courseId}/modules/{moduleId}/lessons
-      const snapshot = await db
+      // Canonical Subcollection Query: courses/{targetCourseId}/modules/{moduleId}/lessons
+      let snapshot = await db
         .collection('courses')
-        .doc(courseId)
+        .doc(targetCourseId)
         .collection('modules')
         .doc(moduleId)
         .collection('lessons')
         .get();
+
+      if ((!snapshot || snapshot.empty) && targetCourseId !== courseId) {
+        snapshot = await db
+          .collection('courses')
+          .doc(courseId)
+          .collection('modules')
+          .doc(moduleId)
+          .collection('lessons')
+          .get();
+      }
 
       if (!snapshot || snapshot.empty) {
         return [];
@@ -291,20 +308,31 @@ export class CourseContentService {
    * Canonical path: courses/{courseId}/modules/{moduleId}/lessons/{lessonId}
    */
   async getLessonById(lessonId: string, courseId?: string, moduleId?: string, minExpectedRevision?: number): Promise<CourseLessonDoc | null> {
-    const cacheKey = `lesson:${courseId || 'any'}:${moduleId || 'any'}:${lessonId}`;
+    const targetCourseId = courseId ? resolveCanonicalId(courseId) : undefined;
+    const cacheKey = `lesson:${targetCourseId || 'any'}:${moduleId || 'any'}:${lessonId}`;
     const cached = this.getFromCache<CourseLessonDoc>(cacheKey, minExpectedRevision);
     if (cached) return cached;
 
     try {
-      if (courseId && moduleId) {
-        const subDoc = await db
+      if (targetCourseId && moduleId) {
+        let subDoc = await db
           .collection('courses')
-          .doc(courseId)
+          .doc(targetCourseId)
           .collection('modules')
           .doc(moduleId)
           .collection('lessons')
           .doc(lessonId)
           .get();
+        if (!subDoc.exists && courseId && targetCourseId !== courseId) {
+          subDoc = await db
+            .collection('courses')
+            .doc(courseId)
+            .collection('modules')
+            .doc(moduleId)
+            .collection('lessons')
+            .doc(lessonId)
+            .get();
+        }
         if (subDoc.exists) {
           const raw = fromDocument<any>(subDoc);
           const idx = raw.orderIndex ?? raw.order ?? 1;
@@ -330,8 +358,9 @@ export class CourseContentService {
    * Recalculates totalLessons and durationHours across all modules in this course and updates the course document.
    */
   async syncCourseStats(courseId: string): Promise<void> {
+    const targetCourseId = resolveCanonicalId(courseId);
     try {
-      const modulesSnapshot = await db.collection('courses').doc(courseId).collection('modules').get();
+      const modulesSnapshot = await db.collection('courses').doc(targetCourseId).collection('modules').get();
       let totalLessons = 0;
       let totalReadMinutes = 0;
 
@@ -347,7 +376,7 @@ export class CourseContentService {
 
       const durationHours = Math.max(1, Math.round(totalReadMinutes / 60));
 
-      await db.collection('courses').doc(courseId).set(
+      await db.collection('courses').doc(targetCourseId).set(
         toDocument({
           totalLessons,
           durationHours,
@@ -357,7 +386,7 @@ export class CourseContentService {
         { merge: true }
       );
     } catch (err) {
-      console.warn(`Could not sync course stats for ${courseId}:`, err);
+      console.warn(`Could not sync course stats for ${targetCourseId}:`, err);
     }
   }
 
@@ -366,8 +395,9 @@ export class CourseContentService {
    * Canonical write target: courses/{courseId}/modules/{moduleId}
    */
   async saveModule(courseId: string, moduleDoc: CourseModuleDoc, userId?: string): Promise<CourseModuleDoc> {
+    const targetCourseId = resolveCanonicalId(courseId);
     const orderIndex = moduleDoc.orderIndex ?? moduleDoc.order ?? 1;
-    const docRef = db.collection('courses').doc(courseId).collection('modules').doc(moduleDoc.id);
+    const docRef = db.collection('courses').doc(targetCourseId).collection('modules').doc(moduleDoc.id);
 
     const existingSnap = await docRef.get();
     let currentRevision = 0;
@@ -390,7 +420,7 @@ export class CourseContentService {
 
     const cleanDoc = toDocument({
       ...moduleDoc,
-      courseId,
+      courseId: targetCourseId,
       orderIndex,
       order: orderIndex,
       revision: nextRevision,
@@ -399,16 +429,16 @@ export class CourseContentService {
     });
     delete (cleanDoc as any).expectedRevision;
 
-    // Primary Canonical Subcollection: courses/{courseId}/modules/{moduleId}
+    // Primary Canonical Subcollection: courses/{targetCourseId}/modules/{moduleId}
     await docRef.set(cleanDoc, { merge: true });
 
-    this.invalidateCourseCache(courseId, moduleDoc.id);
-    this.invalidateCache(`modules:${courseId}`);
-    await this.syncCourseStats(courseId);
+    this.invalidateCourseCache(targetCourseId, moduleDoc.id);
+    this.invalidateCache(`modules:${targetCourseId}`);
+    await this.syncCourseStats(targetCourseId);
 
     const savedResult = {
       ...moduleDoc,
-      courseId,
+      courseId: targetCourseId,
       orderIndex,
       order: orderIndex,
       revision: nextRevision,
@@ -417,7 +447,7 @@ export class CourseContentService {
     };
 
     await this.recordAuditLog({
-      courseId,
+      courseId: targetCourseId,
       moduleId: moduleDoc.id,
       entityType: 'module',
       action: existingSnap.exists ? 'save' : 'create',
@@ -440,10 +470,11 @@ export class CourseContentService {
    * Canonical write target: courses/{courseId}/modules/{moduleId}/lessons/{lessonId}
    */
   async saveLesson(courseId: string, moduleId: string, lessonDoc: CourseLessonDoc, userId?: string): Promise<CourseLessonDoc> {
+    const targetCourseId = resolveCanonicalId(courseId);
     const orderIndex = lessonDoc.orderIndex ?? lessonDoc.order ?? 1;
     const docRef = db
       .collection('courses')
-      .doc(courseId)
+      .doc(targetCourseId)
       .collection('modules')
       .doc(moduleId)
       .collection('lessons')
@@ -486,7 +517,7 @@ export class CourseContentService {
 
     // Sync to parent module document and root course document for full cross-system compatibility
     try {
-      const modRef = db.collection('courses').doc(courseId).collection('modules').doc(moduleId);
+      const modRef = db.collection('courses').doc(targetCourseId).collection('modules').doc(moduleId);
       const modSnap = await modRef.get();
       if (modSnap.exists) {
         const modData = modSnap.data() || {};
@@ -507,7 +538,7 @@ export class CourseContentService {
         }
       }
 
-      const courseRef = db.collection('courses').doc(courseId);
+      const courseRef = db.collection('courses').doc(targetCourseId);
       const courseSnap = await courseRef.get();
       if (courseSnap.exists) {
         const cData = courseSnap.data() || {};
@@ -539,17 +570,17 @@ export class CourseContentService {
       console.warn('[SYNC_MODULE_DOC_NOTICE]', syncErr);
     }
 
-    this.invalidateCourseCache(courseId, moduleId, lessonDoc.id);
-    this.invalidateCache(`lessons:${courseId}:${moduleId}`);
-    this.invalidateCache(`lesson:${courseId}:${moduleId}:${lessonDoc.id}`);
-    this.invalidateCache(`modules:${courseId}`);
+    this.invalidateCourseCache(targetCourseId, moduleId, lessonDoc.id);
+    this.invalidateCache(`lessons:${targetCourseId}:${moduleId}`);
+    this.invalidateCache(`lesson:${targetCourseId}:${moduleId}:${lessonDoc.id}`);
+    this.invalidateCache(`modules:${targetCourseId}`);
 
     // Synchronize parent course metadata
-    await this.syncCourseStats(courseId);
+    await this.syncCourseStats(targetCourseId);
 
     const savedResult = {
       ...lessonDoc,
-      courseId,
+      courseId: targetCourseId,
       moduleId,
       orderIndex,
       order: orderIndex,
@@ -559,7 +590,7 @@ export class CourseContentService {
     };
 
     await this.recordAuditLog({
-      courseId,
+      courseId: targetCourseId,
       moduleId,
       lessonId: lessonDoc.id,
       entityType: 'lesson',
@@ -586,12 +617,13 @@ export class CourseContentService {
     updates: Array<{ lessonId: string; moduleId: string; order: number; orderIndex?: number; moduleTitle?: string }>,
     userId?: string
   ): Promise<void> {
+    const targetCourseId = resolveCanonicalId(courseId);
     const batch = db.batch();
     for (const item of updates) {
       const idx = item.orderIndex ?? item.order;
       const lessonRef = db
         .collection('courses')
-        .doc(courseId)
+        .doc(targetCourseId)
         .collection('modules')
         .doc(item.moduleId)
         .collection('lessons')
@@ -610,22 +642,22 @@ export class CourseContentService {
     }
 
     // Also update parent course updatedAt
-    const courseRef = db.collection('courses').doc(courseId);
+    const courseRef = db.collection('courses').doc(targetCourseId);
     batch.set(courseRef, toDocument({ updatedAt: new Date(), updatedBy: userId || 'admin' }), { merge: true });
 
     await batch.commit();
-    this.invalidateCourseCache(courseId);
-    this.invalidateCache(`lessons:${courseId}`);
-    this.invalidateCache(`modules:${courseId}`);
+    this.invalidateCourseCache(targetCourseId);
+    this.invalidateCache(`lessons:${targetCourseId}`);
+    this.invalidateCache(`modules:${targetCourseId}`);
 
     await this.recordAuditLog({
-      courseId,
+      courseId: targetCourseId,
       entityType: 'lesson',
       action: 'reorder',
       title: `Batch Reorder (${updates.length} lessons)`,
       adminId: userId || 'admin',
       timestamp: new Date().toISOString(),
-      changesSummary: `Reordered ${updates.length} lessons across modules in course "${courseId}".`,
+      changesSummary: `Reordered ${updates.length} lessons across modules in course "${targetCourseId}".`,
     });
   }
 
@@ -635,8 +667,9 @@ export class CourseContentService {
    */
   async deleteLesson(lessonId: string, courseId?: string, moduleId?: string, userId?: string): Promise<boolean> {
     try {
-      if (courseId && moduleId) {
-        const moduleRef = db.collection('courses').doc(courseId).collection('modules').doc(moduleId);
+      const targetCourseId = courseId ? resolveCanonicalId(courseId) : undefined;
+      if (targetCourseId && moduleId) {
+        const moduleRef = db.collection('courses').doc(targetCourseId).collection('modules').doc(moduleId);
         const lessonRef = moduleRef.collection('lessons').doc(lessonId);
 
         // Fetch remaining lessons to re-sequence without gaps
@@ -665,14 +698,14 @@ export class CourseContentService {
 
         await batch.commit();
 
-        this.invalidateCourseCache(courseId, moduleId, lessonId);
-        this.invalidateCache(`lessons:${courseId}`);
-        this.invalidateCache(`modules:${courseId}`);
+        this.invalidateCourseCache(targetCourseId, moduleId, lessonId);
+        this.invalidateCache(`lessons:${targetCourseId}`);
+        this.invalidateCache(`modules:${targetCourseId}`);
 
-        await this.syncCourseStats(courseId);
+        await this.syncCourseStats(targetCourseId);
 
         await this.recordAuditLog({
-          courseId,
+          courseId: targetCourseId,
           moduleId,
           lessonId,
           entityType: 'lesson',
@@ -694,8 +727,9 @@ export class CourseContentService {
    * Cascading module deletion: removes all nested lessons, the module doc, and syncs course stats.
    */
   async deleteModule(courseId: string, moduleId: string, userId?: string): Promise<boolean> {
+    const targetCourseId = resolveCanonicalId(courseId);
     try {
-      const moduleRef = db.collection('courses').doc(courseId).collection('modules').doc(moduleId);
+      const moduleRef = db.collection('courses').doc(targetCourseId).collection('modules').doc(moduleId);
       const modSnap = await moduleRef.get();
       const modTitle = modSnap.exists ? (modSnap.data()?.title || moduleId) : moduleId;
       const lessonsSnap = await moduleRef.collection('lessons').get();
@@ -708,14 +742,14 @@ export class CourseContentService {
 
       await batch.commit();
 
-      this.invalidateCourseCache(courseId, moduleId);
-      this.invalidateCache(`modules:${courseId}`);
-      this.invalidateCache(`lessons:${courseId}:${moduleId}`);
+      this.invalidateCourseCache(targetCourseId, moduleId);
+      this.invalidateCache(`modules:${targetCourseId}`);
+      this.invalidateCache(`lessons:${targetCourseId}:${moduleId}`);
 
-      await this.syncCourseStats(courseId);
+      await this.syncCourseStats(targetCourseId);
 
       await this.recordAuditLog({
-        courseId,
+        courseId: targetCourseId,
         moduleId,
         entityType: 'module',
         action: 'delete',

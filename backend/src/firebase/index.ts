@@ -58,10 +58,11 @@ if (!getApps().length) {
     }
   } else {
     try {
+      const fallbackProjectId = env.FIREBASE_PROJECT_ID || 'shaivika-ai-lms-platform';
       initializeApp({
-        projectId: env.FIREBASE_PROJECT_ID || 'shaivika-lms-ai',
+        projectId: fallbackProjectId,
       });
-      console.log('🎉 Firebase Admin SDK initialized with project ID default (shaivika-lms-ai)!');
+      console.log(`🎉 Firebase Admin SDK initialized with project ID default (${fallbackProjectId})!`);
     } catch (e: any) {
       console.warn('⚠️ Firebase Admin Default Initialization Notice:', e?.message || e);
     }

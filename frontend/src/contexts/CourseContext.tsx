@@ -295,15 +295,21 @@ export const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
   list.forEach((c) => {
     if (!c) return;
     const item = normalizeContextCourse(c);
+    const id = String(item.id).toLowerCase();
     const slug = (item.slug || '').toLowerCase();
     const title = (item.title || '').toLowerCase();
 
-    // Ignore legacy test items
-    if (title === 'linux essentials' || slug === 'linux-essentials' || String(item.id) === 'linux-essentials') {
+    // Ignore legacy duplicate git doc in favor of canonical git-github-mastery
+    if (id === 'git-github-mastery-course-id') {
       return;
     }
 
-    const key = String(item.id).toLowerCase();
+    // Ignore legacy test items
+    if (title === 'linux essentials' || slug === 'linux-essentials' || id === 'linux-essentials') {
+      return;
+    }
+
+    const key = id;
     const existing = map.get(key);
     if (!existing) {
       map.set(key, item);

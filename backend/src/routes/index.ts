@@ -32,6 +32,27 @@ router.get('/', (req, res) => {
   res.json({ message: 'Backend Connected Successfully' });
 });
 
+router.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development',
+    firebaseProject: process.env.FIREBASE_PROJECT_ID || 'shaivika-ai-lms-platform',
+  });
+});
+
+router.get('/diagnostics', (req, res) => {
+  res.json({
+    status: 'healthy',
+    canonicalDatabase: 'Cloud Firestore',
+    firebaseProject: process.env.FIREBASE_PROJECT_ID || 'shaivika-ai-lms-platform',
+    environment: process.env.NODE_ENV || 'development',
+    version: '2.0.0',
+    timestamp: new Date().toISOString(),
+  });
+});
+
 router.use('/auth', authRoutes);
 router.use('/auth', studentRoutes);
 router.use('/students', studentRoutes);
