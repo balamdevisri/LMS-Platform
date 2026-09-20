@@ -92,7 +92,7 @@ export class AudioActivityDetector {
   private tick(): void {
     if (!this.analyser || !this.dataArray) return;
 
-    this.analyser.getFloatTimeDomainData(this.dataArray);
+    (this.analyser as any).getFloatTimeDomainData(this.dataArray);
 
     // Compute Root-Mean-Square (RMS) audio energy
     let sumSquares = 0;

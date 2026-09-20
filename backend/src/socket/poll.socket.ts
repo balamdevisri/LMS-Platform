@@ -61,6 +61,7 @@ export const registerPollHandlers = (io: SocketServer, socket: AuthenticatedSock
 
       // Persist poll in repository non-blockingly
       liveClassroomService.createPoll({
+        id: pollId,
         classId: liveClassId,
         title: question.trim(),
         options: options.map((opt) => ({ text: opt.trim(), votesCount: 0, voters: [] })),
@@ -162,6 +163,14 @@ export const registerPollHandlers = (io: SocketServer, socket: AuthenticatedSock
       targetOption.votes += 1;
       activePoll.votedUserIds.add(userId);
 
+      // Persist vote to database asynchronously
+      liveClassroomService.submitPollVote(
+        liveClassId,
+        activePoll.id,
+        targetOption.optionIndex,
+        userId
+      ).catch((e: any) => logger.warn('[SOCKET POLL] DB vote save notice:', e?.message));
+
       const totalVotes = activePoll.options.reduce((acc, curr) => acc + curr.votes, 0);
       const roomName = `live-class:${liveClassId}`;
 
@@ -250,6 +259,7 @@ export const registerPollHandlers = (io: SocketServer, socket: AuthenticatedSock
         const activePoll = activePollsMap.get(classId);
         if (activePoll) {
           activePoll.status = 'ENDED';
+          liveClassroomService.closePoll(classId, activePoll.id).catch((e: any) => logger.warn('[SOCKET POLL] DB close notice:', e?.message));
           const roomName = `live-class:${classId}`;
           const totalVotes = activePoll.options.reduce((acc, curr) => acc + curr.votes, 0);
 

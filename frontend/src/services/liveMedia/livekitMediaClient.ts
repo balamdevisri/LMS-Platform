@@ -10,6 +10,7 @@ import {
   Participant,
   ScreenSharePresets,
   VideoQuality,
+  VideoPresets,
 } from 'livekit-client';
 import type {
   ScreenShareCaptureOptions,
@@ -103,6 +104,8 @@ export class LiveKitMediaClient implements IMediaClient {
   private isMutedByInstructor = false;
   private micAllowedByInstructor = false;
   private micPermission: 'prompt' | 'granted' | 'denied' = 'prompt';
+  private selectedCameraId: string | null = null;
+  private selectedMicrophoneId: string | null = null;
   private pinnedUserId: string | null = null;
 
   // Socket listener registry for clean removal
@@ -682,11 +685,36 @@ export class LiveKitMediaClient implements IMediaClient {
       }
       const mst = track.mediaStreamTrack;
       const settings = mst?.getSettings?.() || {};
+      const isSimulcastActive = Boolean((publication as any).simulcasted ?? (publication as any).isSimulcasted);
       console.log(
-        `[LIVEKIT_SCREEN_RECEIVE] participantId=${uid} trackSid=${track.sid} videoWidth=${settings.width || 0} videoHeight=${settings.height || 0} isSimulcasted=${publication.isSimulcasted}`
+        `[LIVEKIT_SCREEN_RECEIVE] participantId=${uid} trackSid=${track.sid} videoWidth=${settings.width || 0} videoHeight=${settings.height || 0} isSimulcasted=${isSimulcastActive}`
       );
     }
     const participant = this.upsertRemoteParticipant(remoteParticipant);
+
+    // Adaptive video quality & priority:
+    // Instructor camera gets HIGH quality priority; other participants get balanced LOW quality in the strip
+    if (publication.source === Track.Source.Camera) {
+      const isInstructor =
+        participant.role === 'instructor' ||
+        participant.role === 'mentor' ||
+        participant.role === 'admin' ||
+        participant.userId === this.config.instructorId;
+      try {
+        if (isInstructor) {
+          publication.setVideoQuality(VideoQuality.HIGH);
+          if (typeof (publication as any).setPriority === 'function') {
+            (publication as any).setPriority('high');
+          }
+        } else {
+          publication.setVideoQuality(VideoQuality.LOW);
+          if (typeof (publication as any).setPriority === 'function') {
+            (publication as any).setPriority('low');
+          }
+        }
+      } catch (_) {}
+    }
+
     this.attachTrackToParticipant(participant, track, publication.source);
     this.emitParticipantsUpdate();
   }
@@ -960,7 +988,21 @@ export class LiveKitMediaClient implements IMediaClient {
     try {
       const nextState = !this.isAudioEnabled;
       lkAudioLog(`toggling microphone to ${nextState}`);
-      await this.room.localParticipant.setMicrophoneEnabled(nextState);
+      const audioCaptureOptions = {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        deviceId: this.selectedMicrophoneId || undefined,
+      };
+      const audioPublishOptions: TrackPublishOptions = {
+        dtx: true,
+        red: true,
+      };
+      await this.room.localParticipant.setMicrophoneEnabled(
+        nextState,
+        nextState ? audioCaptureOptions : undefined,
+        nextState ? audioPublishOptions : undefined
+      );
       this.isAudioEnabled = nextState;
       this.updateLocalParticipantState();
       lkAudioLog(`microphone published: ${nextState}`);
@@ -992,7 +1034,25 @@ export class LiveKitMediaClient implements IMediaClient {
     try {
       const nextState = !this.isVideoEnabled;
       lkVideoLog(`toggling camera to ${nextState}`);
-      await this.room.localParticipant.setCameraEnabled(nextState, undefined, { simulcast: true });
+      const isInstructor =
+        this.config.role === 'instructor' ||
+        this.config.role === 'mentor' ||
+        this.config.role === 'admin' ||
+        this.config.userId === this.config.instructorId;
+      const videoCaptureOptions = {
+        resolution: isInstructor ? VideoPresets.h720.resolution : VideoPresets.h360.resolution,
+        deviceId: this.selectedCameraId || undefined,
+      };
+      const videoPublishOptions: TrackPublishOptions = {
+        simulcast: true,
+        videoCodec: 'vp8',
+        degradationPreference: 'balanced',
+      };
+      await this.room.localParticipant.setCameraEnabled(
+        nextState,
+        nextState ? videoCaptureOptions : undefined,
+        nextState ? videoPublishOptions : undefined
+      );
       this.isVideoEnabled = nextState;
       this.updateLocalParticipantState();
       lkVideoLog(`camera published: ${nextState}`);
@@ -1016,6 +1076,21 @@ export class LiveKitMediaClient implements IMediaClient {
    */
   public async startScreenShare(): Promise<MediaStream | null> {
     if (!this.room) return null;
+
+    // Strict role check: Students must not be allowed to screen share
+    const isAuthorized =
+      this.config.role === 'instructor' ||
+      this.config.role === 'mentor' ||
+      this.config.role === 'admin' ||
+      this.config.userId === this.config.instructorId;
+
+    if (!isAuthorized) {
+      this.emit('mediaError', {
+        type: 'permission_denied',
+        message: 'Only instructors and authorized staff are permitted to share their screen.',
+      });
+      return null;
+    }
 
     try {
       console.log(
@@ -1189,6 +1264,7 @@ export class LiveKitMediaClient implements IMediaClient {
   public async switchCamera(deviceId: string): Promise<boolean> {
     if (!this.room) return false;
     try {
+      this.selectedCameraId = deviceId;
       await this.room.switchActiveDevice('videoinput', deviceId);
       return true;
     } catch (err) {
@@ -1200,6 +1276,7 @@ export class LiveKitMediaClient implements IMediaClient {
   public async switchMicrophone(deviceId: string): Promise<boolean> {
     if (!this.room) return false;
     try {
+      this.selectedMicrophoneId = deviceId;
       await this.room.switchActiveDevice('audioinput', deviceId);
       return true;
     } catch (err) {

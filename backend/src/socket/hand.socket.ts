@@ -131,4 +131,21 @@ export const registerHandHandlers = (io: SocketServer, socket: AuthenticatedSock
       }
     }
   );
+
+  // 4. Query current active raised hands in room (Initial sync on join / reconnect)
+  socket.on(
+    'hand:list',
+    (data: { liveClassId?: string; classId?: string }, callback?: (res: any) => void) => {
+      try {
+        const liveClassId = data?.liveClassId || data?.classId || '';
+        const roomMap = raisedHandsMap.get(liveClassId);
+        const hands = roomMap ? Array.from(roomMap.values()) : [];
+        const res = { success: true, hands, totalRaised: hands.length };
+        socket.emit('hand:list', res);
+        if (callback) callback(res);
+      } catch (err: any) {
+        if (callback) callback({ success: false, error: err.message, hands: [] });
+      }
+    }
+  );
 };

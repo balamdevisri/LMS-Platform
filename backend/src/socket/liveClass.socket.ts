@@ -1650,12 +1650,11 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
     const userRole = (user.role || '').toLowerCase();
     const classroomSettings = getClassroomSettings(classId);
 
-    // Server-side permission check: Admin / Instructor / Mentor or student with permission
+    // Server-side permission check: Admin / Instructor / Mentor only
     const canShare =
       userRole === 'admin' ||
       userRole === 'instructor' ||
-      userRole === 'mentor' ||
-      Boolean(classroomSettings?.studentScreenShare?.enabled);
+      userRole === 'mentor';
 
     if (!canShare) {
       socket.emit('liveClass:error', {
@@ -1693,9 +1692,11 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
 
     const roomName = `live-class:${classId}`;
     const current = activeRoomScreenShares.get(classId);
+    const userRole = (user.role || '').toLowerCase();
     const isAuthorized =
-      user.role === 'admin' ||
-      user.role === 'instructor' ||
+      userRole === 'admin' ||
+      userRole === 'instructor' ||
+      userRole === 'mentor' ||
       current?.userId === (user.uid || user.id);
 
     if (!isAuthorized) return;
@@ -1718,6 +1719,17 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
     const classId = data.liveClassId || data.classId;
     if (!user || !classId) return;
 
+    const userRole = (user.role || '').toLowerCase();
+    const canShare = userRole === 'admin' || userRole === 'instructor' || userRole === 'mentor';
+    if (!canShare) {
+      socket.emit('liveClass:error', {
+        success: false,
+        error: 'SCREEN_SHARE_UNAUTHORIZED',
+        message: 'Only instructors can share their screen in this classroom.',
+      });
+      return;
+    }
+
     const roomName = `live-class:${classId}`;
     const shareInfo: ActiveScreenShareState = {
       userId: user.uid || user.id || data.userId || 'instructor',
@@ -1733,6 +1745,16 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
     const user = socket.user;
     const classId = data.liveClassId || data.classId;
     if (!user || !classId) return;
+
+    const userRole = (user.role || '').toLowerCase();
+    const current = activeRoomScreenShares.get(classId);
+    const isAuthorized =
+      userRole === 'admin' ||
+      userRole === 'instructor' ||
+      userRole === 'mentor' ||
+      current?.userId === (user.uid || user.id);
+
+    if (!isAuthorized) return;
 
     const roomName = `live-class:${classId}`;
     activeRoomScreenShares.set(classId, null);

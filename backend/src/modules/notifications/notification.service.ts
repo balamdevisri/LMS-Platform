@@ -205,6 +205,22 @@ export class NotificationService {
 
     return { created: savedCount, eligible: eligibleStudentIds.length };
   }
+
+  public async getUserNotifications(userId: string, limitCount: number = 50): Promise<IDurableNotification[]> {
+    return this.notificationRepository.getNotificationsForUser(userId, limitCount);
+  }
+
+  public async markAsRead(notificationId: string, userId: string): Promise<boolean> {
+    return this.notificationRepository.markAsRead(notificationId, userId);
+  }
+
+  public async markAllAsRead(userId: string): Promise<number> {
+    return this.notificationRepository.markAllAsRead(userId);
+  }
+
+  public async getUnreadCount(userId: string): Promise<number> {
+    return this.notificationRepository.getUnreadCount(userId);
+  }
 }
 
 export const notificationService = new NotificationService();

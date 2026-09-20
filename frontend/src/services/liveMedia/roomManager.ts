@@ -14,10 +14,10 @@ export const getActiveMediaEngine = (): 'p2p' | 'sfu' => {
     .toLowerCase()
     .trim();
 
-  if (envEngine === 'sfu') {
-    return 'sfu';
+  if (envEngine === 'p2p') {
+    return 'p2p';
   }
-  return 'p2p';
+  return 'sfu';
 };
 
 export class RoomManager {

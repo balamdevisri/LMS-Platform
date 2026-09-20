@@ -21,6 +21,7 @@ import resumeRoutes from './resumeRoutes';
 import developerAccessRoutes from './developerAccess.routes';
 import uploadRoutes from '../modules/upload/upload.routes';
 import couponRoutes from '../modules/coupons/coupon.routes';
+import notificationRoutes from '../modules/notifications/notification.routes';
 import { verifyFirebaseToken, requireRole } from '../middleware/auth.middleware';
 
 const router = Router();
@@ -76,5 +77,6 @@ router.use('/live-classroom', liveClassroomRoutes);
 router.use('/live-classes', liveClassroomRoutes);
 router.use('/portfolio', portfolioRoutes);
 router.use('/resume', resumeRoutes);
+router.use('/notifications', notificationRoutes);
 
 export default router;
