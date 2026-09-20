@@ -67,44 +67,40 @@ export interface PortfolioEducation {
 
 export const PortfolioBuilder: React.FC = () => {
   const { user, userProfile } = useAuth();
-  const userId = user?.uid || 'default_student';
+  const userId = userProfile?.uid || user?.uid || '';
 
-  // 1. Core Profile Identity State
+  const getStorageKey = (key: string) => {
+    return userId ? `shaivika_portfolio_${userId}_${key}` : `shaivika_portfolio_${key}`;
+  };
+
+  // 1. Core Profile Identity State - Defaults to Active Logged-in User
   const [fullName, setFullName] = useState(() => {
     return (
-      localStorage.getItem('shaivika_portfolio_fullname') ||
       userProfile?.name ||
       user?.displayName ||
-      (user?.email ? user.email.split('@')[0] : 'hemadri')
+      (user?.email ? user.email.split('@')[0] : 'Developer')
     );
   });
   const [headline, setHeadline] = useState(() => {
     return (
-      localStorage.getItem('shaivika_portfolio_headline') ||
+      userProfile?.headline ||
       userProfile?.bio ||
-      'Full-Stack Developer & AI Systems Specialist | Building Scalable Cloud Apps'
+      'Full-Stack Developer & Software Engineer | Building Scalable Cloud Apps'
     );
   });
   const [handle, setHandle] = useState(() => {
     return (
-      localStorage.getItem('shaivika_portfolio_handle') ||
       user?.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9_-]/g, '') ||
       'developer'
     );
   });
-  const [email, setEmail] = useState(user?.email || '');
-  const [location, setLocation] = useState(() => {
-    return localStorage.getItem('shaivika_portfolio_location') || 'Hyderabad, India';
-  });
-  const [aboutBio, setAboutBio] = useState(() => {
-    return (
-      localStorage.getItem('shaivika_portfolio_bio') ||
-      'Passionate technologist mastering Linux kernel systems, distributed cloud platforms, and generative AI foundations. Certified by Shaivika AI Foundation with proven project implementations.'
-    );
-  });
+  const [email, setEmail] = useState(() => user?.email || userProfile?.email || '');
+  const [location, setLocation] = useState('India');
+  const [aboutBio, setAboutBio] = useState(
+    'Passionate technologist mastering modern cloud systems, distributed platforms, and full-stack software architectures.'
+  );
   const [avatarUrl, setAvatarUrl] = useState(() => {
     return (
-      localStorage.getItem('shaivika_portfolio_avatar') ||
       userProfile?.photoURL ||
       user?.photoURL ||
       ''
@@ -123,7 +119,7 @@ export const PortfolioBuilder: React.FC = () => {
       const result = event.target?.result as string;
       if (result) {
         setAvatarUrl(result);
-        localStorage.setItem('shaivika_portfolio_avatar', result);
+        localStorage.setItem(getStorageKey('avatar'), result);
         toast.success('Profile image uploaded successfully!');
       }
     };
@@ -131,99 +127,79 @@ export const PortfolioBuilder: React.FC = () => {
   };
 
   // 2. Social Profiles
-  const [githubUrl, setGithubUrl] = useState(
-    localStorage.getItem('shaivika_portfolio_github') ||
-      (user?.email ? `https://github.com/${user.email.split('@')[0]}` : '')
+  const [githubUrl, setGithubUrl] = useState(() =>
+    userProfile?.githubUsername
+      ? `https://github.com/${userProfile.githubUsername}`
+      : (user?.email ? `https://github.com/${user.email.split('@')[0]}` : '')
   );
-  const [linkedinUrl, setLinkedinUrl] = useState(
-    localStorage.getItem('shaivika_portfolio_linkedin') || ''
-  );
-  const [websiteUrl, setWebsiteUrl] = useState(
-    localStorage.getItem('shaivika_portfolio_website') || ''
-  );
+  const [linkedinUrl, setLinkedinUrl] = useState('');
+  const [websiteUrl, setWebsiteUrl] = useState('');
 
-  // Auto-sync form changes live to localStorage
+  // Auto-sync form changes live to user-scoped localStorage
   useEffect(() => {
-    if (fullName) localStorage.setItem('shaivika_portfolio_fullname', fullName);
-    if (headline) localStorage.setItem('shaivika_portfolio_headline', headline);
-    if (location) localStorage.setItem('shaivika_portfolio_location', location);
-    if (aboutBio) localStorage.setItem('shaivika_portfolio_bio', aboutBio);
-    if (handle) localStorage.setItem('shaivika_portfolio_handle', handle);
-    if (avatarUrl) localStorage.setItem('shaivika_portfolio_avatar', avatarUrl);
-    if (githubUrl) localStorage.setItem('shaivika_portfolio_github', githubUrl);
-    if (linkedinUrl) localStorage.setItem('shaivika_portfolio_linkedin', linkedinUrl);
-    if (websiteUrl) localStorage.setItem('shaivika_portfolio_website', websiteUrl);
-  }, [fullName, headline, location, aboutBio, handle, avatarUrl, githubUrl, linkedinUrl, websiteUrl]);
+    if (!userId) return;
+    if (fullName) localStorage.setItem(getStorageKey('fullname'), fullName);
+    if (headline) localStorage.setItem(getStorageKey('headline'), headline);
+    if (location) localStorage.setItem(getStorageKey('location'), location);
+    if (aboutBio) localStorage.setItem(getStorageKey('bio'), aboutBio);
+    if (handle) localStorage.setItem(getStorageKey('handle'), handle);
+    if (avatarUrl) localStorage.setItem(getStorageKey('avatar'), avatarUrl);
+    if (githubUrl) localStorage.setItem(getStorageKey('github'), githubUrl);
+    if (linkedinUrl) localStorage.setItem(getStorageKey('linkedin'), linkedinUrl);
+    if (websiteUrl) localStorage.setItem(getStorageKey('website'), websiteUrl);
+  }, [userId, fullName, headline, location, aboutBio, handle, avatarUrl, githubUrl, linkedinUrl, websiteUrl]);
 
   // 3. Technical Skills
-  const [skills, setSkills] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('shaivika_portfolio_skills');
-      return saved
-        ? JSON.parse(saved)
-        : ['Linux Systems', 'TypeScript', 'React.js', 'Node.js Express', 'PostgreSQL', 'Docker', 'Git & CI/CD', 'AI Foundation'];
-    } catch {
-      return ['Linux Systems', 'TypeScript', 'React.js', 'Node.js Express', 'PostgreSQL', 'Docker', 'Git & CI/CD', 'AI Foundation'];
-    }
-  });
+  const [skills, setSkills] = useState<string[]>([
+    'Linux Systems', 'TypeScript', 'React.js', 'Node.js Express', 'PostgreSQL', 'Docker', 'Git & CI/CD', 'AI Foundation'
+  ]);
   const [newSkillInput, setNewSkillInput] = useState('');
 
   // 4. Projects
-  const [projects, setProjects] = useState<PortfolioProject[]>(() => {
-    try {
-      const saved = localStorage.getItem('shaivika_portfolio_projects');
-      return saved
-        ? JSON.parse(saved)
-        : [
-            {
-              id: 'p1',
-              title: 'KaizenQ AI Classroom & Learning Engine',
-              description: 'Real-time WebSocket interactive learning platform with telemetry, AI tutor assistance, and live socket sync.',
-              tags: ['React', 'TypeScript', 'Socket.IO', 'TailwindCSS'],
-              githubUrl: 'https://github.com',
-              liveUrl: 'https://www.kaizenq.in',
-              featured: true,
-            },
-            {
-              id: 'p2',
-              title: 'Cloud DevOps Sandbox & CLI Orchestration',
-              description: 'Automated container sandbox environment executing secure Linux bash scripts and kernel command logging.',
-              tags: ['Linux', 'Docker', 'Bash', 'Express'],
-              githubUrl: 'https://github.com',
-              featured: false,
-            },
-          ];
-    } catch {
-      return [];
-    }
-  });
+  const [projects, setProjects] = useState<PortfolioProject[]>([
+    {
+      id: 'p1',
+      title: 'KaizenQ AI Classroom & Learning Engine',
+      description: 'Real-time WebSocket interactive learning platform with telemetry, AI tutor assistance, and live socket sync.',
+      tags: ['React', 'TypeScript', 'Socket.IO', 'TailwindCSS'],
+      githubUrl: 'https://github.com',
+      liveUrl: 'https://www.kaizenq.in',
+      featured: true,
+    },
+    {
+      id: 'p2',
+      title: 'Cloud DevOps Sandbox & CLI Orchestration',
+      description: 'Automated container sandbox environment executing secure Linux bash scripts and kernel command logging.',
+      tags: ['Linux', 'Docker', 'Bash', 'Express'],
+      githubUrl: 'https://github.com',
+      featured: false,
+    },
+  ]);
 
   // 5. Work Experience & Education
   const [experiences] = useState<PortfolioExperience[]>([
     {
       id: 'e1',
       role: 'Junior Cloud & AI Intern',
-      company: 'Shaivika AI Foundation Innovation Lab',
-      duration: '2026 - Present',
-      description: 'Building micro-benchmarks for AI agent tool execution and automating verified certificate delivery pipelines.',
+      company: 'KaizenQ Innovation Lab',
+      duration: '2025 - Present',
+      description: 'Building micro-benchmarks for software execution and automating verified certificate delivery pipelines.',
     },
   ]);
 
   const [educations] = useState<PortfolioEducation[]>([
     {
       id: 'ed1',
-      degree: 'B.Tech in Computer Science & AI',
-      institution: 'Siddharth Institute of Engineering & Technology',
+      degree: 'B.Tech in Computer Science & Engineering',
+      institution: 'Institute of Engineering & Technology',
       year: '2023 - 2027',
-      score: '9.2 CGPA',
+      score: '9.0 CGPA',
     },
   ]);
 
   // 6. Theme & Accent Settings
   const [accentColor, setAccentColor] = useState<'cyan' | 'purple' | 'emerald' | 'amber' | 'rose'>('cyan');
-  const [isPublished, setIsPublished] = useState(() => {
-    return localStorage.getItem('shaivika_portfolio_published') === 'true';
-  });
+  const [isPublished, setIsPublished] = useState(false);
 
   // UI States
   const [isSaving, setIsSaving] = useState(false);
@@ -236,45 +212,88 @@ export const PortfolioBuilder: React.FC = () => {
   const [copiedUrl, setCopiedUrl] = useState(false);
 
   // VIP Unlock States
-  const [isProUnlocked] = useState<boolean>(() =>
-    localStorage.getItem('shaivika_vip_unlocked') === 'true'
-  );
+  const [isProUnlocked] = useState<boolean>(true);
   const [showVipModal, setShowVipModal] = useState(false);
-
-
-
 
   // LMS Telemetry data
   const [userCertificates, setUserCertificates] = useState<any[]>([]);
 
-  // Load from backend & local storage on mount
+  // Load from backend & user-scoped local storage on mount / user change
   useEffect(() => {
+    if (!userId) return;
     const certService = new CertificateService();
     setUserCertificates(certService.getCertificates(userId));
 
-    // Fetch cloud portfolio if available
+    // 1. Check user-scoped local storage
+    const scopedName = localStorage.getItem(getStorageKey('fullname'));
+    setFullName(scopedName || userProfile?.name || user?.displayName || (user?.email ? user.email.split('@')[0] : 'Developer'));
+
+    const scopedEmail = user?.email || userProfile?.email || '';
+    setEmail(scopedEmail);
+
+    const scopedHandle = localStorage.getItem(getStorageKey('handle'));
+    const defaultHandle = user?.email ? user.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_-]/g, '') : 'developer';
+    setHandle(scopedHandle || defaultHandle);
+
+    const scopedHeadline = localStorage.getItem(getStorageKey('headline'));
+    setHeadline(scopedHeadline || userProfile?.headline || userProfile?.bio || 'Full-Stack Developer & Software Engineer | Building Scalable Cloud Apps');
+
+    const scopedBio = localStorage.getItem(getStorageKey('bio'));
+    if (scopedBio) setAboutBio(scopedBio);
+
+    const scopedAvatar = localStorage.getItem(getStorageKey('avatar'));
+    setAvatarUrl(scopedAvatar || userProfile?.photoURL || user?.photoURL || '');
+
+    const scopedGithub = localStorage.getItem(getStorageKey('github'));
+    setGithubUrl(scopedGithub || (userProfile?.githubUsername ? `https://github.com/${userProfile.githubUsername}` : (user?.email ? `https://github.com/${user.email.split('@')[0]}` : '')));
+
+    const scopedLinkedin = localStorage.getItem(getStorageKey('linkedin'));
+    if (scopedLinkedin !== null) setLinkedinUrl(scopedLinkedin);
+
+    const scopedWebsite = localStorage.getItem(getStorageKey('website'));
+    if (scopedWebsite !== null) setWebsiteUrl(scopedWebsite);
+
+    const scopedLocation = localStorage.getItem(getStorageKey('location'));
+    if (scopedLocation) setLocation(scopedLocation);
+
+    const scopedSkills = localStorage.getItem(getStorageKey('skills'));
+    if (scopedSkills) {
+      try { setSkills(JSON.parse(scopedSkills)); } catch {}
+    }
+
+    const scopedProjects = localStorage.getItem(getStorageKey('projects'));
+    if (scopedProjects) {
+      try { setProjects(JSON.parse(scopedProjects)); } catch {}
+    }
+
+    const scopedPublished = localStorage.getItem(getStorageKey('published'));
+    if (scopedPublished !== null) setIsPublished(scopedPublished === 'true');
+
+    // 2. Fetch authoritative cloud portfolio if available
     fetch(`${API_BASE_URL}/portfolio/me?studentId=${userId}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data && data.success && data.portfolio) {
-          const p = data.portfolio;
-          if (p.fullName) setFullName(p.fullName);
-          if (p.headline) setHeadline(p.headline);
-          if (p.bio) setAboutBio(p.bio);
-          if (p.customHandle) setHandle(p.customHandle);
-          if (p.githubUrl) setGithubUrl(p.githubUrl);
-          if (p.linkedinUrl) setLinkedinUrl(p.linkedinUrl);
-          if (p.websiteUrl) setWebsiteUrl(p.websiteUrl);
-          if (p.skills && Array.isArray(p.skills)) setSkills(p.skills);
-          if (p.projects && Array.isArray(p.projects)) setProjects(p.projects);
+        const p = data?.data || data?.portfolio;
+        if (p) {
+          if (p.fullName || p.name) setFullName(p.fullName || p.name);
+          if (p.headline || p.title) setHeadline(p.headline || p.title);
+          if (p.bio || p.aboutBio) setAboutBio(p.bio || p.aboutBio);
+          if (p.customHandle || p.handle) setHandle(p.customHandle || p.handle);
+          if (p.githubUrl || p.githubLink) setGithubUrl(p.githubUrl || p.githubLink);
+          if (p.linkedinUrl || p.linkedinLink) setLinkedinUrl(p.linkedinUrl || p.linkedinLink);
+          if (p.websiteUrl || p.websiteLink) setWebsiteUrl(p.websiteUrl || p.websiteLink);
+          if (p.skills && Array.isArray(p.skills) && p.skills.length > 0) setSkills(p.skills);
+          if (p.projects && Array.isArray(p.projects) && p.projects.length > 0) setProjects(p.projects);
           if (p.accentColor) setAccentColor(p.accentColor);
           if (typeof p.isPublished === 'boolean') setIsPublished(p.isPublished);
+          if (p.avatarUrl || p.photoURL || p.avatar) setAvatarUrl(p.avatarUrl || p.photoURL || p.avatar);
+          if (p.location) setLocation(p.location);
         }
       })
       .catch(() => {
         // Fallback to local storage
       });
-  }, [userId]);
+  }, [userId, userProfile?.name, userProfile?.email, user?.email]);
 
   const publicPortfolioUrl = `https://www.kaizenq.in/portfolio/${handle || userId}`;
 
@@ -372,18 +391,18 @@ export const PortfolioBuilder: React.FC = () => {
     const targetPublished = publishOverride !== undefined ? publishOverride : isPublished;
 
     // Cache locally
-    localStorage.setItem('shaivika_portfolio_avatar', avatarUrl);
-    localStorage.setItem('shaivika_portfolio_fullname', fullName);
-    localStorage.setItem('shaivika_portfolio_headline', headline);
-    localStorage.setItem('shaivika_portfolio_location', location);
-    localStorage.setItem('shaivika_portfolio_handle', handle);
-    localStorage.setItem('shaivika_portfolio_github', githubUrl);
-    localStorage.setItem('shaivika_portfolio_linkedin', linkedinUrl);
-    localStorage.setItem('shaivika_portfolio_website', websiteUrl);
-    localStorage.setItem('shaivika_portfolio_bio', aboutBio);
-    localStorage.setItem('shaivika_portfolio_published', String(targetPublished));
-    localStorage.setItem('shaivika_portfolio_skills', JSON.stringify(skills));
-    localStorage.setItem('shaivika_portfolio_projects', JSON.stringify(projects));
+    localStorage.setItem(getStorageKey('avatar'), avatarUrl);
+    localStorage.setItem(getStorageKey('fullname'), fullName);
+    localStorage.setItem(getStorageKey('headline'), headline);
+    localStorage.setItem(getStorageKey('location'), location);
+    localStorage.setItem(getStorageKey('handle'), handle);
+    localStorage.setItem(getStorageKey('github'), githubUrl);
+    localStorage.setItem(getStorageKey('linkedin'), linkedinUrl);
+    localStorage.setItem(getStorageKey('website'), websiteUrl);
+    localStorage.setItem(getStorageKey('bio'), aboutBio);
+    localStorage.setItem(getStorageKey('published'), String(targetPublished));
+    localStorage.setItem(getStorageKey('skills'), JSON.stringify(skills));
+    localStorage.setItem(getStorageKey('projects'), JSON.stringify(projects));
 
     const payload = {
       studentId: userId,

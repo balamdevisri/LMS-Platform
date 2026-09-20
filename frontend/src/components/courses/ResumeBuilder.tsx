@@ -33,107 +33,74 @@ import type {
 
 export const ResumeBuilder: React.FC = () => {
   const { user, userProfile } = useAuth();
-  const userId = userProfile?.uid || user?.uid || 'default_student';
+  const userId = userProfile?.uid || user?.uid || '';
 
-  const [fullName, setFullName] = useState(
-    localStorage.getItem('shaivika_resume_fullname') ||
-    userProfile?.name ||
-    user?.displayName ||
-    'Student Scholar'
+  const getStorageKey = (key: string) => {
+    return userId ? `shaivika_resume_${userId}_${key}` : `shaivika_resume_${key}`;
+  };
+
+  const [fullName, setFullName] = useState(() =>
+    userProfile?.name || user?.displayName || (user?.email ? user.email.split('@')[0] : 'Student Scholar')
   );
 
-  const [email, setEmail] = useState(
-    localStorage.getItem('shaivika_resume_email') ||
-    userProfile?.email ||
-    user?.email ||
-    'scholar@shaivika.ai'
+  const [email, setEmail] = useState(() =>
+    userProfile?.email || user?.email || ''
   );
 
-  const [phone, setPhone] = useState(
-    localStorage.getItem('shaivika_resume_phone') || '+91 98765 43210'
+  const [phone, setPhone] = useState(() => userProfile?.phone || '');
+  const [location, setLocation] = useState('India');
+  const [jobTitle, setJobTitle] = useState(() => userProfile?.headline || 'Full Stack & AI Engineer');
+  const [website, setWebsite] = useState('');
+  const [github, setGithub] = useState(() =>
+    userProfile?.githubUsername
+      ? `https://github.com/${userProfile.githubUsername}`
+      : (user?.email ? `https://github.com/${user.email.split('@')[0]}` : '')
   );
-
-  const [location, setLocation] = useState(
-    localStorage.getItem('shaivika_resume_location') || 'Hyderabad, India'
-  );
-
-  const [jobTitle, setJobTitle] = useState(
-    localStorage.getItem('shaivika_resume_title') || 'Full Stack & AI Engineer'
-  );
-
-  const [website, setWebsite] = useState(
-    localStorage.getItem('shaivika_resume_website') || 'https://shaivika.ai'
-  );
-
-  const [github, setGithub] = useState(
-    localStorage.getItem('shaivika_resume_github') || 'https://github.com/developer'
-  );
-
-  const [linkedin, setLinkedin] = useState(
-    localStorage.getItem('shaivika_resume_linkedin') || 'https://linkedin.com/in/developer'
-  );
-
+  const [linkedin, setLinkedin] = useState('');
   const [summary, setSummary] = useState(
-    localStorage.getItem('shaivika_resume_summary') ||
-    'Dedicated engineering professional mastering system architecture, full stack React & Node.js development, and AI engineering practices at Shaivika AI Foundation LMS.'
+    'Dedicated engineering professional mastering system architecture, full stack React & Node.js development, and AI engineering practices.'
   );
 
-  const [skills, setSkills] = useState<string[]>(() => {
-    const cached = localStorage.getItem('shaivika_resume_skills');
-    if (cached) return JSON.parse(cached);
-    return ['React.js', 'TypeScript', 'Node.js Express', 'Python AI Engineering', 'Git & GitHub', 'Linux Systems', 'SQL Database Normalization'];
-  });
+  const [skills, setSkills] = useState<string[]>([
+    'React.js',
+    'TypeScript',
+    'Node.js Express',
+    'Python AI Engineering',
+    'Git & GitHub',
+    'Linux Systems',
+    'SQL Database Normalization'
+  ]);
 
   const [newSkill, setNewSkill] = useState('');
 
-  const [experience, setExperience] = useState<ExperienceItem[]>(() => {
-    const cached = localStorage.getItem('shaivika_resume_experience');
-    if (cached) return JSON.parse(cached);
-    return [
-      {
-        role: 'AI & Full Stack Engineer Intern',
-        company: 'Shaivika AI Labs',
-        duration: '2026 - Present',
-        desc: 'Implemented modular course learning systems, optimized database queries, and integrated real-time WebSocket speed leaderboard telemetry.',
-      },
-    ];
-  });
+  const [experience, setExperience] = useState<ExperienceItem[]>([
+    {
+      role: 'Full Stack & AI Engineer Intern',
+      company: 'Software Innovation Labs',
+      duration: '2025 - Present',
+      desc: 'Implemented modular course learning systems, optimized database queries, and integrated real-time WebSocket speed leaderboard telemetry.',
+    },
+  ]);
 
-  const [education, setEducation] = useState<EducationItem[]>(() => {
-    const cached = localStorage.getItem('shaivika_resume_education');
-    if (cached) return JSON.parse(cached);
-    return [
-      {
-        degree: 'Bachelor of Technology in Computer Science & AI',
-        school: 'University Institute of Engineering & Technology',
-        duration: '2023 - 2027',
-      },
-    ];
-  });
+  const [education, setEducation] = useState<EducationItem[]>([
+    {
+      degree: 'Bachelor of Technology in Computer Science & AI',
+      school: 'Institute of Engineering & Technology',
+      duration: '2023 - 2027',
+    },
+  ]);
 
-  const [projects, setProjects] = useState<ProjectItem[]>(() => {
-    const cached = localStorage.getItem('shaivika_resume_projects');
-    if (cached) return JSON.parse(cached);
-    return [
-      {
-        name: 'KaizenQ AI LMS & Knowledge Studio',
-        tech: 'React, Node.js, TypeScript, PostgreSQL, Gemini AI',
-        link: 'https://github.com/developer/kaizenq-lms',
-        desc: 'Engineered an interactive adaptive learning platform with real-time code sandboxes and AI automated tutor feedback.',
-      },
-    ];
-  });
+  const [projects, setProjects] = useState<ProjectItem[]>([
+    {
+      name: 'KaizenQ AI LMS & Knowledge Studio',
+      tech: 'React, Node.js, TypeScript, PostgreSQL, Gemini AI',
+      link: 'https://github.com',
+      desc: 'Engineered an interactive adaptive learning platform with real-time code sandboxes and AI automated tutor feedback.',
+    },
+  ]);
 
-  const [certifications, setCertifications] = useState<string[]>(() => {
-    const cached = localStorage.getItem('shaivika_resume_certifications');
-    if (cached) return JSON.parse(cached);
-    return ['Shaivika AI Foundation: Full Stack React & Node.js Mastery'];
-  });
-
-  const [template, setTemplate] = useState<TemplateId>(() => {
-    const cached = localStorage.getItem('shaivika_resume_template') as TemplateId;
-    return cached && RESUME_TEMPLATES_CONFIG.some(t => t.id === cached) ? cached : 'overleaf_classic';
-  });
+  const [certifications, setCertifications] = useState<string[]>([]);
+  const [template, setTemplate] = useState<TemplateId>('overleaf_classic');
 
   const [newRole, setNewRole] = useState({ role: '', company: '', duration: '', desc: '' });
   const [newEd, setNewEd] = useState({ degree: '', school: '', duration: '' });
@@ -141,12 +108,76 @@ export const ResumeBuilder: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [showVipModal, setShowVipModal] = useState(false);
   const [isVipUnlocked] = useState<boolean>(() =>
-    localStorage.getItem('shaivika_vip_unlocked') === 'true'
+    localStorage.getItem('shaivika_vip_unlocked') === 'true' || userProfile?.role === 'admin'
   );
 
-  // Load from backend on mount
+  // Load from user-scoped storage and cloud backend for the active user
   useEffect(() => {
     if (!userId) return;
+
+    // 1. Initial hydration from user-scoped local storage
+    const scopedName = localStorage.getItem(getStorageKey('fullname'));
+    setFullName(scopedName || userProfile?.name || user?.displayName || (user?.email ? user.email.split('@')[0] : 'Student Scholar'));
+
+    const scopedEmail = localStorage.getItem(getStorageKey('email'));
+    setEmail(scopedEmail || userProfile?.email || user?.email || '');
+
+    const scopedPhone = localStorage.getItem(getStorageKey('phone'));
+    if (scopedPhone !== null) setPhone(scopedPhone);
+    else if (userProfile?.phone) setPhone(userProfile.phone);
+
+    const scopedLoc = localStorage.getItem(getStorageKey('location'));
+    if (scopedLoc) setLocation(scopedLoc);
+
+    const scopedTitle = localStorage.getItem(getStorageKey('title'));
+    if (scopedTitle) setJobTitle(scopedTitle);
+    else if (userProfile?.headline) setJobTitle(userProfile.headline);
+
+    const scopedWebsite = localStorage.getItem(getStorageKey('website'));
+    if (scopedWebsite !== null) setWebsite(scopedWebsite);
+
+    const scopedGithub = localStorage.getItem(getStorageKey('github'));
+    if (scopedGithub) setGithub(scopedGithub);
+    else if (userProfile?.githubUsername) setGithub(`https://github.com/${userProfile.githubUsername}`);
+    else if (user?.email) setGithub(`https://github.com/${user.email.split('@')[0]}`);
+
+    const scopedLinkedin = localStorage.getItem(getStorageKey('linkedin'));
+    if (scopedLinkedin !== null) setLinkedin(scopedLinkedin);
+
+    const scopedSummary = localStorage.getItem(getStorageKey('summary'));
+    if (scopedSummary) setSummary(scopedSummary);
+
+    const scopedSkills = localStorage.getItem(getStorageKey('skills'));
+    if (scopedSkills) {
+      try { setSkills(JSON.parse(scopedSkills)); } catch {}
+    }
+
+    const scopedExp = localStorage.getItem(getStorageKey('experience'));
+    if (scopedExp) {
+      try { setExperience(JSON.parse(scopedExp)); } catch {}
+    }
+
+    const scopedEd = localStorage.getItem(getStorageKey('education'));
+    if (scopedEd) {
+      try { setEducation(JSON.parse(scopedEd)); } catch {}
+    }
+
+    const scopedProj = localStorage.getItem(getStorageKey('projects'));
+    if (scopedProj) {
+      try { setProjects(JSON.parse(scopedProj)); } catch {}
+    }
+
+    const scopedCert = localStorage.getItem(getStorageKey('certifications'));
+    if (scopedCert) {
+      try { setCertifications(JSON.parse(scopedCert)); } catch {}
+    }
+
+    const scopedTpl = localStorage.getItem(getStorageKey('template')) as TemplateId;
+    if (scopedTpl && RESUME_TEMPLATES_CONFIG.some(t => t.id === scopedTpl)) {
+      setTemplate(scopedTpl);
+    }
+
+    // 2. Authoritative backend resume fetch for this active user
     fetch(`${API_BASE_URL}/resume/me?studentId=${userId}`)
       .then(res => res.json())
       .then(json => {
@@ -154,12 +185,12 @@ export const ResumeBuilder: React.FC = () => {
           const d = json.data;
           if (d.fullName) setFullName(d.fullName);
           if (d.email) setEmail(d.email);
-          if (d.phone) setPhone(d.phone);
+          if (d.phone !== undefined) setPhone(d.phone);
           if (d.location) setLocation(d.location);
           if (d.title) setJobTitle(d.title);
-          if (d.website) setWebsite(d.website);
+          if (d.website !== undefined) setWebsite(d.website);
           if (d.github) setGithub(d.github);
-          if (d.linkedin) setLinkedin(d.linkedin);
+          if (d.linkedin !== undefined) setLinkedin(d.linkedin);
           if (d.summary) setSummary(d.summary);
           if (Array.isArray(d.skills) && d.skills.length > 0) setSkills(d.skills);
           if (Array.isArray(d.experience) && d.experience.length > 0) setExperience(d.experience);
@@ -172,26 +203,26 @@ export const ResumeBuilder: React.FC = () => {
         }
       })
       .catch(() => {});
-  }, [userId]);
+  }, [userId, userProfile?.name, userProfile?.email, user?.email]);
 
   const handleSave = async () => {
     setIsSaving(true);
-    // 1. LocalStorage
-    localStorage.setItem('shaivika_resume_fullname', fullName);
-    localStorage.setItem('shaivika_resume_email', email);
-    localStorage.setItem('shaivika_resume_phone', phone);
-    localStorage.setItem('shaivika_resume_location', location);
-    localStorage.setItem('shaivika_resume_title', jobTitle);
-    localStorage.setItem('shaivika_resume_website', website);
-    localStorage.setItem('shaivika_resume_github', github);
-    localStorage.setItem('shaivika_resume_linkedin', linkedin);
-    localStorage.setItem('shaivika_resume_summary', summary);
-    localStorage.setItem('shaivika_resume_skills', JSON.stringify(skills));
-    localStorage.setItem('shaivika_resume_experience', JSON.stringify(experience));
-    localStorage.setItem('shaivika_resume_education', JSON.stringify(education));
-    localStorage.setItem('shaivika_resume_projects', JSON.stringify(projects));
-    localStorage.setItem('shaivika_resume_certifications', JSON.stringify(certifications));
-    localStorage.setItem('shaivika_resume_template', template);
+    // 1. User-scoped LocalStorage
+    localStorage.setItem(getStorageKey('fullname'), fullName);
+    localStorage.setItem(getStorageKey('email'), email);
+    localStorage.setItem(getStorageKey('phone'), phone);
+    localStorage.setItem(getStorageKey('location'), location);
+    localStorage.setItem(getStorageKey('title'), jobTitle);
+    localStorage.setItem(getStorageKey('website'), website);
+    localStorage.setItem(getStorageKey('github'), github);
+    localStorage.setItem(getStorageKey('linkedin'), linkedin);
+    localStorage.setItem(getStorageKey('summary'), summary);
+    localStorage.setItem(getStorageKey('skills'), JSON.stringify(skills));
+    localStorage.setItem(getStorageKey('experience'), JSON.stringify(experience));
+    localStorage.setItem(getStorageKey('education'), JSON.stringify(education));
+    localStorage.setItem(getStorageKey('projects'), JSON.stringify(projects));
+    localStorage.setItem(getStorageKey('certifications'), JSON.stringify(certifications));
+    localStorage.setItem(getStorageKey('template'), template);
 
     // 2. Database API
     try {
@@ -237,29 +268,24 @@ export const ResumeBuilder: React.FC = () => {
   };
 
   const handleAutoImport = () => {
-    if (!isVipUnlocked) {
-      toast.error('👑 Auto-Import Credentials is a VIP All-Access Pass feature!');
-      setShowVipModal(true);
-      return;
-    }
     const certService = new CertificateService();
     const realCerts = certService.getCertificates(userId);
     
     if (realCerts.length > 0) {
-      const importedCerts = realCerts.map(c => `Shaivika AI Foundation: ${c.courseTitle} (ID: ${c.verificationId})`);
+      const importedCerts = realCerts.map(c => `KaizenQ LMS: ${c.courseTitle} (ID: ${c.verificationId})`);
       setCertifications(importedCerts);
-      localStorage.setItem('shaivika_resume_certifications', JSON.stringify(importedCerts));
+      localStorage.setItem(getStorageKey('certifications'), JSON.stringify(importedCerts));
     }
 
     // Pull skills from portfolio if available
     try {
-      const pSkillsRaw = localStorage.getItem('shaivika_portfolio_skills');
+      const pSkillsRaw = localStorage.getItem(`shaivika_portfolio_${userId}_skills`) || localStorage.getItem('shaivika_portfolio_skills');
       if (pSkillsRaw) {
         const pSkills = JSON.parse(pSkillsRaw);
         if (Array.isArray(pSkills) && pSkills.length > 0) {
           const mergedSkills = Array.from(new Set([...skills, ...pSkills]));
           setSkills(mergedSkills);
-          localStorage.setItem('shaivika_resume_skills', JSON.stringify(mergedSkills));
+          localStorage.setItem(getStorageKey('skills'), JSON.stringify(mergedSkills));
         }
       }
     } catch {}
@@ -272,14 +298,14 @@ export const ResumeBuilder: React.FC = () => {
       const updated = [...skills, newSkill.trim()];
       setSkills(updated);
       setNewSkill('');
-      localStorage.setItem('shaivika_resume_skills', JSON.stringify(updated));
+      localStorage.setItem(getStorageKey('skills'), JSON.stringify(updated));
     }
   };
 
   const handleRemoveSkill = (index: number) => {
     const updated = skills.filter((_, i) => i !== index);
     setSkills(updated);
-    localStorage.setItem('shaivika_resume_skills', JSON.stringify(updated));
+    localStorage.setItem(getStorageKey('skills'), JSON.stringify(updated));
   };
 
   const handleAddExperience = () => {
@@ -287,14 +313,14 @@ export const ResumeBuilder: React.FC = () => {
       const updated = [...experience, newRole];
       setExperience(updated);
       setNewRole({ role: '', company: '', duration: '', desc: '' });
-      localStorage.setItem('shaivika_resume_experience', JSON.stringify(updated));
+      localStorage.setItem(getStorageKey('experience'), JSON.stringify(updated));
     }
   };
 
   const handleRemoveExperience = (index: number) => {
     const updated = experience.filter((_, i) => i !== index);
     setExperience(updated);
-    localStorage.setItem('shaivika_resume_experience', JSON.stringify(updated));
+    localStorage.setItem(getStorageKey('experience'), JSON.stringify(updated));
   };
 
   const handleAddEducation = () => {
@@ -302,14 +328,14 @@ export const ResumeBuilder: React.FC = () => {
       const updated = [...education, newEd];
       setEducation(updated);
       setNewEd({ degree: '', school: '', duration: '' });
-      localStorage.setItem('shaivika_resume_education', JSON.stringify(updated));
+      localStorage.setItem(getStorageKey('education'), JSON.stringify(updated));
     }
   };
 
   const handleRemoveEducation = (index: number) => {
     const updated = education.filter((_, i) => i !== index);
     setEducation(updated);
-    localStorage.setItem('shaivika_resume_education', JSON.stringify(updated));
+    localStorage.setItem(getStorageKey('education'), JSON.stringify(updated));
   };
 
   const handleAddProject = () => {
@@ -317,28 +343,23 @@ export const ResumeBuilder: React.FC = () => {
       const updated = [...projects, newProj];
       setProjects(updated);
       setNewProj({ name: '', tech: '', link: '', desc: '' });
-      localStorage.setItem('shaivika_resume_projects', JSON.stringify(updated));
+      localStorage.setItem(getStorageKey('projects'), JSON.stringify(updated));
     }
   };
 
   const handleRemoveProject = (index: number) => {
     const updated = projects.filter((_, i) => i !== index);
     setProjects(updated);
-    localStorage.setItem('shaivika_resume_projects', JSON.stringify(updated));
+    localStorage.setItem(getStorageKey('projects'), JSON.stringify(updated));
   };
 
   const handleSelectTemplate = (id: TemplateId) => {
     setTemplate(id);
-    localStorage.setItem('shaivika_resume_template', id);
+    localStorage.setItem(getStorageKey('template'), id);
     toast.success(`Applied template: ${RESUME_TEMPLATES_CONFIG.find(t => t.id === id)?.name}`);
   };
 
   const handlePrint = () => {
-    if (!isVipUnlocked) {
-      toast.error('👑 PDF Export / Print is a VIP All-Access Pass feature!');
-      setShowVipModal(true);
-      return;
-    }
     window.print();
   };
 

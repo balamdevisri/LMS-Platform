@@ -19,7 +19,8 @@ import {
   GraduationCap,
   BarChart3,
   FileText,
-  Tag
+  Tag,
+  Globe
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -82,6 +83,8 @@ export const GooeyNavbar: React.FC<GooeyNavbarProps> = ({
       { name: 'Leaderboard', href: '/dashboard/leaderboard', icon: Trophy },
       { name: 'Roadmap', href: '/dashboard?tab=career-roadmap', icon: Map },
       { name: 'Certificates', href: '/dashboard?tab=certificates', icon: Award },
+      { name: 'Portfolio', href: '/dashboard?tab=portfolio-builder', icon: Globe },
+      { name: 'Resume', href: '/dashboard?tab=resume-builder', icon: FileText },
       { name: 'Interview Prep', href: '/dashboard?tab=interview-prep', icon: HelpCircle },
       { name: 'Settings', href: '/dashboard?tab=settings', icon: Settings },
     ];
@@ -147,7 +150,7 @@ export const GooeyNavbar: React.FC<GooeyNavbarProps> = ({
           <div
             className={`navbar__active-pill ${isSquashing ? 'is-moving' : ''}`}
             style={{
-              top: `calc(${targetIndex} * 3.5rem)`,
+              top: `calc(${targetIndex} * var(--nav-item-h, 3.25rem))`,
             }}
           />
 
