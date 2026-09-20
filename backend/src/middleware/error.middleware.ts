@@ -20,7 +20,7 @@ export const errorMiddleware = (err: any, req: Request, res: Response, _next: Ne
     details = err.issues.map((e) => `${e.path.join('.')}: ${e.message}`);
   }
   // Handle Firebase Errors
-  else if (err?.code?.startsWith('auth/') || err?.code?.startsWith('firestore/')) {
+  else if (typeof err?.code === 'string' && (err.code.startsWith('auth/') || err.code.startsWith('firestore/'))) {
     statusCode = err.code.includes('not-found') ? 404 : 400;
     message = `Firebase Service Error: ${err.message}`;
   }
