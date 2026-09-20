@@ -72,7 +72,7 @@ const mapCourseModulesToPlayerModules = (modules?: any[]): any[] => {
       const lId = l.id || `lesson-${m.id || 'mod'}-${lIdx + 1}`;
       const rawTitle = l.title || `Lesson ${lIdx + 1}`;
       const lTitle = getPresentationLessonTitle(rawTitle, mIdx + 1, uniqueLessonsList.length);
-      const lContent = l.conceptTheory || l.readingContent || l.content || l.description || 'Welcome to this lesson.';
+      const lContent = l.readingContent || l.conceptTheory || l.content || l.description || 'Welcome to this lesson.';
       const lDuration = l.duration || '15 mins';
       const lType = l.type ? String(l.type).toLowerCase() : 'reading';
       const lResources = l.resources || l.resourceLinks || [];
@@ -291,13 +291,12 @@ export const CourseView: React.FC = () => {
     let isMounted = true;
     if (!targetCourseId) return;
 
-    // If modules already exist on dynamicCourse, no separate API fetch needed
-    if (dynamicCourse?.modules && dynamicCourse.modules.length > 0) {
-      setIsLoadingModules(false);
-      return;
+    if (!courseModules || courseModules.length === 0) {
+      if (!dynamicCourse?.modules || dynamicCourse.modules.length === 0) {
+        setIsLoadingModules(true);
+      }
     }
 
-    setIsLoadingModules(true);
     getCourseModules(targetCourseId, true)
       .then((mods) => {
         if (isMounted && mods && mods.length > 0) {
@@ -316,7 +315,7 @@ export const CourseView: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [targetCourseId, dynamicCourse?.modules?.length, getCourseModules]);
+  }, [targetCourseId, getCourseModules]);
 
   const modeParam = searchParams.get('mode');
   const isModeLearn = modeParam === 'learn';

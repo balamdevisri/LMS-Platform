@@ -176,7 +176,7 @@ interface CourseContextType {
   toggleCourseStatus: (id: number | string) => Promise<void>;
   deleteCourse: (id: number | string) => Promise<void>;
   getCourseById: (id: number | string) => CourseItem | undefined;
-  getCourseModules: (id: number | string, forceRefresh?: boolean) => Promise<ModuleItem[]>;
+  getCourseModules: (id: number | string, forceRefresh?: boolean, minExpectedVersion?: number) => Promise<ModuleItem[]>;
   refreshCourses: (forceRefresh?: boolean) => Promise<void>;
   updateCourse: (id: number | string, updates: Partial<CourseItem>) => Promise<void>;
 }
@@ -508,7 +508,7 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  const getCourseModules = useCallback(async (idOrSlug: number | string, forceRefresh = false): Promise<ModuleItem[]> => {
+  const getCourseModules = useCallback(async (idOrSlug: number | string, forceRefresh = false, minExpectedVersion?: number): Promise<ModuleItem[]> => {
     const target = String(idOrSlug).toLowerCase().trim();
     if (!target) return [];
 
@@ -517,7 +517,7 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // 1. Authoritative: Fetch from Backend REST API via courseService
     try {
-      const apiMods = await courseService.getCourseModules(targetId, forceRefresh);
+      const apiMods = await courseService.getCourseModules(targetId, forceRefresh, minExpectedVersion);
       if (apiMods && apiMods.length > 0) {
         const normalizedMods = normalizeCourseModulesForDisplay(apiMods);
         setCourses((prev) =>

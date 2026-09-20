@@ -1413,12 +1413,13 @@ class CourseService {
     return null;
   }
 
-  async getCourseModules(courseId: string, forceRefresh = false): Promise<any[]> {
+  async getCourseModules(courseId: string, forceRefresh = false, minExpectedVersion?: number): Promise<any[]> {
     if (!courseId) return [];
 
     // 1. Authoritative: Fetch from Backend REST API
     try {
-      const res = await fetch(`${API_BASE_URL}/courses/${encodeURIComponent(courseId)}/modules`, {
+      const queryParam = typeof minExpectedVersion === 'number' ? `?minRevision=${minExpectedVersion}` : '';
+      const res = await fetch(`${API_BASE_URL}/courses/${encodeURIComponent(courseId)}/modules${queryParam}`, {
         headers: getAuthHeaders(),
       });
       if (res.ok) {

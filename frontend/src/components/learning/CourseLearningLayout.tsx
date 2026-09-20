@@ -146,7 +146,8 @@ export const CourseLearningLayout: React.FC<CourseLearningLayoutProps> = ({
                   moduleTitle: mod.title,
                   moduleId: mod.id,
                   learningObjectives: u.learningObjectives,
-                  conceptTheory: u.conceptTheory || u.readingContent || u.content || u.description || '',
+                  readingContent: u.readingContent || u.conceptTheory || u.content || u.description || '',
+                  conceptTheory: u.readingContent || u.conceptTheory || u.content || u.description || '',
                   codeExamples: u.codeExamples,
                   keyPoints: u.keyPoints,
                   practiceQuestions: u.practiceQuestions,
@@ -170,7 +171,8 @@ export const CourseLearningLayout: React.FC<CourseLearningLayoutProps> = ({
               moduleTitle: mod.title,
               moduleId: mod.id,
               learningObjectives: l.learningObjectives,
-              conceptTheory: l.conceptTheory || l.readingContent || l.content || l.description || '',
+              readingContent: l.readingContent || l.conceptTheory || l.content || l.description || '',
+              conceptTheory: l.readingContent || l.conceptTheory || l.content || l.description || '',
               codeExamples: l.codeExamples,
               keyPoints: l.keyPoints,
               practiceQuestions: l.practiceQuestions,
@@ -411,7 +413,7 @@ export const CourseLearningLayout: React.FC<CourseLearningLayoutProps> = ({
     if (!currentLessonData) {
       return {
         title: allLessons[0]?.title || 'Course Introduction',
-        content: (allLessons[0] as any)?.conceptTheory || (allLessons[0] as any)?.readingContent || (allLessons[0] as any)?.content || 'Welcome to the course.',
+        content: (allLessons[0] as any)?.readingContent || (allLessons[0] as any)?.conceptTheory || (allLessons[0] as any)?.content || 'Welcome to the course.',
         shortDescription: allLessons[0]?.description,
         duration: '15 mins',
         learningObjectives: (allLessons[0] as any)?.learningObjectives,
@@ -426,7 +428,7 @@ export const CourseLearningLayout: React.FC<CourseLearningLayoutProps> = ({
     }
 
     const currentAny = currentLessonData as any;
-    const contentStr = currentAny.conceptTheory || currentAny.readingContent || currentAny.content || currentAny.description || 'Welcome to this lesson.';
+    const contentStr = currentAny.readingContent || currentAny.conceptTheory || currentAny.content || currentAny.description || 'Welcome to this lesson.';
     const duration = currentAny.duration || calculateEstimatedDuration(contentStr);
 
     return {
