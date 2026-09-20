@@ -45,6 +45,7 @@ export interface UserProfile {
   uid: string;
   fullName: string;
   name?: string;
+  headline?: string;
   email: string;
   photoURL?: string | null;
   profilePhoto?: string | null;

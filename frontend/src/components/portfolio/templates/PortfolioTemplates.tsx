@@ -31,6 +31,7 @@ export interface PortfolioTemplateMeta {
   badge: string;
   accentColor: string;
   previewClass: string;
+  thumbnail?: string;
 }
 
 export const PORTFOLIO_TEMPLATES_CONFIG: PortfolioTemplateMeta[] = [
@@ -41,6 +42,7 @@ export const PORTFOLIO_TEMPLATES_CONFIG: PortfolioTemplateMeta[] = [
     badge: 'Madhan P Style',
     accentColor: '#4f46e5',
     previewClass: 'from-indigo-600/20 to-blue-600/20 border-indigo-500/40',
+    thumbnail: '⚡',
   },
   {
     id: 'canva_creative',
@@ -49,6 +51,7 @@ export const PORTFOLIO_TEMPLATES_CONFIG: PortfolioTemplateMeta[] = [
     badge: 'Canva Spotlight',
     accentColor: '#ec4899',
     previewClass: 'from-pink-600/20 to-amber-600/20 border-pink-500/40',
+    thumbnail: '🎨',
   },
   {
     id: 'executive_minimal',
@@ -57,6 +60,7 @@ export const PORTFOLIO_TEMPLATES_CONFIG: PortfolioTemplateMeta[] = [
     badge: 'Silicon Minimal',
     accentColor: '#0f172a',
     previewClass: 'from-slate-700/20 to-slate-900/20 border-slate-600/40',
+    thumbnail: '💼',
   },
   {
     id: 'cyberpunk_terminal',
@@ -65,6 +69,7 @@ export const PORTFOLIO_TEMPLATES_CONFIG: PortfolioTemplateMeta[] = [
     badge: 'Hacker Terminal',
     accentColor: '#06b6d4',
     previewClass: 'from-cyan-600/20 to-purple-600/20 border-cyan-500/40',
+    thumbnail: '💻',
   },
 ];
 
@@ -72,6 +77,7 @@ export interface PortfolioData {
   fullName?: string;
   name?: string;
   headline?: string;
+  title?: string;
   bio?: string;
   aboutBio?: string;
   customHandle?: string;
