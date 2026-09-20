@@ -21,7 +21,7 @@ const safeAppId = rawAppId.startsWith('1:') ? rawAppId : `1:${rawAppId}`;
 
 const rawAuthDomain = cleanEnv(env.VITE_FIREBASE_AUTH_DOMAIN);
 const safeAuthDomain = (!rawAuthDomain || rawAuthDomain.includes('auth.kaizenq.in'))
-  ? 'shaivika-ai-lms-platform.firebaseapp.com'
+  ? 'shaivika-lms-ai.firebaseapp.com'
   : rawAuthDomain;
 
 const firebaseConfig = {
@@ -33,11 +33,11 @@ const firebaseConfig = {
 
   projectId:
     cleanEnv(env.VITE_FIREBASE_PROJECT_ID) ||
-    'shaivika-ai-lms-platform',
+    'shaivika-lms-ai',
 
   storageBucket:
     cleanEnv(env.VITE_FIREBASE_STORAGE_BUCKET) ||
-    'shaivika-ai-lms-platform.firebasestorage.app',
+    'shaivika-lms-ai.firebasestorage.app',
 
   messagingSenderId:
     cleanEnv(env.VITE_FIREBASE_MESSAGING_SENDER_ID) ||

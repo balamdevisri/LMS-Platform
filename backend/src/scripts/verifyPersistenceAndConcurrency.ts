@@ -7,7 +7,7 @@ import { ApiError } from '../utils/ApiError';
 
 if (getApps().length === 0) {
   initializeApp({
-    projectId: process.env.FIREBASE_PROJECT_ID || 'shaivika-ai-lms-platform',
+    projectId: process.env.FIREBASE_PROJECT_ID || 'shaivika-lms-ai',
   });
 }
 

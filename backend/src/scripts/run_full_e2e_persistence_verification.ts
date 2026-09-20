@@ -18,9 +18,9 @@ async function runVerification() {
   console.log('--- 1. ARCHITECTURE VERIFICATION ---');
   const firestoreProjectId = db.projectId;
   console.log('Firestore Database Project ID:', firestoreProjectId);
-  const isCorrectProject = firestoreProjectId === 'shaivika-ai-lms-platform' || firestoreProjectId === 'shaivika-lms-ai';
+  const isCorrectProject = firestoreProjectId === 'shaivika-lms-ai';
   results['same_firestore_project'] = isCorrectProject;
-  console.log('1. Same Firestore Project:', isCorrectProject ? 'PASS' : 'FAIL');
+  console.log('1. Same Firestore Project (shaivika-lms-ai):', isCorrectProject ? 'PASS' : 'FAIL');
 
   // 2. Controlled Target Details
   const courseId = 'c-programming-course-id';

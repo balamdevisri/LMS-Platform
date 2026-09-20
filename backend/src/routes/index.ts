@@ -39,7 +39,7 @@ router.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: process.env.NODE_ENV || 'development',
-    firebaseProject: process.env.FIREBASE_PROJECT_ID || 'shaivika-ai-lms-platform',
+    firebaseProject: process.env.FIREBASE_PROJECT_ID || 'shaivika-lms-ai',
   });
 });
 
@@ -47,7 +47,7 @@ router.get('/diagnostics', (req, res) => {
   res.json({
     status: 'healthy',
     canonicalDatabase: 'Cloud Firestore',
-    firebaseProject: process.env.FIREBASE_PROJECT_ID || 'shaivika-ai-lms-platform',
+    firebaseProject: process.env.FIREBASE_PROJECT_ID || 'shaivika-lms-ai',
     environment: process.env.NODE_ENV || 'development',
     version: '2.0.0',
     timestamp: new Date().toISOString(),
