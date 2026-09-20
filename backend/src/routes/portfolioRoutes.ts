@@ -68,6 +68,7 @@ router.put('/me', extractOptionalUser as any, async (req: AuthenticatedRequest, 
       educations,
       isPublished,
       theme,
+      template,
       accentColor,
     } = req.body;
 
@@ -106,6 +107,7 @@ router.put('/me', extractOptionalUser as any, async (req: AuthenticatedRequest, 
       educations: Array.isArray(resolvedEducation) ? resolvedEducation : [],
       isPublished: Boolean(isPublished),
       theme: theme || 'modern',
+      template: template || theme || 'modern_tech',
       accentColor: accentColor || 'cyan',
       updatedAt: new Date().toISOString(),
     };

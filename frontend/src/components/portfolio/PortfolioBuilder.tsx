@@ -24,13 +24,20 @@ import {
   Monitor,
   Upload,
   Mail,
-  X
+  X,
+  LayoutTemplate
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { API_BASE_URL } from '@/config/api';
 import { CertificateService } from '@/services/achievementService';
 import { CheckoutModal } from '../courses/CheckoutModal';
+import {
+  PORTFOLIO_TEMPLATES_CONFIG,
+  PortfolioTemplateRenderer,
+  type PortfolioTemplateId,
+  type PortfolioData
+} from './templates/PortfolioTemplates';
 
 const Github: React.FC<{ className?: string }> = ({ className = 'w-4 h-4' }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -135,19 +142,6 @@ export const PortfolioBuilder: React.FC = () => {
   const [linkedinUrl, setLinkedinUrl] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
 
-  // Auto-sync form changes live to user-scoped localStorage
-  useEffect(() => {
-    if (!userId) return;
-    if (fullName) localStorage.setItem(getStorageKey('fullname'), fullName);
-    if (headline) localStorage.setItem(getStorageKey('headline'), headline);
-    if (location) localStorage.setItem(getStorageKey('location'), location);
-    if (aboutBio) localStorage.setItem(getStorageKey('bio'), aboutBio);
-    if (handle) localStorage.setItem(getStorageKey('handle'), handle);
-    if (avatarUrl) localStorage.setItem(getStorageKey('avatar'), avatarUrl);
-    if (githubUrl) localStorage.setItem(getStorageKey('github'), githubUrl);
-    if (linkedinUrl) localStorage.setItem(getStorageKey('linkedin'), linkedinUrl);
-    if (websiteUrl) localStorage.setItem(getStorageKey('website'), websiteUrl);
-  }, [userId, fullName, headline, location, aboutBio, handle, avatarUrl, githubUrl, linkedinUrl, websiteUrl]);
 
   // 3. Technical Skills
   const [skills, setSkills] = useState<string[]>([
@@ -197,16 +191,35 @@ export const PortfolioBuilder: React.FC = () => {
     },
   ]);
 
-  // 6. Theme & Accent Settings
+  // 6. Theme & Template Settings
   const [accentColor, setAccentColor] = useState<'cyan' | 'purple' | 'emerald' | 'amber' | 'rose'>('cyan');
+  const [selectedTemplate, setSelectedTemplate] = useState<PortfolioTemplateId>(() => {
+    const saved = localStorage.getItem(getStorageKey('template')) as PortfolioTemplateId;
+    return (saved && PORTFOLIO_TEMPLATES_CONFIG.some(t => t.id === saved)) ? saved : 'modern_tech';
+  });
   const [isPublished, setIsPublished] = useState(false);
+
+  // Auto-sync form changes live to user-scoped localStorage
+  useEffect(() => {
+    if (!userId) return;
+    if (fullName) localStorage.setItem(getStorageKey('fullname'), fullName);
+    if (headline) localStorage.setItem(getStorageKey('headline'), headline);
+    if (location) localStorage.setItem(getStorageKey('location'), location);
+    if (aboutBio) localStorage.setItem(getStorageKey('bio'), aboutBio);
+    if (handle) localStorage.setItem(getStorageKey('handle'), handle);
+    if (avatarUrl) localStorage.setItem(getStorageKey('avatar'), avatarUrl);
+    if (githubUrl) localStorage.setItem(getStorageKey('github'), githubUrl);
+    if (linkedinUrl) localStorage.setItem(getStorageKey('linkedin'), linkedinUrl);
+    if (websiteUrl) localStorage.setItem(getStorageKey('website'), websiteUrl);
+    if (selectedTemplate) localStorage.setItem(getStorageKey('template'), selectedTemplate);
+  }, [userId, fullName, headline, location, aboutBio, handle, avatarUrl, githubUrl, linkedinUrl, websiteUrl, selectedTemplate]);
 
   // UI States
   const [isSaving, setIsSaving] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [editingProject, setEditingProject] = useState<PortfolioProject | null>(null);
-  const [activeBuilderTab, setActiveBuilderTab] = useState<'identity' | 'skills' | 'projects' | 'experience' | 'theme'>('identity');
+  const [activeBuilderTab, setActiveBuilderTab] = useState<'templates' | 'identity' | 'skills' | 'projects' | 'experience' | 'theme'>('templates');
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const [showLivePreviewModal, setShowLivePreviewModal] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
@@ -269,6 +282,11 @@ export const PortfolioBuilder: React.FC = () => {
     const scopedPublished = localStorage.getItem(getStorageKey('published'));
     if (scopedPublished !== null) setIsPublished(scopedPublished === 'true');
 
+    const scopedTemplate = localStorage.getItem(getStorageKey('template')) as PortfolioTemplateId;
+    if (scopedTemplate && PORTFOLIO_TEMPLATES_CONFIG.some((t) => t.id === scopedTemplate)) {
+      setSelectedTemplate(scopedTemplate);
+    }
+
     // 2. Fetch authoritative cloud portfolio if available
     fetch(`${API_BASE_URL}/portfolio/me?studentId=${userId}`)
       .then((res) => (res.ok ? res.json() : null))
@@ -285,6 +303,9 @@ export const PortfolioBuilder: React.FC = () => {
           if (p.skills && Array.isArray(p.skills) && p.skills.length > 0) setSkills(p.skills);
           if (p.projects && Array.isArray(p.projects) && p.projects.length > 0) setProjects(p.projects);
           if (p.accentColor) setAccentColor(p.accentColor);
+          if (p.template && PORTFOLIO_TEMPLATES_CONFIG.some((t) => t.id === p.template)) {
+            setSelectedTemplate(p.template);
+          }
           if (typeof p.isPublished === 'boolean') setIsPublished(p.isPublished);
           if (p.avatarUrl || p.photoURL || p.avatar) setAvatarUrl(p.avatarUrl || p.photoURL || p.avatar);
           if (p.location) setLocation(p.location);
@@ -403,6 +424,7 @@ export const PortfolioBuilder: React.FC = () => {
     localStorage.setItem(getStorageKey('published'), String(targetPublished));
     localStorage.setItem(getStorageKey('skills'), JSON.stringify(skills));
     localStorage.setItem(getStorageKey('projects'), JSON.stringify(projects));
+    localStorage.setItem(getStorageKey('template'), selectedTemplate);
 
     const payload = {
       studentId: userId,
@@ -429,6 +451,7 @@ export const PortfolioBuilder: React.FC = () => {
       educations,
       education: educations,
       accentColor,
+      template: selectedTemplate,
       isPublished: targetPublished,
     };
 
@@ -461,6 +484,28 @@ export const PortfolioBuilder: React.FC = () => {
     setCopiedUrl(true);
     toast.success('📋 Public portfolio URL copied to clipboard!');
     setTimeout(() => setCopiedUrl(false), 2000);
+  };
+
+  const currentPortfolioData: PortfolioData = {
+    fullName,
+    name: fullName,
+    headline,
+    title: headline,
+    bio: aboutBio,
+    avatarUrl,
+    customHandle: handle,
+    location,
+    email,
+    githubUrl,
+    linkedinUrl,
+    websiteUrl,
+    skills,
+    projects,
+    experiences,
+    educations,
+    accentColor,
+    template: selectedTemplate,
+    isPublished,
   };
 
   return (
@@ -577,6 +622,18 @@ export const PortfolioBuilder: React.FC = () => {
       {/* ── Builder Tab Navigation ── */}
       <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-slate-900 border border-slate-800 overflow-x-auto">
         <button
+          onClick={() => setActiveBuilderTab('templates')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
+            activeBuilderTab === 'templates'
+              ? 'bg-gradient-to-r from-cyan-500/20 to-indigo-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <LayoutTemplate className="w-4 h-4 text-cyan-400" />
+          <span>Templates & Styles ({PORTFOLIO_TEMPLATES_CONFIG.length})</span>
+        </button>
+
+        <button
           onClick={() => setActiveBuilderTab('identity')}
           className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
             activeBuilderTab === 'identity'
@@ -639,6 +696,163 @@ export const PortfolioBuilder: React.FC = () => {
 
       {/* ── Tab Content Areas ── */}
       <div className="p-6 sm:p-8 rounded-3xl bg-slate-900 border border-slate-800 text-white shadow-xl space-y-6">
+        {/* TAB 0: TEMPLATES & STYLES */}
+        {activeBuilderTab === 'templates' && (
+          <div className="space-y-8 animate-in fade-in duration-200">
+            <div>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <h3 className="text-lg font-heading font-bold text-white flex items-center gap-2">
+                    <LayoutTemplate className="w-5 h-5 text-cyan-400" />
+                    <span>Select Portfolio Template & Visual Style</span>
+                  </h3>
+                  <p className="text-xs text-slate-400 font-medium mt-1">
+                    Choose from 4 Canva-inspired, reference-grade developer layouts. Instant live preview below.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowLivePreviewModal(true)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm transition-all"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>Full Screen Preview</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Template Selection Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {PORTFOLIO_TEMPLATES_CONFIG.map((tpl) => {
+                const isSelected = selectedTemplate === tpl.id;
+                return (
+                  <div
+                    key={tpl.id}
+                    onClick={() => {
+                      setSelectedTemplate(tpl.id);
+                      localStorage.setItem(getStorageKey('template'), tpl.id);
+                      toast.success(`Active portfolio template set to: ${tpl.name}`);
+                    }}
+                    className={`relative p-5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between group overflow-hidden ${
+                      isSelected
+                        ? 'bg-gradient-to-b from-cyan-950/40 via-slate-900 to-slate-950 border-cyan-500 ring-2 ring-cyan-500/30 shadow-xl shadow-cyan-950/30'
+                        : 'bg-slate-950/70 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900/60'
+                    }`}
+                  >
+                    {/* Top Accent Dot & Badge */}
+                    <div>
+                      <div className="flex items-center justify-between gap-1 mb-3">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-slate-300">
+                          {tpl.badge}
+                        </span>
+                        {isSelected ? (
+                          <span className="w-5 h-5 rounded-full bg-cyan-500 text-slate-950 flex items-center justify-center font-bold text-xs shadow-sm">
+                            <Check className="w-3 h-3 stroke-[3]" />
+                          </span>
+                        ) : (
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: tpl.accentColor }} />
+                        )}
+                      </div>
+
+                      {/* Mockup Preview Icon / Illustration */}
+                      <div className="w-full h-24 rounded-xl mb-3.5 bg-slate-900/90 border border-slate-800/80 flex flex-col items-center justify-center p-3 relative overflow-hidden group-hover:border-cyan-500/40 transition-colors">
+                        <div
+                          className="absolute inset-0 opacity-15 pointer-events-none"
+                          style={{
+                            backgroundImage: `radial-gradient(circle at 50% 50%, ${tpl.accentColor} 0%, transparent 70%)`
+                          }}
+                        />
+                        <span className="text-2xl mb-1">{tpl.thumbnail}</span>
+                        <span className="text-[11px] font-bold text-white tracking-wide">{tpl.name}</span>
+                      </div>
+
+                      <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+                        {tpl.tagline}
+                      </p>
+                    </div>
+
+                    <div className="pt-4 mt-2 border-t border-slate-800/80 flex items-center justify-between">
+                      <span className="text-[10px] font-mono text-slate-500">
+                        {isSelected ? '✓ ACTIVE THEME' : 'CLICK TO APPLY'}
+                      </span>
+                      <button
+                        type="button"
+                        className={`text-xs font-bold px-3 py-1 rounded-lg transition-all ${
+                          isSelected
+                            ? 'bg-cyan-500 text-slate-950 font-black'
+                            : 'bg-slate-800 text-slate-300 group-hover:text-white'
+                        }`}
+                      >
+                        {isSelected ? 'Selected' : 'Use This'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* In-Page Interactive Live Viewport */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Eye className="w-4 h-4 text-cyan-400" />
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                    Interactive Device Viewport ({PORTFOLIO_TEMPLATES_CONFIG.find(t => t.id === selectedTemplate)?.name})
+                  </h4>
+                </div>
+
+                <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-950 border border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewDevice('desktop')}
+                    className={`p-1.5 rounded-lg cursor-pointer transition-all ${
+                      previewDevice === 'desktop' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-500 hover:text-slate-300'
+                    }`}
+                    title="Desktop View"
+                  >
+                    <Monitor className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewDevice('tablet')}
+                    className={`p-1.5 rounded-lg cursor-pointer transition-all ${
+                      previewDevice === 'tablet' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-500 hover:text-slate-300'
+                    }`}
+                    title="Tablet View"
+                  >
+                    <Tablet className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewDevice('mobile')}
+                    className={`p-1.5 rounded-lg cursor-pointer transition-all ${
+                      previewDevice === 'mobile' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-500 hover:text-slate-300'
+                    }`}
+                    title="Mobile View"
+                  >
+                    <Smartphone className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="w-full rounded-2xl bg-slate-950 border border-slate-800/90 overflow-hidden shadow-2xl p-4 flex justify-center">
+                <div
+                  className={`transition-all duration-300 rounded-xl overflow-hidden border border-slate-800 shadow-inner bg-slate-900 ${
+                    previewDevice === 'mobile'
+                      ? 'w-[375px] max-w-full'
+                      : previewDevice === 'tablet'
+                      ? 'w-[768px] max-w-full'
+                      : 'w-full'
+                  }`}
+                  style={{ maxHeight: '720px', overflowY: 'auto' }}
+                >
+                  <PortfolioTemplateRenderer templateId={selectedTemplate} data={currentPortfolioData} />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* TAB 1: IDENTITY & BIO */}
         {activeBuilderTab === 'identity' && (
           <div className="space-y-6 animate-in fade-in duration-200">
@@ -1414,21 +1628,18 @@ export const PortfolioBuilder: React.FC = () => {
             </div>
 
             {/* Embedded Live Frame */}
-            <div className="flex-1 bg-slate-950 flex items-center justify-center p-4 overflow-y-auto">
+            {/* Embedded Live Frame */}
+            <div className="flex-1 bg-slate-950 flex items-start justify-center p-4 overflow-y-auto">
               <div
-                className={`h-full bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl transition-all duration-300 ${
+                className={`min-h-full bg-slate-900 border border-slate-800 rounded-2xl overflow-y-auto shadow-2xl transition-all duration-300 ${
                   previewDevice === 'mobile'
                     ? 'w-[375px]'
                     : previewDevice === 'tablet'
                     ? 'w-[768px]'
-                    : 'w-full'
+                    : 'w-full max-w-5xl'
                 }`}
               >
-                <iframe
-                  src={`/portfolio/${handle || userId}`}
-                  title="Portfolio Live Preview"
-                  className="w-full h-full border-none"
-                />
+                <PortfolioTemplateRenderer templateId={selectedTemplate} data={currentPortfolioData} />
               </div>
             </div>
           </div>

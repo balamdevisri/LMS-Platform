@@ -141,6 +141,10 @@ const router = createBrowserRouter([
   },
   // Dedicated Standalone Public Student Portfolio (No Main LMS Site Navbar/Footer)
   {
+    path: '/portfolio',
+    element: <Navigate to="/dashboard?tab=portfolio-builder" replace />,
+  },
+  {
     path: '/portfolio/:handleOrId',
     element: (
       <DeveloperGate>

@@ -12,7 +12,11 @@ import {
   LayoutTemplate,
   FolderGit2,
   Check,
-  CheckCircle2
+  CheckCircle2,
+  Camera,
+  Upload,
+  Image,
+  X
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { API_BASE_URL } from '@/config/api';
@@ -57,6 +61,15 @@ export const ResumeBuilder: React.FC = () => {
       : (user?.email ? `https://github.com/${user.email.split('@')[0]}` : '')
   );
   const [linkedin, setLinkedin] = useState('');
+  const [photoUrl, setPhotoUrl] = useState<string>(() => {
+    return (
+      userProfile?.photoURL ||
+      user?.photoURL ||
+      ''
+    );
+  });
+  const [showPhoto, setShowPhoto] = useState<boolean>(true);
+  const [templateFilter, setTemplateFilter] = useState<'all' | 'photo' | 'ats'>('all');
   const [summary, setSummary] = useState(
     'Dedicated engineering professional mastering system architecture, full stack React & Node.js development, and AI engineering practices.'
   );
@@ -177,6 +190,12 @@ export const ResumeBuilder: React.FC = () => {
       setTemplate(scopedTpl);
     }
 
+    const scopedPhoto = localStorage.getItem(getStorageKey('photo'));
+    if (scopedPhoto) setPhotoUrl(scopedPhoto);
+
+    const scopedShowPhoto = localStorage.getItem(getStorageKey('show_photo'));
+    if (scopedShowPhoto !== null) setShowPhoto(scopedShowPhoto === 'true');
+
     // 2. Authoritative backend resume fetch for this active user
     fetch(`${API_BASE_URL}/resume/me?studentId=${userId}`)
       .then(res => res.json())
@@ -192,6 +211,8 @@ export const ResumeBuilder: React.FC = () => {
           if (d.github) setGithub(d.github);
           if (d.linkedin !== undefined) setLinkedin(d.linkedin);
           if (d.summary) setSummary(d.summary);
+          if (d.photoUrl) setPhotoUrl(d.photoUrl);
+          if (typeof d.showPhoto === 'boolean') setShowPhoto(d.showPhoto);
           if (Array.isArray(d.skills) && d.skills.length > 0) setSkills(d.skills);
           if (Array.isArray(d.experience) && d.experience.length > 0) setExperience(d.experience);
           if (Array.isArray(d.education) && d.education.length > 0) setEducation(d.education);
@@ -204,6 +225,25 @@ export const ResumeBuilder: React.FC = () => {
       })
       .catch(() => {});
   }, [userId, userProfile?.name, userProfile?.email, user?.email]);
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size must be less than 5MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      if (result) {
+        setPhotoUrl(result);
+        localStorage.setItem(getStorageKey('photo'), result);
+        toast.success('Resume portrait photo uploaded!');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -223,6 +263,8 @@ export const ResumeBuilder: React.FC = () => {
     localStorage.setItem(getStorageKey('projects'), JSON.stringify(projects));
     localStorage.setItem(getStorageKey('certifications'), JSON.stringify(certifications));
     localStorage.setItem(getStorageKey('template'), template);
+    localStorage.setItem(getStorageKey('photo'), photoUrl);
+    localStorage.setItem(getStorageKey('show_photo'), String(showPhoto));
 
     // 2. Database API
     try {
@@ -256,6 +298,8 @@ export const ResumeBuilder: React.FC = () => {
           projects,
           certifications,
           template,
+          photoUrl,
+          showPhoto,
         }),
       });
 
@@ -378,6 +422,8 @@ export const ResumeBuilder: React.FC = () => {
     education,
     projects,
     certifications,
+    photoUrl,
+    showPhoto,
   };
 
   return (
@@ -450,52 +496,92 @@ export const ResumeBuilder: React.FC = () => {
 
       {/* Visual Template Switcher Bar */}
       <div className="no-print p-5 rounded-3xl border border-sky-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <LayoutTemplate className="w-4 h-4 text-indigo-500" />
             <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
               Choose Resume Layout & Style
             </span>
           </div>
-          <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500">
-            6 Professional Templates Available
-          </span>
+
+          {/* Filter Pills */}
+          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-[11px] font-bold">
+            <button
+              type="button"
+              onClick={() => setTemplateFilter('all')}
+              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                templateFilter === 'all'
+                  ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              All ({RESUME_TEMPLATES_CONFIG.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setTemplateFilter('photo')}
+              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                templateFilter === 'photo'
+                  ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              📷 Photo-Ready (2)
+            </button>
+            <button
+              type="button"
+              onClick={() => setTemplateFilter('ats')}
+              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                templateFilter === 'ats'
+                  ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              ⚡ Pure ATS No-Photo (3)
+            </button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-          {RESUME_TEMPLATES_CONFIG.map((t) => {
-            const isSelected = template === t.id;
-            return (
-              <button
-                key={t.id}
-                onClick={() => handleSelectTemplate(t.id)}
-                className={`relative p-3 text-left rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
-                  isSelected
-                    ? 'border-indigo-600 dark:border-indigo-500 bg-indigo-50/60 dark:bg-indigo-950/40 shadow-sm ring-2 ring-indigo-500/20'
-                    : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 hover:border-slate-300 dark:hover:border-slate-700'
-                }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between gap-1 mb-1">
-                    <span className="text-[9px] font-extrabold uppercase tracking-wide px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
-                      {t.badge}
-                    </span>
-                    {isSelected && (
-                      <span className="w-4 h-4 rounded-full bg-indigo-600 text-white flex items-center justify-center">
-                        <Check className="w-2.5 h-2.5" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          {RESUME_TEMPLATES_CONFIG
+            .filter((t) => {
+              if (templateFilter === 'photo') return t.hasPhoto;
+              if (templateFilter === 'ats') return !t.hasPhoto && t.badge.includes('ATS');
+              return true;
+            })
+            .map((t) => {
+              const isSelected = template === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => handleSelectTemplate(t.id)}
+                  className={`relative p-3 text-left rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
+                    isSelected
+                      ? 'border-indigo-600 dark:border-indigo-500 bg-indigo-50/60 dark:bg-indigo-950/40 shadow-sm ring-2 ring-indigo-500/20'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 hover:border-slate-300 dark:hover:border-slate-700'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-1 mb-1">
+                      <span className="text-[9px] font-extrabold uppercase tracking-wide px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
+                        {t.badge}
                       </span>
-                    )}
+                      {isSelected && (
+                        <span className="w-4 h-4 rounded-full bg-indigo-600 text-white flex items-center justify-center">
+                          <Check className="w-2.5 h-2.5" />
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs font-bold text-slate-900 dark:text-white leading-tight">
+                      {t.name}
+                    </div>
                   </div>
-                  <div className="text-xs font-bold text-slate-900 dark:text-white leading-tight">
-                    {t.name}
+                  <div className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-2 mt-1.5 leading-snug">
+                    {t.tagline}
                   </div>
-                </div>
-                <div className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-2 mt-1.5 leading-snug">
-                  {t.tagline}
-                </div>
-              </button>
-            );
-          })}
+                </button>
+              );
+            })}
         </div>
       </div>
 
@@ -507,6 +593,69 @@ export const ResumeBuilder: React.FC = () => {
             <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
               <span>Personal & Contact Info</span>
             </h3>
+
+            {/* Candidate Photo Headshot Uploader */}
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <Camera className="w-3.5 h-3.5 text-indigo-500" />
+                  <span>Profile Photo Headshot</span>
+                </span>
+                <label className="flex items-center gap-1.5 text-[10px] font-bold text-slate-600 dark:text-slate-400 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showPhoto}
+                    onChange={(e) => setShowPhoto(e.target.checked)}
+                    className="w-3.5 h-3.5 rounded-sm accent-indigo-600 cursor-pointer"
+                  />
+                  <span>Show in Photo Templates</span>
+                </label>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <div className="relative w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800/80 flex items-center justify-center shrink-0 overflow-hidden shadow-xs">
+                  {photoUrl ? (
+                    <img src={photoUrl} alt={fullName} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-xl font-black text-indigo-400">
+                      {(fullName || 'H').charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                </div>
+
+                <div className="space-y-1.5 flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <label className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Upload Photo</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoUpload}
+                        className="hidden"
+                      />
+                    </label>
+                    {photoUrl && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPhotoUrl('');
+                          localStorage.removeItem(getStorageKey('photo'));
+                          toast.info('Removed photo headshot.');
+                        }}
+                        className="px-2.5 py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-semibold cursor-pointer"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
+                    Rendered in <strong>Canva Modern Photo</strong> and <strong>Executive Headshot</strong>. Pure ATS templates automatically exclude photos for 100% automated parsing.
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="sm:col-span-2">
                 <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase block mb-1">Full Name</label>
