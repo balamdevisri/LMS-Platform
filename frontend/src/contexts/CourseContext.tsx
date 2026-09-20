@@ -280,6 +280,16 @@ export const normalizeContextCourse = (c: any): CourseItem => {
   };
 };
 
+const COURSE_CACHE_KEY = 'shaivika_courses_cache_v2';
+const LEGACY_CACHE_KEY = 'shaivika_courses_data';
+
+// Purge stale unversioned course cache on load
+if (typeof window !== 'undefined') {
+  try {
+    localStorage.removeItem(LEGACY_CACHE_KEY);
+  } catch {}
+}
+
 export const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
   const map = new Map<string, CourseItem>();
   list.forEach((c) => {
@@ -298,11 +308,17 @@ export const sanitizeCourseList = (list: CourseItem[]): CourseItem[] => {
     if (!existing) {
       map.set(key, item);
     } else {
-      const existingHasModules = existing.modules && existing.modules.length > 0;
-      const incomingHasModules = item.modules && item.modules.length > 0;
-      if (incomingHasModules && !existingHasModules) {
+      const existingRev = (existing as any).revision ?? (existing as any).version ?? 0;
+      const incomingRev = (item as any).revision ?? (item as any).version ?? 0;
+      const existingTime = new Date(existing.updatedAt || 0).getTime();
+      const incomingTime = new Date(item.updatedAt || 0).getTime();
+
+      // Rule: Newer server revision or timestamp always wins
+      if (incomingRev > existingRev || incomingTime > existingTime) {
         map.set(key, item);
-      } else if (new Date(item.updatedAt || 0).getTime() > new Date(existing.updatedAt || 0).getTime()) {
+      } else if (incomingRev === existingRev) {
+        const existingHasModules = existing.modules && existing.modules.length > 0;
+        const incomingHasModules = item.modules && item.modules.length > 0;
         map.set(key, { ...existing, ...item, modules: incomingHasModules ? item.modules : existing.modules });
       }
     }
@@ -315,10 +331,10 @@ const CourseContext = createContext<CourseContextType | undefined>(undefined);
 
 const safeSetLocalStorageCourses = (coursesData: CourseItem[]) => {
   try {
-    localStorage.setItem('shaivika_courses_data', JSON.stringify(coursesData));
+    localStorage.setItem(COURSE_CACHE_KEY, JSON.stringify(coursesData));
   } catch (e) {
     try {
-      // Fallback: If full course objects exceed 5MB quota, store lightweight summary
+      // Fallback: If full course objects exceed quota, store lightweight summary
       const summary = coursesData.map((c) => ({
         ...c,
         modules: (c.modules || []).map((m) => ({
@@ -340,7 +356,7 @@ const safeSetLocalStorageCourses = (coursesData: CourseItem[]) => {
           })),
         })),
       }));
-      localStorage.setItem('shaivika_courses_data', JSON.stringify(summary));
+      localStorage.setItem(COURSE_CACHE_KEY, JSON.stringify(summary));
     } catch {
       console.warn('[CourseContext] localStorage quota exceeded, courses retained in-memory only.');
     }
@@ -350,7 +366,7 @@ const safeSetLocalStorageCourses = (coursesData: CourseItem[]) => {
 export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [courses, setCourses] = useState<CourseItem[]>(() => {
     try {
-      const stored = localStorage.getItem('shaivika_courses_data');
+      const stored = localStorage.getItem(COURSE_CACHE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -387,7 +403,7 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   useEffect(() => {
     const handleCoursesChanged = () => {
       try {
-        const stored = localStorage.getItem('shaivika_courses_data');
+        const stored = localStorage.getItem(COURSE_CACHE_KEY);
         if (stored) {
           const parsed = JSON.parse(stored);
           if (Array.isArray(parsed) && parsed.length > 0) {
