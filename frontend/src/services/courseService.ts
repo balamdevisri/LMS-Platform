@@ -992,7 +992,7 @@ const getAuthHeaders = (): Record<string, string> => {
 };
 
 class CourseService {
-  private localCacheKey = 'shaivika_courses_data';
+  private localCacheKey = 'shaivika_courses_cache_v2';
   private enrollmentsKey = 'shaivika_user_enrollments';
   private pointsKey = 'shaivika_user_xp_points';
   private xpClaimsKey = 'shaivika_user_xp_claims';
@@ -1092,10 +1092,16 @@ class CourseService {
     const mergedList: ICourse[] = [];
     const idSet = new Set<string>();
 
-    const adminData = localStorage.getItem('shaivika_courses_data');
-    if (adminData) {
+    if (typeof window !== 'undefined') {
       try {
-        const parsed = JSON.parse(adminData);
+        localStorage.removeItem('shaivika_courses_data');
+      } catch {}
+    }
+
+    const cachedData = typeof window !== 'undefined' ? localStorage.getItem(this.localCacheKey) : null;
+    if (cachedData) {
+      try {
+        const parsed = JSON.parse(cachedData);
         if (Array.isArray(parsed)) {
           for (const c of parsed) {
             if (isRemovedMockCourse(c)) continue;
@@ -1107,7 +1113,7 @@ class CourseService {
           }
         }
       } catch (e) {
-        console.warn('Error parsing shaivika_courses_data:', e);
+        console.warn('Error parsing shaivika_courses_cache_v2:', e);
       }
     }
 
@@ -1116,7 +1122,6 @@ class CourseService {
 
   private saveStoredCourses(courses: ICourse[]): void {
     try {
-      localStorage.setItem('shaivika_courses_data', JSON.stringify(courses));
       localStorage.setItem(this.localCacheKey, JSON.stringify(courses));
     } catch (e) {
       try {
@@ -1141,7 +1146,6 @@ class CourseService {
             })),
           })),
         }));
-        localStorage.setItem('shaivika_courses_data', JSON.stringify(summary));
         localStorage.setItem(this.localCacheKey, JSON.stringify(summary));
       } catch (err2) {
         console.warn('[CourseService] localStorage quota exceeded, courses retained in-memory only:', err2);
@@ -1616,22 +1620,9 @@ class CourseService {
       }
     }
 
-    // 1. Direct write to Cloud Firestore (Authoritative)
-    let firestoreSuccess = false;
-    try {
-      const { db, doc, setDoc } = await getFS();
-      if (db) {
-        const cleanMerged = serializeFirestorePayload(mergedCourse);
-        await setDoc(doc(db, 'courses', targetCourseId), cleanMerged as any, { merge: true });
-        firestoreSuccess = true;
-        console.log(`[Firebase] Course "${targetCourseId}" successfully updated in Firestore (v${nextVersion})`);
-      }
-    } catch (err: any) {
-      console.error('[Firebase] Direct Firestore update error:', err);
-    }
-
-    // 2. Sync to Backend REST API (with concurrency checking)
+    // 1. Try Backend REST API first (with concurrency checking)
     let backendUpdated: ICourse | null = null;
+    let backendError: any = null;
     try {
       const token = localStorage.getItem('shaivika_auth_token') || localStorage.getItem('token');
       const expectedRev = (updates as any).expectedRevision ?? (updates as any).version ?? existing?.version;
@@ -1656,13 +1647,32 @@ class CourseService {
         const json = await res.json();
         if (json.success && json.data) {
           backendUpdated = this.normalizeCourseToICourse(json.data);
+          console.log(`[Backend API] Course "${targetCourseId}" successfully updated via REST API.`);
         }
+      } else {
+        const errJson = await res.json().catch(() => null);
+        backendError = errJson?.error || errJson?.message || `Server responded with status ${res.status}`;
       }
     } catch (err: any) {
       if (err.status === 409 || err.code === 409) {
         throw err;
       }
-      console.warn('Backend update notice (offline or background):', err?.message || err);
+      backendError = err?.message || err;
+      console.warn('[CourseService] Backend update notice (attempting direct Firestore fallback):', backendError);
+    }
+
+    // 2. Direct write to Cloud Firestore if Backend was not used or failed
+    if (!backendUpdated) {
+      try {
+        const { db, doc, setDoc } = await getFS();
+        if (db) {
+          const cleanMerged = serializeFirestorePayload(mergedCourse);
+          await setDoc(doc(db, 'courses', targetCourseId), cleanMerged as any, { merge: true });
+          console.log(`[Firebase Fallback] Course "${targetCourseId}" successfully updated in Firestore (v${nextVersion})`);
+        }
+      } catch (err: any) {
+        console.error('[Firebase] Direct Firestore update error:', err);
+      }
     }
 
     const finalCourse = backendUpdated || mergedCourse;
@@ -1693,29 +1703,35 @@ class CourseService {
   async deleteCourse(id: string): Promise<boolean> {
     let deleted = false;
 
-    // 1. Direct delete / soft-delete from Firebase Firestore
-    try {
-      const { db, doc, setDoc } = await getFS();
-      if (db) {
-        await setDoc(doc(db, 'courses', id), { isDeleted: true, deletedAt: new Date().toISOString() }, { merge: true });
-        deleted = true;
-        console.log(`[Firebase] Course "${id}" marked deleted in Firestore.`);
-      }
-    } catch (err) {
-      console.error('[Firebase] Direct Firestore course delete error:', err);
-    }
-
-    // 2. Call backend DELETE
+    // 1. Call canonical backend DELETE first
     try {
       const token = localStorage.getItem('shaivika_auth_token') || localStorage.getItem('token');
-      await fetch(`${API_BASE_URL}/courses/${encodeURIComponent(id)}`, {
+      const res = await fetch(`${API_BASE_URL}/courses/${encodeURIComponent(id)}`, {
         method: 'DELETE',
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
-      deleted = true;
-    } catch (e) {}
+      if (res.ok) {
+        deleted = true;
+      }
+    } catch (e) {
+      console.warn('[CourseService] Backend delete failed, falling back to direct Firestore:', e);
+    }
+
+    // 2. Direct soft-delete from Firebase Firestore if backend was offline/failed
+    if (!deleted) {
+      try {
+        const { db, doc, setDoc } = await getFS();
+        if (db) {
+          await setDoc(doc(db, 'courses', id), { isDeleted: true, deletedAt: new Date().toISOString() }, { merge: true });
+          deleted = true;
+          console.log(`[Firebase] Course "${id}" marked deleted in Firestore.`);
+        }
+      } catch (err) {
+        console.error('[Firebase] Direct Firestore course delete error:', err);
+      }
+    }
 
     // 3. Update local cache
     const list = this.getStoredCourses();
