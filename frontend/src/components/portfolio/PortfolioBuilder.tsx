@@ -76,9 +76,9 @@ export const PortfolioBuilder: React.FC = () => {
   const { user, userProfile } = useAuth();
   const userId = userProfile?.uid || user?.uid || '';
 
-  const getStorageKey = (key: string) => {
+  const getStorageKey = React.useCallback((key: string) => {
     return userId ? `shaivika_portfolio_${userId}_${key}` : `shaivika_portfolio_${key}`;
-  };
+  }, [userId]);
 
   // 1. Core Profile Identity State - Defaults to Active Logged-in User
   const [fullName, setFullName] = useState(() => {
@@ -212,7 +212,7 @@ export const PortfolioBuilder: React.FC = () => {
     if (linkedinUrl) localStorage.setItem(getStorageKey('linkedin'), linkedinUrl);
     if (websiteUrl) localStorage.setItem(getStorageKey('website'), websiteUrl);
     if (selectedTemplate) localStorage.setItem(getStorageKey('template'), selectedTemplate);
-  }, [userId, fullName, headline, location, aboutBio, handle, avatarUrl, githubUrl, linkedinUrl, websiteUrl, selectedTemplate]);
+  }, [userId, fullName, headline, location, aboutBio, handle, avatarUrl, githubUrl, linkedinUrl, websiteUrl, selectedTemplate, getStorageKey]);
 
   // UI States
   const [isSaving, setIsSaving] = useState(false);

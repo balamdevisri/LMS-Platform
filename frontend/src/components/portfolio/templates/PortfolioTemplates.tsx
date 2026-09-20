@@ -2,20 +2,11 @@ import React from 'react';
 import {
   Globe,
   ExternalLink,
-  MapPin,
   Mail,
   Briefcase,
   GraduationCap,
   Sparkles,
-  Award,
-  ArrowRight,
-  Code2,
-  Terminal,
-  CheckCircle2,
-  Cpu,
-  Layers,
-  ChevronRight,
-  Share2
+  Code2
 } from 'lucide-react';
 
 export type PortfolioTemplateId =
@@ -592,6 +583,41 @@ export const CanvaCreativePortfolio: React.FC<{ data: PortfolioData }> = ({ data
           ))}
         </div>
       </section>
+
+      {/* Experience & Education Showcase */}
+      {experiences.length > 0 && (
+        <section className="max-w-5xl mx-auto px-6 py-4">
+          <div className="p-8 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-4">
+            <span className="text-xs font-black uppercase tracking-wider text-pink-400">Career Experience</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {experiences.map((exp, idx) => (
+                <div key={idx} className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80 space-y-1">
+                  <div className="font-bold text-white text-sm">{exp.role}</div>
+                  <div className="text-pink-400 text-xs font-medium">{exp.company} • {exp.duration}</div>
+                  <p className="text-xs text-slate-400 pt-1 leading-relaxed">{exp.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {educations.length > 0 && (
+        <section className="max-w-5xl mx-auto px-6 py-4">
+          <div className="p-8 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-4">
+            <span className="text-xs font-black uppercase tracking-wider text-purple-400">Education & Credentials</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {educations.map((edu, idx) => (
+                <div key={idx} className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80 space-y-1">
+                  <div className="font-bold text-white text-sm">{edu.degree}</div>
+                  <div className="text-purple-300 text-xs">{edu.institution} • {edu.year}</div>
+                  {edu.score && <div className="text-[11px] text-slate-400 font-mono">Score: {edu.score}</div>}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 };
@@ -712,6 +738,20 @@ export const ExecutiveMinimalPortfolio: React.FC<{ data: PortfolioData }> = ({ d
               </div>
             </div>
           )}
+
+          {educations.length > 0 && (
+            <div className="space-y-4">
+              <h2 className="text-xs font-black uppercase tracking-widest text-slate-400">Education & Degrees</h2>
+              <div className="space-y-3">
+                {educations.map((edu, idx) => (
+                  <div key={idx} className="text-xs space-y-0.5">
+                    <div className="font-bold text-slate-900 dark:text-white">{edu.degree}</div>
+                    <div className="text-slate-500">{edu.institution} • {edu.year}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </section>
       </div>
     </div>
@@ -768,6 +808,26 @@ export const CyberpunkTerminalPortfolio: React.FC<{ data: PortfolioData }> = ({ 
                   <span className="text-emerald-400">● ACTIVE</span>
                   <span>SSH KEY CERTIFIED</span>
                 </div>
+                <div className="flex flex-wrap items-center gap-3 pt-2 text-xs">
+                  {email && (
+                    <a href={`mailto:${email}`} className="text-cyan-400 hover:underline flex items-center gap-1">
+                      <Mail className="w-3.5 h-3.5" />
+                      <span>{email}</span>
+                    </a>
+                  )}
+                  {githubUrl && (
+                    <a href={githubUrl} target="_blank" rel="noreferrer" className="text-slate-300 hover:text-white flex items-center gap-1">
+                      <GithubIcon className="w-3.5 h-3.5" />
+                      <span>github</span>
+                    </a>
+                  )}
+                  {linkedinUrl && (
+                    <a href={linkedinUrl} target="_blank" rel="noreferrer" className="text-sky-400 hover:underline flex items-center gap-1">
+                      <LinkedinIcon className="w-3.5 h-3.5" />
+                      <span>linkedin</span>
+                    </a>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -820,6 +880,38 @@ export const CyberpunkTerminalPortfolio: React.FC<{ data: PortfolioData }> = ({ 
             ))}
           </div>
         </div>
+
+        {/* Work Experience Terminal Log */}
+        {experiences.length > 0 && (
+          <div className="p-6 rounded-2xl bg-slate-950/90 border border-slate-800 space-y-4">
+            <div className="text-xs text-cyan-400">$ cat /var/log/experience.log</div>
+            <div className="space-y-3">
+              {experiences.map((exp, idx) => (
+                <div key={idx} className="text-xs space-y-1 border-l-2 border-cyan-500/50 pl-3.5">
+                  <div className="font-bold text-white text-sm">{exp.role} @ <span className="text-cyan-400">{exp.company}</span></div>
+                  <div className="text-slate-400 font-mono text-[11px]">{exp.duration}</div>
+                  <p className="text-slate-300 text-xs leading-relaxed pt-0.5">{exp.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Education Credentials */}
+        {educations.length > 0 && (
+          <div className="p-6 rounded-2xl bg-slate-950/90 border border-slate-800 space-y-4">
+            <div className="text-xs text-cyan-400">$ cat /etc/credentials.conf</div>
+            <div className="space-y-3">
+              {educations.map((edu, idx) => (
+                <div key={idx} className="text-xs space-y-1 border-l-2 border-purple-500/50 pl-3.5">
+                  <div className="font-bold text-white text-sm">{edu.degree}</div>
+                  <div className="text-slate-400 font-mono text-[11px]">{edu.institution} • {edu.year}</div>
+                  {edu.score && <div className="text-[11px] text-cyan-300 font-mono">Score: {edu.score}</div>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
