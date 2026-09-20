@@ -1527,7 +1527,7 @@ export const PortfolioBuilder: React.FC = () => {
 
                 {/* 4. Email Recruiter */}
                 <a
-                  href={`mailto:?subject=${encodeURIComponent(`Developer Portfolio - ${fullName || 'KALIGIRI HEMADRI'}`)}&body=${encodeURIComponent(`Hi,\n\nCheck out my verified developer portfolio and live engineering projects:\n${publicPortfolioUrl}\n\nBest regards,\n${fullName || 'KALIGIRI HEMADRI'}`)}`}
+                  href={`mailto:?subject=${encodeURIComponent(`Developer Portfolio - ${fullName || 'Developer'}`)}&body=${encodeURIComponent(`Hi,\n\nCheck out my verified developer portfolio and live engineering projects:\n${publicPortfolioUrl}\n\nBest regards,\n${fullName || 'Developer'}`)}`}
                   className="py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
                 >
                   <Mail className="w-4 h-4" />
@@ -1550,7 +1550,7 @@ export const PortfolioBuilder: React.FC = () => {
 
                 {/* 6. Telegram */}
                 <a
-                  href={`https://t.me/share/url?url=${encodeURIComponent(publicPortfolioUrl)}&text=${encodeURIComponent(`Verified Developer Portfolio of ${fullName || 'KALIGIRI HEMADRI'}`)}`}
+                  href={`https://t.me/share/url?url=${encodeURIComponent(publicPortfolioUrl)}&text=${encodeURIComponent(`Verified Developer Portfolio of ${fullName || 'Developer'}`)}`}
                   target="_blank"
                   rel="noreferrer"
                   className="py-2.5 px-3 rounded-xl bg-[#229ED9] hover:bg-[#1a85b8] text-white text-xs font-bold flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
