@@ -6,6 +6,7 @@ import { fromDocument, handleFirestoreError, toDocument } from '../../utils/fire
 import { FieldValue, Query } from 'firebase-admin/firestore';
 import { db } from '../../firebase';
 import { courseContentService } from './courseContent.service';
+import logger from '../../config/logger';
 
 /**
  * Formats Zod validation errors into a human-readable comma-separated string.
@@ -212,7 +213,8 @@ export class CourseService {
       }
       return fromDocument<Course>(docSnap);
     } catch (error) {
-      return handleFirestoreError(error, 'getCourseById');
+      logger.warn(`[CourseService] getCourseById read fallback for ${id}:`, error);
+      return null;
     }
   }
 
@@ -228,7 +230,8 @@ export class CourseService {
       });
       return courses;
     } catch (error) {
-      return handleFirestoreError(error, 'getCourses');
+      logger.warn('[CourseService] getCourses read fallback:', error);
+      return [];
     }
   }
 

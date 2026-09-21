@@ -33,10 +33,13 @@ if (!getApps().length) {
   const cleanPrivateKey = sanitizePrivateKey(env.FIREBASE_PRIVATE_KEY || process.env.FIREBASE_PRIVATE_KEY);
   const isValidPrivateKey = Boolean(
     cleanPrivateKey &&
+    cleanPrivateKey.length > 500 &&
+    !cleanPrivateKey.includes('...') &&
+    !cleanPrivateKey.includes('change_me') &&
     (cleanPrivateKey.includes('PRIVATE KEY') || cleanPrivateKey.includes('-----BEGIN'))
   );
 
-  if (env.FIREBASE_PROJECT_ID && env.FIREBASE_CLIENT_EMAIL && isValidPrivateKey) {
+  if (!process.env.MOCK_FIRESTORE && env.FIREBASE_PROJECT_ID && env.FIREBASE_CLIENT_EMAIL && isValidPrivateKey) {
     try {
       const credential = cert({
         projectId: env.FIREBASE_PROJECT_ID,

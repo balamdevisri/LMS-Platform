@@ -8,65 +8,90 @@ import logger from '../../config/logger';
 const courseService = new CourseService();
 
 export class EnrollmentService {
+  private inMemoryEnrollments = new Map<string, IEnrollment>();
+
   /**
    * Find all active course enrollments for a given student from Firestore
    */
   public async getStudentEnrollments(studentId: string): Promise<IEnrollment[]> {
-    if (!studentId || !isFirebaseAdminInitialized()) return [];
+    if (!studentId) return [];
 
-    try {
-      const snap = await db.collection('enrollments').where('studentId', '==', studentId).get();
-      if (!snap.empty) {
-        return snap.docs.map((d: QueryDocumentSnapshot) => ({ id: d.id, ...d.data() } as IEnrollment));
+    if (isFirebaseAdminInitialized()) {
+      try {
+        const snap = await db.collection('enrollments').where('studentId', '==', studentId).get();
+        if (!snap.empty) {
+          return snap.docs.map((d: QueryDocumentSnapshot) => ({ id: d.id, ...d.data() } as IEnrollment));
+        }
+      } catch (err) {
+        logger.warn('[EnrollmentService] Firestore getStudentEnrollments notice:', err);
       }
-    } catch (err) {
-      logger.warn('[EnrollmentService] Firestore getStudentEnrollments notice:', err);
     }
 
-    return [];
+    // In-memory fallback
+    const list: IEnrollment[] = [];
+    for (const [key, val] of this.inMemoryEnrollments.entries()) {
+      if (key.startsWith(`${studentId}_`)) {
+        list.push(val);
+      }
+    }
+    return list;
   }
 
   /**
    * Find specific enrollment by student ID and course ID from Firestore
    */
   public async getEnrollment(studentId: string, courseId: string): Promise<IEnrollment | null> {
-    if (!studentId || !courseId || !isFirebaseAdminInitialized()) return null;
+    if (!studentId || !courseId) return null;
 
-    try {
-      const possibleIds = [courseId];
-      if (courseId === 'c-programming') possibleIds.push('c-programming-course-id');
-      if (courseId === 'c-programming-course-id') possibleIds.push('c-programming');
-      if (courseId === 'linux-systems-administration-mastery') possibleIds.push('course_linux_101', '1');
-      if (courseId === 'course_linux_101' || courseId === '1') possibleIds.push('linux-systems-administration-mastery');
-      if (courseId === 'kubernetes-complete-course') possibleIds.push('kubernetes-complete-course-beginner-to-advanced');
-      if (courseId === 'kubernetes-complete-course-beginner-to-advanced') possibleIds.push('kubernetes-complete-course');
-      if (courseId === 'git-github-mastery') possibleIds.push('git-github-mastery-course-id');
-      if (courseId === 'git-github-mastery-course-id') possibleIds.push('git-github-mastery');
+    const possibleIds = [courseId];
+    if (courseId === 'c-programming') possibleIds.push('c-programming-course-id');
+    if (courseId === 'c-programming-course-id') possibleIds.push('c-programming');
+    if (courseId === 'linux-systems-administration-mastery') possibleIds.push('course_linux_101', '1');
+    if (courseId === 'course_linux_101' || courseId === '1') possibleIds.push('linux-systems-administration-mastery');
+    if (courseId === 'kubernetes-complete-course') possibleIds.push('kubernetes-complete-course-beginner-to-advanced');
+    if (courseId === 'kubernetes-complete-course-beginner-to-advanced') possibleIds.push('kubernetes-complete-course');
+    if (courseId === 'git-github-mastery') possibleIds.push('git-github-mastery-course-id');
+    if (courseId === 'git-github-mastery-course-id') possibleIds.push('git-github-mastery');
 
-      for (const cId of possibleIds) {
-        const enrollDocId = `${studentId}_${cId}`;
-        const docRef = await db.collection('enrollments').doc(enrollDocId).get();
-        if (docRef.exists) {
-          return { id: docRef.id, ...docRef.data() } as IEnrollment;
+    if (isFirebaseAdminInitialized()) {
+      try {
+        for (const cId of possibleIds) {
+          const enrollDocId = `${studentId}_${cId}`;
+          const docRef = await db.collection('enrollments').doc(enrollDocId).get();
+          if (docRef.exists) {
+            const data = { id: docRef.id, ...docRef.data() } as IEnrollment;
+            this.inMemoryEnrollments.set(enrollDocId, data);
+            return data;
+          }
         }
-      }
 
-      // Secondary query in case document ID is formatted differently
-      for (const cId of possibleIds) {
-        const snap = await db
-          .collection('enrollments')
-          .where('studentId', '==', studentId)
-          .where('courseId', '==', cId)
-          .limit(1)
-          .get();
+        // Secondary query in case document ID is formatted differently
+        for (const cId of possibleIds) {
+          const snap = await db
+            .collection('enrollments')
+            .where('studentId', '==', studentId)
+            .where('courseId', '==', cId)
+            .limit(1)
+            .get();
 
-        if (!snap.empty) {
-          const doc: QueryDocumentSnapshot = snap.docs[0];
-          return { id: doc.id, ...doc.data() } as IEnrollment;
+          if (!snap.empty) {
+            const doc: QueryDocumentSnapshot = snap.docs[0];
+            const data = { id: doc.id, ...doc.data() } as IEnrollment;
+            this.inMemoryEnrollments.set(doc.id, data);
+            return data;
+          }
         }
+      } catch (err) {
+        logger.warn('[EnrollmentService] Firestore getEnrollment notice:', err);
       }
-    } catch (err) {
-      logger.warn('[EnrollmentService] Firestore getEnrollment notice:', err);
+    }
+
+    // In-memory fallback
+    for (const cId of possibleIds) {
+      const enrollDocId = `${studentId}_${cId}`;
+      if (this.inMemoryEnrollments.has(enrollDocId)) {
+        return this.inMemoryEnrollments.get(enrollDocId)!;
+      }
     }
 
     return null;
@@ -121,6 +146,9 @@ export class EnrollmentService {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
+
+    // Save in in-memory cache
+    this.inMemoryEnrollments.set(enrollDocId, enrollmentPayload);
 
     // 3. Save to Firestore (enrollments collection + user profile enrolledCourses + student_progress)
     if (isFirebaseAdminInitialized()) {

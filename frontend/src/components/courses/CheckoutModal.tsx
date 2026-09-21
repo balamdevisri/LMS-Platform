@@ -297,7 +297,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
       // 2. Open Razorpay Standard Checkout Modal
       const orderIdForCheckout = data.razorpayOrderId || data.orderId;
-      const keyId = data.keyId || (import.meta as any).env?.VITE_RAZORPAY_KEY_ID || 'rzp_test_placeholder';
+      const keyId = (data.keyId || (import.meta as any).env?.VITE_RAZORPAY_KEY_ID || '').trim();
+      if (!keyId || keyId === 'rzp_test_placeholder') {
+        setErrorMessage('Payment Gateway Key is not configured on the server. Please contact support.');
+        setIsLoading(false);
+        return;
+      }
       const finalAmountInPaise = data.amountInPaise || Math.round((data.amount || effectivePrice) * 100);
 
       const options = {

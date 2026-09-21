@@ -1,4 +1,4 @@
-const API_BASE = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000').replace(/\/$/, '');
+import { API_BASE_URL } from '@/config/api';
 
 export interface PaymentOrderResponse {
   success: boolean;
@@ -59,7 +59,7 @@ export class PaymentService {
         if (studentInfo.email) headers['x-user-email'] = studentInfo.email;
       }
 
-      const res = await fetch(`${API_BASE}/api/payments/create-order`, {
+      const res = await fetch(`${API_BASE_URL}/payments/create-order`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -108,7 +108,7 @@ export class PaymentService {
         if (verificationData.studentEmail) headers['x-user-email'] = verificationData.studentEmail;
       }
 
-      const res = await fetch(`${API_BASE}/api/payments/verify`, {
+      const res = await fetch(`${API_BASE_URL}/payments/verify`, {
         method: 'POST',
         headers,
         body: JSON.stringify(verificationData),
@@ -134,7 +134,7 @@ export class PaymentService {
       if (token) headers['Authorization'] = `Bearer ${token}`;
       if (studentId) headers['x-user-id'] = studentId;
 
-      const res = await fetch(`${API_BASE}/api/payments/${paymentId}`, { headers });
+      const res = await fetch(`${API_BASE_URL}/payments/${paymentId}`, { headers });
       return await res.json();
     } catch (err) {
       return null;
