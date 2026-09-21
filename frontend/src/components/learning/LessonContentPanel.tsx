@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { MarkdownContent } from './MarkdownContent';
+import { processCanonicalLessonContent } from '@/utils/lessonNormalizer';
 
 const getThemeColorClass = (color?: string | null) => {
   switch (color) {
@@ -329,7 +330,8 @@ export const LessonContentPanel: React.FC<LessonContentPanelProps> = ({
   practiceQuestions,
   resourceLinks,
 }) => {
-  const readingTime = useMemo(() => estimateReadingTime(lessonContent), [lessonContent]);
+  const normalizedLessonContent = useMemo(() => processCanonicalLessonContent(lessonContent), [lessonContent]);
+  const readingTime = useMemo(() => estimateReadingTime(normalizedLessonContent), [normalizedLessonContent]);
   const [openSolutions, setOpenSolutions] = useState<Record<number, boolean>>({});
 
   const validObjectives = useMemo(() => {
@@ -445,7 +447,7 @@ export const LessonContentPanel: React.FC<LessonContentPanelProps> = ({
 
         {/* ── 3. Lesson Content (Rich Markdown Theory) ─────────────────────────── */}
         <section className="space-y-4">
-          <MarkdownContent content={lessonContent} isNightMode={isNightMode} />
+          <MarkdownContent content={normalizedLessonContent} isNightMode={isNightMode} />
         </section>
 
         {/* ── 4. Code Examples (Syntax Highlighted) ───────────────────────────── */}

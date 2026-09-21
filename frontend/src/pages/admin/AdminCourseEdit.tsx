@@ -12,6 +12,8 @@ import { CloudinaryUploadZone } from '../../components/admin/CloudinaryUploadZon
 import { aiAutofillService } from '@/services/aiAutofillService';
 import { MarkdownContent } from '@/components/learning/MarkdownContent';
 import { normalizeStringList } from '@/components/learning/LessonContentPanel';
+import { StudentLessonRenderer } from '@/components/learning/StudentLessonRenderer';
+import { processCanonicalLessonContent } from '@/utils/lessonNormalizer';
 import { AdminQuizManager } from '@/components/admin/AdminQuizManager';
 import { MermaidDiagram } from '@/components/learning/MermaidDiagram';
 import { ContentBlockArranger } from '@/components/admin/ContentBlockArranger';
@@ -1079,6 +1081,10 @@ export const AdminCourseEdit: React.FC = () => {
 
     setSaveStatus('saving');
 
+    // Normalize active markdown through canonical normalization pipeline
+    const normalizedMarkdown = processCanonicalLessonContent(lessonMarkdown);
+    setLessonMarkdown(normalizedMarkdown);
+
     // Make sure active unit values are baked into the latest modules state
     let currentModulesState = [...modules];
     if (selectedUnit && selectedModId && selectedTopId) {
@@ -1097,8 +1103,8 @@ export const AdminCourseEdit: React.FC = () => {
                   title: unitTitle || u.title,
                   duration: unitDuration || u.duration,
                   type: unitType || u.type,
-                  readingContent: lessonMarkdown,
-                  conceptTheory: lessonMarkdown,
+                  readingContent: normalizedMarkdown,
+                  conceptTheory: normalizedMarkdown,
                   description: lessonDescription,
                   learningObjectives,
                   keyPoints,
@@ -1138,8 +1144,11 @@ export const AdminCourseEdit: React.FC = () => {
       const updated = await courseService.updateCourse(id, payload);
       await refreshCourses();
 
-      if (updated && updated.version) {
-        setCourseData((prev: any) => ({ ...prev, version: updated.version }));
+      if (updated) {
+        setCourseData((prev: any) => ({ ...prev, ...updated, version: updated.version ?? prev.version }));
+        if (Array.isArray(updated.modules) && updated.modules.length > 0) {
+          setModules(updated.modules);
+        }
       }
 
       setIsDirty(false);
@@ -3222,124 +3231,22 @@ export const AdminCourseEdit: React.FC = () => {
                 </div>
 
                 {/* Right Content Viewer */}
-                <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6 bg-slate-900/90">
+                <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-950">
                   {activePreviewUnit ? (
-                    <div className="max-w-4xl mx-auto space-y-6">
-                      
-                      {/* Unit Title & Metadata */}
-                      <div className="space-y-3 pb-6 border-b border-slate-800">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400">
-                            {activePreviewUnit.type || 'Reading'}
-                          </span>
-                          <span className="text-xs text-slate-400 font-mono">
-                            ⏱️ {activePreviewUnit.duration || '15 mins'}
-                          </span>
-                        </div>
-                        <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-                          {activePreviewUnit.title}
-                        </h1>
-                      </div>
-
-                      {/* Learning Objectives */}
-                      {previewObjectives.length > 0 && (
-                        <div className="p-4 rounded-xl bg-indigo-950/30 border border-indigo-800/40 space-y-2">
-                          <div className="flex items-center gap-2 text-indigo-400 text-xs font-bold uppercase tracking-wider">
-                            <Target className="w-4 h-4" />
-                            <span>Learning Objectives</span>
-                          </div>
-                          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-300">
-                            {previewObjectives.map((obj, i) => (
-                              <li key={i} className="flex items-start gap-2">
-                                <Check className="w-3.5 h-3.5 text-emerald-400 mt-0.5 shrink-0" />
-                                <span>{obj}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {/* Key Points */}
-                      {previewKeyPoints.length > 0 && (
-                        <div className="p-4 rounded-xl bg-amber-950/30 border border-amber-800/40 space-y-2">
-                          <div className="flex items-center gap-2 text-amber-400 text-xs font-bold uppercase tracking-wider">
-                            <Key className="w-4 h-4" />
-                            <span>Key Takeaways</span>
-                          </div>
-                          <ul className="space-y-1.5 text-xs text-slate-300">
-                            {previewKeyPoints.map((kp, i) => (
-                              <li key={i} className="flex items-start gap-2">
-                                <span className="text-amber-400 font-bold">•</span>
-                                <span>{kp}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {/* Markdown Lesson Content */}
-                      <div className="space-y-4 pt-2">
-                        <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                          Lesson Guide & Theory
-                        </div>
-                        {rawContent ? (
-                          <div className="p-6 rounded-2xl bg-slate-950/60 border border-slate-800 text-slate-200">
-                            <MarkdownContent content={rawContent} />
-                          </div>
-                        ) : (
-                          <div className="p-8 rounded-2xl bg-slate-950/40 border border-dashed border-slate-800 text-center text-slate-500 text-sm">
-                            No content written for this lesson yet.
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Resources */}
-                      {previewResources.length > 0 && (
-                        <div className="space-y-3 pt-4 border-t border-slate-800">
-                          <div className="flex items-center gap-2 text-slate-300 text-xs font-bold uppercase tracking-wider">
-                            <Paperclip className="w-4 h-4 text-sky-400" />
-                            <span>Lesson Attachments & Resources</span>
-                          </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {previewResources.map((res: any, idx: number) => (
-                              <a
-                                key={idx}
-                                href={res.url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-slate-700 transition-all flex items-center justify-between gap-3 group"
-                              >
-                                <div className="flex items-center gap-3 min-w-0">
-                                  <div className="p-2 rounded-lg bg-slate-800 text-slate-300 group-hover:text-white">
-                                    {res.type === 'video' ? (
-                                      <Video className="w-4 h-4" />
-                                    ) : res.type === 'code' ? (
-                                      <FileCode className="w-4 h-4" />
-                                    ) : (
-                                      <FileText className="w-4 h-4" />
-                                    )}
-                                  </div>
-                                  <div className="min-w-0">
-                                    <p className="text-xs font-bold text-slate-200 truncate group-hover:text-sky-400">
-                                      {res.title || 'Attached Resource'}
-                                    </p>
-                                    {res.description && (
-                                      <p className="text-[11px] text-slate-400 truncate">
-                                        {res.description}
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-                                <ExternalLink className="w-3.5 h-3.5 text-slate-500 group-hover:text-slate-300 shrink-0" />
-                              </a>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
+                    <div className="max-w-4xl mx-auto">
+                      <StudentLessonRenderer
+                        lesson={{
+                          ...activePreviewUnit,
+                          readingContent: rawContent,
+                          learningObjectives: previewObjectives,
+                          keyPoints: previewKeyPoints,
+                          resources: previewResources
+                        }}
+                        mode="preview"
+                      />
                     </div>
                   ) : (
-                    <div className="h-full flex flex-col items-center justify-center text-slate-500 space-y-3">
+                    <div className="h-full min-h-[300px] flex flex-col items-center justify-center text-slate-500 space-y-3">
                       <BookOpen className="w-10 h-10 stroke-1" />
                       <p className="text-sm font-medium">Select a lesson from the curriculum sidebar to preview.</p>
                     </div>

@@ -49,17 +49,19 @@ export class CourseController {
 
   createCourse = asyncHandler(async (req: Request, res: Response) => {
     const userId = (req as any).user?.uid;
-    const course = await this.courseService.createCourse(req.body, userId);
+    const authToken = (req as any).userToken || req.headers.authorization?.replace(/^Bearer\s+/i, '');
+    const course = await this.courseService.createCourse(req.body, userId, authToken);
     res.status(201).json(formatResponse(true, course, 'Course created successfully'));
   });
 
   updateCourse = asyncHandler(async (req: Request, res: Response) => {
     const id = req.params.id as string;
     const userId = (req as any).user?.uid;
+    const authToken = (req as any).userToken || req.headers.authorization?.replace(/^Bearer\s+/i, '');
     const expectedVersion = typeof req.body.version === 'number' ? req.body.version : undefined;
 
     try {
-      const course = await this.courseService.updateCourse(id, req.body, expectedVersion, userId);
+      const course = await this.courseService.updateCourse(id, req.body, expectedVersion, userId, authToken);
       res.json(formatResponse(true, course, 'Course updated successfully'));
     } catch (err: any) {
       if (err.status === 409 || err.code === 409 || (err.message && err.message.includes('modified by another'))) {
@@ -79,26 +81,30 @@ export class CourseController {
   deleteCourse = asyncHandler(async (req: Request, res: Response) => {
     const id = req.params.id as string;
     const userId = (req as any).user?.uid;
+    const authToken = (req as any).userToken || req.headers.authorization?.replace(/^Bearer\s+/i, '');
     const hardDelete = req.query.hard === 'true';
-    await this.courseService.deleteCourse(id, userId, hardDelete);
+    await this.courseService.deleteCourse(id, userId, hardDelete, authToken);
     res.json(formatResponse(true, null, 'Course deleted successfully'));
   });
 
   publishCourse = asyncHandler(async (req: Request, res: Response) => {
     const id = req.params.id as string;
-    const course = await this.courseService.publishCourse(id);
+    const authToken = (req as any).userToken || req.headers.authorization?.replace(/^Bearer\s+/i, '');
+    const course = await this.courseService.updateCourse(id, { status: 'published' }, undefined, (req as any).user?.uid, authToken);
     res.json(formatResponse(true, course, 'Course published successfully'));
   });
 
   unpublishCourse = asyncHandler(async (req: Request, res: Response) => {
     const id = req.params.id as string;
-    const course = await this.courseService.unpublishCourse(id);
+    const authToken = (req as any).userToken || req.headers.authorization?.replace(/^Bearer\s+/i, '');
+    const course = await this.courseService.updateCourse(id, { status: 'draft' }, undefined, (req as any).user?.uid, authToken);
     res.json(formatResponse(true, course, 'Course set to draft successfully'));
   });
 
   archiveCourse = asyncHandler(async (req: Request, res: Response) => {
     const id = req.params.id as string;
-    const course = await this.courseService.archiveCourse(id);
+    const authToken = (req as any).userToken || req.headers.authorization?.replace(/^Bearer\s+/i, '');
+    const course = await this.courseService.updateCourse(id, { status: 'archived' }, undefined, (req as any).user?.uid, authToken);
     res.json(formatResponse(true, course, 'Course archived successfully'));
   });
 
@@ -130,6 +136,7 @@ export class CourseController {
     const courseId = req.params.id as string;
     const moduleId = req.params.moduleId || req.body.id;
     const userId = (req as any).user?.uid;
+    const authToken = (req as any).userToken || req.headers.authorization?.replace(/^Bearer\s+/i, '');
 
     if (!courseId || !moduleId) {
       res.status(400).json(formatResponse(false, null, 'courseId and moduleId are required'));
@@ -142,7 +149,7 @@ export class CourseController {
         id: moduleId,
         courseId,
       };
-      const savedModule = await this.courseService.saveModule(courseId, moduleDoc, userId);
+      const savedModule = await this.courseService.saveModule(courseId, moduleDoc, userId, authToken);
       res.status(200).json(formatResponse(true, savedModule, 'Module saved successfully'));
     } catch (err: any) {
       if (err.status === 409 || err.code === 409) {
@@ -162,13 +169,14 @@ export class CourseController {
     const courseId = req.params.id as string;
     const moduleId = req.params.moduleId as string;
     const userId = (req as any).user?.uid;
+    const authToken = (req as any).userToken || req.headers.authorization?.replace(/^Bearer\s+/i, '');
 
     if (!courseId || !moduleId) {
       res.status(400).json(formatResponse(false, null, 'courseId and moduleId are required'));
       return;
     }
 
-    const success = await this.courseService.deleteModule(courseId, moduleId, userId);
+    const success = await this.courseService.deleteModule(courseId, moduleId, userId, authToken);
     if (!success) {
       res.status(404).json(formatResponse(false, null, 'Failed to delete module'));
       return;
@@ -188,8 +196,9 @@ export class CourseController {
     const courseId = req.params.id as string;
     const auditId = req.params.auditId as string;
     const userId = (req as any).user?.uid;
+    const authToken = (req as any).userToken || req.headers.authorization?.replace(/^Bearer\s+/i, '');
 
-    const restored = await this.courseService.restoreCourseRevision(courseId, auditId, userId);
+    const restored = await this.courseService.restoreCourseRevision(courseId, auditId, userId, authToken);
     res.status(200).json(formatResponse(true, restored, 'Course revision restored successfully'));
   });
 

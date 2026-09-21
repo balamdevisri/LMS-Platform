@@ -179,6 +179,7 @@ interface CourseContextType {
   getCourseModules: (id: number | string, forceRefresh?: boolean, minExpectedVersion?: number) => Promise<ModuleItem[]>;
   refreshCourses: (forceRefresh?: boolean) => Promise<void>;
   updateCourse: (id: number | string, updates: Partial<CourseItem>) => Promise<void>;
+  updateCourseLocalState: (id: number | string, updates: Partial<CourseItem>) => void;
 }
 
 export const DEFAULT_COURSE_PRICES: Record<string, number> = {
@@ -524,6 +525,33 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  const updateCourseLocalState = useCallback((id: number | string, updates: Partial<CourseItem>) => {
+    const targetId = String(id);
+    setCourses((prev) => {
+      const next = prev.map((c) => {
+        const cId = String(c.id);
+        const cSlug = String((c as any).slug || '');
+        if (
+          cId === targetId ||
+          cSlug === targetId ||
+          (cId === '1' && targetId === 'course_linux_101') ||
+          (cId === 'course_linux_101' && targetId === '1') ||
+          (cId === 'git-github-mastery' && targetId === 'git-github-mastery-course-id') ||
+          (cId === 'git-github-mastery-course-id' && targetId === 'git-github-mastery')
+        ) {
+          return {
+            ...c,
+            ...updates,
+            modules: updates.modules ? normalizeCourseModulesForDisplay(updates.modules) : c.modules,
+          } as CourseItem;
+        }
+        return c;
+      });
+      safeSetLocalStorageCourses(next);
+      return next;
+    });
+  }, []);
+
   const getCourseModules = useCallback(async (idOrSlug: number | string, forceRefresh = false, minExpectedVersion?: number): Promise<ModuleItem[]> => {
     const target = String(idOrSlug).toLowerCase().trim();
     if (!target) return [];
@@ -572,6 +600,7 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         getCourseModules,
         refreshCourses,
         updateCourse,
+        updateCourseLocalState,
       }}
     >
       {children}

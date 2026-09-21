@@ -10,7 +10,7 @@ export class CourseService {
     this.repository = new CourseRepository();
   }
 
-  async createCourse(dto: CreateCourseDTO, userId?: string): Promise<ICourse> {
+  async createCourse(dto: CreateCourseDTO, userId?: string, authToken?: string): Promise<ICourse> {
     const validated = CreateCourseSchema.parse(dto);
 
     let slug = validated.slug;
@@ -19,7 +19,7 @@ export class CourseService {
     }
 
     // Ensure slug uniqueness
-    const existing = await this.repository.findBySlug(slug);
+    const existing = await this.repository.findBySlug(slug, undefined, authToken);
     if (existing) {
       slug = `${slug}-${Date.now().toString().slice(-4)}`;
     }
@@ -27,33 +27,34 @@ export class CourseService {
     return this.repository.create({
       ...validated,
       slug,
-    } as CreateCourseDTO, userId);
+    } as CreateCourseDTO, userId, authToken);
   }
 
-  async getCourseById(id: string, minExpectedVersion?: number): Promise<ICourse | null> {
-    return this.repository.findById(id, minExpectedVersion);
+  async getCourseById(id: string, minExpectedVersion?: number, authToken?: string): Promise<ICourse | null> {
+    return this.repository.findById(id, minExpectedVersion, authToken);
   }
 
-  async getCourseBySlug(slug: string, minExpectedVersion?: number): Promise<ICourse | null> {
-    return this.repository.findBySlug(slug, minExpectedVersion);
+  async getCourseBySlug(slug: string, minExpectedVersion?: number, authToken?: string): Promise<ICourse | null> {
+    return this.repository.findBySlug(slug, minExpectedVersion, authToken);
   }
 
-  async getCourses(options: CourseFilterOptions = {}): Promise<CoursePaginationResult> {
-    return this.repository.findAll(options);
+  async getCourses(options: CourseFilterOptions = {}, authToken?: string): Promise<CoursePaginationResult> {
+    return this.repository.findAll(options, authToken);
   }
 
   async updateCourse(
     id: string,
     updates: UpdateCourseDTO,
     expectedVersion?: number,
-    userId?: string
+    userId?: string,
+    authToken?: string
   ): Promise<ICourse | null> {
     const validated = UpdateCourseSchema.parse(updates);
 
-    let existing = await this.repository.findById(id);
+    let existing = await this.repository.findById(id, undefined, authToken);
     let docId = id;
     if (!existing) {
-      existing = await this.repository.findBySlug(id);
+      existing = await this.repository.findBySlug(id, undefined, authToken);
       if (existing) docId = existing.id;
     }
 
@@ -73,7 +74,7 @@ export class CourseService {
         learningOutcomes: validated.learningOutcomes || ['Learning Outcomes'],
         status: validated.status || 'published',
         modules: (validated as any).modules || [],
-      } as any, userId);
+      } as any, userId, authToken);
       return newCourse;
     }
 
@@ -109,21 +110,21 @@ export class CourseService {
     }
 
     const targetExpectedVersion = expectedVersion ?? (updates as any).expectedRevision ?? (updates as any).revision ?? (updates as any).version;
-    const updated = await this.repository.update(docId, validated as UpdateCourseDTO, targetExpectedVersion, userId);
+    const updated = await this.repository.update(docId, validated as UpdateCourseDTO, targetExpectedVersion, userId, authToken);
     return updated;
   }
 
-  async deleteCourse(id: string, userId?: string, hardDelete: boolean = false): Promise<boolean> {
-    let existing = await this.repository.findById(id);
+  async deleteCourse(id: string, userId?: string, hardDelete: boolean = false, authToken?: string): Promise<boolean> {
+    let existing = await this.repository.findById(id, undefined, authToken);
     let docId = id;
     if (!existing) {
-      existing = await this.repository.findBySlug(id);
+      existing = await this.repository.findBySlug(id, undefined, authToken);
       if (existing) docId = existing.id;
     }
     if (!existing) {
       throw new Error(`Course with ID ${id} not found.`);
     }
-    return this.repository.delete(docId, userId, hardDelete);
+    return this.repository.delete(docId, userId, hardDelete, authToken);
   }
 
   async publishCourse(id: string): Promise<ICourse | null> {
@@ -200,10 +201,10 @@ export class CourseService {
     return courseContentService.getModuleLessons(resolvedId, moduleId, options, minExpectedRevision);
   }
 
-  async saveModule(courseIdOrSlug: string, moduleDoc: any, userId?: string) {
+  async saveModule(courseIdOrSlug: string, moduleDoc: any, userId?: string, authToken?: string) {
     let resolvedId = courseIdOrSlug;
     try {
-      const course = (await this.getCourseById(courseIdOrSlug)) || (await this.getCourseBySlug(courseIdOrSlug));
+      const course = (await this.getCourseById(courseIdOrSlug, undefined, authToken)) || (await this.getCourseBySlug(courseIdOrSlug, undefined, authToken));
       if (course && course.id) {
         resolvedId = String(course.id);
       }
@@ -213,46 +214,46 @@ export class CourseService {
     return courseContentService.saveModule(resolvedId, {
       ...moduleDoc,
       updatedBy: userId || moduleDoc.updatedBy || 'admin',
-    });
+    }, userId, authToken);
   }
 
-  async deleteModule(courseIdOrSlug: string, moduleId: string, userId?: string) {
+  async deleteModule(courseIdOrSlug: string, moduleId: string, userId?: string, authToken?: string) {
     let resolvedId = courseIdOrSlug;
     try {
-      const course = (await this.getCourseById(courseIdOrSlug)) || (await this.getCourseBySlug(courseIdOrSlug));
+      const course = (await this.getCourseById(courseIdOrSlug, undefined, authToken)) || (await this.getCourseBySlug(courseIdOrSlug, undefined, authToken));
       if (course && course.id) {
         resolvedId = String(course.id);
       }
     } catch (e) {}
 
     const { courseContentService } = await import('../../services/course/courseContent.service');
-    return courseContentService.deleteModule(resolvedId, moduleId, userId);
+    return courseContentService.deleteModule(resolvedId, moduleId, userId, authToken);
   }
 
-  async getCourseRevisions(courseIdOrSlug: string, limitCount = 50) {
+  async getCourseRevisions(courseIdOrSlug: string, limitCount = 50, authToken?: string) {
     let resolvedId = courseIdOrSlug;
     try {
-      const course = (await this.getCourseById(courseIdOrSlug)) || (await this.getCourseBySlug(courseIdOrSlug));
+      const course = (await this.getCourseById(courseIdOrSlug, undefined, authToken)) || (await this.getCourseBySlug(courseIdOrSlug, undefined, authToken));
       if (course && course.id) {
         resolvedId = String(course.id);
       }
     } catch (e) {}
 
     const { courseContentService } = await import('../../services/course/courseContent.service');
-    return courseContentService.getCourseAuditLogs(resolvedId, limitCount);
+    return courseContentService.getCourseAuditLogs(resolvedId, limitCount, authToken);
   }
 
-  async restoreCourseRevision(courseIdOrSlug: string, auditLogId: string, userId?: string) {
+  async restoreCourseRevision(courseIdOrSlug: string, auditLogId: string, userId?: string, authToken?: string) {
     let resolvedId = courseIdOrSlug;
     try {
-      const course = (await this.getCourseById(courseIdOrSlug)) || (await this.getCourseBySlug(courseIdOrSlug));
+      const course = (await this.getCourseById(courseIdOrSlug, undefined, authToken)) || (await this.getCourseBySlug(courseIdOrSlug, undefined, authToken));
       if (course && course.id) {
         resolvedId = String(course.id);
       }
     } catch (e) {}
 
     const { courseContentService } = await import('../../services/course/courseContent.service');
-    return courseContentService.restoreRevision(resolvedId, auditLogId, userId);
+    return courseContentService.restoreRevision(resolvedId, auditLogId, userId, authToken);
   }
 
   async bulkImportCourse(payload: any, adminId: string) {

@@ -30,13 +30,15 @@ import {
 } from '@/contexts/CourseContext';
 import { MarkdownContent } from '../learning/MarkdownContent';
 import { normalizeStringList } from '../learning/LessonContentPanel';
+import { StudentLessonRenderer } from '../learning/StudentLessonRenderer';
+import { processCanonicalLessonContent } from '@/utils/lessonNormalizer';
 
 interface UnitContentEditorProps {
   isOpen: boolean;
   unit: LearningUnitItem | null;
   moduleTitle?: string;
   topicTitle?: string;
-  onSave: (updatedUnit: LearningUnitItem, isDraft?: boolean) => Promise<void> | void;
+  onSave: (updatedUnit: LearningUnitItem, isDraft?: boolean) => Promise<any> | any;
   onClose: () => void;
   onDelete?: () => void;
 }
@@ -70,6 +72,9 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
   // switching units vs parent re-renders of the same unit
   const lastLoadedUnitIdRef = React.useRef<string | null>(unit.id || null);
   const isDirtyRef = React.useRef<boolean>(false);
+
+  // Authoritative local revision state initialized from canonical lesson
+  const [currentRevision, setCurrentRevision] = useState<number | undefined>(() => unit.revision);
 
   // Local editor draft state
   const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
@@ -150,10 +155,12 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
       console.log('[EDITOR-RESET]', {
         unitId: unit.id,
         reason: previousUnitId === null ? 'initial_mount' : 'unit_switched',
+        revision: unit.revision,
       });
       lastLoadedUnitIdRef.current = unit.id;
       isDirtyRef.current = false;
       setIsDirty(false);
+      setCurrentRevision(unit.revision);
       setTitle(unit.title || '');
       setDescription(unit.description || '');
       setDuration(unit.duration || '15 mins');
@@ -174,7 +181,11 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
       console.log('[EDITOR-RESET]', {
         unitId: unit.id,
         reason: 'clean_state_sync',
+        revision: unit.revision,
       });
+      if (unit.revision !== undefined) {
+        setCurrentRevision(unit.revision);
+      }
       setTitle(unit.title || '');
       setDescription(unit.description || '');
       setDuration(unit.duration || '15 mins');
@@ -417,7 +428,7 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
       parts.push(`> **Important Note:** ${notes.trim()}`);
     }
 
-    return parts.join('\n\n');
+    return processCanonicalLessonContent(parts.join('\n\n'));
   }, [conceptTheory, codeExamples, keyPoints, notes]);
 
   // ─── Save & Publish Handlers ──────────────────────────────────────────────
@@ -429,6 +440,8 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
 
     const filteredObjectives = objectives.map((o) => o.trim()).filter((o) => o.length > 0);
     const filteredKeyPoints = keyPoints.map((k) => k.trim()).filter((k) => k.length > 0);
+
+    const activeExpectedRevision = currentRevision !== undefined ? currentRevision : unit.revision;
 
     const updatedUnit: LearningUnitItem = {
       ...unit,
@@ -449,22 +462,31 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
       assignmentInstructions: type === 'Assignment' ? assignmentInstructions.trim() : (assignmentInstructions.trim() || undefined),
       notes: notes.trim(),
       isDraft,
-      revision: unit.revision,
-      expectedRevision: unit.revision,
+      revision: activeExpectedRevision,
+      expectedRevision: activeExpectedRevision,
       lastSavedAt: new Date().toISOString(),
     };
 
     console.log('[UNIT-EDITOR-TRACE] 1. UnitContentEditor handleSave called:', {
       unitId: unit.id,
       title: updatedUnit.title,
-      revision: unit.revision,
+      currentRevision,
+      expectedRevision: activeExpectedRevision,
       readingContentSnippet: (updatedUnit.conceptTheory || updatedUnit.readingContent || '').slice(0, 60),
       isDraft,
     });
 
     try {
       setIsSaving(true);
-      await onSave(updatedUnit, isDraft);
+      const savedResult = await onSave(updatedUnit, isDraft);
+      if (savedResult && typeof (savedResult as any).revision === 'number') {
+        console.log('[UNIT-EDITOR-REVISION-ADVANCE]', {
+          unitId: unit.id,
+          previousRevision: activeExpectedRevision,
+          newRevision: (savedResult as any).revision,
+        });
+        setCurrentRevision((savedResult as any).revision);
+      }
       isDirtyRef.current = false;
       setIsDirty(false);
       lastLoadedUnitIdRef.current = updatedUnit.id;
@@ -1231,150 +1253,28 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
 
           {/* TAB 2: LIVE STUDENT PREVIEW */}
           {activeTab === 'preview' && (
-            <div className="max-w-[52rem] mx-auto space-y-8 py-4">
-
-              {/* Header meta row */}
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-medium text-[#64748B] dark:text-[#94A3B8]">
-                  Learning Unit Preview
-                </span>
-                <span>•</span>
-                <span className="text-xs text-[#64748B] dark:text-[#94A3B8] flex items-center gap-1">
-                  <Clock className="w-3 h-3" /> {duration}
-                </span>
-              </div>
-
-              {/* Unit Title */}
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0284C7] dark:text-[#38BDF8]">
-                {title || 'Untitled Learning Unit'}
-              </h1>
-
-              {/* Learning Objectives Box */}
-              {objectives.filter((o) => o.trim().length > 0).length > 0 && (
-                <div className="p-4 rounded-xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 space-y-2">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#0284C7] dark:text-[#38BDF8] flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Learning Objectives
-                  </h3>
-                  <ul className="space-y-1.5 text-xs text-[#334155] dark:text-[#CBD5E1]">
-                    {objectives.filter((o) => o.trim().length > 0).map((obj, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <span className="text-[#38BDF8] dark:text-[#38BDF8] font-bold">•</span>
-                        <span>{obj}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Compiled Markdown Body */}
-              {compiledLessonContent ? (
-                <MarkdownContent content={compiledLessonContent} />
-              ) : (
-                <div className="p-8 text-center text-xs text-[#64748B] italic">
-                  No lesson content written yet. Switch to the "Editor" tab to add theory and code examples.
-                </div>
-              )}
-
-              {/* Practice Questions Preview */}
-              {practiceQuestions.length > 0 && (
-                <div className="space-y-4 pt-6 border-t border-[#E5E7EB] dark:border-[#25324A]">
-                  <h3 className="text-lg font-bold text-[#2563EB] dark:text-[#60A5FA] flex items-center gap-2">
-                    <HelpCircle className="w-5 h-5 text-[#0284C7] dark:text-[#38BDF8]" />
-                    <span>Practice Exercises</span>
-                  </h3>
-
-                  <div className="space-y-3">
-                    {practiceQuestions.map((pq, idx) => {
-                      const isOpen = !!previewPracticeOpen[idx];
-                      return (
-                        <div
-                          key={idx}
-                          className="p-4 rounded-xl bg-[#F8FAFC] dark:bg-[#111827] border border-[#E5E7EB] dark:border-[#25324A] space-y-3"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="text-xs font-bold text-[#0284C7] dark:text-[#38BDF8]">
-                              Exercise {idx + 1}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => setPreviewPracticeOpen((prev) => ({ ...prev, [idx]: !prev[idx] }))}
-                              className="text-xs font-semibold text-[#0284C7] dark:text-[#38BDF8] hover:underline cursor-pointer flex items-center gap-1"
-                            >
-                              <span>{isOpen ? 'Hide Solution' : 'Reveal Solution'}</span>
-                              {isOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                            </button>
-                          </div>
-
-                          <p className="text-xs text-[#334155] dark:text-slate-300 whitespace-pre-wrap">
-                            {pq.question}
-                          </p>
-
-                          {isOpen && (
-                            <div className="p-3 rounded-lg bg-slate-900 text-slate-100 text-xs font-mono border border-slate-800 space-y-2">
-                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
-                                Reference Solution:
-                              </span>
-                              <pre className="overflow-x-auto whitespace-pre-wrap">{pq.answer}</pre>
-                              {pq.explanation && (
-                                <p className="text-[11px] text-emerald-400 font-sans mt-2 pt-2 border-t border-slate-800">
-                                  💡 {pq.explanation}
-                                </p>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Resource Links Preview */}
-              {resourceLinks.length > 0 && (
-                <div className="space-y-3 pt-6 border-t border-[#E5E7EB] dark:border-[#25324A]">
-                  <h3 className="text-base font-bold text-[#2563EB] dark:text-[#60A5FA] flex items-center gap-2">
-                    <LinkIcon className="w-4 h-4 text-[#0284C7] dark:text-[#38BDF8]" />
-                    <span>Lesson Resources</span>
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {resourceLinks.map((res, i) => {
-                      const resType = res.type || 'link';
-                      const badgeLabel =
-                        resType === 'pdf' ? 'PDF Document' :
-                          resType === 'video' ? 'Video Tutorial' :
-                            resType === 'github' ? 'GitHub Repository' :
-                              resType === 'download' ? 'Downloadable Asset' : 'External Documentation';
-
-                      return (
-                        <a
-                          key={i}
-                          href={res.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-3.5 rounded-xl bg-[#F8FAFC] dark:bg-[#111827] border border-[#E5E7EB] dark:border-[#25324A] hover:border-[#2563EB] dark:hover:border-[#3B82F6] transition-colors flex flex-col justify-between text-xs space-y-2"
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="font-semibold text-[#111827] dark:text-white truncate">{res.title}</div>
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 text-[#2563EB] dark:text-[#3B82F6] font-semibold flex-shrink-0">
-                              {badgeLabel}
-                            </span>
-                          </div>
-                          {res.description && (
-                            <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8] line-clamp-2">
-                              {res.description}
-                            </p>
-                          )}
-                          <div className="font-mono text-[10px] text-[#2563EB] dark:text-[#3B82F6] truncate flex items-center gap-1">
-                            <ExternalLink className="w-3 h-3 flex-shrink-0" />
-                            <span className="truncate">{res.url}</span>
-                          </div>
-                        </a>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
+            <div className="max-w-4xl mx-auto py-4">
+              <StudentLessonRenderer
+                lesson={{
+                  ...unit,
+                  id: unit.id,
+                  title: title || 'Untitled Learning Unit',
+                  description,
+                  duration: duration || '15 mins',
+                  type,
+                  videoUrl,
+                  readingContent: compiledLessonContent,
+                  conceptTheory,
+                  learningObjectives: objectives.filter((o) => o.trim().length > 0),
+                  keyPoints: keyPoints.filter((k) => k.trim().length > 0),
+                  practiceQuestions: practiceQuestions.filter((p) => p.question.trim().length > 0),
+                  resources: resourceLinks.filter((r) => r.title.trim().length > 0 && r.url.trim().length > 0),
+                  resourceLinks: resourceLinks.filter((r) => r.title.trim().length > 0 && r.url.trim().length > 0),
+                  quizQuestions: type === 'Quiz' ? quizQuestions : undefined,
+                  assignmentInstructions: type === 'Assignment' ? assignmentInstructions : undefined,
+                }}
+                mode="preview"
+              />
             </div>
           )}
 

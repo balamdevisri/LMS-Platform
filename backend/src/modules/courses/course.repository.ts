@@ -1,7 +1,8 @@
-import { db } from '../../firebase';
+import { db, isFirebaseAdminInitialized } from '../../firebase';
 import { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import { ICourse, CreateCourseDTO, UpdateCourseDTO, CourseFilterOptions, CoursePaginationResult } from '../../types/course';
 import { ApiError } from '../../utils/ApiError';
+import { firestoreRest } from '../../services/firestore/firestoreRestClient';
 
 export const CANONICAL_ALIASES: Record<string, string> = {
   'git-github-mastery': 'git-github-mastery-course-id',
@@ -186,7 +187,7 @@ export class CourseRepository {
     } as ICourse;
   }
 
-  async create(data: CreateCourseDTO, userId?: string): Promise<ICourse> {
+  async create(data: CreateCourseDTO, userId?: string, authToken?: string): Promise<ICourse> {
     const docRef = this.collection ? (data.id ? this.collection.doc(data.id) : this.collection.doc()) : null;
     const now = new Date().toISOString();
     const id = docRef ? docRef.id : data.id || `course_${Date.now()}`;
@@ -212,8 +213,15 @@ export class CourseRepository {
       updatedAt: now,
     };
 
-    if (docRef) {
-      await docRef.set(newCourse);
+    if (docRef && isFirebaseAdminInitialized()) {
+      try {
+        await docRef.set(newCourse);
+      } catch (err: any) {
+        console.warn(`[CourseRepository] Admin SDK create notice for ${id}:`, err?.message || err);
+        await firestoreRest.setDocument(`courses/${id}`, newCourse, { merge: true }, authToken);
+      }
+    } else {
+      await firestoreRest.setDocument(`courses/${id}`, newCourse, { merge: true }, authToken);
     }
 
     console.log(`[COURSE_CREATED] courseId="${id}", title="${newCourse.title}", version=1, userId="${userId || 'system'}", timestamp="${now}"`);
@@ -232,30 +240,52 @@ export class CourseRepository {
           timestamp: now,
           changesSummary: `Created course "${newCourse.title}" (Rev 1).`,
           snapshot: newCourse,
-        }).catch(() => {});
+        }, authToken).catch(() => {});
       })
       .catch(() => {});
 
     return newCourse;
   }
 
-  async findById(id: string, minExpectedVersion?: number): Promise<ICourse | null> {
+  async findById(id: string, minExpectedVersion?: number, authToken?: string): Promise<ICourse | null> {
     const canonicalId = resolveCanonicalId(id);
     const cacheKey = `id:${canonicalId}`;
     const cached = this.getFromCache(this.courseCache, cacheKey, minExpectedVersion);
     if (cached !== null) return cached;
 
-    if (!this.collection) return null;
-    let docSnap = await this.collection.doc(canonicalId).get();
-    if (!docSnap.exists && canonicalId !== id) {
-      docSnap = await this.collection.doc(id).get();
+    let docData: any = null;
+    let docId = canonicalId;
+
+    if (this.collection && isFirebaseAdminInitialized()) {
+      try {
+        let docSnap = await this.collection.doc(canonicalId).get();
+        if (!docSnap.exists && canonicalId !== id) {
+          docSnap = await this.collection.doc(id).get();
+          if (docSnap.exists) docId = id;
+        }
+        if (docSnap.exists) {
+          docData = { ...docSnap.data(), id: docId };
+        }
+      } catch (err: any) {
+        // Fall through to Firestore REST client
+      }
     }
-    if (!docSnap.exists) {
+
+    if (!docData) {
+      const restDoc = await firestoreRest.getDocument(`courses/${canonicalId}`, authToken);
+      if (restDoc) {
+        docData = restDoc;
+      } else if (canonicalId !== id) {
+        docData = await firestoreRest.getDocument(`courses/${id}`, authToken);
+      }
+    }
+
+    if (!docData) {
       this.setInCache(this.courseCache, cacheKey, null);
       return null;
     }
 
-    const course = this.normalizeCourseDoc({ ...docSnap.data(), id: docSnap.id });
+    const course = this.normalizeCourseDoc(docData);
     const version = course.version ?? course.revision ?? 1;
     this.setInCache(this.courseCache, cacheKey, course, version);
     if (course.slug) {
@@ -264,27 +294,47 @@ export class CourseRepository {
     return course;
   }
 
-  async findBySlug(slug: string, minExpectedVersion?: number): Promise<ICourse | null> {
+  async findBySlug(slug: string, minExpectedVersion?: number, authToken?: string): Promise<ICourse | null> {
     const canonicalSlug = resolveCanonicalId(slug);
     const cacheKey = `slug:${canonicalSlug.toLowerCase()}`;
     const cached = this.getFromCache(this.courseCache, cacheKey, minExpectedVersion);
     if (cached !== null) return cached;
 
-    if (!this.collection) return null;
-    let snapshot = await this.collection.where('slug', '==', canonicalSlug).limit(1).get();
-    if (snapshot.empty && canonicalSlug !== slug) {
-      snapshot = await this.collection.where('slug', '==', slug).limit(1).get();
+    let docData: any = null;
+
+    if (this.collection && isFirebaseAdminInitialized()) {
+      try {
+        let snapshot = await this.collection.where('slug', '==', canonicalSlug).limit(1).get();
+        if (snapshot.empty && canonicalSlug !== slug) {
+          snapshot = await this.collection.where('slug', '==', slug).limit(1).get();
+        }
+        if (!snapshot.empty) {
+          docData = { ...snapshot.docs[0].data(), id: snapshot.docs[0].id };
+        }
+      } catch (err: any) {
+        // Fall through to REST / findById
+      }
     }
-    if (snapshot.empty) {
-      // Also fallback to findById with canonicalSlug
-      const byId = await this.findById(canonicalSlug, minExpectedVersion);
+
+    if (!docData) {
+      const byId = await this.findById(canonicalSlug, minExpectedVersion, authToken);
       if (byId) return byId;
 
+      const allCourses = await this.findAll({ limit: 100 }, authToken);
+      const found = allCourses.courses.find(
+        (c) => c.slug === canonicalSlug || c.slug === slug || c.id === canonicalSlug || c.id === slug
+      );
+      if (found) {
+        docData = found;
+      }
+    }
+
+    if (!docData) {
       this.setInCache(this.courseCache, cacheKey, null);
       return null;
     }
 
-    const course = this.normalizeCourseDoc({ ...snapshot.docs[0].data(), id: snapshot.docs[0].id });
+    const course = this.normalizeCourseDoc(docData);
     const version = course.version ?? course.revision ?? 1;
     this.setInCache(this.courseCache, cacheKey, course, version);
     if (course.id) {
@@ -297,13 +347,13 @@ export class CourseRepository {
     id: string,
     updates: UpdateCourseDTO,
     expectedVersion?: number,
-    userId?: string
+    userId?: string,
+    authToken?: string
   ): Promise<ICourse | null> {
-    if (!this.collection) return null;
-    let existing = await this.findById(id);
+    let existing = await this.findById(id, undefined, authToken);
     let docId = id;
     if (!existing) {
-      existing = await this.findBySlug(id);
+      existing = await this.findBySlug(id, undefined, authToken);
       if (existing) docId = existing.id;
     }
 
@@ -323,7 +373,7 @@ export class CourseRepository {
       }
     }
 
-    const docRef = this.collection.doc(docId);
+    const docRef = this.collection ? this.collection.doc(docId) : null;
     const now = new Date().toISOString();
     const currentVersion = existing ? ((existing.version || existing.revision) || 1) : 0;
     const nextVersion = currentVersion + 1;
@@ -354,7 +404,20 @@ export class CourseRepository {
         createdAt: now,
         ...updatedData,
       };
-      await docRef.set(newCourseDoc, { merge: true });
+
+      let created = false;
+      if (docRef && isFirebaseAdminInitialized()) {
+        try {
+          await docRef.set(newCourseDoc, { merge: true });
+          created = true;
+        } catch (err: any) {
+          console.warn(`[CourseRepository] Admin SDK set failed for ${docId}:`, err?.message || err);
+        }
+      }
+      if (!created) {
+        await firestoreRest.setDocument(`courses/${docId}`, newCourseDoc, { merge: true }, authToken);
+      }
+
       console.log(`[COURSE_CREATED_ON_UPDATE] courseId="${docId}", version=1, userId="${userId}"`);
       this.invalidateCache();
 
@@ -370,14 +433,26 @@ export class CourseRepository {
             timestamp: now,
             changesSummary: `Created course document "${(newCourseDoc as any).title}".`,
             snapshot: newCourseDoc,
-          }).catch(() => {});
+          }, authToken).catch(() => {});
         })
         .catch(() => {});
 
       return newCourseDoc as ICourse;
     }
 
-    await docRef.set(updatedData, { merge: true });
+    let saved = false;
+    if (docRef && isFirebaseAdminInitialized()) {
+      try {
+        await docRef.set(updatedData, { merge: true });
+        saved = true;
+      } catch (err: any) {
+        console.warn(`[CourseRepository] Admin SDK set failed for ${docId} (${err?.message || err}). Falling back to Firestore REST...`);
+      }
+    }
+    if (!saved) {
+      await firestoreRest.setDocument(`courses/${docId}`, updatedData, { merge: true }, authToken);
+    }
+
     console.log(`[COURSE_UPDATED] courseId="${docId}", newVersion=${nextVersion}, userId="${userId}", timestamp="${now}"`);
     this.invalidateCache();
 
@@ -403,37 +478,56 @@ export class CourseRepository {
             ? `Changed course status to "${updates.status}" (Rev ${currentVersion} -> ${nextVersion}).`
             : `Updated course details (Rev ${currentVersion} -> ${nextVersion}).`,
           snapshot: updatedData,
-        }).catch(() => {});
+        }, authToken).catch(() => {});
       })
       .catch(() => {});
 
     return finalMerged;
   }
 
-  async delete(id: string, userId?: string, hardDelete: boolean = false): Promise<boolean> {
-    if (!this.collection) return false;
-    let existing = await this.findById(id);
+  async delete(id: string, userId?: string, hardDelete: boolean = false, authToken?: string): Promise<boolean> {
+    let existing = await this.findById(id, undefined, authToken);
     let docId = id;
     if (!existing) {
-      existing = await this.findBySlug(id);
+      existing = await this.findBySlug(id, undefined, authToken);
       if (existing) docId = existing.id;
     }
 
     if (!existing) return false;
 
     const now = new Date().toISOString();
-    if (hardDelete) {
-      await this.collection.doc(docId).delete();
-      console.log(`[COURSE_HARD_DELETED] courseId="${docId}", userId="${userId}"`);
-    } else {
-      await this.collection.doc(docId).set({
-        isDeleted: true,
-        deletedAt: now,
-        deletedBy: userId || 'admin',
-      }, { merge: true });
-      console.log(`[COURSE_SOFT_DELETED] courseId="${docId}", userId="${userId}"`);
+    let deleted = false;
+
+    if (this.collection && isFirebaseAdminInitialized()) {
+      try {
+        if (hardDelete) {
+          await this.collection.doc(docId).delete();
+        } else {
+          await this.collection.doc(docId).set({
+            isDeleted: true,
+            deletedAt: now,
+            deletedBy: userId || 'admin',
+          }, { merge: true });
+        }
+        deleted = true;
+      } catch (err: any) {
+        console.warn(`[CourseRepository] Admin SDK delete notice for ${docId}:`, err?.message || err);
+      }
     }
 
+    if (!deleted) {
+      if (hardDelete) {
+        await firestoreRest.deleteDocument(`courses/${docId}`, authToken);
+      } else {
+        await firestoreRest.setDocument(`courses/${docId}`, {
+          isDeleted: true,
+          deletedAt: now,
+          deletedBy: userId || 'admin',
+        }, { merge: true }, authToken);
+      }
+    }
+
+    console.log(`[COURSE_DELETED] courseId="${docId}", hard=${hardDelete}, userId="${userId}"`);
     this.invalidateCache();
 
     import('../../services/course/courseContent.service')
@@ -446,39 +540,53 @@ export class CourseRepository {
           adminId: userId || 'admin',
           timestamp: now,
           changesSummary: hardDelete ? `Hard deleted course "${docId}".` : `Soft deleted course "${existing?.title}".`,
-        }).catch(() => {});
+        }, authToken).catch(() => {});
       })
       .catch(() => {});
 
     return true;
   }
 
-  async findAll(options: CourseFilterOptions = {}): Promise<CoursePaginationResult> {
+  async findAll(options: CourseFilterOptions = {}, authToken?: string): Promise<CoursePaginationResult> {
     const cacheKey = `catalog:${JSON.stringify(options)}`;
     const cached = this.getFromCache(this.catalogCache, cacheKey);
     if (cached) return cached;
-
-    if (!this.collection) {
-      return { courses: [], total: 0, page: 1, limit: 10, totalPages: 0 };
-    }
 
     const page = Math.max(1, Number(options.page) || 1);
     const limit = options.limit !== undefined && options.limit !== null
       ? Math.max(1, Math.min(100, Number(options.limit)))
       : 100;
 
-    const snapshot = await this.collection.get();
-    let courses: ICourse[] = snapshot.docs
-      .map((doc: QueryDocumentSnapshot) =>
+    let rawDocs: any[] = [];
+
+    if (this.collection && isFirebaseAdminInitialized()) {
+      try {
+        const snapshot = await this.collection.get();
+        if (snapshot && !snapshot.empty) {
+          rawDocs = snapshot.docs.map((doc: QueryDocumentSnapshot) => ({
+            ...doc.data(),
+            id: doc.id,
+          }));
+        }
+      } catch (err: any) {
+        console.warn('[CourseRepository] Admin SDK findAll notice:', err?.message || err);
+      }
+    }
+
+    if (rawDocs.length === 0) {
+      rawDocs = await firestoreRest.getCollection('courses', {}, authToken);
+    }
+
+    let courses: ICourse[] = rawDocs
+      .map((doc: any) =>
         this.sanitizeForCatalog({
-          ...doc.data(),
+          ...doc,
           id: doc.id,
         })
       )
       // Exclude soft-deleted courses and duplicate/mock courses
       .filter((c: any) => {
         if (c.isDeleted === true) return false;
-        // Filter known mock / random ID documents with no real content
         const id = String(c.id || '');
         const isAutoGeneratedId = /^[A-Za-z0-9]{20}$/.test(id);
         const isTestTitle = /test|draft|dummy|sample/i.test(c.title || '');
@@ -541,3 +649,6 @@ export class CourseRepository {
       .replace(/^-+|-+$/g, '');
   }
 }
+
+export const courseRepository = new CourseRepository();
+

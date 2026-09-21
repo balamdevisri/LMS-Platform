@@ -29,6 +29,7 @@ export class LessonController {
   saveLesson = asyncHandler(async (req: Request, res: Response) => {
     const { courseId, moduleId, ...lessonData } = req.body;
     const userId = (req as any).user?.uid;
+    const authToken = (req as any).userToken || req.headers.authorization?.replace(/^Bearer\s+/i, '');
 
     if (!courseId || !moduleId || !lessonData.id) {
       res.status(400).json(formatResponse(false, null, 'courseId, moduleId, and lesson id are required'));
@@ -44,7 +45,8 @@ export class LessonController {
           courseId,
           moduleId,
         },
-        userId
+        userId,
+        authToken
       );
 
       res.status(200).json(formatResponse(true, savedLesson, 'Lesson saved successfully'));
@@ -65,13 +67,14 @@ export class LessonController {
   batchReorder = asyncHandler(async (req: Request, res: Response) => {
     const { courseId, updates } = req.body;
     const userId = (req as any).user?.uid;
+    const authToken = (req as any).userToken || req.headers.authorization?.replace(/^Bearer\s+/i, '');
 
     if (!courseId || !Array.isArray(updates)) {
       res.status(400).json(formatResponse(false, null, 'courseId and updates array are required'));
       return;
     }
 
-    await this.lessonService.batchReorderLessons(courseId, updates, userId);
+    await this.lessonService.batchReorderLessons(courseId, updates, userId, authToken);
     res.json(formatResponse(true, null, 'Lessons reordered successfully'));
   });
 
@@ -80,8 +83,9 @@ export class LessonController {
     const courseId = req.query.courseId as string | undefined;
     const moduleId = req.query.moduleId as string | undefined;
     const userId = (req as any).user?.uid;
+    const authToken = (req as any).userToken || req.headers.authorization?.replace(/^Bearer\s+/i, '');
 
-    const success = await this.lessonService.deleteLesson(id, courseId, moduleId, userId);
+    const success = await this.lessonService.deleteLesson(id, courseId, moduleId, userId, authToken);
     if (!success) {
       res.status(404).json(formatResponse(false, null, 'Failed to delete lesson'));
       return;
@@ -94,13 +98,14 @@ export class LessonController {
     const moduleId = req.params.id as string;
     const courseId = req.query.courseId as string;
     const userId = (req as any).user?.uid;
+    const authToken = (req as any).userToken || req.headers.authorization?.replace(/^Bearer\s+/i, '');
 
     if (!courseId || !moduleId) {
       res.status(400).json(formatResponse(false, null, 'courseId and moduleId are required'));
       return;
     }
 
-    const success = await this.lessonService.deleteModule(courseId, moduleId, userId);
+    const success = await this.lessonService.deleteModule(courseId, moduleId, userId, authToken);
     if (!success) {
       res.status(404).json(formatResponse(false, null, 'Failed to delete module'));
       return;
