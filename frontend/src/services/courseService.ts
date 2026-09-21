@@ -972,14 +972,66 @@ const isRemovedMockCourse = (c: any): boolean => {
   return false;
 };
 
+const getAuthHeadersAsync = async (): Promise<Record<string, string>> => {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  try {
+    let token =
+      localStorage.getItem('shaivika_auth_token') ||
+      localStorage.getItem('token') ||
+      localStorage.getItem('firebase_token');
+    try {
+      const { auth } = await getFS();
+      if (auth?.currentUser) {
+        const fresh = await auth.currentUser.getIdToken(false);
+        if (fresh) {
+          token = fresh;
+          localStorage.setItem('shaivika_auth_token', fresh);
+          localStorage.setItem('token', fresh);
+        }
+      }
+    } catch {}
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    const devToken =
+      sessionStorage.getItem('kz_dev_token') ||
+      localStorage.getItem('kz_dev_token');
+    if (devToken) {
+      headers['x-developer-token'] = devToken;
+    }
+    const rawUser = localStorage.getItem('shaivika_user');
+    if (rawUser) {
+      try {
+        const u = JSON.parse(rawUser);
+        if (u.uid) headers['x-user-id'] = u.uid;
+        if (u.role) headers['x-user-role'] = u.role;
+        if (u.email) headers['x-user-email'] = u.email;
+        if (u.name || u.displayName) headers['x-user-name'] = u.name || u.displayName;
+      } catch {}
+    } else {
+      try {
+        const { auth } = await getFS();
+        if (auth?.currentUser) {
+          headers['x-user-id'] = auth.currentUser.uid;
+          if (auth.currentUser.email) headers['x-user-email'] = auth.currentUser.email;
+          if (auth.currentUser.displayName) headers['x-user-name'] = auth.currentUser.displayName;
+        }
+      } catch {}
+    }
+  } catch {}
+  return headers;
+};
+
 const getAuthHeaders = (): Record<string, string> => {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
   const token =
+    localStorage.getItem('shaivika_auth_token') ||
     localStorage.getItem('token') ||
-    localStorage.getItem('firebase_token') ||
-    localStorage.getItem('shaivika_auth_token');
+    localStorage.getItem('firebase_token');
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
@@ -1287,8 +1339,9 @@ class CourseService {
         if (options.page) params.append('page', String(options.page));
         if (options.limit) params.append('limit', String(options.limit));
 
+        const authHeaders = await getAuthHeadersAsync();
         const res = await fetch(`${API_BASE_URL}/courses?${params.toString()}`, {
-          headers: getAuthHeaders(),
+          headers: authHeaders,
         });
         if (res.ok) {
           const json = await res.json();
@@ -1366,8 +1419,9 @@ class CourseService {
 
     // 1. Authoritative Backend REST API
     try {
+      const authHeaders = await getAuthHeadersAsync();
       const res = await fetch(`${API_BASE_URL}/courses/${encodeURIComponent(idOrSlug)}`, {
-        headers: getAuthHeaders(),
+        headers: authHeaders,
       });
       if (res.ok) {
         const json = await res.json();
@@ -1423,9 +1477,10 @@ class CourseService {
 
     // 1. Authoritative: Fetch from Backend REST API
     try {
+      const authHeaders = await getAuthHeadersAsync();
       const queryParam = typeof minExpectedVersion === 'number' ? `?minRevision=${minExpectedVersion}` : '';
       const res = await fetch(`${API_BASE_URL}/courses/${encodeURIComponent(courseId)}/modules${queryParam}`, {
-        headers: getAuthHeaders(),
+        headers: authHeaders,
       });
       if (res.ok) {
         const json = await res.json();
@@ -1478,9 +1533,10 @@ class CourseService {
 
   async createCourse(dto: CreateCourseDTO): Promise<ICourse> {
     // 1. Authoritative Backend REST API write
+    const authHeaders = await getAuthHeadersAsync();
     const res = await fetch(`${API_BASE_URL}/courses`, {
       method: 'POST',
-      headers: getAuthHeaders(),
+      headers: authHeaders,
       body: JSON.stringify({ ...dto, price: typeof dto.price === 'number' ? dto.price : 0 }),
     });
 
@@ -1529,9 +1585,10 @@ class CourseService {
 
     // 1. Authoritative Backend REST API call (with optimistic concurrency check)
     const expectedRev = (updates as any).expectedRevision ?? (updates as any).version ?? existing?.version;
+    const authHeaders = await getAuthHeadersAsync();
     const res = await fetch(`${API_BASE_URL}/courses/${encodeURIComponent(targetCourseId)}`, {
       method: 'PUT',
-      headers: getAuthHeaders(),
+      headers: authHeaders,
       body: JSON.stringify({ ...updates, version: expectedRev }),
     });
 
@@ -1581,9 +1638,10 @@ class CourseService {
 
   async deleteCourse(id: string): Promise<boolean> {
     // 1. Authoritative Backend REST API delete
+    const authHeaders = await getAuthHeadersAsync();
     const res = await fetch(`${API_BASE_URL}/courses/${encodeURIComponent(id)}`, {
       method: 'DELETE',
-      headers: getAuthHeaders(),
+      headers: authHeaders,
     });
 
     if (!res.ok) {
@@ -1966,16 +2024,12 @@ class CourseService {
   }
 
   async saveLessonContent(courseId: string, moduleId: string, lessonDoc: any): Promise<any> {
-    const token = localStorage.getItem('shaivika_auth_token');
-
     // 1. Authoritative Backend Save with Optimistic Concurrency Protection
     try {
+      const authHeaders = await getAuthHeadersAsync();
       const res = await fetch(`${API_BASE_URL}/lessons`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: authHeaders,
         body: JSON.stringify({
           courseId,
           moduleId,
@@ -2033,13 +2087,10 @@ class CourseService {
 
   async batchReorderLessons(courseId: string, updates: any[]): Promise<boolean> {
     try {
-      const token = localStorage.getItem('shaivika_auth_token');
+      const authHeaders = await getAuthHeadersAsync();
       const res = await fetch(`${API_BASE_URL}/lessons/batch-reorder`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: authHeaders,
         body: JSON.stringify({ courseId, updates }),
       });
       if (res.ok) {
@@ -2057,10 +2108,10 @@ class CourseService {
     let deleted = false;
 
     try {
-      const token = localStorage.getItem('shaivika_auth_token');
+      const authHeaders = await getAuthHeadersAsync();
       const res = await fetch(`${API_BASE_URL}/lessons/${lessonId}?courseId=${courseId}&moduleId=${moduleId}`, {
         method: 'DELETE',
-        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        headers: authHeaders,
       });
       if (res.ok) {
         deleted = true;
@@ -2089,10 +2140,10 @@ class CourseService {
   async deleteModuleContent(moduleId: string, courseId: string): Promise<boolean> {
     let deleted = false;
     try {
-      const token = localStorage.getItem('shaivika_auth_token');
+      const authHeaders = await getAuthHeadersAsync();
       const res = await fetch(`${API_BASE_URL}/lessons/modules/${moduleId}?courseId=${courseId}`, {
         method: 'DELETE',
-        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        headers: authHeaders,
       });
       if (res.ok) {
         deleted = true;
@@ -2116,14 +2167,11 @@ class CourseService {
   }
 
   async saveModule(courseId: string, moduleDoc: any): Promise<any> {
-    const token = localStorage.getItem('shaivika_auth_token') || localStorage.getItem('token');
     try {
+      const authHeaders = await getAuthHeadersAsync();
       const res = await fetch(`${API_BASE_URL}/courses/${encodeURIComponent(courseId)}/modules`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: authHeaders,
         body: JSON.stringify(moduleDoc),
       });
       if (res.ok) {
@@ -2140,11 +2188,11 @@ class CourseService {
 
   async deleteModule(moduleId: string, courseId: string): Promise<boolean> {
     let deleted = false;
-    const token = localStorage.getItem('shaivika_auth_token') || localStorage.getItem('token');
     try {
+      const authHeaders = await getAuthHeadersAsync();
       const res = await fetch(`${API_BASE_URL}/courses/${encodeURIComponent(courseId)}/modules/${encodeURIComponent(moduleId)}`, {
         method: 'DELETE',
-        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        headers: authHeaders,
       });
       if (res.ok) {
         deleted = true;
@@ -2158,10 +2206,10 @@ class CourseService {
   }
 
   async getCourseRevisions(courseId: string): Promise<any[]> {
-    const token = localStorage.getItem('shaivika_auth_token') || localStorage.getItem('token');
     try {
+      const authHeaders = await getAuthHeadersAsync();
       const res = await fetch(`${API_BASE_URL}/courses/${encodeURIComponent(courseId)}/revisions`, {
-        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        headers: authHeaders,
       });
       if (res.ok) {
         const json = await res.json();
@@ -2176,10 +2224,10 @@ class CourseService {
   }
 
   async restoreCourseRevision(courseId: string, auditId: string): Promise<any> {
-    const token = localStorage.getItem('shaivika_auth_token') || localStorage.getItem('token');
+    const authHeaders = await getAuthHeadersAsync();
     const res = await fetch(`${API_BASE_URL}/courses/${encodeURIComponent(courseId)}/revisions/${encodeURIComponent(auditId)}/restore`, {
       method: 'POST',
-      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      headers: authHeaders,
     });
     if (!res.ok) {
       const json = await res.json().catch(() => ({}));

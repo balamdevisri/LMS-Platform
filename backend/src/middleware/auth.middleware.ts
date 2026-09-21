@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { adminAuth } from '../firebase';
+import { verifyFirebaseIdToken } from '../utils/firebaseTokenVerifier';
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -8,6 +9,7 @@ export interface AuthenticatedRequest extends Request {
     role?: string;
     name?: string;
   };
+  userToken?: string;
 }
 
 export const verifyFirebaseToken = async (
@@ -26,7 +28,13 @@ export const verifyFirebaseToken = async (
     return;
   }
 
-  const token = authHeader.split('Bearer ')[1];
+  const token = authHeader.split('Bearer ')[1]?.trim();
+  if (!token) {
+    res.status(401).json({ error: 'Unauthorized: Empty token provided' });
+    return;
+  }
+
+  req.userToken = token;
 
   try {
     let decodedToken: any = null;
@@ -34,8 +42,12 @@ export const verifyFirebaseToken = async (
       try {
         decodedToken = await adminAuth.verifyIdToken(token);
       } catch (adminErr: any) {
-        console.warn(`[Auth Middleware] adminAuth.verifyIdToken notice: ${adminErr?.message || adminErr}`);
+        // Fall through to public cert verifier
       }
+    }
+
+    if (!decodedToken) {
+      decodedToken = await verifyFirebaseIdToken(token);
     }
 
     if (decodedToken) {
@@ -43,33 +55,13 @@ export const verifyFirebaseToken = async (
       const isAdminEmail = email.includes('admin') || email === 'admin@gmail.com';
       const role = (decodedToken as any).role || (isAdminEmail ? 'admin' : 'student');
       req.user = {
-        uid: decodedToken.uid,
+        uid: decodedToken.uid || decodedToken.user_id || decodedToken.sub,
         email,
         role,
         name: decodedToken.name || '',
       };
-      console.log(`[AUTH DIAGNOSTIC] Verification Succeeded. Authenticated UID: ${req.user.uid}`);
+      console.log(`[AUTH DIAGNOSTIC] Verification Succeeded. Authenticated UID: ${req.user.uid}, Role: ${req.user.role}`);
       return next();
-    }
-
-    // Firebase Admin verification failed or not available — decode JWT manually for local dev/testing
-    const payloadBase64 = token.split('.')[1];
-    if (payloadBase64) {
-      try {
-        const decoded = JSON.parse(Buffer.from(payloadBase64, 'base64').toString('utf-8'));
-        const email = decoded.email || decoded.sub || 'dev@shaivika.ai';
-        const isAdminEmail = email.includes('admin') || email === 'admin@gmail.com';
-        req.user = {
-          uid: decoded.user_id || decoded.sub || decoded.uid || 'dev-user-id',
-          email,
-          role: isAdminEmail ? 'admin' : (decoded.role || 'student'),
-          name: decoded.name || '',
-        };
-        console.log(`[AUTH DIAGNOSTIC] Local Fallback Succeeded. Authenticated UID: ${req.user.uid}, role: ${req.user.role}`);
-        return next();
-      } catch (parseErr) {
-        console.warn('[Auth Middleware] Failed to parse JWT payload fallback:', parseErr);
-      }
     }
 
     res.status(401).json({ error: 'Unauthorized: Invalid or expired Firebase ID token' });

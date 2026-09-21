@@ -12,8 +12,8 @@ export class LessonService {
   /**
    * Creates or updates a lesson document with optimistic concurrency checking.
    */
-  async saveLesson(courseId: string, moduleId: string, lessonDoc: CourseLessonDoc, userId?: string): Promise<CourseLessonDoc> {
-    return courseContentService.saveLesson(courseId, moduleId, lessonDoc, userId);
+  async saveLesson(courseId: string, moduleId: string, lessonDoc: CourseLessonDoc, userId?: string, authToken?: string): Promise<CourseLessonDoc> {
+    return courseContentService.saveLesson(courseId, moduleId, lessonDoc, userId, authToken);
   }
 
   /**
@@ -22,22 +22,23 @@ export class LessonService {
   async batchReorderLessons(
     courseId: string,
     updates: Array<{ lessonId: string; moduleId: string; order: number; orderIndex?: number; moduleTitle?: string }>,
-    userId?: string
+    userId?: string,
+    authToken?: string
   ): Promise<void> {
-    return courseContentService.batchReorderLessons(courseId, updates, userId);
+    return courseContentService.batchReorderLessons(courseId, updates, userId, authToken);
   }
 
   /**
    * Deletes a lesson document.
    */
-  async deleteLesson(lessonId: string, courseId?: string, moduleId?: string, userId?: string): Promise<boolean> {
-    return courseContentService.deleteLesson(lessonId, courseId, moduleId, userId);
+  async deleteLesson(lessonId: string, courseId?: string, moduleId?: string, userId?: string, authToken?: string): Promise<boolean> {
+    return courseContentService.deleteLesson(lessonId, courseId, moduleId, userId, authToken);
   }
 
   /**
    * Cascades deletion of module and all its nested lessons.
    */
-  async deleteModule(courseId: string, moduleId: string, userId?: string): Promise<boolean> {
-    return courseContentService.deleteModule(courseId, moduleId, userId);
+  async deleteModule(courseId: string, moduleId: string, userId?: string, authToken?: string): Promise<boolean> {
+    return courseContentService.deleteModule(courseId, moduleId, userId, authToken);
   }
 }

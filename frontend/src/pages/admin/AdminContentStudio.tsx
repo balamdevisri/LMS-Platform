@@ -129,7 +129,7 @@ export const AdminContentStudio: React.FC = () => {
   const { courseId } = useParams<{ courseId?: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { courses, updateCourse, getCourseModules } = useCourses();
+  const { courses, updateCourse, updateCourseLocalState, getCourseModules } = useCourses();
 
   // Selected Course ID
   const [selectedCourseId, setSelectedCourseId] = useState<string | number>(
@@ -320,24 +320,52 @@ export const AdminContentStudio: React.FC = () => {
           return m;
         });
 
-        // 2. Persist to Backend API / Firestore Subcollections
-        await courseService.saveLessonContent(String(activeCourse.id), modId, sanitizedLesson);
-
-        // 3. Update Course Document in Context & LocalStorage
-        await updateCourse(activeCourse.id, {
-          modules: updatedModules,
-          updatedAt: new Date().toISOString()
+        // 2. Persist to Backend API / Firestore Subcollections (Authoritative)
+        const savedResult = await courseService.saveLessonContent(String(activeCourse.id), modId, {
+          ...sanitizedLesson,
+          expectedRevision: selectedLesson?.revision ?? sanitizedLesson.revision,
         });
 
-        setSelectedLesson(sanitizedLesson);
+        const updatedLesson = {
+          ...sanitizedLesson,
+          ...(savedResult || {}),
+          revision: savedResult?.revision ?? (sanitizedLesson.revision || 1) + 1,
+          lastSavedAt: savedResult?.lastSavedAt || new Date().toISOString(),
+        };
+
+        // 3. Update In-Memory Course Tree & Local Storage cache (without redundant network mutation)
+        const updatedModulesWithSaved = (activeCourse.modules || []).map(m => {
+          if (m.id === modId) {
+            const rawLessons = m.lessons || m.topics?.flatMap(t => t.learningUnits) || [];
+            const nextLessons = rawLessons.map(u => (u.id === lessonToSave.id ? updatedLesson : u));
+            const nextTopics = (m.topics && m.topics.length > 0)
+              ? m.topics.map(t => {
+                  if (t.id === topId || m.topics?.length === 1) {
+                    const nextUnits = t.learningUnits.map(u => (u.id === lessonToSave.id ? updatedLesson : u));
+                    return { ...t, learningUnits: nextUnits };
+                  }
+                  return t;
+                })
+              : [{ id: `${m.id}-t1`, title: m.title, learningUnits: nextLessons }];
+            return { ...m, lessons: nextLessons, topics: nextTopics };
+          }
+          return m;
+        });
+
+        updateCourseLocalState(activeCourse.id, {
+          modules: updatedModulesWithSaved,
+          updatedAt: updatedLesson.lastSavedAt,
+        });
+
+        setSelectedLesson(updatedLesson);
         setIsDirty(false);
         setSaveStatus('saved');
-        setLastSavedTimestamp(sanitizedLesson.lastSavedAt || new Date().toISOString());
+        setLastSavedTimestamp(updatedLesson.lastSavedAt || new Date().toISOString());
         setRelativeSaveString('Saved just now');
         retryCountRef.current = 0;
 
         if (isManual) {
-          toast.success(`Lesson "${sanitizedLesson.title}" saved to Firebase!`);
+          toast.success(`Lesson "${updatedLesson.title}" saved to Firebase!`);
         }
 
         setTimeout(() => {
@@ -740,10 +768,11 @@ export const AdminContentStudio: React.FC = () => {
       return m;
     });
 
-    await updateCourse(activeCourse.id, { modules: updated });
-    await courseService.saveLessonContent(String(activeCourse.id), mId, newLesson);
+    const saved = await courseService.saveLessonContent(String(activeCourse.id), mId, newLesson);
+    const createdLesson = { ...newLesson, ...(saved || {}) };
+    updateCourseLocalState(activeCourse.id, { modules: updated });
 
-    setSelectedLesson(newLesson);
+    setSelectedLesson(createdLesson);
     setActiveModuleId(mId);
     setActiveTopicId(effectiveTopicId);
     setIsDirty(false);

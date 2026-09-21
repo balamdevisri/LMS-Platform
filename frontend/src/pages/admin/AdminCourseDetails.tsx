@@ -38,7 +38,7 @@ import {
 
 export const AdminCourseDetails: React.FC = () => {
   const { courseId } = useParams<{ courseId: string }>();
-  const { getCourseById, getCourseModules, toggleCourseStatus, updateCourse } = useCourses();
+  const { getCourseById, getCourseModules, toggleCourseStatus, updateCourse, updateCourseLocalState } = useCourses();
 
   const course = getCourseById(courseId || '');
 
@@ -680,7 +680,9 @@ export const AdminCourseDetails: React.FC = () => {
 
   const openEditUnitDrawer = (moduleId: string, unit: LearningUnitItem) => {
     setDrawerModuleId(moduleId);
-    setActiveUnit(JSON.parse(JSON.stringify(unit)));
+    const targetModule = modules.find((m) => m.id === moduleId);
+    const latestUnit = targetModule?.lessons?.find((u) => u.id === unit.id) || unit;
+    setActiveUnit(JSON.parse(JSON.stringify(latestUnit)));
     setActiveTab(isStudentPreviewMode ? 'preview' : 'edit');
     setQuizSelectedAnswers({});
     setQuizSubmitted(false);
@@ -2010,11 +2012,12 @@ export const AdminCourseDetails: React.FC = () => {
 
           const confirmedUnit = {
             ...finalUnit,
+            ...(savedResult || {}),
             revision: savedResult?.revision ?? (finalUnit.revision || 1) + 1,
             lastSavedAt: savedResult?.lastSavedAt || new Date().toISOString(),
           };
 
-          // 2. Synchronize local modules state
+          // 2. Synchronize local modules state (without secondary network mutation)
           const updated = modules.map((m) => {
             if (m.id === drawerModuleId) {
               const nextLessons = (m.lessons || []).map((u) => (u.id === confirmedUnit.id ? confirmedUnit : u));
@@ -2031,10 +2034,15 @@ export const AdminCourseDetails: React.FC = () => {
           });
 
           setModules(updated);
-          await updateCourse(course.id, { modules: updated });
-          setDrawerOpen(false);
-          setActiveUnit(null);
-          toast.success(`Lesson "${confirmedUnit.title}" ${isDraft ? 'saved as draft' : 'published'} successfully!`);
+          setActiveUnit(confirmedUnit);
+          updateCourseLocalState(course.id, { modules: updated });
+
+          if (!isDraft) {
+            setDrawerOpen(false);
+            setActiveUnit(null);
+          }
+
+          return confirmedUnit;
         }}
         onDelete={handleDeleteUnitDrawer}
       />
