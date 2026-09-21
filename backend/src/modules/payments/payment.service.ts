@@ -14,8 +14,8 @@ let razorpayInstance: Razorpay | null = null;
 
 export const getRazorpay = (): Razorpay | null => {
   if (razorpayInstance) return razorpayInstance;
-  const keyId = (process.env.RAZORPAY_KEY_ID || env.RAZORPAY_KEY_ID || '').trim();
-  const keySecret = (process.env.RAZORPAY_KEY_SECRET || env.RAZORPAY_KEY_SECRET || '').trim();
+  const keyId = (process.env.RAZORPAY_KEY_ID || env.RAZORPAY_KEY_ID || '').trim().replace(/^["']|["']$/g, '');
+  const keySecret = (process.env.RAZORPAY_KEY_SECRET || env.RAZORPAY_KEY_SECRET || '').trim().replace(/^["']|["']$/g, '');
   if (!keyId || !keySecret) {
     return null;
   }
@@ -31,7 +31,33 @@ export const getRazorpay = (): Razorpay | null => {
   }
 };
 
+const DEFAULT_COURSE_CATALOG: Record<string, { title: string; price: number }> = {
+  'course_linux_101': { title: 'Linux Systems & Administration Mastery', price: 399 },
+  'linux-systems-administration-mastery': { title: 'Linux Systems & Administration Mastery', price: 399 },
+  '1': { title: 'Linux Systems & Administration Mastery', price: 399 },
+  'c-programming-course-id': { title: 'C Programming Mastery', price: 199 },
+  'c-programming': { title: 'C Programming Mastery', price: 199 },
+  'git-github-mastery': { title: 'Git & GitHub Mastery', price: 199 },
+  'git-github-mastery-course-id': { title: 'Git & GitHub Mastery', price: 199 },
+  'git-github': { title: 'Git & GitHub Mastery', price: 199 },
+  'git-and-github': { title: 'Git & GitHub Mastery', price: 199 },
+  'git-and-github-mastery': { title: 'Git & GitHub Mastery', price: 199 },
+  'dbms-beginner-to-advanced': { title: 'Database Management Systems (DBMS)', price: 299 },
+  'database-management-system': { title: 'Database Management Systems (DBMS)', price: 299 },
+  'kubernetes-complete-course': { title: 'Kubernetes Complete Course', price: 499 },
+  'kubernetes-complete-course-beginner-to-advanced': { title: 'Kubernetes Complete Course', price: 499 },
+  'react-js-complete-course': { title: 'React.js Complete Course', price: 299 },
+  'python-through-oops': { title: 'Python Through OOPs', price: 299 },
+  'python-through-oops-course-id': { title: 'Python Through OOPs', price: 299 },
+  'java-through-oops': { title: 'Java Through OOPs', price: 299 },
+  'java-through-oops-course-id': { title: 'Java Through OOPs', price: 299 },
+  'web-development': { title: 'Web Development Bootcamp', price: 299 },
+  'web-development-fundamentals': { title: 'Web Development Bootcamp', price: 299 },
+};
+
 export class PaymentService {
+  private inMemoryPayments = new Map<string, IPayment>();
+
   /**
    * 1. Create Razorpay Payment Order in Firestore (Server-Side Price & Coupon Authoritative Calculation)
    */
@@ -80,22 +106,29 @@ export class PaymentService {
 
     // 2. Fetch Course from Firestore (NEVER trust frontend price)
     let course: any = null;
-    try {
-      course = await courseService.getCourseById(courseId);
-    } catch (e) {
-      logger.warn('[PaymentService] getCourseById notice:', e);
-    }
-
-    // Fallback lookup by slug or id from catalog
-    if (!course) {
+    if (isFirebaseAdminInitialized()) {
       try {
-        const allCourses = await courseService.getCourses();
-        course = allCourses.find((c: any) => c.id === courseId || c.slug === courseId);
-      } catch (e) {}
+        course = await courseService.getCourseById(courseId);
+      } catch (e) {
+        logger.warn('[PaymentService] getCourseById notice:', e);
+      }
+
+      // Fallback lookup by slug or id from catalog
+      if (!course) {
+        try {
+          const allCourses = await courseService.getCourses();
+          course = allCourses.find((c: any) => c.id === courseId || c.slug === courseId);
+        } catch (e) {}
+      }
     }
 
-    const courseTitle = course?.title || 'Full Stack Program';
-    const coursePrice = typeof course?.price === 'number' ? course.price : 999; // Base verified price in INR
+    const fallbackCourse = DEFAULT_COURSE_CATALOG[courseId] || DEFAULT_COURSE_CATALOG[course?.slug] || {
+      title: 'Full Stack Program',
+      price: 399,
+    };
+
+    const courseTitle = course?.title || fallbackCourse.title;
+    const coursePrice = typeof course?.price === 'number' ? course.price : fallbackCourse.price; // Base verified price in INR
 
     // 3. Process Coupon if provided
     let discountAmount = 0;
@@ -236,13 +269,31 @@ export class PaymentService {
         });
         if (rzpOrder && rzpOrder.id) {
           razorpayOrderId = rzpOrder.id;
+        } else {
+          return {
+            success: false,
+            error: 'Failed to obtain a valid Order ID from Razorpay.',
+          };
         }
-      } catch (rzpErr) {
-        logger.warn('[PaymentService] Razorpay order creation notice:', rzpErr);
+      } catch (rzpErr: any) {
+        logger.error('[PaymentService] Razorpay order creation failed:', rzpErr);
+        const errMsg = rzpErr?.error?.description || rzpErr?.message || 'Razorpay order creation failed';
+        return {
+          success: false,
+          error: `Payment Gateway Error: ${errMsg}`,
+        };
+      }
+    } else {
+      const isTestEnv = process.env.NODE_ENV === 'test' || process.env.MOCK_FIRESTORE === 'true';
+      if (!isTestEnv) {
+        return {
+          success: false,
+          error: 'Razorpay payment gateway is not initialized on the server. Please check server environment configuration.',
+        };
       }
     }
 
-    const publicRazorpayKeyId = (process.env.RAZORPAY_KEY_ID || env.RAZORPAY_KEY_ID || '').trim();
+    const publicRazorpayKeyId = (process.env.RAZORPAY_KEY_ID || env.RAZORPAY_KEY_ID || '').trim().replace(/^["']|["']$/g, '');
 
     // 6. Create Pending Payment Record in Firestore with Immutable Coupon Snapshot
     const paymentRecord: IPayment = {
@@ -278,6 +329,10 @@ export class PaymentService {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
+
+    // Store in-memory cache
+    this.inMemoryPayments.set(orderId, paymentRecord);
+    this.inMemoryPayments.set(razorpayOrderId, paymentRecord);
 
     if (isFirebaseAdminInitialized()) {
       try {
@@ -348,38 +403,51 @@ export class PaymentService {
     let courseId = data.courseId;
 
     if (isFirebaseAdminInitialized()) {
-      // Direct lookup by doc ID
-      const snap = await db.collection('payments').doc(orderId).get().catch(() => null);
-      if (snap && snap.exists) {
-        payment = snap.data() as any;
-        paymentDocId = snap.id;
-        courseId = courseId || payment?.courseId;
-      } else {
-        // Query lookup by razorpayOrderId or orderId
-        const querySnap = await db.collection('payments')
-          .where('razorpayOrderId', '==', rzpOrderId)
-          .limit(1)
-          .get()
-          .catch(() => null);
-
-        if (querySnap && !querySnap.empty) {
-          const doc = querySnap.docs[0];
-          payment = doc.data() as any;
-          paymentDocId = doc.id;
+      try {
+        // Direct lookup by doc ID
+        const snap = await db.collection('payments').doc(orderId).get().catch(() => null);
+        if (snap && snap.exists) {
+          payment = snap.data() as any;
+          paymentDocId = snap.id;
           courseId = courseId || payment?.courseId;
         } else {
-          const querySnap2 = await db.collection('payments')
-            .where('orderId', '==', orderId)
+          // Query lookup by razorpayOrderId or orderId
+          const querySnap = await db.collection('payments')
+            .where('razorpayOrderId', '==', rzpOrderId)
             .limit(1)
             .get()
             .catch(() => null);
-          if (querySnap2 && !querySnap2.empty) {
-            const doc = querySnap2.docs[0];
+
+          if (querySnap && !querySnap.empty) {
+            const doc = querySnap.docs[0];
             payment = doc.data() as any;
             paymentDocId = doc.id;
             courseId = courseId || payment?.courseId;
+          } else {
+            const querySnap2 = await db.collection('payments')
+              .where('orderId', '==', orderId)
+              .limit(1)
+              .get()
+              .catch(() => null);
+            if (querySnap2 && !querySnap2.empty) {
+              const doc = querySnap2.docs[0];
+              payment = doc.data() as any;
+              paymentDocId = doc.id;
+              courseId = courseId || payment?.courseId;
+            }
           }
         }
+      } catch (fsErr) {
+        logger.warn('[PaymentService] Firestore lookup notice:', fsErr);
+      }
+    }
+
+    // In-memory payment fallback
+    if (!payment) {
+      payment = this.inMemoryPayments.get(orderId) || this.inMemoryPayments.get(rzpOrderId) || null;
+      if (payment) {
+        paymentDocId = payment.orderId || orderId;
+        courseId = courseId || payment.courseId;
       }
     }
 
@@ -388,7 +456,7 @@ export class PaymentService {
     }
 
     // Verify ownership: studentId must match payment record
-    if (payment.studentId && payment.studentId !== studentId && studentId !== 'dev-user-id') {
+    if (payment.studentId && payment.studentId !== studentId && studentId !== 'dev-user-id' && !studentId.startsWith('webhook_')) {
       return { success: false, error: 'Payment authorization mismatch: Unauthorized student' };
     }
 
@@ -409,14 +477,27 @@ export class PaymentService {
     const effectiveOrderId = payment.razorpayOrderId || rzpOrderId || orderId;
     const effectivePaymentId = rzpPaymentId || `pay_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
     const razorpaySecret = (process.env.RAZORPAY_KEY_SECRET || env.RAZORPAY_KEY_SECRET || '').trim();
+    const isTestOrDev = process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development';
 
-    if (razorpaySecret && rzpSignature) {
+    if (razorpaySecret) {
+      if (!rzpSignature || !rzpPaymentId) {
+        if (isFirebaseAdminInitialized()) {
+          await db.collection('payments').doc(paymentDocId).set(
+            { status: 'FAILED', updatedAt: new Date().toISOString() },
+            { merge: true }
+          );
+        }
+        return { success: false, error: 'Payment verification failed: Missing signature or payment ID' };
+      }
+
       const generatedSignature = crypto
         .createHmac('sha256', razorpaySecret)
         .update(`${effectiveOrderId}|${effectivePaymentId}`)
         .digest('hex');
 
-      if (generatedSignature !== rzpSignature && rzpSignature !== 'sig_verified' && rzpSignature !== 'razorpay_webhook_verified') {
+      const isMockPass = (rzpSignature === 'sig_verified' || rzpSignature === 'razorpay_webhook_verified') && isTestOrDev;
+
+      if (generatedSignature !== rzpSignature && !isMockPass) {
         if (isFirebaseAdminInitialized()) {
           await db.collection('payments').doc(paymentDocId).set(
             { status: 'FAILED', updatedAt: new Date().toISOString() },
@@ -445,6 +526,11 @@ export class PaymentService {
     payment.transactionId = effectivePaymentId;
     payment.signature = rzpSignature || 'razorpay_verified';
     payment.paidAt = paidAt;
+
+    // Cache updated status in memory
+    this.inMemoryPayments.set(paymentDocId, payment);
+    this.inMemoryPayments.set(effectiveOrderId, payment);
+    this.inMemoryPayments.set(effectivePaymentId, payment);
 
     if (isFirebaseAdminInitialized()) {
       try {
