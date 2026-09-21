@@ -4,6 +4,7 @@ import { fromDocument, toDocument } from '../../utils/firestore';
 import { ApiError } from '../../utils/ApiError';
 import { resolveCanonicalId } from '../../modules/courses/course.repository';
 import { firestoreRest } from '../firestore/firestoreRestClient';
+import { processCanonicalLessonContent } from '../../utils/lessonNormalizer';
 
 interface CacheEntry<T> {
   data: T;
@@ -395,6 +396,25 @@ export class CourseContentService {
           this.setCache(cacheKey, lesson, { revision: lesson.revision });
           return lesson;
         }
+      } else if (targetCourseId && !moduleId) {
+        // Fallback search across course modules if moduleId was omitted
+        const modsSnap = await db.collection('courses').doc(targetCourseId).collection('modules').get();
+        for (const mDoc of modsSnap.docs) {
+          const lDoc = await mDoc.ref.collection('lessons').doc(lessonId).get();
+          if (lDoc.exists) {
+            const raw = fromDocument<any>(lDoc);
+            const idx = raw.orderIndex ?? raw.order ?? 1;
+            const lesson: CourseLessonDoc = {
+              ...raw,
+              moduleId: mDoc.id,
+              orderIndex: idx,
+              order: idx,
+              revision: raw.revision ?? 1,
+            };
+            this.setCache(cacheKey, lesson, { revision: lesson.revision });
+            return lesson;
+          }
+        }
       }
 
       return null;
@@ -621,10 +641,16 @@ export class CourseContentService {
     const nextRevision = currentRevision + 1;
     const now = new Date().toISOString();
 
+    const rawContent = (lessonDoc as any).content || (lessonDoc as any).readingContent || (lessonDoc as any).conceptTheory || '';
+    const normalizedContent = processCanonicalLessonContent(rawContent);
+
     const cleanDoc = toDocument({
       ...lessonDoc,
-      courseId,
+      courseId: targetCourseId,
       moduleId,
+      content: normalizedContent,
+      readingContent: normalizedContent,
+      conceptTheory: normalizedContent,
       orderIndex,
       order: orderIndex,
       revision: nextRevision,
@@ -634,7 +660,7 @@ export class CourseContentService {
     });
     delete (cleanDoc as any).expectedRevision;
 
-    // Primary Canonical Subcollection: courses/{courseId}/modules/{moduleId}/lessons/{lessonId}
+    // Primary Canonical Subcollection: courses/{targetCourseId}/modules/{moduleId}/lessons/{lessonDoc.id}
     try {
       await docRef.set(cleanDoc, { merge: true });
     } catch (setErr) {
@@ -642,7 +668,22 @@ export class CourseContentService {
       await firestoreRest.setDocument(`courses/${targetCourseId}/modules/${moduleId}/lessons/${lessonDoc.id}`, cleanDoc, { merge: true }, authToken);
     }
 
-    // Sync to parent module document and root course document for full cross-system compatibility
+    // Lightweight summary for parent module topic structure (preventing megabyte document bloat while maintaining navigation hierarchy)
+    const summaryUnit = {
+      id: lessonDoc.id,
+      title: lessonDoc.title,
+      description: lessonDoc.description || '',
+      duration: lessonDoc.duration || '15 mins',
+      type: lessonDoc.type || 'Reading',
+      orderIndex,
+      order: orderIndex,
+      revision: nextRevision,
+      isDraft: (lessonDoc as any).isDraft ?? false,
+      lastSavedAt: now,
+      updatedAt: now,
+    };
+
+    // Sync lightweight metadata to parent module document and root course document
     try {
       const modRef = db.collection('courses').doc(targetCourseId).collection('modules').doc(moduleId);
       const modSnap = await modRef.get();
@@ -655,7 +696,7 @@ export class CourseContentService {
               if (u.id === lessonDoc.id) {
                 return {
                   ...u,
-                  ...cleanDoc,
+                  ...summaryUnit,
                 };
               }
               return u;
@@ -680,7 +721,7 @@ export class CourseContentService {
                     if (u.id === lessonDoc.id) {
                       return {
                         ...u,
-                        ...cleanDoc,
+                        ...summaryUnit,
                       };
                     }
                     return u;
@@ -709,6 +750,9 @@ export class CourseContentService {
       ...lessonDoc,
       courseId: targetCourseId,
       moduleId,
+      content: normalizedContent,
+      readingContent: normalizedContent,
+      conceptTheory: normalizedContent,
       orderIndex,
       order: orderIndex,
       revision: nextRevision,

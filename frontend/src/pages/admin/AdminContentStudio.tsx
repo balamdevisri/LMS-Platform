@@ -47,6 +47,7 @@ import { toast } from 'sonner';
 import type { ResourceItem } from '@/services/contentManagementService';
 import { sanitizeAdminInput, sanitizeMarkdownContent, serializeFirestorePayload } from '@/utils/adminDataSanitizer';
 import { MarkdownContent } from '@/components/learning/MarkdownContent';
+import { StudentLessonRenderer } from '@/components/learning/StudentLessonRenderer';
 import { aiAutofillService } from '@/services/aiAutofillService';
 import { courseService } from '@/services/courseService';
 import { CloudinaryUploadZone } from '@/components/admin/CloudinaryUploadZone';
@@ -810,19 +811,19 @@ export const AdminContentStudio: React.FC = () => {
       order: 1,
       orderIndex: 1,
       lastSavedAt: new Date().toISOString(),
-      readingContent: '# Module Introduction\n\nWelcome to this module!'
+      readingContent: `# Module ${nextModNumber} — Introduction\n\n## Unit 1 — Overview\n\nWelcome to Module ${nextModNumber} complete notes.`
     };
 
     const newMod: ModuleItem = {
       id: newModId,
-      title: `Module ${nextModNumber}: New Curriculum Module`,
+      title: `Module ${nextModNumber} — Curriculum Module`,
       description: 'Module overview and topics.',
       duration: '3 Hours',
       lessons: [firstLesson],
       topics: [
         {
           id: newTopicId,
-          title: `Module ${nextModNumber}: New Curriculum Module`,
+          title: `Module ${nextModNumber} — Curriculum Module`,
           description: 'Topic introduction',
           estimatedDuration: '45 mins',
           learningUnits: [firstLesson]
@@ -1623,11 +1624,29 @@ export const AdminContentStudio: React.FC = () => {
                       </div>
                     )}
 
-                    {/* Right: Live Rendered Markdown Preview */}
+                    {/* Right: Live Rendered Student Preview (100% WYSIWYG Parity) */}
                     {(previewMode === 'split' || previewMode === 'preview') && (
-                      <div className={`${previewMode === 'split' ? 'w-1/2' : 'w-full'} flex flex-col min-h-0 bg-slate-900/50 overflow-y-auto p-6 sm:p-8 select-text`}>
-                        <div className="max-w-3xl mx-auto w-full">
-                          <MarkdownContent content={selectedLesson.readingContent || '*No content written yet.*'} />
+                      <div className={`${previewMode === 'split' ? 'w-1/2' : 'w-full'} flex flex-col min-h-0 bg-slate-900/50 overflow-y-auto p-4 sm:p-6 select-text`}>
+                        <div className="max-w-4xl mx-auto w-full">
+                          <StudentLessonRenderer
+                            mode="preview"
+                            lesson={{
+                              title: selectedLesson.title || 'Lesson Preview',
+                              moduleTitle: activeCourse?.modules?.find((m) => m.id === activeModuleId)?.title,
+                              readingContent: selectedLesson.readingContent || '*No content written yet.*',
+                              description: selectedLesson.description,
+                              duration: selectedLesson.duration,
+                              type: selectedLesson.type,
+                              learningObjectives: selectedLesson.learningObjectives,
+                              codeExamples: selectedLesson.codeExamples,
+                              keyPoints: selectedLesson.keyPoints,
+                              practiceQuestions: selectedLesson.practiceQuestions,
+                              resourceLinks: selectedLesson.resourceLinks,
+                              topicImageUrl: selectedLesson.topicImageUrl,
+                              themeColor: selectedLesson.themeColor,
+                              themeIcon: selectedLesson.themeIcon,
+                            }}
+                          />
                         </div>
                       </div>
                     )}

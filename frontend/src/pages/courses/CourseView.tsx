@@ -269,12 +269,31 @@ export const CourseView: React.FC = () => {
   const idOrSlug = (courseId || slug || '').trim();
   const { courses, getCourseById, getCourseModules, refreshCourses } = useCourses();
   const dynamicCourse = getCourseById(idOrSlug);
+  const [directCourse, setDirectCourse] = useState<any | null>(null);
 
-  // Authoritative validation: course resolved by CourseContext
-  const isValidCourse = Boolean(dynamicCourse);
+  useEffect(() => {
+    let isMounted = true;
+    if (!idOrSlug) return;
+    if (!dynamicCourse) {
+      courseService.getCourseBySlugOrId(idOrSlug, true)
+        .then((c) => {
+          if (isMounted && c) {
+            setDirectCourse(c);
+          }
+        })
+        .catch(() => {});
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [idOrSlug, dynamicCourse]);
 
-  const targetCourseId = String(dynamicCourse?.id || '');
-  const coursePrice = typeof (dynamicCourse as any)?.price === 'number' ? (dynamicCourse as any).price : 0;
+  const effectiveCourse = dynamicCourse || directCourse;
+  // Authoritative validation: course resolved by CourseContext or direct query
+  const isValidCourse = Boolean(effectiveCourse);
+
+  const targetCourseId = String(effectiveCourse?.id || '');
+  const coursePrice = typeof (effectiveCourse as any)?.price === 'number' ? (effectiveCourse as any).price : 0;
   const isPaid = coursePrice > 0;
 
   const isAdminOrInstructor = Boolean(
@@ -292,7 +311,7 @@ export const CourseView: React.FC = () => {
     if (!targetCourseId) return;
 
     if (!courseModules || courseModules.length === 0) {
-      if (!dynamicCourse?.modules || dynamicCourse.modules.length === 0) {
+      if (!effectiveCourse?.modules || effectiveCourse.modules.length === 0) {
         setIsLoadingModules(true);
       }
     }
@@ -400,7 +419,7 @@ export const CourseView: React.FC = () => {
           courseService.enrollCourse(targetCourseId, user.uid, {
             email: user.email || undefined,
             name: studentName,
-            courseTitle: dynamicCourse?.title,
+            courseTitle: effectiveCourse?.title,
           });
           if (isModeLearn) {
             setIsLearningMode((prev) => (prev ? prev : true));
@@ -446,7 +465,7 @@ export const CourseView: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [targetCourseId, user?.uid, isAdminOrInstructor, isModeLearn, setSearchParams, isPaid, dynamicCourse?.title, studentName]);
+  }, [targetCourseId, user?.uid, isAdminOrInstructor, isModeLearn, setSearchParams, isPaid, effectiveCourse?.title, studentName]);
 
   const handleEnrollClick = () => {
     if (!user) {
@@ -464,11 +483,11 @@ export const CourseView: React.FC = () => {
 
   const handleEnrollSuccess = (_enrollmentRecord?: any) => {
     setIsEnrolled(true);
-    if (dynamicCourse && user?.uid) {
+    if (effectiveCourse && user?.uid) {
       courseService.enrollCourse(targetCourseId, user.uid, {
         email: user?.email || undefined,
         name: studentName,
-        courseTitle: dynamicCourse.title || 'Course Track',
+        courseTitle: effectiveCourse.title || 'Course Track',
       });
     }
   };
@@ -502,7 +521,7 @@ export const CourseView: React.FC = () => {
         return;
       }
       handleEnrollSuccess();
-      toast.success(`🎉 Enrolled successfully in "${dynamicCourse?.title || 'this course'}"! All modules unlocked.`);
+      toast.success(`🎉 Enrolled successfully in "${effectiveCourse?.title || 'this course'}"! All modules unlocked.`);
     } else if (confirmActionType === 'enter') {
       if (!isEnrolled && !isAdminOrInstructor) {
         if (isPaid) {
@@ -520,46 +539,46 @@ export const CourseView: React.FC = () => {
   };
 
   // ── Stable Memoized Meta & Module Data (Called Unconditionally) ───────
-  const meta = useMemo(() => getCourseMeta(dynamicCourse), [dynamicCourse]);
+  const meta = useMemo(() => getCourseMeta(effectiveCourse), [effectiveCourse]);
 
   const effectiveModules = useMemo(() => {
     return (courseModules && courseModules.length > 0)
       ? courseModules
-      : (dynamicCourse?.modules && dynamicCourse.modules.length > 0)
-      ? dynamicCourse.modules
+      : (effectiveCourse?.modules && effectiveCourse.modules.length > 0)
+      ? effectiveCourse.modules
       : [];
-  }, [courseModules, dynamicCourse?.modules]);
+  }, [courseModules, effectiveCourse?.modules]);
 
   const playerModules = useMemo(() => {
     return mapCourseModulesToPlayerModules(effectiveModules);
   }, [effectiveModules]);
 
   const activeCourseData = useMemo(() => {
-    if (!dynamicCourse) return null;
-    const cAny = dynamicCourse as any;
+    if (!effectiveCourse) return null;
+    const cAny = effectiveCourse as any;
     return {
-      ...dynamicCourse,
-      id: dynamicCourse.id,
-      title: dynamicCourse.title,
-      subtitle: dynamicCourse.subtitle || cAny.shortDescription || '',
+      ...effectiveCourse,
+      id: effectiveCourse.id,
+      title: effectiveCourse.title,
+      subtitle: effectiveCourse.subtitle || cAny.shortDescription || '',
       instructor: typeof cAny.instructor === 'object' && cAny.instructor !== null
         ? (cAny.instructor.name || 'KaizenQ Team')
         : (cAny.instructor || 'KaizenQ Team'),
-      role: dynamicCourse.role || (typeof cAny.instructor === 'object' && cAny.instructor?.role) || 'Senior Technical Instructor',
-      avatar: dynamicCourse.avatar || (typeof cAny.instructor === 'object' && cAny.instructor?.avatar) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-      rating: dynamicCourse.rating || 5.0,
-      reviews: dynamicCourse.reviews || cAny.ratingCount || 120,
-      students: dynamicCourse.students || String(cAny.enrollmentCount || 0),
-      duration: dynamicCourse.duration || '20 hrs',
-      category: dynamicCourse.category || 'Technical Training',
-      level: dynamicCourse.level || 'Beginner to Advanced',
-      thumbnail: dynamicCourse.thumbnail || '/assets/images/linux_course_thumbnail.webp',
+      role: effectiveCourse.role || (typeof cAny.instructor === 'object' && cAny.instructor?.role) || 'Senior Technical Instructor',
+      avatar: effectiveCourse.avatar || (typeof cAny.instructor === 'object' && cAny.instructor?.avatar) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      rating: effectiveCourse.rating || 5.0,
+      reviews: effectiveCourse.reviews || cAny.ratingCount || 120,
+      students: effectiveCourse.students || String(cAny.enrollmentCount || 0),
+      duration: effectiveCourse.duration || '20 hrs',
+      category: effectiveCourse.category || 'Technical Training',
+      level: effectiveCourse.level || 'Beginner to Advanced',
+      thumbnail: effectiveCourse.thumbnail || '/assets/images/linux_course_thumbnail.webp',
       introText: meta.introText,
       outcomes: meta.outcomes,
       price: coursePrice,
       modules: playerModules
     };
-  }, [dynamicCourse, meta, coursePrice, playerModules]);
+  }, [effectiveCourse, meta, coursePrice, playerModules]);
 
   const handleBackToDetails = () => {
     setIsLearningMode(false);
@@ -572,7 +591,7 @@ export const CourseView: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  if (!isValidCourse || !dynamicCourse || !activeCourseData) {
+  if (!isValidCourse || !effectiveCourse || !activeCourseData) {
     if (courses.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center bg-slate-50 font-['Sora']">
