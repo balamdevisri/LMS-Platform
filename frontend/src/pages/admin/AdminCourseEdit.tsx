@@ -2171,48 +2171,17 @@ export const AdminCourseEdit: React.FC = () => {
                     }}
                     className="flex flex-col bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm overflow-y-auto max-h-[780px] space-y-4 min-w-[280px] transition-[width] duration-75"
                   >
-                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2 text-[11px] font-mono text-slate-400">
-                      <span>Student View Live Preview</span>
-                      <span className="text-emerald-500 font-bold">Synchronized</span>
-                    </div>
-
-                    {/* Lesson Header Banner inside preview */}
-                    <div className="space-y-2">
-                      <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                        {unitTitle || 'Lesson Title'}
-                      </h2>
-                      {lessonDescription && (
-                        <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed italic">
-                          {lessonDescription}
-                        </p>
-                      )}
-                      {learningObjectives.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 pt-1">
-                          {learningObjectives.map((obj, i) => (
-                            <span key={i} className="px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-[10px] font-semibold">
-                              🎯 {obj}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-                      <MarkdownContent content={lessonMarkdown} />
-                    </div>
-
-                    {keyPoints.length > 0 && (
-                      <div className="mt-6 p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 space-y-2">
-                        <h4 className="text-xs font-bold flex items-center gap-1.5">
-                          <Key className="w-4 h-4 text-amber-500" /> Key Takeaways
-                        </h4>
-                        <ul className="list-disc pl-5 text-xs space-y-1">
-                          {keyPoints.map((kp, i) => (
-                            <li key={i}>{kp}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+                    <StudentLessonRenderer
+                      mode="preview"
+                      lesson={{
+                        title: unitTitle || 'Lesson Title',
+                        moduleTitle: activeModule?.title,
+                        readingContent: lessonMarkdown || '*No content written yet.*',
+                        description: lessonDescription,
+                        learningObjectives,
+                        keyPoints,
+                      }}
+                    />
                   </div>
                 )}
 

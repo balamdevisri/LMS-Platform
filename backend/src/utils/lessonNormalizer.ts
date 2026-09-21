@@ -1,14 +1,13 @@
 /**
- * Lesson Content Normalization & Security Sanitization Pipeline
+ * Backend Lesson Content Normalization & Security Sanitization Pipeline
  * 
- * Guarantees that admin-pasted or edited lesson markdown is formatted cleanly
- * without any semantic alteration to educational concepts, code blocks, shell commands,
- * formulas, URLs, or quizzes.
+ * Guarantees that saved lesson Markdown is formatted cleanly without any semantic
+ * alteration to educational concepts, code blocks, shell commands, formulas, URLs, or quizzes.
  */
 
 /**
  * Normalizes Markdown lesson content formatting:
- * - Protects code blocks (```...```) so their code/comments are 100% untouched
+ * - Protects code blocks (```...```) so their code/comments/indentation are 100% untouched
  * - Normalizes unicode bullet characters (●, •, ✔, ▪, ▫, ◆, etc.) to standard Markdown list items (- )
  * - Collapses excessive blank lines (3+ to 2)
  * - Formats metadata tags into structured tag blocks without breaking H1 headings
@@ -30,7 +29,7 @@ export function normalizeLessonContent(raw: string | null | undefined): string {
   // 2. Extract code blocks so their contents remain 100% untouched
   const codeBlocks: string[] = [];
   text = text.replace(/(```[\s\S]*?```)/g, (_match, block) => {
-    const placeholder = `__CODE_BLOCK_${codeBlocks.length}__`;
+    const placeholder = `__PROTECTED_CODE_BLOCK_${codeBlocks.length}__`;
     codeBlocks.push(block);
     return placeholder;
   });
@@ -74,9 +73,8 @@ export function normalizeLessonContent(raw: string | null | undefined): string {
   });
 
   // 10. Restore code blocks
-  text = text.replace(/__CODE_BLOCK_(\d+)__/g, (_match, index) => {
-    const rawBlock = codeBlocks[Number(index)] || '';
-    return rawBlock;
+  text = text.replace(/__PROTECTED_CODE_BLOCK_(\d+)__/g, (_match, index) => {
+    return codeBlocks[Number(index)] || '';
   });
 
   // 11. Collapse excessive blank lines (more than 2 consecutive newlines) to exactly 2
@@ -87,12 +85,12 @@ export function normalizeLessonContent(raw: string | null | undefined): string {
 
 /**
  * Sanitizes lesson content against XSS and hostile HTML injections while
- * strictly preserving valid Markdown elements and code blocks.
+ * strictly preserving valid Markdown elements, tables, and code blocks.
  */
 export function sanitizeLessonContent(input: string | null | undefined): string {
   if (!input) return '';
   let clean = String(input);
-  
+
   // Strip executable HTML tags & event handlers
   clean = clean.replace(/<script\b[^<]*>([\s\S]*?)<\/script>/gi, '');
   clean = clean.replace(/<iframe\b[^<]*>([\s\S]*?)<\/iframe>/gi, '');
@@ -105,8 +103,7 @@ export function sanitizeLessonContent(input: string | null | undefined): string 
 }
 
 /**
- * Full pre-render and pre-save normalization pipeline.
- * Normalizes formatting and strips unsafe tags in one deterministic step.
+ * Full pre-save and pre-render normalization pipeline.
  */
 export function processCanonicalLessonContent(rawText: string | null | undefined): string {
   const sanitized = sanitizeLessonContent(rawText);
@@ -127,4 +124,3 @@ export function formatCanonicalModuleTitle(moduleIndex: number, rawTitle: string
 export function formatCanonicalLessonTitle(moduleIndex: number): string {
   return `Module ${moduleIndex} - Complete Notes`;
 }
-

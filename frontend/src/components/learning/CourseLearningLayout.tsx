@@ -395,6 +395,60 @@ export const CourseLearningLayout: React.FC<CourseLearningLayoutProps> = ({
     return undefined;
   };
 
+  // ── Dynamic Authoritative Lesson State from Server ───────────────────────
+  const [serverLessonData, setServerLessonData] = useState<any | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    if (!selectedLessonId || !courseId) return;
+
+    const currentModId = currentLessonData?.moduleId;
+    const minRev = currentLessonData?.revision;
+
+    courseService.getLessonById(String(selectedLessonId), String(courseId), currentModId, false, minRev)
+      .then((serverDoc) => {
+        if (isMounted && serverDoc) {
+          setServerLessonData(serverDoc);
+        }
+      })
+      .catch((err) => {
+        console.warn('[CourseLearningLayout] getLessonById background sync notice:', err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedLessonId, courseId, currentLessonData?.moduleId, currentLessonData?.revision]);
+
+  // Real-time synchronization for lesson saves across tabs
+  useEffect(() => {
+    const handleLessonUpdated = (e: any) => {
+      const detail = e?.detail;
+      if (!detail) return;
+      if (String(detail.courseId) === String(courseId) && String(detail.lessonId) === String(selectedLessonId)) {
+        if (detail.lesson) {
+          setServerLessonData(detail.lesson);
+        }
+      }
+    };
+    window.addEventListener('shaivika_lesson_updated', handleLessonUpdated);
+    return () => {
+      window.removeEventListener('shaivika_lesson_updated', handleLessonUpdated);
+    };
+  }, [courseId, selectedLessonId]);
+
+  const effectiveLessonData = useMemo(() => {
+    if (serverLessonData && String(serverLessonData.id) === String(selectedLessonId)) {
+      return {
+        ...currentLessonData,
+        ...serverLessonData,
+        readingContent: serverLessonData.readingContent || serverLessonData.conceptTheory || serverLessonData.content || currentLessonData?.readingContent || '',
+        conceptTheory: serverLessonData.conceptTheory || serverLessonData.readingContent || serverLessonData.content || currentLessonData?.conceptTheory || '',
+      };
+    }
+    return currentLessonData;
+  }, [serverLessonData, currentLessonData, selectedLessonId]);
+
   // ── Build the active lesson's full details ─────────────────────────────
   const activeLessonFull = useMemo((): {
     title: string;
@@ -410,7 +464,7 @@ export const CourseLearningLayout: React.FC<CourseLearningLayoutProps> = ({
     themeColor?: string | null;
     themeIcon?: string | null;
   } => {
-    if (!currentLessonData) {
+    if (!effectiveLessonData) {
       return {
         title: allLessons[0]?.title || 'Course Introduction',
         content: (allLessons[0] as any)?.readingContent || (allLessons[0] as any)?.conceptTheory || (allLessons[0] as any)?.content || 'Welcome to the course.',
@@ -427,12 +481,12 @@ export const CourseLearningLayout: React.FC<CourseLearningLayoutProps> = ({
       };
     }
 
-    const currentAny = currentLessonData as any;
+    const currentAny = effectiveLessonData as any;
     const contentStr = currentAny.readingContent || currentAny.conceptTheory || currentAny.content || currentAny.description || 'Welcome to this lesson.';
     const duration = currentAny.duration || calculateEstimatedDuration(contentStr);
 
     return {
-      title: currentLessonData.title,
+      title: effectiveLessonData.title,
       content: typeof contentStr === 'string' ? contentStr : JSON.stringify(contentStr),
       shortDescription: currentAny.description,
       duration,
@@ -445,7 +499,7 @@ export const CourseLearningLayout: React.FC<CourseLearningLayoutProps> = ({
       themeColor: currentAny.themeColor || null,
       themeIcon: currentAny.themeIcon || null,
     };
-  }, [currentLessonData, allLessons]);
+  }, [effectiveLessonData, allLessons]);
 
   // ── Persist last active lesson & scroll to top ─────────────────────────
   useEffect(() => {

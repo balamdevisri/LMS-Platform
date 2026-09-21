@@ -1,6 +1,7 @@
 import type { ICourse, CreateCourseDTO, UpdateCourseDTO, CourseFilterOptions, CoursePaginationResult, CourseLevel, CourseStatus, IVideoProgress } from '../../../shared/types/course';
 import { normalizeCourseData, auditCourseData, normalizeModuleItem, normalizeCourseModulesForDisplay } from './courseNormalizer';
 import { serializeFirestorePayload } from '../utils/firestoreSerializer';
+import { processCanonicalLessonContent } from '../utils/lessonNormalizer';
 export type { ICourse };
 import { API_BASE_URL } from '../config/api';
 
@@ -1052,6 +1053,7 @@ class CourseService {
   private checkpointKey = 'shaivika_user_checkpoint';
   private getCoursesCache: Map<string, { data: CoursePaginationResult; expiry: number }> = new Map();
   private courseDetailsCache: Map<string, { data: ICourse; expiry: number; version?: number }> = new Map();
+  private lessonContentCache: Map<string, { data: any; expiry: number; revision: number }> = new Map();
 
   private mergeCourseModules(defModules?: any[], cachedModules?: any[]): any[] {
     if (!defModules || defModules.length === 0) return cachedModules || [];
@@ -2023,7 +2025,119 @@ class CourseService {
     return 0;
   }
 
+  invalidateLessonCache(courseId?: string, moduleId?: string, lessonId?: string): void {
+    if (!courseId) {
+      this.lessonContentCache.clear();
+      return;
+    }
+    for (const key of Array.from(this.lessonContentCache.keys())) {
+      if (key.includes(courseId)) {
+        if (!moduleId || key.includes(moduleId)) {
+          if (!lessonId || key.includes(lessonId)) {
+            this.lessonContentCache.delete(key);
+          }
+        }
+      }
+    }
+  }
+
+  async getLessonById(
+    lessonId: string,
+    courseId: string,
+    moduleId?: string,
+    forceRefresh = false,
+    minRevision?: number
+  ): Promise<any | null> {
+    if (!lessonId || !courseId) return null;
+    const cacheKey = `lesson_${courseId}_${moduleId || 'any'}_${lessonId}`;
+    const cached = this.lessonContentCache.get(cacheKey);
+    const now = Date.now();
+
+    if (!forceRefresh && cached && cached.expiry > now) {
+      if (typeof minRevision === 'number' && cached.revision < minRevision) {
+        this.lessonContentCache.delete(cacheKey);
+      } else {
+        return cached.data;
+      }
+    }
+
+    // 1. Authoritative Backend REST API Query
+    try {
+      const authHeaders = await getAuthHeadersAsync();
+      const queryParams = new URLSearchParams();
+      queryParams.set('courseId', courseId);
+      if (moduleId) queryParams.set('moduleId', moduleId);
+      if (typeof minRevision === 'number') queryParams.set('minRevision', String(minRevision));
+
+      const res = await fetch(`${API_BASE_URL}/lessons/${encodeURIComponent(lessonId)}?${queryParams.toString()}`, {
+        headers: authHeaders,
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data) {
+          const lesson = json.data;
+          const rev = lesson.revision || 1;
+          this.lessonContentCache.set(cacheKey, { data: lesson, expiry: now + 30000, revision: rev });
+          return lesson;
+        }
+      }
+    } catch (err) {
+      console.warn(`[CourseService] Backend getLessonById notice for ${lessonId}:`, err);
+    }
+
+    // 2. Direct Firestore fallback only if backend API unreachable
+    try {
+      const { db, doc, getDoc, collection, getDocs } = await getFS();
+      if (db) {
+        if (moduleId) {
+          const docRef = doc(db, 'courses', courseId, 'modules', moduleId, 'lessons', lessonId);
+          const snap = await getDoc(docRef);
+          if (snap.exists()) {
+            const raw = snap.data();
+            const lesson = { id: snap.id, ...raw };
+            const rev = lesson.revision || 1;
+            this.lessonContentCache.set(cacheKey, { data: lesson, expiry: now + 30000, revision: rev });
+            return lesson;
+          }
+        } else {
+          // Search across course modules if moduleId omitted
+          const modsSnap = await getDocs(collection(db, 'courses', courseId, 'modules'));
+          for (const mDoc of modsSnap.docs) {
+            const lSnap = await getDoc(doc(db, 'courses', courseId, 'modules', mDoc.id, 'lessons', lessonId));
+            if (lSnap.exists()) {
+              const raw = lSnap.data();
+              const lesson = { id: lSnap.id, moduleId: mDoc.id, ...raw };
+              const rev = lesson.revision || 1;
+              this.lessonContentCache.set(cacheKey, { data: lesson, expiry: now + 30000, revision: rev });
+              return lesson;
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn(`[CourseService] Direct Firestore fallback getLessonById notice for ${lessonId}:`, err);
+    }
+
+    return null;
+  }
+
   async saveLessonContent(courseId: string, moduleId: string, lessonDoc: any): Promise<any> {
+    const rawContent = lessonDoc.content || lessonDoc.readingContent || lessonDoc.conceptTheory || '';
+    const normalizedContent = processCanonicalLessonContent(rawContent);
+
+    const payload = {
+      ...lessonDoc,
+      content: normalizedContent,
+      readingContent: normalizedContent,
+      conceptTheory: normalizedContent,
+    };
+
+    // Invalidate local caches
+    this.lessonContentCache.clear();
+    this.courseDetailsCache.delete(courseId);
+    this.getCoursesCache.clear();
+
     // 1. Authoritative Backend Save with Optimistic Concurrency Protection
     try {
       const authHeaders = await getAuthHeadersAsync();
@@ -2033,7 +2147,7 @@ class CourseService {
         body: JSON.stringify({
           courseId,
           moduleId,
-          ...lessonDoc,
+          ...payload,
         }),
       });
 
@@ -2047,9 +2161,18 @@ class CourseService {
 
       if (res.ok) {
         const json = await res.json();
-        this.courseDetailsCache.delete(courseId);
-        this.getCoursesCache.clear();
-        return json.data || lessonDoc;
+        const savedData = json.data || payload;
+        const cacheKey = `lesson_${courseId}_${moduleId}_${lessonDoc.id}`;
+        this.lessonContentCache.set(cacheKey, {
+          data: savedData,
+          expiry: Date.now() + 30000,
+          revision: savedData.revision || (lessonDoc.revision || 1) + 1,
+        });
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('shaivika_lesson_updated', { detail: { courseId, moduleId, lessonId: lessonDoc.id, lesson: savedData } }));
+          window.dispatchEvent(new CustomEvent('shaivika_courses_updated', { detail: { courseId, moduleId, lessonId: lessonDoc.id } }));
+        }
+        return savedData;
       }
     } catch (err: any) {
       if (err.isConflict || err.statusCode === 409) {
@@ -2063,18 +2186,27 @@ class CourseService {
       const { db, doc, setDoc } = await getFS();
       if (db) {
         const docRef = doc(db, 'courses', courseId, 'modules', moduleId, 'lessons', lessonDoc.id);
+        const nextRev = (lessonDoc.revision || 1) + 1;
         const updatedPayload = {
-          ...lessonDoc,
+          ...payload,
           courseId,
           moduleId,
-          revision: (lessonDoc.revision || 1) + 1,
+          revision: nextRev,
           lastSavedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
         const cleanPayload = serializeFirestorePayload(updatedPayload);
         await setDoc(docRef, cleanPayload, { merge: true });
-        this.courseDetailsCache.delete(courseId);
-        this.getCoursesCache.clear();
+        const cacheKey = `lesson_${courseId}_${moduleId}_${lessonDoc.id}`;
+        this.lessonContentCache.set(cacheKey, {
+          data: cleanPayload,
+          expiry: Date.now() + 30000,
+          revision: nextRev,
+        });
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('shaivika_lesson_updated', { detail: { courseId, moduleId, lessonId: lessonDoc.id, lesson: cleanPayload } }));
+          window.dispatchEvent(new CustomEvent('shaivika_courses_updated', { detail: { courseId, moduleId, lessonId: lessonDoc.id } }));
+        }
         return cleanPayload;
       }
     } catch (err) {
