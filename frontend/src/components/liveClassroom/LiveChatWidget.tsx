@@ -658,35 +658,35 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
     switch (connectionState) {
       case 'ready':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30 shadow-2xs">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
             Connected to classroom
           </span>
         );
       case 'room_joining':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span>
             Joining room...
           </span>
         );
       case 'connecting':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span>
             Connecting...
           </span>
         );
       case 'reconnecting':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span>
             Reconnecting...
           </span>
         );
       case 'auth_failed':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30">
             <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
             Authentication failed
           </span>
@@ -694,7 +694,7 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
       case 'disconnected':
       default:
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30">
             <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
             Disconnected
           </span>
@@ -716,46 +716,46 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
     const r = (role || 'student').toLowerCase();
     if (r === 'instructor') {
       return (
-        <span className="px-1.5 py-0.2 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700 text-[9px] font-bold uppercase tracking-wider">
+        <span className="px-1.5 py-0.2 rounded-md bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-300 text-[9px] font-bold uppercase tracking-wider">
           Faculty
         </span>
       );
     }
     if (r === 'admin') {
       return (
-        <span className="px-1.5 py-0.2 rounded-md bg-amber-50 border border-amber-200 text-amber-700 text-[9px] font-bold uppercase tracking-wider">
+        <span className="px-1.5 py-0.2 rounded-md bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-500/30 text-amber-700 dark:text-amber-300 text-[9px] font-bold uppercase tracking-wider">
           Admin
         </span>
       );
     }
     if (r === 'mentor') {
       return (
-        <span className="px-1.5 py-0.2 rounded-md bg-purple-50 border border-purple-200 text-purple-700 text-[9px] font-bold uppercase tracking-wider">
+        <span className="px-1.5 py-0.2 rounded-md bg-purple-50 dark:bg-purple-950/50 border border-purple-200 dark:border-purple-500/30 text-purple-700 dark:text-purple-300 text-[9px] font-bold uppercase tracking-wider">
           Mentor
         </span>
       );
     }
     return (
-      <span className="px-1.5 py-0.2 rounded-md bg-slate-100 text-slate-600 text-[9px] font-semibold uppercase tracking-wider">
+      <span className="px-1.5 py-0.2 rounded-md bg-slate-100 dark:bg-white/10 border border-slate-200/60 dark:border-white/10 text-slate-600 dark:text-slate-300 text-[9px] font-semibold uppercase tracking-wider">
         Student
       </span>
     );
   };
 
   return (
-    <div className="flex flex-col h-130 bg-white border border-slate-200/90 rounded-2xl shadow-xs overflow-hidden font-sans text-slate-800 relative">
+    <div className="flex flex-col h-130 bg-white dark:bg-[#0c1122]/95 border border-slate-200/90 dark:border-white/10 rounded-2xl shadow-xs overflow-hidden font-sans text-slate-800 dark:text-slate-100 relative">
       {/* Top Header & Permission Mode Controls */}
-      <div className="px-3.5 py-2.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/80 backdrop-blur-xs z-10">
+      <div className="px-3.5 py-2.5 border-b border-slate-100 dark:border-white/10 flex items-center justify-between bg-slate-50/80 dark:bg-[#090d19]/90 backdrop-blur-xs z-10">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-xs shrink-0">
             <MessageSquare className="w-4 h-4" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h4 className="font-bold text-xs text-slate-900 tracking-tight">Classroom Live Chat</h4>
+              <h4 className="font-bold text-xs text-slate-900 dark:text-white tracking-tight">Classroom Live Chat</h4>
               {renderConnectionBadge()}
             </div>
-            <span className="text-[10px] text-slate-500 font-medium block truncate">
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium block truncate">
               {chatMode === 'everyone'
                 ? 'Open to all participants'
                 : chatMode === 'selected_students'
@@ -773,7 +773,7 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
             <select
               value={chatMode}
               onChange={(e) => handleChatModeChange(e.target.value as ChatPermissionMode)}
-              className="px-2.5 py-1 text-[11px] font-bold bg-white border border-slate-200 rounded-lg text-slate-700 focus:outline-hidden focus:border-indigo-500 cursor-pointer shadow-2xs hover:border-slate-300 transition-colors"
+              className="px-2.5 py-1 text-[11px] font-bold bg-white dark:bg-[#12192e] border border-slate-200 dark:border-white/15 rounded-lg text-slate-700 dark:text-slate-200 focus:outline-hidden focus:border-indigo-500 cursor-pointer shadow-2xs hover:border-slate-300 dark:hover:border-white/30 transition-colors"
             >
               <option value="everyone">Everyone</option>
               <option value="selected_students">Selected Students</option>
@@ -786,13 +786,13 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
 
       {/* Pinned Messages Banner */}
       {pinnedMessages.length > 0 && (
-        <div className="bg-amber-50/90 border-b border-amber-200/80 p-2.5 space-y-1.5 max-h-20 overflow-y-auto">
+        <div className="bg-amber-50/90 dark:bg-amber-950/30 border-b border-amber-200/80 dark:border-amber-500/20 p-2.5 space-y-1.5 max-h-20 overflow-y-auto">
           {pinnedMessages.map((pm) => (
             <div key={pm.clientMessageId || pm.id} className="flex items-start justify-between gap-2 text-xs">
-              <div className="flex items-center gap-1.5 text-amber-900 font-bold min-w-0">
+              <div className="flex items-center gap-1.5 text-amber-900 dark:text-amber-200 font-bold min-w-0">
                 <Pin className="w-3.5 h-3.5 fill-current text-amber-600 shrink-0" />
-                <span className="text-[10px] uppercase font-black tracking-wider text-amber-700 shrink-0">Pinned:</span>
-                <span className="text-slate-800 truncate font-normal">{pm.message}</span>
+                <span className="text-[10px] uppercase font-black tracking-wider text-amber-700 dark:text-amber-400 shrink-0">Pinned:</span>
+                <span className="text-slate-800 dark:text-slate-200 truncate font-normal">{pm.message}</span>
               </div>
               {isInstructor && (
                 <button
@@ -812,15 +812,15 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
       <div
         ref={messagesContainerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto p-3.5 space-y-2.5 bg-[#ECE5DD]/20 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:16px_16px] relative"
+        className="flex-1 overflow-y-auto p-3.5 space-y-2.5 bg-[#ECE5DD]/20 dark:bg-[#070a14] bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] dark:bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:16px_16px] relative"
       >
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-slate-400 text-xs text-center p-6">
-            <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-indigo-600 shadow-xs mb-3">
+            <div className="w-12 h-12 rounded-2xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-xs mb-3">
               <MessageSquare className="w-6 h-6" />
             </div>
-            <p className="font-bold text-slate-700 text-sm">No messages yet</p>
-            <p className="text-[11px] text-slate-500 mt-1 max-w-xs leading-relaxed">
+            <p className="font-bold text-slate-700 dark:text-slate-200 text-sm">No messages yet</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 max-w-xs leading-relaxed">
               Say hello or ask questions about the current lecture. Messages are shared with the whole classroom.
             </p>
           </div>
@@ -837,11 +837,11 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
                 className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} ${isAnn ? 'w-full text-center my-2' : ''}`}
               >
                 {isAnn ? (
-                  <div className="mx-auto max-w-md p-3 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 text-indigo-950 rounded-2xl text-xs font-medium flex items-center gap-2.5 shadow-xs">
+                  <div className="mx-auto max-w-md p-3 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/50 dark:to-purple-950/50 border border-indigo-200 dark:border-indigo-500/30 text-indigo-950 dark:text-indigo-200 rounded-2xl text-xs font-medium flex items-center gap-2.5 shadow-xs">
                     <Megaphone className="w-4 h-4 text-indigo-600 shrink-0" />
                     <div className="text-left flex-1">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 block">Class Announcement</span>
-                      <p className="text-xs text-slate-800 leading-snug">{m.message}</p>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 block">Class Announcement</span>
+                      <p className="text-xs text-slate-800 dark:text-slate-200 leading-snug">{m.message}</p>
                     </div>
                   </div>
                 ) : (
@@ -849,7 +849,7 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
                     {/* Other Participant Metadata (Left Aligned Only) */}
                     {!isMe && (
                       <div className="flex items-center gap-1.5 text-[10px] font-bold px-1.5 mb-0.5">
-                        <span className="text-slate-800 font-semibold tracking-tight">
+                        <span className="text-slate-800 dark:text-slate-200 font-semibold tracking-tight">
                           {m.senderName || m.userName || 'Learner'}
                         </span>
                         {getRoleBadge(m.senderRole || m.role)}
@@ -861,7 +861,7 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
                       className={`relative px-3.5 py-2 text-xs leading-relaxed shadow-2xs transition-all ${
                         isMe
                           ? 'bg-indigo-600 text-white rounded-2xl rounded-tr-xs ml-auto'
-                          : 'bg-white text-slate-900 rounded-2xl rounded-tl-xs border border-slate-200/90'
+                          : 'bg-white dark:bg-[#111827] text-slate-900 dark:text-slate-100 rounded-2xl rounded-tl-xs border border-slate-200/90 dark:border-white/10'
                       }`}
                     >
                       {/* Quoted Reply Banner if Present */}
@@ -870,7 +870,7 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
                           className={`mb-1.5 px-2 py-1 rounded-lg text-[10px] border-l-2 ${
                             isMe
                               ? 'bg-indigo-700/60 border-indigo-300 text-indigo-100'
-                              : 'bg-slate-100 border-indigo-500 text-slate-700'
+                              : 'bg-slate-100 dark:bg-slate-800 border-indigo-500 text-slate-700 dark:text-slate-200'
                           }`}
                         >
                           <span className="font-bold block text-[9px]">{m.replyToName || 'Reply'}:</span>
@@ -884,7 +884,7 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
                       {/* Bubble Footer: Timestamp & Delivery Status Icons */}
                       <div
                         className={`flex items-center justify-end gap-1 mt-1 text-[10px] select-none ${
-                          isMe ? 'text-indigo-200' : 'text-slate-400'
+                          isMe ? 'text-indigo-200' : 'text-slate-400 dark:text-slate-400'
                         }`}
                       >
                         <span className="text-[9px] font-medium">{formatMessageTime(m.createdAt || m.timestamp)}</span>
@@ -913,13 +913,13 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
 
                       {/* WhatsApp-Style Hover Quick Actions (Reply & Pin) */}
                       <div
-                        className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-0.5 bg-white border border-slate-200 shadow-md px-1.5 py-0.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity z-20 ${
+                        className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-0.5 bg-white dark:bg-[#1f293d] border border-slate-200 dark:border-white/10 shadow-md px-1.5 py-0.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity z-20 ${
                           isMe ? '-left-16' : '-right-16'
                         }`}
                       >
                         <button
                           onClick={() => setReplyTo(m)}
-                          className="text-slate-500 hover:text-indigo-600 p-1 cursor-pointer rounded-md hover:bg-slate-50"
+                          className="text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-300 p-1 cursor-pointer rounded-md hover:bg-slate-50 dark:hover:bg-white/10"
                           title="Reply to message"
                         >
                           <Reply className="w-3 h-3" />
@@ -927,7 +927,7 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
                         {isInstructor && (
                           <button
                             onClick={() => togglePin(m.id || m.clientMessageId || '', Boolean(m.pinned))}
-                            className="text-slate-500 hover:text-amber-600 p-1 cursor-pointer rounded-md hover:bg-slate-50"
+                            className="text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 p-1 cursor-pointer rounded-md hover:bg-slate-50 dark:hover:bg-white/10"
                             title={m.pinned ? 'Unpin message' : 'Pin message'}
                           >
                             <Pin className="w-3 h-3" />
@@ -957,7 +957,7 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
 
       {/* Real-time Typing Indicators */}
       {typingUsers.length > 0 && (
-        <div className="px-3.5 py-1 bg-slate-50 border-t border-slate-100 text-[10px] text-slate-500 font-medium italic animate-pulse flex items-center gap-1.5">
+        <div className="px-3.5 py-1 bg-slate-50 dark:bg-[#090d18] border-t border-slate-100 dark:border-white/10 text-[10px] text-slate-500 dark:text-slate-400 font-medium italic animate-pulse flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping"></span>
           <span>{typingUsers.join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...</span>
         </div>
@@ -965,11 +965,11 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
 
       {/* Replying Banner */}
       {replyTo && (
-        <div className="bg-indigo-50/90 px-3.5 py-1.5 flex items-center justify-between border-t border-indigo-200 text-xs z-10">
+        <div className="bg-indigo-50/90 dark:bg-indigo-950/50 px-3.5 py-1.5 flex items-center justify-between border-t border-indigo-200 dark:border-indigo-500/30 text-xs z-10">
           <div className="flex items-center gap-2 min-w-0">
-            <Reply className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-            <span className="text-slate-700 truncate text-[11px]">
-              Replying to <strong className="text-indigo-700 font-semibold">{replyTo.senderName || replyTo.userName}</strong>: {replyTo.message}
+            <Reply className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+            <span className="text-slate-700 dark:text-slate-200 truncate text-[11px]">
+              Replying to <strong className="text-indigo-700 dark:text-indigo-300 font-semibold">{replyTo.senderName || replyTo.userName}</strong>: {replyTo.message}
             </span>
           </div>
           <button
@@ -983,8 +983,8 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
       )}
 
       {/* WhatsApp-Style Input Bar with Multiline & Keyboard Send */}
-      <div className="p-2.5 bg-white border-t border-slate-200/90 flex items-end gap-2 z-10">
-        <div className="flex-1 bg-slate-50 border border-slate-200/90 rounded-xl focus-within:bg-white focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all overflow-hidden flex items-center px-3 py-1.5">
+      <div className="p-2.5 bg-white dark:bg-[#090d18] border-t border-slate-200/90 dark:border-white/10 flex items-end gap-2 z-10">
+        <div className="flex-1 bg-slate-50 dark:bg-white/[0.04] border border-slate-200/90 dark:border-white/10 rounded-xl focus-within:bg-white dark:focus-within:bg-black/30 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all overflow-hidden flex items-center px-3 py-1.5">
           <textarea
             rows={1}
             disabled={connectionState !== 'ready' || (!isInstructor && isMuted)}
@@ -1006,7 +1006,7 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
                 ? 'Chat is restricted by instructor'
                 : 'Type a message... (Enter to send, Shift+Enter for new line)'
             }
-            className="w-full bg-transparent resize-none text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden max-h-24 leading-relaxed disabled:opacity-50"
+            className="w-full bg-transparent resize-none text-xs text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-hidden max-h-24 leading-relaxed disabled:opacity-50"
           />
         </div>
 
@@ -1015,7 +1015,7 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({ socket, classId,
             type="button"
             onClick={() => handleSend('announcement')}
             disabled={connectionState !== 'ready' || !inputMessage.trim()}
-            className="p-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl cursor-pointer border border-indigo-200 disabled:opacity-40 transition-colors shrink-0"
+            className="p-2.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded-xl cursor-pointer border border-indigo-200 dark:border-indigo-500/30 disabled:opacity-40 transition-colors shrink-0"
             title="Post Broadcast Announcement"
           >
             <Sparkles className="w-4 h-4" />

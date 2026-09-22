@@ -213,27 +213,27 @@ export const LivePollWidget: React.FC<LivePollWidgetProps> = ({ socket, classId,
   const maxVotes = Math.max(...votes.map((v) => v.votesCount), 0);
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl shadow-xs font-sans text-slate-800 p-5 space-y-5">
+    <div className="bg-white dark:bg-[#0c1122]/95 border border-slate-200 dark:border-white/10 rounded-2xl shadow-xs font-sans text-slate-800 dark:text-slate-100 p-5 space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+      <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/10 pb-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+          <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
             <BarChart3 className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="font-bold text-sm text-slate-900 leading-tight">Live Audience Polls</h3>
-            <p className="text-[11px] text-slate-500">Real-time instant opinion & consensus gathering</p>
+            <h3 className="font-bold text-sm text-slate-900 dark:text-white leading-tight">Live Audience Polls</h3>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Real-time instant opinion & consensus gathering</p>
           </div>
         </div>
 
         {isInstructor && (
-          <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-semibold">
+          <div className="flex items-center bg-slate-100 dark:bg-white/[0.06] p-1 rounded-xl text-xs font-semibold">
             <button
               onClick={() => setActiveTab('create')}
               className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
                 activeTab === 'create'
-                  ? 'bg-white text-indigo-600 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white dark:bg-[#151c33] text-indigo-600 dark:text-indigo-400 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Create
@@ -242,8 +242,8 @@ export const LivePollWidget: React.FC<LivePollWidgetProps> = ({ socket, classId,
               onClick={() => setActiveTab('poll')}
               className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
                 activeTab === 'poll'
-                  ? 'bg-white text-indigo-600 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white dark:bg-[#151c33] text-indigo-600 dark:text-indigo-400 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Active Poll ({totalVotes})
@@ -256,21 +256,21 @@ export const LivePollWidget: React.FC<LivePollWidgetProps> = ({ socket, classId,
       {isInstructor && activeTab === 'create' ? (
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">Poll Question</label>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Poll Question</label>
             <input
               type="text"
               placeholder="e.g., Which approach is better for real-time video distribution?"
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 transition-all"
+              className="w-full bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-hidden focus:border-indigo-500 focus:bg-white dark:focus:bg-black/30 focus:ring-1 focus:ring-indigo-500 transition-all"
             />
           </div>
 
           <div className="space-y-2">
-            <label className="block text-xs font-bold text-slate-700">Options (Up to 5)</label>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">Options (Up to 5)</label>
             {options.map((opt, index) => (
               <div key={index} className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-slate-100 border border-slate-200 text-slate-600 text-xs font-bold flex items-center justify-center shrink-0">
+                <span className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 text-xs font-bold flex items-center justify-center shrink-0">
                   {index + 1}
                 </span>
                 <input
@@ -278,13 +278,13 @@ export const LivePollWidget: React.FC<LivePollWidgetProps> = ({ socket, classId,
                   placeholder={`Option ${index + 1}`}
                   value={opt}
                   onChange={(e) => handleOptionChange(index, e.target.value)}
-                  className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:border-indigo-500 focus:bg-white"
+                  className="flex-1 bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-hidden focus:border-indigo-500 focus:bg-white dark:focus:bg-black/30"
                 />
                 {options.length > 2 && (
                   <button
                     type="button"
                     onClick={() => handleRemoveOption(index)}
-                    className="p-1.5 text-slate-400 hover:text-rose-500 cursor-pointer rounded-lg hover:bg-rose-50"
+                    className="p-1.5 text-slate-400 hover:text-rose-500 dark:text-slate-500 dark:hover:text-rose-400 cursor-pointer rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -298,7 +298,7 @@ export const LivePollWidget: React.FC<LivePollWidgetProps> = ({ socket, classId,
               type="button"
               disabled={options.length >= 5}
               onClick={handleAddOption}
-              className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 cursor-pointer disabled:opacity-40"
+              className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 cursor-pointer disabled:opacity-40"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Add Choice</span>
@@ -316,11 +316,11 @@ export const LivePollWidget: React.FC<LivePollWidgetProps> = ({ socket, classId,
       ) : activePoll ? (
         /* ACTIVE POLL VIEW */
         <div className="space-y-4">
-          <div className="p-3.5 bg-indigo-50/70 border border-indigo-100 rounded-xl space-y-1">
-            <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 text-[10px] font-bold uppercase tracking-wider">
+          <div className="p-3.5 bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-500/30 rounded-xl space-y-1">
+            <span className="px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-800 dark:text-indigo-300 text-[10px] font-bold uppercase tracking-wider">
               Active Poll
             </span>
-            <h4 className="font-bold text-sm text-slate-900 leading-snug pt-1">
+            <h4 className="font-bold text-sm text-slate-900 dark:text-white leading-snug pt-1">
               {activePoll.question}
             </h4>
           </div>
@@ -339,10 +339,10 @@ export const LivePollWidget: React.FC<LivePollWidgetProps> = ({ socket, classId,
                     onClick={() => handleVote(v.optionIndex)}
                     className={`w-full text-left p-3 rounded-xl border text-xs font-semibold transition-all relative overflow-hidden flex items-center justify-between cursor-pointer disabled:cursor-default ${
                       isCorrect
-                        ? 'border-emerald-500 bg-emerald-50/80 text-emerald-900'
+                        ? 'border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200'
                         : isSelected
-                        ? 'border-indigo-500 bg-indigo-50/80 text-indigo-900 ring-1 ring-indigo-500'
-                        : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                        ? 'border-indigo-500 bg-indigo-50/80 dark:bg-indigo-950/40 text-indigo-900 dark:text-indigo-200 ring-1 ring-indigo-500'
+                        : 'border-slate-200 dark:border-white/10 bg-white dark:bg-[#111827] hover:bg-slate-50 dark:hover:bg-[#161f33] text-slate-700 dark:text-slate-200'
                     }`}
                   >
                     {/* Background Progress Bar */}
@@ -361,7 +361,7 @@ export const LivePollWidget: React.FC<LivePollWidgetProps> = ({ socket, classId,
 
                     <span className="flex items-center gap-2.5 z-10">
                       {isSelected ? (
-                        <CheckCircle2 className="w-4 h-4 text-indigo-600 shrink-0" />
+                        <CheckCircle2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
                       ) : (
                         <Vote className="w-4 h-4 text-slate-400 shrink-0" />
                       )}
@@ -369,9 +369,9 @@ export const LivePollWidget: React.FC<LivePollWidgetProps> = ({ socket, classId,
                     </span>
 
                     {hasVoted && (
-                      <span className="flex items-center gap-2 font-mono text-[11px] font-bold text-slate-600 z-10">
+                      <span className="flex items-center gap-2 font-mono text-[11px] font-bold text-slate-600 dark:text-slate-300 z-10">
                         <span>{v.votesCount} votes</span>
-                        <span className="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-700">
+                        <span className="px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300">
                           {votePct}%
                         </span>
                       </span>
@@ -382,7 +382,7 @@ export const LivePollWidget: React.FC<LivePollWidgetProps> = ({ socket, classId,
             })}
           </div>
 
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
+          <div className="pt-2 border-t border-slate-100 dark:border-white/10 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-medium">
             <span className="flex items-center gap-1">
               <Users className="w-3.5 h-3.5 text-slate-400" />
               <span>{totalVotes} total responses</span>
@@ -392,7 +392,7 @@ export const LivePollWidget: React.FC<LivePollWidgetProps> = ({ socket, classId,
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleEndPoll}
-                  className="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 font-bold text-[11px] border border-rose-200 cursor-pointer flex items-center gap-1"
+                  className="px-2.5 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/50 font-bold text-[11px] border border-rose-200 dark:border-rose-500/30 cursor-pointer flex items-center gap-1"
                 >
                   <StopCircle className="w-3 h-3" />
                   <span>End Poll</span>
@@ -402,10 +402,10 @@ export const LivePollWidget: React.FC<LivePollWidgetProps> = ({ socket, classId,
           </div>
         </div>
       ) : (
-        <div className="p-8 text-center text-slate-400 space-y-2">
-          <BarChart3 className="w-8 h-8 mx-auto text-slate-300" />
+        <div className="p-8 text-center text-slate-400 dark:text-slate-500 space-y-2">
+          <BarChart3 className="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600" />
           <p className="text-xs font-medium">No live poll currently active.</p>
-          <p className="text-[11px] text-slate-400">Audience polls launched by the instructor will appear here instantly.</p>
+          <p className="text-[11px] text-slate-400 dark:text-slate-500">Audience polls launched by the instructor will appear here instantly.</p>
         </div>
       )}
     </div>

@@ -71,10 +71,10 @@ export const ClassroomControls: React.FC<ClassroomControlsProps> = ({
         {/* Microphone Toggle */}
         <button
           onClick={onToggleMic}
-          className={`p-3 rounded-2xl border transition-all cursor-pointer shadow-lg backdrop-blur-md ${
+          className={`p-3 rounded-2xl border transition-all cursor-pointer shadow-lg backdrop-blur-md focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50 ${
             isMicOn
-              ? 'bg-emerald-500/15 hover:bg-emerald-500/25 border-emerald-500/40 text-emerald-300'
-              : 'bg-rose-500/20 hover:bg-rose-500/30 border-rose-500/40 text-rose-400'
+              ? 'bg-emerald-500/15 hover:bg-emerald-500/25 border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
+              : 'bg-rose-500/20 hover:bg-rose-500/30 border-rose-500/40 text-rose-700 dark:text-rose-400'
           }`}
           title={isMicOn ? 'Turn off Microphone' : 'Turn on Microphone'}
           aria-label={isMicOn ? 'Turn off Microphone' : 'Turn on Microphone'}
@@ -85,10 +85,10 @@ export const ClassroomControls: React.FC<ClassroomControlsProps> = ({
         {/* Camera Toggle */}
         <button
           onClick={onToggleCam}
-          className={`p-3 rounded-2xl border transition-all cursor-pointer shadow-lg backdrop-blur-md ${
+          className={`p-3 rounded-2xl border transition-all cursor-pointer shadow-lg backdrop-blur-md focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50 ${
             isCamOn
-              ? 'bg-indigo-500/15 hover:bg-indigo-500/25 border-indigo-500/40 text-indigo-300'
-              : 'bg-rose-500/20 hover:bg-rose-500/30 border-rose-500/40 text-rose-400'
+              ? 'bg-indigo-500/15 hover:bg-indigo-500/25 border-indigo-500/40 text-indigo-700 dark:text-indigo-300'
+              : 'bg-rose-500/20 hover:bg-rose-500/30 border-rose-500/40 text-rose-700 dark:text-rose-400'
           }`}
           title={isCamOn ? 'Turn off Camera' : 'Turn on Camera'}
           aria-label={isCamOn ? 'Turn off Camera' : 'Turn on Camera'}
@@ -100,10 +100,10 @@ export const ClassroomControls: React.FC<ClassroomControlsProps> = ({
         {isInstructor && (
           <button
             onClick={onToggleScreenShare}
-            className={`p-3 rounded-2xl border transition-all cursor-pointer shadow-lg backdrop-blur-md ${
+            className={`p-3 rounded-2xl border transition-all cursor-pointer shadow-lg backdrop-blur-md focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50 ${
               isScreenSharing
                 ? 'bg-amber-500 border-amber-400 text-slate-950 font-bold shadow-amber-500/20'
-                : 'bg-white/[0.06] hover:bg-white/[0.12] border-white/10 text-slate-300 hover:text-white'
+                : 'bg-slate-100/90 hover:bg-slate-200/90 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white'
             }`}
             title={isScreenSharing ? 'Stop Screen Sharing' : 'Share Screen'}
             aria-label={isScreenSharing ? 'Stop Screen Sharing' : 'Share Screen'}
@@ -115,7 +115,7 @@ export const ClassroomControls: React.FC<ClassroomControlsProps> = ({
         {/* Interactive Whiteboard */}
         <button
           onClick={onToggleWhiteboard}
-          className={`p-3 rounded-2xl border transition-all cursor-pointer shadow-lg backdrop-blur-md ${
+          className={`p-3 rounded-2xl border transition-all cursor-pointer shadow-lg backdrop-blur-md focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50 ${
             isWhiteboardOpen
               ? 'bg-cyan-500 border-cyan-400 text-slate-950 font-bold shadow-cyan-500/20'
               : 'bg-slate-100/90 hover:bg-slate-200/90 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white'
@@ -130,7 +130,7 @@ export const ClassroomControls: React.FC<ClassroomControlsProps> = ({
         {!isInstructor && (
           <button
             onClick={onToggleHandRaise}
-            className={`p-3 rounded-2xl border transition-all cursor-pointer shadow-lg backdrop-blur-md ${
+            className={`p-3 rounded-2xl border transition-all cursor-pointer shadow-lg backdrop-blur-md focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50 ${
               isHandRaised
                 ? 'bg-amber-500 border-amber-400 text-slate-950 shadow-amber-500/30 animate-bounce font-bold'
                 : 'bg-slate-100/90 hover:bg-slate-200/90 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white'
@@ -147,7 +147,7 @@ export const ClassroomControls: React.FC<ClassroomControlsProps> = ({
       <div className="flex items-center gap-1.5">
         <button
           onClick={() => onToggleSidebarTab('roster')}
-          className={`p-2.5 rounded-xl border transition-all cursor-pointer relative backdrop-blur-md ${
+          className={`p-2.5 rounded-xl border transition-all cursor-pointer relative backdrop-blur-md focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50 ${
             activeSidebarTab === 'roster'
               ? 'bg-cyan-500/25 border-cyan-400/60 text-cyan-700 dark:text-cyan-300 shadow-md'
               : 'bg-slate-100/90 hover:bg-slate-200/90 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] border-slate-200/80 dark:border-white/10 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
@@ -160,7 +160,7 @@ export const ClassroomControls: React.FC<ClassroomControlsProps> = ({
 
         <button
           onClick={() => onToggleSidebarTab('chat')}
-          className={`p-2.5 rounded-xl border transition-all cursor-pointer relative backdrop-blur-md ${
+          className={`p-2.5 rounded-xl border transition-all cursor-pointer relative backdrop-blur-md focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50 ${
             activeSidebarTab === 'chat'
               ? 'bg-cyan-500/25 border-cyan-400/60 text-cyan-700 dark:text-cyan-300 shadow-md'
               : 'bg-slate-100/90 hover:bg-slate-200/90 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] border-slate-200/80 dark:border-white/10 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
@@ -178,7 +178,7 @@ export const ClassroomControls: React.FC<ClassroomControlsProps> = ({
 
         <button
           onClick={() => onToggleSidebarTab('questions')}
-          className={`p-2.5 rounded-xl border transition-all cursor-pointer relative backdrop-blur-md ${
+          className={`p-2.5 rounded-xl border transition-all cursor-pointer relative backdrop-blur-md focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50 ${
             activeSidebarTab === 'questions'
               ? 'bg-purple-500/25 border-purple-400/60 text-purple-700 dark:text-purple-300 shadow-md'
               : 'bg-slate-100/90 hover:bg-slate-200/90 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] border-slate-200/80 dark:border-white/10 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
@@ -196,7 +196,7 @@ export const ClassroomControls: React.FC<ClassroomControlsProps> = ({
 
         <button
           onClick={() => onToggleSidebarTab('notes')}
-          className={`p-2.5 rounded-xl border transition-all cursor-pointer backdrop-blur-md ${
+          className={`p-2.5 rounded-xl border transition-all cursor-pointer backdrop-blur-md focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50 ${
             activeSidebarTab === 'notes'
               ? 'bg-blue-500/25 border-blue-400/60 text-blue-700 dark:text-blue-300 shadow-md'
               : 'bg-slate-100/90 hover:bg-slate-200/90 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] border-slate-200/80 dark:border-white/10 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
@@ -209,7 +209,7 @@ export const ClassroomControls: React.FC<ClassroomControlsProps> = ({
 
         <button
           onClick={() => onToggleSidebarTab('resources')}
-          className={`p-2.5 rounded-xl border transition-all cursor-pointer backdrop-blur-md ${
+          className={`p-2.5 rounded-xl border transition-all cursor-pointer backdrop-blur-md focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50 ${
             activeSidebarTab === 'resources'
               ? 'bg-emerald-500/25 border-emerald-400/60 text-emerald-700 dark:text-emerald-300 shadow-md'
               : 'bg-slate-100/90 hover:bg-slate-200/90 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] border-slate-200/80 dark:border-white/10 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
@@ -222,7 +222,7 @@ export const ClassroomControls: React.FC<ClassroomControlsProps> = ({
 
         <button
           onClick={() => onToggleSidebarTab('polls')}
-          className={`p-2.5 rounded-xl border transition-all cursor-pointer backdrop-blur-md ${
+          className={`p-2.5 rounded-xl border transition-all cursor-pointer backdrop-blur-md focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50 ${
             activeSidebarTab === 'polls'
               ? 'bg-amber-500/25 border-amber-400/60 text-amber-700 dark:text-amber-300 shadow-md'
               : 'bg-slate-100/90 hover:bg-slate-200/90 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] border-slate-200/80 dark:border-white/10 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
@@ -236,10 +236,10 @@ export const ClassroomControls: React.FC<ClassroomControlsProps> = ({
         {/* Leave or End Class */}
         <button
           onClick={onLeaveOrEndClass}
-          className={`px-4 py-2.5 rounded-2xl font-bold text-xs flex items-center gap-1.5 shadow-xl transition-all cursor-pointer ${
+          className={`px-4 py-2.5 rounded-2xl font-bold text-xs flex items-center gap-1.5 shadow-xl transition-all cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-rose-500/50 ${
             isInstructor
-              ? 'bg-rose-600/90 hover:bg-rose-600 text-white shadow-rose-600/30 border border-rose-500/40'
-              : 'bg-white/[0.08] hover:bg-rose-600/80 border border-white/15 hover:border-rose-500 text-slate-200 hover:text-white'
+              ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/30 border border-rose-500'
+              : 'bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white dark:bg-rose-950/40 dark:hover:bg-rose-600 dark:text-rose-300 dark:hover:text-white border border-rose-200 dark:border-rose-800/50'
           }`}
           title={isInstructor ? 'End Class for Everyone' : 'Leave Classroom'}
           aria-label={isInstructor ? 'End Class for Everyone' : 'Leave Classroom'}

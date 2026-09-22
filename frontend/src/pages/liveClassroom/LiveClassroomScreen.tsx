@@ -1523,27 +1523,27 @@ export const LiveClassroomScreen: React.FC = () => {
         </div>
 
         {/* Center Live Telemetry Stats */}
-        <div className="flex items-center gap-3 text-xs font-bold text-slate-200 flex-wrap">
-          <div className="flex items-center gap-1.5 bg-white/[0.06] px-3 py-1.5 rounded-xl border border-white/10 font-mono text-slate-200 backdrop-blur-md shadow-xs">
-            <Clock className="w-3.5 h-3.5 text-indigo-400" />
+        <div className="flex items-center gap-3 text-xs font-bold text-slate-700 dark:text-slate-200 flex-wrap">
+          <div className="flex items-center gap-1.5 bg-slate-100/90 dark:bg-white/[0.06] px-3 py-1.5 rounded-xl border border-slate-200/80 dark:border-white/10 font-mono text-slate-700 dark:text-slate-200 backdrop-blur-md shadow-xs">
+            <Clock className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
             <span>{formatTime(secondsElapsed)}</span>
           </div>
 
-          <div className="flex items-center gap-1.5 bg-white/[0.06] px-3 py-1.5 rounded-xl border border-white/10 text-slate-200 backdrop-blur-md shadow-xs">
-            <Users className="w-3.5 h-3.5 text-indigo-400" />
+          <div className="flex items-center gap-1.5 bg-slate-100/90 dark:bg-white/[0.06] px-3 py-1.5 rounded-xl border border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-200 backdrop-blur-md shadow-xs">
+            <Users className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
             <span>{onlineCount} Live</span>
           </div>
 
           {isRecording && (
-            <span className="flex items-center gap-1.5 text-[10px] font-black uppercase text-rose-400 bg-rose-500/20 border border-rose-500/40 px-2.5 py-1.5 rounded-xl animate-pulse backdrop-blur-md">
+            <span className="flex items-center gap-1.5 text-[10px] font-black uppercase text-rose-600 dark:text-rose-400 bg-rose-500/15 dark:bg-rose-500/20 border border-rose-500/30 dark:border-rose-500/40 px-2.5 py-1.5 rounded-xl animate-pulse backdrop-blur-md">
               <span className="w-2 h-2 rounded-full bg-rose-500" />
               <span>REC</span>
             </span>
           )}
 
           {isLocked && (
-            <span className="flex items-center gap-1.5 text-[10px] font-black uppercase text-amber-300 bg-amber-500/20 border border-amber-500/40 px-2.5 py-1.5 rounded-xl shadow-xs backdrop-blur-md">
-              <Lock className="w-3 h-3 text-amber-400" />
+            <span className="flex items-center gap-1.5 text-[10px] font-black uppercase text-amber-700 dark:text-amber-300 bg-amber-500/15 dark:bg-amber-500/20 border border-amber-500/30 dark:border-amber-500/40 px-2.5 py-1.5 rounded-xl shadow-xs backdrop-blur-md">
+              <Lock className="w-3 h-3 text-amber-600 dark:text-amber-400" />
               <span>PRIVATE / LOCKED</span>
             </span>
           )}
@@ -1554,12 +1554,12 @@ export const LiveClassroomScreen: React.FC = () => {
             <div
               className={`flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1.5 rounded-xl border backdrop-blur-md transition-all ${
                 connectionStatus === 'connected'
-                  ? 'text-emerald-300 bg-emerald-500/20 border-emerald-500/30'
+                  ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 dark:bg-emerald-500/20 border-emerald-500/30'
                   : connectionStatus === 'reconnecting'
-                  ? 'text-amber-300 bg-amber-500/20 border-amber-500/30'
+                  ? 'text-amber-700 dark:text-amber-300 bg-amber-500/10 dark:bg-amber-500/20 border-amber-500/30'
                   : connectionStatus === 'disconnected'
-                  ? 'text-rose-300 bg-rose-500/20 border-rose-500/30'
-                  : 'text-slate-400 bg-white/[0.05] border-white/10'
+                  ? 'text-rose-700 dark:text-rose-300 bg-rose-500/10 dark:bg-rose-500/20 border-rose-500/30'
+                  : 'text-slate-600 dark:text-slate-400 bg-slate-100/90 dark:bg-white/[0.05] border-slate-200/80 dark:border-white/10'
               }`}
             >
               <Wifi className="w-3.5 h-3.5" />
@@ -1579,14 +1579,14 @@ export const LiveClassroomScreen: React.FC = () => {
             <div
               className={`flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1.5 rounded-xl border backdrop-blur-md transition-all ${
                 mediaConnectionState === 'connected'
-                  ? 'text-emerald-300 bg-emerald-500/20 border-emerald-500/30'
+                  ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 dark:bg-emerald-500/20 border-emerald-500/30'
                   : mediaConnectionState === 'connecting' || mediaConnectionState === 'authenticating'
-                  ? 'text-indigo-300 bg-indigo-500/20 border-indigo-500/30'
+                  ? 'text-indigo-700 dark:text-indigo-300 bg-indigo-500/10 dark:bg-indigo-500/20 border-indigo-500/30'
                   : mediaConnectionState === 'reconnecting'
-                  ? 'text-amber-300 bg-amber-500/20 border-amber-500/30'
+                  ? 'text-amber-700 dark:text-amber-300 bg-amber-500/10 dark:bg-amber-500/20 border-amber-500/30'
                   : mediaConnectionState === 'failed'
-                  ? 'text-rose-300 bg-rose-500/20 border-rose-500/30'
-                  : 'text-slate-400 bg-white/[0.05] border-white/10'
+                  ? 'text-rose-700 dark:text-rose-300 bg-rose-500/10 dark:bg-rose-500/20 border-rose-500/30'
+                  : 'text-slate-600 dark:text-slate-400 bg-slate-100/90 dark:bg-white/[0.05] border-slate-200/80 dark:border-white/10'
               }`}
             >
               <Radio className="w-3.5 h-3.5" />
@@ -1809,12 +1809,12 @@ export const LiveClassroomScreen: React.FC = () => {
               <button
                 onClick={handleToggleMic}
                 disabled={!isInstructor && isMicLocked}
-                className={`p-2.5 rounded-xl border text-xs font-bold transition-all relative backdrop-blur-md ${
+                className={`p-2.5 rounded-xl border text-xs font-bold transition-all relative backdrop-blur-md focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50 ${
                   micOn
-                    ? 'bg-indigo-600/30 border-indigo-500/40 text-indigo-300 cursor-pointer shadow-md shadow-indigo-500/10'
+                    ? 'bg-indigo-600/15 dark:bg-indigo-600/30 border-indigo-500/40 text-indigo-700 dark:text-indigo-300 cursor-pointer shadow-md shadow-indigo-500/10 hover:bg-indigo-600/25 dark:hover:bg-indigo-600/40'
                     : !isInstructor && isMicLocked
-                    ? 'bg-white/[0.04] border-white/5 text-slate-500 cursor-not-allowed opacity-75'
-                    : 'bg-rose-500/20 border-rose-500/40 text-rose-400 cursor-pointer shadow-md shadow-rose-500/10'
+                    ? 'bg-slate-100 dark:bg-white/[0.04] border-slate-200 dark:border-white/5 text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-75'
+                    : 'bg-rose-500/15 dark:bg-rose-500/20 border-rose-500/30 dark:border-rose-500/40 text-rose-700 dark:text-rose-400 cursor-pointer shadow-md shadow-rose-500/10 hover:bg-rose-500/25 dark:hover:bg-rose-500/30'
                 }`}
                 title={
                   !isInstructor && isMicLocked
@@ -1826,14 +1826,16 @@ export const LiveClassroomScreen: React.FC = () => {
               >
                 {micOn ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
                 {!isInstructor && isMicLocked && (
-                  <Lock className="w-2.5 h-2.5 absolute -top-1 -right-1 text-amber-400 bg-[#0c1122] rounded-full p-0.5 border border-white/20 shadow-xs" />
+                  <Lock className="w-2.5 h-2.5 absolute -top-1 -right-1 text-amber-500 dark:text-amber-400 bg-white dark:bg-[#0c1122] rounded-full p-0.5 border border-slate-300 dark:border-white/20 shadow-xs" />
                 )}
               </button>
 
               <button
                 onClick={handleToggleCam}
-                className={`p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer backdrop-blur-md ${
-                  camOn ? 'bg-indigo-600/30 border-indigo-500/40 text-indigo-300 shadow-md shadow-indigo-500/10' : 'bg-rose-500/20 border-rose-500/40 text-rose-400 shadow-md shadow-rose-500/10'
+                className={`p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer backdrop-blur-md focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50 ${
+                  camOn
+                    ? 'bg-indigo-600/15 dark:bg-indigo-600/30 border-indigo-500/40 text-indigo-700 dark:text-indigo-300 shadow-md shadow-indigo-500/10 hover:bg-indigo-600/25 dark:hover:bg-indigo-600/40'
+                    : 'bg-rose-500/15 dark:bg-rose-500/20 border-rose-500/30 dark:border-rose-500/40 text-rose-700 dark:text-rose-400 shadow-md shadow-rose-500/10 hover:bg-rose-500/25 dark:hover:bg-rose-500/30'
                 }`}
                 title={camOn ? 'Turn Camera Off' : 'Turn Camera On'}
               >
@@ -1843,8 +1845,10 @@ export const LiveClassroomScreen: React.FC = () => {
               {isInstructor && (
                 <button
                   onClick={handleToggleScreenShare}
-                  className={`p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer backdrop-blur-md ${
-                    isScreenSharing ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-600/30' : 'bg-white/[0.06] border-white/10 text-slate-300 hover:bg-white/[0.12]'
+                  className={`p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer backdrop-blur-md focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50 ${
+                    isScreenSharing
+                      ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-600/30'
+                      : 'bg-slate-100/90 hover:bg-slate-200/90 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-300'
                   }`}
                   title="Share Screen"
                 >
@@ -1854,22 +1858,24 @@ export const LiveClassroomScreen: React.FC = () => {
 
               <button
                 onClick={() => handleToggleWhiteboard(!isWhiteboardOpen)}
-                className={`p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 backdrop-blur-md ${
-                  isWhiteboardOpen ? 'bg-indigo-600/30 border-indigo-500/40 text-indigo-300 shadow-md shadow-indigo-500/10' : 'bg-white/[0.06] hover:bg-white/[0.12] border-white/10 text-slate-300'
+                className={`p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 backdrop-blur-md focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50 ${
+                  isWhiteboardOpen
+                    ? 'bg-indigo-600/20 dark:bg-indigo-600/30 border-indigo-500/40 text-indigo-700 dark:text-indigo-300 shadow-md shadow-indigo-500/10'
+                    : 'bg-slate-100/90 hover:bg-slate-200/90 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-300'
                 }`}
                 title="Interactive Whiteboard"
               >
-                <Pencil className="w-4 h-4 text-indigo-400" />
+                <Pencil className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                 <span className="hidden sm:inline">Whiteboard</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setIsDeviceSettingsOpen(true)}
-                className="p-2.5 rounded-xl border border-white/10 bg-white/[0.06] hover:bg-white/[0.12] text-slate-300 text-xs font-bold transition-all cursor-pointer backdrop-blur-md"
+                className="p-2.5 rounded-xl border border-slate-200/80 dark:border-white/10 bg-slate-100/90 hover:bg-slate-200/90 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-300 text-xs font-bold transition-all cursor-pointer backdrop-blur-md focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50"
                 title="Audio & Video Device Settings"
               >
-                <Settings className="w-4 h-4 text-indigo-400" />
+                <Settings className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
               </button>
             </div>
 
@@ -1882,10 +1888,10 @@ export const LiveClassroomScreen: React.FC = () => {
                       setActiveTab('participants');
                       setIsSidebarOpen(true);
                     }}
-                    className={`px-3 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all backdrop-blur-md ${
+                    className={`px-3 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all backdrop-blur-md focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50 ${
                       activeTab === 'participants' && isSidebarOpen
                         ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-600/25'
-                        : 'bg-white/[0.06] border-white/10 text-slate-300 hover:bg-white/[0.12]'
+                        : 'bg-slate-100/90 hover:bg-slate-200/90 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-300'
                     }`}
                   >
                     <Users className="w-3.5 h-3.5" />
@@ -1897,10 +1903,10 @@ export const LiveClassroomScreen: React.FC = () => {
                       setActiveTab('chat');
                       setIsSidebarOpen(true);
                     }}
-                    className={`px-3 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all backdrop-blur-md ${
+                    className={`px-3 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all backdrop-blur-md focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50 ${
                       activeTab === 'chat' && isSidebarOpen
                         ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-600/25'
-                        : 'bg-white/[0.06] border-white/10 text-slate-300 hover:bg-white/[0.12]'
+                        : 'bg-slate-100/90 hover:bg-slate-200/90 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-300'
                     }`}
                   >
                     <MessageSquare className="w-3.5 h-3.5" />
@@ -1912,10 +1918,10 @@ export const LiveClassroomScreen: React.FC = () => {
                       setActiveTab('questions');
                       setIsSidebarOpen(true);
                     }}
-                    className={`px-3 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all backdrop-blur-md ${
+                    className={`px-3 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all backdrop-blur-md focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50 ${
                       activeTab === 'questions' && isSidebarOpen
                         ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-600/25'
-                        : 'bg-white/[0.06] border-white/10 text-slate-300 hover:bg-white/[0.12]'
+                        : 'bg-slate-100/90 hover:bg-slate-200/90 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-300'
                     }`}
                   >
                     <HelpCircle className="w-3.5 h-3.5" />
@@ -1924,33 +1930,33 @@ export const LiveClassroomScreen: React.FC = () => {
 
                   <button
                     onClick={() => setIsPollModalOpen(true)}
-                    className="px-3 py-2 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-300 font-bold text-xs flex items-center gap-1.5 hover:bg-blue-500/25 cursor-pointer transition-all backdrop-blur-md shadow-xs"
+                    className="px-3 py-2 rounded-xl bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/30 text-blue-700 dark:text-blue-300 font-bold text-xs flex items-center gap-1.5 hover:bg-blue-500/20 dark:hover:bg-blue-500/25 cursor-pointer transition-all backdrop-blur-md shadow-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500/50"
                   >
-                    <BarChart3 className="w-3.5 h-3.5 text-blue-400" />
+                    <BarChart3 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                     <span>Poll</span>
                   </button>
 
                   <button
                     onClick={() => setIsQuizModalOpen(true)}
-                    className="px-3 py-2 rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-300 font-bold text-xs flex items-center gap-1.5 hover:bg-purple-500/25 cursor-pointer transition-all backdrop-blur-md shadow-xs"
+                    className="px-3 py-2 rounded-xl bg-purple-500/10 dark:bg-purple-500/15 border border-purple-500/30 text-purple-700 dark:text-purple-300 font-bold text-xs flex items-center gap-1.5 hover:bg-purple-500/20 dark:hover:bg-purple-500/25 cursor-pointer transition-all backdrop-blur-md shadow-xs focus:outline-hidden focus:ring-2 focus:ring-purple-500/50"
                   >
-                    <HelpCircle className="w-3.5 h-3.5 text-purple-400" />
+                    <HelpCircle className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                     <span>Quiz</span>
                   </button>
 
                   <button
                     onClick={() => setIsAnnouncementModalOpen(true)}
-                    className="px-3 py-2 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-bold text-xs flex items-center gap-1.5 hover:bg-indigo-500/25 cursor-pointer transition-all backdrop-blur-md shadow-xs"
+                    className="px-3 py-2 rounded-xl bg-indigo-500/10 dark:bg-indigo-500/15 border border-indigo-500/30 text-indigo-700 dark:text-indigo-300 font-bold text-xs flex items-center gap-1.5 hover:bg-indigo-500/20 dark:hover:bg-indigo-500/25 cursor-pointer transition-all backdrop-blur-md shadow-xs focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50"
                   >
-                    <Megaphone className="w-3.5 h-3.5 text-indigo-400" />
+                    <Megaphone className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                     <span>Announcement</span>
                   </button>
 
                   <button
                     onClick={handleOpenAttendanceRoster}
-                    className="px-3 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-bold text-xs flex items-center gap-1.5 hover:bg-emerald-500/25 cursor-pointer transition-all backdrop-blur-md shadow-xs"
+                    className="px-3 py-2 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 font-bold text-xs flex items-center gap-1.5 hover:bg-emerald-500/20 dark:hover:bg-emerald-500/25 cursor-pointer transition-all backdrop-blur-md shadow-xs focus:outline-hidden focus:ring-2 focus:ring-emerald-500/50"
                   >
-                    <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                     <span>Attendance</span>
                   </button>
                 </>
@@ -1961,10 +1967,10 @@ export const LiveClassroomScreen: React.FC = () => {
                       setActiveTab('chat');
                       setIsSidebarOpen(true);
                     }}
-                    className={`px-3.5 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all backdrop-blur-md ${
+                    className={`px-3.5 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all backdrop-blur-md focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50 ${
                       activeTab === 'chat' && isSidebarOpen
                         ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-600/25'
-                        : 'bg-white/[0.06] border-white/10 text-slate-300 hover:bg-white/[0.12]'
+                        : 'bg-slate-100/90 hover:bg-slate-200/90 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-300'
                     }`}
                   >
                     <MessageSquare className="w-3.5 h-3.5" />
@@ -1976,10 +1982,10 @@ export const LiveClassroomScreen: React.FC = () => {
                       setActiveTab('questions');
                       setIsSidebarOpen(true);
                     }}
-                    className={`px-3.5 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all backdrop-blur-md ${
+                    className={`px-3.5 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all backdrop-blur-md focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50 ${
                       activeTab === 'questions' && isSidebarOpen
                         ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-600/25'
-                        : 'bg-white/[0.06] border-white/10 text-slate-300 hover:bg-white/[0.12]'
+                        : 'bg-slate-100/90 hover:bg-slate-200/90 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-300'
                     }`}
                   >
                     <HelpCircle className="w-3.5 h-3.5" />
@@ -1991,10 +1997,10 @@ export const LiveClassroomScreen: React.FC = () => {
                       setActiveTab('participants');
                       setIsSidebarOpen(true);
                     }}
-                    className={`px-3.5 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all backdrop-blur-md ${
+                    className={`px-3.5 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all backdrop-blur-md focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50 ${
                       activeTab === 'participants' && isSidebarOpen
                         ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-600/25'
-                        : 'bg-white/[0.06] border-white/10 text-slate-300 hover:bg-white/[0.12]'
+                        : 'bg-slate-100/90 hover:bg-slate-200/90 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-300'
                     }`}
                   >
                     <Users className="w-3.5 h-3.5" />
@@ -2004,10 +2010,10 @@ export const LiveClassroomScreen: React.FC = () => {
                   {/* Student Raise Hand Button with active toggle state */}
                   <button
                     onClick={handleToggleHandRaise}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all backdrop-blur-md ${
+                    className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all backdrop-blur-md focus:outline-hidden focus:ring-2 focus:ring-amber-500/50 ${
                       hasRaisedHand
                         ? 'bg-amber-500 text-white font-black shadow-lg shadow-amber-500/30 animate-pulse border border-amber-400'
-                        : 'bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25'
+                        : 'bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 dark:hover:bg-amber-500/25'
                     }`}
                   >
                     <Hand className="w-4 h-4 fill-current" />
@@ -2016,17 +2022,17 @@ export const LiveClassroomScreen: React.FC = () => {
 
                   <button
                     onClick={() => setIsPollModalOpen(true)}
-                    className="px-3.5 py-2 bg-white/[0.06] hover:bg-white/[0.12] text-slate-300 rounded-xl text-xs font-bold border border-white/10 flex items-center gap-1.5 cursor-pointer backdrop-blur-md transition-all"
+                    className="px-3.5 py-2 bg-slate-100/90 hover:bg-slate-200/90 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold border border-slate-200/80 dark:border-white/10 flex items-center gap-1.5 cursor-pointer backdrop-blur-md transition-all focus:outline-hidden focus:ring-2 focus:ring-blue-500/50"
                   >
-                    <BarChart3 className="w-3.5 h-3.5 text-blue-400" />
+                    <BarChart3 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                     <span>Vote Poll</span>
                   </button>
 
                   <button
                     onClick={() => setIsQuizModalOpen(true)}
-                    className="px-3.5 py-2 bg-white/[0.06] hover:bg-white/[0.12] text-slate-300 rounded-xl text-xs font-bold border border-white/10 flex items-center gap-1.5 cursor-pointer backdrop-blur-md transition-all"
+                    className="px-3.5 py-2 bg-slate-100/90 hover:bg-slate-200/90 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold border border-slate-200/80 dark:border-white/10 flex items-center gap-1.5 cursor-pointer backdrop-blur-md transition-all focus:outline-hidden focus:ring-2 focus:ring-purple-500/50"
                   >
-                    <HelpCircle className="w-3.5 h-3.5 text-purple-400" />
+                    <HelpCircle className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                     <span>Take Quiz</span>
                   </button>
                 </>
@@ -2039,26 +2045,28 @@ export const LiveClassroomScreen: React.FC = () => {
                 <>
                   <button
                     onClick={() => setIsRestrictModalOpen(true)}
-                    className="px-3 py-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 font-bold text-xs flex items-center gap-1.5 hover:bg-amber-500/25 cursor-pointer transition-all backdrop-blur-md shadow-xs"
+                    className="px-3 py-2 rounded-xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 font-bold text-xs flex items-center gap-1.5 hover:bg-amber-500/20 dark:hover:bg-amber-500/25 cursor-pointer transition-all backdrop-blur-md shadow-xs focus:outline-hidden focus:ring-2 focus:ring-amber-500/50"
                     title="Mute All, Lock Room"
                   >
-                    <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
+                    <ShieldAlert className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                     <span className="hidden sm:inline">Restrict</span>
                   </button>
 
                   <button
                     onClick={handleToggleLock}
-                    className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer backdrop-blur-md ${
-                      isLocked ? 'bg-rose-500/20 border border-rose-500/40 text-rose-300' : 'bg-white/[0.06] border border-white/10 text-slate-300 hover:bg-white/[0.12]'
+                    className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer backdrop-blur-md focus:outline-hidden focus:ring-2 focus:ring-rose-500/50 ${
+                      isLocked
+                        ? 'bg-rose-500/15 dark:bg-rose-500/20 border border-rose-500/30 dark:border-rose-500/40 text-rose-700 dark:text-rose-300'
+                        : 'bg-slate-100/90 hover:bg-slate-200/90 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] border border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-300'
                     }`}
                   >
-                    {isLocked ? <Lock className="w-3.5 h-3.5 text-rose-400" /> : <Unlock className="w-3.5 h-3.5" />}
+                    {isLocked ? <Lock className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" /> : <Unlock className="w-3.5 h-3.5" />}
                     <span>{isLocked ? 'Locked' : 'Lock'}</span>
                   </button>
 
                   <button
                     onClick={() => setIsEndConfirmModalOpen(true)}
-                    className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-black text-xs flex items-center gap-1.5 cursor-pointer shadow-lg shadow-rose-600/30 border border-rose-500/40 transition-all"
+                    className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-black text-xs flex items-center gap-1.5 cursor-pointer shadow-lg shadow-rose-600/30 border border-rose-500/40 transition-all focus:outline-hidden focus:ring-2 focus:ring-rose-500/50"
                   >
                     <LogOut className="w-3.5 h-3.5" />
                     <span>End Class</span>
@@ -2067,7 +2075,7 @@ export const LiveClassroomScreen: React.FC = () => {
               ) : (
                 <button
                   onClick={() => setIsLeaveConfirmModalOpen(true)}
-                  className="px-3.5 py-2 rounded-xl bg-white/[0.06] hover:bg-rose-500/20 border border-white/10 hover:border-rose-500/30 text-slate-300 hover:text-rose-300 font-bold text-xs flex items-center gap-1.5 cursor-pointer backdrop-blur-md transition-all"
+                  className="px-3.5 py-2 rounded-xl bg-slate-100/90 hover:bg-rose-500/15 dark:bg-white/[0.06] dark:hover:bg-rose-500/20 border border-slate-200/80 dark:border-white/10 hover:border-rose-500/30 text-slate-700 hover:text-rose-700 dark:text-slate-300 dark:hover:text-rose-300 font-bold text-xs flex items-center gap-1.5 cursor-pointer backdrop-blur-md transition-all focus:outline-hidden focus:ring-2 focus:ring-rose-500/50"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                   <span>Leave</span>
@@ -2089,10 +2097,10 @@ export const LiveClassroomScreen: React.FC = () => {
                 <>
                   <button
                     onClick={() => setActiveTab('participants')}
-                    className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all backdrop-blur-md ${
+                    className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all backdrop-blur-md focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50 ${
                       activeTab === 'participants'
                         ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 border border-indigo-500/50'
-                        : 'text-slate-400 hover:text-white hover:bg-white/[0.06]'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/80 dark:hover:bg-white/[0.06]'
                     }`}
                   >
                     <Users className="w-3.5 h-3.5" />
@@ -2101,10 +2109,10 @@ export const LiveClassroomScreen: React.FC = () => {
 
                   <button
                     onClick={() => setActiveTab('chat')}
-                    className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all backdrop-blur-md ${
+                    className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all backdrop-blur-md focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50 ${
                       activeTab === 'chat'
                         ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 border border-indigo-500/50'
-                        : 'text-slate-400 hover:text-white hover:bg-white/[0.06]'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/80 dark:hover:bg-white/[0.06]'
                     }`}
                   >
                     <MessageSquare className="w-3.5 h-3.5" />
@@ -2113,10 +2121,10 @@ export const LiveClassroomScreen: React.FC = () => {
 
                   <button
                     onClick={() => setActiveTab('questions')}
-                    className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all backdrop-blur-md ${
+                    className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all backdrop-blur-md focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50 ${
                       activeTab === 'questions'
                         ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 border border-indigo-500/50'
-                        : 'text-slate-400 hover:text-white hover:bg-white/[0.06]'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/80 dark:hover:bg-white/[0.06]'
                     }`}
                   >
                     <HelpCircle className="w-3.5 h-3.5" />
@@ -2127,10 +2135,10 @@ export const LiveClassroomScreen: React.FC = () => {
                 <>
                   <button
                     onClick={() => setActiveTab('chat')}
-                    className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all backdrop-blur-md ${
+                    className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all backdrop-blur-md focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50 ${
                       activeTab === 'chat'
                         ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 border border-indigo-500/50'
-                        : 'text-slate-400 hover:text-white hover:bg-white/[0.06]'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/80 dark:hover:bg-white/[0.06]'
                     }`}
                   >
                     <MessageSquare className="w-3.5 h-3.5" />
@@ -2139,10 +2147,10 @@ export const LiveClassroomScreen: React.FC = () => {
 
                   <button
                     onClick={() => setActiveTab('questions')}
-                    className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all backdrop-blur-md ${
+                    className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all backdrop-blur-md focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50 ${
                       activeTab === 'questions'
                         ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 border border-indigo-500/50'
-                        : 'text-slate-400 hover:text-white hover:bg-white/[0.06]'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/80 dark:hover:bg-white/[0.06]'
                     }`}
                   >
                     <HelpCircle className="w-3.5 h-3.5" />
@@ -2151,10 +2159,10 @@ export const LiveClassroomScreen: React.FC = () => {
 
                   <button
                     onClick={() => setActiveTab('participants')}
-                    className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all backdrop-blur-md ${
+                    className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all backdrop-blur-md focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50 ${
                       activeTab === 'participants'
                         ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 border border-indigo-500/50'
-                        : 'text-slate-400 hover:text-white hover:bg-white/[0.06]'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/80 dark:hover:bg-white/[0.06]'
                     }`}
                   >
                     <Users className="w-3.5 h-3.5" />
@@ -2174,13 +2182,13 @@ export const LiveClassroomScreen: React.FC = () => {
               )}
               {activeTab === 'participants' && (
                 <div className="space-y-4 font-['Sora']">
-                  <div className="space-y-3 pb-3 border-b border-white/10">
+                  <div className="space-y-3 pb-3 border-b border-slate-200/80 dark:border-white/10">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4 text-indigo-400" />
-                        <h4 className="text-xs font-bold text-white uppercase tracking-wider">Active Classroom Roster</h4>
+                        <Users className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                        <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Active Classroom Roster</h4>
                       </div>
-                      <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 font-mono text-[10px] font-bold backdrop-blur-md">
+                      <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 dark:bg-indigo-500/20 border border-indigo-500/30 dark:border-indigo-500/40 text-indigo-700 dark:text-indigo-300 font-mono text-[10px] font-bold backdrop-blur-md">
                         {onlineCount} Online
                       </span>
                     </div>
@@ -2190,18 +2198,18 @@ export const LiveClassroomScreen: React.FC = () => {
                       <div className="flex items-center gap-2 pt-1">
                         <button
                           onClick={handleLockAllStudentMics}
-                          className="flex-1 py-1.5 px-2 bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 rounded-xl text-[11px] font-bold text-slate-200 flex items-center justify-center gap-1 cursor-pointer transition-all backdrop-blur-md shadow-xs"
+                          className="flex-1 py-1.5 px-2 bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] border border-slate-200/80 dark:border-white/10 rounded-xl text-[11px] font-bold text-slate-700 dark:text-slate-200 flex items-center justify-center gap-1 cursor-pointer transition-all backdrop-blur-md shadow-xs focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50"
                           title="Lock all student microphones"
                         >
-                          <Lock className="w-3 h-3 text-slate-400" />
+                          <Lock className="w-3 h-3 text-slate-500 dark:text-slate-400" />
                           <span>Lock All Mics</span>
                         </button>
                         <button
                           onClick={handleRevokeAllStudentMics}
-                          className="flex-1 py-1.5 px-2 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 rounded-xl text-[11px] font-bold text-rose-300 flex items-center justify-center gap-1 cursor-pointer transition-all backdrop-blur-md shadow-xs"
+                          className="flex-1 py-1.5 px-2 bg-rose-500/10 hover:bg-rose-500/20 dark:bg-rose-500/15 dark:hover:bg-rose-500/25 border border-rose-500/30 rounded-xl text-[11px] font-bold text-rose-700 dark:text-rose-300 flex items-center justify-center gap-1 cursor-pointer transition-all backdrop-blur-md shadow-xs focus:outline-hidden focus:ring-2 focus:ring-rose-500/50"
                           title="Revoke all student mic permissions"
                         >
-                          <VolumeX className="w-3 h-3 text-rose-400" />
+                          <VolumeX className="w-3 h-3 text-rose-600 dark:text-rose-400" />
                           <span>Revoke All</span>
                         </button>
                       </div>
@@ -2211,9 +2219,9 @@ export const LiveClassroomScreen: React.FC = () => {
                   {/* Dedicated Raised Hands Queue Box */}
                   {raisedHands.length > 0 && (
                     <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-2 backdrop-blur-md">
-                      <div className="flex items-center justify-between text-xs font-bold text-amber-300">
+                      <div className="flex items-center justify-between text-xs font-bold text-amber-800 dark:text-amber-300">
                         <span className="flex items-center gap-1.5">
-                          <Hand className="w-3.5 h-3.5 text-amber-400 fill-current animate-bounce" />
+                          <Hand className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 fill-current animate-bounce" />
                           <span>Raised Hands Queue ({raisedHands.length})</span>
                         </span>
                       </div>
@@ -2221,19 +2229,19 @@ export const LiveClassroomScreen: React.FC = () => {
                         {raisedHands.map((h, idx) => (
                           <div
                             key={h.userId}
-                            className="flex items-center justify-between bg-[#0c1122]/90 p-2 rounded-xl border border-amber-500/40 text-xs shadow-md"
+                            className="flex items-center justify-between bg-white dark:bg-[#0c1122]/90 p-2 rounded-xl border border-amber-500/30 dark:border-amber-500/40 text-xs shadow-md"
                           >
                             <div className="flex items-center gap-2 truncate min-w-0">
-                              <span className="w-4 h-4 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold flex items-center justify-center shrink-0 border border-amber-500/40">
+                              <span className="w-4 h-4 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10px] font-bold flex items-center justify-center shrink-0 border border-amber-500/30 dark:border-amber-500/40">
                                 {idx + 1}
                               </span>
-                              <span className="font-bold text-white truncate">{h.userName}</span>
+                              <span className="font-bold text-slate-900 dark:text-white truncate">{h.userName}</span>
                             </div>
                             {isInstructor && (
                               <div className="flex items-center gap-1.5 shrink-0 ml-2">
                                 <button
                                   onClick={() => handleAllowMicParticipant(h.userId)}
-                                  className="px-2 py-0.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[10px] cursor-pointer shadow-md shadow-indigo-600/30 border border-indigo-500/40 transition-all flex items-center gap-1"
+                                  className="px-2 py-0.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[10px] cursor-pointer shadow-md shadow-indigo-600/30 border border-indigo-500/40 transition-all flex items-center gap-1 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50"
                                   title="Grant student microphone permission"
                                 >
                                   <Mic className="w-2.5 h-2.5" />
@@ -2241,7 +2249,7 @@ export const LiveClassroomScreen: React.FC = () => {
                                 </button>
                                 <button
                                   onClick={() => handleAcknowledgeHand(h.userId)}
-                                  className="px-2 py-0.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] cursor-pointer shadow-md shadow-emerald-600/30 border border-emerald-500/40 transition-all"
+                                  className="px-2 py-0.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] cursor-pointer shadow-md shadow-emerald-600/30 border border-emerald-500/40 transition-all focus:outline-hidden focus:ring-2 focus:ring-emerald-500/50"
                                 >
                                   Acknowledge
                                 </button>
@@ -2255,14 +2263,14 @@ export const LiveClassroomScreen: React.FC = () => {
 
                   <div className="space-y-2 max-h-[460px] overflow-y-auto pr-1">
                     {participants.length === 0 ? (
-                      <div className="p-3 bg-white/[0.03] border border-white/10 rounded-2xl flex items-center justify-between text-xs backdrop-blur-md">
+                      <div className="p-3 bg-slate-50/90 dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/10 rounded-2xl flex items-center justify-between text-xs backdrop-blur-md">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-bold flex items-center justify-center text-xs">
+                          <div className="w-7 h-7 rounded-full bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 font-bold flex items-center justify-center text-xs">
                             {(resolvedDisplayName || 'U').charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <p className="font-bold text-white">{resolvedDisplayName}</p>
-                            <span className="text-[10px] text-slate-400 uppercase font-mono">
+                            <p className="font-bold text-slate-900 dark:text-white">{resolvedDisplayName}</p>
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-mono">
                               {isInstructor ? 'Instructor (You)' : 'Student (You)'}
                             </span>
                           </div>
@@ -2273,27 +2281,27 @@ export const LiveClassroomScreen: React.FC = () => {
                       participants.map((p, idx) => (
                         <div
                           key={p.userId || idx}
-                          className="p-3 bg-white/[0.03] hover:bg-white/[0.07] border border-white/10 rounded-2xl flex items-center justify-between gap-2 text-xs transition-colors backdrop-blur-md"
+                          className="p-3 bg-slate-50/90 hover:bg-slate-100 dark:bg-white/[0.03] dark:hover:bg-white/[0.07] border border-slate-200/80 dark:border-white/10 rounded-2xl flex items-center justify-between gap-2 text-xs transition-colors backdrop-blur-md"
                         >
                           <div className="flex items-center gap-2.5 truncate">
                             <div
                               className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
                                 p.role === 'instructor' || p.role === 'admin'
-                                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                                  : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
+                                  ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30'
+                                  : 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30'
                               }`}
                             >
                               {(p.name || 'U').charAt(0).toUpperCase()}
                             </div>
                             <div className="truncate">
-                              <p className="font-bold text-white truncate flex items-center gap-1">
+                              <p className="font-bold text-slate-900 dark:text-white truncate flex items-center gap-1">
                                 <span>{p.name}</span>
-                                {p.userId === userProfile?.uid && <span className="text-slate-400 text-[10px]">(You)</span>}
+                                {p.userId === userProfile?.uid && <span className="text-slate-500 dark:text-slate-400 text-[10px]">(You)</span>}
                               </p>
                               <div className="flex items-center gap-1.5 pt-0.5">
-                                <span className="text-[10px] text-slate-400 uppercase font-mono">{p.role || 'student'}</span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-mono">{p.role || 'student'}</span>
                                 {p.connectionState === 'reconnecting' && (
-                                  <span className="text-[9px] text-amber-400 font-bold flex items-center gap-0.5">
+                                  <span className="text-[9px] text-amber-600 dark:text-amber-400 font-bold flex items-center gap-0.5">
                                     <WifiOff className="w-2.5 h-2.5 animate-pulse" />
                                     Reconnecting
                                   </span>
@@ -2305,8 +2313,8 @@ export const LiveClassroomScreen: React.FC = () => {
                           <div className="flex items-center gap-1.5 shrink-0">
                             {/* Speaking in active 1-to-1 session badge */}
                             {activeInteraction && activeInteraction.status === 'active' && activeInteraction.studentId === p.userId && (
-                              <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 text-[10px] font-bold flex items-center gap-0.5 border border-emerald-500/40">
-                                <Mic className="w-3 h-3 text-emerald-400 animate-pulse" />
+                              <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold flex items-center gap-0.5 border border-emerald-500/30">
+                                <Mic className="w-3 h-3 text-emerald-600 dark:text-emerald-400 animate-pulse" />
                                 <span>Speaking</span>
                               </span>
                             )}
@@ -2315,8 +2323,8 @@ export const LiveClassroomScreen: React.FC = () => {
                             <span
                               className={`p-1 rounded-md border ${
                                 p.isVideoOn
-                                  ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300'
-                                  : 'bg-white/[0.05] border-white/10 text-slate-500'
+                                  ? 'bg-indigo-500/15 border-indigo-500/30 text-indigo-700 dark:text-indigo-300'
+                                  : 'bg-slate-100 dark:bg-white/[0.05] border-slate-200/80 dark:border-white/10 text-slate-400 dark:text-slate-500'
                               }`}
                               title={p.isVideoOn ? 'Camera Active' : 'Camera Off'}
                             >
@@ -2325,14 +2333,14 @@ export const LiveClassroomScreen: React.FC = () => {
 
                             {raisedHands.some((h) => h.userId === p.userId) && (
                               <div className="flex items-center gap-1">
-                                <span className="px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-300 text-[10px] font-bold flex items-center gap-0.5 animate-pulse border border-amber-500/40">
+                                <span className="px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10px] font-bold flex items-center gap-0.5 animate-pulse border border-amber-500/30">
                                   <Hand className="w-3 h-3 fill-current" />
                                   <span>Hand</span>
                                 </span>
                                 {isInstructor && (
                                   <button
                                     onClick={() => handleAcknowledgeHand(p.userId)}
-                                    className="px-2 py-0.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] cursor-pointer shadow-xs border border-emerald-500/40"
+                                    className="px-2 py-0.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] cursor-pointer shadow-xs border border-emerald-500/40 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/50"
                                     title="Acknowledge Hand & Unmute"
                                   >
                                     Ack
@@ -2346,7 +2354,7 @@ export const LiveClassroomScreen: React.FC = () => {
                                 {/* 1-to-1 Interactive Session Invite Button */}
                                 <button
                                   onClick={() => handleInviteToSpeak(p.userId, p.name || 'Student')}
-                                  className="p-1.5 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/40 cursor-pointer transition-all shadow-xs"
+                                  className="p-1.5 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 cursor-pointer transition-all shadow-xs focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50"
                                   title="Invite to 1-to-1 Speaking Interaction"
                                 >
                                   <Sparkles className="w-3.5 h-3.5" />
@@ -2355,7 +2363,7 @@ export const LiveClassroomScreen: React.FC = () => {
                                 {/* Ask to Unmute Button */}
                                 <button
                                   onClick={() => handleRequestUnmuteStudent(p.userId)}
-                                  className="p-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 cursor-pointer transition-all shadow-xs"
+                                  className="p-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 cursor-pointer transition-all shadow-xs focus:outline-hidden focus:ring-2 focus:ring-emerald-500/50"
                                   title="Ask Student to Unmute"
                                 >
                                   <Mic className="w-3.5 h-3.5" />
@@ -2367,10 +2375,10 @@ export const LiveClassroomScreen: React.FC = () => {
                                       ? handleMuteParticipant(p.userId)
                                       : handleAllowMicParticipant(p.userId)
                                   }
-                                  className={`p-1.5 rounded-lg cursor-pointer transition-all border ${
+                                  className={`p-1.5 rounded-lg cursor-pointer transition-all border focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50 ${
                                     p.micPermission === 'granted' && !p.isMutedByInstructor
-                                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-rose-500/20 hover:text-rose-300 hover:border-rose-500/40'
-                                      : 'bg-white/[0.06] text-slate-400 border-white/10 hover:text-emerald-300 hover:bg-emerald-500/20 hover:border-emerald-500/40'
+                                      ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 hover:bg-rose-500/15 hover:text-rose-700 dark:hover:text-rose-300 hover:border-rose-500/30'
+                                      : 'bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-white/10 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-500/15 hover:border-emerald-500/30'
                                   }`}
                                   title={
                                     p.micPermission === 'granted' && !p.isMutedByInstructor
@@ -2392,10 +2400,10 @@ export const LiveClassroomScreen: React.FC = () => {
                                       p.chatPermission === 'denied'
                                     )
                                   }
-                                  className={`p-1.5 rounded-lg cursor-pointer transition-all border ${
+                                  className={`p-1.5 rounded-lg cursor-pointer transition-all border focus:outline-hidden focus:ring-2 focus:ring-indigo-500/50 ${
                                     p.chatPermission === 'granted'
-                                      ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40 hover:bg-rose-500/20 hover:text-rose-300 hover:border-rose-500/40'
-                                      : 'bg-white/[0.06] text-slate-400 border-white/10 hover:text-indigo-300 hover:bg-indigo-500/20 hover:border-indigo-500/40'
+                                      ? 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30 hover:bg-rose-500/15 hover:text-rose-700 dark:hover:text-rose-300 hover:border-rose-500/30'
+                                      : 'bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-white/10 hover:text-indigo-700 dark:hover:text-indigo-300 hover:bg-indigo-500/15 hover:border-indigo-500/30'
                                   }`}
                                   title={p.chatPermission === 'granted' ? 'Mute Student Chat' : 'Allow Student Chat'}
                                 >
@@ -2408,7 +2416,7 @@ export const LiveClassroomScreen: React.FC = () => {
 
                                 <button
                                   onClick={() => handleKickParticipant(p.userId)}
-                                  className="p-1.5 rounded-lg bg-white/[0.06] hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-white/10 hover:border-rose-500/30 cursor-pointer transition-all"
+                                  className="p-1.5 rounded-lg bg-slate-100 hover:bg-rose-500/15 dark:bg-white/[0.06] dark:hover:bg-rose-500/20 text-slate-600 hover:text-rose-700 dark:text-slate-400 dark:hover:text-rose-400 border border-slate-200/80 dark:border-white/10 hover:border-rose-500/30 cursor-pointer transition-all focus:outline-hidden focus:ring-2 focus:ring-rose-500/50"
                                   title="Remove from Classroom"
                                 >
                                   <UserX className="w-3.5 h-3.5" />
