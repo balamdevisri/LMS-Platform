@@ -225,20 +225,38 @@ export class CouponService {
       };
     }
 
-    // 5. Fetch Authoritative Course Price from Firestore
-    let basePrice: number = 999;
-    if (typeof params.coursePrice === 'number') {
-      basePrice = params.coursePrice;
-    } else {
-      try {
-        const courseDoc = await this.courseService.getCourseById(courseId);
-        if (courseDoc && typeof courseDoc.price === 'number') {
-          basePrice = courseDoc.price;
-        }
-      } catch (err) {
-        basePrice = 999;
-      }
+    // 5. Fetch Authoritative Course Price from Firestore (Database is the ONLY authoritative source)
+    // Ignore any client-provided coursePrice, price, amount, or basePrice to prevent tampering.
+    let basePrice: number;
+    let courseDoc = null;
+    try {
+      courseDoc = await this.courseService.getCourseById(courseId);
+    } catch (fetchErr: any) {
+      logger.error(`[CouponService] Failed to fetch authoritative course "${courseId}" for coupon validation:`, fetchErr);
+      return {
+        valid: false,
+        code: 'COURSE_FETCH_FAILED',
+        message: 'Failed to retrieve authoritative course details for pricing.',
+      };
     }
+
+    if (!courseDoc) {
+      return {
+        valid: false,
+        code: 'COURSE_NOT_FOUND',
+        message: `Course "${courseId}" does not exist in the course catalog.`,
+      };
+    }
+
+    if (typeof courseDoc.price !== 'number' || isNaN(courseDoc.price) || courseDoc.price <= 0) {
+      return {
+        valid: false,
+        code: 'INVALID_COURSE_PRICE',
+        message: `Course "${courseId}" does not have a valid authoritative price in database.`,
+      };
+    }
+
+    basePrice = courseDoc.price;
 
     // 6. Minimum Purchase Amount Check
     if (
@@ -269,18 +287,22 @@ export class CouponService {
     // 8. Per-User Usage Limit Check
     if (userId && coupon.perUserUsageLimit !== null && coupon.perUserUsageLimit !== undefined) {
       if (isFirebaseAdminInitialized()) {
-        const userUsageSnap = await db
-          .collection(this.COUPON_USAGES_COLLECTION)
-          .where('couponId', '==', coupon.id)
-          .where('userId', '==', userId)
-          .get();
+        try {
+          const userUsageSnap = await db
+            .collection(this.COUPON_USAGES_COLLECTION)
+            .where('couponId', '==', coupon.id)
+            .where('userId', '==', userId)
+            .get();
 
-        if (userUsageSnap.size >= coupon.perUserUsageLimit) {
-          return {
-            valid: false,
-            code: 'USER_LIMIT_REACHED',
-            message: `You have already used this coupon the maximum allowed times (${coupon.perUserUsageLimit}).`,
-          };
+          if (userUsageSnap.size >= coupon.perUserUsageLimit) {
+            return {
+              valid: false,
+              code: 'USER_LIMIT_REACHED',
+              message: `You have already used this coupon the maximum allowed times (${coupon.perUserUsageLimit}).`,
+            };
+          }
+        } catch (err) {
+          logger.warn('[CouponService] perUserUsageLimit query fallback:', err);
         }
       }
     }
