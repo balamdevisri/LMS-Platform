@@ -30,6 +30,7 @@ import {
 import type { ResourceItem } from '@/services/contentManagementService';
 import { sanitizeAdminInput, sanitizeMarkdownContent, serializeFirestorePayload } from '@/utils/adminDataSanitizer';
 import { MarkdownContent } from '@/components/learning/MarkdownContent';
+import { StudentLessonRenderer } from '@/components/learning/StudentLessonRenderer';
 import { aiAutofillService } from '@/services/aiAutofillService';
 
 // Initialize services
@@ -1343,8 +1344,29 @@ export const AdminContentManagement: React.FC = () => {
                           <span>Student-Facing Live Preview</span>
                           <span className="text-emerald-500">Live Rendered</span>
                         </div>
-                        <div className="w-full flex-1 bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 overflow-y-auto shadow-inner">
-                          <MarkdownContent content={selectedLesson.readingContent || '_No content written yet._'} />
+                        <div className="w-full flex-1 bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 overflow-y-auto shadow-inner">
+                          <StudentLessonRenderer
+                            mode="preview"
+                            lesson={{
+                              ...selectedLesson,
+                              title: selectedLesson.title || 'Lesson Preview',
+                              moduleTitle: activeCourse?.modules?.find((m) => m.id === activeModuleId)?.title,
+                              readingContent: selectedLesson.readingContent || '_No content written yet._',
+                              conceptTheory: selectedLesson.conceptTheory || selectedLesson.readingContent,
+                              description: selectedLesson.description,
+                              duration: selectedLesson.duration,
+                              type: selectedLesson.type,
+                              learningObjectives: selectedLesson.learningObjectives,
+                              codeExamples: selectedLesson.codeExamples,
+                              keyPoints: selectedLesson.keyPoints,
+                              practiceQuestions: selectedLesson.practiceQuestions,
+                              resourceLinks: selectedLesson.resourceLinks || (selectedLesson as any).resources,
+                              topicImageUrl: selectedLesson.topicImageUrl,
+                              themeColor: selectedLesson.themeColor,
+                              themeIcon: selectedLesson.themeIcon,
+                              revision: selectedLesson.revision,
+                            }}
+                          />
                         </div>
                       </div>
                     )}

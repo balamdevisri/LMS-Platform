@@ -391,45 +391,16 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
     markDirty();
   };
 
-  // ─── Compile Structured Content into Unified Lesson Markdown ─────────────
+  // ─── Compile Clean Lesson Markdown Content ────────────────────────────────
   const compiledLessonContent = useMemo((): string => {
-    const parts: string[] = [];
-
-    // Concept / Theory
-    if (conceptTheory.trim()) {
-      parts.push(conceptTheory.trim());
-    }
-
-    // Code Examples
-    if (codeExamples.length > 0) {
-      codeExamples.forEach((ex, idx) => {
-        if (ex.code && ex.code.trim()) {
-          const titleHeading = ex.title ? `### Code Example ${idx + 1}: ${ex.title}` : `### Code Example ${idx + 1}`;
-          parts.push(titleHeading);
-          parts.push(`\`\`\`${ex.language || 'text'}\n${ex.code.trim()}\n\`\`\``);
-          if (ex.explanation && ex.explanation.trim()) {
-            parts.push(`> **Explanation:** ${ex.explanation.trim()}`);
-          }
-        }
-      });
-    }
-
-    // Key Points
-    const validKeyPoints = keyPoints.filter((kp) => kp.trim().length > 0);
-    if (validKeyPoints.length > 0) {
-      parts.push('### Key Points & Takeaways');
-      validKeyPoints.forEach((kp) => {
-        parts.push(`- ${kp.trim()}`);
-      });
-    }
-
-    // Notes
+    // Keep conceptTheory as the actual Markdown theory content without duplicating codeExamples / keyPoints
+    // (since they are rendered as structured cards/checkmarks by LessonContentPanel)
+    let content = conceptTheory.trim();
     if (notes && notes.trim()) {
-      parts.push(`> **Important Note:** ${notes.trim()}`);
+      content = content ? `${content}\n\n> **Important Note:** ${notes.trim()}` : `> **Important Note:** ${notes.trim()}`;
     }
-
-    return processCanonicalLessonContent(parts.join('\n\n'));
-  }, [conceptTheory, codeExamples, keyPoints, notes]);
+    return processCanonicalLessonContent(content);
+  }, [conceptTheory, notes]);
 
   // ─── Save & Publish Handlers ──────────────────────────────────────────────
   const handleSave = async (isDraft = false) => {
@@ -1266,6 +1237,7 @@ export const UnitContentEditor: React.FC<UnitContentEditorProps> = ({
                   readingContent: compiledLessonContent,
                   conceptTheory,
                   learningObjectives: objectives.filter((o) => o.trim().length > 0),
+                  codeExamples: codeExamples.filter((c) => c.code && c.code.trim().length > 0),
                   keyPoints: keyPoints.filter((k) => k.trim().length > 0),
                   practiceQuestions: practiceQuestions.filter((p) => p.question.trim().length > 0),
                   resources: resourceLinks.filter((r) => r.title.trim().length > 0 && r.url.trim().length > 0),

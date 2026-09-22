@@ -132,49 +132,11 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
   const processedContent = useMemo(() => {
     if (!content) return '';
     const rawText = typeof content === 'string' ? content : String(content || '');
-    let text = rawText
-      .replace(/\r/g, '')
+    // Normalize line endings and remove invisible unicode BOM / zero-width spaces
+    return rawText
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
       .replace(/[\u200B-\u200D\uFEFF]/g, '');
-
-    // 0. Ensure ``` code blocks always start on their own line
-    text = text.replace(/([^\n])\s*(```[a-zA-Z0-9_-]*)/g, '$1\n\n$2');
-    text = text.replace(/(```)\s*([^\n`])/g, '$1\n$2');
-
-    // 1. Separate tasks so they don't merge into text
-    text = text.replace(/(\S)\s+(Task\s+\d+\b)/gi, '$1\n\n$2');
-    text = text.replace(/(\S)\s+(Scenario\s+\d+\b)/gi, '$1\n\n$2');
-    text = text.replace(/(\S)\s+(Practical\s+Task\s+\d+\b)/gi, '$1\n\n$2');
-    text = text.replace(/(\S)\s+(Lab\s+Task\s+\d+\b)/gi, '$1\n\n$2');
-    text = text.replace(/(\S)\s+(Exercise\s+\d+\b)/gi, '$1\n\n$2');
-
-    // 2. Separate Q&A if on the same line
-    text = text.replace(/(\?|[a-zA-Z0-9])\s+(Answer\s*:)/gi, '$1\n\n**Answer:**');
-
-    // 3. Normalize unicode bullets to markdown list items
-    text = text.replace(/^[ \t]*[●•✔❌]\s*/gm, '- ');
-    text = text.replace(/(\S)\s+([●•✔❌]\s*)/g, '$1\n- ');
-
-    // 4. Handle standalone hashtags / metadata tags (e.g., `#tags`, `#github #aws`, `Tags: git, devops`)
-    // Prevent `#tag` or `#tags` from blowing up into oversized H1 headings.
-    text = text.replace(/^(?:#\s*tags|#tags|Tags|Keywords|Hashtags|Topic Tags)[:\s]+([^\n]+)$/gim, (_match, tagLine) => {
-      return `\n\n\`\`\`tags\n${tagLine.trim()}\n\`\`\`\n\n`;
-    });
-    // Standalone lines with multiple hashtags: e.g. `#git #github #versioncontrol`
-    text = text.replace(/^(#\w[\w-]*\s+)+#\w[\w-]*$/gm, (_match) => {
-      return `\n\n\`\`\`tags\n${_match.trim()}\n\`\`\`\n\n`;
-    });
-
-    // 5. Format single-line flowcharts with ↓ or ➔ into structured step blocks
-    text = text.replace(/(?:^|\n)(?:Flowchart|Flow Chart|Process Flow)[:\s—]+([^\n]+(?:↓|➔|->)[^\n]+)/gi, (_match, steps) => {
-      const formattedSteps = steps
-        .split(/\s*(?:↓|➔|->)\s*/)
-        .map((s: string) => s.trim())
-        .filter(Boolean)
-        .join('\n  ↓\n');
-      return `\n\n\`\`\`flowchart-text\n${formattedSteps}\n\`\`\`\n\n`;
-    });
-
-    return text;
   }, [content]);
 
   return (
