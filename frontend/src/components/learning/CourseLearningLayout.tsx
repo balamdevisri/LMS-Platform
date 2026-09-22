@@ -425,7 +425,11 @@ export const CourseLearningLayout: React.FC<CourseLearningLayoutProps> = ({
     const handleLessonUpdated = (e: any) => {
       const detail = e?.detail;
       if (!detail) return;
-      if (String(detail.courseId) === String(courseId) && String(detail.lessonId) === String(selectedLessonId)) {
+      const matchCourse =
+        String(detail.courseId) === String(courseId) ||
+        (detail.courseId === 'c-programming' && courseId === 'c-programming-course-id') ||
+        (detail.courseId === 'c-programming-course-id' && courseId === 'c-programming');
+      if (matchCourse && String(detail.lessonId) === String(selectedLessonId)) {
         if (detail.lesson) {
           setServerLessonData(detail.lesson);
         }
