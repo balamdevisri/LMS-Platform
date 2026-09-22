@@ -1119,6 +1119,38 @@ export const AdminCourseEdit: React.FC = () => {
       setModules(currentModulesState);
     }
 
+    // 1. If a lesson unit is actively selected, save it through the canonical lesson pipeline
+    if (selectedUnit && selectedModId) {
+      try {
+        const savedLessonResult = await courseService.saveLessonContent(String(id), selectedModId, {
+          id: selectedUnit.id,
+          title: unitTitle || selectedUnit.title,
+          duration: unitDuration || selectedUnit.duration,
+          type: unitType || selectedUnit.type,
+          readingContent: normalizedMarkdown,
+          conceptTheory: normalizedMarkdown,
+          content: normalizedMarkdown,
+          description: lessonDescription,
+          learningObjectives,
+          keyPoints,
+          resources: unitResources,
+          resourceLinks: unitResources,
+          expectedRevision: selectedUnit.revision,
+        });
+        if (savedLessonResult) {
+          setSelectedUnit((prev: any) => ({ ...prev, ...savedLessonResult }));
+        }
+      } catch (lessonErr: any) {
+        setSaveStatus('error');
+        if (lessonErr.status === 409 || lessonErr.conflict || lessonErr.statusCode === 409) {
+          toast.error('Conflict: Lesson was modified by another session. Please reload.');
+        } else {
+          toast.error(lessonErr.message || 'Failed to save lesson content.');
+        }
+        return;
+      }
+    }
+
     try {
       const formValues = getValues();
       const resolvedVersion = typeof forceVersion === 'number' ? forceVersion : (courseData?.version || 1);

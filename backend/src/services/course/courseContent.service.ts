@@ -125,11 +125,11 @@ export class CourseContentService {
         const idx = raw.orderIndex ?? raw.order ?? 1;
         let lessons: any[] = [];
 
-        // 1. Authoritative: Fetch from subcollection courses/{courseId}/modules/{moduleId}/lessons
+        // 1. Authoritative: Fetch from subcollection courses/{targetCourseId}/modules/{moduleId}/lessons
         try {
           const lessonsSnap = await db
             .collection('courses')
-            .doc(courseId)
+            .doc(targetCourseId)
             .collection('modules')
             .doc(doc.id)
             .collection('lessons')
@@ -247,16 +247,86 @@ export class CourseContentService {
               lessons = Array.isArray(raw.lessons) ? raw.lessons : [];
             }
             lessons.sort((a: any, b: any) => (a.orderIndex ?? a.order ?? 0) - (b.orderIndex ?? b.order ?? 0));
+
+            // Format topics and learningUnits consistently with canonical lessons
+            let topics = raw.topics;
+            if (lessons.length > 0) {
+              const lessonMap = new Map(lessons.map((l) => [l.id, l]));
+              if (Array.isArray(topics) && topics.length > 0) {
+                topics = topics.map((top: any) => ({
+                  ...top,
+                  learningUnits: (top.learningUnits || []).map((u: any) => {
+                    const subLesson = lessonMap.get(u.id);
+                    if (subLesson) {
+                      return {
+                        ...u,
+                        ...subLesson,
+                        title: subLesson.title || u.title,
+                        duration: subLesson.duration || u.duration,
+                        type: subLesson.type ? (subLesson.type.charAt(0).toUpperCase() + subLesson.type.slice(1)) : (u.type || 'Reading'),
+                        readingContent: subLesson.readingContent || subLesson.conceptTheory || subLesson.content || u.readingContent || '',
+                        conceptTheory: subLesson.readingContent || subLesson.conceptTheory || subLesson.content || u.conceptTheory || '',
+                        content: subLesson.readingContent || subLesson.content || u.content || '',
+                        resources: subLesson.resources || subLesson.resourceLinks || u.resources || [],
+                        learningObjectives: subLesson.learningObjectives || u.learningObjectives || [],
+                        keyPoints: subLesson.keyPoints || u.keyPoints || [],
+                        revision: subLesson.revision ?? u.revision,
+                        orderIndex: subLesson.orderIndex ?? u.orderIndex ?? subLesson.order,
+                        order: subLesson.order ?? u.order ?? subLesson.orderIndex,
+                      };
+                    }
+                    return u;
+                  }),
+                }));
+              } else {
+                topics = [
+                  {
+                    id: raw.id ? raw.id.replace('mod-', 'topic-').replace('-mod', '-topic') : `${raw.id}-topic-1`,
+                    title: `${raw.title || 'Module'} - Complete Notes`,
+                    description: raw.description || '',
+                    estimatedDuration: raw.duration || '30 mins',
+                    learningUnits: lessons.map((l) => ({
+                      id: l.id,
+                      title: l.title,
+                      description: l.description || '',
+                      duration: l.duration || '15 mins',
+                      type: l.type ? (l.type.charAt(0).toUpperCase() + l.type.slice(1)) : 'Reading',
+                      readingContent: l.readingContent || l.conceptTheory || l.content || l.notes || '',
+                      content: l.readingContent || l.conceptTheory || l.content || l.notes || '',
+                      conceptTheory: l.readingContent || l.conceptTheory || l.content || '',
+                      videoUrl: l.videoUrl || l.video?.videoUrl || '',
+                      quizQuestions: l.quizQuestions || (l.quiz ? l.quiz.questions : []),
+                      assignmentInstructions: l.assignmentInstructions || (l.assignment ? l.assignment.instructions : ''),
+                      practiceLabChallenge: l.practiceLabChallenge || l.practical || null,
+                      resources: l.resources || [],
+                      learningObjectives: l.learningObjectives || [],
+                      keyPoints: l.keyPoints || [],
+                      revision: l.revision,
+                      orderIndex: l.orderIndex ?? l.order,
+                      order: l.order ?? l.orderIndex,
+                    })),
+                  },
+                ];
+              }
+            }
+
             modules.push({
               ...raw,
               orderIndex: idx,
               order: idx,
               revision: raw.revision ?? 1,
               lessons: lessons || [],
-              topics: raw.topics || [],
+              topics: topics || raw.topics || [],
             });
           }
           modules.sort((a, b) => (a.orderIndex ?? a.order ?? 0) - (b.orderIndex ?? b.order ?? 0));
+          const maxRevision = modules.reduce((max, m) => {
+            const modRev = m.revision ?? 1;
+            const rawLessons = (m as any).lessons || [];
+            const lessonMax = rawLessons.reduce((lMax: number, l: any) => Math.max(lMax, l.revision ?? 1), 1);
+            return Math.max(max, modRev, lessonMax);
+          }, 1);
+          this.setCache(cacheKey, modules, { maxRevision });
           return modules;
         }
       } catch (restErr) {
@@ -435,7 +505,36 @@ export class CourseContentService {
             return lesson;
           }
         } catch (restErr) {
-          console.error(`[CourseContentService] firestoreRest fallback error for lesson ${lessonId}:`, restErr);
+          console.warn(`[CourseContentService] firestoreRest fallback direct fetch missed for ${lessonId} in ${moduleId}:`, restErr);
+        }
+      }
+
+      // If moduleId was omitted, incorrect, or direct subcollection lookup missed, traverse course modules
+      if (targetCourseId) {
+        try {
+          const rawMods = await firestoreRest.getCollection<any>(`courses/${targetCourseId}/modules`);
+          if (rawMods && rawMods.length > 0) {
+            for (const mod of rawMods) {
+              if (moduleId && mod.id === moduleId) continue; // Already attempted
+              try {
+                const rawLesson = await firestoreRest.getDocument<any>(`courses/${targetCourseId}/modules/${mod.id}/lessons/${lessonId}`);
+                if (rawLesson) {
+                  const idx = rawLesson.orderIndex ?? rawLesson.order ?? 1;
+                  const lesson: CourseLessonDoc = {
+                    ...rawLesson,
+                    moduleId: mod.id,
+                    orderIndex: idx,
+                    order: idx,
+                    revision: rawLesson.revision ?? 1,
+                  };
+                  this.setCache(cacheKey, lesson, { revision: lesson.revision });
+                  return lesson;
+                }
+              } catch {}
+            }
+          }
+        } catch (traverseErr) {
+          console.error(`[CourseContentService] firestoreRest cross-module search error for lesson ${lessonId}:`, traverseErr);
         }
       }
       return null;
@@ -988,10 +1087,12 @@ export class CourseContentService {
   }, authToken?: string): Promise<void> {
     try {
       if (!entry.courseId) return;
+      const targetCourseId = resolveCanonicalId(entry.courseId);
       const logId = `audit_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
       const logDoc = toDocument({
         id: logId,
         ...entry,
+        courseId: targetCourseId,
         timestamp: entry.timestamp || new Date().toISOString(),
         adminId: entry.adminId || 'admin',
       });
@@ -1000,15 +1101,15 @@ export class CourseContentService {
         if (db) {
           await db
             .collection('courses')
-            .doc(entry.courseId)
+            .doc(targetCourseId)
             .collection('audit_logs')
             .doc(logId)
             .set(logDoc);
         } else {
-          await firestoreRest.setDocument(`courses/${entry.courseId}/audit_logs/${logId}`, logDoc, { merge: true }, authToken);
+          await firestoreRest.setDocument(`courses/${targetCourseId}/audit_logs/${logId}`, logDoc, { merge: true }, authToken);
         }
       } catch (err) {
-        await firestoreRest.setDocument(`courses/${entry.courseId}/audit_logs/${logId}`, logDoc, { merge: true }, authToken).catch(() => {});
+        await firestoreRest.setDocument(`courses/${targetCourseId}/audit_logs/${logId}`, logDoc, { merge: true }, authToken).catch(() => {});
       }
     } catch (err) {
       console.warn(`[AUDIT_LOG_WARNING] Could not persist audit log for course ${entry.courseId}:`, err);
@@ -1021,11 +1122,12 @@ export class CourseContentService {
   async getCourseAuditLogs(courseId: string, limitCount = 50, authToken?: string): Promise<any[]> {
     try {
       if (!courseId) return [];
+      const targetCourseId = resolveCanonicalId(courseId);
       try {
         if (db) {
           const snap = await db
             .collection('courses')
-            .doc(courseId)
+            .doc(targetCourseId)
             .collection('audit_logs')
             .orderBy('timestamp', 'desc')
             .limit(limitCount)
@@ -1039,7 +1141,7 @@ export class CourseContentService {
         console.warn(`[AUDIT_LOG_FETCH_NOTICE] db failed, using firestoreRest fallback:`, dbErr);
       }
 
-      const logs = await firestoreRest.getCollection<any>(`courses/${courseId}/audit_logs`, { pageSize: limitCount }, authToken);
+      const logs = await firestoreRest.getCollection<any>(`courses/${targetCourseId}/audit_logs`, { pageSize: limitCount }, authToken);
       return logs || [];
     } catch (err) {
       console.warn(`[AUDIT_LOG_FETCH_ERROR] Could not fetch audit logs for ${courseId}:`, err);
@@ -1054,16 +1156,16 @@ export class CourseContentService {
     if (!courseId || !auditLogId) {
       throw new ApiError(400, 'courseId and auditLogId are required for restore.');
     }
-
+    const targetCourseId = resolveCanonicalId(courseId);
     let logData: any = null;
     try {
-      const logRef = db.collection('courses').doc(courseId).collection('audit_logs').doc(auditLogId);
+      const logRef = db.collection('courses').doc(targetCourseId).collection('audit_logs').doc(auditLogId);
       const logSnap = await logRef.get();
       if (logSnap.exists) {
         logData = logSnap.data() || {};
       }
     } catch (dbErr) {
-      logData = await firestoreRest.getDocument<any>(`courses/${courseId}/audit_logs/${auditLogId}`, authToken);
+      logData = await firestoreRest.getDocument<any>(`courses/${targetCourseId}/audit_logs/${auditLogId}`, authToken);
     }
 
     if (!logData) {
@@ -1076,9 +1178,9 @@ export class CourseContentService {
 
     const snapshot = logData.snapshot;
     if (logData.entityType === 'lesson' && logData.moduleId && logData.lessonId) {
-      return this.saveLesson(courseId, logData.moduleId, snapshot, userId, authToken);
+      return this.saveLesson(targetCourseId, logData.moduleId, snapshot, userId, authToken);
     } else if (logData.entityType === 'module' && logData.moduleId) {
-      return this.saveModule(courseId, snapshot, userId, authToken);
+      return this.saveModule(targetCourseId, snapshot, userId, authToken);
     }
 
     throw new ApiError(400, `Unsupported entity type for revision restore: ${logData.entityType}`);
