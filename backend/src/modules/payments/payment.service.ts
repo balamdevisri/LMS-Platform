@@ -32,9 +32,9 @@ export const getRazorpay = (): Razorpay | null => {
 };
 
 const DEFAULT_COURSE_CATALOG: Record<string, { title: string; price: number }> = {
-  'course_linux_101': { title: 'Linux Systems & Administration Mastery', price: 399 },
-  'linux-systems-administration-mastery': { title: 'Linux Systems & Administration Mastery', price: 399 },
-  '1': { title: 'Linux Systems & Administration Mastery', price: 399 },
+  'course_linux_101': { title: 'Linux Systems & Administration Mastery', price: 199 },
+  'linux-systems-administration-mastery': { title: 'Linux Systems & Administration Mastery', price: 199 },
+  '1': { title: 'Linux Systems & Administration Mastery', price: 199 },
   'c-programming-course-id': { title: 'C Programming Mastery', price: 199 },
   'c-programming': { title: 'C Programming Mastery', price: 199 },
   'git-github-mastery': { title: 'Git & GitHub Mastery', price: 199 },
@@ -42,17 +42,23 @@ const DEFAULT_COURSE_CATALOG: Record<string, { title: string; price: number }> =
   'git-github': { title: 'Git & GitHub Mastery', price: 199 },
   'git-and-github': { title: 'Git & GitHub Mastery', price: 199 },
   'git-and-github-mastery': { title: 'Git & GitHub Mastery', price: 199 },
-  'dbms-beginner-to-advanced': { title: 'Database Management Systems (DBMS)', price: 299 },
-  'database-management-system': { title: 'Database Management Systems (DBMS)', price: 299 },
-  'kubernetes-complete-course': { title: 'Kubernetes Complete Course', price: 499 },
-  'kubernetes-complete-course-beginner-to-advanced': { title: 'Kubernetes Complete Course', price: 499 },
-  'react-js-complete-course': { title: 'React.js Complete Course', price: 299 },
-  'python-through-oops': { title: 'Python Through OOPs', price: 299 },
-  'python-through-oops-course-id': { title: 'Python Through OOPs', price: 299 },
-  'java-through-oops': { title: 'Java Through OOPs', price: 299 },
-  'java-through-oops-course-id': { title: 'Java Through OOPs', price: 299 },
-  'web-development': { title: 'Web Development Bootcamp', price: 299 },
-  'web-development-fundamentals': { title: 'Web Development Bootcamp', price: 299 },
+  'dbms-beginner-to-advanced': { title: 'Database Management Systems (DBMS)', price: 199 },
+  'database-management-system': { title: 'Database Management Systems (DBMS)', price: 199 },
+  'kubernetes-complete-course': { title: 'Kubernetes Complete Course', price: 199 },
+  'kubernetes-complete-course-beginner-to-advanced': { title: 'Kubernetes Complete Course', price: 199 },
+  'react-js-complete-course': { title: 'React.js Complete Course', price: 199 },
+  'python-through-oops': { title: 'Python Through OOPs', price: 199 },
+  'python-through-oops-course-id': { title: 'Python Through OOPs', price: 199 },
+  'java-through-oops': { title: 'Java Through OOPs', price: 199 },
+  'java-through-oops-course-id': { title: 'Java Through OOPs', price: 199 },
+  'web-development': { title: 'Web Development Bootcamp', price: 199 },
+  'web-development-fundamentals': { title: 'Web Development Bootcamp', price: 199 },
+  'data-structures-and-algorithms': { title: 'Data Structures & Algorithms', price: 199 },
+  'dsa': { title: 'Data Structures & Algorithms', price: 199 },
+  'javascript-mastery': { title: 'JavaScript Mastery', price: 199 },
+  'javascript': { title: 'JavaScript Mastery', price: 199 },
+  'nodejs-backend-development': { title: 'Node.js Backend Development', price: 199 },
+  'nodejs': { title: 'Node.js Backend Development', price: 199 },
 };
 
 export class PaymentService {
@@ -123,8 +129,8 @@ export class PaymentService {
     }
 
     const fallbackCourse = DEFAULT_COURSE_CATALOG[courseId] || DEFAULT_COURSE_CATALOG[course?.slug] || {
-      title: 'Full Stack Program',
-      price: 399,
+      title: 'Technical Program',
+      price: 199,
     };
 
     const courseTitle = course?.title || fallbackCourse.title;

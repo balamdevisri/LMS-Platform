@@ -5,17 +5,72 @@ import { ApiError } from '../../utils/ApiError';
 import { firestoreRest } from '../../services/firestore/firestoreRestClient';
 
 export const CANONICAL_ALIASES: Record<string, string> = {
+  // Git & GitHub
   'git-github-mastery': 'git-github-mastery-course-id',
+  'git-github-mastery-course-id': 'git-github-mastery-course-id',
+  'git-github': 'git-github-mastery-course-id',
+  'git-and-github': 'git-github-mastery-course-id',
+  'git-and-github-mastery': 'git-github-mastery-course-id',
+  'git': 'git-github-mastery-course-id',
+
+  // Linux
   'linux-systems-administration-mastery': 'course_linux_101',
+  'course_linux_101': 'course_linux_101',
   '1': 'course_linux_101',
+  'linux': 'course_linux_101',
+  'linux-101': 'course_linux_101',
+
+  // DBMS
   'dbms-beginner-to-advanced': 'database-management-system',
+  'database-management-system': 'database-management-system',
+  'dbms': 'database-management-system',
+
+  // C Programming
   'c-programming': 'c-programming-course-id',
+  'c-programming-course-id': 'c-programming-course-id',
+  'c-language': 'c-programming-course-id',
+  'c': 'c-programming-course-id',
+
+  // Kubernetes
   'kubernetes-complete-course': 'kubernetes-complete-course-beginner-to-advanced',
+  'kubernetes-complete-course-beginner-to-advanced': 'kubernetes-complete-course-beginner-to-advanced',
+  'kubernetes': 'kubernetes-complete-course-beginner-to-advanced',
+  'k8s': 'kubernetes-complete-course-beginner-to-advanced',
+
+  // Python
   'python-through-oops': 'python-through-oops-course-id',
+  'python-through-oops-course-id': 'python-through-oops-course-id',
+  'python': 'python-through-oops-course-id',
+
+  // Java
   'java-through-oops': 'java-through-oops-course-id',
+  'java-through-oops-course-id': 'java-through-oops-course-id',
+  'java': 'java-through-oops-course-id',
+
+  // Web Dev
   'web-development': 'web-development-fundamentals',
+  'web-development-fundamentals': 'web-development-fundamentals',
+  'web-dev': 'web-development-fundamentals',
+
+  // JavaScript
   'javascript': 'javascript-mastery',
+  'javascript-mastery': 'javascript-mastery',
+  'js': 'javascript-mastery',
+
+  // Node.js
   'nodejs': 'nodejs-backend-development',
+  'nodejs-backend-development': 'nodejs-backend-development',
+  'node': 'nodejs-backend-development',
+
+  // React
+  'react-js': 'react-js-complete-course',
+  'react-js-complete-course': 'react-js-complete-course',
+  'react': 'react-js-complete-course',
+
+  // DSA
+  'dsa': 'data-structures-and-algorithms',
+  'data-structures-and-algorithms': 'data-structures-and-algorithms',
+  'data-structures': 'data-structures-and-algorithms',
 };
 
 export function resolveCanonicalId(idOrSlug: string): string {
@@ -138,24 +193,33 @@ export class CourseRepository {
     const shortDescription = rawData.shortDescription || description.slice(0, 160) || 'Comprehensive technical learning track.';
 
     const CANONICAL_PRICES: Record<string, number> = {
-      'course_linux_101': 399,
-      'linux-systems-administration-mastery': 399,
-      '1': 399,
       'c-programming-course-id': 199,
       'c-programming': 199,
+      'course_linux_101': 199,
+      'linux-systems-administration-mastery': 199,
+      '1': 199,
+      'data-structures-and-algorithms': 199,
+      'dsa': 199,
+      'database-management-system': 199,
+      'dbms-beginner-to-advanced': 199,
       'git-github-mastery': 199,
       'git-github-mastery-course-id': 199,
-      'database-management-system': 299,
-      'dbms-beginner-to-advanced': 299,
-      'kubernetes-complete-course-beginner-to-advanced': 499,
-      'kubernetes-complete-course': 499,
-      'react-js-complete-course': 299,
-      'python-through-oops-course-id': 299,
-      'python-through-oops': 299,
-      'java-through-oops-course-id': 299,
-      'java-through-oops': 299,
-      'web-development-fundamentals': 299,
-      'web-development': 299,
+      'git-github': 199,
+      'git-and-github': 199,
+      'git-and-github-mastery': 199,
+      'java-through-oops-course-id': 199,
+      'java-through-oops': 199,
+      'javascript-mastery': 199,
+      'javascript': 199,
+      'kubernetes-complete-course-beginner-to-advanced': 199,
+      'kubernetes-complete-course': 199,
+      'nodejs-backend-development': 199,
+      'nodejs': 199,
+      'python-through-oops-course-id': 199,
+      'python-through-oops': 199,
+      'react-js-complete-course': 199,
+      'web-development-fundamentals': 199,
+      'web-development': 199,
     };
 
     const id = String(rawData.id || rawData.courseId || '');

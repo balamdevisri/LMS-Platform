@@ -10,20 +10,29 @@ export const DEFAULT_COURSE_PRICES: Record<string, number> = {
   'c-programming': 199,
   'git-github-mastery': 199,
   'git-github-mastery-course-id': 199,
-  'linux-systems-administration-mastery': 399,
-  'course_linux_101': 399,
-  '1': 399,
-  'dbms-beginner-to-advanced': 299,
-  'database-management-system': 299,
-  'kubernetes-complete-course': 499,
-  'kubernetes-complete-course-beginner-to-advanced': 499,
-  'react-js-complete-course': 299,
-  'python-through-oops': 299,
-  'python-through-oops-course-id': 299,
-  'java-through-oops': 299,
-  'java-through-oops-course-id': 299,
-  'web-development': 299,
-  'web-development-fundamentals': 299,
+  'git-github': 199,
+  'git-and-github': 199,
+  'git-and-github-mastery': 199,
+  'linux-systems-administration-mastery': 199,
+  'course_linux_101': 199,
+  '1': 199,
+  'dbms-beginner-to-advanced': 199,
+  'database-management-system': 199,
+  'kubernetes-complete-course': 199,
+  'kubernetes-complete-course-beginner-to-advanced': 199,
+  'react-js-complete-course': 199,
+  'python-through-oops': 199,
+  'python-through-oops-course-id': 199,
+  'java-through-oops': 199,
+  'java-through-oops-course-id': 199,
+  'web-development': 199,
+  'web-development-fundamentals': 199,
+  'data-structures-and-algorithms': 199,
+  'dsa': 199,
+  'javascript-mastery': 199,
+  'javascript': 199,
+  'nodejs-backend-development': 199,
+  'nodejs': 199,
 };
 
 // On-demand loader for Firebase Firestore to prevent bundling 580KB Firebase into landing page
@@ -52,7 +61,7 @@ export const DEFAULT_COURSES: ICourse[] = [
     level: 'all_levels',
     duration: '32 hrs',
     language: 'English',
-    price: 399,
+    price: 199,
     instructor: {
       id: 'inst_kaizenq',
       name: 'KaizenQ Systems Team',
@@ -175,7 +184,7 @@ export const DEFAULT_COURSES: ICourse[] = [
     level: 'all_levels',
     duration: '25 Hours',
     language: 'English',
-    price: 299,
+    price: 199,
     instructor: {
       id: 'inst_kaizen',
       name: 'Kaizen-Q Academy',
@@ -221,7 +230,7 @@ export const DEFAULT_COURSES: ICourse[] = [
     level: 'all_levels',
     duration: '30 Hours',
     language: 'English',
-    price: 499,
+    price: 199,
     instructor: {
       id: 'inst_kaizen',
       name: 'Kaizen-Q Academy',
@@ -277,7 +286,7 @@ export const DEFAULT_COURSES: ICourse[] = [
     level: 'all_levels',
     duration: '24 Hours',
     language: 'English',
-    price: 299,
+    price: 199,
     instructor: {
       id: 'inst_kaizenq',
       name: 'KaizenQ Systems Team',
@@ -389,7 +398,7 @@ export const DEFAULT_COURSES: ICourse[] = [
     level: 'all_levels',
     duration: '35 Hours',
     language: 'English',
-    price: 299,
+    price: 199,
     instructor: {
       id: 'inst_kaizen',
       name: 'Kaizen Q Team',
@@ -444,7 +453,7 @@ export const DEFAULT_COURSES: ICourse[] = [
     level: 'all_levels',
     duration: '35 Hours',
     language: 'English',
-    price: 299,
+    price: 199,
     instructor: {
       id: 'inst_kaizen',
       name: 'Kaizen Q Team',
@@ -508,7 +517,7 @@ export const DEFAULT_COURSES: ICourse[] = [
     level: 'all_levels',
     duration: '25 Hours',
     language: 'English',
-    price: 0,
+    price: 199,
     instructor: {
       id: 'inst_kaizen',
       name: 'Kaizen Q Team',
@@ -558,7 +567,7 @@ export const DEFAULT_COURSES: ICourse[] = [
     level: 'intermediate',
     duration: '28 Hours',
     language: 'English',
-    price: 0,
+    price: 199,
     instructor: {
       id: 'inst_kaizen',
       name: 'Kaizen Q Team',
@@ -608,7 +617,7 @@ export const DEFAULT_COURSES: ICourse[] = [
     level: 'intermediate',
     duration: '40 Hours',
     language: 'English',
-    price: 0,
+    price: 199,
     instructor: {
       id: 'inst_kaizen',
       name: 'Kaizen Q Team',
@@ -658,7 +667,7 @@ export const DEFAULT_COURSES: ICourse[] = [
     level: 'beginner',
     duration: '30 Hours',
     language: 'English',
-    price: 299,
+    price: 199,
     instructor: {
       id: 'inst_kaizen',
       name: 'Kaizen Q Team',
@@ -851,7 +860,7 @@ function normalizeCourseToICourse(c: any): ICourse {
   const rawDesc = c.description || c.fullDescription || c.shortDescription || c.overview || 'Enterprise technical course with hands-on labs.';
   const rawShortDesc = c.shortDescription || c.description?.slice(0, 160) || c.fullDescription?.slice(0, 160) || 'Comprehensive technical curriculum with practical exercises.';
 
-  if (import.meta.env.DEV) {
+  if (typeof import.meta !== 'undefined' && import.meta?.env?.DEV) {
     if (!c.description && !c.fullDescription) {
       console.warn(`[CourseDataAudit] Course "${courseTitle}" (${c.id}) is missing a description. Using graceful fallback.`);
     }
