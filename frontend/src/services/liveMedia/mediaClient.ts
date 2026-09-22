@@ -1321,9 +1321,7 @@ export class MediaClient implements IMediaClient {
     }
 
     let p = this.participants.get(userId);
-    let isNew = false;
     if (!p) {
-      isNew = true;
       p = {
         userId,
         name: name || (resolvedRole === 'instructor' ? 'Lead Instructor' : 'Participant'),

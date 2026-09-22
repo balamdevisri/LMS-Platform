@@ -7,7 +7,11 @@ export interface ParticipantItem {
   role?: string;
   isSpeaking?: boolean;
   isAudioOn?: boolean;
+  isVideoOn?: boolean;
+  isHandRaised?: boolean;
   isPinned?: boolean;
+  batch?: string;
+  section?: string;
 }
 
 export interface ParticipantsPanelProps {
@@ -83,10 +87,20 @@ export const ParticipantsPanel: React.FC<ParticipantsPanelProps> = ({
                   }`}>
                     {(p.name || 'S').charAt(0).toUpperCase()}
                   </div>
-                  <span className="font-medium text-slate-200 truncate max-w-[140px]">{p.name || 'Student'}</span>
+                  <div className="min-w-0">
+                    <span className="font-medium text-slate-200 truncate block max-w-[130px]">{p.name || 'Student'}</span>
+                    {p.batch && (
+                      <span className="text-[9px] text-slate-400 font-mono block truncate max-w-[130px]">{p.batch}</span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-1.5 shrink-0">
+                  {p.isHandRaised && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold flex items-center gap-0.5" title="Hand Raised">
+                      ✋ Raised
+                    </span>
+                  )}
                   {p.isSpeaking && (
                     <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-black flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />

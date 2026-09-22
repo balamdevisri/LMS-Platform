@@ -34,13 +34,11 @@ import {
   FileText,
   Terminal,
   Bot,
-  Settings2,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { liveClassService, type LiveClass } from '@/services/liveClassService';
 import { useLiveClassSocket } from '@/hooks/useLiveClassSocket';
 import { YouTubePlayer, extractYouTubeVideoId } from '@/components/liveClass/YouTubePlayer';
-import type { ClassroomInteractionSettings } from '@/types/liveClassroomSettings';
 import { toast } from 'sonner';
 
 export const AdminLiveControlCenter: React.FC = () => {

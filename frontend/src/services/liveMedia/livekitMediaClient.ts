@@ -11,6 +11,7 @@ import {
   ScreenSharePresets,
   VideoQuality,
   VideoPresets,
+  ConnectionQuality,
 } from 'livekit-client';
 import type {
   ScreenShareCaptureOptions,
@@ -19,6 +20,7 @@ import type {
 import { auth } from '@/firebase';
 import { buildApiUrl } from '@/config/api';
 import { getLiveClassroomSocket } from '@/services/socketService';
+import { canUserPerformAction } from '@/utils/classroomPermissions';
 import type { Socket } from 'socket.io-client';
 import type {
   IMediaClient,
@@ -567,6 +569,27 @@ export class LiveKitMediaClient implements IMediaClient {
         this.emit('audioAutoplayResumed');
       }
     });
+
+    // 8. Connection Quality Changed
+    room.on(RoomEvent.ConnectionQualityChanged, (quality: ConnectionQuality, participant: Participant) => {
+      const uid = participant === room.localParticipant
+        ? this.config.userId
+        : normalizeLiveKitIdentity(participant.identity);
+      const target = this.participants.get(uid);
+      if (target) {
+        let qStr: 'excellent' | 'good' | 'poor' | 'lost' | 'unknown' = 'good';
+        if (quality === ConnectionQuality.Excellent) qStr = 'excellent';
+        else if (quality === ConnectionQuality.Good) qStr = 'good';
+        else if (quality === ConnectionQuality.Poor) qStr = 'poor';
+        else if (quality === ConnectionQuality.Lost) qStr = 'lost';
+        else qStr = 'unknown';
+
+        if (target.connectionQuality !== qStr) {
+          target.connectionQuality = qStr;
+          this.emitParticipantsUpdate();
+        }
+      }
+    });
   }
 
   // ============================================================================
@@ -1077,12 +1100,12 @@ export class LiveKitMediaClient implements IMediaClient {
   public async startScreenShare(): Promise<MediaStream | null> {
     if (!this.room) return null;
 
-    // Strict role check: Students must not be allowed to screen share
-    const isAuthorized =
-      this.config.role === 'instructor' ||
-      this.config.role === 'mentor' ||
-      this.config.role === 'admin' ||
-      this.config.userId === this.config.instructorId;
+    // Strict centralized role check: Students must not be allowed to screen share
+    const isAuthorized = canUserPerformAction('screenShare', {
+      userId: this.config.userId,
+      role: this.config.role,
+      isAssignedInstructor: this.config.userId === this.config.instructorId,
+    });
 
     if (!isAuthorized) {
       this.emit('mediaError', {
@@ -1189,6 +1212,10 @@ export class LiveKitMediaClient implements IMediaClient {
       }
       return null;
     } catch (err: any) {
+      if (err?.name === 'NotAllowedError') {
+        lkScreenLog('User cancelled screen share dialog');
+        return null;
+      }
       console.error('[LIVEKIT_SCREEN_DEBUG] startScreenShare error:', err);
       lkError('startScreenShare error:', err);
       this.emit('mediaError', {

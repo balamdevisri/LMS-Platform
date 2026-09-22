@@ -11,6 +11,10 @@ import {
   Pin,
   VolumeX,
   Users,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
+  Scan,
 } from 'lucide-react';
 import type { MediaParticipant } from '@/services/liveMedia/mediaTypes';
 import { VideoQuality } from 'livekit-client';
@@ -100,6 +104,23 @@ export const getInstructorParticipant = (
 
   console.log(`[LIVE_DEBUG] INSTRUCTOR_NOT_IN_PARTICIPANTS (candidatesChecked=${candidatePool.length} totalParticipants=${participants.length})`);
   return null;
+};
+
+// ============================================================================
+// ============================================================================
+// NETWORK CONNECTION QUALITY SIGNAL INDICATOR
+// ============================================================================
+export const SignalBars: React.FC<{ quality?: string }> = ({ quality }) => {
+  const q = quality || 'good';
+  const bars = q === 'excellent' ? 3 : q === 'good' ? 2 : q === 'poor' ? 1 : 2;
+  const color = q === 'poor' ? 'bg-rose-400' : q === 'good' ? 'bg-emerald-400' : 'bg-emerald-400';
+  return (
+    <div className="flex items-end gap-0.5 h-3 px-1 shrink-0" title={`Connection Quality: ${q}`}>
+      <span className={`w-0.5 h-1 rounded-full ${bars >= 1 ? color : 'bg-white/25'}`} />
+      <span className={`w-0.5 h-2 rounded-full ${bars >= 2 ? color : 'bg-white/25'}`} />
+      <span className={`w-0.5 h-3 rounded-full ${bars >= 3 ? color : 'bg-white/25'}`} />
+    </div>
+  );
 };
 
 // ============================================================================
@@ -196,16 +217,16 @@ export const VideoTile: React.FC<VideoTileProps> = ({
 
   return (
     <div
-      className={`relative rounded-3xl overflow-hidden bg-slate-900 border transition-all duration-300 group flex items-center justify-center ${
+      className={`relative rounded-3xl overflow-hidden bg-[#0a0f1d] border transition-all duration-300 group flex items-center justify-center ${
         isSpeaking
-          ? 'ring-4 ring-emerald-400 border-emerald-400 shadow-2xl shadow-emerald-500/25'
+          ? 'ring-2 ring-emerald-400 border-emerald-400 shadow-[0_0_30px_rgba(52,211,153,0.35)]'
           : participant.isPinned
-          ? 'ring-2 ring-sky-400 border-sky-400/80 shadow-2xl shadow-sky-500/20'
+          ? 'ring-2 ring-sky-400 border-sky-400/90 shadow-[0_0_30px_rgba(56,189,248,0.25)]'
           : isSpotlighted
-          ? 'ring-2 ring-indigo-400 border-indigo-400/80 shadow-xl shadow-indigo-500/20'
+          ? 'ring-2 ring-indigo-400 border-indigo-400/90 shadow-[0_0_30px_rgba(124,140,255,0.25)]'
           : isInstructorRole
           ? 'border-amber-500/40 shadow-xl shadow-amber-500/10'
-          : 'border-slate-800 hover:border-slate-700 shadow-md'
+          : 'border-white/10 hover:border-white/20 shadow-2xl'
       } ${isHero ? 'w-full h-full min-h-[300px] sm:min-h-[400px]' : 'aspect-video w-full'}`}
     >
       {/* Actual Live Video Track (muted to avoid double audio; audio is handled by root pool) */}
@@ -224,7 +245,7 @@ export const VideoTile: React.FC<VideoTileProps> = ({
             <img
               src={participant.avatarUrl}
               alt={participant.name}
-              className={`rounded-full object-cover border-2 shadow-lg ${
+              className={`rounded-full object-cover border-2 shadow-xl ${
                 isSpeaking
                   ? 'border-emerald-400 ring-4 ring-emerald-400/30'
                   : isInstructorRole
@@ -234,12 +255,12 @@ export const VideoTile: React.FC<VideoTileProps> = ({
             />
           ) : (
             <div
-              className={`rounded-full flex items-center justify-center font-heading font-black shadow-lg transition-all ${
+              className={`rounded-full flex items-center justify-center font-heading font-black shadow-xl transition-all ${
                 isSpeaking
                   ? 'w-24 h-24 text-3xl bg-emerald-500/20 border-2 border-emerald-400 text-emerald-300 ring-4 ring-emerald-400/25'
                   : isInstructorRole
-                  ? 'w-24 h-24 text-3xl bg-gradient-to-tr from-amber-500/30 to-amber-600/10 border-2 border-amber-400 text-amber-300'
-                  : 'w-20 h-20 text-2xl bg-slate-800 text-sky-400 border border-slate-700'
+                  ? 'w-24 h-24 text-3xl bg-gradient-to-tr from-amber-500/30 via-purple-500/20 to-indigo-500/20 border-2 border-amber-400/80 text-amber-300 shadow-amber-500/10'
+                  : 'w-20 h-20 text-2xl bg-gradient-to-tr from-indigo-600/30 to-violet-600/20 text-sky-300 border border-white/15'
               }`}
             >
               {participant.name ? participant.name.charAt(0).toUpperCase() : <User className="w-10 h-10" />}
@@ -247,7 +268,7 @@ export const VideoTile: React.FC<VideoTileProps> = ({
           )}
 
           <div className="space-y-1.5">
-            <p className="text-sm sm:text-base font-bold text-white truncate max-w-[240px]">
+            <p className="text-sm sm:text-base font-bold text-white truncate max-w-[240px] drop-shadow-sm">
               {participant.name} {isLocal && '(You)'}
             </p>
             <div className="flex items-center justify-center gap-2 flex-wrap">
@@ -255,27 +276,27 @@ export const VideoTile: React.FC<VideoTileProps> = ({
                 className={`inline-block px-3 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
                   isInstructorRole
                     ? 'bg-amber-500/15 border border-amber-500/30 text-amber-400'
-                    : 'bg-slate-800 text-slate-400'
+                    : 'bg-white/10 text-slate-300 border border-white/10'
                 }`}
               >
                 {isInstructorRole ? 'Lead Instructor' : 'Student'}
               </span>
               {isSpeaking && (
-                <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
                   Active Speaker
                 </span>
               )}
             </div>
           </div>
 
-          <span className="text-xs text-slate-500 font-medium">Camera Off</span>
+          <span className="text-xs text-slate-400/80 font-medium">Camera Off</span>
         </div>
       )}
 
       {/* Top Left Indicators: Active Speaking, Pinned & Hand Raised */}
       <div className="absolute top-3 left-3 flex items-center gap-1.5 z-10 pointer-events-none">
         {isSpeaking && (
-          <div className="px-2.5 py-1 rounded-xl bg-emerald-500/95 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-lg animate-pulse">
+          <div className="px-3 py-1 rounded-full bg-emerald-500/95 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-lg backdrop-blur-md animate-pulse">
             <span className="flex items-end gap-0.5 h-3">
               <span className="w-0.5 h-2 bg-slate-950 animate-bounce rounded-full" />
               <span className="w-0.5 h-3 bg-slate-950 animate-bounce rounded-full [animation-delay:0.15s]" />
@@ -286,14 +307,14 @@ export const VideoTile: React.FC<VideoTileProps> = ({
         )}
 
         {participant.isPinned && (
-          <div className="px-2.5 py-1 rounded-xl bg-sky-500 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-lg">
+          <div className="px-3 py-1 rounded-full bg-sky-500 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-lg backdrop-blur-md">
             <Pin className="w-3.5 h-3.5 fill-current" />
             <span>Pinned</span>
           </div>
         )}
 
         {participant.isHandRaised && (
-          <div className="px-2.5 py-1 rounded-xl bg-amber-500/90 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-lg animate-bounce">
+          <div className="px-3 py-1 rounded-full bg-amber-500 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-lg backdrop-blur-md animate-bounce">
             <Hand className="w-3.5 h-3.5 fill-current" />
             <span>Hand Raised</span>
           </div>
@@ -301,14 +322,14 @@ export const VideoTile: React.FC<VideoTileProps> = ({
       </div>
 
       {/* Top Right Controls: Pinning & Spotlight Toggle */}
-      <div className="absolute top-3 right-3 z-10 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
         {canPin && onTogglePin && (
           <button
             onClick={onTogglePin}
-            className={`p-1.5 rounded-xl border text-xs cursor-pointer shadow-md transition-all ${
+            className={`p-2 rounded-xl border text-xs cursor-pointer shadow-lg backdrop-blur-xl transition-all ${
               participant.isPinned
                 ? 'bg-sky-500 text-slate-950 border-sky-400 hover:bg-sky-400'
-                : 'bg-slate-950/80 hover:bg-slate-900 border-slate-700 text-slate-300 hover:text-white'
+                : 'bg-black/60 hover:bg-black/80 border-white/15 text-slate-300 hover:text-white'
             }`}
             title={participant.isPinned ? 'Unpin Participant' : 'Pin Participant'}
           >
@@ -319,7 +340,7 @@ export const VideoTile: React.FC<VideoTileProps> = ({
         {onSpotlight && (
           <button
             onClick={onSpotlight}
-            className="p-1.5 rounded-xl bg-slate-950/80 hover:bg-slate-900 border border-slate-700 text-slate-300 hover:text-white cursor-pointer shadow-md"
+            className="p-2 rounded-xl bg-black/60 hover:bg-black/80 border border-white/15 text-slate-300 hover:text-white cursor-pointer shadow-lg backdrop-blur-xl transition-all"
             title={isSpotlighted ? 'Exit Spotlight' : 'Spotlight Participant'}
           >
             {isSpotlighted ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
@@ -329,22 +350,23 @@ export const VideoTile: React.FC<VideoTileProps> = ({
 
       {/* Bottom Identity & Audio Status Overlay */}
       <div className="absolute bottom-3 inset-x-3 flex items-center justify-between pointer-events-none z-10">
-        <div className="flex items-center gap-1.5 bg-slate-950/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800/80 text-xs font-bold text-white shadow-md max-w-[80%]">
+        <div className="flex items-center gap-2 bg-black/65 backdrop-blur-xl px-3.5 py-1.5 rounded-2xl border border-white/15 text-xs font-semibold text-white shadow-xl max-w-[80%]">
           {isInstructorRole && <ShieldCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
           <span className="truncate">{participant.name} {isLocal && '(You)'}</span>
-          <span className="text-[9px] uppercase font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 shrink-0">
+          <span className="text-[9px] uppercase font-mono px-1.5 py-0.5 rounded-md bg-white/10 text-slate-300 border border-white/10 shrink-0">
             {participant.role}
           </span>
+          <SignalBars quality={participant.connectionQuality} />
         </div>
 
         {/* Real Audio Status Badge */}
         <div
-          className={`p-2 rounded-xl backdrop-blur-md border shadow-md transition-all ${
+          className={`p-2 rounded-2xl backdrop-blur-xl border shadow-xl transition-all ${
             participant.isMutedByInstructor
               ? 'bg-rose-500/25 border-rose-500/50 text-rose-400'
               : participant.isAudioOn
-              ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
-              : 'bg-slate-800/80 border-slate-700 text-slate-500'
+              ? 'bg-emerald-500/25 border-emerald-500/40 text-emerald-300'
+              : 'bg-black/65 border-white/15 text-slate-400'
           }`}
           title={
             participant.isMutedByInstructor
@@ -446,16 +468,16 @@ export const CompactParticipantTile: React.FC<CompactParticipantTileProps> = ({
 
   return (
     <div
-      className={`group relative shrink-0 w-44 sm:w-52 h-28 sm:h-32 rounded-2xl overflow-hidden bg-slate-900 border transition-all duration-200 select-none flex flex-col justify-between p-2.5 ${
+      className={`group relative shrink-0 w-44 sm:w-52 h-28 sm:h-32 rounded-2xl overflow-hidden bg-white/[0.04] hover:bg-white/[0.08] backdrop-blur-xl border transition-all duration-200 select-none flex flex-col justify-between p-2.5 ${
         isSpeaking
-          ? 'ring-2 ring-emerald-400 border-emerald-400 shadow-lg shadow-emerald-500/20'
+          ? 'ring-2 ring-emerald-400 border-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.3)]'
           : participant.isPinned
           ? 'ring-2 ring-sky-400 border-sky-400'
           : isSpotlighted
           ? 'ring-2 ring-indigo-400 border-indigo-400'
           : isInstructorRole
-          ? 'border-amber-500/50 bg-gradient-to-b from-slate-900 to-amber-950/20 shadow-md shadow-amber-500/10'
-          : 'border-slate-800 hover:border-slate-700'
+          ? 'border-amber-500/50 bg-gradient-to-b from-[#0a0e1c] to-amber-950/25 shadow-md shadow-amber-500/10'
+          : 'border-white/10 hover:border-white/20'
       }`}
     >
       {/* Background: Video track or Avatar (Never an empty black box) */}
@@ -468,7 +490,7 @@ export const CompactParticipantTile: React.FC<CompactParticipantTileProps> = ({
             muted={true}
             className={`absolute inset-0 w-full h-full object-cover ${isLocal ? 'scale-x-[-1]' : ''}`}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-slate-950/40 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/40 pointer-events-none" />
         </>
       ) : (
         <div className="absolute inset-0 flex flex-col items-center justify-center p-2 text-center pointer-events-none">
@@ -481,7 +503,7 @@ export const CompactParticipantTile: React.FC<CompactParticipantTileProps> = ({
                   ? 'border-emerald-400 ring-2 ring-emerald-400/40'
                   : isInstructorRole
                   ? 'border-amber-400'
-                  : 'border-slate-700'
+                  : 'border-white/20'
               }`}
             />
           ) : (
@@ -490,14 +512,14 @@ export const CompactParticipantTile: React.FC<CompactParticipantTileProps> = ({
                 isSpeaking
                   ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400 ring-2 ring-emerald-400/30'
                   : isInstructorRole
-                  ? 'bg-amber-500/20 text-amber-300 border-amber-400/60'
-                  : 'bg-slate-800 text-sky-400 border-slate-700'
+                  ? 'bg-gradient-to-tr from-amber-500/30 to-purple-500/20 text-amber-300 border-amber-400/60'
+                  : 'bg-gradient-to-tr from-indigo-500/30 to-violet-500/20 text-sky-300 border-white/15'
               }`}
             >
               {participant.name ? participant.name.charAt(0).toUpperCase() : <User className="w-5 h-5" />}
             </div>
           )}
-          <span className="text-[10px] text-slate-500 font-medium mt-1">Camera Off</span>
+          <span className="text-[10px] text-slate-400/80 font-medium mt-1">Camera Off</span>
         </div>
       )}
 
@@ -506,28 +528,30 @@ export const CompactParticipantTile: React.FC<CompactParticipantTileProps> = ({
         {/* Left: Role / Live Badge */}
         <div className="flex items-center gap-1">
           {isInstructorRole ? (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40 backdrop-blur-md">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
               LIVE
             </span>
           ) : (
-            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-slate-800/80 text-slate-400 border border-slate-700/50">
+            <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-black/50 text-slate-300 border border-white/10 backdrop-blur-md">
               Student
             </span>
           )}
 
           {isSpeaking && (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-emerald-500/30 text-emerald-300 border border-emerald-500/40">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 backdrop-blur-md">
               <span className="w-1 h-1 rounded-full bg-emerald-400 animate-ping" />
               Speaking
             </span>
           )}
+
+          <SignalBars quality={participant.connectionQuality} />
         </div>
 
         {/* Right: Screen Sharing indicator & Pin/Spotlight buttons (hover) */}
         <div className="flex items-center gap-1">
           {participant.isScreenSharing && (
-            <span className="p-1 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30" title="Sharing Screen">
+            <span className="p-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 backdrop-blur-md" title="Sharing Screen">
               <Monitor className="w-3 h-3 animate-pulse" />
             </span>
           )}
@@ -538,10 +562,10 @@ export const CompactParticipantTile: React.FC<CompactParticipantTileProps> = ({
                 e.stopPropagation();
                 onTogglePin();
               }}
-              className={`p-1 rounded-lg border text-[10px] cursor-pointer transition-all opacity-0 group-hover:opacity-100 ${
+              className={`p-1 rounded-lg border text-[10px] cursor-pointer transition-all opacity-0 group-hover:opacity-100 backdrop-blur-md ${
                 participant.isPinned
                   ? 'bg-sky-500 text-slate-950 border-sky-400 opacity-100'
-                  : 'bg-slate-950/80 hover:bg-slate-800 border-slate-700 text-slate-300'
+                  : 'bg-black/60 hover:bg-black/80 border-white/15 text-slate-300'
               }`}
               title={participant.isPinned ? 'Unpin' : 'Pin'}
             >
@@ -555,10 +579,10 @@ export const CompactParticipantTile: React.FC<CompactParticipantTileProps> = ({
                 e.stopPropagation();
                 onSpotlight();
               }}
-              className={`p-1 rounded-lg border text-[10px] cursor-pointer transition-all opacity-0 group-hover:opacity-100 ${
+              className={`p-1 rounded-lg border text-[10px] cursor-pointer transition-all opacity-0 group-hover:opacity-100 backdrop-blur-md ${
                 isSpotlighted
                   ? 'bg-indigo-500 text-white border-indigo-400 opacity-100'
-                  : 'bg-slate-950/80 hover:bg-slate-800 border-slate-700 text-slate-300'
+                  : 'bg-black/60 hover:bg-black/80 border-white/15 text-slate-300'
               }`}
               title={isSpotlighted ? 'Exit Spotlight' : 'Spotlight'}
             >
@@ -570,17 +594,17 @@ export const CompactParticipantTile: React.FC<CompactParticipantTileProps> = ({
 
       {/* Bottom Name & Mic status */}
       <div className="relative z-10 flex items-center justify-between w-full gap-1 pt-1">
-        <p className="text-[11px] font-bold text-white truncate max-w-[70%] drop-shadow-md">
+        <p className="text-[11px] font-semibold text-white truncate max-w-[70%] drop-shadow-md">
           {participant.name} {isLocal && '(You)'}
         </p>
 
         <div
-          className={`p-1 rounded-lg backdrop-blur-md border shadow-sm shrink-0 ${
+          className={`p-1 rounded-lg backdrop-blur-xl border shadow-sm shrink-0 ${
             participant.isMutedByInstructor
               ? 'bg-rose-500/25 border-rose-500/50 text-rose-400'
               : participant.isAudioOn
-              ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
-              : 'bg-slate-800/80 border-slate-700 text-slate-500'
+              ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+              : 'bg-black/50 border-white/15 text-slate-400'
           }`}
           title={
             participant.isMutedByInstructor
@@ -660,7 +684,7 @@ export const PipCameraView: React.FC<PipCameraViewProps> = ({ instructor }) => {
   }, []);
 
   return (
-    <div className="absolute bottom-4 right-4 w-44 sm:w-56 aspect-video z-20 shadow-2xl rounded-2xl overflow-hidden border-2 border-amber-500/60 bg-slate-950">
+    <div className="absolute bottom-4 right-4 w-44 sm:w-56 aspect-video z-20 shadow-2xl rounded-2xl overflow-hidden border-2 border-amber-400/60 bg-[#090d1a]/95 backdrop-blur-xl">
       <video
         ref={pipVideoRef}
         autoPlay
@@ -668,7 +692,7 @@ export const PipCameraView: React.FC<PipCameraViewProps> = ({ instructor }) => {
         muted={true}
         className="w-full h-full object-cover"
       />
-      <div className="absolute bottom-1.5 left-2 bg-slate-950/85 backdrop-blur-md px-2 py-0.5 rounded-md text-[10px] font-bold text-amber-300 border border-amber-500/30 flex items-center gap-1">
+      <div className="absolute bottom-2 left-2 bg-black/75 backdrop-blur-md px-2.5 py-0.5 rounded-full text-[10px] font-bold text-amber-300 border border-white/15 flex items-center gap-1.5 shadow-md">
         <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
         <span className="truncate max-w-[120px]">{instructor.name}</span>
       </div>
@@ -798,6 +822,8 @@ export const ScreenShareViewport: React.FC<ScreenShareViewportProps> = ({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [fitMode, setFitMode] = useState<'contain' | 'cover'>('contain');
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -825,42 +851,96 @@ export const ScreenShareViewport: React.FC<ScreenShareViewportProps> = ({
     }
   };
 
+  const handleZoomIn = () => setZoomLevel((prev) => Math.min(prev + 0.25, 2.5));
+  const handleZoomOut = () => setZoomLevel((prev) => Math.max(prev - 0.25, 0.75));
+  const handleResetZoom = () => setZoomLevel(1);
+  const toggleFitMode = () => setFitMode((prev) => (prev === 'contain' ? 'cover' : 'contain'));
+
   const sharerDisplayName = activeSharer?.name || instructor?.name || instructorName || 'Lead Instructor';
 
   return (
     <div
       ref={containerRef}
-      className={`w-full h-full relative bg-slate-950 rounded-3xl overflow-hidden border border-slate-800 flex items-center justify-center min-h-[360px] ${
+      className={`w-full h-full relative bg-[#070a14] rounded-3xl overflow-hidden border border-white/10 flex items-center justify-center min-h-[360px] shadow-2xl ${
         isFullscreen ? 'rounded-none border-none' : ''
       }`}
     >
-      <video
-        ref={screenRef}
-        autoPlay
-        playsInline
-        muted={true}
-        className="w-full h-full object-contain pointer-events-none select-none"
-        style={{ imageRendering: 'auto', minWidth: '320px', minHeight: '180px' }}
-      />
+      <div className="w-full h-full flex items-center justify-center overflow-hidden">
+        <video
+          ref={screenRef}
+          autoPlay
+          playsInline
+          muted={true}
+          className={`w-full h-full ${fitMode === 'contain' ? 'object-contain' : 'object-cover'} pointer-events-none select-none transition-transform duration-200`}
+          style={{
+            transform: `scale(${zoomLevel})`,
+            imageRendering: 'auto',
+            minWidth: '320px',
+            minHeight: '180px',
+          }}
+        />
+      </div>
 
       {/* Screen Share Live Header Badge */}
-      <div className="absolute top-4 left-4 bg-slate-950/85 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-amber-500/40 text-xs font-bold text-amber-300 flex items-center gap-2 shadow-xl z-10">
+      <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-xl px-4 py-2 rounded-2xl border border-white/15 text-xs font-bold text-amber-300 flex items-center gap-2 shadow-xl z-10">
         <Monitor className="w-4 h-4 text-amber-400 animate-pulse" />
         <span>
           Screen Share • {sharerDisplayName}
         </span>
       </div>
 
-      {/* Fullscreen Toggle Action Button */}
-      <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+      {/* Viewport Action Controls: Zoom, Fit, Fullscreen */}
+      <div className="absolute top-4 right-4 flex items-center gap-1.5 z-10 bg-black/60 backdrop-blur-xl p-1.5 rounded-2xl border border-white/15 shadow-xl">
+        <button
+          onClick={handleZoomOut}
+          disabled={zoomLevel <= 0.75}
+          className="p-2 rounded-xl hover:bg-white/10 text-slate-300 hover:text-white transition-all cursor-pointer disabled:opacity-40"
+          title="Zoom Out"
+          aria-label="Zoom Out"
+        >
+          <ZoomOut className="w-3.5 h-3.5" />
+        </button>
+        <span className="text-[10px] font-mono text-slate-300 px-1 select-none font-bold">
+          {Math.round(zoomLevel * 100)}%
+        </span>
+        <button
+          onClick={handleZoomIn}
+          disabled={zoomLevel >= 2.5}
+          className="p-2 rounded-xl hover:bg-white/10 text-slate-300 hover:text-white transition-all cursor-pointer disabled:opacity-40"
+          title="Zoom In"
+          aria-label="Zoom In"
+        >
+          <ZoomIn className="w-3.5 h-3.5" />
+        </button>
+        {zoomLevel !== 1 && (
+          <button
+            onClick={handleResetZoom}
+            className="p-2 rounded-xl hover:bg-white/10 text-slate-300 hover:text-white transition-all cursor-pointer"
+            title="Reset Zoom"
+            aria-label="Reset Zoom"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+          </button>
+        )}
+        <button
+          onClick={toggleFitMode}
+          className={`p-2 rounded-xl transition-all cursor-pointer ${
+            fitMode === 'cover' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'hover:bg-white/10 text-slate-300 hover:text-white'
+          }`}
+          title={fitMode === 'contain' ? 'Fit to Viewport (Fill)' : 'Fit to Screen (Contain)'}
+          aria-label="Toggle Fit Mode"
+        >
+          <Scan className="w-3.5 h-3.5" />
+        </button>
+        <div className="w-[1px] h-4 bg-white/20 mx-0.5" />
         <button
           onClick={toggleFullscreen}
-          className="p-2 rounded-xl bg-slate-900/80 hover:bg-slate-800/90 text-slate-200 hover:text-white border border-slate-700/60 backdrop-blur-md transition-all shadow-lg cursor-pointer flex items-center gap-1.5 text-xs font-medium"
+          className="p-2 rounded-xl hover:bg-white/10 text-slate-200 hover:text-white transition-all cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
           title={isFullscreen ? 'Exit Fullscreen' : 'View Fullscreen'}
           aria-label={isFullscreen ? 'Exit Fullscreen' : 'View Fullscreen'}
         >
-          {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-          <span className="hidden sm:inline">{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}</span>
+          {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+          <span className="hidden sm:inline text-[11px] pr-1">{isFullscreen ? 'Exit' : 'Full'}</span>
         </button>
       </div>
 
@@ -1023,11 +1103,11 @@ export const VideoGrid: React.FC<VideoGridProps> = ({
           </div>
         ) : (
           /* CASE 3: INSTRUCTOR NOT YET CONNECTED (STUDENT VIEW STANDBY) */
-          <div className="w-full h-full min-h-[320px] rounded-3xl bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 shadow-2xl flex flex-col items-center justify-center p-8 text-center relative overflow-hidden">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(245,158,11,0.06),transparent_70%)] pointer-events-none" />
+          <div className="w-full h-full min-h-[320px] rounded-3xl bg-gradient-to-b from-[#0c1224] to-[#060913] border border-white/10 shadow-2xl flex flex-col items-center justify-center p-8 text-center relative overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(124,140,255,0.08),transparent_70%)] pointer-events-none" />
             <div className="relative z-10 flex flex-col items-center space-y-4 max-w-md">
               <div className="relative">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-amber-500/20 to-amber-600/10 border-2 border-amber-500/40 flex items-center justify-center text-amber-400 shadow-xl shadow-amber-500/10">
+                <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-amber-500/20 via-purple-500/10 to-indigo-500/20 border-2 border-amber-400/50 flex items-center justify-center text-amber-300 shadow-xl shadow-amber-500/10">
                   <User className="w-10 h-10" />
                 </div>
                 <span className="absolute -top-1 -right-1 flex h-4 w-4">
@@ -1039,7 +1119,7 @@ export const VideoGrid: React.FC<VideoGridProps> = ({
                 <h3 className="text-lg sm:text-xl font-heading font-black text-white">
                   Waiting for Instructor
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-400">
+                <p className="text-xs sm:text-sm text-slate-300/80">
                   {instructorName ? (
                     <span><strong>{instructorName}</strong> is preparing to start the live session.</span>
                   ) : (
@@ -1047,7 +1127,7 @@ export const VideoGrid: React.FC<VideoGridProps> = ({
                   )}
                 </p>
               </div>
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/80 border border-slate-700/60 text-[11px] text-amber-300 font-medium">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.06] backdrop-blur-xl border border-white/10 text-[11px] text-amber-300 font-medium shadow-lg">
                 <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
                 <span>Audio & video will stream automatically when instructor connects</span>
               </div>
@@ -1062,14 +1142,14 @@ export const VideoGrid: React.FC<VideoGridProps> = ({
       {/* Format: [ Instructor ] [ Student A ] [ Student B ] ...            */}
       {/* ================================================================== */}
       {stripParticipants.length > 0 && (
-        <div className="w-full shrink-0 flex flex-col gap-2 pt-1 border-t border-slate-800/80">
+        <div className="w-full shrink-0 flex flex-col gap-2 pt-2 border-t border-white/10">
           <div className="flex items-center justify-between px-1 text-xs font-bold text-slate-400 uppercase tracking-wider">
             <div className="flex items-center gap-2">
               <Users className="w-3.5 h-3.5 text-sky-400" />
               <span>Classroom Participants ({participants.length})</span>
             </div>
             {activeSpeaker && (
-              <span className="text-emerald-400 flex items-center gap-1.5 font-mono text-[11px] lowercase">
+              <span className="text-emerald-400 flex items-center gap-1.5 font-mono text-[11px] lowercase bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full backdrop-blur-md">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                 <span>{activeSpeaker.name} is speaking</span>
               </span>

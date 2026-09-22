@@ -1,18 +1,23 @@
-import { LiveClass, LiveStatus, MeetingProvider } from '../types';
+import { LiveClass, LiveStatus, MeetingProvider, SessionCategory, LiveSessionType } from '../types';
 
 export class LiveClassModel implements LiveClass {
   classId: string;
   title: string;
   description: string;
-  courseId: string;
-  courseName: string;
-  moduleId: string;
-  moduleTitle: string;
-  lessonId: string;
-  lessonTitle: string;
+  sessionCategory?: SessionCategory;
+  sessionType?: LiveSessionType;
+  topicCategory?: string;
+  courseId?: string;
+  courseName?: string;
+  moduleId?: string;
+  moduleTitle?: string;
+  lessonId?: string;
+  lessonTitle?: string;
   instructorId: string;
   instructorName: string;
   instructorAvatar?: string;
+  guestSpeakers?: string[];
+  registrationRequired?: boolean;
   branch?: string;
   semester?: string;
   year?: string;
@@ -49,6 +54,9 @@ export class LiveClassModel implements LiveClass {
     this.classId = data.classId;
     this.title = data.title;
     this.description = data.description;
+    this.sessionCategory = data.sessionCategory || (data.courseId ? 'course' : 'general');
+    this.sessionType = data.sessionType || 'academic_lecture';
+    this.topicCategory = data.topicCategory;
     this.courseId = data.courseId;
     this.courseName = data.courseName;
     this.moduleId = data.moduleId;
@@ -58,6 +66,8 @@ export class LiveClassModel implements LiveClass {
     this.instructorId = data.instructorId;
     this.instructorName = data.instructorName;
     this.instructorAvatar = data.instructorAvatar;
+    this.guestSpeakers = data.guestSpeakers || [];
+    this.registrationRequired = data.registrationRequired ?? false;
     this.branch = data.branch;
     this.semester = data.semester;
     this.year = data.year;

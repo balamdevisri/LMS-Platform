@@ -51,6 +51,8 @@ export class LiveClassroomController {
       let resolvedRole = (req.user.role || 'student').toLowerCase().trim();
       let resolvedName = req.user.name || 'Student';
       const userEmail = (req.user.email || '').toLowerCase().trim();
+      let userBatch = '';
+      let userSection = '';
 
       if (db && typeof db.collection === 'function' && process.env.NODE_ENV !== 'test') {
         try {
@@ -66,6 +68,12 @@ export class LiveClassroomController {
             }
             if (userData?.name || userData?.fullName || userData?.displayName) {
               resolvedName = userData.name || userData.fullName || userData.displayName;
+            }
+            if (userData?.batch || userData?.cohort) {
+              userBatch = String(userData.batch || userData.cohort).toLowerCase().trim();
+            }
+            if (userData?.section || userData?.branch) {
+              userSection = String(userData.section || userData.branch).toLowerCase().trim();
             }
           }
         } catch (dbErr: any) {
@@ -93,15 +101,25 @@ export class LiveClassroomController {
           return;
         }
 
-        const targetAudience = (liveClass as any).targetAudience || 'all';
-        const allowedStudents = (liveClass as any).allowedStudents;
+        const targetAudience = (liveClass as any).targetAudience || (liveClass as any).audienceTargeting?.type || 'all';
+        const allowedStudents = (liveClass as any).allowedStudents || (liveClass as any).audienceTargeting?.values;
 
         let isAuthorized = false;
 
-        if (Array.isArray(allowedStudents) && (allowedStudents.includes(uid) || (userEmail && allowedStudents.includes(userEmail)))) {
+        if (targetAudience === 'all') {
+          isAuthorized = true;
+        } else if (Array.isArray(allowedStudents) && (allowedStudents.includes(uid) || (userEmail && allowedStudents.includes(userEmail)))) {
           isAuthorized = true;
         } else if (targetAudience === 'restricted' && Array.isArray(allowedStudents)) {
           isAuthorized = false;
+        } else if (targetAudience === 'selected_batch' || targetAudience === 'batch') {
+          const classBatch = String((liveClass as any).targetBatch || (liveClass as any).audienceTargeting?.values?.[0] || '').toLowerCase().trim();
+          isAuthorized = Boolean(classBatch && userBatch && (classBatch === userBatch || userBatch.includes(classBatch) || classBatch.includes(userBatch)));
+        } else if (targetAudience === 'selected_section' || targetAudience === 'branch') {
+          const classSection = String((liveClass as any).targetSection || (liveClass as any).audienceTargeting?.values?.[0] || '').toLowerCase().trim();
+          isAuthorized = Boolean(classSection && userSection && (classSection === userSection || userSection.includes(classSection) || classSection.includes(userSection)));
+        } else if (liveClass.sessionCategory === 'general' || !liveClass.courseId) {
+          isAuthorized = true;
         } else if (liveClass.courseId) {
           const enrollment = await liveClassroomService.verifyCourseEnrollment(uid, liveClass.courseId, resolvedRole, userEmail);
           isAuthorized = enrollment.isEnrolled;

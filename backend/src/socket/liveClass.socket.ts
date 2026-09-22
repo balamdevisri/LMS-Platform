@@ -756,10 +756,13 @@ export const registerLiveClassHandlers = (io: SocketServer, socket: Authenticate
       io.to(roomName).emit('session:ended', endPayload);
       io.to(roomName).emit('liveClass:ended', endPayload);
       io.emit('liveClass:deleted', { liveClassId });
-      io.emit('live_class_deleted', { liveClassId });
       try {
-        await liveClassroomService.deleteLiveClass(liveClassId);
-      } catch (e) {}
+        await liveClassroomService.endLiveClass(liveClassId);
+      } catch (e) {
+        try {
+          await liveClassroomService.deleteLiveClass(liveClassId);
+        } catch (err2) {}
+      }
     }
   });
 

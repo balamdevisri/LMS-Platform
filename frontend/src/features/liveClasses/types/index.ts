@@ -22,12 +22,30 @@ export interface LiveClass {
   title: string;
   description: string;
   youtubeVideoId?: string;
-  courseId: string;
-  courseName: string;
+  courseId?: string;
+  courseName?: string;
   moduleId?: string;
   moduleTitle?: string;
   lessonId?: string;
   lessonTitle?: string;
+  sessionCategory?: 'course' | 'general';
+  sessionType?: string;
+  guestSpeakers?: string[];
+  registrationRequired?: boolean;
+  topicCategory?: string;
+  audienceTargeting?: {
+    type: 'all' | 'branch' | 'batch' | 'year' | 'course' | 'whitelist';
+    values?: string[];
+  };
+  permissions?: {
+    chatEnabled?: boolean;
+    studentMicEnabled?: boolean;
+    studentCamEnabled?: boolean;
+    raiseHandEnabled?: boolean;
+    pollsEnabled?: boolean;
+    quizzesEnabled?: boolean;
+    hostScreenShareOnly?: boolean;
+  };
   instructorId: string;
   instructorName: string;
   instructorAvatar?: string;

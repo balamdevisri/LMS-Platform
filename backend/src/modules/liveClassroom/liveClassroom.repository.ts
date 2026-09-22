@@ -5,8 +5,28 @@ import logger from '../../config/logger';
 export interface ILiveClassData {
   id: string;
   classId: string;
-  courseId: string;
+  courseId?: string;
   courseName?: string;
+  moduleId?: string;
+  lessonId?: string;
+  sessionCategory?: 'course' | 'general';
+  sessionType?: string;
+  guestSpeakers?: string[];
+  registrationRequired?: boolean;
+  topicCategory?: string;
+  audienceTargeting?: {
+    type: 'all' | 'branch' | 'batch' | 'year' | 'course' | 'whitelist';
+    values?: string[];
+  };
+  permissions?: {
+    chatEnabled?: boolean;
+    studentMicEnabled?: boolean;
+    studentCamEnabled?: boolean;
+    raiseHandEnabled?: boolean;
+    pollsEnabled?: boolean;
+    quizzesEnabled?: boolean;
+    hostScreenShareOnly?: boolean;
+  };
   instructorId: string;
   instructorName?: string;
   instructorAvatar?: string;
@@ -205,11 +225,31 @@ export class LiveClassroomRepository {
     const now = new Date().toISOString();
     const isLive = String(data.status || '').toLowerCase() === 'live';
 
+    const isGeneral = data.sessionCategory === 'general' || (!data.courseId && !data.courseName);
+    const sessionCategory = data.sessionCategory || (isGeneral ? 'general' : 'course');
+
     const payload: Partial<ILiveClassData> = {
       id: classId,
       classId,
-      courseId: data.courseId || 'course_default',
-      courseName: data.courseName || 'Enterprise Technical Track',
+      sessionCategory,
+      sessionType: data.sessionType || (sessionCategory === 'general' ? 'technical_workshop' : 'academic_lecture'),
+      courseId: data.courseId || (sessionCategory === 'general' ? '' : 'course_default'),
+      courseName: data.courseName || (sessionCategory === 'general' ? '' : 'Enterprise Technical Track'),
+      moduleId: data.moduleId || '',
+      lessonId: data.lessonId || '',
+      guestSpeakers: data.guestSpeakers || [],
+      registrationRequired: data.registrationRequired ?? false,
+      topicCategory: data.topicCategory || '',
+      audienceTargeting: data.audienceTargeting || { type: 'all' },
+      permissions: data.permissions || {
+        chatEnabled: data.isChatEnabled ?? true,
+        studentMicEnabled: true,
+        studentCamEnabled: true,
+        raiseHandEnabled: true,
+        pollsEnabled: data.isPollEnabled ?? true,
+        quizzesEnabled: data.isQuizEnabled ?? true,
+        hostScreenShareOnly: true,
+      },
       instructorId: data.instructorId || 'inst_default',
       instructorName: data.instructorName || 'Lead Instructor',
       instructorAvatar: data.instructorAvatar || '',
@@ -483,13 +523,23 @@ export class LiveClassroomRepository {
           const totalSecs = sessions.reduce((sum, s) => sum + (s.durationSeconds || 0), 0);
           const durationMins = Math.round(totalSecs / 60);
 
+          // Compute attendance category
+          let calculatedStatus: string = 'present';
+          if (existing.status === 'late' || (existing as any).isLate) {
+            calculatedStatus = 'late';
+          } else if (durationMins < 5) {
+            calculatedStatus = 'left_early';
+          } else {
+            calculatedStatus = 'present';
+          }
+
           record = {
             ...existing,
             leftAt: now,
             sessions,
             durationSeconds: totalSecs,
             durationMinutes: durationMins,
-            status: 'LEFT',
+            status: calculatedStatus as any,
           };
           await docRef.set(record, { merge: true });
         }
@@ -515,13 +565,22 @@ export class LiveClassroomRepository {
       const totalSecs = sessions.reduce((sum, s) => sum + (s.durationSeconds || 0), 0);
       const durationMins = Math.round(totalSecs / 60);
 
+      let calculatedStatus: string = 'present';
+      if (existing.status === 'late' || (existing as any).isLate) {
+        calculatedStatus = 'late';
+      } else if (durationMins < 5) {
+        calculatedStatus = 'left_early';
+      } else {
+        calculatedStatus = 'present';
+      }
+
       record = {
         ...existing,
         leftAt: now,
         sessions,
         durationSeconds: totalSecs,
         durationMinutes: durationMins,
-        status: 'LEFT',
+        status: calculatedStatus as any,
       };
       currentList[idx] = record;
       memoryDb.attendance.set(classId, currentList);

@@ -31,6 +31,7 @@ import {
   TestRunner,
   AIReviewProvider
 } from '../../services/practice/practiceEngine';
+import { detectLanguage } from '../../services/compiler/compilerService';
 import type {
   Challenge,
   Attempt,
@@ -802,15 +803,28 @@ export const PracticeLab: React.FC<PracticeLabProps> = ({
               onChange={(e) => setActiveLanguage(e.target.value)}
               className="bg-slate-800 border border-slate-700 text-white rounded-lg py-1.5 px-3 text-[11px] font-bold outline-none cursor-pointer hover:border-slate-600 transition-colors pr-6 appearance-none"
             >
+              <option value="auto">✨ Auto Detect Language</option>
               <option value="javascript">JavaScript</option>
               <option value="typescript">TypeScript</option>
               <option value="python">Python</option>
               <option value="java">Java</option>
               <option value="c">C</option>
               <option value="cpp">C++</option>
+              <option value="go">Go</option>
+              <option value="rust">Rust</option>
+              <option value="csharp">C#</option>
+              <option value="php">PHP</option>
+              <option value="bash">Bash</option>
             </select>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 top-2.5 pointer-events-none" />
           </div>
+
+          {activeLanguage === 'auto' && (
+            <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-extrabold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 animate-pulse">
+              <Sparkles className="w-3 h-3 text-emerald-400" />
+              <span>Auto: {detectLanguage(code).name}</span>
+            </span>
+          )}
 
           <div className="h-6 w-px bg-slate-800 hidden md:block" />
 

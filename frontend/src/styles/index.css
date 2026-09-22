@@ -1733,6 +1733,88 @@ html.dark .navbar-gooey .navbar__link span {
   pointer-events: none;
 }
 
+/* ========================================================================== */
+/* KAIZENQ LIVE CLASSROOM — APPLE GLASSMORPHISM DESIGN SYSTEM                */
+/* ========================================================================== */
+:root {
+  --kc-bg: #080b14;
+  --kc-surface: rgba(255, 255, 255, 0.055);
+  --kc-surface-elevated: rgba(255, 255, 255, 0.085);
+  --kc-border: rgba(255, 255, 255, 0.12);
+  --kc-border-subtle: rgba(255, 255, 255, 0.07);
+  --kc-text-primary: #f8fafc;
+  --kc-text-secondary: #a8b2c5;
+  --kc-accent: #7c8cff;
+  --kc-accent-secondary: #9b87f5;
+  --kc-success: #34d399;
+  --kc-warning: #fbbf24;
+  --kc-danger: #fb7185;
+}
+
+.kc-glass-panel {
+  background: rgba(13, 18, 34, 0.75);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.5);
+}
+
+.kc-glass-dock {
+  background: rgba(12, 17, 32, 0.85);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+}
+
+.kc-glass-pill {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.kc-glass-pill:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.kc-glass-modal {
+  background: rgba(9, 13, 25, 0.94);
+  backdrop-filter: blur(36px);
+  -webkit-backdrop-filter: blur(36px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 30px 80px -15px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+}
+
+.kc-ambient-glow {
+  background-color: var(--kc-bg);
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(124, 140, 255, 0.09), transparent 50%),
+    radial-gradient(circle at 15% 40%, rgba(155, 135, 245, 0.05), transparent 40%),
+    radial-gradient(circle at 85% 60%, rgba(52, 211, 153, 0.04), transparent 45%);
+}
+
+.kc-custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.kc-custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.kc-custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+}
+
+.kc-custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+
 
 
 

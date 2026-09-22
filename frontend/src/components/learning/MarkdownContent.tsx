@@ -52,7 +52,7 @@ class BlockErrorBoundary extends React.Component<
     if (this.state.hasError) {
       if (this.props.rawCode) {
         return (
-          <div className="my-6 rounded-2xl overflow-hidden border border-slate-700/60 dark:border-slate-800 bg-[#0A0E1A] shadow-xl relative group">
+          <div className="my-6 rounded-2xl overflow-hidden border border-slate-700/60 bg-[#0A0E1A] shadow-xl relative group">
             <div className="flex items-center justify-between px-4 py-2.5 bg-[#0F172A] border-b border-slate-800/80">
               <span className="text-xs font-mono font-bold text-[#38BDF8] uppercase tracking-wider">
                 {this.props.language || 'code'}
@@ -127,7 +127,7 @@ const CopyButton: React.FC<{ code: string }> = ({ code }) => {
  */
 export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNightMode = false }) => {
   const plugins = useMemo(() => [remarkGfm], []);
-  const rehypePlugins = useMemo(() => [[rehypeHighlight, { ignoreMissing: true }]], []);
+  const rehypePlugins: any = useMemo(() => [[rehypeHighlight, { ignoreMissing: true }]], []);
 
   const processedContent = useMemo(() => {
     if (!content) return '';
@@ -180,8 +180,8 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
   return (
     <div className={`markdown-content prose-custom ${isNightMode ? 'dark-mode' : 'light-mode'}`}>
       <ReactMarkdown
-        remarkPlugins={plugins}
-        rehypePlugins={rehypePlugins}
+        remarkPlugins={plugins as any}
+        rehypePlugins={rehypePlugins as any}
         components={{
           // ── Headings ─────────────────────────────────────────────
           h1: ({ children }: any) => (
@@ -390,27 +390,34 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
               );
             }
 
-            // ── Interactive Practice: Code Editor & Compiler (C, Python, Java, DSA) ──
+            // ── Interactive Practice: Code Editor & Compiler (All Languages & Auto-Detect) ──
             if (
               language === 'practice-code' ||
+              language === 'practice-compiler' ||
               language === 'practice-c' ||
               language === 'practice-python' ||
               language === 'practice-java' ||
               language === 'practice-cpp' ||
-              language === 'practice-dsa'
+              language === 'practice-dsa' ||
+              language === 'practice-go' ||
+              language === 'practice-rust' ||
+              language === 'practice-js'
             ) {
               const text = rawCode.trim();
-              const detectedLang: 'c' | 'python' | 'java' | 'cpp' | 'javascript' =
+              const targetLang =
                 language === 'practice-c' ? 'c' :
                 language === 'practice-java' ? 'java' :
                 language === 'practice-cpp' ? 'cpp' :
-                'python';
+                language === 'practice-go' ? 'go' :
+                language === 'practice-rust' ? 'rust' :
+                language === 'practice-python' ? 'python' :
+                'auto';
 
               return (
-                <BlockErrorBoundary rawCode={rawCode} language={detectedLang}>
+                <BlockErrorBoundary rawCode={rawCode} language={targetLang}>
                   <Suspense fallback={<SimulatorFallback label="code editor" />}>
                     <CodeEditorRunner
-                      language={detectedLang}
+                      language={targetLang}
                       initialCode={text || undefined}
                     />
                   </Suspense>
@@ -449,7 +456,7 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
 
             if (isBoxOrArrowFlowchart) {
               return (
-                <div className="my-6 rounded-2xl border border-sky-500/30 dark:border-sky-500/20 bg-[#0A0E1A] shadow-xl overflow-hidden relative group">
+                <div className="my-6 rounded-2xl border border-sky-500/30 bg-[#0A0E1A] shadow-xl overflow-hidden relative group">
                   <div className="flex items-center justify-between px-4 py-2.5 bg-[#0F172A] border-b border-slate-800/80">
                     <div className="flex items-center gap-2">
                       <span className="w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse inline-block" />
@@ -467,14 +474,14 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
             }
 
             return (
-              <div className="my-6 rounded-2xl overflow-hidden border border-slate-700/60 dark:border-slate-800 bg-[#0A0E1A] shadow-xl relative group">
+              <div className="my-6 rounded-2xl overflow-hidden border border-slate-700/60 bg-[#0A0E1A] shadow-xl relative group">
                 {/* Header bar */}
                 <div className="flex items-center justify-between px-4 py-2.5 bg-[#0F172A] border-b border-slate-800/80">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80 inline-block" />
                     <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80 inline-block" />
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block" />
-                    <span className="ml-2 text-xs font-mono font-bold text-[#38BDF8] dark:text-[#38BDF8] uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="ml-2 text-xs font-mono font-bold text-[#38BDF8] uppercase tracking-wider flex items-center gap-1.5">
                       <CodeIcon className="w-3.5 h-3.5" />
                       <span>{language}</span>
                     </span>
@@ -546,7 +553,7 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
                     : 'bg-emerald-50/80 border-emerald-500 text-emerald-900'
                   } dark:bg-emerald-950/30 dark:border-emerald-500 dark:text-emerald-200`}>
                   <Lightbulb className={`w-5 h-5 shrink-0 mt-0.5 ${isNightMode ? 'text-emerald-400' : 'text-emerald-600'} dark:text-emerald-400`} />
-                  <div className="flex-1 text-[0.9375rem] leading-relaxed [&>p]:mb-2 [&>p:last-child]:mb-0">
+                  <div className="flex-1 text-[0.9375rem] leading-relaxed [&>p:not(:last-child)]:mb-2">
                     {children}
                   </div>
                 </div>
@@ -561,7 +568,7 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
                     : 'bg-sky-50/80 border-sky-500 text-sky-900'
                   } dark:bg-sky-950/30 dark:border-sky-500 dark:text-sky-200`}>
                   <Info className={`w-5 h-5 shrink-0 mt-0.5 ${isNightMode ? 'text-[#38BDF8]' : 'text-[#0284C7]'} dark:text-[#38BDF8]`} />
-                  <div className="flex-1 text-[0.9375rem] leading-relaxed [&>p]:mb-2 [&>p:last-child]:mb-0">
+                  <div className="flex-1 text-[0.9375rem] leading-relaxed [&>p:not(:last-child)]:mb-2">
                     {children}
                   </div>
                 </div>
@@ -576,7 +583,7 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
                     : 'bg-indigo-50/80 border-indigo-500 text-indigo-900'
                   } dark:bg-indigo-950/30 dark:border-indigo-500 dark:text-indigo-200`}>
                   <AlertCircle className={`w-5 h-5 shrink-0 mt-0.5 ${isNightMode ? 'text-indigo-400' : 'text-indigo-600'} dark:text-indigo-400`} />
-                  <div className="flex-1 text-[0.9375rem] leading-relaxed [&>p]:mb-2 [&>p:last-child]:mb-0">
+                  <div className="flex-1 text-[0.9375rem] leading-relaxed [&>p:not(:last-child)]:mb-2">
                     {children}
                   </div>
                 </div>
@@ -591,7 +598,7 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
                     : 'bg-amber-50/80 border-amber-500 text-amber-900'
                   } dark:bg-amber-950/30 dark:border-amber-500 dark:text-amber-200`}>
                   <AlertTriangle className={`w-5 h-5 shrink-0 mt-0.5 ${isNightMode ? 'text-amber-400' : 'text-amber-600'} dark:text-amber-400`} />
-                  <div className="flex-1 text-[0.9375rem] leading-relaxed [&>p]:mb-2 [&>p:last-child]:mb-0">
+                  <div className="flex-1 text-[0.9375rem] leading-relaxed [&>p:not(:last-child)]:mb-2">
                     {children}
                   </div>
                 </div>
@@ -606,7 +613,7 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
                     : 'bg-rose-50/80 border-rose-500 text-rose-900'
                   } dark:bg-rose-950/30 dark:border-rose-500 dark:text-rose-200`}>
                   <ShieldAlert className={`w-5 h-5 shrink-0 mt-0.5 ${isNightMode ? 'text-rose-400' : 'text-rose-600'} dark:text-rose-400`} />
-                  <div className="flex-1 text-[0.9375rem] leading-relaxed [&>p]:mb-2 [&>p:last-child]:mb-0">
+                  <div className="flex-1 text-[0.9375rem] leading-relaxed [&>p:not(:last-child)]:mb-2">
                     {children}
                   </div>
                 </div>
@@ -644,7 +651,7 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
 
           // ── Table ────────────────────────────────────────────────
           table: ({ children }: any) => (
-            <div className="my-6 overflow-x-auto rounded-2xl border border-slate-700/60 dark:border-slate-800 shadow-md bg-[#0A0E1A]/40">
+            <div className="my-6 overflow-x-auto rounded-2xl border border-slate-700/60 shadow-md bg-[#0A0E1A]/40">
               <table className={`w-full text-xs sm:text-sm text-left border-collapse ${isNightMode ? 'text-slate-300' : 'text-slate-700'} dark:text-slate-300`}>
                 {children}
               </table>
@@ -667,7 +674,7 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
 
           // ── Horizontal rule ──────────────────────────────────────
           hr: () => (
-            <hr className={`my-8 border-0 h-px bg-gradient-to-r from-transparent via-sky-500/30 to-transparent`} />
+            <hr className={`my-8 border-0 h-px bg-linear-to-r from-transparent via-sky-500/30 to-transparent`} />
           ),
 
           // ── Links ────────────────────────────────────────────────

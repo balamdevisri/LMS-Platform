@@ -1,6 +1,7 @@
 import { Server as SocketServer } from 'socket.io';
 import { AuthenticatedSocket } from './socket.auth';
 import { liveClassroomService } from '../modules/liveClassroom/liveClassroom.service';
+import { canPerformClassroomAction } from '../modules/liveClassroom/permissions';
 import logger from '../config/logger';
 import { getClassroomSettings } from './liveClass.socket';
 
@@ -14,6 +15,9 @@ interface PollItem {
   createdAt: string;
   createdBy: string;
   votedUserIds: Set<string>;
+  targetAudience?: 'all' | 'selected_batch' | 'selected_section' | 'restricted';
+  targetBatch?: string;
+  targetSection?: string;
 }
 
 // In-memory active polls: liveClassId -> PollItem
@@ -26,11 +30,19 @@ export const registerPollHandlers = (io: SocketServer, socket: AuthenticatedSock
     question: string,
     options: string[],
     durationSeconds: number = 60,
-    callback?: (res: any) => void
+    callback?: (res: any) => void,
+    targetAudience: 'all' | 'selected_batch' | 'selected_section' | 'restricted' = 'all',
+    targetBatch?: string,
+    targetSection?: string
   ) => {
     try {
       const user = socket.user;
-      if (!user || (user.role !== 'admin' && user.role !== 'instructor')) {
+      const allowed = user && canPerformClassroomAction('createPoll', {
+        userId: user.uid || user.id,
+        role: user.role,
+      });
+
+      if (!allowed) {
         const err = { success: false, error: 'INVALID_PERMISSION', message: 'Only instructors can create polls' };
         socket.emit('poll:error', err);
         if (callback) callback(err);
@@ -55,6 +67,9 @@ export const registerPollHandlers = (io: SocketServer, socket: AuthenticatedSock
         createdAt: new Date().toISOString(),
         createdBy: user.name || 'Instructor',
         votedUserIds: new Set<string>(),
+        targetAudience,
+        targetBatch,
+        targetSection,
       };
 
       activePollsMap.set(liveClassId, newPoll);
@@ -141,6 +156,30 @@ export const registerPollHandlers = (io: SocketServer, socket: AuthenticatedSock
         return;
       }
 
+      // Audience membership validation
+      if (user.role === 'student') {
+        if (activePoll.targetAudience === 'selected_batch' && activePoll.targetBatch) {
+          const userBatch = String((user as any).batch || (user as any).cohort || '').toLowerCase().trim();
+          const targetBatch = activePoll.targetBatch.toLowerCase().trim();
+          if (userBatch && targetBatch && !userBatch.includes(targetBatch) && !targetBatch.includes(userBatch)) {
+            const err = { success: false, error: 'AUDIENCE_RESTRICTED', message: 'This poll is restricted to a different batch.' };
+            socket.emit('poll:error', err);
+            if (callback) callback(err);
+            return;
+          }
+        }
+        if (activePoll.targetAudience === 'selected_section' && activePoll.targetSection) {
+          const userSection = String((user as any).section || (user as any).branch || '').toLowerCase().trim();
+          const targetSection = activePoll.targetSection.toLowerCase().trim();
+          if (userSection && targetSection && !userSection.includes(targetSection) && !targetSection.includes(userSection)) {
+            const err = { success: false, error: 'AUDIENCE_RESTRICTED', message: 'This poll is restricted to a different section/branch.' };
+            socket.emit('poll:error', err);
+            if (callback) callback(err);
+            return;
+          }
+        }
+      }
+
       let targetOption = activePoll.options.find(
         (opt) =>
           opt.id === optionIdentifier ||
@@ -205,10 +244,22 @@ export const registerPollHandlers = (io: SocketServer, socket: AuthenticatedSock
         question: string;
         options: string[];
         durationSeconds?: number;
+        targetAudience?: 'all' | 'selected_batch' | 'selected_section' | 'restricted';
+        targetBatch?: string;
+        targetSection?: string;
       },
       callback?: (res: any) => void
     ) => {
-      createPoll(data?.liveClassId, data?.question, data?.options, data?.durationSeconds, callback);
+      createPoll(
+        data?.liveClassId,
+        data?.question,
+        data?.options,
+        data?.durationSeconds,
+        callback,
+        data?.targetAudience,
+        data?.targetBatch,
+        data?.targetSection
+      );
     }
   );
 

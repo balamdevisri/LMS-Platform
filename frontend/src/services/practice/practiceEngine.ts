@@ -1,3 +1,5 @@
+import { detectLanguage, compileAndExecute } from '../compiler/compilerService';
+
 export interface TestCase {
   id: string;
   input: string;
@@ -474,18 +476,36 @@ export class CodeExecutionProvider {
       };
     }
 
+    // Auto-detect language if set to auto or unspecified
+    const effectiveLang = language === 'auto' ? detectLanguage(code).languageKey : language;
+
     // Direct Real-Time Dynamic Execution for JavaScript & TypeScript
-    if (language === 'javascript' || language === 'typescript') {
+    if (effectiveLang === 'javascript' || effectiveLang === 'typescript') {
       return RealtimeCodeRunner.executeJS(code, customInput, challengeId);
     }
 
+    // Try real cloud compilation for non-JS languages (C, C++, Python, Java, Go, Rust, etc.)
+    try {
+      const compileRes = await compileAndExecute(code, effectiveLang, customInput);
+      if (compileRes.stdout || compileRes.stderr) {
+        return {
+          stdout: compileRes.stdout,
+          stderr: compileRes.stderr,
+          executionTimeMs: compileRes.executionTimeMs,
+          memoryUsageMb: compileRes.memoryKb ? +(compileRes.memoryKb / 1024).toFixed(1) : 12.5,
+        };
+      }
+    } catch (e) {
+      console.warn('[PracticeEngine] Cloud compilation fallback to local engine:', e);
+    }
+
     // Direct Real-Time Dynamic Execution for Python
-    if (language === 'python') {
+    if (effectiveLang === 'python') {
       return RealtimeCodeRunner.executePython(code, customInput);
     }
 
     // Direct Real-Time Dynamic Execution for C & C++
-    if (language === 'c' || language === 'cpp') {
+    if (effectiveLang === 'c' || effectiveLang === 'cpp') {
       return RealtimeCodeRunner.executeC(code, customInput);
     }
 
@@ -610,7 +630,8 @@ export class TestRunner {
     // Try evaluation check if Javascript
     let evalMap: Record<string, string> = {};
     let useEval = false;
-    if (language === 'javascript' || language === 'typescript') {
+    const effectiveLang = language === 'auto' ? detectLanguage(code).languageKey : language;
+    if (effectiveLang === 'javascript' || effectiveLang === 'typescript') {
       try {
         const cleanCode = code.replace(/\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm, '$1');
         let funcName = 'solution';

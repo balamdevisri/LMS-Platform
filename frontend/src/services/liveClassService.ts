@@ -13,13 +13,31 @@ export interface LiveClass {
   title: string;
   description: string;
   youtubeVideoId?: string;
-  courseId: string;
-  courseName: string;
+  courseId?: string;
+  courseName?: string;
   moduleId?: string;
   moduleTitle?: string;
   lessonId?: string;
   lessonTitle?: string;
   topicId?: string;
+  sessionCategory?: 'course' | 'general';
+  sessionType?: string;
+  guestSpeakers?: string[];
+  registrationRequired?: boolean;
+  topicCategory?: string;
+  audienceTargeting?: {
+    type: 'all' | 'branch' | 'batch' | 'year' | 'course' | 'whitelist';
+    values?: string[];
+  };
+  permissions?: {
+    chatEnabled?: boolean;
+    studentMicEnabled?: boolean;
+    studentCamEnabled?: boolean;
+    raiseHandEnabled?: boolean;
+    pollsEnabled?: boolean;
+    quizzesEnabled?: boolean;
+    hostScreenShareOnly?: boolean;
+  };
   instructorId: string;
   instructorName: string;
   instructorAvatar?: string;
@@ -38,6 +56,10 @@ export interface LiveClass {
   year?: string;
   section?: string;
   allowedStudents?: string[];
+  mode?: 'interactive' | 'youtube';
+  targetAudience?: 'all' | 'enrolled_students' | 'selected_batch' | 'selected_section' | 'restricted';
+  targetBatch?: string;
+  targetSection?: string;
   meetingProvider: 'kaizenq' | 'google_meet' | 'zoom' | 'teams' | 'youtube';
   meetingRoomId: string;
   meetingUrl: string;
@@ -188,7 +210,6 @@ export const isMockLiveClass = (c: any): boolean => {
   if (!c) return true;
   const id = String(c.id || c.classId || '').toLowerCase().trim();
   const title = String(c.title || '').toLowerCase().trim();
-  const desc = String(c.description || '').toLowerCase().trim();
   return (
     id === 'live_linux_kernel_1' ||
     id === 'live_git_conflict_2' ||
@@ -1015,7 +1036,7 @@ class LiveClassService {
 
   async endLiveClass(
     id: string,
-    currentUserIdOrToken?: string,
+    _currentUserIdOrToken?: string,
     userRoleOrToken?: string,
     token?: string
   ): Promise<{ success: boolean; data?: LiveClass; error?: string }> {
@@ -1553,6 +1574,7 @@ class LiveClassService {
         if (data?.success && Array.isArray(data?.data)) return data.data;
       }
     } catch (e) {}
+    return [];
   }
 
   async getMyAttendance(classId: string): Promise<AttendanceReportItem | null> {
@@ -1566,6 +1588,7 @@ class LiveClassService {
         if (data?.success && data?.data) return data.data;
       }
     } catch (e) {}
+    return null;
   }
 
   async getLiveClassAnalytics(classId: string): Promise<LiveClassAnalytics | null> {
@@ -1579,6 +1602,7 @@ class LiveClassService {
         if (data?.success && data?.data) return data.data;
       }
     } catch (e) {}
+    return null;
   }
 
   async getLiveClassRecording(classId: string): Promise<LiveClassRecording | null> {
@@ -1592,6 +1616,7 @@ class LiveClassService {
         if (data?.success && data?.data) return data.data;
       }
     } catch (e) {}
+    return null;
   }
 
   async updateLiveClassRecording(

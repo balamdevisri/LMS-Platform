@@ -1,6 +1,8 @@
 import { Server as SocketServer } from 'socket.io';
 import { AuthenticatedSocket } from './socket.auth';
 import { liveClassroomService } from '../modules/liveClassroom/liveClassroom.service';
+import { notificationService } from '../modules/notifications/notification.service';
+import { canPerformClassroomAction } from '../modules/liveClassroom/permissions';
 import logger from '../config/logger';
 
 export interface ActiveAnnouncement {
@@ -13,6 +15,9 @@ export interface ActiveAnnouncement {
   senderName: string;
   senderRole: string;
   createdAt: string;
+  targetAudience?: 'all' | 'selected_batch' | 'selected_section' | 'restricted';
+  targetBatch?: string;
+  targetSection?: string;
 }
 
 // In-memory active announcements: liveClassId -> ActiveAnnouncement[]
@@ -23,19 +28,32 @@ export const registerAnnouncementHandlers = (io: SocketServer, socket: Authentic
   socket.on(
     'announcement:send',
     async (
-      data: { liveClassId: string; message: string; priority?: 'normal' | 'urgent'; pinned?: boolean },
+      data: {
+        liveClassId: string;
+        message: string;
+        priority?: 'normal' | 'urgent';
+        pinned?: boolean;
+        targetAudience?: 'all' | 'selected_batch' | 'selected_section' | 'restricted';
+        targetBatch?: string;
+        targetSection?: string;
+      },
       callback?: (res: any) => void
     ) => {
       try {
         const user = socket.user;
-        if (!user || (user.role !== 'admin' && user.role !== 'instructor' && user.role !== 'mentor')) {
+        const allowed = user && canPerformClassroomAction('publishAnnouncement', {
+          userId: user.uid || user.id,
+          role: user.role,
+        });
+
+        if (!allowed) {
           const err = { success: false, error: 'INVALID_PERMISSION', message: 'Only instructors/admins can broadcast announcements' };
           socket.emit('announcement:error', err);
           if (callback) callback(err);
           return;
         }
 
-        const { liveClassId, message, priority = 'normal', pinned = false } = data;
+        const { liveClassId, message, priority = 'normal', pinned = false, targetAudience = 'all', targetBatch, targetSection } = data;
         if (!liveClassId || !message) {
           const err = { success: false, error: 'INVALID_PAYLOAD', message: 'Message cannot be empty' };
           socket.emit('announcement:error', err);
@@ -54,6 +72,9 @@ export const registerAnnouncementHandlers = (io: SocketServer, socket: Authentic
           senderName: user.name || 'Instructor',
           senderRole: user.role,
           createdAt: new Date().toISOString(),
+          targetAudience,
+          targetBatch,
+          targetSection,
         };
 
         // Cache in room map
@@ -81,9 +102,12 @@ export const registerAnnouncementHandlers = (io: SocketServer, socket: Authentic
 
         logger.info(`[ANNOUNCEMENT] Broadcast in ${roomName} by ${user.name}: ${message}`);
 
-        // Broadcast announcement to entire room
-        io.to(roomName).emit('announcement:receive', announcementPayload);
-        io.to(roomName).emit('announcement_created', announcementPayload);
+        // Dispatch notification to user dashboards
+        try {
+          await notificationService.dispatchAnnouncementNotification(announcementPayload, null, io);
+        } catch (notifErr) {
+          logger.warn('[SOCKET ANNOUNCEMENT] Notification dispatch warning:', notifErr);
+        }
 
         if (callback) callback({ success: true, announcement: announcementPayload });
       } catch (err: any) {

@@ -206,6 +206,57 @@ export class NotificationService {
     return { created: savedCount, eligible: eligibleStudentIds.length };
   }
 
+  public async dispatchAnnouncementNotification(
+    announcement: {
+      id: string;
+      liveClassId: string;
+      message: string;
+      priority?: 'normal' | 'urgent';
+      senderName?: string;
+    },
+    liveClass?: any,
+    io?: any
+  ): Promise<void> {
+    try {
+      const classId = announcement.liveClassId;
+      const title = liveClass?.title || 'Live Classroom';
+      const sender = announcement.senderName || 'Instructor';
+      const isUrgent = announcement.priority === 'urgent';
+      const notifTitle = isUrgent
+        ? `🚨 Urgent Announcement: ${title}`
+        : `📢 Announcement: ${title}`;
+      const notifDesc = `${sender}: ${announcement.message}`;
+      const nowIso = new Date().toISOString();
+      const link = `/live-classroom/room/${classId}`;
+
+      const notifPayload: IDurableNotification = {
+        id: `notif_ann_${announcement.id}`,
+        type: 'live_class',
+        title: notifTitle,
+        desc: notifDesc,
+        message: announcement.message,
+        time: 'Just now',
+        read: false,
+        priority: isUrgent ? 'high' : 'normal',
+        createdAt: nowIso,
+        link,
+        recipientId: 'global',
+        recipientRole: 'student',
+        liveClassId: classId,
+      };
+
+      await this.notificationRepository.saveNotification(notifPayload);
+
+      if (io) {
+        // Broadcast to live class room and general notification listener
+        io.to(`live-class:${classId}`).emit('notification:new', notifPayload);
+        io.emit('notification:new', notifPayload);
+      }
+    } catch (err: any) {
+      logger.error('[NOTIFICATION SERVICE] Error dispatching announcement notification:', err?.message || err);
+    }
+  }
+
   public async getUserNotifications(userId: string, limitCount: number = 50): Promise<IDurableNotification[]> {
     return this.notificationRepository.getNotificationsForUser(userId, limitCount);
   }

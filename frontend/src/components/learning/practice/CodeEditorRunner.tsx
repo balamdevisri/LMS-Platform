@@ -1,144 +1,101 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { PracticeChrome } from './PracticeChrome';
-import { Play, AlertCircle, Clock } from 'lucide-react';
+import {
+  Play,
+  AlertCircle,
+  Clock,
+  Sparkles,
+  ChevronDown,
+  Terminal,
+  Copy,
+  Check,
+  RotateCcw,
+  SlidersHorizontal,
+  Layers,
+  Cpu
+} from 'lucide-react';
+import { toast } from 'sonner';
+import {
+  detectLanguage,
+  compileAndExecute,
+  SUPPORTED_LANGUAGES,
+} from '../../../services/compiler/compilerService';
 
 interface CodeEditorRunnerProps {
   title?: string;
   description?: string;
-  language?: 'c' | 'python' | 'java' | 'cpp' | 'javascript';
+  language?: string;
   initialCode?: string;
 }
-
-const DEFAULT_STARTER: { [key: string]: string } = {
-  c: `#include <stdio.h>
-
-int main() {
-    printf("Hello from C on KaizenQ!\\n");
-    for (int i = 1; i <= 5; i++) {
-        printf("Step %d: Processing element %d\\n", i, i * 10);
-    }
-    return 0;
-}`,
-  python: `# Python Object-Oriented Algorithm Example
-class AlgorithmTester:
-    def __init__(self, name):
-        self.name = name
-    
-    def binary_search(self, arr, target):
-        left, right = 0, len(arr) - 1
-        while left <= right:
-            mid = (left + right) // 2
-            if arr[mid] == target:
-                return mid
-            elif arr[mid] < target:
-                left = mid + 1
-            else:
-                right = mid - 1
-        return -1
-
-tester = AlgorithmTester("BinarySearch")
-data = [10, 20, 30, 40, 50, 60, 70, 80, 90]
-target = 60
-result = tester.binary_search(data, target)
-print(f"Algorithm: {tester.name}")
-print(f"Array: {data}")
-print(f"Target {target} found at index: {result}")`,
-  java: `public class Main {
-    public static void main(String[] args) {
-        System.out.println("🚀 KaizenQ Java OOPs Execution Engine");
-        
-        String[] tracks = {"React Full-Stack", "Python AI", "DevOps & Cloud"};
-        for (int i = 0; i < tracks.length; i++) {
-            System.out.println("Track " + (i + 1) + ": " + tracks[i]);
-        }
-    }
-}`,
-  cpp: `#include <iostream>
-#include <vector>
-#include <algorithm>
-
-int main() {
-    std::vector<int> nums = {45, 12, 85, 32, 89, 39, 69, 44, 42, 1, 6, 8};
-    std::sort(nums.begin(), nums.end());
-    
-    std::cout << "Sorted Array: ";
-    for (int n : nums) {
-        std::cout << n << " ";
-    }
-    std::cout << "\\n";
-    return 0;
-}`,
-  javascript: `// JavaScript In-Browser Runner
-function calculateFibonacci(n) {
-  const seq = [0, 1];
-  for (let i = 2; i < n; i++) {
-    seq.push(seq[i - 1] + seq[i - 2]);
-  }
-  return seq;
-}
-
-console.log("Fibonacci Sequence (10 terms):", calculateFibonacci(10));`,
-};
-
-const PISTON_LANGUAGE_MAP: { [key: string]: { language: string; version: string; file: string } } = {
-  c: { language: 'c', version: '10.2.0', file: 'main.c' },
-  python: { language: 'python', version: '3.10.0', file: 'main.py' },
-  java: { language: 'java', version: '15.0.2', file: 'Main.java' },
-  cpp: { language: 'c++', version: '10.2.0', file: 'main.cpp' },
-  javascript: { language: 'javascript', version: '18.15.0', file: 'index.js' },
-};
 
 export const CodeEditorRunner: React.FC<CodeEditorRunnerProps> = ({
   title,
   description,
-  language = 'python',
+  language = 'auto',
   initialCode,
 }) => {
-  const resolvedStarter = initialCode || DEFAULT_STARTER[language] || DEFAULT_STARTER.python;
-  const [code, setCode] = useState<string>(resolvedStarter.trim());
+  // Determine if initial language is specific or auto
+  const [selectedLang, setSelectedLang] = useState<string>(language || 'auto');
+  const [isAutoDetect, setIsAutoDetect] = useState<boolean>(language === 'auto' || !language);
+
+  // Resolved initial starter code
+  const resolvedInitialCode = useMemo(() => {
+    if (initialCode && initialCode.trim()) return initialCode.trim();
+    if (selectedLang !== 'auto' && SUPPORTED_LANGUAGES[selectedLang]) {
+      return SUPPORTED_LANGUAGES[selectedLang].starterCode.trim();
+    }
+    return SUPPORTED_LANGUAGES.python.starterCode.trim();
+  }, [initialCode, selectedLang]);
+
+  const [code, setCode] = useState<string>(resolvedInitialCode);
+  const [stdin, setStdin] = useState<string>('');
+  const [showStdin, setShowStdin] = useState<boolean>(false);
+
+  // Execution states
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [stdout, setStdout] = useState<string | null>(null);
   const [stderr, setStderr] = useState<string | null>(null);
+  const [compileOutput, setCompileOutput] = useState<string | null>(null);
   const [execTime, setExecTime] = useState<number | null>(null);
+  const [execEngine, setExecEngine] = useState<string | null>(null);
   const [isMaximized, setIsMaximized] = useState<boolean>(false);
-  const [selectedLang, setSelectedLang] = useState<string>(language);
+  const [copied, setCopied] = useState<boolean>(false);
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const config = PISTON_LANGUAGE_MAP[selectedLang] || PISTON_LANGUAGE_MAP.python;
-  const displayTitle = title || `${config.language.toUpperCase()} Code Studio`;
+  // Real-time automatic language inference from code
+  const autoDetected = useMemo(() => {
+    return detectLanguage(code);
+  }, [code]);
 
+  // The actual language used for compilation
+  const effectiveLangKey = isAutoDetect ? autoDetected.languageKey : selectedLang;
+  const currentConfig = SUPPORTED_LANGUAGES[effectiveLangKey] || SUPPORTED_LANGUAGES.python;
+
+  const displayTitle = title || (isAutoDetect 
+    ? `✨ Auto-Compiler Studio` 
+    : `${currentConfig.name} Code Studio`);
+
+  // Handle execution
   const handleRun = async () => {
     if (!code.trim() || isRunning) return;
     setIsRunning(true);
     setStdout(null);
     setStderr(null);
-
-    const startTime = performance.now();
+    setCompileOutput(null);
 
     try {
-      const response = await fetch('https://emkc.org/api/v2/piston/execute', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          language: config.language,
-          version: config.version,
-          files: [{ name: config.file, content: code }],
-        }),
-      });
+      const result = await compileAndExecute(code, effectiveLangKey, stdin.trim() ? stdin : undefined);
+      setStdout(result.stdout || null);
+      setStderr(result.stderr || null);
+      setCompileOutput(result.compileOutput || null);
+      setExecTime(result.executionTimeMs);
+      setExecEngine(result.engine);
 
-      const data = await response.json();
-      const endTime = performance.now();
-      setExecTime(Math.round(endTime - startTime));
-
-      if (data.run) {
-        if (data.run.stdout) setStdout(data.run.stdout);
-        if (data.run.stderr) setStderr(data.run.stderr);
-        if (!data.run.stdout && !data.run.stderr) {
-          setStdout('Program executed successfully with no output.');
-        }
-      } else if (data.message) {
-        setStderr(data.message);
+      if (result.success) {
+        toast.success(`Executed with ${currentConfig.name}! (${result.executionTimeMs}ms)`);
+      } else {
+        toast.error(`Compilation issue detected in ${currentConfig.name}`);
       }
     } catch (err: any) {
       setStderr(`Execution service error: ${err.message || 'Failed to reach code execution server'}`);
@@ -165,44 +122,183 @@ export const CodeEditorRunner: React.FC<CodeEditorRunnerProps> = ({
   };
 
   const handleReset = () => {
-    setCode(resolvedStarter.trim());
+    const starter = SUPPORTED_LANGUAGES[effectiveLangKey]?.starterCode.trim() || '';
+    setCode(starter);
     setStdout(null);
     setStderr(null);
+    setCompileOutput(null);
     setExecTime(null);
+    toast.info(`Reset to default ${currentConfig.name} template.`);
+  };
+
+  const handleCopyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      toast.success('Code copied to clipboard!');
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error('Failed to copy code.');
+    }
   };
 
   const lineCount = code.split('\n').length;
   const lineNumbers = Array.from({ length: Math.max(lineCount, 6) }, (_, i) => i + 1);
 
+  // Common quick-pick languages
+  const popularLangs = ['python', 'c', 'cpp', 'java', 'javascript', 'typescript', 'go', 'rust'];
+
   return (
     <PracticeChrome
       title={displayTitle}
-      tabLabel={config.file}
-      badgeText={config.language.toUpperCase()}
-      badgeColor={selectedLang === 'python' ? 'sky' : selectedLang === 'c' ? 'blue' : selectedLang === 'java' ? 'rose' : 'emerald'}
-      description={description || 'Write, compile, and execute code with real compiler stdout/stderr output.'}
+      tabLabel={currentConfig.file}
+      badgeText={isAutoDetect ? `AUTO: ${autoDetected.name.toUpperCase()}` : currentConfig.name.toUpperCase()}
+      badgeColor={
+        isAutoDetect 
+          ? 'emerald' 
+          : effectiveLangKey === 'python' ? 'sky' 
+          : effectiveLangKey === 'c' || effectiveLangKey === 'cpp' ? 'blue' 
+          : effectiveLangKey === 'java' ? 'rose' 
+          : 'amber'
+      }
+      description={
+        description ||
+        `Real-time multi-language compiler with intelligent auto-detection. Write or paste any code—the compiler detects the language and runs with real GCC, G++, OpenJDK, Python & Node runtimes.`
+      }
       onReset={handleReset}
       isMaximized={isMaximized}
       onToggleMaximize={() => setIsMaximized(!isMaximized)}
       rightActions={
-        <div className="flex items-center gap-1 bg-slate-900 border border-slate-800 p-0.5 rounded-lg text-[10px] font-bold">
-          {['c', 'python', 'java', 'cpp', 'javascript'].map((l) => (
-            <button
-              key={l}
-              onClick={() => {
-                setSelectedLang(l);
-                setCode(DEFAULT_STARTER[l] || '');
+        <div className="flex flex-wrap items-center gap-1.5">
+          {/* ✨ Auto-Detect Toggle Button */}
+          <button
+            onClick={() => {
+              setIsAutoDetect(true);
+              setSelectedLang('auto');
+              toast.success(`Auto-Detect active! Currently detected: ${autoDetected.name}`);
+            }}
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-extrabold flex items-center gap-1.5 cursor-pointer transition-all shadow-xs ${
+              isAutoDetect
+                ? 'bg-linear-to-r from-emerald-500 to-teal-600 text-white shadow-emerald-500/30 ring-1 ring-emerald-400'
+                : 'bg-slate-900 border border-slate-700/80 text-slate-400 hover:text-white hover:border-slate-600'
+            }`}
+            title="Auto-detect programming language dynamically"
+          >
+            <Sparkles className={`w-3 h-3 ${isAutoDetect ? 'animate-spin' : ''}`} />
+            <span>Auto Detect</span>
+          </button>
+
+          {/* Quick Select Buttons */}
+          <div className="hidden lg:flex items-center gap-0.5 bg-slate-900 border border-slate-800 p-0.5 rounded-lg text-[10px] font-bold">
+            {popularLangs.map((langKey) => (
+              <button
+                key={langKey}
+                onClick={() => {
+                  setIsAutoDetect(false);
+                  setSelectedLang(langKey);
+                }}
+                className={`px-2 py-0.5 rounded transition-colors cursor-pointer uppercase ${
+                  !isAutoDetect && selectedLang === langKey
+                    ? 'bg-indigo-600 text-white font-black'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {langKey === 'cpp' ? 'C++' : langKey === 'javascript' ? 'JS' : langKey === 'typescript' ? 'TS' : langKey}
+              </button>
+            ))}
+          </div>
+
+          {/* Dropdown for All 16 Languages */}
+          <div className="relative">
+            <select
+              value={isAutoDetect ? 'auto' : selectedLang}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === 'auto') {
+                  setIsAutoDetect(true);
+                  setSelectedLang('auto');
+                } else {
+                  setIsAutoDetect(false);
+                  setSelectedLang(val);
+                }
               }}
-              className={`px-2 py-0.5 rounded transition-colors cursor-pointer uppercase ${
-                selectedLang === l ? 'bg-indigo-600 text-white font-black' : 'text-slate-400 hover:text-white'
-              }`}
+              className="bg-slate-900 border border-slate-700/90 text-slate-200 rounded-lg py-1 px-2.5 text-[11px] font-bold outline-none cursor-pointer hover:border-slate-500 transition-colors pr-6 appearance-none"
             >
-              {l}
-            </button>
-          ))}
+              <option value="auto">✨ Auto Detect</option>
+              <optgroup label="Supported Languages">
+                {Object.values(SUPPORTED_LANGUAGES).map((cfg) => (
+                  <option key={cfg.key} value={cfg.key}>
+                    {cfg.name} ({cfg.version})
+                  </option>
+                ))}
+              </optgroup>
+            </select>
+            <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 top-2 pointer-events-none" />
+          </div>
         </div>
       }
     >
+      {/* ── Active Language Information Strip ───────────────────────────────── */}
+      <div className="px-4 py-1.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between gap-3 text-[11px] font-mono">
+        <div className="flex items-center gap-2">
+          {isAutoDetect ? (
+            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              <span>Auto-Detected:</span>
+              <strong className="text-white underline decoration-emerald-500 decoration-2">
+                {autoDetected.name}
+              </strong>
+              <span className="text-[10px] text-emerald-300/80">({currentConfig.version})</span>
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-bold">
+              <Layers className="w-3 h-3 text-indigo-400" />
+              <span>Target Language:</span>
+              <strong className="text-white">{currentConfig.name}</strong>
+              <span className="text-[10px] text-indigo-300/80">({currentConfig.version})</span>
+            </span>
+          )}
+
+          <span className="text-slate-500 hidden sm:inline">•</span>
+          <span className="text-slate-400 text-[10px] hidden sm:inline">
+            Entry File: <code className="text-sky-300">{currentConfig.file}</code>
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Quick Starter Templates */}
+          <select
+            onChange={(e) => {
+              const langKey = e.target.value;
+              if (langKey && SUPPORTED_LANGUAGES[langKey]) {
+                setCode(SUPPORTED_LANGUAGES[langKey].starterCode.trim());
+                setIsAutoDetect(true);
+                toast.info(`Loaded sample code for ${SUPPORTED_LANGUAGES[langKey].name}`);
+              }
+              e.target.value = '';
+            }}
+            defaultValue=""
+            className="bg-slate-800/80 hover:bg-slate-800 border border-slate-700 text-slate-300 text-[10px] font-semibold rounded-md px-2 py-0.5 outline-none cursor-pointer"
+          >
+            <option value="" disabled>Load Sample...</option>
+            {Object.values(SUPPORTED_LANGUAGES).map((cfg) => (
+              <option key={cfg.key} value={cfg.key}>
+                {cfg.name} Sample
+              </option>
+            ))}
+          </select>
+
+          {/* Copy Button */}
+          <button
+            onClick={handleCopyCode}
+            className="text-slate-400 hover:text-white p-1 rounded transition-colors cursor-pointer"
+            title="Copy Code"
+          >
+            {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+          </button>
+        </div>
+      </div>
+
       {/* ── Editor Workspace with Line Numbers ──────────────────────────────── */}
       <div className="relative flex bg-slate-950 min-h-[220px]">
         {/* Line Numbers */}
@@ -220,57 +316,158 @@ export const CodeEditorRunner: React.FC<CodeEditorRunnerProps> = ({
           onKeyDown={handleKeyDown}
           spellCheck={false}
           className="flex-1 p-4 font-mono text-xs sm:text-sm leading-relaxed bg-transparent text-sky-200 focus:outline-none resize-none min-h-[200px]"
-          placeholder="Write your code here..."
+          placeholder="Write or paste your code in any language (C, C++, Java, Python, Go, Rust, JS, etc.)..."
         />
       </div>
 
+      {/* ── Optional Custom Standard Input (stdin) Drawer ──────────────────── */}
+      {showStdin && (
+        <div className="p-3 bg-slate-900 border-t border-slate-800 animate-in fade-in duration-200">
+          <div className="flex items-center justify-between mb-1.5 text-xs text-slate-300 font-mono">
+            <span className="flex items-center gap-1.5 font-bold text-sky-400">
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              Standard Input (stdin)
+            </span>
+            <span className="text-[10px] text-slate-500">
+              Passed to scanf, cin, input(), Scanner etc.
+            </span>
+          </div>
+          <textarea
+            value={stdin}
+            onChange={(e) => setStdin(e.target.value)}
+            rows={2}
+            placeholder="Type input data here (separated by newlines or spaces)..."
+            className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 font-mono text-xs text-slate-200 focus:outline-none focus:border-sky-500 resize-y"
+          />
+        </div>
+      )}
+
       {/* ── Action Bar ──────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-slate-950/90 border-t border-slate-800">
-        <span className="text-[11px] font-mono text-slate-500 hidden sm:inline">
-          Press <strong>Ctrl + Enter</strong> to compile & run
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] font-mono text-slate-500 hidden sm:inline">
+            Press <strong>Ctrl + Enter</strong> to compile & run
+          </span>
 
-        <button
-          onClick={handleRun}
-          disabled={isRunning || !code.trim()}
-          className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isRunning ? (
-            <>
-              <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              <span>Compiling & Running...</span>
-            </>
-          ) : (
-            <>
-              <Play className="w-3.5 h-3.5 fill-current" />
-              <span>Run Code</span>
-            </>
-          )}
-        </button>
+          {/* Toggle Stdin Drawer */}
+          <button
+            onClick={() => setShowStdin(!showStdin)}
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+              showStdin || stdin.trim()
+                ? 'bg-sky-950/60 border border-sky-600/50 text-sky-300'
+                : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Terminal className="w-3 h-3" />
+            <span>Stdin {stdin.trim() ? '(active)' : ''}</span>
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Reset Code */}
+          <button
+            onClick={handleReset}
+            className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+            title="Reset code to default template"
+          >
+            <RotateCcw className="w-3 h-3" />
+            <span className="hidden sm:inline">Reset</span>
+          </button>
+
+          {/* Run / Compile Button */}
+          <button
+            onClick={handleRun}
+            disabled={isRunning || !code.trim()}
+            className="px-4 py-2 rounded-xl bg-linear-to-r from-emerald-500 via-teal-500 to-cyan-600 hover:from-emerald-400 hover:to-cyan-500 text-white font-black text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/25 transition-all cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isRunning ? (
+              <>
+                <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span>Compiling {currentConfig.name}...</span>
+              </>
+            ) : (
+              <>
+                <Play className="w-3.5 h-3.5 fill-current" />
+                <span>Compile & Run ({isAutoDetect ? autoDetected.name : currentConfig.name})</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* ── Terminal Output / Console ────────────────────────────────────────── */}
-      {(stdout !== null || stderr !== null) && (
+      {(stdout !== null || stderr !== null || compileOutput !== null) && (
         <div className="border-t border-slate-800 bg-slate-950 font-mono text-xs">
-          <div className="flex items-center justify-between px-4 py-1.5 bg-slate-900 border-b border-slate-800 text-[11px] text-slate-400">
-            <span className="font-bold text-slate-300">Program Output (stdout / stderr)</span>
-            {execTime !== null && (
-              <span className="text-emerald-400 flex items-center gap-1 text-[10px]">
-                <Clock className="w-3 h-3" /> {execTime}ms
+          <div className="flex items-center justify-between px-4 py-2 bg-slate-900 border-b border-slate-800 text-[11px]">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-slate-200 flex items-center gap-1.5">
+                <Terminal className="w-3.5 h-3.5 text-sky-400" />
+                Compiler Output
               </span>
-            )}
+
+              {stderr ? (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                  Execution Error
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  Build Successful
+                </span>
+              )}
+
+              {execEngine && (
+                <span className="hidden sm:inline-flex items-center gap-1 text-[10px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded">
+                  <Cpu className="w-3 h-3 text-sky-400" />
+                  {execEngine === 'judge0' ? 'Cloud Cluster' : execEngine === 'wandbox' ? 'Wandbox GCC' : 'Local Sandbox'}
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3">
+              {execTime !== null && (
+                <span className="text-emerald-400 flex items-center gap-1 text-[10px] font-semibold">
+                  <Clock className="w-3 h-3" /> {execTime}ms
+                </span>
+              )}
+              <button
+                onClick={() => {
+                  setStdout(null);
+                  setStderr(null);
+                  setCompileOutput(null);
+                }}
+                className="text-slate-500 hover:text-slate-300 text-[10px] underline cursor-pointer"
+              >
+                Clear
+              </button>
+            </div>
           </div>
 
-          <div className="p-4 space-y-2 max-h-60 overflow-y-auto">
+          <div className="p-4 space-y-3 max-h-72 overflow-y-auto">
+            {/* Standard Output */}
             {stdout && (
-              <pre className="text-slate-200 whitespace-pre-wrap">{stdout}</pre>
+              <pre className="text-slate-100 whitespace-pre-wrap leading-relaxed font-mono">
+                {stdout}
+              </pre>
             )}
+
+            {/* Stderr / Compiler Diagnostic Output */}
             {stderr && (
-              <div className="p-3 rounded-lg bg-red-950/40 border border-red-800/60 text-red-300">
-                <div className="font-bold flex items-center gap-1.5 mb-1 text-red-400">
-                  <AlertCircle className="w-3.5 h-3.5" /> Compiler / Runtime Error:
+              <div className="p-3.5 rounded-xl bg-red-950/40 border border-red-800/60 text-red-200">
+                <div className="font-bold flex items-center gap-1.5 mb-1.5 text-red-400">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>Compiler / Runtime Diagnostic:</span>
                 </div>
-                <pre className="whitespace-pre-wrap">{stderr}</pre>
+                <pre className="whitespace-pre-wrap text-xs font-mono text-red-300 leading-relaxed overflow-x-auto">
+                  {stderr}
+                </pre>
+              </div>
+            )}
+
+            {/* Separate Compile Warnings / Info */}
+            {compileOutput && compileOutput !== stderr && (
+              <div className="p-3 rounded-xl bg-amber-950/30 border border-amber-800/40 text-amber-200 text-xs">
+                <div className="font-bold text-amber-400 mb-1">Compiler Notes:</div>
+                <pre className="whitespace-pre-wrap font-mono">{compileOutput}</pre>
               </div>
             )}
           </div>

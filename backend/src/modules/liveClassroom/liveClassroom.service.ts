@@ -65,13 +65,17 @@ export class LiveClassroomService {
     // Student role:
     const eligibleClasses: ILiveClassData[] = [];
     for (const c of allClasses) {
-      const targetAudience = (c as any).targetAudience || 'all';
+      const targetAudience = (c as any).targetAudience || (c as any).audienceTargeting?.type || 'all';
       if (targetAudience === 'all') {
         eligibleClasses.push(c);
         continue;
       }
-      const allowed = (c as any).allowedStudents;
+      const allowed = (c as any).allowedStudents || (c as any).audienceTargeting?.values;
       if (Array.isArray(allowed) && (allowed.includes(user.uid) || (user.email && allowed.includes(user.email)))) {
+        eligibleClasses.push(c);
+        continue;
+      }
+      if (c.sessionCategory === 'general' || !c.courseId) {
         eligibleClasses.push(c);
         continue;
       }
@@ -93,7 +97,7 @@ export class LiveClassroomService {
    */
   public async verifyCourseEnrollment(
     userId: string,
-    courseId: string,
+    courseId?: string,
     userRole?: string,
     userEmail?: string
   ): Promise<{ isEnrolled: boolean; reason?: string }> {
@@ -197,18 +201,20 @@ export class LiveClassroomService {
       }
     }
 
-    const { isEnrolled, reason } = await this.verifyCourseEnrollment(
-      user.uid,
-      rawClass.courseId,
-      user.role,
-      user.email
-    );
+    if (rawClass.sessionCategory !== 'general' && rawClass.courseId) {
+      const { isEnrolled, reason } = await this.verifyCourseEnrollment(
+        user.uid,
+        rawClass.courseId,
+        user.role,
+        user.email
+      );
 
-    if (!isEnrolled) {
-      return {
-        authorized: false,
-        error: reason || 'Please enroll in this course to access the live class.',
-      };
+      if (!isEnrolled) {
+        return {
+          authorized: false,
+          error: reason || 'Please enroll in this course to access the live class.',
+        };
+      }
     }
 
     // Format response payload matching specification
@@ -682,14 +688,16 @@ export class LiveClassroomService {
     const isInstructor = await this.verifyInstructorOwnership(classId, user.uid, userRole);
 
     if (!isAdmin && !isInstructor) {
-      const { isEnrolled, reason } = await this.verifyCourseEnrollment(
-        user.uid,
-        liveClass.courseId,
-        userRole,
-        user.email
-      );
-      if (!isEnrolled) {
-        throw new Error(reason || 'Unauthorized: You do not have permission to access this recording.');
+      if (liveClass.sessionCategory !== 'general' && liveClass.courseId) {
+        const { isEnrolled, reason } = await this.verifyCourseEnrollment(
+          user.uid,
+          liveClass.courseId,
+          userRole,
+          user.email
+        );
+        if (!isEnrolled) {
+          throw new Error(reason || 'Unauthorized: You do not have permission to access this recording.');
+        }
       }
     }
 

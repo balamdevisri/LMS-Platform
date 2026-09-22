@@ -222,30 +222,31 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 font-['Sora']">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-xl w-full shadow-2xl space-y-6 animate-in zoom-in-95">
+    <div className="fixed inset-0 bg-black/75 backdrop-blur-xl z-50 flex items-center justify-center p-4 font-sans select-none animate-in fade-in duration-200">
+      <div className="bg-[#090d1c]/95 border border-white/15 rounded-3xl p-6 sm:p-7 max-w-xl w-full shadow-2xl space-y-5 animate-in zoom-in-95 backdrop-blur-3xl kc-custom-scrollbar max-h-[90vh] overflow-y-auto">
         
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400">
+        <div className="flex items-center justify-between border-b border-white/10 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-500/15 border border-indigo-400/30 flex items-center justify-center text-indigo-300 shadow-md">
               <Settings className="w-5 h-5" />
             </div>
             <div>
               <h3 className="font-heading font-black text-base text-white">{title}</h3>
-              <p className="text-xs text-slate-400">Test camera, audio input, and configure hardware devices</p>
+              <p className="text-xs text-slate-400">Configure camera, microphone, and speakers</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white cursor-pointer transition-all"
+            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 cursor-pointer transition-all border border-transparent hover:border-white/10"
+            aria-label="Close Device Settings"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Video Preview Frame */}
-        <div className="relative aspect-video w-full rounded-2xl bg-slate-950 border border-slate-800 overflow-hidden flex items-center justify-center">
+        <div className="relative aspect-video w-full rounded-2xl bg-[#060913] border border-white/10 overflow-hidden flex items-center justify-center shadow-inner">
           {isCamOn && !permissionError ? (
             <video
               ref={previewVideoRef}
@@ -256,7 +257,7 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
             />
           ) : (
             <div className="flex flex-col items-center justify-center space-y-2 text-center p-6">
-              <div className="w-14 h-14 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400">
+              <div className="w-14 h-14 rounded-full bg-white/[0.05] border border-white/10 flex items-center justify-center text-slate-400">
                 <VideoOff className="w-6 h-6" />
               </div>
               <p className="text-xs font-bold text-slate-300">Camera is turned off</p>
@@ -270,9 +271,9 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
               <button
                 type="button"
                 onClick={onToggleMic}
-                className={`p-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-md ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-lg backdrop-blur-md ${
                   isMicOn
-                    ? 'bg-emerald-500/80 hover:bg-emerald-500 text-white'
+                    ? 'bg-emerald-500/80 hover:bg-emerald-500 text-slate-950 font-black'
                     : 'bg-rose-500/80 hover:bg-rose-500 text-white'
                 }`}
               >
@@ -283,9 +284,9 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
               <button
                 type="button"
                 onClick={onToggleCam}
-                className={`p-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-md ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-lg backdrop-blur-md ${
                   isCamOn
-                    ? 'bg-sky-500/80 hover:bg-sky-500 text-white'
+                    ? 'bg-indigo-500/80 hover:bg-indigo-500 text-white font-bold'
                     : 'bg-rose-500/80 hover:bg-rose-500 text-white'
                 }`}
               >
@@ -296,11 +297,11 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
 
             {/* Mic Meter Level */}
             {isMicOn && (
-              <div className="flex items-center gap-1.5 bg-slate-950/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 text-[11px] text-slate-300">
-                <span>Mic Level:</span>
-                <div className="w-16 h-2 bg-slate-800 rounded-full overflow-hidden">
+              <div className="flex items-center gap-2 bg-black/60 backdrop-blur-xl px-3 py-1.5 rounded-xl border border-white/15 text-[11px] text-slate-300 shadow-md">
+                <span className="text-[10px] uppercase font-mono font-bold text-slate-400">Level:</span>
+                <div className="w-16 h-2 bg-white/10 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-emerald-500 transition-all duration-75 rounded-full"
+                    className="h-full bg-emerald-400 transition-all duration-75 rounded-full"
                     style={{ width: `${micLevel}%` }}
                   />
                 </div>
@@ -311,8 +312,8 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
 
         {/* Permission Error Banner & Recovery Guidance */}
         {permissionError && (
-          <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs space-y-2">
-            <div className="flex items-center gap-2 font-bold text-rose-400">
+          <div className="p-4 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs space-y-2 backdrop-blur-md">
+            <div className="flex items-center gap-2 font-bold text-rose-300">
               <AlertTriangle className="w-4 h-4 shrink-0" />
               <span>{permissionError}</span>
             </div>
@@ -324,7 +325,7 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
                 startPreview();
                 loadDevices();
               }}
-              className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-[11px] flex items-center gap-1.5 cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-[11px] flex items-center gap-1.5 cursor-pointer shadow-md transition-all"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               <span>Retry Permission Check</span>
@@ -333,10 +334,10 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
         )}
 
         {/* Device Selectors */}
-        <div className="space-y-3 text-xs">
+        <div className="space-y-3.5 text-xs">
           {/* Microphone Selector */}
           <div>
-            <label className="text-slate-300 font-bold block mb-1">Microphone Input</label>
+            <label className="text-slate-300 font-bold block mb-1.5">Microphone Input</label>
             <select
               value={selectedAudioInput}
               onChange={async (e) => {
@@ -346,13 +347,13 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
                   await onSwitchMicrophone(id);
                 }
               }}
-              className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:outline-hidden focus:border-sky-500 cursor-pointer"
+              className="w-full bg-white/[0.05] border border-white/12 rounded-xl p-3 text-xs text-white focus:outline-hidden focus:border-cyan-400/60 focus:bg-white/[0.08] cursor-pointer transition-all"
             >
               {devices.audioInputs.length === 0 ? (
-                <option value="">Default System Microphone</option>
+                <option value="" className="bg-slate-900 text-white">Default System Microphone</option>
               ) : (
                 devices.audioInputs.map((d, i) => (
-                  <option key={d.deviceId || i} value={d.deviceId}>
+                  <option key={d.deviceId || i} value={d.deviceId} className="bg-slate-900 text-white">
                     {d.label || `Microphone ${i + 1}`}
                   </option>
                 ))
@@ -362,7 +363,7 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
 
           {/* Camera Selector */}
           <div>
-            <label className="text-slate-300 font-bold block mb-1">Camera Video Device</label>
+            <label className="text-slate-300 font-bold block mb-1.5">Camera Video Device</label>
             <select
               value={selectedVideoInput}
               onChange={async (e) => {
@@ -372,13 +373,13 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
                   await onSwitchCamera(id);
                 }
               }}
-              className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:outline-hidden focus:border-sky-500 cursor-pointer"
+              className="w-full bg-white/[0.05] border border-white/12 rounded-xl p-3 text-xs text-white focus:outline-hidden focus:border-cyan-400/60 focus:bg-white/[0.08] cursor-pointer transition-all"
             >
               {devices.videoInputs.length === 0 ? (
-                <option value="">Default System Camera</option>
+                <option value="" className="bg-slate-900 text-white">Default System Camera</option>
               ) : (
                 devices.videoInputs.map((d, i) => (
-                  <option key={d.deviceId || i} value={d.deviceId}>
+                  <option key={d.deviceId || i} value={d.deviceId} className="bg-slate-900 text-white">
                     {d.label || `Camera ${i + 1}`}
                   </option>
                 ))
@@ -388,15 +389,15 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
 
           {/* Speaker Selector & Test (where supported) */}
           <div>
-            <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center justify-between mb-1.5">
               <label className="text-slate-300 font-bold block">Speaker Audio Output</label>
               <button
                 type="button"
                 onClick={testSpeaker}
                 disabled={isPlayingTestSound}
-                className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-400 text-[11px] font-bold flex items-center gap-1.5 cursor-pointer border border-slate-700 transition-all"
+                className="px-3 py-1 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-cyan-300 text-[11px] font-bold flex items-center gap-1.5 cursor-pointer border border-white/10 transition-all backdrop-blur-md"
               >
-                <Volume2 className="w-3 h-3" />
+                <Volume2 className="w-3.5 h-3.5" />
                 <span>{isPlayingTestSound ? 'Testing chime...' : 'Test Speaker'}</span>
               </button>
             </div>
@@ -404,25 +405,25 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
               <select
                 value={selectedAudioOutput}
                 onChange={(e) => setSelectedAudioOutput(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:outline-hidden focus:border-sky-500 cursor-pointer"
+                className="w-full bg-white/[0.05] border border-white/12 rounded-xl p-3 text-xs text-white focus:outline-hidden focus:border-cyan-400/60 focus:bg-white/[0.08] cursor-pointer transition-all"
               >
                 {devices.audioOutputs.map((d, i) => (
-                  <option key={d.deviceId || i} value={d.deviceId}>
+                  <option key={d.deviceId || i} value={d.deviceId} className="bg-slate-900 text-white">
                     {d.label || `Speaker ${i + 1}`}
                   </option>
                 ))}
               </select>
             ) : (
-              <div className="text-[11px] text-slate-500 italic p-2 bg-slate-950/60 rounded-xl border border-slate-800">
+              <div className="text-[11px] text-slate-400 italic p-3 bg-white/[0.03] rounded-xl border border-white/10">
                 Default system audio output device
               </div>
             )}
           </div>
 
           {/* Audio Quality & Noise Processing Badges */}
-          <div className="p-3 rounded-2xl bg-slate-950/90 border border-slate-800 space-y-1.5 text-[11px]">
-            <div className="font-bold text-slate-300 flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+          <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10 space-y-2 text-[11px] backdrop-blur-md">
+            <div className="font-bold text-slate-200 flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
               <span>Realtime Voice Processing Engine Active</span>
             </div>
             <div className="grid grid-cols-2 gap-2 pt-0.5 text-slate-400 text-[10px]">
@@ -447,10 +448,10 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+        <div className="flex justify-end gap-2.5 pt-3 border-t border-white/10">
           <button
             onClick={onClose}
-            className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs cursor-pointer"
+            className="px-4 py-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] text-slate-200 font-bold text-xs cursor-pointer transition-all border border-white/10"
           >
             {isPreJoin ? 'Cancel' : 'Done'}
           </button>
@@ -460,7 +461,7 @@ export const DeviceSettingsModal: React.FC<DeviceSettingsModalProps> = ({
                 stopPreview();
                 onProceed();
               }}
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs shadow-lg shadow-emerald-600/30 flex items-center gap-2 cursor-pointer"
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs shadow-lg shadow-emerald-500/25 flex items-center gap-2 cursor-pointer transition-all"
             >
               <CheckCircle2 className="w-4 h-4" />
               <span>{proceedLabel}</span>

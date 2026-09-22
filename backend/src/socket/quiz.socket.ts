@@ -1,5 +1,6 @@
 import { Server as SocketServer } from 'socket.io';
 import { AuthenticatedSocket } from './socket.auth';
+import { canPerformClassroomAction } from '../modules/liveClassroom/permissions';
 import logger from '../config/logger';
 
 interface LiveQuizItem {
@@ -13,6 +14,9 @@ interface LiveQuizItem {
   timerSeconds: number;
   status: 'ACTIVE' | 'ENDED';
   createdAt: string;
+  targetAudience?: 'all' | 'selected_batch' | 'selected_section' | 'restricted';
+  targetBatch?: string;
+  targetSection?: string;
   submissions: Map<
     string,
     {
@@ -40,11 +44,19 @@ export const registerQuizHandlers = (io: SocketServer, socket: AuthenticatedSock
     marks: number = 10,
     timerSeconds: number = 30,
     title: string = 'Live Concept Check',
-    callback?: (res: any) => void
+    callback?: (res: any) => void,
+    targetAudience: 'all' | 'selected_batch' | 'selected_section' | 'restricted' = 'all',
+    targetBatch?: string,
+    targetSection?: string
   ) => {
     try {
       const user = socket.user;
-      if (!user || (user.role !== 'admin' && user.role !== 'instructor')) {
+      const allowed = user && canPerformClassroomAction('createQuiz', {
+        userId: user.uid || user.id,
+        role: user.role,
+      });
+
+      if (!allowed) {
         const err = { success: false, error: 'INVALID_PERMISSION', message: 'Only instructors can launch live quizzes' };
         socket.emit('quiz:error', err);
         if (callback) callback(err);
@@ -73,6 +85,9 @@ export const registerQuizHandlers = (io: SocketServer, socket: AuthenticatedSock
         timerSeconds: timerSeconds || 30,
         status: 'ACTIVE',
         createdAt: new Date().toISOString(),
+        targetAudience,
+        targetBatch,
+        targetSection,
         submissions: new Map(),
       };
 
@@ -136,6 +151,30 @@ export const registerQuizHandlers = (io: SocketServer, socket: AuthenticatedSock
         socket.emit('quiz:error', err);
         if (callback) callback(err);
         return;
+      }
+
+      // Audience membership validation
+      if (user.role === 'student') {
+        if (activeQuiz.targetAudience === 'selected_batch' && activeQuiz.targetBatch) {
+          const userBatch = String((user as any).batch || (user as any).cohort || '').toLowerCase().trim();
+          const targetBatch = activeQuiz.targetBatch.toLowerCase().trim();
+          if (userBatch && targetBatch && !userBatch.includes(targetBatch) && !targetBatch.includes(userBatch)) {
+            const err = { success: false, error: 'AUDIENCE_RESTRICTED', message: 'This quiz is restricted to a different batch.' };
+            socket.emit('quiz:error', err);
+            if (callback) callback(err);
+            return;
+          }
+        }
+        if (activeQuiz.targetAudience === 'selected_section' && activeQuiz.targetSection) {
+          const userSection = String((user as any).section || (user as any).branch || '').toLowerCase().trim();
+          const targetSection = activeQuiz.targetSection.toLowerCase().trim();
+          if (userSection && targetSection && !userSection.includes(targetSection) && !targetSection.includes(userSection)) {
+            const err = { success: false, error: 'AUDIENCE_RESTRICTED', message: 'This quiz is restricted to a different section/branch.' };
+            socket.emit('quiz:error', err);
+            if (callback) callback(err);
+            return;
+          }
+        }
       }
 
       const studentAnswer = (answer || '').trim();
@@ -236,6 +275,9 @@ export const registerQuizHandlers = (io: SocketServer, socket: AuthenticatedSock
         correctAnswer: string;
         marks?: number;
         timerSeconds?: number;
+        targetAudience?: 'all' | 'selected_batch' | 'selected_section' | 'restricted';
+        targetBatch?: string;
+        targetSection?: string;
       },
       callback?: (res: any) => void
     ) => {
@@ -247,7 +289,10 @@ export const registerQuizHandlers = (io: SocketServer, socket: AuthenticatedSock
         data?.marks,
         data?.timerSeconds,
         data?.title,
-        callback
+        callback,
+        data?.targetAudience,
+        data?.targetBatch,
+        data?.targetSection
       );
     }
   );

@@ -32,9 +32,10 @@ export interface MediaParticipant {
   screenStream?: MediaStream;
   videoLiveKitTrack?: any;
   screenLiveKitTrack?: any;
-  micAllowedByInstructor?: boolean;
   /** Incremented each time a track is added/removed — forces React re-renders despite stream mutation */
   streamVersion?: number;
+  /** Network connection quality telemetry for participant tile indicator */
+  connectionQuality?: 'excellent' | 'good' | 'poor' | 'lost' | 'unknown';
 }
 
 export interface MediaRoomToken {

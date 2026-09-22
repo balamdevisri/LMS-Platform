@@ -13,19 +13,41 @@ export enum MeetingProvider {
   TEAMS = 'TEAMS'
 }
 
+export type SessionCategory = 'course' | 'general';
+
+export type LiveSessionType =
+  | 'academic_lecture'
+  | 'technical_workshop'
+  | 'non_technical'
+  | 'group_discussion'
+  | 'panel_discussion'
+  | 'webinar'
+  | 'guest_lecture'
+  | 'student_club'
+  | 'college_event'
+  | 'mentorship'
+  | 'qna_session'
+  | 'community_meeting'
+  | 'general_topic';
+
 export interface LiveClass {
   classId: string;
   title: string;
   description: string;
-  courseId: string;
-  courseName: string;
-  moduleId: string;
-  moduleTitle: string;
-  lessonId: string;
-  lessonTitle: string;
+  sessionCategory?: SessionCategory;
+  sessionType?: LiveSessionType;
+  topicCategory?: string;
+  courseId?: string;
+  courseName?: string;
+  moduleId?: string;
+  moduleTitle?: string;
+  lessonId?: string;
+  lessonTitle?: string;
   instructorId: string;
   instructorName: string;
   instructorAvatar?: string;
+  guestSpeakers?: string[];
+  registrationRequired?: boolean;
   branch?: string;
   semester?: string;
   year?: string;

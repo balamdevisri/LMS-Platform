@@ -220,7 +220,7 @@ export const LiveClassroomDashboard: React.FC = () => {
           (currentUid && (instId === currentUid || createdBy === currentUid)) ||
           (currentEmail && instEmail && instEmail === currentEmail) ||
           (currentName && instName && (instName === currentName || instName.includes(currentName) || currentName.includes(instName))) ||
-          (['inst_kaizen', 'inst_default', 'instructor_lead', 'admin', ''].includes(instId) && (userProfile?.role === 'instructor' || userProfile?.role === 'mentor'));
+          (['inst_kaizen', 'inst_default', 'instructor_lead', 'admin', ''].includes(instId) && ((userProfile?.role as string) === 'instructor' || (userProfile?.role as string) === 'mentor'));
 
         if (!isLiveNow && isAssigned) {
           const userMeta = {
