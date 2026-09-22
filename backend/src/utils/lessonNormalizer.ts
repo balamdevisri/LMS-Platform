@@ -55,7 +55,10 @@ export function normalizeLessonContent(raw: string | null | undefined): string {
   text = text.replace(/(\S)[ \t]+([●•✔▪▫◆◇■□►▻⁃]\s*)/g, '$1\n- ');
 
   // 8. Handle standalone hashtags / metadata tags (preventing them from becoming giant H1s)
-  text = text.replace(/^(?:#\s*tags|#tags|Tags|Keywords|Hashtags|Topic Tags)[:\s]+([^\n]+)$/gim, (_match, tagLine) => {
+  // Strictly require explicit metadata prefix with colon or hashtag syntax:
+  // e.g. "Tags: c, programming", "Keywords: loops, logic", "Topic Tags: basics", "#tags ..."
+  // DO NOT match ordinary English sentences like "Keywords are...", "Tags are...", "Topic Tags are..."
+  text = text.replace(/^(?:#\s*tags|#tags|Tags:|Keywords:|Hashtags:|Topic Tags:)[\t ]+([^\n]+)$/gim, (_match, tagLine) => {
     return `\n\n\`\`\`tags\n${tagLine.trim()}\n\`\`\`\n\n`;
   });
   text = text.replace(/^(#\w[\w-]*\s+)+#\w[\w-]*$/gm, (_match) => {
