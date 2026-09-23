@@ -17,6 +17,8 @@ import type { ModuleData } from './ModuleAccordion';
 import { CertificatePreviewModal } from '../courses/CertificatePreviewModal';
 import { CertificateService } from '@/services/achievementService';
 import { CourseActionConfirmModal } from '../courses/CourseActionConfirmModal';
+import { ExitCourseConfirmationDialog } from './ExitCourseConfirmationDialog';
+import { useCourseExitGuard } from '@/hooks/useCourseExitGuard';
 import { QuizPlayer } from '../quiz/QuizPlayer';
 import { RibbonLeaderboardWidget } from '@/components/common/RibbonLeaderboardWidget';
 
@@ -88,6 +90,17 @@ export const CourseLearningLayout: React.FC<CourseLearningLayoutProps> = ({
       window.location.href = `/courses/${courseId}`;
     }
   }, [onBackToCourseDetails, onBackToCourse, courseId]);
+
+  const {
+    isExitDialogOpen,
+    isProcessing: isExitProcessing,
+    requestExit: handleRequestExitCourse,
+    confirmExit: handleConfirmExitCourse,
+    cancelExit: handleCancelExitCourse,
+  } = useCourseExitGuard({
+    onExit: handleBackToOverview,
+    enabled: true,
+  });
 
   // ── Defensive Access Check ────────────────────────────────────────────────
   useEffect(() => {
@@ -319,9 +332,6 @@ export const CourseLearningLayout: React.FC<CourseLearningLayoutProps> = ({
 
   // ── AI Tutor state ─────────────────────────────────────────────────────
   const [isAITutorOpen, setIsAITutorOpen] = useState(false);
-
-  // ── Exit confirm modal ─────────────────────────────────────────────────
-  const [isExitConfirmOpen, setIsExitConfirmOpen] = useState(false);
 
   // ── Certificate state ──────────────────────────────────────────────────
   const [showCongrats, setShowCongrats] = useState(false);
@@ -806,7 +816,7 @@ export const CourseLearningLayout: React.FC<CourseLearningLayoutProps> = ({
       <LearningTopBar
         courseTitle={courseTitle}
         lessonTitle={activeLessonFull.title}
-        onBackToCourseDetails={handleBackToOverview}
+        onBackToCourseDetails={handleRequestExitCourse}
         isNightMode={isNightMode}
         userAvatar={userAvatar}
         userName={userName}
@@ -834,7 +844,7 @@ export const CourseLearningLayout: React.FC<CourseLearningLayoutProps> = ({
             selectedLessonId={selectedLessonId}
             completedLessonIds={completedLessonIds}
             onSelectLesson={handleSelectLesson}
-            onBackToCourseDetails={handleBackToOverview}
+            onBackToCourseDetails={handleRequestExitCourse}
             isNightMode={isNightMode}
           />
         </aside>
@@ -859,7 +869,7 @@ export const CourseLearningLayout: React.FC<CourseLearningLayoutProps> = ({
                 selectedLessonId={selectedLessonId}
                 completedLessonIds={completedLessonIds}
                 onSelectLesson={handleSelectLesson}
-                onBackToCourseDetails={handleBackToOverview}
+                onBackToCourseDetails={handleRequestExitCourse}
                 isNightMode={isNightMode}
                 isDrawer
                 onClose={() => setIsSidebarOpen(false)}
@@ -1044,19 +1054,14 @@ export const CourseLearningLayout: React.FC<CourseLearningLayoutProps> = ({
         </div>
       )}
 
-      {/* Course Exit Confirmation Modal */}
-      <CourseActionConfirmModal
-        isOpen={isExitConfirmOpen}
-        actionType="exit"
+      {/* Course Exit Confirmation Dialog */}
+      <ExitCourseConfirmationDialog
+        isOpen={isExitDialogOpen}
+        onConfirm={handleConfirmExitCourse}
+        onCancel={handleCancelExitCourse}
         courseTitle={courseTitle}
-        courseCategory="Engineering Track"
-        currentProgress={progressPercent}
-        currentLessonTitle={activeLessonFull.title}
-        onConfirm={() => {
-          setIsExitConfirmOpen(false);
-          handleBackToOverview();
-        }}
-        onCancel={() => setIsExitConfirmOpen(false)}
+        isNightMode={isNightMode}
+        isProcessing={isExitProcessing}
       />
 
       {/* Floating Ribbon Hover CSS Leaderboard Widget */}

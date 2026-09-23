@@ -41,6 +41,9 @@ export function formatCanonicalLessonMarkdown(raw: string | null | undefined): s
     return `\n\n__PROTECTED_CODE_BLOCK_${idx}__\n\n`;
   });
 
+  // 2b. Deduplicate concatenated duplicate lesson drafts (e.g. legacy '> **Important Note:** ...' seams)
+  text = text.replace(/(?:^|\n)[ \t]*>[ \t]*\*\*Important Note:\*\*[\s\S]*$/i, '');
+
   // 3. Known Corruption Repair: Fix `# include <...>` -> `#include <...>` (repair only recognized preprocessor directives)
   text = text.replace(/^[ \t]*#[ \t]+(include|define|undef|if|ifdef|ifndef|else|elif|endif|pragma|import|error|warning|line)\b/gm, '#$1');
 
@@ -230,4 +233,30 @@ export function formatCanonicalModuleTitle(moduleIndex: number, rawTitle: string
  */
 export function formatCanonicalLessonTitle(moduleIndex: number): string {
   return `Module ${moduleIndex} - Complete Notes`;
+}
+
+/**
+ * Deterministic, structural semantic section detector.
+ * Detects whether a canonical lesson Markdown body already contains
+ * a particular section to prevent duplicate UI rendering.
+ */
+export function hasCanonicalSection(
+  content: string | null | undefined,
+  sectionType: 'objectives' | 'keyPoints' | 'practiceQuestions' | 'codeExamples' | 'tasks'
+): boolean {
+  if (!content) return false;
+  switch (sectionType) {
+    case 'objectives':
+      return /(?:^|\n)[ \t]*#+[ \t]*(?:Learning\s+)?Objectives\b/i.test(content) || /(?:^|\n)[ \t]*\*\*(?:Learning\s+)?Objectives[:\s]/i.test(content);
+    case 'keyPoints':
+      return /(?:^|\n)[ \t]*#+[ \t]*(?:Key\s+(?:Points|Takeaways|Concepts)|Important\s+Points)\b/i.test(content) || /(?:^|\n)[ \t]*\*\*(?:Key\s+(?:Points|Takeaways))\*\*/i.test(content);
+    case 'practiceQuestions':
+      return /(?:^|\n)[ \t]*#+[ \t]*(?:Practice\s+Questions|Interview\s+Questions|Practice\s+Programs|Practice\s+Exercises|Practical\s+Lab|Beginner\s+Practice)\b/i.test(content) || /(?:^|\n)[ \t]*\*\*(?:Q\d+|Question\s+\d+|Interview\s+Question\s+\d+)[\.\:\s]/i.test(content);
+    case 'codeExamples':
+      return /```[\s\S]+?```/.test(content) || /(?:^|\n)[ \t]*#+[ \t]*(?:Code\s+Examples?|Sample\s+Programs?|Program\s+Examples?)\b/i.test(content);
+    case 'tasks':
+      return /(?:^|\n)[ \t]*#+[ \t]*(?:Tasks?|Practical\s+Lab|Lab\s+Tasks?|Exercises?)\b/i.test(content) || /(?:^|\n)[ \t]*\*\*(?:Task|Exercise|Practical\s+Task)\s*\d+[\:\.]/i.test(content);
+    default:
+      return false;
+  }
 }
