@@ -1,13 +1,22 @@
 import React, { useEffect, useRef, useState, useId } from 'react';
 import mermaid from 'mermaid';
-import { Loader2, AlertTriangle, Maximize2, Minimize2, Copy, Check, GitCommit, ArrowRight, Code } from 'lucide-react';
+import { Loader2, AlertTriangle, Maximize2, Minimize2, Copy, Check, GitCommit, ArrowRight, ArrowDown, Code, GitBranch, Terminal } from 'lucide-react';
 
 interface MermaidDiagramProps {
   chart: string;
   isNightMode?: boolean;
 }
 
-/** Helper to clean up raw chart input and ensure valid diagram header */
+interface FlowStep {
+  from: string;
+  to: string;
+  label?: string;
+  isDecision?: boolean;
+  fromType?: 'start' | 'process' | 'decision' | 'end';
+  toType?: 'start' | 'process' | 'decision' | 'end';
+}
+
+/** Helper to clean up raw chart input and ensure valid diagram header & sanitized node labels */
 function normalizeMermaidChart(input: string): string {
   if (!input) return '';
   let cleaned = input
@@ -16,7 +25,11 @@ function normalizeMermaidChart(input: string): string {
     .replace(/&gt;/g, '>')
     .replace(/&lt;/g, '<')
     .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
     .trim();
+
+  // Fix unquoted special characters in node labels like A[int(value)] -> A["int(value)"]
+  cleaned = cleaned.replace(/\[([^[\]"']*\([^)]+\)[^[\]"']*)\]/g, '["$1"]');
 
   const hasDiagramHeader = /^(flowchart|graph|sequenceDiagram|classDiagram|stateDiagram|erDiagram|journey|gantt|pie|quadrantChart|gitGraph|mindmap|timeline|zenuml|sankey|xychart|block-beta|packet-beta|architecture-beta)\b/i.test(cleaned);
 
@@ -27,20 +40,74 @@ function normalizeMermaidChart(input: string): string {
   return cleaned;
 }
 
-/** Simple fallback parser for flowchart steps if Mermaid engine throws syntax error */
-function parseFlowSteps(raw: string): Array<{ from: string; to: string; label?: string }> {
-  const steps: Array<{ from: string; to: string; label?: string }> = [];
+/** Robust fallback parser for flowchart steps and transitions if Mermaid engine throws syntax error */
+function parseFlowSteps(raw: string): FlowStep[] {
+  if (!raw) return [];
+  const steps: FlowStep[] = [];
   const lines = raw.split('\n');
 
   for (const line of lines) {
-    const match = line.match(/(.+?)\s*(?:-->|->|--\s*(.+?)\s*-->)\s*(.+)/);
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('%%') || /^(flowchart|graph|subgraph|end)\b/i.test(trimmed)) {
+      continue;
+    }
+
+    // Match Mermaid arrows: -->, ->, ==>, -.->, -- Label -->, -->|Label|
+    const arrowRegex = /(.+?)\s*(?:-->\|([^|]+)\||--\s*([^-]+?)\s*-->|==>|-.->|-->|->)\s*(.+)/;
+    const match = trimmed.match(arrowRegex);
+
     if (match) {
-      const from = match[1].replace(/[[({](\s*|\w|\W)*?[\])}]/g, (m) => m.slice(1, -1)).trim();
-      const label = match[2]?.trim();
-      const to = match[3].replace(/[[({](\s*|\w|\W)*?[\])}]/g, (m) => m.slice(1, -1)).trim();
+      const rawFrom = match[1].trim();
+      const label = (match[2] || match[3] || '').trim() || undefined;
+      const rawTo = match[4].trim();
+
+      // Clean node labels (strip brackets, parentheses, quotes)
+      const cleanNode = (n: string) => {
+        let text = n
+          .replace(/^[a-zA-Z0-9_-]+\[\s*["']?([\s\S]*?)["']?\s*\]$/, '$1')
+          .replace(/^[a-zA-Z0-9_-]+\(\s*["']?([\s\S]*?)["']?\s*\)$/, '$1')
+          .replace(/^[a-zA-Z0-9_-]+\{\s*["']?([\s\S]*?)["']?\s*\}$/, '$1')
+          .replace(/^\[\s*["']?([\s\S]*?)["']?\s*\]$/, '$1')
+          .replace(/^\(\s*["']?([\s\S]*?)["']?\s*\)$/, '$1')
+          .replace(/^\{\s*["']?([\s\S]*?)["']?\s*\}$/, '$1')
+          .replace(/^["'](.*)["']$/, '$1')
+          .trim();
+        return text || n.trim();
+      };
+
+      const from = cleanNode(rawFrom);
+      const to = cleanNode(rawTo);
+      const isDecision = /\{.*\}|\?$/.test(rawFrom) || /^(if|is|decision|check)\b/i.test(from);
+
       if (from && to) {
-        steps.push({ from, to, label });
+        steps.push({
+          from,
+          to,
+          label,
+          isDecision,
+          fromType: /^(start|begin)\b/i.test(from) ? 'start' : (isDecision ? 'decision' : 'process'),
+          toType: /^(end|finish|stop)\b/i.test(to) ? 'end' : 'process',
+        });
       }
+    }
+  }
+
+  // If no arrow lines found, check for sequential arrow steps: Step 1 \n ↓ \n Step 2
+  if (steps.length === 0) {
+    const arrowLines = raw.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+    const nodes: string[] = [];
+    for (const l of arrowLines) {
+      if (!/^[↓↑➔→▼▲|─┌┐└┘]+$/.test(l)) {
+        nodes.push(l);
+      }
+    }
+    for (let i = 0; i < nodes.length - 1; i++) {
+      steps.push({
+        from: nodes[i],
+        to: nodes[i + 1],
+        fromType: i === 0 ? 'start' : 'process',
+        toType: i + 1 === nodes.length - 1 ? 'end' : 'process',
+      });
     }
   }
 
@@ -101,8 +168,8 @@ export const MermaidDiagram: React.FC<MermaidDiagramProps> = ({ chart, isNightMo
         }
       } catch (err: any) {
         if (isMounted) {
-          console.warn('[MermaidDiagram] Render warning, activating fallback:', err?.message);
-          setError(err?.message || 'Invalid diagram syntax.');
+          console.warn('[MermaidDiagram] Fallback activated for diagram syntax.');
+          setError(err?.message || 'Diagram syntax normalized to structural view.');
         }
       } finally {
         if (isMounted) {
@@ -131,7 +198,7 @@ export const MermaidDiagram: React.FC<MermaidDiagramProps> = ({ chart, isNightMo
   return (
     <div
       className={`my-6 rounded-2xl border transition-all overflow-hidden ${
-        isNightMode ? 'bg-[#0A0E1A] border-slate-800' : 'bg-sky-50/40 border-sky-200/80 shadow-xs'
+        isNightMode ? 'bg-[#0A0E1A] border-slate-800 shadow-xl' : 'bg-sky-50/40 border-sky-200/80 shadow-sm'
       } ${
         isExpanded
           ? 'fixed inset-4 z-50 p-6 flex flex-col justify-center items-center backdrop-blur-xl bg-slate-950/95 shadow-2xl overflow-auto'
@@ -142,7 +209,7 @@ export const MermaidDiagram: React.FC<MermaidDiagramProps> = ({ chart, isNightMo
       <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800/80 text-[11px] font-mono text-slate-500 w-full">
         <span className="font-bold flex items-center gap-1.5 text-sky-600 dark:text-sky-400">
           <span className="w-2 h-2 rounded-full bg-sky-500 animate-pulse" />
-          Flowchart & Architecture Diagram
+          <span>Flowchart & Process Architecture</span>
         </span>
 
         <div className="flex items-center gap-1">
@@ -154,7 +221,7 @@ export const MermaidDiagram: React.FC<MermaidDiagramProps> = ({ chart, isNightMo
               title="Toggle Code"
             >
               <Code className="w-3 h-3" />
-              <span>{showRawCode ? 'View Diagram' : 'View Code'}</span>
+              <span>{showRawCode ? 'View Flowchart' : 'View Code'}</span>
             </button>
           )}
 
@@ -192,23 +259,40 @@ export const MermaidDiagram: React.FC<MermaidDiagramProps> = ({ chart, isNightMo
                 <GitCommit className="w-4 h-4" />
                 <span>Diagram Specification:</span>
               </div>
-              <pre className="whitespace-pre-wrap">{chart}</pre>
+              <pre className="whitespace-pre-wrap leading-relaxed">{chart}</pre>
             </div>
           ) : (
             /* Structured visual fallback flowchart */
-            <div className="w-full py-4 space-y-3">
-              <div className="flex flex-wrap items-center justify-center gap-3">
+            <div className="w-full py-4 space-y-4">
+              <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-2.5 sm:gap-3">
                 {fallbackSteps.map((step, idx) => (
                   <React.Fragment key={idx}>
-                    <div className="px-4 py-2 rounded-xl border bg-white dark:bg-slate-900 border-sky-200 dark:border-sky-900/60 shadow-xs text-center font-mono text-xs font-semibold text-slate-800 dark:text-slate-200">
+                    <div className={`px-4 py-2.5 rounded-xl border font-mono text-xs font-semibold shadow-xs text-center transition-colors ${
+                      step.fromType === 'start'
+                        ? 'bg-sky-500/10 border-sky-500/40 text-sky-300'
+                        : step.isDecision
+                        ? 'bg-amber-500/10 border-amber-500/40 text-amber-300'
+                        : 'bg-slate-900/80 border-slate-700/80 text-slate-200'
+                    }`}>
                       {step.from}
                     </div>
-                    <div className="flex items-center text-sky-500 gap-1 text-[11px] font-mono">
-                      {step.label && <span className="text-[10px] text-slate-400">{step.label}</span>}
-                      <ArrowRight className="w-4 h-4" />
+
+                    <div className="flex flex-col items-center justify-center text-sky-400 gap-0.5 font-mono text-[11px]">
+                      {step.label && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-950/60 border border-sky-500/30 text-sky-300 font-bold">
+                          {step.label}
+                        </span>
+                      )}
+                      <ArrowRight className="w-4 h-4 hidden sm:block" />
+                      <ArrowDown className="w-4 h-4 sm:hidden" />
                     </div>
+
                     {idx === fallbackSteps.length - 1 && (
-                      <div className="px-4 py-2 rounded-xl border bg-white dark:bg-slate-900 border-emerald-300 dark:border-emerald-900/60 shadow-xs text-center font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                      <div className={`px-4 py-2.5 rounded-xl border font-mono text-xs font-bold shadow-xs text-center transition-colors ${
+                        step.toType === 'end'
+                          ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300'
+                          : 'bg-slate-900/80 border-slate-700/80 text-slate-200'
+                      }`}>
                         {step.to}
                       </div>
                     )}
@@ -230,4 +314,3 @@ export const MermaidDiagram: React.FC<MermaidDiagramProps> = ({ chart, isNightMo
 };
 
 export default MermaidDiagram;
-
