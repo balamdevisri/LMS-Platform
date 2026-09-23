@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { MarkdownContent } from './MarkdownContent';
+import { hasCanonicalSection } from '@/utils/lessonNormalizer';
 
 const getThemeColorClass = (color?: string | null) => {
   switch (color) {
@@ -356,10 +357,10 @@ export const LessonContentPanel: React.FC<LessonContentPanelProps> = ({
     setOpenSolutions((prev) => ({ ...prev, [idx]: !prev[idx] }));
   };
 
-  const hasObjectivesInMarkdown = useMemo(() => /Learning Objectives/i.test(lessonContent || ''), [lessonContent]);
-  const hasCodeInMarkdown = useMemo(() => /```[\s\S]+?```/.test(lessonContent || ''), [lessonContent]);
-  const hasKeyPointsInMarkdown = useMemo(() => /(?:Key Points|Key Takeaways)/i.test(lessonContent || ''), [lessonContent]);
-  const hasPracticeInMarkdown = useMemo(() => /(?:Practice Questions|Interview Questions|Practice Programs|Beginner Practice)/i.test(lessonContent || ''), [lessonContent]);
+  const hasObjectivesInMarkdown = useMemo(() => hasCanonicalSection(lessonContent, 'objectives'), [lessonContent]);
+  const hasCodeInMarkdown = useMemo(() => hasCanonicalSection(lessonContent, 'codeExamples'), [lessonContent]);
+  const hasKeyPointsInMarkdown = useMemo(() => hasCanonicalSection(lessonContent, 'keyPoints'), [lessonContent]);
+  const hasPracticeInMarkdown = useMemo(() => hasCanonicalSection(lessonContent, 'practiceQuestions'), [lessonContent]);
 
   return (
     <article className="flex-1 min-w-0 flex flex-col">

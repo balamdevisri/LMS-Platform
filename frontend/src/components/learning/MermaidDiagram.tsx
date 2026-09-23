@@ -254,8 +254,12 @@ export const MermaidDiagram: React.FC<MermaidDiagramProps> = ({ chart, isNightMo
           </div>
         ) : error ? (
           showRawCode || fallbackSteps.length === 0 ? (
-            <div className="w-full p-4 rounded-xl bg-slate-900/90 border border-slate-800 text-xs font-mono text-slate-300 overflow-x-auto">
-              <div className="flex items-center gap-2 text-sky-400 font-bold mb-2">
+            <div className={`w-full p-4 rounded-xl border text-xs font-mono overflow-x-auto ${
+              isNightMode ? 'bg-slate-900/90 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-800 shadow-xs'
+            }`}>
+              <div className={`flex items-center gap-2 font-bold mb-2 ${
+                isNightMode ? 'text-sky-400' : 'text-sky-700'
+              }`}>
                 <GitCommit className="w-4 h-4" />
                 <span>Diagram Specification:</span>
               </div>
@@ -269,17 +273,21 @@ export const MermaidDiagram: React.FC<MermaidDiagramProps> = ({ chart, isNightMo
                   <React.Fragment key={idx}>
                     <div className={`px-4 py-2.5 rounded-xl border font-mono text-xs font-semibold shadow-xs text-center transition-colors ${
                       step.fromType === 'start'
-                        ? 'bg-sky-500/10 border-sky-500/40 text-sky-300'
+                        ? (isNightMode ? 'bg-sky-500/10 border-sky-500/40 text-sky-300' : 'bg-sky-100 border-sky-300 text-sky-800')
                         : step.isDecision
-                        ? 'bg-amber-500/10 border-amber-500/40 text-amber-300'
-                        : 'bg-slate-900/80 border-slate-700/80 text-slate-200'
+                        ? (isNightMode ? 'bg-amber-500/10 border-amber-500/40 text-amber-300' : 'bg-amber-100 border-amber-300 text-amber-800')
+                        : (isNightMode ? 'bg-slate-900/80 border-slate-700/80 text-slate-200' : 'bg-white border-slate-200 text-slate-800 shadow-xs')
                     }`}>
                       {step.from}
                     </div>
 
-                    <div className="flex flex-col items-center justify-center text-sky-400 gap-0.5 font-mono text-[11px]">
+                    <div className={`flex flex-col items-center justify-center gap-0.5 font-mono text-[11px] ${
+                      isNightMode ? 'text-sky-400' : 'text-sky-600'
+                    }`}>
                       {step.label && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-950/60 border border-sky-500/30 text-sky-300 font-bold">
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded border font-bold ${
+                          isNightMode ? 'bg-sky-950/60 border-sky-500/30 text-sky-300' : 'bg-sky-100 border-sky-300 text-sky-800'
+                        }`}>
                           {step.label}
                         </span>
                       )}
@@ -290,8 +298,8 @@ export const MermaidDiagram: React.FC<MermaidDiagramProps> = ({ chart, isNightMo
                     {idx === fallbackSteps.length - 1 && (
                       <div className={`px-4 py-2.5 rounded-xl border font-mono text-xs font-bold shadow-xs text-center transition-colors ${
                         step.toType === 'end'
-                          ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300'
-                          : 'bg-slate-900/80 border-slate-700/80 text-slate-200'
+                          ? (isNightMode ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300' : 'bg-emerald-100 border-emerald-300 text-emerald-800')
+                          : (isNightMode ? 'bg-slate-900/80 border-slate-700/80 text-slate-200' : 'bg-white border-slate-200 text-slate-800 shadow-xs')
                       }`}>
                         {step.to}
                       </div>
