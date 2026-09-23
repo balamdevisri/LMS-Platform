@@ -11,8 +11,9 @@ import {
   AlertCircle,
   ShieldAlert,
   Tag,
-  Code as CodeIcon
+  Code as CodeIcon,
 } from 'lucide-react';
+import { processCanonicalLessonContent } from '@/utils/lessonNormalizer';
 
 // Lazy-loaded practice simulators to code-split heavy dependencies (sql.js, mermaid, terminal emulators)
 const SqlPlayground = lazy(() => import('./practice/SqlPlayground').then(m => ({ default: m.SqlPlayground || m.default })));
@@ -131,12 +132,7 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, isNig
 
   const processedContent = useMemo(() => {
     if (!content) return '';
-    const rawText = typeof content === 'string' ? content : String(content || '');
-    // Normalize line endings and remove invisible unicode BOM / zero-width spaces
-    return rawText
-      .replace(/\r\n/g, '\n')
-      .replace(/\r/g, '\n')
-      .replace(/[\u200B-\u200D\uFEFF]/g, '');
+    return processCanonicalLessonContent(content);
   }, [content]);
 
   return (

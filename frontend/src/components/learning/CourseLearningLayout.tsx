@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { LearningTopBar } from './LearningTopBar';
 import { LearningProgressBar } from './LearningProgressBar';
 import { CourseSidebarOutline } from './CourseSidebarOutline';
-import { LessonContentPanel } from './LessonContentPanel';
+import { StudentLessonRenderer } from './StudentLessonRenderer';
 
 import type { ModuleData } from './ModuleAccordion';
 
@@ -904,15 +904,26 @@ export const CourseLearningLayout: React.FC<CourseLearningLayoutProps> = ({
               />
             </div>
           ) : (
-            <LessonContentPanel
+            <StudentLessonRenderer
               key={String(selectedLessonId)}
-              lessonTitle={activeLessonFull.title}
-              moduleTitle={currentLessonData?.moduleTitle}
-              lessonContent={activeLessonFull.content}
-              shortDescription={activeLessonFull.shortDescription}
-              topicImageUrl={activeLessonFull.topicImageUrl}
-              themeColor={activeLessonFull.themeColor}
-              themeIcon={activeLessonFull.themeIcon}
+              lesson={{
+                id: String(selectedLessonId),
+                lessonId: String(selectedLessonId),
+                title: activeLessonFull.title,
+                moduleTitle: currentLessonData?.moduleTitle,
+                content: activeLessonFull.content,
+                readingContent: activeLessonFull.content,
+                conceptTheory: activeLessonFull.content,
+                shortDescription: activeLessonFull.shortDescription,
+                topicImageUrl: activeLessonFull.topicImageUrl,
+                themeColor: activeLessonFull.themeColor,
+                themeIcon: activeLessonFull.themeIcon,
+                learningObjectives: activeLessonFull.learningObjectives,
+                codeExamples: activeLessonFull.codeExamples,
+                keyPoints: activeLessonFull.keyPoints,
+                practiceQuestions: activeLessonFull.practiceQuestions,
+                resourceLinks: activeLessonFull.resourceLinks,
+              }}
               lessonIndex={activeIndex >= 0 ? activeIndex : 0}
               totalLessons={allLessons.length}
               isCompleted={isCompleted}
@@ -922,11 +933,7 @@ export const CourseLearningLayout: React.FC<CourseLearningLayoutProps> = ({
               onNextLesson={handleNextLesson}
               onMarkComplete={handleMarkComplete}
               isNightMode={isNightMode}
-              learningObjectives={activeLessonFull.learningObjectives}
-              codeExamples={activeLessonFull.codeExamples}
-              keyPoints={activeLessonFull.keyPoints}
-              practiceQuestions={activeLessonFull.practiceQuestions}
-              resourceLinks={activeLessonFull.resourceLinks}
+              mode="student"
             />
           )}
 

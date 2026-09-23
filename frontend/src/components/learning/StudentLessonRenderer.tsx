@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import { LessonContentPanel } from './LessonContentPanel';
-import { processCanonicalLessonContent } from '@/utils/lessonNormalizer';
 
 export interface CanonicalLessonInput {
   id?: string | number;
@@ -69,10 +68,9 @@ export const StudentLessonRenderer: React.FC<StudentLessonRendererProps> = ({
   mode = 'student',
   className = '',
 }) => {
-  // Extract and normalize raw markdown content through canonical pipeline
-  const normalizedContent = useMemo(() => {
-    const raw = lesson.readingContent || lesson.conceptTheory || lesson.content || lesson.description || '';
-    return processCanonicalLessonContent(raw);
+  // Extract raw markdown content (normalization deferred to single authoritative gate in MarkdownContent)
+  const rawContent = useMemo(() => {
+    return lesson.readingContent || lesson.conceptTheory || lesson.content || lesson.description || '';
   }, [lesson.readingContent, lesson.conceptTheory, lesson.content, lesson.description]);
 
   const rawResources = lesson.resourceLinks || lesson.resources || [];
@@ -94,7 +92,7 @@ export const StudentLessonRenderer: React.FC<StudentLessonRendererProps> = ({
       <LessonContentPanel
         lessonTitle={lesson.title || 'Module Complete Notes'}
         moduleTitle={lesson.moduleTitle}
-        lessonContent={normalizedContent}
+        lessonContent={rawContent}
         shortDescription={lesson.shortDescription || lesson.description}
         lessonIndex={lessonIndex}
         totalLessons={totalLessons}
