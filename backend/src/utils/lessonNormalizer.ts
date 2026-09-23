@@ -78,36 +78,63 @@ export function formatCanonicalLessonMarkdown(raw: string | null | undefined): s
     return protectCode('c', incLine);
   });
 
-  // 6. Headings: Add space after # ONLY for actual Markdown headings, NEVER for preprocessor directives or shebangs
+  // 6. Fix literal Markdown headings inside callout boxes / notes (e.g. `> **Important Note:** # Module 1: ...` -> `> **Important Note:** Module 1: ...`)
+  text = text.replace(/^([ \t]*>[ \t]*\*\*(?:Important[ \t]+Note|Note|Warning|Tip|Caution)[:\s]*\*\*[:\s]*)[ \t]*#+[ \t]*/gim, '$1');
+  text = text.replace(/^([ \t]*\*\*(?:Important[ \t]+Note|Note|Warning|Tip|Caution)[:\s]*\*\*[:\s]*)[ \t]*#+[ \t]*/gim, '$1');
+  text = text.replace(/^([ \t]*>[ \t]*\[!(?:NOTE|TIP|IMPORTANT|WARNING|CAUTION)\][ \t]*)[ \t]*#+[ \t]*/gim, '$1');
+
+  // 7. Headings: Add space after # ONLY for actual Markdown headings, NEVER for preprocessor directives or shebangs
   text = text.replace(/^(#{1,6})(?!(?:include|define|undef|if|ifdef|ifndef|else|elif|endif|pragma|import|error|warning|line|region|endregion)\b|[!/])([A-Za-z0-9])/gm, '$1 $2');
 
-  // 7. Format Section Numbered Headings (e.g. "1.1 Learning Objectives", "1.2 What is C?")
+  // 8. Format Section Numbered Headings (e.g. "1.1 Learning Objectives", "1.2 What is Python?", "1.44 Important Interview Questions")
   text = text.replace(/^[ \t]*(?:##\s*)?(\d+\.\d+(?:\.\d+)?)[ \t]+([A-Za-z0-9][^\n:]+?)[ \t]*$/gm, (_match, num, title) => {
     return `\n\n## ${num} ${title.trim()}\n\n`;
   });
 
-  // 8. Format Common Subheadings (### Subheading)
-  text = text.replace(/^[ \t]*(?:###\s*)?(Learning Objectives|Key Points|Example:|Examples:|Output:|Interview Questions|Best Practices|Flow Explanation|Identifier Rules)[ \t]*$/gim, (_match, heading) => {
+  // 9. Format Common Subheadings (### Subheading)
+  text = text.replace(/^[ \t]*(?:###\s*)?(Learning Objectives|Key Points|Key Takeaways|Example:|Examples:|Output:|Interview Questions|Best Practices|Flow Explanation|Identifier Rules)[ \t]*$/gim, (_match, heading) => {
     return `\n\n### ${heading.trim()}\n\n`;
   });
 
-  // 9. Separate Task / Scenario / Exercise labels when attached to end of sentences
+  // 10. Format Q&A: Format Q1., Q2., Question 1: with preceding & trailing blank lines so they never collapse into a single paragraph
+  // Pattern A: Q1. What is Python? -> **Q1. What is Python?**
+  text = text.replace(/^[ \t]*(?!\*\*)Q(\d+)[\.\:\s—–-]+([^\n]+)$/gm, (_match, num, qText) => {
+    return `\n\n**Q${num}. ${qText.trim()}**\n\n`;
+  });
+  // Pattern B: Question 1: What is Python? -> **Question 1:** What is Python?
+  text = text.replace(/^[ \t]*(?!\*\*)Question[ \t]+(\d+)[\.\:\s—–-]+([^\n]+)$/gim, (_match, num, qText) => {
+    return `\n\n**Question ${num}:** ${qText.trim()}\n\n`;
+  });
+  // Ensure already-bolded Q1 lines have blank lines around them
+  text = text.replace(/(?<!\n\n)^([ \t]*\*\*Q\d+[\.\:\s—–-][^\n]+\*\*)/gm, '\n\n$1');
+  text = text.replace(/(^([ \t]*\*\*Q\d+[\.\:\s—–-][^\n]+\*\*))(?!\n\n)/gm, '$1\n\n');
+
+  // Answer formatting
+  text = text.replace(/(\?|[a-zA-Z0-9])[ \t]+(Answer\s*:|Ans\s*:)/gi, '$1\n\n**Answer:**\n');
+  text = text.replace(/^[ \t]*(?!\*\*)(?:Answer|Ans)\s*[:\s—–-]+/gim, '\n\n**Answer:**\n');
+
+  // 11. Format Practice Programs & Tasks
+  // Program 1 / Program 2 / etc.
+  text = text.replace(/^[ \t]*(?!\*\*)Program[ \t]+(\d+)\b[:\s—–-]*([^\n]*)$/gim, (_match, num, rest) => {
+    const trailing = rest.trim() ? ` ${rest.trim()}` : '';
+    return `\n\n**Program ${num}:**${trailing}\n\n`;
+  });
+
+  // Task / Scenario / Exercise labels
   text = text.replace(/([.?!])[ \t]+((?:Practical[ \t]+Task|Lab[ \t]+Task|Task|Exercise|Scenario)[ \t]+\d+\b)/gi, '$1\n\n$2');
-  // Format unbolded standalone Task lines (e.g. "Task 1: do something" -> "**Task 1:** do something")
-  text = text.replace(/^[ \t]*(?!\*\*)((?:Practical[ \t]+Task|Lab[ \t]+Task|Task|Exercise|Scenario)[ \t]+\d+)\b[:\s—–-]*/gim, '**$1:** ');
+  text = text.replace(/^[ \t]*(?!\*\*)((?:Practical[ \t]+Task|Lab[ \t]+Task|Task|Exercise|Scenario)[ \t]+\d+)\b[:\s—–-]*([^\n]*)$/gim, (_match, label, rest) => {
+    const trailing = rest.trim() ? ` ${rest.trim()}` : '';
+    return `\n\n**${label}:**${trailing}\n\n`;
+  });
   // Clean any accidental duplicate bolding artifacts
-  text = text.replace(/\*\*((?:Practical[ \t]+Task|Lab[ \t]+Task|Task|Exercise|Scenario)[ \t]+\d+):\*\*\s*:\s*\*\*/gi, '**$1:**');
-  text = text.replace(/\*\*((?:Practical[ \t]+Task|Lab[ \t]+Task|Task|Exercise|Scenario)[ \t]+\d+):\*\*\s*\*\*/gi, '**$1:**');
+  text = text.replace(/\*\*((?:Practical[ \t]+Task|Lab[ \t]+Task|Task|Exercise|Scenario|Program)[ \t]+\d+):\*\*\s*:\s*\*\*/gi, '**$1:**');
+  text = text.replace(/\*\*((?:Practical[ \t]+Task|Lab[ \t]+Task|Task|Exercise|Scenario|Program)[ \t]+\d+):\*\*\s*\*\*/gi, '**$1:**');
 
-  // 10. Q&A formatting
-  text = text.replace(/(\?|[a-zA-Z0-9])[ \t]+(Answer\s*:)/gi, '$1\n\n**Answer:**');
-  text = text.replace(/^[ \t]*(?!\*\*)Answer\s*:\s*/gim, '**Answer:**\n');
-
-  // 11. Normalize unicode bullet points (●, •, ✔, ▪, ▫, ◆, etc.) to standard Markdown list items (- )
+  // 12. Normalize unicode bullet points (●, •, ✔, ▪, ▫, ◆, etc.) to standard Markdown list items (- )
   text = text.replace(/^([ \t]*)[●•✔▪▫◆◇■□►▻⁃]\s*/gm, '$1- ');
   text = text.replace(/(\S)[ \t]+([●•✔▪▫◆◇■□►▻⁃]\s*)/g, '$1\n- ');
 
-  // 12. Fix standalone checkmarks above bullet points
+  // 13. Fix standalone checkmarks above bullet points
   text = text.replace(/^[ \t]*[✅✔✓☑][ \t]*\n[ \t]*([A-Za-z0-9])/gm, '- $1');
 
   // 13. Metadata Tag Lists (Strict: Only true metadata lists, never full English sentences)

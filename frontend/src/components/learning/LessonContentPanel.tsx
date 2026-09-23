@@ -29,7 +29,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { MarkdownContent } from './MarkdownContent';
-import { processCanonicalLessonContent } from '@/utils/lessonNormalizer';
 
 const getThemeColorClass = (color?: string | null) => {
   switch (color) {
@@ -330,8 +329,7 @@ export const LessonContentPanel: React.FC<LessonContentPanelProps> = ({
   practiceQuestions,
   resourceLinks,
 }) => {
-  const normalizedLessonContent = useMemo(() => processCanonicalLessonContent(lessonContent), [lessonContent]);
-  const readingTime = useMemo(() => estimateReadingTime(normalizedLessonContent), [normalizedLessonContent]);
+  const readingTime = useMemo(() => estimateReadingTime(lessonContent), [lessonContent]);
   const [openSolutions, setOpenSolutions] = useState<Record<number, boolean>>({});
 
   const validObjectives = useMemo(() => {
@@ -357,6 +355,11 @@ export const LessonContentPanel: React.FC<LessonContentPanelProps> = ({
   const toggleSolution = (idx: number) => {
     setOpenSolutions((prev) => ({ ...prev, [idx]: !prev[idx] }));
   };
+
+  const hasObjectivesInMarkdown = useMemo(() => /Learning Objectives/i.test(lessonContent || ''), [lessonContent]);
+  const hasCodeInMarkdown = useMemo(() => /```[\s\S]+?```/.test(lessonContent || ''), [lessonContent]);
+  const hasKeyPointsInMarkdown = useMemo(() => /(?:Key Points|Key Takeaways)/i.test(lessonContent || ''), [lessonContent]);
+  const hasPracticeInMarkdown = useMemo(() => /(?:Practice Questions|Interview Questions|Practice Programs|Beginner Practice)/i.test(lessonContent || ''), [lessonContent]);
 
   return (
     <article className="flex-1 min-w-0 flex flex-col">
@@ -422,8 +425,8 @@ export const LessonContentPanel: React.FC<LessonContentPanelProps> = ({
           )}
         </div>
 
-        {/* ── 2. Learning Objectives ──────────────────────────────────────────── */}
-        {validObjectives.length > 0 && (
+        {/* ── 2. Learning Objectives (Rendered only when not already present in Markdown) ──────────────── */}
+        {validObjectives.length > 0 && !hasObjectivesInMarkdown && (
           <div className={`p-5 rounded-2xl border transition-colors
             ${isNightMode
               ? 'bg-[#172033]/60 border-[#25324A] text-slate-200'
@@ -447,11 +450,11 @@ export const LessonContentPanel: React.FC<LessonContentPanelProps> = ({
 
         {/* ── 3. Lesson Content (Rich Markdown Theory) ─────────────────────────── */}
         <section className="space-y-4">
-          <MarkdownContent content={normalizedLessonContent} isNightMode={isNightMode} />
+          <MarkdownContent content={lessonContent} isNightMode={isNightMode} />
         </section>
 
-        {/* ── 4. Code Examples (Syntax Highlighted) ───────────────────────────── */}
-        {validCodeExamples.length > 0 && (
+        {/* ── 4. Code Examples (Rendered only when not already in Markdown) ───── */}
+        {validCodeExamples.length > 0 && !hasCodeInMarkdown && (
           <section className="space-y-4 pt-4 border-t border-[#E5E7EB] dark:border-[#25324A]">
             <h3 className={`text-lg font-bold flex items-center gap-2
               ${isNightMode ? 'text-[#60A5FA]' : 'text-[#2563EB]'} dark:text-[#60A5FA]`}>
@@ -496,8 +499,8 @@ export const LessonContentPanel: React.FC<LessonContentPanelProps> = ({
           </section>
         )}
 
-        {/* ── 5. Key Points ───────────────────────────────────────────────────── */}
-        {validKeyPoints.length > 0 && (
+        {/* ── 5. Key Points (Rendered only when not already in Markdown) ───────── */}
+        {validKeyPoints.length > 0 && !hasKeyPointsInMarkdown && (
           <section className={`p-5 rounded-2xl border transition-colors space-y-3
             ${isNightMode
               ? 'bg-[#172033]/40 border-[#25324A]'
@@ -519,8 +522,8 @@ export const LessonContentPanel: React.FC<LessonContentPanelProps> = ({
           </section>
         )}
 
-        {/* ── 6. Practice Exercises ───────────────────────────────────────────── */}
-        {validPracticeQuestions.length > 0 && (
+        {/* ── 6. Practice Exercises (Rendered only when not already in Markdown) ─ */}
+        {validPracticeQuestions.length > 0 && !hasPracticeInMarkdown && (
           <section className="pt-4 border-t border-[#E5E7EB] dark:border-[#25324A] space-y-4">
             <h3 className={`text-lg font-bold flex items-center gap-2
               ${isNightMode ? 'text-[#60A5FA]' : 'text-[#2563EB]'} dark:text-[#60A5FA]`}>
