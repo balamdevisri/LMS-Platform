@@ -7,25 +7,15 @@
  */
 
 /**
- * Normalizes Markdown lesson content formatting:
- * - Protects code blocks (```...```) so their code/comments are 100% untouched
- * - Normalizes unicode bullet characters (●, •, ✔, ▪, ▫, ◆, etc.) to standard Markdown list items (- )
- * - Collapses excessive blank lines (3+ to 2)
- * - Formats metadata tags into structured tag blocks without breaking H1 headings
- * - Normalizes ASCII flowcharts with ↓ or ➔ into structured step blocks
- * - Fixes spaces after Markdown heading hashes (e.g. #Heading -> # Heading)
- * - Strips unwanted bracketed metadata markers (e.g. [TOPIC: ...])
- * - Preserves ALL code, commands, examples, explanations, quizzes, and technical meaning intact.
- */
-/**
  * Deterministic, code-block-aware canonical Markdown formatter.
  *
  * Pipeline:
  * Raw Markdown -> Protect existing fenced code blocks -> Normalize line endings
  * -> Repair known preprocessor directives (# include -> #include)
- * -> Detect obvious unfenced code regions conservatively -> Headings normalization
- * -> Subheadings and list normalization -> Strict metadata tags -> Restore fenced blocks
- * -> 100% idempotent and lossless.
+ * -> Detect multi-line ASCII/arrow flowcharts -> Detect unfenced code regions conservatively
+ * -> Headings normalization -> Subheadings and Q&A structural normalization
+ * -> Practice task normalization -> Unicode list items -> Strict metadata tags
+ * -> Restore fenced blocks -> 100% idempotent and lossless.
  */
 export function formatCanonicalLessonMarkdown(raw: string | null | undefined): string {
   if (!raw) return '';
@@ -54,9 +44,17 @@ export function formatCanonicalLessonMarkdown(raw: string | null | undefined): s
   // 3. Known Corruption Repair: Fix `# include <...>` -> `#include <...>` (repair only recognized preprocessor directives)
   text = text.replace(/^[ \t]*#[ \t]+(include|define|undef|if|ifdef|ifndef|else|elif|endif|pragma|import|error|warning|line)\b/gm, '#$1');
 
-  // 4. Wrap multi-line ASCII/Box-drawing flowcharts if outside code blocks
-  text = text.replace(/(?:^|\n)((?:[ \t]*[┌┐└┘│─├┤┬┴┼▼▲►◄↓↑➔→][^\n]*\n?){3,})/g, (_match, chartBlock) => {
+  // 4. Wrap multi-line ASCII/Box-drawing flowcharts or arrow flowcharts outside code blocks
+  text = text.replace(/(?:^|\n)((?:[ \t]*[┌┐└┘│─├┤┬┴┼▼▲►◄][^\n]*\n?){2,})/g, (_match, chartBlock) => {
     return protectCode('ascii-flowchart', chartBlock);
+  });
+
+  text = text.replace(/(?:^|\n)((?:[^\n]+\n[ \t]*[↓↑➔→▼▲][ \t]*\n)+[^\n]+)/g, (match, flowBlock) => {
+    const arrowCount = (flowBlock.match(/[↓↑➔→▼▲]/g) || []).length;
+    if (arrowCount >= 2 && !flowBlock.includes('__PROTECTED_CODE_BLOCK_')) {
+      return protectCode('ascii-flowchart', flowBlock);
+    }
+    return match;
   });
 
   // 5. Conservative Unfenced C/C++ Code Detection & Wrapping
@@ -65,21 +63,20 @@ export function formatCanonicalLessonMarkdown(raw: string | null | undefined): s
     return protectCode('c', cCode);
   });
 
-  // Pattern B: Multi-line C function definition (e.g. "int add(int a, int b)\n{\n...\nreturn a + b;\n}")
+  // Pattern B: Multi-line C function definition
   text = text.replace(/(?:^|\n)([ \t]*(?:int|void|float|double|char|size_t|bool)\s+[a-zA-Z_]\w*\s*\([^)]*\)\s*\{[\s\S]*?\n[ \t]*\})/g, (match, funcCode) => {
-    // Only wrap if it contains typical code indicators like semicolons, return, printf, scanf, etc.
     if (/;\s*$/m.test(funcCode) || /\b(?:return|printf|scanf|malloc|free|cout|cin)\b/.test(funcCode)) {
       return protectCode('c', funcCode);
     }
     return match;
   });
 
-  // Pattern C: Standalone #include statements that are outside code blocks
+  // Pattern C: Standalone #include statements outside code blocks
   text = text.replace(/^[ \t]*(#include\s*<[^>]+>)[ \t]*$/gm, (_match, incLine) => {
     return protectCode('c', incLine);
   });
 
-  // 6. Fix literal Markdown headings inside callout boxes / notes (e.g. `> **Important Note:** # Module 1: ...` -> `> **Important Note:** Module 1: ...`)
+  // 6. Fix literal Markdown headings inside callout boxes / notes
   text = text.replace(/^([ \t]*>[ \t]*\*\*(?:Important[ \t]+Note|Note|Warning|Tip|Caution)[:\s]*\*\*[:\s]*)[ \t]*#+[ \t]*/gim, '$1');
   text = text.replace(/^([ \t]*\*\*(?:Important[ \t]+Note|Note|Warning|Tip|Caution)[:\s]*\*\*[:\s]*)[ \t]*#+[ \t]*/gim, '$1');
   text = text.replace(/^([ \t]*>[ \t]*\[!(?:NOTE|TIP|IMPORTANT|WARNING|CAUTION)\][ \t]*)[ \t]*#+[ \t]*/gim, '$1');
@@ -87,47 +84,72 @@ export function formatCanonicalLessonMarkdown(raw: string | null | undefined): s
   // 7. Headings: Add space after # ONLY for actual Markdown headings, NEVER for preprocessor directives or shebangs
   text = text.replace(/^(#{1,6})(?!(?:include|define|undef|if|ifdef|ifndef|else|elif|endif|pragma|import|error|warning|line|region|endregion)\b|[!/])([A-Za-z0-9])/gm, '$1 $2');
 
-  // 8. Format Section Numbered Headings (e.g. "1.1 Learning Objectives", "1.2 What is Python?", "1.44 Important Interview Questions")
+  // 8. Format Section Numbered Headings (e.g. "1.1 Learning Objectives", "1.2 What is Python?")
   text = text.replace(/^[ \t]*(?:##\s*)?(\d+\.\d+(?:\.\d+)?)[ \t]+([A-Za-z0-9][^\n:]+?)[ \t]*$/gm, (_match, num, title) => {
     return `\n\n## ${num} ${title.trim()}\n\n`;
   });
 
   // 9. Format Common Subheadings (### Subheading)
-  text = text.replace(/^[ \t]*(?:###\s*)?(Learning Objectives|Key Points|Key Takeaways|Example:|Examples:|Output:|Interview Questions|Best Practices|Flow Explanation|Identifier Rules)[ \t]*$/gim, (_match, heading) => {
+  text = text.replace(/^[ \t]*(?:###\s*)?(Learning Objectives|Key Points|Key Takeaways|Example:|Examples:|Output:|Interview Questions|Practice Questions|Frequently Asked Questions|Best Practices|Flow Explanation|Identifier Rules)[ \t]*$/gim, (_match, heading) => {
     return `\n\n### ${heading.trim()}\n\n`;
   });
 
-  // 10. Format Q&A: Format Q1., Q2., Question 1: with preceding & trailing blank lines so they never collapse into a single paragraph
-  // Pattern A: Q1. What is Python? -> **Q1. What is Python?**
-  text = text.replace(/^[ \t]*(?!\*\*)Q(\d+)[\.\:\s—–-]+([^\n]+)$/gm, (_match, num, qText) => {
-    return `\n\n**Q${num}. ${qText.trim()}**\n\n`;
+  // 10. Format Q&A / Interview Questions:
+  // Pattern A: Q1., Q1:, Q1 -, Q01:
+  text = text.replace(/^[ \t]*(?!\*\*)Q(\d+)[\.\:\s—–-]+([^\n]+)$/gm, (_match, num, rawQ) => {
+    let qText = rawQ.trim();
+    const ansMatch = qText.match(/^(.*?)(?:\s+(?:Answer\s*[:\s—–-]|Ans\s*[:\s—–-]|A\s*[:—–-])\s*(.+))$/i);
+    if (ansMatch) {
+      const questionPart = ansMatch[1].trim();
+      const answerPart = ansMatch[2].trim();
+      return `\n\n**Q${num}. ${questionPart}**\n\n**Answer:**\n\n${answerPart}\n\n`;
+    }
+    const qMarkMatch = qText.match(/^([^\n?]+\?)\s+(\S.+)$/);
+    if (qMarkMatch) {
+      const questionPart = qMarkMatch[1].trim();
+      const answerPart = qMarkMatch[2].trim();
+      return `\n\n**Q${num}. ${questionPart}**\n\n${answerPart}\n\n`;
+    }
+    return `\n\n**Q${num}. ${qText}**\n\n`;
   });
-  // Pattern B: Question 1: What is Python? -> **Question 1:** What is Python?
-  text = text.replace(/^[ \t]*(?!\*\*)Question[ \t]+(\d+)[\.\:\s—–-]+([^\n]+)$/gim, (_match, num, qText) => {
-    return `\n\n**Question ${num}:** ${qText.trim()}\n\n`;
-  });
-  // Ensure already-bolded Q1 lines have blank lines around them
-  text = text.replace(/(?<!\n\n)^([ \t]*\*\*Q\d+[\.\:\s—–-][^\n]+\*\*)/gm, '\n\n$1');
-  text = text.replace(/(^([ \t]*\*\*Q\d+[\.\:\s—–-][^\n]+\*\*))(?!\n\n)/gm, '$1\n\n');
 
-  // Answer formatting
-  text = text.replace(/(\?|[a-zA-Z0-9])[ \t]+(Answer\s*:|Ans\s*:)/gi, '$1\n\n**Answer:**\n');
-  text = text.replace(/^[ \t]*(?!\*\*)(?:Answer|Ans)\s*[:\s—–-]+/gim, '\n\n**Answer:**\n');
+  // Pattern B: Interview Question 1: / Question 1:
+  text = text.replace(/^[ \t]*(?!\*\*)(?:Interview\s+Question|Question)[ \t]+(\d+)[\.\:\s—–-]+([^\n]+)$/gim, (_match, num, rawQ) => {
+    let qText = rawQ.trim();
+    const ansMatch = qText.match(/^(.*?)(?:\s+(?:Answer\s*[:\s—–-]|Ans\s*[:\s—–-]|A\s*[:—–-])\s*(.+))$/i);
+    if (ansMatch) {
+      const questionPart = ansMatch[1].trim();
+      const answerPart = ansMatch[2].trim();
+      return `\n\n**Question ${num}:** ${questionPart}\n\n**Answer:**\n\n${answerPart}\n\n`;
+    }
+    const qMarkMatch = qText.match(/^([^\n?]+\?)\s+(\S.+)$/);
+    if (qMarkMatch) {
+      const questionPart = qMarkMatch[1].trim();
+      const answerPart = qMarkMatch[2].trim();
+      return `\n\n**Question ${num}:** ${questionPart}\n\n${answerPart}\n\n`;
+    }
+    return `\n\n**Question ${num}:** ${qText}\n\n`;
+  });
+
+  // Ensure already-bolded Q1 / Question 1 lines have blank lines around them
+  text = text.replace(/^[ \t]*(\*\*(?:Q\d+|Question\s+\d+|Interview\s+Question\s+\d+)[\.\:\s—–-][^\n]+?\*\*)[ \t]*$/gm, '\n\n$1\n\n');
+
+  // Answer formatting: Ensure Answer: / Explanation: have clean bold tags and blank lines
+  text = text.replace(/(\?|[a-zA-Z0-9])[ \t]+(Answer\s*:|Ans\s*:)/gi, '$1\n\n**Answer:**\n\n');
+  text = text.replace(/^[ \t]*(?!\*\*)(?:Answer|Ans)\s*[:\s—–-]+/gim, '\n\n**Answer:**\n\n');
+  text = text.replace(/^[ \t]*(?!\*\*)Explanation\s*[:\s—–-]+/gim, '\n\n**Explanation:**\n\n');
 
   // 11. Format Practice Programs & Tasks
-  // Program 1 / Program 2 / etc.
   text = text.replace(/^[ \t]*(?!\*\*)Program[ \t]+(\d+)\b[:\s—–-]*([^\n]*)$/gim, (_match, num, rest) => {
     const trailing = rest.trim() ? ` ${rest.trim()}` : '';
     return `\n\n**Program ${num}:**${trailing}\n\n`;
   });
 
-  // Task / Scenario / Exercise labels
   text = text.replace(/([.?!])[ \t]+((?:Practical[ \t]+Task|Lab[ \t]+Task|Task|Exercise|Scenario)[ \t]+\d+\b)/gi, '$1\n\n$2');
   text = text.replace(/^[ \t]*(?!\*\*)((?:Practical[ \t]+Task|Lab[ \t]+Task|Task|Exercise|Scenario)[ \t]+\d+)\b[:\s—–-]*([^\n]*)$/gim, (_match, label, rest) => {
     const trailing = rest.trim() ? ` ${rest.trim()}` : '';
     return `\n\n**${label}:**${trailing}\n\n`;
   });
-  // Clean any accidental duplicate bolding artifacts
   text = text.replace(/\*\*((?:Practical[ \t]+Task|Lab[ \t]+Task|Task|Exercise|Scenario|Program)[ \t]+\d+):\*\*\s*:\s*\*\*/gi, '**$1:**');
   text = text.replace(/\*\*((?:Practical[ \t]+Task|Lab[ \t]+Task|Task|Exercise|Scenario|Program)[ \t]+\d+):\*\*\s*\*\*/gi, '**$1:**');
 
@@ -138,7 +160,7 @@ export function formatCanonicalLessonMarkdown(raw: string | null | undefined): s
   // 13. Fix standalone checkmarks above bullet points
   text = text.replace(/^[ \t]*[✅✔✓☑][ \t]*\n[ \t]*([A-Za-z0-9])/gm, '- $1');
 
-  // 13. Metadata Tag Lists (Strict: Only true metadata lists, never full English sentences)
+  // 14. Metadata Tag Lists
   text = text.replace(/^(?:#\s*tags|#tags|Tags:|Hashtags:|Topic Tags:)[\t ]+([a-zA-Z0-9_\-#\s,]+)$/gm, (_match, tagLine) => {
     if (/\b(?:is|are|was|were|have|has|the|this|that|in|for|with|and|or)\b/i.test(tagLine)) {
       return _match;
@@ -152,12 +174,12 @@ export function formatCanonicalLessonMarkdown(raw: string | null | undefined): s
     return protectCode('tags', cleanTags);
   });
 
-  // 14. Restore protected code blocks
+  // 15. Restore protected code blocks
   text = text.replace(/__PROTECTED_CODE_BLOCK_(\d+)__/g, (_match, index) => {
     return codeBlocks[Number(index)] || '';
   });
 
-  // 15. Collapse excessive blank lines (3+ to 2) and trim
+  // 16. Collapse excessive blank lines (3+ to 2) and trim
   text = text.replace(/\n{3,}/g, '\n\n');
 
   return text.trim();
@@ -209,4 +231,3 @@ export function formatCanonicalModuleTitle(moduleIndex: number, rawTitle: string
 export function formatCanonicalLessonTitle(moduleIndex: number): string {
   return `Module ${moduleIndex} - Complete Notes`;
 }
-
